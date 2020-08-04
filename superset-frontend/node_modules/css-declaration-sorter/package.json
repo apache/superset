@@ -1,0 +1,49 @@
+{
+  "name": "css-declaration-sorter",
+  "version": "4.0.1",
+  "description": "Sorts CSS declarations fast and automatically in a certain order.",
+  "main": "src/index.js",
+  "files": [
+    "src/index.js",
+    "orders"
+  ],
+  "scripts": {
+    "test": "node tests/test.js",
+    "test:benchmark": "node tests/benchmark/benchmark.js",
+    "test:ci": "npm test && npm run lint -- --max-warnings 0",
+    "lint": "eslint src/*.js tests/*.js",
+    "preversion": "npm test",
+    "scrape": "node src/property-scraper"
+  },
+  "dependencies": {
+    "postcss": "^7.0.1",
+    "timsort": "^0.3.0"
+  },
+  "devDependencies": {
+    "benchmark": "^2.1.4",
+    "eslint": "^5.0.0",
+    "tape": "^4.2.1"
+  },
+  "engines": {
+    "node": ">4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Siilwyn/css-declaration-sorter.git"
+  },
+  "author": "Selwyn <talk@selwyn.cc> (https://selwyn.cc/)",
+  "license": "MIT",
+  "keywords": [
+    "postcss",
+    "postcss-plugin",
+    "css",
+    "declaration",
+    "sorter",
+    "property",
+    "order"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/css-declaration-sorter/-/css-declaration-sorter-4.0.1.tgz"
+,"_integrity": "sha512-BcxQSKTSEEQUftYpBVnsH4SF05NTuBokb19/sBt6asXGKZ/6VP7PLG1CBCkFDYOnhXhPh0jMhO6xZ71oYHXHBA=="
+,"_from": "css-declaration-sorter@4.0.1"
+}

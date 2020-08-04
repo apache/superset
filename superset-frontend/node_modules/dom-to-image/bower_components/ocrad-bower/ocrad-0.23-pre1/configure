@@ -1,0 +1,207 @@
+#! /bin/sh
+# configure script for GNU Ocrad - Optical Character Recognition program
+# Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+# 2012, 2013 Antonio Diaz Diaz.
+#
+# This configure script is free software: you have unlimited permission
+# to copy, distribute and modify it.
+
+pkgname=ocrad
+pkgversion=0.23-pre1
+progname=ocrad
+libname=ocrad
+srctrigger=doc/${pkgname}.texinfo
+
+# clear some things potentially inherited from environment.
+LC_ALL=C
+export LC_ALL
+srcdir=
+prefix=/usr/local
+exec_prefix='$(prefix)'
+bindir='$(exec_prefix)/bin'
+datarootdir='$(prefix)/share'
+includedir='${prefix}/include'
+infodir='$(datarootdir)/info'
+libdir='${exec_prefix}/lib'
+mandir='$(datarootdir)/man'
+# CXX=g++
+CPPFLAGS=
+CXXFLAGS='-Wall -W -O2'
+LDFLAGS=
+
+# checking whether we are using GNU C++.
+${CXX} --version > /dev/null 2>&1
+if [ $? != 0 ] ; then
+	CXX=c++
+	CXXFLAGS='-W -O2'
+fi
+
+# Loop over all args
+args=
+no_create=
+while [ $# != 0 ] ; do
+
+	# Get the first arg, and shuffle
+	option=$1 ; arg2=no
+	shift
+
+	# Add the argument quoted to args
+	args="${args} \"${option}\""
+
+	# Split out the argument for options that take them
+	case ${option} in
+	*=*) optarg=`echo ${option} | sed -e 's,^[^=]*=,,;s,/$,,'` ;;
+	esac
+
+	# Process the options
+	case ${option} in
+	--help | -h)
+		echo "Usage: configure [options]"
+		echo
+		echo "Options: [defaults in brackets]"
+		echo "  -h, --help            display this help and exit"
+		echo "  -V, --version         output version information and exit"
+		echo "  --srcdir=DIR          find the sources in DIR [. or ..]"
+		echo "  --prefix=DIR          install into DIR [${prefix}]"
+		echo "  --exec-prefix=DIR     base directory for arch-dependent files [${exec_prefix}]"
+		echo "  --bindir=DIR          user executables directory [${bindir}]"
+		echo "  --datarootdir=DIR     base directory for doc and data [${datarootdir}]"
+		echo "  --includedir=DIR      C header files [${includedir}]"
+		echo "  --infodir=DIR         info files directory [${infodir}]"
+		echo "  --libdir=DIR          object code libraries [${libdir}]"
+		echo "  --mandir=DIR          man pages directory [${mandir}]"
+		echo "  CXX=COMPILER          C++ compiler to use [g++]"
+		echo "  CPPFLAGS=OPTIONS      command line options for the preprocessor [${CPPFLAGS}]"
+		echo "  CXXFLAGS=OPTIONS      command line options for the C++ compiler [${CXXFLAGS}]"
+		echo "  LDFLAGS=OPTIONS       command line options for the linker [${LDFLAGS}]"
+		echo
+		exit 0 ;;
+	--version | -V)
+		echo "Configure script for GNU ${pkgname} version ${pkgversion}"
+		exit 0 ;;
+	--srcdir)            srcdir=$1 ; arg2=yes ;;
+	--prefix)            prefix=$1 ; arg2=yes ;;
+	--exec-prefix)  exec_prefix=$1 ; arg2=yes ;;
+	--bindir)            bindir=$1 ; arg2=yes ;;
+	--datarootdir)  datarootdir=$1 ; arg2=yes ;;
+	--includedir)    includedir=$1 ; arg2=yes ;;
+	--infodir)          infodir=$1 ; arg2=yes ;;
+	--libdir)            libdir=$1 ; arg2=yes ;;
+	--mandir)            mandir=$1 ; arg2=yes ;;
+
+	--srcdir=*)            srcdir=${optarg} ;;
+	--prefix=*)            prefix=${optarg} ;;
+	--exec-prefix=*)  exec_prefix=${optarg} ;;
+	--bindir=*)            bindir=${optarg} ;;
+	--datarootdir=*)  datarootdir=${optarg} ;;
+	--includedir=*)    includedir=${optarg} ;;
+	--infodir=*)          infodir=${optarg} ;;
+	--libdir=*)            libdir=${optarg} ;;
+	--mandir=*)            mandir=${optarg} ;;
+	--no-create)              no_create=yes ;;
+
+	CXX=*)           CXX=${optarg} ;;
+	CPPFLAGS=*) CPPFLAGS=${optarg} ;;
+	CXXFLAGS=*) CXXFLAGS=${optarg} ;;
+	LDFLAGS=*)   LDFLAGS=${optarg} ;;
+
+	--*)
+		echo "configure: WARNING: unrecognized option: '${option}'" 1>&2 ;;
+	*=* | *-*-*) ;;
+	*)
+		echo "configure: unrecognized option: '${option}'" 1>&2
+		echo "Try 'configure --help' for more information." 1>&2
+		exit 1 ;;
+	esac
+
+	# Check if the option took a separate argument
+	if [ "${arg2}" = yes ] ; then
+		if [ $# != 0 ] ; then args="${args} \"$1\"" ; shift
+		else echo "configure: Missing argument to '${option}'" 1>&2
+			exit 1
+		fi
+	fi
+done
+
+# Find the source files, if location was not specified.
+srcdirtext=
+if [ -z "${srcdir}" ] ; then
+	srcdirtext="or . or .." ; srcdir=.
+	if [ ! -r "${srcdir}/${srctrigger}" ] ; then srcdir=.. ; fi
+	if [ ! -r "${srcdir}/${srctrigger}" ] ; then
+		## the sed command below emulates the dirname command
+		srcdir=`echo $0 | sed -e 's,[^/]*$,,;s,/$,,;s,^$,.,'`
+	fi
+fi
+
+if [ ! -r "${srcdir}/${srctrigger}" ] ; then
+	echo "configure: Can't find sources in ${srcdir} ${srcdirtext}" 1>&2
+	echo "configure: (At least ${srctrigger} is missing)." 1>&2
+	exit 1
+fi
+
+# Set srcdir to . if that's what it is.
+if [ "`pwd`" = "`cd "${srcdir}" ; pwd`" ] ; then srcdir=. ; fi
+
+echo
+if [ -z "${no_create}" ] ; then
+	echo "creating config.status"
+	rm -f config.status
+	cat > config.status << EOF
+#! /bin/sh
+# This file was generated automatically by configure. Do not edit.
+# Run this file to recreate the current configuration.
+#
+# This script is free software: you have unlimited permission
+# to copy, distribute and modify it.
+
+exec /bin/sh $0 ${args} --no-create
+EOF
+	chmod +x config.status
+fi
+
+echo "creating Makefile"
+echo "VPATH = ${srcdir}"
+echo "prefix = ${prefix}"
+echo "exec_prefix = ${exec_prefix}"
+echo "bindir = ${bindir}"
+echo "datarootdir = ${datarootdir}"
+echo "includedir = ${includedir}"
+echo "infodir = ${infodir}"
+echo "libdir = ${libdir}"
+echo "mandir = ${mandir}"
+echo "CXX = ${CXX}"
+echo "CPPFLAGS = ${CPPFLAGS}"
+echo "CXXFLAGS = ${CXXFLAGS}"
+echo "LDFLAGS = ${LDFLAGS}"
+rm -f Makefile
+cat > Makefile << EOF
+# Makefile for GNU Ocrad - Optical Character Recognition program
+# Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+# 2012, 2013 Antonio Diaz Diaz.
+# This file was generated automatically by configure. Do not edit.
+#
+# This Makefile is free software: you have unlimited permission
+# to copy, distribute and modify it.
+
+pkgname = ${pkgname}
+pkgversion = ${pkgversion}
+progname = ${progname}
+libname = ${libname}
+VPATH = ${srcdir}
+prefix = ${prefix}
+exec_prefix = ${exec_prefix}
+bindir = ${bindir}
+datarootdir = ${datarootdir}
+includedir = ${includedir}
+infodir = ${infodir}
+libdir = ${libdir}
+mandir = ${mandir}
+CXX = ${CXX}
+CPPFLAGS = ${CPPFLAGS}
+CXXFLAGS = ${CXXFLAGS}
+LDFLAGS = ${LDFLAGS}
+EOF
+cat "${srcdir}/Makefile.in" >> Makefile
+
+echo "OK. Now you can run make."

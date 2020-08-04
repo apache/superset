@@ -1,0 +1,87 @@
+{
+  "name": "is-number",
+  "description": "Returns true if the value is a number. comprehensive tests.",
+  "version": "3.0.0",
+  "homepage": "https://github.com/jonschlinkert/is-number",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Charlike Mike Reagent (http://www.tunnckocore.tk)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/is-number",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-number/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "kind-of": "^3.0.2"
+  },
+  "devDependencies": {
+    "benchmarked": "^0.2.5",
+    "chalk": "^1.1.3",
+    "gulp-format-md": "^0.1.10",
+    "mocha": "^3.0.2"
+  },
+  "keywords": [
+    "check",
+    "coerce",
+    "coercion",
+    "integer",
+    "is",
+    "is-nan",
+    "is-num",
+    "is-number",
+    "istype",
+    "kind",
+    "math",
+    "nan",
+    "num",
+    "number",
+    "numeric",
+    "test",
+    "type",
+    "typeof",
+    "value"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "even",
+        "is-even",
+        "is-odd",
+        "is-primitive",
+        "kind-of",
+        "odd"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb",
+      "verb-generate-readme"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/is-number/-/is-number-3.0.0.tgz"
+,"_integrity": "sha1-JP1iAaR4LPUFYcgQJ2r8fRLXEZU="
+,"_from": "is-number@3.0.0"
+}

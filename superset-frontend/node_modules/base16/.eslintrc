@@ -1,0 +1,13 @@
+{
+  "extends": "eslint-config-airbnb",
+  "env": {
+    "browser": true,
+    "mocha": true,
+    "node": true
+  },
+  "rules": {
+    // Temporarily disabled due to babel-eslint issues:
+    "block-scoped-var": 0,
+    "padded-blocks": 0,
+  }
+}

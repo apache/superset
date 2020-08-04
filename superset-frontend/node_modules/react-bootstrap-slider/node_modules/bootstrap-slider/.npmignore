@@ -1,0 +1,9 @@
+.idea/*
+temp
+node_modules
+bower_components
+.grunt/*
+_SpecRunner.html
+npm-debug.log
+.DS_STORE
+index.html

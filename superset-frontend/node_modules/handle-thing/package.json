@@ -1,0 +1,42 @@
+{
+  "name": "handle-thing",
+  "version": "2.0.0",
+  "description": "Wrap Streams2 instance into a HandleWrap",
+  "main": "lib/handle.js",
+  "scripts": {
+    "lint": "standard",
+    "test": "mocha --reporter=spec test/*-test.js",
+    "coverage": "istanbul cover node_modules/.bin/_mocha -- --reporter=spec test/**/*-test.js"
+  },
+  "pre-commit": [
+    "lint",
+    "test"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/indutny/handle-thing.git"
+  },
+  "keywords": [
+    "handle",
+    "net",
+    "streams2"
+  ],
+  "author": "Fedor Indutny <fedor@indutny.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/spdy-http2/handle-thing/issues"
+  },
+  "homepage": "https://github.com/spdy-http2/handle-thing#readme",
+  "devDependencies": {
+    "istanbul": "^0.4.5",
+    "mocha": "^5.2.0",
+    "pre-commit": "^1.2.2",
+    "readable-stream": "^3.0.6",
+    "standard": "^12.0.1",
+    "stream-pair": "^1.0.3"
+  }
+
+,"_resolved": "https://registry.npmjs.org/handle-thing/-/handle-thing-2.0.0.tgz"
+,"_integrity": "sha512-d4sze1JNC454Wdo2fkuyzCr6aHcbL6PGGuFAz0Li/NcOm1tCHGnWDRmJP85dh9IhQErTc2svWFEX5xHIOo//kQ=="
+,"_from": "handle-thing@2.0.0"
+}

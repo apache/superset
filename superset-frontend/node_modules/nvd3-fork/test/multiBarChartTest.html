@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+<link href="teststyle.css" rel="stylesheet" type='text/css'>
+<script src="../bower_components/d3/d3.js"></script>
+<script src="../build/nv.d3.js"></script>
+<body class='with-3d-shadow with-transitions'>
+  <h3>Multibar chart test cases - feel free to add more tests</h3>
+  <div class='chart third' id="chart1">
+    Transition delay 1200ms, 0 non-stackable series and bar color set.
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart2">
+    No transitionDuration or delay, 0 non-stackable series and no bar color set.
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart2-2">
+    No transitionDuration or delay, 1 non-stackable series and no bar color set.
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart3">
+    TransitionDuration or delay 500ms, 1 non-stackable series(first) and color set.
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart3-2">
+    TransitionDuration or delay 500ms, 1 non-stackable series(mid) and color set.
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart3-3">
+    TransitionDuration or delay 500ms, 1 non-stackable series(last) and color set.
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart4">
+    Chart with single series, no group spacing.
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart5">
+    Chart with 1 data point
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart6">
+    Chart with 2 data points
+    <svg></svg>
+  </div>
+
+  <div class='chart full' id="chart7">
+    Chart with 18 series, 7 data points per series and no non-stackable series.
+    <svg></svg>
+  </div>
+  
+  <div class='chart third' id="chart8">
+    Chart with no stackable series -> same as grouped graphs
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart9">
+    Chart with multi stackable series
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart9-1">
+    Chart with multi more non stackable series
+    <svg></svg>
+  </div>
+  <div class='chart third' id="chart10">
+    Chart with 0 data points
+    <svg></svg>
+  </div>
+
+<script>
+
+
+var negative_test_data = new d3.range(0,4).map(function(d,i) { 
+  var series = {};
+  return {
+    key: 'Stream ' + i,
+    values: new d3.range(0,11).map( function(f,j) {
+      return {
+         y: 10 + Math.random()*100 * (Math.floor(Math.random()*100)%2 ? 1 : -1),
+         x: j
+       }
+    })
+  };
+});
+
+function dataFactory(seriesNum, perSeries, color) {
+  return new d3.range(0,seriesNum).map(function(d,i) { 
+    return {
+      key: 'Stream Data ' + i,
+      color: color||null,
+      values: new d3.range(0,perSeries).map( function(f,j) {
+        return {
+           y: 10 + Math.random()*100,
+           x: j
+         }
+      })
+    };
+  });
+}
+
+function dataFactoryNoStackable(seriesNum, perSeries, color) {
+   return new d3.range(0,seriesNum).map(function(d,i) { 
+    var series = {
+      key: 'Non-stackable Stream Data ' + i,
+      nonStackable: true,
+      values: new d3.range(0,perSeries).map( function(f,j) {
+        return {
+           y: 10 + Math.random()*100,
+           x: j
+         }
+      })
+    };
+    return series;
+  });
+}
+
+function dataFactoryWithStackable(seriesNum, perSeries, color, nonStackableCount) {
+ return new d3.range(0,seriesNum).map(function(d,i) { 
+    var series = {};
+    if (i < (seriesNum - nonStackableCount)) {
+      series = {
+        key: 'Stream ' + i,
+        nonStackable: false
+      };
+    } else {
+      series = {
+        color: color||null,
+        key: 'Non-stackable Stream Data ' + i,
+        nonStackable: true
+      };
+    }
+    series.values = new d3.range(0,perSeries).map( function(f,j) {
+      return {
+         y: 10 + Math.random()*100,
+         x: j
+       }
+    });
+    return series;
+  });
+}
+function dataFactoryWithCustomNonStackablePosition(seriesNum, perSeries, color,
+  nonStackablePosition) {
+  var colors = ['red', 'green', 'blue'];
+  nonStackablePosition = nonStackablePosition ? nonStackablePosition: 0;
+  return new d3.range(0,seriesNum).map(function(d,i) { 
+    var series = {
+      key: nonStackablePosition === i ? 'Non-stackable Stream ' + i: 'Stream ' + i,
+      nonStackable: nonStackablePosition === i,
+      color: nonStackablePosition === i ? color: colors[i]
+    };
+    series.values = new d3.range(0,perSeries).map( function(f,j) {
+      return {
+         y: 10 + Math.random()*100,
+         x: j
+       }
+    });
+    return series;
+  });
+}
+
+
+defaultChartConfig("chart1", negative_test_data, {
+  barColor: d3.scale.category20().range(),
+  delay: 1200,
+  groupSpacing: 0.1,
+  reduceXTicks: false,
+  staggerLabels: true
+});
+
+defaultChartConfig("chart2", dataFactory(3,11), {
+  delay: 0,
+  duration:0,
+  groupSpacing: 0.2
+});
+
+defaultChartConfig("chart2-2", dataFactoryWithStackable(3,11,null,1), {
+  delay: 0,
+  duration:0,
+  groupSpacing: 0.2
+});
+
+defaultChartConfig("chart3", dataFactoryWithCustomNonStackablePosition(3,11,'gray', 0), {
+  delay: 500,
+  groupSpacing: 0.2
+});
+
+defaultChartConfig("chart3-2", dataFactoryWithCustomNonStackablePosition(3,11,'gray', 1), {
+  delay: 500,
+  groupSpacing: 0.2
+});
+
+defaultChartConfig("chart3-3", dataFactoryWithCustomNonStackablePosition(3,11,'gray', 2), {
+  delay: 500,
+  groupSpacing: 0.2
+});
+
+defaultChartConfig("chart4",dataFactoryWithStackable(1,15),{
+  groupSpacing: 0,
+  delay:0
+});
+
+defaultChartConfig("chart5",dataFactory(1,1),{
+  delay:0
+});
+
+defaultChartConfig("chart6",dataFactory(1,2),{
+  delay:0
+});
+
+defaultChartConfig("chart7",dataFactory(18,7),{
+  delay:800
+});
+
+defaultChartConfig("chart8",dataFactoryNoStackable(3,11),{
+  delay:0
+});
+
+defaultChartConfig("chart9",dataFactoryWithStackable(5,8,null,2),{
+  delay:0
+});
+defaultChartConfig("chart9-1",dataFactoryWithStackable(5,8,null,3),{
+  delay:0
+});
+
+defaultChartConfig("chart10",dataFactory(0,0),{
+  delay:0
+});
+
+defaultChartConfig("chart11",dataFactoryWithStackable(5,8,null,3),{
+  delay:0,
+  useInteractiveGuideline: true
+});
+
+function defaultChartConfig(containerId, data, chartOptions) {
+  nv.addGraph(function() {
+      var chart;
+      chart = nv.models.multiBarChart()
+        .margin({bottom: 100})
+        ;
+
+      chart.options(chartOptions);
+      chart.multibar
+        .hideable(true);
+
+      chart.xAxis
+          .axisLabel("Current Index")
+          .showMaxMin(true)
+          .tickFormat(d3.format(',0f'));
+
+      chart.yAxis
+          .tickFormat(d3.format(',.1f'));
+
+      d3.select('#' + containerId + ' svg')
+          .datum(data)
+         .call(chart);
+
+      nv.utils.windowResize(chart.update);
+
+      chart.dispatch.on('stateChange', function(e) { nv.log('New State:', JSON.stringify(e)); });
+
+      return chart;
+  });
+}
+
+
+
+
+</script>

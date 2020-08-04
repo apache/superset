@@ -1,0 +1,11 @@
+.add(@a, @b) {
+  @r: @a + @b;
+}
+.foo {
+  width: .add(10px, 10px)[];
+  bar: @return[];
+}
+
+@return: {
+  single: val;
+}

@@ -1,0 +1,211 @@
+@rct-icon-color: #33c;
+@rct-label-hover: rgba(red(@rct-icon-color), green(@rct-icon-color), blue(@rct-icon-color), .1);
+@rct-label-active: rgba(red(@rct-icon-color), green(@rct-icon-color), blue(@rct-icon-color), .15);
+@rct-clickable-hover: rgba(red(@rct-icon-color), green(@rct-icon-color), blue(@rct-icon-color), .1);
+@rct-clickable-focus: rgba(red(@rct-icon-color), green(@rct-icon-color), blue(@rct-icon-color), .2);
+
+.react-checkbox-tree {
+  display: flex;
+  flex-direction: row-reverse;
+  font-size: 16px;
+
+  > ol {
+    flex: 1 1 auto;
+  }
+
+  ol {
+    margin: 0;
+    padding-left: 0;
+    list-style-type: none;
+
+    ol {
+      padding-left: 24px;
+    }
+  }
+
+  button {
+    line-height: normal;
+    color: inherit;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+
+  .rct-bare-label {
+    cursor: default;
+  }
+
+  label {
+    margin-bottom: 0;
+    cursor: pointer;
+
+    &:hover {
+      background: @rct-label-hover;
+    }
+
+    &:active {
+      background: @rct-label-active;
+    }
+  }
+
+  &:not(.rct-native-display) input {
+    display: none;
+  }
+
+  &.rct-native-display input {
+    margin: 0 5px;
+  }
+
+  .rct-icon {
+    font-family: "FontAwesome";
+    font-style: normal;
+  }
+}
+
+.rct-disabled {
+  > .rct-text > label {
+    opacity: .75;
+    cursor: not-allowed;
+
+    &:hover {
+      background: transparent;
+    }
+
+    &:active {
+      background: transparent;
+    }
+  }
+}
+
+.rct-text {
+  display: flex;
+  align-items: center;
+}
+
+.rct-options {
+  flex: 0 0 auto;
+  margin-left: .5rem;
+  text-align: right;
+}
+
+.rct-option {
+  opacity: .75;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 18px;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  + .rct-option {
+    margin-left: 2px;
+  }
+}
+
+.rct-collapse,
+.rct-checkbox,
+.rct-node-icon {
+  padding: 0 5px;
+
+  * {
+    display: inline-block;
+    margin: 0;
+    width: 14px;
+  }
+}
+
+.rct-collapse {
+  border: 0;
+  background: none;
+  line-height: normal;
+  color: inherit;
+  font-size: 12px;
+
+  &.rct-collapse-btn {
+    cursor: pointer;
+  }
+
+  > .rct-icon-expand-close {
+    opacity: .5;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.rct-checkbox {
+  .rct-native-display & {
+    display: none;
+  }
+}
+
+.rct-node-clickable {
+  cursor: pointer;
+
+  &:hover {
+    background: @rct-clickable-hover;
+  }
+
+  &:focus {
+    outline: 0;
+    background: @rct-clickable-focus;
+  }
+}
+
+.rct-node-icon {
+  color: @rct-icon-color;
+}
+
+.rct-title {
+  padding: 0 5px;
+}
+
+.rct-icon-expand-close::before {
+  content: "\f054";
+}
+
+.rct-icon-expand-open::before {
+  content: "\f078";
+}
+
+.rct-icon-uncheck::before {
+  content: "\f096";
+}
+
+.rct-icon-check::before {
+  content: "\f046";
+}
+
+.rct-icon-half-check::before {
+  opacity: .5;
+  content: "\f046";
+}
+
+.rct-icon-leaf::before {
+  content: "\f016";
+}
+
+.rct-icon-parent-open::before {
+  content: "\f115";
+}
+
+.rct-icon-parent-close::before {
+  content: "\f114";
+}
+
+.rct-icon-expand-all::before {
+  content: "\f0fe";
+}
+
+.rct-icon-collapse-all::before {
+  content: "\f146";
+}

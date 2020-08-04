@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+<link href="teststyle.css" rel="stylesheet" type='text/css'>
+<script src="../bower_components/d3/d3.js"></script>
+<script src="../build/nv.d3.js"></script>
+
+<body>
+<div style='position:relative;' class='with-transitions'>
+  <h3>Scatter chart tests</h3>
+  <div class='navigation'>
+          Tests:
+          <a href="lineChartTest.html">Line Chart</a>
+          <a href="stackedAreaChartTest.html">Stacked Area</a>
+          <a href="../examples/cumulativeLineChart.html">Cumulative Line</a>
+          <a href="ScatterChartTest.html">Scatter</a>
+  </div>
+  <div id="test1" class="chart third">
+    Normal - four series', all random (40 points)
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test2" class="chart third">
+    Normal - one series', all random (5 points), zero left margin
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test3" class="chart third">
+    Zero right margin, 200 points
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test4" class="chart third">
+    Bigger margins
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test5" class="chart third">
+    Zero data points
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test6" class="chart third">
+    One point.
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test7" class="chart third">
+    Two points
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test8" class="chart third">
+    Three series', one point each
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test9" class="chart third">
+    Three series', first one has zero points
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test10" class="chart third">
+    Lots of series
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test11" class="chart third">
+    Scatter plus line: y=2x + 0
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test12" class="chart third">
+    Scatter plus line: y=2x + 10;
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test13" class="chart third">
+    Scatter plus line: y=-0.5x + 1.0;
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test14" class="chart third">
+    Scatter chart: duplicate y values
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test15" class="chart third">
+    Scatter chart: duplicate x values
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+  <div id="test16" class="chart third">
+    Scatter chart: extremely small data points (1e-10)
+    <button>Select chart</button>
+    <svg></svg>
+  </div>
+
+
+</div>
+
+<script src="testScript.js"></script>
+<script>
+
+defaultChartTest("test1", randomData(4,40));
+defaultChartTest("test2", randomData(1,5), {left:0});
+defaultChartTest("test3", randomData(2,200), {right: 0});
+defaultChartTest("test4", randomData(2, 8), {top:40, right: 90, bottom: 150, left: 150});
+defaultChartTest("test5", randomData(0,0));
+defaultChartTest("test6", randomData(1,1));
+defaultChartTest("test7", randomData(1,2));
+defaultChartTest("test8", randomData(3,1));
+
+defaultChartTest("test9", [
+  {key: "Group 0", values: []},
+  {key: "Group 1", values: [{x:1, y:1}]}
+]);
+
+defaultChartTest("test10", randomData(30,2));
+
+scatterPlusLineTest("test11", randomDataSloped(2,0));
+scatterPlusLineTest("test12", randomDataSloped(2,10));
+scatterPlusLineTest("test13", randomDataSloped(-0.5,1));
+
+defaultChartTest("test14", [
+{key: "Duplicate Y",
+     values: [
+        {x: 0, y: 10}, {x:1, y:10},{x:2, y:10},{x:3, y:10}
+     ]
+    }
+]);
+
+defaultChartTest("test15",[
+   {key: "Duplicate X",
+      area: true,
+      values: [
+        {x: 4, y: 10},
+        {x: 4, y: 11},
+        {x: 4, y: 12},
+        {x: 4, y: 13}
+      ]
+    }
+]);
+
+defaultChartTest("test16",tinyPoints());
+
+function defaultChartTest(container, data, margin) {
+  nv.addGraph(function() {
+    var chart;
+    chart = nv.models.scatterChart()
+                  .showDistX(true).showDistY(true)
+                  ;
+    chart.xAxis.tickFormat(d3.format('.02f')).ticks(10);
+    chart.yAxis.tickFormat(d3.format('.02f')).ticks(10);
+    if (margin) {
+      chart.margin(margin);
+    }
+    chart.tooltipContent(function(key) {
+        return "<h3>" + key + "</h3>";
+    });
+    d3.select('#' + container + ' svg').datum(data).transition().duration(500).call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    chart.dispatch.on('stateChange', function(e) { nv.log('New State:', JSON.stringify(e)); });
+
+    return chart;
+  });
+}
+
+function scatterPlusLineTest(container, data) {
+  nv.addGraph(function() {
+    var chart;
+    chart = nv.models.scatterChart()
+                  .showDistX(true).showDistY(true);
+    chart.xAxis.tickFormat(d3.format('.02f'));
+    chart.yAxis.tickFormat(d3.format('.02f'));
+    chart.tooltipContent(function(key) {
+        return "<h3>" + key + "</h3>";
+    });
+    d3.select('#' + container + ' svg').datum(data).transition().duration(500).call(chart);
+    nv.utils.windowResize(chart.update);
+    return chart;
+  });
+}
+
+function randomData(groups, points) { //# groups,# points per group
+  var data = [],
+      shapes = ['circle', 'cross', 'triangle-up', 'triangle-down', 'diamond', 'square'],
+      random = d3.random.normal();
+
+  for (i = 0; i < groups; i++) {
+    data.push({
+      key: 'Group ' + i,
+      values: []
+    });
+
+    for (j = 0; j < points; j++) {
+      data[i].values.push({
+        x: random(),
+        y: random(),
+        size: Math.random(),
+        shape: shapes[j % 6]
+      });
+    }
+  }
+
+  return data;
+}
+
+function randomDataSloped(slope,intercept) { //# groups,# points per group
+  var data = [],
+      shapes = ['circle', 'cross', 'triangle-up', 'triangle-down', 'diamond', 'square'],
+      random = d3.random.normal();
+
+  var groups = 2, points = 10;
+  for (i = 0; i < groups; i++) {
+    data.push({
+      key: 'Group ' + i,
+      values: [],
+      slope: slope,
+      intercept: intercept
+    });
+
+    for (j = 0; j < points; j++) {
+      data[i].values.push({
+        x: random(),
+        y: random(),
+        size: Math.random(),
+        shape: shapes[j % 6]
+      });
+    }
+  }
+
+  return data;
+}
+
+function tinyPoints() {
+  var rval = {key: "Tiny points", values: []};
+  for(var i =1; i < 20; i++) {
+    rval.values.push({
+       x: Math.random() * 1e-10,
+       y: Math.random() * 1e-10
+    });
+  }
+  return [rval];
+}
+</script>

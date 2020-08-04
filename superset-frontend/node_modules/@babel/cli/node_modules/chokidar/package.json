@@ -1,0 +1,67 @@
+{
+  "name": "chokidar",
+  "description": "A neat wrapper around node.js fs.watch / fs.watchFile / fsevents.",
+  "version": "2.1.8",
+  "keywords": [
+    "fs",
+    "watch",
+    "watchFile",
+    "watcher",
+    "watching",
+    "file",
+    "fsevents"
+  ],
+  "types": "./types/index.d.ts",
+  "homepage": "https://github.com/paulmillr/chokidar",
+  "author": "Paul Miller (https://paulmillr.com), Elan Shanker",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paulmillr/chokidar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/paulmillr/chokidar/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "nyc mocha --exit",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls",
+    "dtslint": "dtslint types"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "types/index.d.ts"
+  ],
+  "dependencies": {
+    "anymatch": "^2.0.0",
+    "async-each": "^1.0.1",
+    "braces": "^2.3.2",
+    "glob-parent": "^3.1.0",
+    "inherits": "^2.0.3",
+    "is-binary-path": "^1.0.0",
+    "is-glob": "^4.0.0",
+    "normalize-path": "^3.0.0",
+    "path-is-absolute": "^1.0.0",
+    "readdirp": "^2.2.1",
+    "upath": "^1.1.1"
+  },
+  "optionalDependencies": {
+    "fsevents": "^1.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "^11.9.4",
+    "chai": "^3.2.0",
+    "coveralls": "^3.0.1",
+    "dtslint": "0.4.1",
+    "graceful-fs": "4.1.4",
+    "mocha": "^5.2.0",
+    "nyc": "^11.8.0",
+    "rimraf": "^2.4.3",
+    "sinon": "^1.10.3",
+    "sinon-chai": "^2.6.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/chokidar/-/chokidar-2.1.8.tgz"
+,"_integrity": "sha512-ZmZUazfOzf0Nve7duiCKD23PFSCs4JPoYyccjUFF3aQkQadqBhfzhjkwBH2mNOG9cTBwhamM37EIsIkZw3nRgg=="
+,"_from": "chokidar@2.1.8"
+}

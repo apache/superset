@@ -1,0 +1,8 @@
+#dom-node {
+    width: 100px;
+    height: 100px !important;
+}
+
+#root {
+    border: none !important;
+}

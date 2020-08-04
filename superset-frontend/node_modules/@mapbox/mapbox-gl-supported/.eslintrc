@@ -1,0 +1,17 @@
+{
+  "extends": "mourner",
+  "rules": {
+    "object-curly-spacing": 0,
+    "key-spacing": 0,
+    "array-bracket-spacing": 0,
+    "space-before-function-paren": 0,
+    "quotes": 0,
+    "no-eq-null": 0,
+    "consistent-return": 0,
+    "global-require": 0,
+    "block-scoped-var": 2
+  },
+  "env": {
+    "browser": true
+  }
+}

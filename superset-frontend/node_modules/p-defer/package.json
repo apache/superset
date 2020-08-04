@@ -1,0 +1,45 @@
+{
+  "name": "p-defer",
+  "version": "1.0.0",
+  "description": "Create a deferred promise",
+  "license": "MIT",
+  "repository": "sindresorhus/p-defer",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "promise",
+    "defer",
+    "deferred",
+    "resolve",
+    "reject",
+    "lazy",
+    "later",
+    "async",
+    "await",
+    "promises",
+    "bluebird"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  },
+  "xo": {
+    "esnext": true
+  }
+
+,"_resolved": "https://registry.npmjs.org/p-defer/-/p-defer-1.0.0.tgz"
+,"_integrity": "sha1-n26xgvbJqozXQwBKfU+WsZaw+ww="
+,"_from": "p-defer@1.0.0"
+}

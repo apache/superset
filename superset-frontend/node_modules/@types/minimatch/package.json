@@ -1,0 +1,31 @@
+{
+    "name": "@types/minimatch",
+    "version": "3.0.3",
+    "description": "TypeScript definitions for Minimatch",
+    "license": "MIT",
+    "contributors": [
+        {
+            "name": "vvakame",
+            "url": "https://github.com/vvakame",
+            "githubUsername": "vvakame"
+        },
+        {
+            "name": "Shant Marouti",
+            "url": "https://github.com/shantmarouti",
+            "githubUsername": "shantmarouti"
+        }
+    ],
+    "main": "",
+    "repository": {
+        "type": "git",
+        "url": "https://www.github.com/DefinitelyTyped/DefinitelyTyped.git"
+    },
+    "scripts": {},
+    "dependencies": {},
+    "typesPublisherContentHash": "e768e36348874adcc93ac67e9c3c7b5fcbd39079c0610ec16e410b8f851308d1",
+    "typeScriptVersion": "2.0"
+
+,"_resolved": "https://registry.npmjs.org/@types/minimatch/-/minimatch-3.0.3.tgz"
+,"_integrity": "sha512-tHq6qdbT9U1IRSGf14CL0pUlULksvY9OZ+5eEgl1N7t+OA3tGvNpxJCzuKQlsNgCVwbAs670L1vcVQi8j9HjnA=="
+,"_from": "@types/minimatch@3.0.3"
+}

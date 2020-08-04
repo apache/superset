@@ -1,0 +1,5 @@
+{
+  "name": "gl-matrix/mat2",
+  "main": "../cjs/mat2.js",
+  "module": "../esm/mat2.js"
+}

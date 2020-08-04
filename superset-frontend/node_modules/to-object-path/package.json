@@ -1,0 +1,52 @@
+{
+  "name": "to-object-path",
+  "description": "Create an object path from a list or array of strings.",
+  "version": "0.3.0",
+  "homepage": "https://github.com/jonschlinkert/to-object-path",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/to-object-path",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/to-object-path/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "kind-of": "^3.0.2"
+  },
+  "devDependencies": {
+    "base": "^0.6.7",
+    "mocha": "*"
+  },
+  "keywords": [
+    "dot",
+    "nested",
+    "notation",
+    "object",
+    "path",
+    "stringify"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "get-value",
+        "set-value",
+        "has-value",
+        "omit-value",
+        "unset-value"
+      ]
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/to-object-path/-/to-object-path-0.3.0.tgz"
+,"_integrity": "sha1-KXWIt7Dn4KwI4E5nL4XB9JmeF68="
+,"_from": "to-object-path@0.3.0"
+}

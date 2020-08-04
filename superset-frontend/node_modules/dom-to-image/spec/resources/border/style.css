@@ -1,0 +1,9 @@
+#dom-node {
+    font-size: 16px;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    border-color: black;
+    border: solid;
+    border-width: 10px 10.0px 0.625em 10px;
+}

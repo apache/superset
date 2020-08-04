@@ -1,0 +1,1 @@
+{"version":3,"file":"ColumnOption.d.ts","sourceRoot":"","sources":["../../src/components/ColumnOption.tsx"],"names":[],"mappings":";AAsBA,OAAO,EAAE,UAAU,EAAE,MAAM,UAAU,CAAC;AAEtC,oBAAY,iBAAiB,GAAG;IAC9B,MAAM,EAAE,UAAU,CAAC;IACnB,QAAQ,CAAC,EAAE,OAAO,CAAC;CACpB,CAAC;AAEF,wBAAgB,YAAY,CAAC,EAAE,MAAM,EAAE,QAAgB,EAAE,EAAE,iBAAiB,eAgC3E;AAED,eAAe,YAAY,CAAC"}

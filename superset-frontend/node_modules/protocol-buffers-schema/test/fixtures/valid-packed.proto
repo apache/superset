@@ -1,0 +1,35 @@
+message EnumCarrying{
+  enum E{
+    A = 0;
+    B = 1;
+  }
+
+}
+
+message ValidPacked {
+  // varint wire types
+  repeated int32 f1 = 1 [packed = true];
+  repeated int64 f2 = 2 [packed = true];
+  repeated uint32 f3 = 3 [packed = true];
+  repeated uint64 f4 = 4 [packed = true];
+  repeated sint32 f5 = 5 [packed = true];
+  repeated sint64 f6 = 6 [packed = true];
+  repeated bool f7 = 7 [packed = true];
+  enum Corpus {
+    UNIVERSAL = 0;
+    WEB = 1;
+  }
+  repeated Corpus f8 = 8 [packed = true];
+  repeated EnumCarrying.E f9 = 9 [packed = true];
+  
+  // 64-bit wire types
+  repeated fixed64 f10 = 10 [packed = true];
+  repeated sfixed64 f11 = 11 [packed = true];
+  repeated double f12 = 12 [packed = true];
+  
+  // 32-bit wire types
+  repeated fixed32 f13 = 13 [packed = true];
+  repeated sfixed32 f14 = 14 [packed = true];
+  repeated float f15 = 15 [packed = true];
+}
+  

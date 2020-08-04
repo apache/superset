@@ -1,0 +1,18 @@
+{
+  "extends": "takiyon-react",
+  "env": {
+    "browser": true,
+    "mocha": true
+  },
+  "settings": {
+    "import/resolver": {
+      "webpack": {
+        "config": "webpack.test.config.js"
+      }
+    }
+  },
+  "rules": {
+    "react/destructuring-assignment": "off",
+    "react/jsx-sort-props": "off"
+  }
+}

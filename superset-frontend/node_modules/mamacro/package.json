@@ -1,0 +1,15 @@
+{
+  "name": "mamacro",
+  "version": "0.0.3",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Sven Sauleau",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/mamacro/-/mamacro-0.0.3.tgz"
+,"_integrity": "sha512-qMEwh+UujcQ+kbz3T6V+wAmO2U8veoq2w+3wY8MquqwVA3jChfwY+Tk52GZKDfACEPjuZ7r2oJLejwpt8jtwTA=="
+,"_from": "mamacro@0.0.3"
+}

@@ -1,0 +1,2 @@
+SyntaxError: Function 'func' is undefined in {path}root-func-undefined-1.less on line 1, column 1:
+1 func();

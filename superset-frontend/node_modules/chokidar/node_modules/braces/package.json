@@ -1,0 +1,112 @@
+{
+  "name": "braces",
+  "description": "Bash-like brace expansion, implemented in JavaScript. Safer than other brace expansion libs, with complete support for the Bash 4.3 braces specification, without sacrificing speed.",
+  "version": "2.3.2",
+  "homepage": "https://github.com/micromatch/braces",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Elan Shanker (https://github.com/es128)",
+    "Eugene Sharygin (https://github.com/eush77)",
+    "hemanth.hm (http://h3manth.com)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "micromatch/braces",
+  "bugs": {
+    "url": "https://github.com/micromatch/braces/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha",
+    "benchmark": "node benchmark"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.1.0",
+    "array-unique": "^0.3.2",
+    "extend-shallow": "^2.0.1",
+    "fill-range": "^4.0.0",
+    "isobject": "^3.0.1",
+    "repeat-element": "^1.1.2",
+    "snapdragon": "^0.8.1",
+    "snapdragon-node": "^2.0.1",
+    "split-string": "^3.0.2",
+    "to-regex": "^3.0.1"
+  },
+  "devDependencies": {
+    "ansi-cyan": "^0.1.1",
+    "benchmarked": "^2.0.0",
+    "brace-expansion": "^1.1.8",
+    "cross-spawn": "^5.1.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^4.0.0",
+    "gulp-format-md": "^1.0.0",
+    "gulp-istanbul": "^1.1.2",
+    "gulp-mocha": "^3.0.1",
+    "gulp-unused": "^0.2.1",
+    "is-windows": "^1.0.1",
+    "minimatch": "^3.0.4",
+    "mocha": "^3.2.0",
+    "noncharacters": "^1.1.0",
+    "text-table": "^0.2.0",
+    "time-diff": "^0.3.1",
+    "yargs-parser": "^8.0.0"
+  },
+  "keywords": [
+    "alpha",
+    "alphabetical",
+    "bash",
+    "brace",
+    "braces",
+    "expand",
+    "expansion",
+    "filepath",
+    "fill",
+    "fs",
+    "glob",
+    "globbing",
+    "letter",
+    "match",
+    "matches",
+    "matching",
+    "number",
+    "numerical",
+    "path",
+    "range",
+    "ranges",
+    "sh"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "expand-brackets",
+        "extglob",
+        "fill-range",
+        "micromatch",
+        "nanomatch"
+      ]
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/braces/-/braces-2.3.2.tgz"
+,"_integrity": "sha512-aNdbnj9P8PjdXU4ybaWLK2IF3jc/EoDYbC7AazW6to3TRsfXxscC9UXOB5iDiEQrkyIbWp2SLQda4+QAa7nc3w=="
+,"_from": "braces@2.3.2"
+}

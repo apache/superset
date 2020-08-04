@@ -1,0 +1,85 @@
+#!/usr/bin/env node
+
+var fs = require("fs"),
+    optimist = require("optimist"),
+    queue = require("d3-queue"),
+    shapefile = require("../");
+
+var argv = optimist
+    .usage("Usage: \033[1mshp2json\033[0m [options] input\n\n"
+
++ "Version: " + shapefile.version + "\n\n"
+
++ "Converts the specified input shapefile to a GeoJSON FeatureCollection.")
+
+    .options("o", {
+      alias: "out",
+      describe: "output GeoJSON file name",
+      default: "/dev/stdout",
+    })
+    .options("ignore-properties", {
+      describe: "skip reading shapefile properties (.dbf) for faster performance",
+      type: "boolean",
+      default: false
+    })
+    .options("property-encoding", {
+      describe: "character encoding for reading shapefile properties (.dbf)",
+      default: null
+    })
+    .options("help", {
+      describe: "display this helpful message",
+      type: "boolean",
+      default: false
+    })
+    .check(function(argv) {
+      if (argv._.length !== 1) throw new Error("exactly one input required");
+    })
+    .argv;
+
+if (argv.help) return optimist.showHelp();
+
+var out = argv.o === "/dev/stdout"
+    ? process.stdout
+    : fs.createWriteStream(argv.o);
+
+var previous;
+
+var reader = shapefile.reader(argv._[0], {encoding: argv["property-encoding"], "ignore-properties": !!argv["ignore-properties"]});
+
+queue(1)
+    .defer(readHeader)
+    .defer(readAllRecords)
+    .defer(close)
+    .await(function(error) { if (error) throw error; });
+
+function readHeader(callback) {
+  reader.readHeader(function(error, header) {
+    if (error) return callback(error);
+    out.write("{\"type\":\"FeatureCollection\",\"bbox\":");
+    out.write(JSON.stringify(header.bbox));
+    out.write(",\"features\":[\n");
+    callback(null);
+  });
+}
+
+function readAllRecords(callback) {
+  (function readRecord() {
+    reader.readRecord(function(error, record) {
+      if (error) return callback(error);
+      if (record === shapefile.end) return callback(null);
+      if (previous) out.write(",\n");
+      out.write(JSON.stringify(record));
+      previous = true;
+      process.nextTick(readRecord);
+    });
+  })();
+}
+
+function close(callback) {
+  reader.close(function(error) {
+    if (error) return callback(error);
+    out.write("]}\n");
+    if (out !== process.stdout) out.end();
+    callback(null);
+  });
+}

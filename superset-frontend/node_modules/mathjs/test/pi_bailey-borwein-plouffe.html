@@ -1,0 +1,54 @@
+<html>
+<head>
+  <title>Pi Bailey-Borwein-Plouffe</title>
+  <script src="../node_modules/decimal.js/decimal.js"></script>
+</head>
+<body>
+<script>
+  Decimal.config({precision: 100});
+
+  function pi() {
+    // the Bailey-Borwein-Plouffe formula
+    // http://stackoverflow.com/questions/4484489/using-basic-arithmetics-for-calculating-pi-with-arbitary-precision
+
+    var zero = new Decimal(0);
+    var one = new Decimal(1);
+    var two = new Decimal(2);
+    var four = new Decimal(4);
+
+    var p16 = one;
+    var pi = zero;
+    var precision = Decimal.config().precision;
+    var k8 = zero;
+
+    for (var k = zero; k.lte(precision); k = k.plus(one)) {
+      // pi += 1/p16 * (4/(8*k + 1) - 2/(8*k + 4) - 1/(8*k + 5) - 1/(8*k+6));
+      // p16 *= 16;
+      //
+      // a little simpler:
+      // pi += p16 * (4/(8*k + 1) - 2/(8*k + 4) - 1/(8*k + 5) - 1/(8*k+6));
+      // p16 /= 16;
+
+      var f = four.div(k8.plus(1))
+          .minus(two.div(k8.plus(4)))
+          .minus(one.div(k8.plus(5)))
+          .minus(one.div(k8.plus(6)));
+
+      pi = pi.plus(p16.times(f));
+      p16 = p16.div(16);
+      k8 = k8.plus(8);
+    }
+
+    return pi;
+  }
+
+  console.time('estimation');
+  var calculatedPi = pi();
+  console.timeEnd('estimation');
+
+  document.write('<code>Real: 3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664...</code><br>');
+  document.write('<code>Est:&nbsp;&nbsp;' + calculatedPi.toString() + '</code>');
+
+</script>
+</body>
+</html>

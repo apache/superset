@@ -1,0 +1,40 @@
+{
+  "name": "postcss-discard-overridden",
+  "version": "4.0.1",
+  "description": "PostCSS plugin to discard overridden @keyframes or @counter-style.",
+  "main": "dist/index.js",
+  "keywords": [
+    "postcss",
+    "css",
+    "postcss-plugin",
+    "at-rules",
+    "@keyframes",
+    "@counter-style"
+  ],
+  "author": "Justineo <justice360@gmail.com>",
+  "license": "MIT",
+  "repository": "cssnano/cssnano",
+  "bugs": {
+    "url": "https://github.com/cssnano/cssnano/issues"
+  },
+  "homepage": "https://github.com/cssnano/cssnano",
+  "dependencies": {
+    "postcss": "^7.0.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.0.0",
+    "chalk": "^2.0.0",
+    "cross-env": "^5.0.0",
+    "diff": "^3.0.0"
+  },
+  "scripts": {
+    "prepublish": "cross-env BABEL_ENV=publish babel src --out-dir dist --ignore /__tests__/"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-discard-overridden/-/postcss-discard-overridden-4.0.1.tgz"
+,"_integrity": "sha512-IYY2bEDD7g1XM1IDEsUT4//iEYCxAmP5oDSFMVU/JVvT7gh+l4fmjciLqGgwjdWpQIdb0Che2VX00QObS5+cTg=="
+,"_from": "postcss-discard-overridden@4.0.1"
+}

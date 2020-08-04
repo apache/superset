@@ -1,0 +1,55 @@
+{
+  "name": "postcss-modules-values",
+  "version": "1.3.0",
+  "description": "PostCSS plugin for CSS Modules to pass arbitrary values between your module files",
+  "main": "lib/index.js",
+  "scripts": {
+    "lint": "standard src test",
+    "build": "babel --out-dir lib src",
+    "autotest": "chokidar src test -c 'npm test'",
+    "test": "mocha --compilers js:babel-core/register",
+    "posttest": "npm run lint && npm run build",
+    "travis": "npm run test",
+    "prepublish": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/css-modules/postcss-modules-values.git"
+  },
+  "keywords": [
+    "css",
+    "modules",
+    "postcss"
+  ],
+  "author": "Glen Maddern",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/css-modules/postcss-modules-values/issues"
+  },
+  "homepage": "https://github.com/css-modules/postcss-modules-values#readme",
+  "devDependencies": {
+    "babel-cli": "^6.5.2",
+    "babel-core": "^6.5.2",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-preset-es2015": "^6.3.13",
+    "chokidar": "^1.2.0",
+    "mocha": "^3.0.2",
+    "standard": "^8.4.0"
+  },
+  "dependencies": {
+    "icss-replace-symbols": "^1.1.0",
+    "postcss": "^6.0.1"
+  },
+  "babel": {
+    "presets": [
+      "es2015"
+    ],
+    "plugins": [
+      "add-module-exports"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-modules-values/-/postcss-modules-values-1.3.0.tgz"
+,"_integrity": "sha1-7P+p1+GSUYOJ9CrQ6D9yrsRW6iA="
+,"_from": "postcss-modules-values@1.3.0"
+}

@@ -1,0 +1,11 @@
+root = true
+
+[*]
+trim_trailing_whitespace = true
+insert_final_newline = true
+end_of_line = lf
+
+[*.js]
+indent_style = space
+max_line_length = 100
+indent_size = 2

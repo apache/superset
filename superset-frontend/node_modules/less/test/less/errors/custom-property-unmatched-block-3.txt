@@ -1,0 +1,4 @@
+ParseError: Expected '"' in {path}custom-property-unmatched-block-3.less on line 4, column 19:
+3     this;
+4     is-unmatched: "
+5   }}

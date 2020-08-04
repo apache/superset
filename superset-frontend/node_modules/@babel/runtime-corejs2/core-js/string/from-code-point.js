@@ -1,0 +1,1 @@
+module.exports = require("core-js/library/fn/string/from-code-point");

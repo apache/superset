@@ -1,0 +1,5 @@
+{
+  "NY": {"fillKey": "Visited", "info": "Born here"},
+  "TX": {"fillKey": "Visited", "info": "Live here"},
+  "CA": {"fillKey": "Visited", "info": "Here while writing this code"}
+}

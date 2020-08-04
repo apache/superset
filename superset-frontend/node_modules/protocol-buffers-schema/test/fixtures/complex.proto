@@ -1,0 +1,30 @@
+package tutorial;
+
+option java_package = "com.mafintosh.generated";
+option java_outer_classname = "Example";
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message Person {
+  enum PhoneType {
+    option allow_alias = true;
+    option custom_option = true;
+    MOBILE = 0 [some_enum_option = true];
+    HOME = 1;
+    WORK = 2;
+  }
+  
+  message PhoneNumber {
+    required string number = 1;
+    optional PhoneType type = 2 [default = HOME];
+  }
+  
+  required string name = 1;
+  required int32 id = 2;
+  optional string email = 3;
+  repeated PhoneNumber phone = 4;
+}
+
+message AddressBook {
+  repeated Person person = 1;
+}

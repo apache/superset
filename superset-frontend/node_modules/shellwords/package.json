@@ -1,0 +1,26 @@
+{
+  "author": "Jimmy Cuadra <jimmy@jimmycuadra.com> (http://jimmycuadra.com/)",
+  "name": "shellwords",
+  "description": "Manipulate strings according to the word parsing rules of the UNIX Bourne shell.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jimmycuadra/shellwords",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jimmycuadra/shellwords.git"
+  },
+  "main": "./lib/shellwords",
+  "files": ["lib"],
+  "scripts": {
+    "test": "cake spec"
+  },
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "jasmine-node": "~1.0.26",
+    "nodewatch": "~0.1.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/shellwords/-/shellwords-0.1.1.tgz"
+,"_integrity": "sha512-vFwSUfQvqybiICwZY5+DAWIPLKsWO31Q91JSKl3UYv+K5c2QRPzn0qzec6QPu1Qc9eHYItiP3NdJqNVqetYAww=="
+,"_from": "shellwords@0.1.1"
+}

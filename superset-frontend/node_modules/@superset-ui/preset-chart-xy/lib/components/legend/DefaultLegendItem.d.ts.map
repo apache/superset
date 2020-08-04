@@ -1,0 +1,1 @@
+{"version":3,"file":"DefaultLegendItem.d.ts","sourceRoot":"","sources":["../../../src/components/legend/DefaultLegendItem.tsx"],"names":[],"mappings":";AAEA,OAAO,EAAE,cAAc,EAAE,MAAM,WAAW,CAAC;AAC3C,OAAO,EAAE,uBAAuB,EAAE,MAAM,SAAS,CAAC;AAMlD,MAAM,CAAC,OAAO,UAAU,iBAAiB,CAAC,MAAM,SAAS,cAAc,EAAE,EACvE,KAAK,EACL,IAAI,EACJ,YAAY,EACZ,aAAa,GACd,EAAE,uBAAuB,CAAC,MAAM,CAAC,eAoCjC"}

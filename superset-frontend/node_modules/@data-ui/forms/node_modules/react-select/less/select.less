@@ -1,0 +1,95 @@
+/**
+ * React Select
+ * ============
+ * Created by Jed Watson and Joss Mackison for KeystoneJS, http://www.keystonejs.com/
+ * https://twitter.com/jedwatson https://twitter.com/jossmackison https://twitter.com/keystonejs
+ * MIT License: https://github.com/JedWatson/react-select
+*/
+
+// Variables
+// ------------------------------
+
+// common
+@select-primary-color:              #007eff;
+
+// control options
+@select-input-bg:                   #fff;
+@select-input-bg-disabled:          #f9f9f9;
+@select-input-bg-focus:             @select-input-bg;
+@select-input-border-color:         #ccc;
+@select-input-border-radius:        4px;
+@select-input-border-focus:         @select-primary-color;
+@select-input-box-shadow-focus:     inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 5px -1px fade(@select-input-border-focus, 50%);
+@select-input-border-width:         1px;
+@select-input-height:               36px;
+@select-input-internal-height:      (@select-input-height - (@select-input-border-width * 2));
+@select-input-placeholder:          #aaa;
+@select-text-color:                 #333;
+@select-link-hover-color:           @select-input-border-focus;
+@select-input-hover-box-shadow:     0 1px 0 rgba(0, 0, 0, 0.06);
+
+@select-padding-vertical:           8px;
+@select-padding-horizontal:         10px;
+
+// menu options
+@select-menu-zindex:                1;
+@select-menu-max-height:            200px;
+@select-menu-box-shadow:            @select-input-hover-box-shadow;
+
+@select-option-color:               lighten(@select-text-color, 20%);
+@select-option-bg:                  @select-input-bg;
+@select-option-focused-color:       @select-text-color;
+@select-option-focused-bg:          fade(@select-primary-color, 8%);
+@select-option-focused-bg-fb:       mix(@select-primary-color, @select-option-bg, 8%);  // Fallback color for IE 8
+@select-option-selected-color:      @select-text-color;
+@select-option-selected-bg:         fade(@select-primary-color, 4%);
+@select-option-selected-bg-fb:      mix(@select-primary-color, @select-option-bg, 4%);  // Fallback color for IE 8
+@select-option-disabled-color:      lighten(@select-text-color, 60%);
+
+@select-noresults-color:            lighten(@select-text-color, 40%);
+
+// clear "x" button
+@select-clear-size:                 floor((@select-input-height / 2));
+@select-clear-color:                #999;
+@select-clear-hover-color:          #D0021B; // red
+@select-clear-width:                (@select-input-internal-height / 2);
+
+// arrow indicator
+@select-arrow-color:                #999;
+@select-arrow-color-hover:          #666;
+@select-arrow-width:                5px;
+
+// loading indicator
+@select-loading-size:               16px;
+@select-loading-color:              @select-text-color;
+@select-loading-color-bg:           @select-input-border-color;
+
+@select-right-padding:              5px;
+
+// multi-select item
+@select-item-font-size:             .9em;
+
+@select-item-bg:                    fade(@select-primary-color, 8%);
+@select-item-bg-fb:                 mix(@select-primary-color, @select-input-bg, 8%);  // Fallback color for IE 8
+@select-item-color:                 @select-primary-color;
+@select-item-border-color:          fade(@select-primary-color, 24%);
+@select-item-border-color-fb:       mix(@select-primary-color, @select-input-bg, 24%);  // Fallback color for IE 8
+@select-item-hover-color:           darken(@select-item-color, 5%);
+@select-item-hover-bg:              darken(@select-item-bg, 5%);
+@select-item-hover-bg-fb:           mix(darken(@select-primary-color, 5%), @select-item-bg-fb, 8%);  // Fallback color for IE 8
+@select-item-disabled-color:        #333;
+@select-item-disabled-bg:           #fcfcfc;
+@select-item-disabled-border-color: darken(@select-item-disabled-bg, 10%);
+
+@select-item-border-radius:         2px;
+@select-item-gutter:                5px;
+
+@select-item-padding-horizontal:    5px;
+@select-item-padding-vertical:      2px;
+
+// imports
+@import "control.less";
+@import "menu.less";
+@import "mixins.less";
+@import "multi.less";
+@import "spinner.less";

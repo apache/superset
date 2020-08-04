@@ -1,0 +1,20 @@
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "A webpack configuration object."
+    },
+    {
+      "type": "array",
+      "description": "An array of webpack configuration objects.",
+      "items": {
+        "description": "A webpack configuration object.",
+        "type": "object"
+      }
+    },
+    {
+      "instanceof": "Promise",
+      "description": "A promise that resolves with a configuration object, or an array of configuration objects."
+    }
+  ]
+}

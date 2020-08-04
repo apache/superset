@@ -1,0 +1,43 @@
+{
+  "name": "loader-utils",
+  "version": "1.2.3",
+  "author": "Tobias Koppers @sokra",
+  "description": "utils for webpack loaders",
+  "dependencies": {
+    "big.js": "^5.2.2",
+    "emojis-list": "^2.0.0",
+    "json5": "^1.0.1"
+  },
+  "scripts": {
+    "lint": "eslint lib test",
+    "pretest": "yarn lint",
+    "test": "jest",
+    "test:ci": "jest --coverage",
+    "release": "yarn test && standard-version"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webpack/loader-utils.git"
+  },
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "devDependencies": {
+    "coveralls": "^3.0.2",
+    "eslint": "^5.11.0",
+    "eslint-plugin-node": "^8.0.0",
+    "eslint-plugin-prettier": "^3.0.0",
+    "jest": "^21.2.1",
+    "prettier": "^1.15.3",
+    "standard-version": "^4.0.0"
+  },
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/loader-utils/-/loader-utils-1.2.3.tgz"
+,"_integrity": "sha512-fkpz8ejdnEMG3s37wGL07iSBDg99O9D5yflE9RGNH3hRdx9SOwYfnGYdZOUIZitN8E+E2vkq3MUMYMvPYl5ZZA=="
+,"_from": "loader-utils@1.2.3"
+}

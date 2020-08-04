@@ -1,0 +1,74 @@
+#!/usr/bin/env node
+
+var fs = require("fs"),
+    commander = require("commander"),
+    topojson = require("../");
+
+commander
+    .version(require("../package.json").version)
+    .usage("[options] <n> [file]")
+    .description("Quantizes TopoJSON.")
+    .option("-o, --out <file>", "output topology file name; defaults to “-” for stdout", "-")
+    .parse(process.argv);
+
+if (commander.args.length < 1) {
+  console.error();
+  console.error("  error: missing quantization parameter n");
+  console.error();
+  process.exit(1);
+} else if (commander.args.length > 2) {
+  console.error();
+  console.error("  error: multiple input files");
+  console.error();
+  process.exit(1);
+} else if (commander.args.length === 1) {
+  commander.args.push("-");
+}
+
+if (!(Math.floor(commander.args[0]) >= 2)) {
+  console.error();
+  console.error("  error: invalid quantization parameter " + commander.args[0]);
+  console.error();
+  process.exit(1);
+}
+
+read(commander.args[1]).then(quantize).then(write(commander.out)).catch(abort);
+
+function read(file) {
+  return new Promise(function(resolve, reject) {
+    var data = [], stream = file === "-" ? process.stdin : fs.createReadStream(file);
+    stream
+        .on("data", function(d) { data.push(d); })
+        .on("end", function() { resolve(JSON.parse(Buffer.concat(data))); })
+        .on("error", reject);
+  });
+}
+
+function quantize(topology) {
+  return topojson.quantize(topology, +commander.args[0]);
+}
+
+function write(file) {
+  var stream = (file === "-" ? process.stdout : fs.createWriteStream(file)).on("error", handleEpipe);
+  return function(topology) {
+    return new Promise(function(resolve, reject) {
+      stream.on("error", reject)[stream === process.stdout ? "write" : "end"](JSON.stringify(topology) + "\n", function(error) {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+  };
+}
+
+function handleEpipe(error) {
+  if (error.code === "EPIPE" || error.errno === "EPIPE") {
+    process.exit(0);
+  }
+}
+
+function abort(error) {
+  console.error();
+  console.error("  error: " + error.message);
+  console.error();
+  process.exit(1);
+}

@@ -1,0 +1,4 @@
+SyntaxError: Inline JavaScript is not enabled. Is it set in your options? in {path}no-js-errors.less on line 2, column 6:
+1 .a {
+2   a: `1 + 1`;
+3 }

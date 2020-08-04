@@ -1,0 +1,87 @@
+{
+  "name": "has-value",
+  "description": "Returns true if a value exists, false if empty. Works with deeply nested values using object paths.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/has-value",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Ryan M Harrison (https://linkedin.com/in/harrisonrm)"
+  ],
+  "repository": "jonschlinkert/has-value",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/has-value/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "get-value": "^2.0.6",
+    "has-values": "^1.0.0",
+    "isobject": "^3.0.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.12",
+    "mocha": "^3.4.1"
+  },
+  "keywords": [
+    "array",
+    "boolean",
+    "empty",
+    "find",
+    "function",
+    "has",
+    "hasOwn",
+    "javascript",
+    "js",
+    "key",
+    "keys",
+    "node.js",
+    "null",
+    "number",
+    "object",
+    "properties",
+    "property",
+    "string",
+    "type",
+    "util",
+    "utilities",
+    "utility",
+    "value"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "define-property",
+        "get-value",
+        "set-value",
+        "unset-value"
+      ]
+    },
+    "reflinks": [],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/has-value/-/has-value-1.0.0.tgz"
+,"_integrity": "sha1-GLKB2lhbHFxR3vJMkw7SmgvmsXc="
+,"_from": "has-value@1.0.0"
+}

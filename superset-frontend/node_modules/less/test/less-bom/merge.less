@@ -1,0 +1,81 @@
+﻿.first-transform() {
+  transform+: rotate(90deg), skew(30deg);
+}
+.second-transform() {
+  transform+: scale(2,4);
+}
+.third-transform() {
+  transform: scaleX(45deg);
+}
+.fourth-transform() {
+  transform+: scaleX(45deg);
+}
+.fifth-transform() {
+  transform+: scale(2,4) !important;
+}
+.first-background() {
+  background+: url(data://img1.png);
+}
+.second-background() {
+  background+: url(data://img2.png);
+}
+
+.test1 {
+  // Can merge values
+  .first-transform();
+  .second-transform();
+}
+.test2 {
+  // Won't merge values without +: merge directive, for backwards compatibility with css
+  .first-transform();
+  .third-transform();
+}
+.test3 {
+  // Won't merge values from two sources with different properties
+  .fourth-transform();
+  .first-background();
+}
+.test4 {
+  .first-transform();
+  .fifth-transform();
+}
+.test5 {
+  .first-transform();
+  .second-transform() !important;
+}
+.test6 {
+  .second-transform();
+}
+.test7 {
+  // inherit !important from merged subrules
+  .second-transform();
+  .second-transform() !important;
+  .second-transform();
+}
+
+.test-interleaved {
+    transform+:  t1;
+    background+: b1;
+    transform+:  t2;
+    background+: b2, b3;
+    transform+:  t3;
+}
+
+.test-spaced {
+    transform+_:  t1;
+    background+_: b1;
+    transform+_:  t2;
+    background+_: b2, b3;
+    transform+_:  t3;
+}
+
+.test-interleaved-with-spaced {
+    transform+_:  t1s;
+    transform+:   t2;
+    background+:  b1;
+    transform+_:  t3s;
+    transform+:   t4 t5s;
+    background+_: b2s, b3;
+    transform+_:  t6s;
+    background+:  b4;
+}

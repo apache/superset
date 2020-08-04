@@ -1,0 +1,26 @@
+﻿@import (reference) url("import-once.less");
+@import (reference) url("css-3.less");
+@import (reference) url("media.less");
+@import (reference) url("import/import-reference.less");
+@import (reference) url("import/css-import.less");
+
+.b {
+  .z();
+}
+
+.zz();
+
+.visible:extend(.z all) {
+  extend: test;
+}
+
+.test-mediaq-import {
+  .mixin-with-mediaq(340px);
+}
+
+.class:extend(.class all) {
+}
+.mixin-with-nested-selectors();
+.mixin-with-directives(some-name);
+
+.print-referenced-import-inline();

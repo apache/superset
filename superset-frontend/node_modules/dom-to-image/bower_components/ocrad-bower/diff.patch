@@ -1,0 +1,61 @@
+diff --git a/ocrad-0.23-pre1/character_r11.cc b/ocrad-0.23-pre1/character_r11.cc
+index 9b054e1..39d2362 100644
+--- a/ocrad-0.23-pre1/character_r11.cc
++++ b/ocrad-0.23-pre1/character_r11.cc
+@@ -20,6 +20,7 @@
+ #include <cstdio>
+ #include <vector>
+ #include <stdint.h>
++#include <cstdlib>
+ 
+ #include "common.h"
+ #include "rectangle.h"
+diff --git a/ocrad-0.23-pre1/configure b/ocrad-0.23-pre1/configure
+index 706fd8c..e746edf 100755
+--- a/ocrad-0.23-pre1/configure
++++ b/ocrad-0.23-pre1/configure
+@@ -24,7 +24,7 @@ includedir='${prefix}/include'
+ infodir='$(datarootdir)/info'
+ libdir='${exec_prefix}/lib'
+ mandir='$(datarootdir)/man'
+-CXX=g++
++# CXX=g++
+ CPPFLAGS=
+ CXXFLAGS='-Wall -W -O2'
+ LDFLAGS=
+diff --git a/ocrad-0.23-pre1/feats_test0.cc b/ocrad-0.23-pre1/feats_test0.cc
+index 48bb029..2223fc3 100644
+--- a/ocrad-0.23-pre1/feats_test0.cc
++++ b/ocrad-0.23-pre1/feats_test0.cc
+@@ -20,6 +20,7 @@
+ #include <cstdio>
+ #include <vector>
+ #include <stdint.h>
++#include <cstdlib>
+ 
+ #include "common.h"
+ #include "rectangle.h"
+diff --git a/ocrad-0.23-pre1/profile.cc b/ocrad-0.23-pre1/profile.cc
+index d1d81e3..441c4a9 100644
+--- a/ocrad-0.23-pre1/profile.cc
++++ b/ocrad-0.23-pre1/profile.cc
+@@ -20,6 +20,7 @@
+ #include <cstdio>
+ #include <vector>
+ #include <stdint.h>
++#include <cstdlib>
+ 
+ #include "common.h"
+ #include "rectangle.h"
+diff --git a/ocrad-0.23-pre1/track.cc b/ocrad-0.23-pre1/track.cc
+index 12e2c4a..31881be 100644
+--- a/ocrad-0.23-pre1/track.cc
++++ b/ocrad-0.23-pre1/track.cc
+@@ -19,6 +19,7 @@
+ #include <algorithm>
+ #include <cstdio>
+ #include <vector>
++#include <cstdlib>
+ 
+ #include "common.h"
+ #include "rectangle.h"

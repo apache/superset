@@ -1,0 +1,27 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: VERSION\n"
+"PO-Revision-Date: 2016-08-08 14:08+0000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE TEAM <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "♂ Male"
+msgstr "男性"
+
+msgid "partner application"
+msgid_plural "partner applications"
+msgstr[0] "パートナーアプリ"
+
+msgid "result"
+msgid_plural "results"
+msgstr[0] "検索結果"
+
+msgid "For %s person starting at %s"
+msgid_plural "For %s people starting at %s"
+msgstr[0] "For %1$s people starting at %2$s"
+

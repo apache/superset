@@ -1,0 +1,5 @@
+{
+  "name": "gl-matrix/quat2",
+  "main": "../cjs/quat2.js",
+  "module": "../esm/quat2.js"
+}

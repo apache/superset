@@ -1,0 +1,51 @@
+{
+  "name": "postcss-reduce-initial",
+  "version": "4.0.3",
+  "description": "Reduce initial definitions to the actual initial value, where possible.",
+  "main": "dist/index.js",
+  "files": [
+    "data",
+    "dist/index.js",
+    "LICENSE-MIT"
+  ],
+  "scripts": {
+    "acquire": "babel-node ./src/acquire.js",
+    "prepublish": "cross-env BABEL_ENV=publish babel src --out-dir dist --ignore /__tests__/,src/acquire.js"
+  },
+  "keywords": [
+    "css",
+    "postcss",
+    "postcss-plugin"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "babel-cli": "^6.0.0",
+    "cross-env": "^5.0.0",
+    "got": "^8.0.0",
+    "html2plaintext": "^2.0.0",
+    "write-file": "^1.0.0"
+  },
+  "homepage": "https://github.com/cssnano/cssnano",
+  "author": {
+    "name": "Ben Briggs",
+    "email": "beneb.info@gmail.com",
+    "url": "http://beneb.info"
+  },
+  "repository": "cssnano/cssnano",
+  "dependencies": {
+    "browserslist": "^4.0.0",
+    "caniuse-api": "^3.0.0",
+    "has": "^1.0.0",
+    "postcss": "^7.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/cssnano/cssnano/issues"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-reduce-initial/-/postcss-reduce-initial-4.0.3.tgz"
+,"_integrity": "sha512-gKWmR5aUulSjbzOfD9AlJiHCGH6AEVLaM0AV+aSioxUDd16qXP1PCh8d1/BGVvpdWn8k/HiK7n6TjeoXN1F7DA=="
+,"_from": "postcss-reduce-initial@4.0.3"
+}

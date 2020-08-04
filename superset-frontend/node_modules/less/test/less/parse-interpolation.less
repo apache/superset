@@ -1,0 +1,53 @@
+@inputs: input[type=text], input[type=email], input[type=password], textarea;
+
+@{inputs} {
+  &:focus {
+    foo: bar;
+  }
+} 
+
+@classes: .a, .b, .c;
+
+@{classes} {  
+  + .z {
+    color: blue; 
+  }
+}
+
+.bar {
+  .d@{classes}&:hover, baz {
+    color: blue;
+  }
+}
+
+@c: ~'.a, .b';
+@d: ~'.c, .d';
+@e: ~' + .e';
+
+@{c}@{d} {
+  @{e} {
+    foo: bar;
+  }
+}
+
+@textClasses: ~'&[class="text"], &.text';
+
+input {
+  @{textClasses} {
+    background: red;
+  }
+}
+
+@my-selector: ~'.selector-1, .selector-2';
+.master-page-1 {
+    @{my-selector} {
+        background-color: red;
+    }
+}
+
+@list: apple, satsuma, banana, pear;
+@{list} {
+  .fruit-& {
+    content: "Just a test.";
+  }
+}

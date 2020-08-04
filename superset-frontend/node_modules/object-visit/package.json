@@ -1,0 +1,69 @@
+{
+  "name": "object-visit",
+  "description": "Call a specified method on each value in the given object.",
+  "version": "1.0.1",
+  "homepage": "https://github.com/jonschlinkert/object-visit",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/object-visit",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/object-visit/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "isobject": "^3.0.0"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.12",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.0",
+    "mocha": "^3.2.0"
+  },
+  "keywords": [
+    "context",
+    "function",
+    "helper",
+    "key",
+    "method",
+    "object",
+    "value",
+    "visit",
+    "visitor"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "base-methods",
+        "collection-visit",
+        "define-property",
+        "map-visit"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/object-visit/-/object-visit-1.0.1.tgz"
+,"_integrity": "sha1-95xEk68MU3e1n+OdOV5BBC3QRbs="
+,"_from": "object-visit@1.0.1"
+}

@@ -1,0 +1,22 @@
+#dom-node {
+    width: 100px;
+}
+
+.red {
+    background-color: #ff0000;
+}
+
+.green {
+    background-color: green;
+}
+
+.blue {
+    background-color: #0000ff;
+}
+
+.red,
+.green,
+.blue {
+    height: 3px;
+    border: 1px solid lightgrey;
+}

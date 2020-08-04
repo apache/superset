@@ -1,0 +1,52 @@
+<!doctype html>
+
+<html style='height: 100%;'>
+
+<head>
+    <link href='https://www.mapbox.com/base/latest/base.css' rel='stylesheet' />
+
+    <style>
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display:flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1, h2 {
+            display: block;
+        }
+    </style>
+</head>
+
+<body class='fill-gray'>
+    <h2 class='fancy center'>Mapbox GL JS is</h2>
+    <h1 class='fancy center'>...</h1>
+    <h3 id="reason" class='fancy center'></h3>
+
+    <script src='index.js'></script>
+    <script>
+        var bodyElement = document.body;
+        var h1Element = document.getElementsByTagName('h1')[0];
+        var reasonEl = document.getElementById('reason');
+
+        if (mapboxgl.supported({failIfMajorPerformanceCaveat: true})) {
+            h1Element.innerHTML = 'supported';
+            bodyElement.className = 'fill-green';
+        } else if (mapboxgl.supported({failIfMajorPerformanceCaveat: false})) {
+            h1Element.innerHTML = 'supported with a major performance caveat';
+            reasonEl.innerHTML = '(' + mapboxgl.notSupportedReason({failIfMajorPerformanceCaveat: false}) + ')';
+            bodyElement.className = 'fill-orange';
+        } else {
+            h1Element.innerHTML = 'not supported';
+            reasonEl.innerHTML = '(' + mapboxgl.notSupportedReason({failIfMajorPerformanceCaveat: true}) + ')';
+            bodyElement.className = 'fill-red';
+        }
+    </script>
+</body>
+
+</html>

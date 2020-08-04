@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+
+        }
+        html, body, svg {
+            margin: 0px;
+            padding: 0px;
+            width: 100%;
+        }
+
+        .nvd3 {
+            margin-bottom: 50px;
+        }
+
+        pre {
+            padding: 20px;
+            background-color: #ddd;
+            display: inline-block;
+        }
+
+        /* --- Sankey chart styles --- */
+
+        .node rect {
+            cursor: move;
+            fill-opacity: .9;
+            shape-rendering: crispEdges;
+        }
+
+        .node text {
+            pointer-events: none;
+            text-shadow: 0 1px 0 #fff;
+        }
+
+        .link {
+            fill: none;
+            stroke: #000;
+            stroke-opacity: .2;
+        }
+
+        .link:hover {
+            stroke-opacity: .5;
+        }
+
+    </style>
+</head>
+<body>
+<h3>Sankey Chart</h3>
+
+<h6>Basic CSS for Sankey chart:</h6>
+<pre>
+.node rect {
+    cursor: move;
+    fill-opacity: .9;
+    shape-rendering: crispEdges;
+}
+
+.node text {
+    pointer-events: none;
+    text-shadow: 0 1px 0 #fff;
+}
+
+.link {
+    fill: none;
+    stroke: #000;
+    stroke-opacity: .2;
+}
+
+.link:hover {
+    stroke-opacity: .5;
+}
+</pre>
+
+<div id="sankey-chart-simple" class="nvd3"></div>
+<div id="sankey-chart-advanced" class="nvd3"></div>
+
+<script>
+    var width = 800,
+    height = 600;
+    var data = {
+        nodes:
+            [
+                {'node': 1, 'name': 'Test 1'},
+                {'node': 2, 'name': 'Test 2'},
+                {'node': 3, 'name': 'Test 3'},
+                {'node': 4, 'name': 'Test 4'},
+                {'node': 5, 'name': 'Test 5'},
+                {'node': 6, 'name': 'Test 6'}
+            ],
+        links:
+            [
+                {'source': 0, 'target': 1, 'value': 2295},
+                {'source': 0, 'target': 5, 'value': 1199},
+                {'source': 1, 'target': 2, 'value': 1119},
+                {'source': 1, 'target': 5, 'value': 1176},
+                {'source': 2, 'target': 3, 'value': 487},
+                {'source': 2, 'target': 5, 'value': 632},
+                {'source': 3, 'target': 4, 'value': 301},
+                {'source': 3, 'target': 5, 'value': 186}
+            ]
+    };
+
+    nv.addGraph(function() {
+        var chart = nv.models.sankeyChart()
+            .width(width)
+            .height(height)
+            .units('elephants');
+
+        d3.select('#sankey-chart-simple')
+            .attr('width', width)
+            .attr('height', height)
+            .datum(data)
+            .call(chart);
+
+        return chart;
+    });
+
+    nv.addGraph(function() {
+        var units = 'ducks';
+        var chart = nv.models.sankeyChart()
+            .width(width)
+            .height(height)
+            .format(function(d) {
+                return formatNumber(d) + ' ' + units;
+            })
+            .linkTitle(function(d){
+                return d.source.name + ' ----> ' + d.target.name + '\n' + d.value + ' ' + units;
+            })
+            .nodeStyle({
+                title: function(d){
+                    return d.name + ': ' + d.value + ' ' + units;
+                },
+                fillColor: function(d){
+                    return d3.rgb(d.color).brighter(2);
+                },
+                strokeColor: function(d){
+                    return d3.rgb(d.color).darker(2);
+                }
+            })
+            .nodeWidth(100)
+            .nodePadding(200)
+            .units('ducks')
+            .center(function(node){
+                return node.dy
+            });
+
+        d3.select('#sankey-chart-advanced')
+            .attr('width', width)
+            .attr('height', height)
+            .datum(data)
+            .call(chart);
+
+        return chart;
+    });
+</script>
+</body>
+</html>

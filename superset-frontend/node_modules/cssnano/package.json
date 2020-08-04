@@ -1,0 +1,61 @@
+{
+  "name": "cssnano",
+  "version": "4.1.10",
+  "description": "A modular minifier, built on top of the PostCSS ecosystem.",
+  "main": "dist/index.js",
+  "scripts": {
+    "bundle-size": "webpack --json --config src/__tests__/_webpack.config.js | webpack-bundle-size-analyzer",
+    "integrations": "babel-node src/__tests__/util/rebuild.js",
+    "prepublish": "cross-env BABEL_ENV=publish babel src --out-dir dist --ignore /__tests__/"
+  },
+  "keywords": [
+    "css",
+    "compress",
+    "minify",
+    "optimise",
+    "optimisation",
+    "postcss",
+    "postcss-plugin"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cosmiconfig": "^5.0.0",
+    "cssnano-preset-default": "^4.0.7",
+    "is-resolvable": "^1.0.0",
+    "postcss": "^7.0.0"
+  },
+  "devDependencies": {
+    "array-to-sentence": "^2.0.0",
+    "babel-cli": "^6.0.0",
+    "babel-core": "^6.0.0",
+    "babel-loader": "^7.0.0",
+    "cross-env": "^5.0.0",
+    "cssnano-preset-advanced": "^4.0.7",
+    "postcss-font-magician": "^2.0.0",
+    "webpack": "^2.0.0",
+    "webpack-bundle-size-analyzer": "^2.0.0"
+  },
+  "homepage": "https://github.com/cssnano/cssnano",
+  "author": {
+    "name": "Ben Briggs",
+    "email": "beneb.info@gmail.com",
+    "url": "http://beneb.info"
+  },
+  "repository": "cssnano/cssnano",
+  "files": [
+    "dist",
+    "LICENSE-MIT",
+    "quickstart.js"
+  ],
+  "tonicExampleFilename": "quickstart.js",
+  "bugs": {
+    "url": "https://github.com/cssnano/cssnano/issues"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/cssnano/-/cssnano-4.1.10.tgz"
+,"_integrity": "sha512-5wny+F6H4/8RgNlaqab4ktc3e0/blKutmq8yNlBFXA//nSFFAqAngjNVRzUvCgYROULmZZUoosL/KSoZo5aUaQ=="
+,"_from": "cssnano@4.1.10"
+}

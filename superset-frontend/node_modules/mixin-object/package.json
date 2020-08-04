@@ -1,0 +1,65 @@
+{
+  "name": "mixin-object",
+  "description": "Mixin the own and inherited properties of other objects onto the first object. Pass an empty object as the first arg to shallow clone.",
+  "version": "2.0.1",
+  "homepage": "https://github.com/jonschlinkert/mixin-object",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/mixin-object",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/mixin-object/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "for-in": "^0.1.3",
+    "is-extendable": "^0.1.1"
+  },
+  "devDependencies": {
+    "mocha": "^2.2.5",
+    "should": "^7.0.1"
+  },
+  "keywords": [
+    "assign",
+    "copy",
+    "extend",
+    "key",
+    "merge",
+    "mixin",
+    "object",
+    "objects",
+    "prop",
+    "properties",
+    "property",
+    "shallow",
+    "util",
+    "value"
+  ],
+  "verbiage": {
+    "related": {
+      "list": [
+        "defaults-deep",
+        "extend-shallow",
+        "assign-deep",
+        "mixin-deep",
+        "merge-deep",
+        "isobject",
+        "is-plain-object",
+        "for-own",
+        "for-in"
+      ]
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/mixin-object/-/mixin-object-2.0.1.tgz"
+,"_integrity": "sha1-T7lJRB2rGCVA8f4DW6YOGUel5X4="
+,"_from": "mixin-object@2.0.1"
+}

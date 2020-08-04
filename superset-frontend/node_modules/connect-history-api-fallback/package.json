@@ -1,0 +1,44 @@
+{
+  "name": "connect-history-api-fallback",
+  "version": "1.6.0",
+  "description": "Provides a fallback for non-existing directories so that the HTML 5 history API can be used.",
+  "keyswords": [
+    "connect",
+    "html5",
+    "history api",
+    "fallback",
+    "spa"
+  ],
+  "engines": {
+    "node": ">=0.8"
+  },
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "test": "eslint lib/index.js test/index_test.js && nodeunit test/index_test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/bripkens/connect-history-api-fallback.git"
+  },
+  "author": {
+    "name": "Ben Ripkens",
+    "email": "bripkens.dev@gmail.com",
+    "url": "http://bripkens.de"
+  },
+  "contributors": [
+    "Craig Myles <cr@igmyles.com> (http://www.craigmyles.com)"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^0.18.0",
+    "nodeunit": "^0.11.3",
+    "sinon": "^1.14.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/connect-history-api-fallback/-/connect-history-api-fallback-1.6.0.tgz"
+,"_integrity": "sha512-e54B99q/OUoH64zYYRf3HBP5z24G38h5D3qXu23JGRoigpX5Ss4r9ZnDk3g0Z8uQC2x2lPaJ+UlWBc1ZWBWdLg=="
+,"_from": "connect-history-api-fallback@1.6.0"
+}

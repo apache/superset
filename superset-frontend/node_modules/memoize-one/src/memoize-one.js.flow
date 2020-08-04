@@ -1,0 +1,7 @@
+// @flow
+export type EqualityFn = (newArgs: mixed[], lastArgs: mixed[]) => boolean;
+
+declare export default function memoizeOne<ResultFn: (...any[]) => mixed>(
+  fn: ResultFn,
+  isEqual?: EqualityFn,
+): ResultFn;

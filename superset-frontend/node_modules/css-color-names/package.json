@@ -1,0 +1,32 @@
+{
+  "name": "css-color-names",
+  "description": "A JSON Object of css color names mapped to their hex value",
+  "version": "0.0.4",
+  "author": "Dave Eddy <dave@daveeddy.com> (http://www.daveeddy.com)",
+  "contributors": [],
+  "main": "./css-color-names.json",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bahamas10/css-color-names.git"
+  },
+  "scripts": {
+    "test": "for f in tests/*.js; do echo \"$f\"; node \"$f\" || exit 1; done; echo 'Passed!'"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  },
+  "license": "MIT",
+  "keywords": [
+    "css", "colors", "names"
+  ],
+  "files": [
+    "css-color-names.json"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/css-color-names/-/css-color-names-0.0.4.tgz"
+,"_integrity": "sha1-gIrcLnnPhHOAabZGyyDsJ762KeA="
+,"_from": "css-color-names@0.0.4"
+}

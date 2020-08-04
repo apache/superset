@@ -1,0 +1,26 @@
+{
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "eslint-config-xo-typescript",
+        "prettier",
+        "prettier/@typescript-eslint"
+    ],
+    "env": {
+        "node": true,
+        "es6": true
+    },
+    "rules": {
+        "eqeqeq": [2, "smart"],
+        "no-caller": 2,
+        "dot-notation": 2,
+        "no-var": 2,
+        "prefer-const": 2,
+        "prefer-arrow-callback": [2, { "allowNamedFunctions": true }],
+        "arrow-body-style": [2, "as-needed"],
+        "object-shorthand": 2,
+
+        "@typescript-eslint/explicit-function-return-type": 0,
+        "@typescript-eslint/no-use-before-define": [2, { "functions": false }]
+    }
+}

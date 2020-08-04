@@ -1,0 +1,56 @@
+Description
+
+GNU Ocrad is an OCR (Optical Character Recognition) program and library
+based on a feature extraction method. It reads images in pbm (bitmap),
+pgm (greyscale) or ppm (color) formats and produces text in byte (8-bit)
+or UTF-8 formats. The pbm, pgm and ppm formats are collectively known as
+pnm.
+
+Ocrad includes a layout analyser able to separate the columns or blocks
+of text normally found on printed pages.
+
+See the file INSTALL for compilation and installation instructions.
+
+Try "ocrad --help" for usage instructions.
+
+Caveats.
+For better results the characters should be at least 20 pixels high. If
+they are smaller, try the --scale option.
+Merged characters are always a problem. Try to avoid them.
+Very bold or very light (broken) characters are also a problem.
+Always see with your own eyes the pnm file before blaming ocrad for the
+results. Remember the saying, "garbage in, garbage out".
+
+Ideas, comments, patches, donations (hardware, money, etc), etc, are welcome.
+
+---------------------------
+
+Debug levels ( option -D )
+100 - Show raw block list.
+ 99 - Show recursive block list.
+ 98 - Show main block list.
+ 96..97 - reserved.
+ 95 - Show all blocks from every character before recognition.
+ 94 - Show main black blocks from every character before recognition.
+ 90..93 - reserved.
+ 89 - Show all blocks from every character.
+ 88 - Show main black blocks from every character.
+ 87 - Show guess list for every character.
+ 86 - Show best guess for every character.
+ 80..85 - reserved.
+ 78..79 - reserved.
+ 7X - X = 0 Show page as bitmap.
+      X = 1 Show page as bitmap with marked zones.
+      X = 2 Show page as bitmap with marked lines.
+      X = 4 Show page as bitmap with marked characters.
+
+
+Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012,
+2013 Antonio Diaz Diaz.
+
+This file is free documentation: you have unlimited permission to copy,
+distribute and modify it.
+
+The file Makefile.in is a data file used by configure to produce the
+Makefile. It has the same copyright owner and permissions that configure
+itself.

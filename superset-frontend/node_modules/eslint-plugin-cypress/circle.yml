@@ -1,0 +1,26 @@
+version: 2
+
+workflows:
+  version: 2
+  tests:
+    jobs:
+      - test
+
+jobs:
+  test:
+    docker:
+      - image: circleci/node:8
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: npm install
+      - run:
+          name: Lint code
+          command: npm run lint
+      - run:
+          name: Run tests
+          command: npm test
+      - run:
+          name: Semantic release
+          command: npm run semantic-release || true

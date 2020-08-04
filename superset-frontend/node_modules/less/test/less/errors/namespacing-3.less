@@ -1,0 +1,8 @@
+.theme() {
+  foo: bar;
+}
+
+.val {
+  @alias: .theme;  // aliasing not allowed without ()
+  foo: @alias[foo];
+}

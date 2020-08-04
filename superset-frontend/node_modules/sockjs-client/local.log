@@ -1,0 +1,13 @@
+
+
+BrowserStackLocal v7.5
+
+You can now access your local server(s) in our remote browser.
+
+Press Ctrl-C to exit
+
+
+ *** WARNING: Your testing experience with webserver at localhost:9876 may be suboptimal, as the server is sending an HTTP response header containing: "Connection: close".
+     To improve the experience, please change it to "Connection: keep-alive"
+ *** WARNING: Your testing experience with webserver at 0.0.0.0:9876 may be suboptimal, as the server is sending an HTTP response header containing: "Connection: close".
+     To improve the experience, please change it to "Connection: keep-alive"

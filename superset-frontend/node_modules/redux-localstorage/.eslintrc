@@ -1,0 +1,22 @@
+{
+  "parser": "babel-eslint",
+  "ecmaFeatures": {
+    "ecmascript": 6,
+    "modules": true,
+    "jsx": true
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "mocha": true
+  },
+  "globals": {
+    "assert": false
+  },
+  "rules": {
+    "curly": 0,
+    "semi": 0,
+    "strict": [ 1, "global"],
+    "quotes": [ 1, "single" ]
+  }
+}

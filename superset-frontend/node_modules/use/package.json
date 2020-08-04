@@ -1,0 +1,70 @@
+{
+  "name": "use",
+  "description": "Easily add plugin support to your node.js application.",
+  "version": "3.1.1",
+  "homepage": "https://github.com/jonschlinkert/use",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Olsten Larck (https://i.am.charlike.online)",
+    "(https://github.com/wtgtybhertgeghgtwtg)"
+  ],
+  "repository": "jonschlinkert/use",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/use/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "base-plugins": "^1.0.0",
+    "define-property": "^2.0.0",
+    "extend-shallow": "^3.0.1",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^4.0.0",
+    "gulp-format-md": "^1.0.0",
+    "gulp-istanbul": "^1.1.2",
+    "gulp-mocha": "^3.0.1",
+    "mocha": "^4.0.1"
+  },
+  "keywords": [
+    "use"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-plugins",
+        "ware"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "ware"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/use/-/use-3.1.1.tgz"
+,"_integrity": "sha512-cwESVXlO3url9YWlFW/TA9cshCEhtu7IKJ/p5soJ/gGpj7vbvFrAY/eIioQ6Dw23KjZhYgiIo8HOs1nQ2vr/oQ=="
+,"_from": "use@3.1.1"
+}

@@ -1,0 +1,10 @@
+#dom-node {
+    height: 100px;
+    width: 100px;
+}
+
+#content {
+    height: 50px;
+    width: 50px;
+    background-color: black;
+}

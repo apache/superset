@@ -1,0 +1,5 @@
+*/node_modules
+coverage
+dist
+lib
+es

@@ -1,0 +1,5 @@
+{
+  "name": "gl-matrix/types.d.ts",
+  "main": "../cjs/types.d.ts",
+  "module": "../esm/types.d.ts"
+}

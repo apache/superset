@@ -1,0 +1,35 @@
+{
+  "name": "delegate",
+  "description": "Lightweight event delegation",
+  "version": "3.2.0",
+  "repository": "zenorocha/delegate",
+  "license": "MIT",
+  "main": "src/delegate.js",
+  "keywords": [
+    "event",
+    "delegate",
+    "delegation"
+  ],
+  "devDependencies": {
+    "browserify": "^13.1.0",
+    "chai": "^3.5.0",
+    "karma": "^1.3.0",
+    "karma-browserify": "^5.1.0",
+    "karma-chai": "^0.1.0",
+    "karma-mocha": "^1.2.0",
+    "karma-phantomjs-launcher": "^1.0.2",
+    "karma-sinon": "^1.0.4",
+    "mocha": "^3.1.2",
+    "phantomjs-polyfill": "0.0.2",
+    "simulant": "^0.2.2",
+    "sinon": "^1.17.6"
+  },
+  "scripts": {
+    "build": "browserify src/delegate.js -s delegate -o dist/delegate.js",
+    "test": "karma start --single-run"
+  }
+
+,"_resolved": "https://registry.npmjs.org/delegate/-/delegate-3.2.0.tgz"
+,"_integrity": "sha512-IofjkYBZaZivn0V8nnsMJGBr4jVLxHDheKSW88PyxS5QC4Vo9ZbZVvhzlSxY87fVq3STR6r+4cGepyHkcWOQSw=="
+,"_from": "delegate@3.2.0"
+}

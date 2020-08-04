@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .active { fill: blue !important;}
+          /*.datamaps-key dt, .datamaps-key dd {float: none !important;}
+          .datamaps-key {right: -50px; top: 0;}*/
+        </style>
+      </head>
+      <body>
+
+        <div id="container1" style="border:1px dotted blue; width: 700px; height: 475px; position: relative;"></div>
+        <script src="/src/js/components/d3/d3.min.js"></script>
+        <script src="/src/js/components/topojson/topojson.js"></script>
+        <!-- <script src="/src/js/json2.js"></script> -->
+        <script src="/src/rel/datamaps.usa.js"></script>
+        <script>
+
+          var election = new Datamap({
+            scope: 'usa',
+            element: document.getElementById('container1'),
+            geographyConfig: {
+              popupOnHover: false,
+              highlightOnHover: true,
+              borderColor: '#444',
+              borderWidth: 0.5
+            },
+            data: {
+              TX: {
+                fillKey: 'neato',
+                highlightFillColor: '#bada55'
+              },
+              MT: {
+                fillKey: 'Trouble',
+                highlightFillColor: function(d) {
+                  return '#fada55';
+                }
+              },
+              NM: {
+                fillColor: '#fa0fa0'
+              },
+              FL: {
+                fillKey: 'cantfindthis'
+              },
+              OK: {
+                fillColor: function(d) {
+                  console.log('fillOk', d);
+                  return '#ffaa00';
+                }
+              },
+              NJ: {
+                wockah: 'flocka'
+              }
+            },
+            bubblesConfig: {
+              popupTemplate: function(geography, data) {
+                return '<div class="hoverinfo">Some From New: data about ' + data.centered + '</div>'
+              },
+              fillOpacity: 0.2,
+              borderWidth: function(data) {
+                return 4;
+              },
+              radius: function(data) {
+                if ( data.centered && data.centered[0] === 'N' ) return 90;
+                else return 10;
+              },
+              highlightFillColor: '#bada55'
+            },
+            fills: {
+              'Visited': '#306596',
+              'neato': '#0fa0fa',
+              'Trouble': '#bada55',
+              defaultFill: function(geography, data) {
+                console.log('defaultFill', geography.id, data);
+                return '#DDDDDD';
+              }
+            }
+          });
+
+          election.bubbles([
+            {centered: 'NY', fillKey: 'Trouble', highlightFillColor: '#aaafff'},
+            {centered: 'KY', fillKey: 'neato', highlightFillColor: function(value) { return '#fa0fa0'; }},
+            {centered: 'TX', fillKey: 'neato', radius: function(value) { return 20; }},
+            {centered: 'CA', fillKey: 'Trouble', radius: 46},
+            {centered: 'WA', fillKey: 'neato', popupTemplate: function(geo, data) { return '<div class="hoverinfo">Wahhhh</div>'; }},
+            {centered: 'MA', fillKey: 'Trouble', radius: 10},
+            {centered: 'FL', fillKey: 'neato', radius: 30, highlightFillOpacity: 1},
+            {centered: 'NC', fillKey: 'neato', radius: 30, highlightFillOpacity: 0},
+            {centered: 'GA', fillKey: 'Visited', radius: 5, highlightFillOpacity: function() { return 0.5 }},
+            {centered: 'WY', fillKey: 'neato', radius: 5},
+            {centered: 'ME', fillKey: 'neato', radius: 5},
+            {centered: 'VT', fillKey: 'Visited', radius: 5},
+            {centered: 'NH', fillKey: 'neato', radius: 5},
+            {centered: 'CT', fillKey: 'Visited', radius: 5},
+            {centered: 'HI', fillKey: 'neato', radius: 5},
+            {centered: 'AK', fillKey: 'neato', radius: 15},
+            {centered: 'SC', fillKey: 'Visited', radius: 5},
+            {centered: 'MI', fillKey: 'Trouble', radius: 20},
+            {centered: 'AL', fillKey: 'neato', radius: 20},
+            {centered: 'LA', fillKey: 'Visited', radius: 20},
+            {centered: 'OK', fillKey: 'Trouble', radius: 20},
+            {centered: 'NE', fillKey: 'neato', radius: 20},
+            {centered: 'KS', fillKey: 'neato', radius: 10},
+            {centered: 'NM', fillKey: 'Visited', radius: 20},
+            {centered: 'AZ', fillKey: 'neato', radius: 20},
+            {centered: 'CO', fillKey: 'neato', radius: 20},
+            {centered: 'OR', fillKey: 'Trouble', radius: 10},
+            {centered: 'ND', fillKey: 'neato', radius: 10},
+            {centered: 'SD', fillKey: 'neato', radius: 10},
+            {centered: 'OH', fillKey: 'neato', radius: 10},
+            {centered: 'IA', fillKey: 'Visited', radius: 10},
+            {centered: 'IN', fillKey: 'Visited', radius: 10},
+            {centered: 'PA', fillKey: 'neato', radius: 10},
+            {centered: 'NJ', fillKey: 'neato', radius: 10},
+            {centered: 'ID', fillKey: 'neato', radius: 10},
+            {centered: 'MO', fillKey: 'neato', radius: 2},
+            {centered: 'WI', fillKey: 'Visited', radius: 10},
+          ]);
+
+      election.arc([{
+        origin: {
+          latitude: function(datum) { return 30 },
+          longitude: -97
+        },
+        destination: {
+          latitude: 40,
+          longitude: -110
+        },
+        options: { strokeColor: '#fa0fa0'}
+      },
+      {
+        origin: {
+          latitude: 33,
+          longitude: -80
+        },
+        destination: {
+          latitude: 40,
+          longitude: -110
+        },
+        strokeColor: function(data) { return '#fada55'}
+      }], {
+        greatArc: false,
+        animationSpeed: 1000
+      });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+# Change Log
+
+All notable changes to this project will be documented in this file.
+This project adheres to [Semantic Versioning](http://semver.org/).
+
+## [2.3.2] / 17 August 2018
+
+This release is made to revert changes introduced in [2.3.1] that caused unexpected behaviour for several users.
+
+### Minor
+
+ * [#670]: Rollback template cache causing unexpected behaviour, by [@raymond-lam].
+
+## [2.3.1] / 7 August 2018
+
+### Minor
+
+ * [#643]: `Writer.prototype.parse` to cache by tags in addition to template string, by [@raymond-lam].
+ * [#664]: Fix `Writer.prototype.parse` cache, by [@seminaoki].
+
+### Dev
+
+ * [#666]: Install release tools with npm rather than pre-commit hook & `Rakefile`, by [@phillipj].
+ * [#667], [#668]: Stabilize browser test suite, by [@phillipj].
+
+### Docs
+
+ * [#644]: Document global Mustache.escape overriding capacity, by [@paultopia].
+ * [#657]: Correct `Mustache.parse()` return type documentation, by [@bbrooks].
+
+## [2.3.0] / 8 November 2016
+
+### Minor
+
+ * [#540]: Add optional `output` argument to mustache CLI, by [@wizawu].
+ * [#597]: Add compatibility with amdclean, by [@mightyplow].
+
+### Dev
+
+ * [#553]: Assert `null` lookup when rendering an unescaped value, by [@dasilvacontin].
+ * [#580], [#610]: Ignore eslint for greenkeeper updates, by [@phillipj].
+ * [#560]: Fix CLI tests for Windows, by [@kookookchoozeus].
+ * Run browser tests w/node v4, by [@phillipj].
+
+### Docs
+
+ * [#542]: Add API documentation to README, by [@tomekwi].
+ * [#546]: Add missing syntax highlighting to README code blocks, by [@pra85].
+ * [#569]: Update Ctemplate links in README, by [@mortonfox].
+ * [#592]: Change "loadUser" to "loadUser()" in README, by [@Flaque].
+ * [#593]: Adding doctype to HTML code example in README, by [@calvinf].
+
+### Dependencies
+
+ * eslint -> 2.2.0. Breaking changes fix by [@phillipj]. [#548]
+ * eslint -> 2.5.1.
+ * mocha -> 3.0.2.
+ * zuul -> 3.11.0.
+
+## [2.2.1] / 13 December 2015
+
+### Fixes
+
+ * Improve HTML escaping, by [@phillipj].
+ * Fix inconsistency in defining global mustache object, by [@simast].
+ * Fix switch-case indent error, by [@norfish].
+ * Unpin chai and eslint versions, by [@dasilvacontin].
+ * Update README.md with proper grammar, by [@EvanLovely].
+ * Update mjackson username in README, by [@mjackson].
+ * Remove syntax highlighting in README code sample, by [@imagentleman].
+ * Fix typo in README, by [@Xcrucifier].
+ * Fix link typo in README, by [@keirog].
+
+## [2.2.0] / 15 October 2015
+
+### Added
+
+ * Add Partials support to CLI, by [@palkan].
+
+### Changed
+
+ * Move install instructions to README's top, by [@mateusortiz]
+ * Improved devhook install output, by [@ShashankaNataraj].
+ * Clarifies and improves language in documentation, by [@jfmercer].
+ * Linting CLI tool, by [@phillipj].
+ * npm 2.x and node v4 on Travis, by [@phillipj].
+
+### Fixes
+
+ * Fix README spelling error to "aforementioned", by [@djchie].
+ * Equal error message test in .render() for server and browser, by [@phillipj].
+
+### Dependencies
+
+ * chai -> 3.3.0
+ * eslint -> 1.6.0
+
+## [2.1.3] / 23 July 2015
+
+### Added
+
+ * Throw error when providing .render() with invalid template type, by [@phillipj].
+ * Documents use of string literals containing double quotes, by [@jfmercer].
+
+### Changed
+
+ * Move mustache gif to githubusercontent, by [@Andersos].
+
+### Fixed
+
+ * Update UMD Shim to be resilient to HTMLElement global pollution, by [@mikesherov].
+
+## [2.1.2] / 17 June 2015
+
+### Added
+
+ * Mustache global definition ([#466]) by [@yousefcisco].
+
+## [2.1.1] / 11 June 2015
+
+### Added
+
+ * State that we use semver on the change log, by [@dasilvacontin].
+ * Added version links to change log, by [@dasilvacontin].
+
+### Fixed
+
+ * Bugfix for using values from view's context prototype, by [@phillipj].
+ * Improve test with undefined/null lookup hit using dot notation, by [@dasilvacontin].
+ * Bugfix for null/undefined lookup hit when using dot notation, by [@phillipj].
+ * Remove moot `version` property from bower.json, by [@kkirsche].
+ * bower.json doesn't require a version bump via hook, by [@dasilvacontin].
+
+
+## [2.1.0] / 5 June 2015
+
+ * Added license attribute to package.json, by [@pgilad].
+ * Minor changes to make mustache.js compatible with both WSH and ASP, by [@nagaozen].
+ * Improve CLI view parsing error, by [@phillipj].
+ * Bugfix for view context cache, by [@phillipj].
+
+## [2.0.0] / 27 Mar 2015
+
+ * Fixed lookup not stopping upon finding `undefined` or `null` values, by [@dasilvacontin].
+ * Refactored pre-commit hook, by [@dasilvacontin].
+
+## [1.2.0] / 24 Mar 2015
+
+ * Added -v option to CLI, by [@phillipj].
+ * Bugfix for rendering Number when it serves as the Context, by [@phillipj].
+ * Specified files in package.json for a cleaner install, by [@phillipj].
+
+## [1.1.0] / 18 Feb 2015
+
+ * Refactor Writer.renderTokens() for better readability, by [@phillipj].
+ * Cleanup tests section in readme, by [@phillipj].
+ * Added JSHint to tests/CI, by [@phillipj].
+ * Added node v0.12 on travis, by [@phillipj].
+ * Created command line tool, by [@phillipj].
+ * Added *falsy* to Inverted Sections description in README, by [@kristijanmatic].
+
+## [1.0.0] / 20 Dec 2014
+
+  * Inline tag compilation, by [@mjackson].
+  * Fixed AMD registration, volo package.json entry, by [@jrburke].
+  * Added spm support, by [@afc163].
+  * Only access properties of objects on Context.lookup, by [@cmbuckley].
+
+## [0.8.2] / 17 Mar 2014
+
+  * Supporting Bower through a bower.json file.
+
+## [0.8.1] / 3 Jan 2014
+
+  * Fix usage of partial templates.
+
+## [0.8.0] / 2 Dec 2013
+
+  * Remove compile* writer functions, use mustache.parse instead. Smaller API.
+  * Throw an error when rendering a template that contains higher-order sections and
+    the original template is not provided.
+  * Remove low-level Context.make function.
+  * Better code readability and inline documentation.
+  * Stop caching templates by name.
+
+## [0.7.3] / 5 Nov 2013
+
+  * Don't require the original template to be passed to the rendering function
+    when using compiled templates. This is still required when using higher-order
+    functions in order to be able to extract the portion of the template
+    that was contained by that section. Fixes [#262].
+  * Performance improvements.
+
+## [0.7.2] / 27 Dec 2012
+
+  * Fixed a rendering bug ([#274]) when using nested higher-order sections.
+  * Better error reporting on failed parse.
+  * Converted tests to use mocha instead of vows.
+
+## [0.7.1] / 6 Dec 2012
+
+  * Handle empty templates gracefully. Fixes [#265], [#267], and [#270].
+  * Cache partials by template, not by name. Fixes [#257].
+  * Added Mustache.compileTokens to compile the output of Mustache.parse. Fixes
+    [#258].
+
+## [0.7.0] / 10 Sep 2012
+
+  * Rename Renderer => Writer.
+  * Allow partials to be loaded dynamically using a callback (thanks
+    [@TiddoLangerak] for the suggestion).
+  * Fixed a bug with higher-order sections that prevented them from being
+    passed the raw text of the section from the original template.
+  * More concise token format. Tokens also include start/end indices in the
+    original template.
+  * High-level API is consistent with the Writer API.
+  * Allow partials to be passed to the pre-compiled function (thanks
+    [@fallenice]).
+  * Don't use eval (thanks [@cweider]).
+
+## [0.6.0] / 31 Aug 2012
+
+  * Use JavaScript's definition of falsy when determining whether to render an
+    inverted section or not. Issue [#186].
+  * Use Mustache.escape to escape values inside {{}}. This function may be
+    reassigned to alter the default escaping behavior. Issue [#244].
+  * Fixed a bug that clashed with QUnit (thanks [@kannix]).
+  * Added volo support (thanks [@guybedford]).
+
+[2.3.2]: https://github.com/janl/mustache.js/compare/v2.3.1...v2.3.2
+[2.3.1]: https://github.com/janl/mustache.js/compare/v2.3.0...v2.3.1
+[2.3.0]: https://github.com/janl/mustache.js/compare/v2.2.1...v2.3.0
+[2.2.1]: https://github.com/janl/mustache.js/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/janl/mustache.js/compare/v2.1.3...v2.2.0
+[2.1.3]: https://github.com/janl/mustache.js/compare/v2.1.2...v2.1.3
+[2.1.2]: https://github.com/janl/mustache.js/compare/v2.1.1...v2.1.2
+[2.1.1]: https://github.com/janl/mustache.js/compare/v2.1.0...v2.1.1
+[2.1.0]: https://github.com/janl/mustache.js/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/janl/mustache.js/compare/v1.2.0...v2.0.0
+[1.2.0]: https://github.com/janl/mustache.js/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/janl/mustache.js/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/janl/mustache.js/compare/0.8.2...v1.0.0
+[0.8.2]: https://github.com/janl/mustache.js/compare/0.8.1...0.8.2
+[0.8.1]: https://github.com/janl/mustache.js/compare/0.8.0...0.8.1
+[0.8.0]: https://github.com/janl/mustache.js/compare/0.7.3...0.8.0
+[0.7.3]: https://github.com/janl/mustache.js/compare/0.7.2...0.7.3
+[0.7.2]: https://github.com/janl/mustache.js/compare/0.7.1...0.7.2
+[0.7.1]: https://github.com/janl/mustache.js/compare/0.7.0...0.7.1
+[0.7.0]: https://github.com/janl/mustache.js/compare/0.6.0...0.7.0
+[0.6.0]: https://github.com/janl/mustache.js/compare/0.5.2...0.6.0
+
+[#186]: https://github.com/janl/mustache.js/issues/186
+[#244]: https://github.com/janl/mustache.js/issues/244
+[#257]: https://github.com/janl/mustache.js/issues/257
+[#258]: https://github.com/janl/mustache.js/issues/258
+[#262]: https://github.com/janl/mustache.js/issues/262
+[#265]: https://github.com/janl/mustache.js/issues/265
+[#267]: https://github.com/janl/mustache.js/issues/267
+[#270]: https://github.com/janl/mustache.js/issues/270
+[#274]: https://github.com/janl/mustache.js/issues/274
+[#466]: https://github.com/janl/mustache.js/issues/466
+[#540]: https://github.com/janl/mustache.js/issues/540
+[#542]: https://github.com/janl/mustache.js/issues/542
+[#546]: https://github.com/janl/mustache.js/issues/546
+[#548]: https://github.com/janl/mustache.js/issues/548
+[#553]: https://github.com/janl/mustache.js/issues/553
+[#560]: https://github.com/janl/mustache.js/issues/560
+[#569]: https://github.com/janl/mustache.js/issues/569
+[#580]: https://github.com/janl/mustache.js/issues/580
+[#592]: https://github.com/janl/mustache.js/issues/592
+[#593]: https://github.com/janl/mustache.js/issues/593
+[#597]: https://github.com/janl/mustache.js/issues/597
+[#610]: https://github.com/janl/mustache.js/issues/610
+[#643]: https://github.com/janl/mustache.js/issues/643
+[#644]: https://github.com/janl/mustache.js/issues/644
+[#657]: https://github.com/janl/mustache.js/issues/657
+[#664]: https://github.com/janl/mustache.js/issues/664
+[#666]: https://github.com/janl/mustache.js/issues/666
+[#667]: https://github.com/janl/mustache.js/issues/667
+[#668]: https://github.com/janl/mustache.js/issues/668
+[#670]: https://github.com/janl/mustache.js/issues/670
+
+[@afc163]: https://github.com/afc163
+[@Andersos]: https://github.com/Andersos
+[@bbrooks]: https://github.com/bbrooks
+[@calvinf]: https://github.com/calvinf
+[@cmbuckley]: https://github.com/cmbuckley
+[@cweider]: https://github.com/cweider
+[@dasilvacontin]: https://github.com/dasilvacontin
+[@djchie]: https://github.com/djchie
+[@EvanLovely]: https://github.com/EvanLovely
+[@fallenice]: https://github.com/fallenice
+[@Flaque]: https://github.com/Flaque
+[@guybedford]: https://github.com/guybedford
+[@imagentleman]: https://github.com/imagentleman
+[@jfmercer]: https://github.com/jfmercer
+[@jrburke]: https://github.com/jrburke
+[@kannix]: https://github.com/kannix
+[@keirog]: https://github.com/keirog
+[@kkirsche]: https://github.com/kkirsche
+[@kookookchoozeus]: https://github.com/kookookchoozeus
+[@kristijanmatic]: https://github.com/kristijanmatic
+[@mateusortiz]: https://github.com/mateusortiz
+[@mightyplow]: https://github.com/mightyplow
+[@mikesherov]: https://github.com/mikesherov
+[@mjackson]: https://github.com/mjackson
+[@mortonfox]: https://github.com/mortonfox
+[@nagaozen]: https://github.com/nagaozen
+[@norfish]: https://github.com/norfish
+[@palkan]: https://github.com/palkan
+[@paultopia]: https://github.com/paultopia
+[@pgilad]: https://github.com/pgilad
+[@phillipj]: https://github.com/phillipj
+[@pra85]: https://github.com/pra85
+[@raymond-lam]: https://github.com/raymond-lam
+[@seminaoki]: https://github.com/seminaoki
+[@ShashankaNataraj]: https://github.com/ShashankaNataraj
+[@simast]: https://github.com/simast
+[@TiddoLangerak]: https://github.com/TiddoLangerak
+[@tomekwi]: https://github.com/tomekwi
+[@wizawu]: https://github.com/wizawu
+[@Xcrucifier]: https://github.com/Xcrucifier
+[@yousefcisco]: https://github.com/yousefcisco

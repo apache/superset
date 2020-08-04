@@ -1,0 +1,23 @@
+import type { Theme, Base16Theme, GetDefaultStyling, StylingOptions } from './types';
+
+declare export function invertTheme(base16Theme: Base16Theme): Base16Theme;
+
+declare export function createStyling(
+  getDefaultStyling: (base16Theme: Base16Theme) => StylingConfig,
+  options?: {
+      defaultBase16?: Theme,
+      base16Themes: Theme[]
+  }
+): ((theme: Theme, invertTheme: boolean) => StylingFunction);
+
+declare export function createStyling(
+  getDefaultStyling: (base16Theme: Base16Theme) => StylingConfig,
+  options?: {
+      defaultBase16?: Theme,
+      base16Themes: Theme[]
+  },
+  theme: Theme,
+  invertTheme: boolean
+): StylingFunction;
+
+declare export function getBase16Theme(theme: Theme, base16Themes: Base16Theme[]): Base16Theme;

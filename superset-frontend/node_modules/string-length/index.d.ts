@@ -1,0 +1,29 @@
+declare const stringLength: {
+	/**
+	Get the real length of a string - by correctly counting astral symbols and ignoring [ansi escape codes](https://github.com/sindresorhus/strip-ansi).
+
+	`String#length` errornously counts [astral symbols](https://web.archive.org/web/20150721114550/http://www.tlg.uci.edu/~opoudjis/unicode/unicode_astral.html) as two characters.
+
+	@example
+	```
+	import stringLength = require('string-length');
+
+	'🐴'.length;
+	//=> 2
+
+	stringLength('🐴');
+	//=> 1
+
+	stringLength('\u001B[1municorn\u001B[22m');
+	//=> 7
+	```
+	*/
+	(string: string): number;
+
+	// TODO: Remove this for the next major release, refactor the whole definition to:
+	// declare function stringLength(string: string): number;
+	// export = stringLength;
+	default: typeof stringLength;
+};
+
+export = stringLength;

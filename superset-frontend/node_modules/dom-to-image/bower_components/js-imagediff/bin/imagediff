@@ -1,0 +1,89 @@
+#!/usr/bin/env node
+var
+  fs = require('fs'),
+  imagediff = require('../imagediff.js'),
+  Canvas = require('canvas');
+
+commandLine(process.argv.slice(2));
+
+function do_exit (is_equal) {
+  process.exit(is_equal ? 0 : 1);
+}
+
+function loadImage (url, callback) {
+  var
+    image = new Canvas.Image();
+  fs.readFile(url, function (error, data) {
+    if (error) throw error;
+    image.onload = function () {
+      callback(image);
+    };
+    image.onerror = function () {
+      throw 'Error loading image buffer.'
+    };
+    image.src = data;
+  });
+  return image;
+}
+
+function commandLine (args) {
+
+  if (args.length < 3) {
+    console.log("Invalid parameters:");
+    console.log("imagediff [-e|equal] [-t|tolerance VALUE] FILE_A FILE_B");
+    console.log("imagediff [-d|diff] FILE_A FILE_B OUTPUT_FILE");
+    return;
+  }
+
+  var
+    t = 0,
+    aName, bName, i, fn, output;
+
+  for (i = args.length - 2; i--;) {
+    switch (args[i]) {
+      case '-d':
+      case 'diff':
+      case '--diff':
+        fn = 'diff';
+        break;
+      case '-e':
+      case 'equal':
+      case '--equal':
+        fn = 'equal'
+        break;
+      case '-t':
+      case 'tolerance':
+      case '--tolerance':
+        t = args[i + 1];
+        break;
+    }
+  }
+
+  if (fn === 'diff') {
+    if (args.length < 4) throw '-d option expects an output';
+    output = args.pop();
+  }
+  bName = args.pop();
+  aName = args.pop();
+
+  loadImage(bName, function (b) {
+    loadImage(aName, function (a) {
+      var
+        aData = imagediff.toImageData(a),
+        bData = imagediff.toImageData(b),
+        equal = imagediff.equal(aData, bData, t),
+        result;
+
+      if (fn === 'equal') {
+        process.stdout.write(equal ? 'true\n' : 'false\n');
+        do_exit(equal);
+      } else if (fn === 'diff') {
+        result = imagediff.diff(aData, bData, t);
+        imagediff.imageDataToPNG(result, output, function () {
+          do_exit(equal);
+          process.stdout.write('Diff of ' + aName + ' and ' + bName + ' rendered to ' + output + '\n');
+        });
+      }
+    });
+  });
+};

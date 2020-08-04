@@ -1,0 +1,449 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Ocrad.js - Optical Character Recognition in Javascript</title>
+		<meta charset="utf8">
+		<style>
+			body {
+				font-family: sans-serif;
+				
+				background: #DCE9E9;
+				-moz-transition: background-color 0.5s;
+				-webkit-transition: background-color 0.5s;
+				-o-transition: background-color 0.5s;
+				transition: background-color 0.5s;
+			}
+			body.dragging {
+				background-color: #F0E6DC;
+			}
+			#main {
+				margin-right: auto;
+				margin-left: auto;
+				padding: 10px;
+				width: 600px;
+			}
+			h1 {
+				font-size: 400%;
+				margin-top: 30px;
+
+			}
+			div.content {
+				padding: 50px;
+			}
+			canvas.content {
+				
+			}
+			.output {
+				background: rgb(255, 245, 211);
+			}
+			#output {
+				padding: 20px;
+				padding-bottom: 0;
+				text-align: center; 
+				min-height: 80px;
+				-moz-transition: background-color 0.5s;
+				-webkit-transition: background-color 0.5s;
+				-o-transition: background-color 0.5s;
+				transition: background-color 0.5s;
+			}
+			.content {
+				background: white;
+				margin-bottom: 50px;
+				line-height: 1.5em;
+			}
+			.content.inverse {
+				background: rgb(56, 56, 56);
+				color: white;
+			}
+
+			.processing {
+				background-color: rgb(211, 232, 255);
+			}
+			a {
+				text-decoration: none;
+				font-weight: bold;
+			}
+			h3 {
+				text-align: center;
+				font-style: italic;
+			}
+			.footer {
+				font-size: x-small;
+				text-align: center;
+				margin-bottom: 50px;
+			}
+			#squish.squish { font-size: xx-small; }
+			#squish.squishsquish { font-size: 7px; }
+			#squish.squishsquishsquish { font-size: 5px; }
+			#squish.squishsquishsquishsquish { font-size: 2px; }
+			#squish.squishsquishsquishsquishsquish { display: none; }
+
+			.buttons {
+				position: absolute;
+				margin-left: -60px;
+				margin-top: -250px;
+			}
+			#demo {
+				box-shadow: 0px 0px 35px rgba(0,0,0,0.2);
+				margin-bottom: 50px;
+				background: white;
+			}
+			#timing {
+				font-size: x-small;
+			}
+			hr {
+				border: none;
+			}
+			.buttons #clear { color: red; font-size: 400%; font-weight: bold; cursor: pointer;}
+			.buttons #word { color: blue; font-size: 300%; font-weight: bold; cursor: pointer; margin-left: -2px;}
+			.nose {
+				-moz-transition: background-color 0.5s;
+				-webkit-transition: background-color 0.5s;
+				-o-transition: background-color 0.5s;
+				transition: background-color 0.5s;
+			}
+			.nose:hover {
+				background-color: rgb(255, 222, 211);
+			}
+		</style>
+	</head>
+	<body>
+		<a href="https://github.com/antimatter15/ocrad.js"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
+		<div id="main">
+			<input type="file" style="position:absolute; top: -100px" id="picker" onchange="picked_file(this.files[0])">
+
+			<h1>Ocrad.js&nbsp;<div style="font-size: small; font-weight: normal; display: inline">Optical Character Recognition in JS</div></h1>
+			<div class="content">
+				<strong>Ocrad.js</strong> is a <strong>pure-javascript</strong> version of the <a href="http://www.gnu.org/software/ocrad/">Ocrad</a> project, automatically converted using <a href="https://github.com/kripken/emscripten">Emscripten</a>. It is a simple <a href="http://en.wikipedia.org/wiki/Optical_character_recognition">OCR (Optical Character Recognition)</a> program that can convert scanned images of text back into text. Clocking in at <strong>about a megabyte</strong> of Javascript with no hefty training data dependencies (looking at you, <a href="https://code.google.com/p/tesseract-ocr/">Tesseract</a>), it's on the lighter end of the spectrum.
+				<p style="margin-bottom: 0; font-size: small">
+				This was made by <a href="http://antimatter15.com">antimatter15</a> (please follow me on <a href="http://twitter.com/antimatter15">Twitter</a> or <a href="http://google.com/+KevinKwok">G+</a>)
+			</div>
+			
+			<div class="content inverse">
+				Below is a <strong>simple demo</strong>, which should hopefully demonstrate the <strong>capabilities</strong> but will more likely show the substantial <strong>limitations</strong> of the library. 
+				<hr>
+
+				Hit the buttons on the left to <strong>reset the canvas</strong> or to randomly <strong>put some text</strong> in a random font. You can also try to <strong>draw something</strong> with your cursor.
+			</div>
+			<div id="demo">
+				<div class="output">
+
+					<div id="output">
+						<div id="text"></div>
+						<span id="timing"></span>
+					</div>
+				</div>
+				<canvas id='c' class="" width="600" height="300"></canvas>
+				<div class="buttons">
+					<div id="clear" onclick="reset_canvas()">&times;</div>
+					<div id="word" onclick="da_word()">&#8635;</div>
+				</div>
+				<div class="output nose" style="padding: 25px; cursor: pointer" onclick="open_picker()">
+					You can also <strong>drag and drop</strong> an image from your computer <small>(JPEG, PNG, GIF, BMP, SVG, or NetPBM)</small> to feed into the text recognizer or <strong>choose a file</strong> by clicking anywhere on this box. 
+					
+				</div>
+
+			</div>
+
+			<div class="content">
+				The <strong>Ocrad.js API</strong> is really simple. First you need to include <tt>ocrad.js</tt> which is about 1MB in size.
+				<div style="padding: 20px; font-family: monospace">
+					&lt;script src="ocrad.js"&gt;&lt;/script&gt;
+				</div>
+				This file exposes a single global function, <tt>OCRAD</tt> which takes an image as an argument and returns the recognized text as a string. 
+				<div style="padding: 20px; font-family: monospace">
+					var string = OCRAD(image);<br>
+					alert(string);
+				</div>
+				The <tt>image</tt> argument can be a canvas element, a Context2D instance, or an instance of ImageData.
+			</div>
+
+			<div class="content">
+				Ocrad.js also <strong>exposes all</strong> of the <a href="http://www.gnu.org/software/ocrad/manual/ocrad_manual.html#Library-functions">C library functions</a> in addition to the extremely simple high level API covered in the last section. By calling <tt>OCRAD.version()</tt> you can find the current version string: <tt>0.23-pre1</tt>, the latest pre-release version of the software available. 
+
+				<div style="padding: 20px; font-family: monospace">
+					<i>string</i> OCRAD.version()<br>
+					<i>void</i> OCRAD.write_file(<i>string</i> filename, <i>Uint8Array</i> PBM Image Data)<br>
+					<i>pointer</i> OCRAD.open()<br>
+					<i>int</i> OCRAD.close(<i>pointer</i> descriptor)<br>
+					(and more!)
+					<!-- OCRAD.get_errno<br>
+					OCRAD.set_image<br>
+					OCRAD.set_image_from_file<br>
+					OCRAD.set_utf8_format<br>
+					OCRAD.set_threshold<br>
+					OCRAD.scale<br>
+					OCRAD.recognize<br>
+					OCRAD.result_blocks<br>
+					OCRAD.result_lines<br>
+					OCRAD.result_chars_total<br>
+					OCRAD.result_chars_block<br>
+					OCRAD.result_chars_line<br>
+					OCRAD.result_line<br>
+					OCRAD.result_first_character<br> -->
+				</div>
+
+				
+
+			</div>
+
+			<div class="content">
+				<strong>What about <a href="http://antimatter15.github.io/gocr.js/demo.html">GOCR.js</a>?</strong>
+
+				If you stumbled upon that page first, you might have realized that this entire page is a heinous act of plagiarism probably worthy of <a href="http://mit.edu">academic</a> suspension&mdash; if not for the fact that I made that other page as well. It turns out that porting things with Emscripten is just so gosh-darned easy and addictive (don't tell the <a href="http://dea.gov">DEA</a> I don't have an <a href="http://en.wikipedia.org/wiki/Prescription_drug">permscription</a>). The neat thing about GOCR is that it compiles under Emscripten without any modifications, whereas Ocrad has some dependency issues. 
+				<p>
+				Unlike GOCR.js, Ocrad.js is designed as a port of the library, rather than a wrapper around the executable. This means that processing subsequent images doesn't involve reinitializing an executable, so processing an image can be done in as little as <strong>an eighth of the time</strong> it takes GOCR.js to do the same (The fact that Ocrad is naturally faster than GOCR doesn't hurt this statistic either). 
+				<p>
+				With a simple script which generates some text in some random font selected from the Google Font API, I ran a few hundred trials comparing the recognized text with the original text. The metric was a modified Levenshtein distance where the substitution cost for capitalization errors is <tt>0.1</tt>. Of <tt>485</tt> trials, <tt>175</tt> trials ended up favoring GOCR.js, <tt>184</tt> favoring Ocrad.js, and <tt>126</tt> resulted in a tie. From playing with the draw tool, it seems that <strong>Ocrad is much more predictable and forgiving</strong> for minor alignment and orientation errors.
+				<p>
+				There have been some other comparisons on the performance of OCRAD versus GOCR. In this <a href="http://www.mathstat.dal.ca/~selinger/ocr-test/">comparison done by Peter Selinger</a>, Ocrad comes out just behind Tesseract. Another <a href="http://www.splitbrain.org/blog/2010-06/15-linux_ocr_software_comparison">comparison by Andreas Gohr</a> has GOCR performing better than Ocrad. 
+				<p>
+				Accuracy wise, they're actually pretty close. It might be possible to create something which meshes together the outputs of both, picking whichever output matches a certain heuristic for quality. Ocrad does seem to vastly outperform GOCR when it comes to letter sketches on a canvas, so that's the one I'm focusing on here.
+			</div>
+
+
+			<div class="content">
+				Aside from the relentless march of <a href="http://www.codinghorror.com/blog/2007/07/the-principle-of-least-power.html">Atwood's law</a>, there are legitimate applications which might benefit from <strong>client side OCR</strong> (I'd like to think that I'm currently working on one, and no, it's not solving the <a href="http://en.wikipedia.org/wiki/CAPTCHA">wavy squiggly letters</a> blockading your attempts at building a spam empire). Arguably, it'd be best to go for porting the best possible open source OCR engine in existence (looking at you, <a href="https://code.google.com/p/tesseract-ocr/">Tesseract</a>). Unlike OCRAD and GOCR, which interestingly seem to be <strong>powered by painstakingly written rules for each recognizable glyph</strong>, Tesseract uses neural networks and the ilk to learn features common to different letters (which means it's extensible and multilingual). When you include the training data, <strong>Tesseract is actually kind of massive</strong> &mdash; A functional Emscripten port would probably be at least 30 times the size of OCRAD.js! 
+			</div>
+
+			<div class='footer'><div id='squish'>Hi. This was made by <a href="http://antimatter15.com">me</a>. I am a tiny footer, please don't <a href="javascript:void(document.getElementById('squish').className+='squish')">squish</a> me.</div>
+			</div>
+		</div>
+		<script src="ocrad.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js"></script> 
+
+		<script>
+			var c = document.getElementById('c'),
+				o = c.getContext('2d');
+
+			function reset_canvas(){
+				o.fillStyle = 'white'
+				o.fillRect(0, 0, c.width, c.height)
+				o.fillStyle = 'black'	
+			}
+
+			// here's a really simple little drawing app so people can try their luck at
+			// the lottery that is offline handwriting recognition
+			var drag = false, lastX, lastY;
+			c.onmousedown = function(e){ drag = true; lastX = 0; lastY = 0; e.preventDefault(); c.onmousemove(e) }
+			c.onmouseup   = function(e){ drag = false; e.preventDefault(); runOCR() }
+			c.onmousemove = function(e){
+				e.preventDefault()
+				var rect = c.getBoundingClientRect();
+				var r = 5;
+
+				function dot(x, y){
+					o.beginPath()
+					o.moveTo(x + r, y)
+					o.arc(x, y, r, 0, Math.PI * 2)
+					o.fill()
+				}
+				if(drag){
+					var x = e.clientX - rect.left, 
+						y = e.clientY - rect.top;
+					
+					if(lastX && lastY){
+						var dx = x - lastX, dy = y - lastY;
+						var d = Math.sqrt(dx * dx + dy * dy);
+						for(var i = 1; i < d; i += 2){
+							dot(lastX + dx / d * i, lastY + dy / d * i)
+						}
+					}
+					dot(x, y)
+
+					lastX = x;
+					lastY = y;
+				}
+			}
+
+
+			document.body.ondragover = function(){ document.body.className = 'dragging'; return false }
+			document.body.ondragend = function(){ document.body.className = ''; return false }
+			document.body.onclick = function(){document.body.className = '';}
+			document.body.ondrop = function(e){
+				e.preventDefault();
+				document.body.className = '';
+				picked_file(e.dataTransfer.files[0]);
+				return false;
+			}
+
+			function open_picker(){
+				var e = document.createEvent("MouseEvents");	
+				e.initEvent('click', true, true);
+				document.getElementById('picker').dispatchEvent(e);
+			}
+
+			function picked_file(file){
+				if(!file) return;
+				// document.getElementById("output").className = 'processing'
+
+				var ext = file.name.split('.').slice(-1)[0];
+				var reader = new FileReader();
+
+				if(file.type == "image/x-portable-bitmap" || ext == 'pbm' || ext == 'pgm' || ext == 'pnm' || ext == 'ppm'){
+					reader.onload = function(){
+						reset_canvas();
+						document.getElementById("text").innerHTML = 'Recognizing Text... This may take a while...'
+						o.font = '30px sans-serif'
+						o.fillText('No previews for NetPBM format.', 50, 100);
+						runOCR(new Uint8Array(reader.result), true);
+					}
+					reader.readAsArrayBuffer(file)
+				}else{
+					reader.onload = function(){
+						var img = new Image();
+						img.src = reader.result;
+						img.onerror = function(){
+							reset_canvas();
+							o.font = '30px sans-serif'
+							o.fillText('Error: Invalid Image ' + file.name, 50, 100);
+						}
+						img.onload = function(){
+							document.getElementById("text").innerHTML = 'Recognizing Text... This may take a while...'
+							reset_canvas();
+							var rat = Math.min(c.width / img.width, c.height / img.height);
+							o.drawImage(img, 0, 0, img.width * rat, img.height * rat)
+							var tmp = document.createElement('canvas')
+							tmp.width = img.width;
+							tmp.height = img.height;
+							var ctx = tmp.getContext('2d')
+							ctx.drawImage(img, 0, 0)
+							var image_data = ctx.getImageData(0, 0, tmp.width, tmp.height);
+							runOCR(image_data, true)
+						}
+						
+					}
+					reader.readAsDataURL(file)
+				}
+				
+			}
+
+			var lastWorker;
+			var worker = new Worker('worker.js')
+			function runOCR(image_data, raw_feed){
+				document.getElementById("output").className = 'processing'
+				worker.onmessage = function(e){
+
+					document.getElementById("output").className = ''
+					
+					if('innerText' in document.getElementById("text")){
+						document.getElementById("text").innerText = e.data
+					}else{
+						document.getElementById("text").textContent = e.data	
+					}
+					document.getElementById('timing').innerHTML = 'recognition took ' + ((Date.now() - start)/1000).toFixed(2) + 's';
+				}
+				var start = Date.now()
+				if(!raw_feed){
+					image_data = o.getImageData(0, 0, c.width, c.height);	
+				}
+
+				worker.postMessage(image_data)
+				lastWorker = worker;
+			}
+
+
+
+			reset_canvas()
+
+
+			var quotes = [
+				'Welcome to Ocrad.JS!',
+				'Grumpy wizards make toxic brew for the evil Queen and Jack.',
+				'The Quick Brown Fox Jumped Over The Lazy Dog.',
+				'Everything is linear when plotted log-log with a fat magic marker.',
+				'Hello OCR!',
+				'This demo better put Engelbart to shame!',
+				'Very OCR. Such Recognize. Wow.',
+				'Much Text. Wow. So Letters. Very Recognition. Wow.',
+				"I don't know what to say.",
+				'Here are some words.',
+				'Words words words words words words words - Hamlet.',
+				'The Very Quick, Much Brown Fox Jumped So Over Such Lazy Doge. Wow.',
+				'Is this algorithm better than a fifth grader? (no)',
+				'I am Cow. Hear me moo! I weigh twice as much as you.',
+				'Nineteen Eighty Four',
+				'How many tweets would a twit-chuck tweet if a tweet could tweet.',
+				'I shall call him squishy and he shall be my squishy.',
+				'Such Text. Very OCR. Much Optical. Wow.',
+				"Here's to looking at pixels, kid.",
+				"Do or do not, there is no try.",
+				"Yo Banana Boy!",
+				"This shit is bananas, B-A-N-A-N-A-S.",
+				"I have discovered a truly marvelous proof which this box is too small to contain.",
+				"Tech-mol-ogy is it good or is it whack?",
+				"Say What Again! I dare you! I double-dare you!",
+				"D-I-N-O-S-A-YOU ARE A DINOSAUR",
+				"Hello my name is dug. I have just met you. I love you.",
+				"ABC DEF GHI JKL MNO PQR STU VWX YZ",
+				"abc def ghi jkl mno pqr stu vwx yz",
+				"0 1 2 3 4 5 6 7 8 9",
+				"One Two Three Four Five Six Seven Eight Nine Ten",
+				"Your mother was a hamster and your father smelt of elderberries.",
+				"Hello World!",
+				"Goodnight, cruel world!",
+				"Do not go gentle into that good night",
+				"To be, or not to be: That is the question. Whether tis nobler in the mind to suffer the slings and arrows of outrageous fortune.",
+				"You're not crazy!",
+				"Time flies like an arrow, Fruit flies like a banana.",
+				"This message is bludgeoning the deceased equine.",
+				"Rawr! I'm a dinosaur!",
+				"Hesitation is always easy but rarely useful.",
+				"Quis custodiet ipsos custodes?",
+				"Tuesday's meeting of the apathy club was canceled due to lack of interest.",
+				"We sell your users so you don't have to!",
+				"Life is good.",
+				"A true magician never unveils his trick.",
+				"Ceci n'est pas une pipe."
+			];
+			var fonts = ['Droid Sans', 'Philosopher', 'Alegreya Sans', 'Chango', 'Coming Soon', 'Allan', 'Cardo', 'Bubbler One', 'Bowlby One SC', 'Prosto One', 'Rufina', 'Cantora One', 'Denk One', 'Play', 'Architects Daughter', 'Nova Square', 'Inder', 'Gloria Hallelujah', 'Telex', 'Comfortaa', 'Merienda', 'Boogaloo', 'Krona One', 'Orienta', 'Sofadi One', 'Source Sans Pro', 'Revalia', 'Overlock', 'Kelly Slab', 'Rye', 'Butcherman', 'Lato', 'Milonga', 'Aladin', 'Princess Sofia', 'Audiowide', 'Italiana', 'Michroma', 'Cabin Condensed', 'Jura', 'Marko One', 'PT Mono', 'Bubblegum Sans', 'Amaranth']
+			
+
+			function fisher_yates(a) {
+				for (var i = a.length - 1; i > 0; i--) {
+					var j = Math.floor(Math.random() * (i + 1));
+					var temp = a[i]; a[i] = a[j]; a[j] = temp;
+				}
+			}
+
+			fisher_yates(fonts);
+			fisher_yates(quotes);
+
+			function da_word(){
+				reset_canvas()
+				
+				var font = fonts.shift(); fonts.push(font); // do a rotation
+
+				if(Math.random() > 0.7){
+					var phrase = font;
+				}else{
+					var phrase = quotes.shift() //quotes[Math.floor(quotes.length * Math.random())];
+					quotes.push(phrase);
+				}
+				
+				WebFont.load({
+					google: {
+						families: [font]
+					},
+					active: function(){
+						o.font = '30px "' + font + '"'
+						var words = phrase.split(' '), buf = [], n = 70;
+						for(var i = 0; i < words.length; i++){
+							buf.push(words[i])
+							if(buf.join(' ').length > 15 || i == words.length - 1){
+								o.fillText(buf.join(' '), 50, n);
+								buf = []
+								n += 50
+							}
+						}
+						runOCR(phrase);
+					}
+				})
+			}
+
+			o.font = '30px sans-serif'
+			o.fillText("Welcome to the Ocrad.js Demo!", 50, 100);
+			runOCR();
+		</script>
+	</body>
+</html>

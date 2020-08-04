@@ -1,0 +1,25 @@
+cache:
+  key: "$CI_JOB_NAME"
+  untracked: true
+  paths:
+    - node_modules/
+
+before_script:
+  - npm install
+
+.test_template: &npm_test
+  script:
+    - npm run lint
+    - npm test
+
+test:node6:
+  image: node:6
+  <<: *npm_test
+
+test:node8:
+  image: node:8
+  <<: *npm_test
+
+test:node10:
+  image: node:10
+  <<: *npm_test

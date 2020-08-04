@@ -1,0 +1,22 @@
+// @flow
+
+import type {
+    GeoJSONFeatureCollection
+} from '../../index';
+
+const collection: GeoJSONFeatureCollection = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        "type": "Point",
+        "coordinates": [
+          100,
+          0
+        ]
+      }
+    }
+  ]
+};

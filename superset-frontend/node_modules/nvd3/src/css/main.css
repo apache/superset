@@ -1,0 +1,91 @@
+/********************
+ * SVG CSS
+ */
+
+/********************
+  Default CSS for an svg element nvd3 used
+*/
+svg.nvd3-svg {
+    user-select: none;
+    display: block;
+    width:100%;
+    height:100%;
+}
+
+/********************
+  Box shadow and border radius styling
+*/
+.nvtooltip.with-3d-shadow, .with-3d-shadow .nvtooltip {
+    box-shadow: 0 5px 10px rgba(0,0,0,.2);
+    border-radius: 5px;
+}
+
+
+.nvd3 text {
+    font: normal 12px Arial, sans-serif;
+}
+
+.nvd3 .title {
+    font: bold 14px Arial, sans-serif;
+}
+
+.nvd3 .nv-background {
+    fill: white;
+    fill-opacity: 0;
+}
+
+.nvd3.nv-noData {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+
+/**********
+*  Brush
+*/
+
+.nv-brush .extent {
+    fill-opacity: .125;
+    shape-rendering: crispEdges;
+}
+
+.nv-brush .resize path {
+    fill: #eee;
+    stroke: #666;
+}
+
+
+/**********
+*  Legend
+*/
+
+.nvd3 .nv-legend .nv-series {
+    cursor: pointer;
+}
+
+.nvd3 .nv-legend .nv-disabled circle {
+    fill-opacity: 0;
+}
+
+/* focus */
+.nvd3 .nv-brush .extent {
+    fill-opacity: 0 !important;
+}
+
+.nvd3 .nv-brushBackground rect {
+    stroke: #000;
+    stroke-width: .4;
+    fill: #fff;
+    fill-opacity: .7;
+}
+
+/**********
+*  Print
+*/
+
+@media print {
+    .nvd3 text {
+        stroke-width: 0;
+        fill-opacity: 1;
+    }
+}

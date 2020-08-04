@@ -1,0 +1,54 @@
+{
+	"name": "find-up",
+	"version": "3.0.0",
+	"description": "Find a file or directory by walking up parent directories",
+	"license": "MIT",
+	"repository": "sindresorhus/find-up",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=6"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"find",
+		"up",
+		"find-up",
+		"findup",
+		"look-up",
+		"look",
+		"file",
+		"search",
+		"match",
+		"package",
+		"resolve",
+		"parent",
+		"parents",
+		"folder",
+		"directory",
+		"dir",
+		"walk",
+		"walking",
+		"path"
+	],
+	"dependencies": {
+		"locate-path": "^3.0.0"
+	},
+	"devDependencies": {
+		"ava": "*",
+		"tempy": "^0.2.1",
+		"xo": "*"
+	}
+
+,"_resolved": "https://registry.npmjs.org/find-up/-/find-up-3.0.0.tgz"
+,"_integrity": "sha512-1yD6RmLI1XBfxugvORwlck6f75tYL+iR0jqwsOrOxMZyGYqUuDhJ0l4AXdO1iX/FTs9cBAMEk1gWSEx1kSbylg=="
+,"_from": "find-up@3.0.0"
+}

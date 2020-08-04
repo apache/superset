@@ -1,0 +1,14 @@
+#dom-node {
+    width: 400px;
+    height: 200px;
+    background-color: white;
+    padding: 1em;
+}
+textarea {
+    height: 100%;
+    width: 100%;
+    font-family: monospace;
+    font-size: 20px;
+    border: 1px solid grey;
+    padding: 1em;
+}

@@ -1,0 +1,22 @@
+{
+	"root": true,
+
+	"extends": "@ljharb",
+
+	"rules": {
+		"eqeqeq": [2, "allow-null"],
+		"max-statements": 0,
+		"no-extend-native": [2, { "exceptions": ["RegExp"] }],
+		"no-invalid-regexp": [2, { "allowConstructorFlags": ["s", "u", "y"] }],
+		"no-invalid-this": 0
+	},
+
+	"overrides": [
+		{
+			"files": "test/**",
+			"rules": {
+				"max-lines-per-function": 0,
+			},
+		},
+	],
+}

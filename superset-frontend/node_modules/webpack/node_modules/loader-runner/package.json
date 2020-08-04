@@ -1,0 +1,52 @@
+{
+  "name": "loader-runner",
+  "version": "2.4.0",
+  "description": "Runs (webpack) loaders",
+  "main": "lib/LoaderRunner.js",
+  "scripts": {
+    "lint": "eslint lib test",
+    "pretest": "npm run lint",
+    "test": "mocha --reporter spec",
+    "precover": "npm run lint",
+    "cover": "istanbul cover node_modules/mocha/bin/_mocha",
+    "travis": "npm run cover -- --report lcovonly"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webpack/loader-runner.git"
+  },
+  "keywords": [
+    "webpack",
+    "loader"
+  ],
+  "author": "Tobias Koppers @sokra",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/webpack/loader-runner/issues"
+  },
+  "homepage": "https://github.com/webpack/loader-runner#readme",
+  "engines": {
+    "node": ">=4.3.0 <5.0.0 || >=5.10"
+  },
+  "files": [
+    "lib/",
+    "bin/",
+    "hot/",
+    "web_modules/",
+    "schemas/"
+  ],
+  "devDependencies": {
+    "codecov.io": "^0.1.6",
+    "coveralls": "^2.11.6",
+    "eslint": "^3.12.2",
+    "eslint-plugin-node": "^3.0.5",
+    "eslint-plugin-nodeca": "^1.0.3",
+    "istanbul": "^0.4.1",
+    "mocha": "^3.2.0",
+    "should": "^8.0.2"
+  }
+
+,"_resolved": "https://registry.npmjs.org/loader-runner/-/loader-runner-2.4.0.tgz"
+,"_integrity": "sha512-Jsmr89RcXGIwivFY21FcRrisYZfvLMTWx5kOLc+JTxtpBOG6xML0vzbc6SEQG2FO9/4Fc3wW4LVcB5DmGflaRw=="
+,"_from": "loader-runner@2.4.0"
+}

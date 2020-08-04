@@ -1,0 +1,45 @@
+# English empty translation for po2json text fixture.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: po2json\n"
+"POT-Creation-Date: 2012-10-26 12:00+0000\n"
+"PO-Revision-Date: 2013-11-08 09:09+0200\n"
+"Last-Translator: Illimar Tambek <illimar.tambek@gmail.com>\n"
+"Language-Team: po2json\n"
+"MIME-Version: 1.0\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.5.7\n"
+"Language: en\n"
+
+#: test.js:1
+msgid "Hello, world!\n"
+msgstr ""
+
+#: test.js:2
+msgctxt "string context"
+msgid "the contextual phrase"
+msgstr ""
+
+#: test.js:3
+msgid ""
+"this is the first line\n"
+"this is the next one\n"
+"but this is the last\n"
+msgstr ""
+
+#: test.js:4
+msgid "one product"
+msgid_plural "%d products"
+msgstr[0] ""
+msgstr[1] ""
+
+#: test.js:5
+msgid "A sentence with \"quotation\" marks."
+msgstr ""
+
+#: test.js:6
+msgid "A fuzzy translation"
+msgstr ""

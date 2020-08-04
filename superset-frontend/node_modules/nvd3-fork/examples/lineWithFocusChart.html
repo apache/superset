@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+    <script src="lib/stream_layers.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+        }
+        html, body, #chart, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chart" class='with-3d-shadow with-transitions'>
+    <svg></svg>
+</div>
+
+<script>
+
+    nv.addGraph(function() {
+        var chart = nv.models.lineWithFocusChart();
+
+        chart.brushExtent([50,70]);
+
+        chart.xAxis.tickFormat(d3.format(',f')).axisLabel("Stream - 3,128,.1");
+        chart.x2Axis.tickFormat(d3.format(',f'));
+
+        chart.yTickFormat(d3.format(',.2f'));
+
+        chart.useInteractiveGuideline(true);
+
+        d3.select('#chart svg')
+            .datum(testData())
+            .call(chart);
+
+        nv.utils.windowResize(chart.update);
+
+        return chart;
+    });
+
+    function testData() {
+        return stream_layers(3,128,.1).map(function(data, i) {
+            return {
+                key: 'Stream' + i,
+                area: i === 1,
+                values: data
+            };
+        });
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+@selectors: blue, green, red;
+@list: a b c d;
+
+each(@selectors, {
+  .sel-@{value} {
+    a: b;
+  }
+});
+
+.each {
+  each(@list, {
+    index+: @index;
+    item@{index}: @value;
+  });
+
+  // nested each
+  each(10px 15px, 20px 25px; { 
+    // demonstrates nesting of each()
+    each(@value; #(@v, @k, @i) {
+      nest-@{i}-@{index}: @v @k;
+    });
+  });
+
+  // nested anonymous mixin
+  .nest-anon {
+    each(a b, .(@v;@i) {
+      each(c d, .(@vv;@ii) {
+        nest-@{i}-@{ii}: @v @vv;
+      });
+    });
+  }
+
+  // vector math
+  each(1 2 3 4, {
+    padding+_: (@value * 10px);
+  });
+}
+
+@set: {
+  one: blue;
+  // skip comments
+  two: green;
+  /** and these
+  */
+  three: red; //and this
+}
+.set {
+  each(@set, {
+    @{key}: @value;
+  });
+}
+.set-2() {
+  one: blue;
+  two: green;
+  three: red;
+}
+.set-2 {
+  each(.set-2(), .(@v, @k, @i) {
+    @{k}-@{i}: @v;
+  });
+}
+
+.pick(@a) when (@a = 4) {
+  val3: @a;
+}
+.single {
+  each(true, {
+    val: @value;
+  });
+  @exp: 1 + 1;
+  each(@exp, {
+    val2: @value;
+  });
+  each(1 2 3 4, {
+    .pick(@value);
+  });
+}
+
+@columns: range(4);
+.column-list {
+  list: @columns;
+}
+
+each(@columns, .(@val) {
+  .col-@{val} {
+    width: (100% / length(@columns));
+  }
+});
+
+each(range(10px, 30px, 10px), .(@val, @index) {
+  .row-@{index} {
+    width: @val;
+  }
+});
+
+@list: a b c d;
+.box {
+  each(@list, {
+    -less-log: extract(@list, @index);
+  })
+}
+
+// https://github.com/less/less.js/issues/3325
+
+@color-schemes: {
+  @primary: {
+    @color: blue;
+  }
+  @secondary: {
+    @color: red;
+  }
+}
+.test {
+  each(primary secondary, .(@color-name) {
+    @scheme: @color-schemes[@@color-name]; // e.g. @color-name = primary
+    color: @scheme[@color];
+  });
+}
+
+@one: {
+  @two: {
+    foo: red;
+    bar: blue;
+  };
+};
+
+each(@one[@two], {
+  .@{key} {
+    content: @value;
+  }
+});

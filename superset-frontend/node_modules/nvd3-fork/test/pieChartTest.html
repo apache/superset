@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+<link href="teststyle.css" rel="stylesheet" type='text/css'>
+<script src="../bower_components/d3/d3.js"></script>
+<script src="../build/nv.d3.js"></script>
+<style>
+
+body {
+  overflow-y:scroll;
+  font-family: Arial;
+}
+
+text {
+  font: 12px sans-serif;
+}
+
+</style>
+<body class='with-transitions'>
+<div class='navigation'>
+          Tests:
+          <a href="lineChartTest.html">Line Chart</a>
+          <a href="stackedAreaChartTest.html">Stacked Area</a>
+          <a href="../examples/cumulativeLineChart.html">Cumulative Line</a>
+          <a href="ScatterChartTest.html">Scatter</a>
+          <a href="realTimeChartTest.html">Real time test</a>
+  </div>
+<div class='chart third' id="test1">
+  <h2>Standard Pie Chart</h2>
+  <svg></svg>
+</div>
+
+<div class='chart third' id="test2">
+  <h2>Donut pie chart</h2>
+  <svg></svg>
+</div>
+
+<div class='chart third' id="test3">
+  <h2>Pie chart with 30 series'</h2>
+  <svg></svg>
+</div>
+
+<div class='chart third' id='test7'>
+  <h2>Pie chart with percent label type</h2>
+  <svg></svg>
+</div>
+
+<div class='chart third' id="test4">
+  <h2>Empty array passed in</h2>
+  <svg></svg>
+</div>
+
+<div class='chart third' id="test5">
+  <h2>Series' have only zero values</h2>
+  <svg></svg>
+</div>
+
+<div class='chart third' id="test6">
+  <h2>NaN, null, undefined values passed in</h2>
+  <svg></svg>
+</div>
+
+<div class='chart third' id="test8">
+  <h2>Half donut pie chart with outside label</h2>
+  <svg></svg>
+</div>
+
+<script>
+
+var testdata = [
+    {
+      key: "One",
+      y: 5
+    },
+    {
+      key: "Two",
+      y: 2
+    },
+    {
+      key: "Three",
+      y: 9
+    },
+    {
+      key: "Four",
+      y: 7
+    },
+    {
+      key: "Five",
+      y: 4
+    },
+    {
+      key: "Six",
+      y: 3
+    },
+    {
+      key: "Seven",
+      y: .5
+    }
+  ];
+
+function thirtySeries() {
+  var data = [];
+  for(var i =0; i < 30; i++) {
+    data.push({
+      key: "Series-" + i,
+      y: Math.floor(Math.random() * 100)
+    });
+  }
+  return data;
+}
+
+function defaultChart(containerId, data, labelType) {
+  nv.addGraph(function() {
+      var width = 500,
+          height = 500;
+
+      var chart = nv.models.pieChart()
+          .x(function(d) { return d.key })
+          .y(function(d) { return d.y })
+          .color(d3.scale.category10().range())
+          .width(width)
+          .height(height)
+          .labelType(labelType)
+          ;
+
+        d3.select("#" + containerId + " svg")
+            .datum(data)
+          .transition().duration(1200)
+            .attr('width', width)
+            .attr('height', height)
+            .call(chart);
+
+      nv.utils.windowResize(chart.update);
+      return chart;
+  });
+}
+
+//Adds donut pie chart.
+function defaultDonutChart(containerId, data, options) {
+    options = options || {};
+
+    nv.addGraph(function () {
+
+        var width = 500,
+                height = 500;
+
+        var chart = nv.models.pieChart()
+                .x(function (d) {
+                    return d.key
+                })
+                .color(d3.scale.category10().range())
+                .width(width)
+                .height(height)
+                .donut(true);
+
+        if (options.half){
+            chart.pie
+                    .startAngle(function (d) {
+                        return d.startAngle / 2 - Math.PI / 2
+                    })
+                    .endAngle(function (d) {
+                        return d.endAngle / 2 - Math.PI / 2
+                    });
+        }
+
+        if (options.donutLabelsOutside){
+            chart.pie.donutLabelsOutside(true);
+        }
+
+        d3.select("#" + containerId + " svg")
+                .datum(data)
+                .transition().duration(1200)
+                .attr('width', width)
+                .attr('height', height)
+                .call(chart);
+        nv.utils.windowResize(chart.update);
+        return chart;
+    });
+}
+
+defaultChart("test1", testdata);
+defaultDonutChart("test2", testdata, true);
+defaultChart("test3", thirtySeries());
+defaultChart("test4",[]);
+defaultChart("test5",[{key: "Zero series", y: 0}, {key: "Zero series 2", y: 0}]);
+defaultChart("test6", [
+      {key: "Undefined", y: undefined},
+      {key: "Nan", y: NaN},
+      {key: "null", y: null},
+      {key: "zero", y: 0}
+  ]);
+
+defaultChart("test7",testdata, "percent");
+defaultDonutChart("test8", testdata, {half: true, donutLabelsOutside: true});
+</script>

@@ -1,0 +1,32 @@
+{
+    "syntax": 3,
+    "package": null,
+    "imports": [],
+    "enums": [],
+    "messages": [
+      {
+        "name": "Event",
+        "enums": [],
+        "options": {},
+        "extends": [],
+        "messages": [],
+        "fields": [
+          {
+            "name": "id",
+            "type": "EntityId",
+            "tag": 1,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {
+              "tagger.tags": "\"bson:\\\"_id,omitempty\\\"\""
+            }
+          }
+        ],
+        "extensions": null
+      }
+    ],
+    "options": {},
+    "extends": []
+  }

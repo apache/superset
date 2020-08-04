@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+
+        }
+        html, body, svg {
+            margin: 0px;
+            padding: 0px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<h3>Legend 1</h3>
+<button id="changeData">Click to Expand/Contract</button>
+<svg id="test1" class="nvd3"></svg>
+
+<h3>Legend 2</h3>
+<p>Setting align(false)</p>
+<svg id="test2" class="nvd3"></svg>
+
+<h3>Legend 3</h3>
+<p>Setting legend padding distance</p>
+<svg id="test3" class="nvd3"></svg>
+
+<script>
+    var width = 500,
+        height = 40;
+
+    var legend = nv.models.legend().vers('furious');
+
+    d3.select('#test1')
+        .attr('width', width)
+        .attr('height', height)
+        .datum(sinAndCos());
+
+    var legend2 = nv.models.legend().vers('furious')
+        .align(false);
+
+    d3.select('#test2')
+        .attr('width', width)
+        .attr('height', height)
+        .datum(sinAndCos()).call(legend2);
+
+    var legend3 = nv.models.legend().vers('furious')
+        .width(900)
+        .padding(70);
+
+    d3.select('#test3')
+        .attr('width', 900)
+        .attr('height', 200)
+        .datum(sinAndCos()).call(legend3);
+
+    var update = function(i,l) {
+        d3.select('#test' + i).call(l);
+    }
+
+    update(1,legend);
+    legend.dispatch.on('stateChange', function(d) {
+        console.log(d);
+        update(1,legend);
+    });
+
+    legend2.dispatch.on('stateChange', function(d) {
+        console.log(d);
+        update(2,legend2);
+    });
+
+    legend3.dispatch.on('stateChange', function(d) {
+        console.log(d);
+        update(3,legend3);
+    });
+
+    d3.select('#changeData').on('click', function() {
+        var exp = legend.expanded();
+
+        legend.expanded(!exp);
+
+        d3.select('#test1')
+            .call(legend);
+    });
+
+    function sinAndCos() {
+        return [
+            {key: "Sine Wave"},
+            {key: "averylongserieslabelthatcontainsmorethantwentycharacters"},
+            {key: "A Very Long Series Label"},
+            {key: "A Very Long Series Label"},
+            {key: "Cosine Wave"},
+            {key: "Another test label"},
+            {key: "Bonds", disengaged: true},
+            {key: "Stocks", disengaged: true},
+            {key: "Apple", disengaged: true}
+        ];
+    }
+
+</script>
+</body>
+</html>

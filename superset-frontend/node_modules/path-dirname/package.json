@@ -1,0 +1,33 @@
+{
+  "name": "path-dirname",
+  "version": "1.0.2",
+  "description": "Node.js path.dirname() ponyfill",
+  "license": "MIT",
+  "repository": "es128/path-dirname",
+  "author": "Elan Shanker",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "dirname",
+    "dir",
+    "path",
+    "paths",
+    "file",
+    "built-in",
+    "util",
+    "utils",
+    "core",
+    "stdlib",
+    "ponyfill",
+    "polyfill",
+    "shim"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/path-dirname/-/path-dirname-1.0.2.tgz"
+,"_integrity": "sha1-zDPSTVJeCZpTiMAzbG4yuRYGCeA="
+,"_from": "path-dirname@1.0.2"
+}

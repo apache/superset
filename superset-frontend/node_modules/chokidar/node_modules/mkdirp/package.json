@@ -1,0 +1,38 @@
+{
+  "name": "mkdirp",
+  "description": "Recursively mkdir, like `mkdir -p`",
+  "version": "0.5.5",
+  "publishConfig": {
+    "tag": "legacy"
+  },
+  "author": "James Halliday <mail@substack.net> (http://substack.net)",
+  "main": "index.js",
+  "keywords": [
+    "mkdir",
+    "directory"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/substack/node-mkdirp.git"
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "dependencies": {
+    "minimist": "^1.2.5"
+  },
+  "devDependencies": {
+    "mock-fs": "^3.7.0",
+    "tap": "^5.4.2"
+  },
+  "bin": "bin/cmd.js",
+  "license": "MIT",
+  "files": [
+    "bin",
+    "index.js"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/mkdirp/-/mkdirp-0.5.5.tgz"
+,"_integrity": "sha512-NKmAlESf6jMGym1++R0Ra7wvhV+wFW63FaSOFPwRahvea0gMUcGUhVeAg/0BC0wiv9ih5NYPB1Wn1UEI1/L+xQ=="
+,"_from": "mkdirp@0.5.5"
+}

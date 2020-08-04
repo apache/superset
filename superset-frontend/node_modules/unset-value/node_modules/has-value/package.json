@@ -1,0 +1,85 @@
+{
+  "name": "has-value",
+  "version": "0.3.1",
+  "description": "Returns true if a value exists, false if empty. Works with deeply nested values using object paths.",
+  "homepage": "https://github.com/jonschlinkert/has-value",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/has-value",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/has-value/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "get-value": "^2.0.3",
+    "has-values": "^0.1.4",
+    "isobject": "^2.0.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.7",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "array",
+    "boolean",
+    "empty",
+    "find",
+    "function",
+    "has",
+    "hasOwn",
+    "javascript",
+    "js",
+    "key",
+    "keys",
+    "node.js",
+    "null",
+    "number",
+    "object",
+    "properties",
+    "property",
+    "string",
+    "type",
+    "util",
+    "utilities",
+    "utility",
+    "value"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "get-object",
+        "get-property",
+        "get-value",
+        "set-value"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/has-value/-/has-value-0.3.1.tgz"
+,"_integrity": "sha1-ex9YutpiyoJ+wKIHgCVlSEWZXh8="
+,"_from": "has-value@0.3.1"
+}

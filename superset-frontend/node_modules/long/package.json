@@ -1,0 +1,37 @@
+{
+    "name": "long",
+    "version": "3.2.0",
+    "author": "Daniel Wirtz <dcode@dcode.io>",
+    "description": "A Long class for representing a 64-bit two's-complement integer value.",
+    "main": "dist/long.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/dcodeIO/long.js.git"
+    },
+    "bugs": {
+        "url": "https://github.com/dcodeIO/long.js/issues"
+    },
+    "keywords": ["math"],
+    "dependencies": {
+    },
+    "devDependencies": {
+        "testjs": "latest",
+        "closurecompiler": "^1.6",
+        "metascript": "~0"
+    },
+    "license": "Apache-2.0",
+    "engines": {
+        "node": ">=0.6"
+    },
+    "scripts": {
+        "build": "node scripts/build.js",
+        "make": "npm run-script build && npm run-script compile && npm run-script compress && npm test",
+        "compile": "ccjs dist/long.js --compilation_level=SIMPLE_OPTIMIZATIONS --create_source_map=dist/long.min.map > dist/long.min.js",
+        "compress": "gzip -c -9 dist/long.min.js > dist/long.min.js.gz",
+        "test": "node node_modules/testjs/bin/testjs tests/suite.js"
+    }
+
+,"_resolved": "https://registry.npmjs.org/long/-/long-3.2.0.tgz"
+,"_integrity": "sha1-2CG3E4yhy1gcFymQ7xTbIAtcR0s="
+,"_from": "long@3.2.0"
+}

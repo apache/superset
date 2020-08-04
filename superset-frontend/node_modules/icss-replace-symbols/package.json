@@ -1,0 +1,44 @@
+{
+  "name": "icss-replace-symbols",
+  "version": "1.1.0",
+  "description": "Replacing symbols during the linking phase of ICSS",
+  "main": "lib/index.js",
+  "scripts": {
+    "lint": "standard src test",
+    "build": "babel --out-dir lib src",
+    "autotest": "chokidar src test -c 'npm test'",
+    "test": "mocha --compilers js:babel-register",
+    "posttest": "npm run lint && npm run build",
+    "travis": "npm run test",
+    "prepublish": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/css-modules/icss-replace-symbols.git"
+  },
+  "keywords": [
+    "css",
+    "modules",
+    "icss",
+    "postcss"
+  ],
+  "author": "Glen Maddern",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/css-modules/icss-replace-symbols/issues"
+  },
+  "homepage": "https://github.com/css-modules/icss-replace-symbols#readme",
+  "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-register": "^6.18.0",
+    "chokidar": "^1.3.0",
+    "mocha": "^3.1.2",
+    "postcss": "^6.0.1",
+    "standard": "^8.4.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/icss-replace-symbols/-/icss-replace-symbols-1.1.0.tgz"
+,"_integrity": "sha1-Bupvg2ead0njhs/h/oEq5dsiPe0="
+,"_from": "icss-replace-symbols@1.1.0"
+}

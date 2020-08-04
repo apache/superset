@@ -1,0 +1,11 @@
+node_modules/
+bower_components/
+config.cson
+build/
+data/
+wiki/
+npm-debug.log
+*.sublime-workspace
+spare-parts
+.DS_Store
+.idea/

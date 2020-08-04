@@ -1,0 +1,60 @@
+{
+  "author": "J. Ryan Stinnett <jryans@gmail.com> (http://convolv.es/)",
+  "name": "timers-browserify",
+  "description": "timers module for browserify",
+  "version": "2.0.10",
+  "homepage": "https://github.com/jryans/timers-browserify",
+  "bugs": "https://github.com/jryans/timers-browserify/issues",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jryans/timers-browserify.git"
+  },
+  "contributors": [
+    "Colton Brown <coltonTB@me.com>",
+    "Dario Segura <dario.seco@gmail.com>",
+    "Guy Bedford <guybedford@gmail.com>",
+    "Ionut-Cristian Florescu <ionut.florescu@gmail.com>",
+    "James Halliday <mail@substack.net>",
+    "Jan Schär <jscissr@gmail.com>",
+    "Johannes Ewald <johannes.ewald@peerigon.com>",
+    "Jonathan Prins <jon@blip.tv>",
+    "Matt Esch <matt@mattesch.info>",
+    "taoqf <tao_qiufeng@126.com>",
+    "Thiago Felix <thiago@thiagofelix.com>",
+    "wtgtybhertgeghgtwtg <wtgtybhertgeghgtwtg@gmail.com>"
+  ],
+  "main": "main.js",
+  "dependencies": {
+    "setimmediate": "^1.0.4"
+  },
+  "devDependencies": {
+    "connect": "~2.3.0",
+    "browserify": "~1.10.16"
+  },
+  "optionalDependencies": {},
+  "engines": {
+    "node": ">=0.6.0"
+  },
+  "keywords": [
+    "timers",
+    "browserify",
+    "browser"
+  ],
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/jryans/timers-browserify/blob/master/LICENSE.md"
+    }
+  ],
+  "jspm": {
+    "map": {
+      "./main.js": {
+        "node": "@node/timers"
+      }
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/timers-browserify/-/timers-browserify-2.0.10.tgz"
+,"_integrity": "sha512-YvC1SV1XdOUaL6gx5CoGroT3Gu49pK9+TZ38ErPldOWW4j49GI1HKs9DV+KGq/w6y+LZ72W1c8cKz2vzY+qpzg=="
+,"_from": "timers-browserify@2.0.10"
+}

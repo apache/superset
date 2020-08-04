@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+<link href="teststyle.css" rel="stylesheet" type='text/css'>
+<script src="../bower_components/d3/d3.js"></script>
+<script src="../build/nv.d3.js"></script>
+<style>
+
+</style>
+<body>
+  <h3>Test cases for Domain and Range overrides - Example of a polylinear scale</h3>
+  <div style='position:relative;'>
+      <div class='navigation'>
+          Tests:
+          <a href="lineChartTest.html">Line Chart</a>
+          <a href="stackedAreaChartTest.html">Stacked Area</a>
+          <a href="../examples/cumulativeLineChart.html">Cumulative Line</a>
+          <a href="ScatterChartTest.html">Scatter</a>
+          <a href="pieChartTest.html">Pie chart</a>
+      </div>
+      <div class='chart full' id='chart1'>
+        Line chart: yDomain = [0,2,200], yRange = [500,50,0]
+        <svg></svg>
+      </div>
+      <div class='chart half with-transitions' id='chart2'>
+        Historical bar chart: yDomain = [0,2,130], yRange = [500,50,0]
+        <svg></svg>
+      </div>
+
+      <div class='half'>
+        Notes:
+        The chart.yRange() and chart.xRange() properties are an advanced feature.  They are useful
+        in situations where your data has wild extremes: ie, you have lots of smaller numbers, and lots of really big numbers.<br/><br/>
+
+        Without a polylinear scale, those really big data points will overwhelm the small points.<br/><br/>
+
+        Please look at the examples to understand how polylinear scales work.  Comment/uncomment the lines that alter yDomain and yRange
+        to see the effect it has on the charts.
+      </div>
+  </div>
+
+<script>
+
+//------------ CHART 1
+lineChartConfig("chart1", sinAndCos(),true, false);
+barChartConfig(dataWithSpikes());
+
+
+function lineChartConfig(containerid, data, guideline, useDates, auxOptions) {
+  if (auxOptions === undefined) auxOptions = {};
+  if (guideline === undefined) guideline = true;
+  nv.addGraph(function() {
+    var chart;
+    chart = nv.models.lineChart().useInteractiveGuideline(guideline);
+
+    var fullChartHeight = 500 - chart.margin().top - chart.margin().bottom;
+    chart
+        .x(function(d,i) {
+          return d.x;
+        })
+       .yDomain([0,2,200])   //Using a polylinear scale
+        .yRange([fullChartHeight,50,0])
+        ;
+
+    if (auxOptions.width)
+      chart.width(auxOptions.width);
+
+    if (auxOptions.height)
+      chart.height(auxOptions.height);
+
+    var formatter;
+    if (useDates) {
+        formatter = function(d,i) {
+                var now = (new Date()).getTime() - 86400 * 1000 * 365;
+                now = new Date(now + d * 86400 * 1000);
+                return d3.time.format('%b %d %Y')(now );
+        }
+    }
+    else {
+        formatter = d3.format(",.1f");
+    }
+
+    chart.xAxis // chart sub-models (ie. xAxis, yAxis, etc) when accessed directly, return themselves, not the parent chart, so need to chain separately
+        .tickFormat(
+            formatter
+          );
+
+    chart.yAxis
+        .axisLabel('Voltage (v)')
+        .tickFormat(d3.format(',.2f'));
+
+    d3.select('#' + containerid + ' svg')
+        .datum(data)
+      .transition().duration(500)
+        .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+}
+
+function barChartConfig(data) {
+    nv.addGraph(function() {
+      var chart = nv.models.historicalBarChart();
+      var fullChartHeight = 500 - chart.margin().top - chart.margin().bottom;
+      chart.color(["#ff7f0e"])
+      .yDomain([0,2,130])
+      .yRange([fullChartHeight,50,0])
+      ;
+
+      chart.xAxis
+      .tickFormat(d3.format(',.1f'))
+      .axisLabel("Time")
+      ;
+
+       chart.yAxis
+      .axisLabel('Random Number')
+      .tickFormat(d3.format(',.4f'));
+      d3.select("#chart2 svg")
+        .datum(data)
+        .transition().duration(500)
+        .call(chart);
+
+      nv.utils.windowResize(chart.update);
+      return chart;
+    });
+}
+
+function sinAndCos() {
+  var sin = [],
+      cos = [],
+      higherOrder = []
+      ;
+
+  var now = (new Date()).getTime();
+  for (var i = 0; i < 100; i++) {
+    sin.push({x: i, y:  Math.abs(Math.sin(i/10)) }); //the nulls are to show how defined works
+    cos.push({x: i, y: Math.abs(.5 * Math.cos(i/10)) });
+
+    higherOrder.push({x: i, y: Math.cos(i) * 100 + 100});
+  }
+
+  return [
+    {
+      values: sin,
+      key: "Sine Wave",
+      color: "#ff7f0e"
+    },
+    {
+      values: cos,
+      key: "Cosine Wave",
+      color: "#2ca02c"
+    },
+    {
+      values: higherOrder,
+      key: "Higher Order",
+      color: "#fc34ff"
+    }
+  ];
+}
+
+function dataWithSpikes() {
+   var rval = [];
+   for(var i =0; i < 100; i++) {
+
+      var spike = (Math.random() > 0.9);
+      rval.push({
+        x: i,
+        y: (spike) ? Math.random() * 100 + 30 : Math.random()
+      });
+   }
+   return [
+      {key: "Series 1",
+      color : "orange",
+      values: rval}
+   ];
+}
+
+</script>

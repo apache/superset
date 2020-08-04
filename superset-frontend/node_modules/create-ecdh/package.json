@@ -1,0 +1,39 @@
+{
+  "name": "create-ecdh",
+  "version": "4.0.3",
+  "description": "createECDH but browserifiable",
+  "main": "index.js",
+  "browser": "browser.js",
+  "scripts": {
+    "test": "standard && node test.js | tspec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crypto-browserify/createECDH.git"
+  },
+  "keywords": [
+    "diffie",
+    "hellman",
+    "diffiehellman",
+    "ECDH"
+  ],
+  "author": "Calvin Metcalf",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/crypto-browserify/createECDH/issues"
+  },
+  "homepage": "https://github.com/crypto-browserify/createECDH",
+  "dependencies": {
+    "bn.js": "^4.1.0",
+    "elliptic": "^6.0.0"
+  },
+  "devDependencies": {
+    "tap-spec": "^1.0.1",
+    "tape": "^3.0.1",
+    "standard": "^5.4.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/create-ecdh/-/create-ecdh-4.0.3.tgz"
+,"_integrity": "sha512-GbEHQPMOswGpKXM9kCWVrremUcBmjteUaQ01T9rkKCPDXfUHX0IoP9LpHYo2NPFampa4e+/pFDc3jQdxrxQLaw=="
+,"_from": "create-ecdh@4.0.3"
+}

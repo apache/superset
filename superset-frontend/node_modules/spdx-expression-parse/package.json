@@ -1,0 +1,44 @@
+{
+  "name": "spdx-expression-parse",
+  "description": "parse SPDX license expressions",
+  "version": "3.0.0",
+  "author": "Kyle E. Mitchell <kyle@kemitchell.com> (http://kemitchell.com)",
+  "files": [
+    "AUTHORS",
+    "index.js",
+    "parse.js",
+    "scan.js"
+  ],
+  "dependencies": {
+    "spdx-exceptions": "^2.1.0",
+    "spdx-license-ids": "^3.0.0"
+  },
+  "devDependencies": {
+    "defence-cli": "^2.0.1",
+    "mocha": "^3.4.2",
+    "replace-require-self": "^1.0.0",
+    "standard": "^10.0.2"
+  },
+  "keywords": [
+    "SPDX",
+    "law",
+    "legal",
+    "license",
+    "metadata",
+    "package",
+    "package.json",
+    "standards"
+  ],
+  "license": "MIT",
+  "repository": "jslicense/spdx-expression-parse.js",
+  "scripts": {
+    "lint": "standard",
+    "test:readme": "defence -i javascript README.md | replace-require-self | node",
+    "test:mocha": "mocha test/index.js",
+    "test": "npm run test:mocha && npm run test:readme"
+  }
+
+,"_resolved": "https://registry.npmjs.org/spdx-expression-parse/-/spdx-expression-parse-3.0.0.tgz"
+,"_integrity": "sha512-Yg6D3XpRD4kkOmTpdgbUiEJFKghJH03fiC1OPll5h/0sO6neh2jqRDVHOQ4o/LMea0tgCkbMgea5ip/e+MkWyg=="
+,"_from": "spdx-expression-parse@3.0.0"
+}

@@ -1,0 +1,34 @@
+{
+  "name": "unquote",
+  "version": "1.1.1",
+  "description": "Remove wrapping quotes from a string.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/*"
+  },
+  "author": "Cameron Lakenen <cameron@lakenen.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "tape": "^2.13.4"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lakenen/node-unquote.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lakenen/node-unquote/issues"
+  },
+  "homepage": "https://github.com/lakenen/node-unquote",
+  "keywords": [
+    "string",
+    "unquote",
+    "quotes"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/unquote/-/unquote-1.1.1.tgz"
+,"_integrity": "sha1-j97XMk7G6IoP+LkF58CYzcCG1UQ="
+,"_from": "unquote@1.1.1"
+}

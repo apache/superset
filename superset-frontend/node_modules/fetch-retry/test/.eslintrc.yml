@@ -1,0 +1,7 @@
+env:
+  node: true
+  mocha: true
+parserOptions:
+  ecmaVersion: 9
+rules:
+  no-console: 0

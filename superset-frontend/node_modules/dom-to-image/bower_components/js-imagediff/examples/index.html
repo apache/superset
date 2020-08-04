@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JS-ImageDiff Example</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="description" content="JavaScript imagediff utility using canvas for doing image diff in the browser." />
+  <script type="text/javascript" src="../imagediff.js"></script>
+  <link rel="stylesheet" href="styles.css" type="text/css" />
+</head>
+<body>
+  <div id="content">
+    <h1>JS-ImageDiff Example:</h1>
+    <p>See more examples at <a href="http://humblesoftware.github.com/js-imagediff/">humblesoftware.github.com/js-imagediff</a>.
+   Sample images from the <a href="https://github.com/cameronmcefee/Image-Diff-View-Modes/commit/8e95f70c9c47168305970e91021072673d7cdad8">github imagediff demo</a>.</p>
+    <div id="demo">
+      <img id="1-a" alt="example image one" src="1_normal_a.jpg" />
+      <img id="1-b" alt="example image two" src="1_normal_b.jpg" />
+    </div>
+    <script type="text/javascript">
+
+      //
+      // Example:
+      //
+
+      var
+        a = document.getElementById('1-a'),     // Original image
+        b = document.getElementById('1-b'),     // Altered image
+        demo = document.getElementById('demo'); // Container div
+
+      function difference () {
+
+        var
+          diff, canvas, context;
+
+        if (!a.complete || !b.complete) {
+
+          // Images are loaded asynchronously.
+          // Let's wait until they are ready.
+          setTimeout(difference, 10);
+
+        } else {
+
+          // Once they are ready, create a diff.
+          // This returns an ImageData object.
+          diff = imagediff.diff(a, b);
+
+          // Now create a canvas,
+          canvas = imagediff.createCanvas(diff.width, diff.height);
+
+          // get its context
+          context = canvas.getContext('2d');
+
+          // and finally draw the ImageData diff.
+          context.putImageData(diff, 0, 0);
+
+          // Add the canvas element to the container.
+          demo.appendChild(canvas);
+        }
+      }
+
+      difference();
+    </script>
+  </div>
+  <div id="github-ribbon">
+    <a href="http://github.com/HumbleSoftware/js-imagediff"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://humblesoftware.com/static/images/github-ribbon.png" alt="Fork me on GitHub"/></a>
+  </div>
+</body>
+</html>
+

@@ -1,0 +1,39 @@
+Metadata-Version: 1.0
+Name: rison
+Version: 1.1
+Summary: A Rison parser
+Home-page: UNKNOWN
+Author: Stijn Debrouwere
+Author-email: stijn@stdout.be
+License: MIT
+Download-URL: http://www.github.com/stdbrouw/rison/tarball/master
+Description: python-rison is, not surprisingly, a Rison parser for Python.
+        
+        Rison is a data serialization format optimized for compactness in URIs. Rison is a 
+        slight variation of JSON that looks vastly superior after URI encoding. Rison still 
+        expresses exactly the same set of data structures as JSON, so data can be translated 
+        back and forth without loss or guesswork.
+        
+        See http://mjtemplate.org/examples/rison.html to learn more.
+        
+        Rison URLs look like this:
+        
+        	http://example.org/example-resource?a=(key:val,key2:val2)&b=!(a,list,of,values)
+        
+        O-Rison and A-Rison shortcuts make these URLs cleaner still. If you know beforehand which 
+        data type an argument will receive, you can use O-Rison for objects and A-Rison for arrays, 
+        and leave off the () and !() syntax respectively:
+        
+        	http://example.org/example-resource?a=key:val,key2:val2&b=a,list,of,values
+        
+        Current version may not work with unicode URLs.
+Keywords: json serialization uri url
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Utilities

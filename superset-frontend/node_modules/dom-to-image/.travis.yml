@@ -1,0 +1,11 @@
+dist: trusty
+addons:
+    firefox: "49.0"
+language: node_js
+before_install:
+    - sudo apt-get update -q
+    - sudo apt-get install chromium-browser -y
+before_script:
+    - export CHROME_BIN=chromium-browser
+    - export DISPLAY=:99.0
+    - sh -e /etc/init.d/xvfb start

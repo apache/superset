@@ -1,0 +1,15 @@
+language: node_js
+node_js: 5
+install: npm install
+script:
+ - npm test
+before_cache: npm prune
+branches:
+  only:
+    - master
+# force container based infra
+# http://docs.travis-ci.com/user/workers/container-based-infrastructure/#Routing-your-build-to-container-based-infrastructure
+sudo: false
+cache:
+  directories:
+    - node_modules

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .active { fill: blue !important;}
+          /*.datamaps-key dt, .datamaps-key dd {float: none !important;}
+          .datamaps-key {right: -50px; top: 0;}*/
+        </style>
+      </head>
+      <body>
+
+        <div id="container1" style="border:1px dotted blue; width: 700px; height: 475px; position: relative;"></div>
+        <script src="/src/js/components/d3/d3.min.js"></script>
+        <script src="/src/js/components/topojson/topojson.js"></script>
+        <!-- <script src="/src/js/json2.js"></script> -->
+        <script src="/src/rel/datamaps.world.js"></script>
+        <script>
+
+          var map = new Datamap({
+            scope: 'world',
+            element: document.getElementById('container1'),
+            geographyConfig: {
+              popupOnHover: false,
+              highlightOnHover: false,
+              borderColor: '#444',
+              borderWidth: 0.5
+            },
+            bubblesConfig: {
+              popupTemplate: function(geography, data) {
+                return '<div class="hoverinfo">Some From New: data about ' + data.centered + '</div>'
+              },
+              fillOpacity: 0.2
+            },
+            fills: {
+              'Visited': '#306596',
+              'neato': '#0fa0fa',
+              'Trouble': '#bada55',
+              defaultFill: '#dddddd'
+            }
+          });
+
+      // Mix and match ways to specify how arcs are drawn
+      map.arc([{
+        origin: {
+          latitude: 61,
+          longitude: -149
+        },
+        destination: {
+          latitude: -22,
+          longitude: -43
+        },
+        strokeColor: 'blue'
+      }, {
+        origin: 'MEX',
+        destination: 'ARG'
+      },
+      {
+        origin: 'CAF',
+        destination: 'IND'
+      },
+      {
+        origin: 'BRA',
+        destination: 'USA',
+        strokeColor: 'green'
+      }], {
+        animationSpeed: 2000
+      });
+
+</script>
+</body>
+</html>

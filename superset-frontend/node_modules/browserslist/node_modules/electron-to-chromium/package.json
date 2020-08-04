@@ -1,0 +1,42 @@
+{
+  "name": "electron-to-chromium",
+  "version": "1.3.124",
+  "description": "Provides a list of electron-to-chromium version mappings",
+  "main": "index.js",
+  "files": [
+    "versions.js",
+    "full-versions.js",
+    "chromium-versions.js",
+    "full-chromium-versions.js",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "update": "node automated-update.js",
+    "test": "nyc ava --verbose",
+    "report": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kilian/electron-to-chromium/"
+  },
+  "keywords": [
+    "electron",
+    "chrome",
+    "browserlist"
+  ],
+  "author": "Kilian Valkhof",
+  "license": "ISC",
+  "devDependencies": {
+    "ava": "^1.1.0",
+    "codecov": "^3.1.0",
+    "electron-releases": "^3.94.0",
+    "nyc": "^13.3.0",
+    "request": "^2.88.0",
+    "shelljs": "^0.7.6"
+  }
+
+,"_resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.3.124.tgz"
+,"_integrity": "sha512-glecGr/kFdfeXUHOHAWvGcXrxNU+1wSO/t5B23tT1dtlvYB26GY8aHzZSWD7HqhqC800Lr+w/hQul6C5AF542w=="
+,"_from": "electron-to-chromium@1.3.124"
+}

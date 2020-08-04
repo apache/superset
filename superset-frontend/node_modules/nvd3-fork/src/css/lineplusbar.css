@@ -1,0 +1,8 @@
+/* line plus bar */
+.nvd3.nv-linePlusBar .nv-bar rect {
+    fill-opacity: .75;
+}
+
+.nvd3.nv-linePlusBar .nv-bar rect:hover {
+    fill-opacity: 1;
+}

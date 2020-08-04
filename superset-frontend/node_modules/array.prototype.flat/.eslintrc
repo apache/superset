@@ -1,0 +1,29 @@
+{
+	"root": true,
+
+	"extends": "@ljharb",
+
+	"rules": {
+		"array-bracket-newline": 0,
+		"array-element-newline": 0,
+		"func-name-matching": 0,
+		"max-statements-per-line": [2, { "max": 2 }],
+		"new-cap": [2, {
+			"capIsNewExceptions": [
+				"ArraySpeciesCreate",
+				"Call",
+				"CreateDataPropertyOrThrow",
+				"FlattenIntoArray",
+				"Get",
+				"HasProperty",
+				"IsArray",
+				"Set",
+				"ToInteger",
+				"ToLength",
+				"ToObject",
+				"ToString"
+			]
+		}],
+		"no-magic-numbers": 0,
+	}
+}

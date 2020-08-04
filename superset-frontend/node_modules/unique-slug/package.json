@@ -1,0 +1,27 @@
+{
+  "name": "unique-slug",
+  "version": "2.0.1",
+  "description": "Generate a unique character string suitible for use in files and URLs.",
+  "main": "index.js",
+  "scripts": {
+    "test": "standard && tap --coverage test"
+  },
+  "keywords": [],
+  "author": "Rebecca Turner <me@re-becca.org> (http://re-becca.org)",
+  "license": "ISC",
+  "devDependencies": {
+    "standard": "^5.4.1",
+    "tap": "^2.3.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/iarna/unique-slug.git"
+  },
+  "dependencies": {
+    "imurmurhash": "^0.1.4"
+  }
+
+,"_resolved": "https://registry.npmjs.org/unique-slug/-/unique-slug-2.0.1.tgz"
+,"_integrity": "sha512-n9cU6+gITaVu7VGj1Z8feKMmfAjEAQGhwD9fE3zvpRRa0wEIx8ODYkVGfSc94M2OX00tUFV8wH3zYbm1I8mxFg=="
+,"_from": "unique-slug@2.0.1"
+}

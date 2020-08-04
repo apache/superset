@@ -1,0 +1,55 @@
+#!/usr/bin/env node
+
+var commander = require("commander"),
+    graticule = require("d3-geo").geoGraticule(),
+    write = require("./write");
+
+commander
+    .version(require("../package.json").version)
+    .usage("[options]")
+    .description("Generate a GeoJSON graticule.")
+    .option("-o, --out <file>", "output file name; defaults to “-” for stdout", "-")
+    .option("--extent <value>", "the major and minor extent", parseExtent)
+    .option("--extent-minor <value>", "the minor extent; defaults to " + graticule.extentMajor(), parseExtent)
+    .option("--extent-major <value>", "the major extent; defaults to " + graticule.extentMinor(), parseExtent)
+    .option("--step <value>", "the major and minor step", parseStep)
+    .option("--step-minor <value>", "the minor step; defaults to " + graticule.stepMinor(), parseStep)
+    .option("--step-major <value>", "the major step; defaults to " + graticule.stepMajor(), parseStep)
+    .option("--precision <value>", "the precision; defaults to " + graticule.precision(), graticule.precision)
+    .parse(process.argv);
+
+if (commander.args.length !== 0) {
+  console.error();
+  console.error("  error: unexpected arguments");
+  console.error();
+  process.exit(1);
+}
+
+if (commander.extent != null) {
+  if (commander.extentMinor == null) commander.extentMinor = commander.extent;
+  if (commander.extentMajor == null) commander.extentMajor = commander.extent;
+}
+if (commander.step != null) {
+  if (commander.stepMinor == null) commander.stepMinor = commander.step;
+  if (commander.stepMajor == null) commander.stepMajor = commander.step;
+}
+if (commander.extentMinor != null) graticule.extentMinor(commander.extentMinor);
+if (commander.extentMajor != null) graticule.extentMajor(commander.extentMajor);
+if (commander.stepMinor != null) graticule.stepMinor(commander.stepMinor);
+if (commander.stepMajor != null) graticule.stepMajor(commander.stepMajor);
+
+var writer = write(commander.out);
+writer.write(JSON.stringify(graticule()) + "\n");
+writer.end().catch(abort);
+
+function parseStep(x) {
+  return x = x.split(","), x.length === 1 ? [+x[0], +x[0]] : [+x[0], +x[1]];
+}
+
+function parseExtent(x) {
+  return x = x.split(","), [[+x[0], +x[1]], [+x[2], +x[3]]];
+}
+
+function abort(error) {
+  console.error(error.stack);
+}

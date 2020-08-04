@@ -1,0 +1,47 @@
+{
+  "name": "spdy-transport",
+  "version": "3.0.0",
+  "main": "lib/spdy-transport",
+  "description": "SPDY v2, v3, v3.1 and HTTP2 transport",
+  "license": "MIT",
+  "keywords": [
+    "spdy",
+    "http2",
+    "transport"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/spdy-http2/spdy-transport.git"
+  },
+  "homepage": "https://github.com/spdy-http2/spdy-transport",
+  "author": "Fedor Indutny <fedor@indutny.com>",
+  "dependencies": {
+    "debug": "^4.1.0",
+    "detect-node": "^2.0.4",
+    "hpack.js": "^2.1.6",
+    "obuf": "^1.1.2",
+    "readable-stream": "^3.0.6",
+    "wbuf": "^1.7.3"
+  },
+  "devDependencies": {
+    "async": "^2.6.1",
+    "istanbul": "^0.4.5",
+    "mocha": "^5.2.0",
+    "pre-commit": "^1.2.2",
+    "standard": "^12.0.1",
+    "stream-pair": "^1.0.3"
+  },
+  "scripts": {
+    "lint": "standard",
+    "test": "mocha --reporter=spec test/**/*-test.js test/**/**/*-test.js",
+    "coverage": "istanbul cover node_modules/.bin/_mocha -- --reporter=spec test/**/*-test.js test/**/**/*-test.js"
+  },
+  "pre-commit": [
+    "lint",
+    "test"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/spdy-transport/-/spdy-transport-3.0.0.tgz"
+,"_integrity": "sha512-hsLVFE5SjA6TCisWeJXFKniGGOpBgMLmerfO2aCyCU5s7nJ/rpAepqmFifv/GCbSbueEeAJJnmSQ2rKC/g8Fcw=="
+,"_from": "spdy-transport@3.0.0"
+}

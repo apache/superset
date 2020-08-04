@@ -1,0 +1,67 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`no-large-snapshots ExpressionStatement function should report if maxSize is zero 1`] = `
+Array [
+  Object {
+    "data": Object {
+      "lineCount": 1,
+      "lineLimit": 0,
+    },
+    "message": "Expected to not encounter a Jest snapshot but was found with {{ lineCount }} lines long",
+    "node": Object {
+      "loc": Object {
+        "end": Object {
+          "line": 2,
+        },
+        "start": Object {
+          "line": 1,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`no-large-snapshots ExpressionStatement function should report if node has more lines of code than number given in sizeThreshold option 1`] = `
+Array [
+  Object {
+    "data": Object {
+      "lineCount": 83,
+      "lineLimit": 70,
+    },
+    "message": "Expected Jest snapshot to be smaller than {{ lineLimit }} lines but was {{ lineCount }} lines long",
+    "node": Object {
+      "loc": Object {
+        "end": Object {
+          "line": 103,
+        },
+        "start": Object {
+          "line": 20,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`no-large-snapshots ExpressionStatement function should report if node has more than 50 lines of code and no sizeThreshold option is passed 1`] = `
+Array [
+  Object {
+    "data": Object {
+      "lineCount": 52,
+      "lineLimit": 50,
+    },
+    "message": "Expected Jest snapshot to be smaller than {{ lineLimit }} lines but was {{ lineCount }} lines long",
+    "node": Object {
+      "loc": Object {
+        "end": Object {
+          "line": 53,
+        },
+        "start": Object {
+          "line": 1,
+        },
+      },
+    },
+  },
+]
+`;

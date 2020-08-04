@@ -1,0 +1,19 @@
+{
+    "name": "growly",
+    "version": "1.3.0",
+    "description": "Simple zero-dependency Growl notifications using GNTP.",
+    "keywords": ["growl", "growly", "snarl", "notifications", "gntp", "messages"],
+    "author": "Ibrahim Al-Rajhi <abrahamalrajhi@gmail.com> (http://ibrahimalrajhi.com/)",
+    "repository": "http://github.com/theabraham/growly",
+    "bugs": "http://github.com/theabraham/growly/issues",
+    "main": "lib/growly.js",
+    "directories": {
+        "example": "example",
+        "lib": "lib"
+    },
+    "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/growly/-/growly-1.3.0.tgz"
+,"_integrity": "sha1-8QdIy+dq+WS3yWyTxrzCivEgwIE="
+,"_from": "growly@1.3.0"
+}

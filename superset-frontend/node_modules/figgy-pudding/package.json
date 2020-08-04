@@ -1,0 +1,39 @@
+{
+  "name": "figgy-pudding",
+  "version": "3.5.1",
+  "description": "Delicious, festive, cascading config/opts definitions",
+  "main": "index.js",
+  "files": [
+    "*.js",
+    "lib"
+  ],
+  "scripts": {
+    "prerelease": "npm t",
+    "postrelease": "npm publish && git push --follow-tags",
+    "pretest": "standard",
+    "release": "standard-version -s",
+    "test": "tap -J --100 --coverage test/*.js",
+    "update-coc": "weallbehave -o . && git add CODE_OF_CONDUCT.md && git commit -m 'docs(coc): updated CODE_OF_CONDUCT.md'",
+    "update-contrib": "weallcontribute -o . && git add CONTRIBUTING.md && git commit -m 'docs(contributing): updated CONTRIBUTING.md'"
+  },
+  "repository": "https://github.com/zkat/figgy-pudding",
+  "keywords": [
+    "config",
+    "options",
+    "yummy"
+  ],
+  "author": "Kat Marchán <kzm@sykosomatic.org>",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "standard": "^11.0.1",
+    "standard-version": "^4.4.0",
+    "tap": "^12.0.1",
+    "weallbehave": "^1.2.0",
+    "weallcontribute": "^1.0.8"
+  }
+
+,"_resolved": "https://registry.npmjs.org/figgy-pudding/-/figgy-pudding-3.5.1.tgz"
+,"_integrity": "sha512-vNKxJHTEKNThjfrdJwHc7brvM6eVevuO5nTj6ez8ZQ1qbXTvGthucRF7S4vf2cr71QVnT70V34v0S1DyQsti0w=="
+,"_from": "figgy-pudding@3.5.1"
+}

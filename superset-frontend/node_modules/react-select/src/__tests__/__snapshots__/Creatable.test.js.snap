@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`defaults - snapshot 1`] = `
+<Creatable
+  allowCreateWhileLoading={false}
+  createOptionPosition="last"
+  formatCreateLabel={[Function]}
+  getNewOptionData={[Function]}
+  inputValue=""
+  isValidNewOption={[Function]}
+  menuIsOpen={false}
+  onChange={[Function]}
+  onInputChange={[Function]}
+  onMenuClose={[Function]}
+  onMenuOpen={[Function]}
+  value={null}
+/>
+`;

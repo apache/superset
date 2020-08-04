@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .active { fill: blue !important;}
+          /*.datamaps-key dt, .datamaps-key dd {float: none !important;}
+          .datamaps-key {right: -50px; top: 0;}*/
+        </style>
+      </head>
+      <body>
+
+        <div id="container1" style="border:1px dotted blue; width: 700px; height: 475px; position: relative;"></div>
+        <script src="/src/js/components/d3/d3.min.js"></script>
+        <script src="/src/js/components/topojson/topojson.js"></script>
+        <!-- <script src="/src/js/json2.js"></script> -->
+        <script src="/src/rel/datamaps.usa.js"></script>
+        <script>
+
+          var election = new Datamap({
+            scope: 'usa',
+            element: document.getElementById('container1'),
+            geographyConfig: {
+              //popupOnHover: false,
+              //highlightOnHover: false,
+              borderColor: '#444',
+              borderWidth: 0.5
+            },
+            bubblesConfig: {
+			  animate: false,
+              popupTemplate: function(geography, data) {
+                return '<div class="hoverinfo">Some From New: data about ' + data.centered + '</div>'
+              },
+              fillOpacity: 0.2
+            },
+            fills: {
+              'Visited': '#306596',
+              'neato': '#0fa0fa',
+              'Trouble': '#bada55',
+              defaultFill: '#dddddd'
+            },
+            data: {
+              NY: {
+                fillKey: 'neato',
+                numbeers: 555
+              }
+            }
+          });
+
+          window.setTimeout(function() {
+            election.updateChoropleth({
+              NY: 'blue',
+              NJ: 'blue',
+              TX: {
+                fillKey: 'Trouble',
+                numbers: 555
+              },
+              FL: {
+                fillColor: 'blue'
+              }
+            })
+          }, 1500)
+
+          window.setTimeout(function() {
+            //election.updateChoropleth({CA: 'blue'}, {reset: true})
+
+          }, 2000)
+
+</script>
+</body>
+</html>

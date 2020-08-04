@@ -1,0 +1,36 @@
+input[type=text]:focus,
+input[type=email]:focus,
+input[type=password]:focus,
+textarea:focus {
+  foo: bar;
+}
+.a + .z,
+.b + .z,
+.c + .z {
+  color: blue;
+}
+.bar .d.a,
+.bar .b,
+.c.bar:hover,
+.bar baz {
+  color: blue;
+}
+.a + .e,
+.b.c + .e,
+.d + .e {
+  foo: bar;
+}
+input[class="text"],
+input.text {
+  background: red;
+}
+.master-page-1 .selector-1,
+.master-page-1 .selector-2 {
+  background-color: red;
+}
+.fruit-apple,
+.fruit-satsuma,
+.fruit-banana,
+.fruit-pear {
+  content: "Just a test.";
+}

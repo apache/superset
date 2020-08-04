@@ -1,0 +1,23 @@
+{
+  "name": "regenerator-runtime",
+  "author": "Ben Newman <bn@cs.stanford.edu>",
+  "description": "Runtime for Regenerator-compiled generator and async functions.",
+  "version": "0.13.3",
+  "main": "runtime.js",
+  "keywords": [
+    "regenerator",
+    "runtime",
+    "generator",
+    "async"
+  ],
+  "sideEffects": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/facebook/regenerator/tree/master/packages/regenerator-runtime"
+  },
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/regenerator-runtime/-/regenerator-runtime-0.13.3.tgz"
+,"_integrity": "sha512-naKIZz2GQ8JWh///G7L3X6LaQUAMp2lvb1rvwwsURe/VXwD6VMfr+/1NuNw3ag8v2kY1aQ/go5SNn79O9JU7yw=="
+,"_from": "regenerator-runtime@0.13.3"
+}

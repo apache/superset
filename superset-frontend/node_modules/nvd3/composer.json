@@ -1,0 +1,32 @@
+{
+  "name": "novus/nvd3",
+  "description": "A reusable charting library written in d3.js",
+  "keywords": [
+    "nvd3",
+    "d3",
+    "chart",
+    "graph"
+  ],
+  "homepage": "https://github.com/novus/nvd3",
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "Bob Monteverde"
+    },
+    {
+      "name": "Tyler Wolf"
+    },
+    {
+      "name": "Robin Hu"
+    },
+    {
+      "name": "Frank Shao"
+    },
+    {
+      "name": "liquidpele"
+    }
+  ],
+  "require": {
+    "mbostock/d3": "@stable"
+  }
+}

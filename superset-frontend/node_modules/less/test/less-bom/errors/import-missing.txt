@@ -1,0 +1,3 @@
+FileError: '{pathhref}file-does-not-exist.less' wasn't found{404status}{node}. Tried - {path}file-does-not-exist.less,{pathrel}file-does-not-exist.less,npm://file-does-not-exist.less,file-does-not-exist.less{/node} in {path}import-missing.less on line 6, column 1:
+5 
+6 @import "file-does-not-exist.less";

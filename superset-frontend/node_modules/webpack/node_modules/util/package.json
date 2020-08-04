@@ -1,0 +1,43 @@
+{
+  "author": {
+    "name": "Joyent",
+    "url": "http://www.joyent.com"
+  },
+  "name": "util",
+  "description": "Node.JS util module",
+  "keywords": [
+    "util"
+  ],
+  "version": "0.11.1",
+  "homepage": "https://github.com/defunctzombie/node-util",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/defunctzombie/node-util"
+  },
+  "main": "./util.js",
+  "files": [
+    "util.js",
+    "support"
+  ],
+  "scripts": {
+    "test": "node test/node/index.js",
+    "test:browsers": "airtap test/browser/index.js"
+  },
+  "dependencies": {
+    "inherits": "2.0.3"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "airtap": "~0.1.0",
+    "is-async-supported": "~1.2.0",
+    "run-series": "~1.1.4",
+    "tape": "~4.9.0"
+  },
+  "browser": {
+    "./support/isBuffer.js": "./support/isBufferBrowser.js"
+  }
+
+,"_resolved": "https://registry.npmjs.org/util/-/util-0.11.1.tgz"
+,"_integrity": "sha512-HShAsny+zS2TZfaXxD9tYj4HQGlBezXZMZuM/S5PKLLoZkShZiGk9o5CzukI1LVHZvjdvZ2Sj1aW/Ndn2NB/HQ=="
+,"_from": "util@0.11.1"
+}

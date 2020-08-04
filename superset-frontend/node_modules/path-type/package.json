@@ -1,0 +1,49 @@
+{
+	"name": "path-type",
+	"version": "3.0.0",
+	"description": "Check if a path is a file, directory, or symlink",
+	"license": "MIT",
+	"repository": "sindresorhus/path-type",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=4"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"path",
+		"fs",
+		"type",
+		"is",
+		"check",
+		"directory",
+		"dir",
+		"file",
+		"filepath",
+		"symlink",
+		"symbolic",
+		"link",
+		"stat",
+		"stats",
+		"filesystem"
+	],
+	"dependencies": {
+		"pify": "^3.0.0"
+	},
+	"devDependencies": {
+		"ava": "*",
+		"xo": "*"
+	}
+
+,"_resolved": "https://registry.npmjs.org/path-type/-/path-type-3.0.0.tgz"
+,"_integrity": "sha512-T2ZUsdZFHgA3u4e5PfPbjd7HDDpxPnQb5jN0SrDsjNSuVXHJqtwTnWqG0B1jZrgmJ/7lj1EmVIByWt1gxGkWvg=="
+,"_from": "path-type@3.0.0"
+}

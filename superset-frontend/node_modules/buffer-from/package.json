@@ -1,0 +1,23 @@
+{
+  "name": "buffer-from",
+  "version": "1.1.1",
+  "license": "MIT",
+  "repository": "LinusU/buffer-from",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "standard && node test"
+  },
+  "devDependencies": {
+    "standard": "^7.1.2"
+  },
+  "keywords": [
+    "buffer",
+    "buffer from"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/buffer-from/-/buffer-from-1.1.1.tgz"
+,"_integrity": "sha512-MQcXEUbCKtEo7bhqEs6560Hyd4XaovZlO/k9V3hjVUF/zwW7KBVdSK4gIt/bzwS9MbR5qob+F5jusZsb0YQK2A=="
+,"_from": "buffer-from@1.1.1"
+}

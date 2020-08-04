@@ -1,0 +1,34 @@
+{
+   "domain": "messages",
+   "locale_data": {
+      "messages": {
+         "": {
+            "domain": "messages",
+            "plural_forms": "nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
+            "lang": "pl"
+         },
+         "Hello, world!\n": [
+            "Witaj, świecie!\n"
+         ],
+         "this is the first line\nthis is the next one\nbut this is the last\n": [
+            "to jest pierwsza linia\nto jest następny\nale to jest ostatnia\n"
+         ],
+         "one product": [
+            "jeden produkt",
+            "%d produkty",
+            "%d produktów"
+         ],
+         "A sentence with \"quotation\" marks.": [
+            "Zdanie w \"cudzysłowie\"."
+         ],
+         "string context\u0004the contextual phrase": [
+            "zwrot kontekstowe"
+         ],
+         "a product": [
+            "",
+            "%d products",
+            "%d products"
+         ]
+      }
+   }
+}

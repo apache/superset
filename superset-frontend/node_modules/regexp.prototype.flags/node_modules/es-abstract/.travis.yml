@@ -1,0 +1,32 @@
+version: ~> 1.0
+language: node_js
+os:
+ - linux
+cache:
+  directories:
+    - "$HOME/.npm"
+    - "$(nvm cache dir)"
+    - "$(nvm_version_path $(nvm_version_remote 0.4))"
+    - "$(nvm_version_path $(nvm_version_remote 0.6))"
+    - "$(nvm_version_path $(nvm_version_remote 0.10))"
+import:
+ - ljharb/travis-ci:node/all.yml
+ - ljharb/travis-ci:node/pretest.yml
+ - ljharb/travis-ci:node/posttest.yml
+script:
+  - 'if [ -n "${COVERAGE-}" ]; then npm run coverage && bash <(curl -s https://codecov.io/bash) -f coverage/*.json; fi'
+matrix:
+  include:
+    - node_js: "8"
+      env: COVERAGE=true
+    - node_js: "4"
+      env: COVERAGE=true
+    - node_js: "0.12"
+      env: COVERAGE=true
+    - node_js: "0.8"
+      env: COVERAGE=true
+  exclude:
+    - node_js: "0.12"
+      env: TEST=true
+    - node_js: "0.8"
+      env: TEST=true

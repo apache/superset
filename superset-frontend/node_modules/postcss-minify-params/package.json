@@ -1,0 +1,46 @@
+{
+  "name": "postcss-minify-params",
+  "version": "4.0.2",
+  "description": "Minify at-rule params with PostCSS",
+  "keywords": [
+    "postcss",
+    "css",
+    "postcss-plugin",
+    "minify",
+    "optimise",
+    "params"
+  ],
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "author": "Bogdan Chadkin <trysound@yandex.ru>",
+  "license": "MIT",
+  "repository": "cssnano/cssnano",
+  "bugs": {
+    "url": "https://github.com/cssnano/cssnano/issues"
+  },
+  "homepage": "https://github.com/cssnano/cssnano",
+  "dependencies": {
+    "alphanum-sort": "^1.0.0",
+    "browserslist": "^4.0.0",
+    "cssnano-util-get-arguments": "^4.0.0",
+    "postcss": "^7.0.0",
+    "postcss-value-parser": "^3.0.0",
+    "uniqs": "^2.0.0"
+  },
+  "scripts": {
+    "prepublish": "cross-env BABEL_ENV=publish babel src --out-dir dist --ignore /__tests__/"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.0.0",
+    "cross-env": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-minify-params/-/postcss-minify-params-4.0.2.tgz"
+,"_integrity": "sha512-G7eWyzEx0xL4/wiBBJxJOz48zAKV2WG3iZOqVhPet/9geefm/Px5uo1fzlHu+DOjT+m0Mmiz3jkQzVHe6wxAWg=="
+,"_from": "postcss-minify-params@4.0.2"
+}

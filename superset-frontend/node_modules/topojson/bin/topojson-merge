@@ -1,0 +1,86 @@
+#!/usr/bin/env node
+
+var fs = require("fs");
+
+var d3 = require("d3"),
+    optimist = require("optimist"),
+    rw = require("rw").dash,
+    topojson = require("../"),
+    mergeProperties = require("../lib/topojson/merge-properties");
+
+var argv = optimist
+    .usage("Usage: \033[1mtopojson-merge\033[0m --io=src --oo=dst [options] -- file\n\n"
+
++ "Version: " + topojson.version + "\n\n"
+
++ "Constructs a new TopoJSON object by merging an existing TopoJSON object.")
+
+    .options("o", {
+      alias: "out",
+      describe: "output TopoJSON file name",
+      default: "-"
+    })
+    .options("io", {
+      alias: "in-object",
+      describe: "name of the input (unmerged) object",
+      default: null
+    })
+    .options("oo", {
+      alias: "out-object",
+      describe: "name of the output (merged) object",
+      default: null
+    })
+    .options("k", {
+      alias: "key",
+      describe: "expression defining which geometries to merge, given d",
+      default: "d.id"
+    })
+    .options("p", {
+      alias: "properties",
+      describe: "properties to preserve in merged objects (if consistent)",
+      default: true
+    })
+    .options("help", {
+      describe: "display this helpful message",
+      type: "boolean",
+      default: false
+    })
+    .check(function(argv) {
+      if (argv.help) return;
+      if (argv._.length > 1) throw new Error("at most one input file allowed");
+      if (!argv._.length) argv._ = ["-"];
+      if (!argv.io) throw new Error("input object name required");
+      if (!argv.oo) throw new Error("output object name required");
+      if (argv.k) argv.k = new Function("d", "return " + argv.k);
+    })
+    .argv;
+
+if (argv.help) return optimist.showHelp();
+
+var topology = JSON.parse(rw.readFileSync(argv._[0], "utf8"));
+
+topology.objects[argv.oo] = argv.k ? {
+  type: "GeometryCollection",
+  geometries: d3.nest()
+      .key(argv.k)
+      .entries(topology.objects[argv.io].geometries)
+      .map(function(entry) {
+        var polygon = topojson.mergeArcs(topology, entry.values),
+            id = argv.k(entry.values[0]);
+
+        if (id != null) polygon.id = id;
+
+        if (argv.p) {
+          var properties = mergeProperties();
+          entry.values.forEach(properties.merge);
+          properties.apply(polygon);
+        }
+
+        return polygon;
+      })
+} : topojson.mergeArcs(topology, topology.objects[argv.io].geometries);
+
+topojson.prune(topology, {verbose: true});
+
+// Output JSON.
+rw.writeFileSync(argv.o, JSON.stringify(topology), "utf8");

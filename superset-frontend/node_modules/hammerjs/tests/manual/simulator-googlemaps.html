@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="assets/style.css">
+    <title>Hammer.js</title>
+</head>
+<body>
+
+<div class="container">
+    <div id="maps" style="height: 500px; margin-bottom: 20px;"></div>
+
+    <h1>Gestures simulator</h1>
+    <p>Used for unit-testing Hammer.js. To test it on the Google Maps view, you should open your
+        <a href="https://developer.chrome.com/devtools/docs/mobile-emulation#emulate-touch-events">
+        Inspector and emulate a touch-screen.</a>
+        Or just open it on your touch-device.</p>
+    <p>Currently, it only triggers touchEvents.</p>
+</div>
+
+<script src="../../node_modules/hammer-simulator/index.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
+<script>
+
+    Simulator.events.touch.fakeSupport();
+
+    var el, map;
+    var container = document.getElementById('maps');
+    var program = [
+        ['pan', ['deltaX','deltaY']],
+        ['pinch', ['scale']],
+        ['tap', ['pos']],
+        ['swipe', ['deltaX','deltaY']],
+        ['pinch', ['pos','scale']],
+        ['pan', ['pos']],
+        ['rotate', ['pos','rotation']],
+        ['doubleTap', ['pos']],
+        ['pinchRotate', ['pos','scale','rotation']],
+    ];
+
+    function randomRange(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    function randomRangeInt(min, max) {
+        return Math.round(randomRange(min, max));
+    }
+
+    function gestureOption(name) {
+        var max = map.getDiv().offsetWidth * .9;
+        switch(name) {
+            case 'deltaY':
+            case 'deltaX':
+                return randomRangeInt(10, max * .5);
+            case 'pos':
+                return [randomRangeInt(10, max), randomRangeInt(10, max)];
+            case 'scale':
+                return randomRange(.2, 2);
+            case 'rotation':
+                return randomRange(-180, 180);
+        }
+    }
+
+    function walkProgram(done) {
+        var clone = [].concat(program);
+        (function next() {
+            if(clone.length) {
+                var entry = clone.shift();
+                var options = {};
+                for(var i=0; i<entry[1].length; i++) {
+                    options[entry[1][i]] = gestureOption(entry[1][i]);
+                }
+                Simulator.gestures[entry[0]](el, options, next);
+            } else {
+                done();
+            }
+        }());
+    }
+
+    function startSimulator() {
+        walkProgram(startSimulator);
+    }
+
+    (function setupGoogleMaps() {
+        map = new google.maps.Map(container, {
+            zoom: 14,
+            center: new google.maps.LatLng(51.98, 5.91)
+        });
+
+        // collect the target element
+        google.maps.event.addListenerOnce(map, 'idle', function(){
+            el = container.childNodes[0].childNodes[0];
+            startSimulator();
+        });
+    })();
+
+</script>
+
+</body>
+</html>

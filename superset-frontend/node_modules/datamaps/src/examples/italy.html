@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<!-- I recommend you host this file on your own, since this will change without warning -->
+<script src="/src/rel/datamaps.ita.js?v=1"></script>
+<h2>Datamaps Italy Test</h2>
+
+<p><a href="http://datamaps.github.io/">DataMaps Project Homepage</a></p>
+
+<div id="container1" style="position: relative; width: 700px; height: 450px;"></div>
+
+<script>
+  //basic map config with custom fills, mercator projection
+  var map = new Datamap({
+    scope: 'ita',
+    element: document.getElementById('container1'),
+    setProjection: function (element) {
+      var projection = d3.geo.mercator()
+          .center([12.560077144500099, 41.287229413500036])
+          .rotate([0, 0])
+          .scale(6144.37545703623 / 4)
+          .translate([350, 225]);
+      var path = d3.geo.path()
+          .projection(projection);
+
+      return {path: path, projection: projection};
+    },
+    fills: {
+      defaultFill: '#f0af0a',
+      lt50: 'rgba(0,244,244,0.9)',
+      gt50: 'red'
+    },
+
+    data: {
+      '071': {fillKey: 'lt50'},
+      '001': {fillKey: 'gt50'}
+    }
+  });
+</script>
+</body>

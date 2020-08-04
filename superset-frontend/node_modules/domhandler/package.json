@@ -1,0 +1,45 @@
+{
+  "name": "domhandler",
+  "version": "2.4.2",
+  "description": "handler for htmlparser2 that turns pages into a dom",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha -R list && jshint index.js test/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/fb55/DomHandler.git"
+  },
+  "keywords": [
+    "dom",
+    "htmlparser2"
+  ],
+  "dependencies": {
+    "domelementtype": "1"
+  },
+  "devDependencies": {
+    "htmlparser2": "^3.9.0",
+    "mocha": "^3.0.2",
+    "jshint": "^2.9.1"
+  },
+  "author": "Felix Boehm <me@feedic.com>",
+  "license": "BSD-2-Clause",
+  "jshintConfig": {
+    "quotmark": "double",
+    "trailing": true,
+    "unused": true,
+    "undef": true,
+    "node": true,
+    "proto": true,
+    "globals": {
+      "it": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/domhandler/-/domhandler-2.4.2.tgz"
+,"_integrity": "sha512-JiK04h0Ht5u/80fdLMCEmV4zkNh2BcoMFBmZ/91WtYZ8qVXSKjiw7fXMgFPnHcSZgOo3XdinHvmnDUeMf5R4wA=="
+,"_from": "domhandler@2.4.2"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@babel/helper-plugin-utils",
+  "version": "7.8.3",
+  "description": "General utilities for plugins to use",
+  "author": "Logan Smyth <loganfsmyth@gmail.com>",
+  "homepage": "https://babeljs.io/",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": "https://github.com/babel/babel/tree/master/packages/babel-helper-plugin-utils",
+  "main": "lib/index.js",
+  "gitHead": "a7620bd266ae1345975767bbc7abf09034437017"
+
+,"_resolved": "https://registry.npmjs.org/@babel/helper-plugin-utils/-/helper-plugin-utils-7.8.3.tgz"
+,"_integrity": "sha512-j+fq49Xds2smCUNYmEHF9kGNkhbet6yVIBp4e6oeQpH1RUs/Ir06xUKzDjDkGcaaokPiTNs2JBWHjaE4csUkZQ=="
+,"_from": "@babel/helper-plugin-utils@7.8.3"
+}

@@ -1,0 +1,47 @@
+language: node_js
+os:
+ - linux
+node_js:
+  - "10"
+  - "9"
+  - "8"
+  - "7"
+  - "6"
+  - "5"
+  - "4"
+  - "iojs"
+  - "0.12"
+  - "0.10"
+  - "0.8"
+before_install:
+  - 'nvm install-latest-npm'
+install:
+  - 'if [ "${TRAVIS_NODE_VERSION}" = "0.6" ] || [ "${TRAVIS_NODE_VERSION}" = "0.9" ]; then nvm install --latest-npm 0.8 && npm install && nvm use "${TRAVIS_NODE_VERSION}"; else npm install; fi;'
+before_script:
+  - "sh install-relevant-react.sh"
+script:
+  - 'if [ -n "${PRETEST-}" ]; then npm run pretest ; fi'
+  - 'if [ -n "${POSTTEST-}" ]; then npm run posttest ; fi'
+  - 'if [ -n "${COVERAGE-}" ]; then npm run coverage ; fi'
+  - 'if [ -n "${REACT-}" ]; then npm run "react:${REACT}" && npm run travis; fi'
+sudo: false
+env:
+  - REACT=13
+  - REACT=14
+  - REACT=15
+  - REACT=16
+matrix:
+  fast_finish: true
+  include:
+    - node_js: "lts/*"
+      env: PRETEST=true
+    - node_js: "node"
+      env: COVERAGE=true
+  allow_failures:
+    - os: osx
+    - env: TEST=true ALLOW_FAILURE=true
+    - node_js: "9"
+    - node_js: "7"
+    - node_js: "5"
+    - node_js: "iojs"
+    - node_js: "0.8"

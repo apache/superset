@@ -1,0 +1,17 @@
+#imported-file {
+  background-image: url("./folder/relative/path");
+  background-image: url("./relative/path");
+  background-image: url("../relative/path");
+  background-image: url("module");
+  background-image: url("module/path");
+  background-image: url("module/relative/path");
+}
+#rewrite-urls-local {
+  background-image: url("./relative/path");
+  background-image: url("../relative/path");
+  background-image: url("./path");
+  background-image: url("./");
+  background-image: url("module");
+  background-image: url("module/path");
+  background-image: url("module/relative/path");
+}

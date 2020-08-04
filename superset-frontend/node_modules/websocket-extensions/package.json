@@ -1,0 +1,26 @@
+{ "name"            : "websocket-extensions"
+, "description"     : "Generic extension manager for WebSocket connections"
+, "homepage"        : "http://github.com/faye/websocket-extensions-node"
+, "author"          : "James Coglan <jcoglan@gmail.com> (http://jcoglan.com/)"
+, "keywords"        : ["websocket"]
+, "license"         : "MIT"
+
+, "version"         : "0.1.3"
+, "engines"         : { "node": ">=0.8.0" }
+, "files"           : ["lib"]
+, "main"            : "./lib/websocket_extensions"
+
+, "devDependencies" : { "jstest": "*" }
+
+, "scripts"         : { "test": "jstest spec/runner.js" }
+
+, "repository"      : { "type"  : "git"
+                      , "url"   : "git://github.com/faye/websocket-extensions-node.git"
+                      }
+
+, "bugs"            : "http://github.com/faye/websocket-extensions-node/issues"
+
+,"_resolved": "https://registry.npmjs.org/websocket-extensions/-/websocket-extensions-0.1.3.tgz"
+,"_integrity": "sha512-nqHUnMXmBzT0w570r2JpJxfiSD1IzoI+HGVdd3aZ0yNi3ngvQ4jv1dtHt5VGxfI2yj5yqImPhOK4vmIh2xMbGg=="
+,"_from": "websocket-extensions@0.1.3"
+}

@@ -1,0 +1,12 @@
+{
+  "modules": {
+    "chrome": "61",
+    "edge": "16",
+    "firefox": "60",
+    "ios": "10.3",
+    "opera": "48",
+    "opera_mobile": "45",
+    "safari": "10.1",
+    "samsung": "8.0"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "name": "ajv-errors",
+  "version": "1.0.1",
+  "description": "Custom error messages in JSON-Schema for Ajv validator",
+  "main": "index.js",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "node node_modules/ajv/scripts/compile-dots.js node_modules/ajv/lib lib",
+    "eslint": "eslint *.js spec",
+    "test-spec": "mocha spec/*.spec.js -R spec",
+    "test-cov": "nyc npm run test-spec",
+    "test": "npm run eslint && npm run build && npm run test-cov",
+    "prepublish": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/epoberezkin/ajv-errors.git"
+  },
+  "keywords": [
+    "ajv",
+    "json-schema",
+    "validator",
+    "error",
+    "messages"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/epoberezkin/ajv-errors/issues"
+  },
+  "homepage": "https://github.com/epoberezkin/ajv-errors#readme",
+  "peerDependencies": {
+    "ajv": ">=5.0.0"
+  },
+  "devDependencies": {
+    "ajv": "^5.0.0",
+    "coveralls": "^2.11.16",
+    "dot": "^1.1.1",
+    "eslint": "^3.17.0",
+    "glob": "^7.1.1",
+    "js-beautify": "^1.6.12",
+    "mocha": "^3.2.0",
+    "nyc": "^10.1.2",
+    "pre-commit": "^1.2.2"
+  },
+  "nyc": {
+    "exclude": [
+      "**/spec/**",
+      "node_modules"
+    ],
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/ajv-errors/-/ajv-errors-1.0.1.tgz"
+,"_integrity": "sha512-DCRfO/4nQ+89p/RK43i8Ezd41EqdGIU4ld7nGF8OQ14oc/we5rEntLCUa7+jrn3nn83BosfwZA0wb4pon2o8iQ=="
+,"_from": "ajv-errors@1.0.1"
+}

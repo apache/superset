@@ -1,0 +1,983 @@
+# d3-scale
+
+Scales are a convenient abstraction for a fundamental task in visualization: mapping a dimension of abstract data to a visual representation. Although most often used for position-encoding quantitative data, such as mapping a measurement in meters to a position in pixels for dots in a scatterplot, scales can represent virtually any visual encoding, such as diverging colors, stroke widths, or symbol size. Scales can also be used with virtually any type of data, such as named categorical data or discrete data that requires sensible breaks.
+
+For [continuous](#continuous-scales) quantitative data, you typically want a [linear scale](#linear-scales). (For time series data, a [time scale](#time-scales).) If the distribution calls for it, consider transforming data using a [power](#power-scales) or [log](#log-scales) scale. A [quantize scale](#quantize-scales) may aid differentiation by rounding continuous data to a fixed set of discrete values; similarly, a [quantile scale](#quantile-scales) computes quantiles from a sample population, and a [threshold scale](#threshold-scales) allows you to specify arbitrary breaks in continuous data.
+
+For discrete ordinal (ordered) or categorical (unordered) data, an [ordinal scale](#ordinal-scales) specifies an explicit mapping from a set of data values to a corresponding set of visual attributes (such as colors). The related [band](#band-scales) and [point](#point-scales) scales are useful for position-encoding ordinal data, such as bars in a bar chart or dots in an categorical scatterplot.
+
+This repository does not provide color schemes; see [d3-scale-chromatic](https://github.com/d3/d3-scale-chromatic) for color schemes designed to work with d3-scale.
+
+Scales have no intrinsic visual representation. However, most scales can [generate](#continuous_ticks) and [format](#continuous_tickFormat) ticks for reference marks to aid in the construction of axes.
+
+For a longer introduction, see these recommended tutorials:
+
+* [Introducing d3-scale](https://medium.com/@mbostock/introducing-d3-scale-61980c51545f) by Mike Bostock
+
+* Chapter 7. Scales of [*Interactive Data Visualization for the Web*](http://alignedleft.com/work/d3-book) by Scott Murray
+
+* [d3: scales, and color.](http://www.jeromecukier.net/2011/08/11/d3-scales-and-color/) by Jérôme Cukier
+
+## Installing
+
+If you use NPM, `npm install d3-scale`. Otherwise, download the [latest release](https://github.com/d3/d3-scale/releases/latest). You can also load directly from [d3js.org](https://d3js.org), either as a [standalone library](https://d3js.org/d3-scale.v3.min.js) or as part of [D3](https://github.com/d3/d3). AMD, CommonJS, and vanilla environments are supported. In vanilla, a `d3` global is exported:
+
+```html
+<script src="https://d3js.org/d3-array.v2.min.js"></script>
+<script src="https://d3js.org/d3-color.v1.min.js"></script>
+<script src="https://d3js.org/d3-format.v1.min.js"></script>
+<script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+<script src="https://d3js.org/d3-time.v1.min.js"></script>
+<script src="https://d3js.org/d3-time-format.v2.min.js"></script>
+<script src="https://d3js.org/d3-scale.v3.min.js"></script>
+<script>
+
+var x = d3.scaleLinear();
+
+</script>
+```
+
+(You can omit d3-time and d3-time-format if you’re not using [d3.scaleTime](#scaleTime) or [d3.scaleUtc](#scaleUtc).)
+
+## API Reference
+
+* [Continuous](#continuous-scales) ([Linear](#linear-scales), [Power](#power-scales), [Log](#log-scales), [Identity](#identity-scales), [Time](#time-scales), [Radial](#radial-scales))
+* [Sequential](#sequential-scales)
+* [Diverging](#diverging-scales)
+* [Quantize](#quantize-scales)
+* [Quantile](#quantile-scales)
+* [Threshold](#threshold-scales)
+* [Ordinal](#ordinal-scales) ([Band](#band-scales), [Point](#point-scales))
+
+### Continuous Scales
+
+Continuous scales map a continuous, quantitative input [domain](#continuous_domain) to a continuous output [range](#continuous_range). If the range is also numeric, the mapping may be [inverted](#continuous_invert). A continuous scale is not constructed directly; instead, try a [linear](#linear-scales), [power](#power-scales), [log](#log-scales), [identity](#identity-scales), [radial](#radial-scales), [time](#time-scales) or [sequential color](#sequential-scales) scale.
+
+<a name="_continuous" href="#_continuous">#</a> <i>continuous</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+Given a *value* from the [domain](#continuous_domain), returns the corresponding value from the [range](#continuous_range). If the given *value* is outside the domain, and [clamping](#continuous_clamp) is not enabled, the mapping may be extrapolated such that the returned value is outside the range. For example, to apply a position encoding:
+
+```js
+var x = d3.scaleLinear()
+    .domain([10, 130])
+    .range([0, 960]);
+
+x(20); // 80
+x(50); // 320
+```
+
+Or to apply a color encoding:
+
+```js
+var color = d3.scaleLinear()
+    .domain([10, 100])
+    .range(["brown", "steelblue"]);
+
+color(20); // "#9a3439"
+color(50); // "#7b5167"
+```
+
+Or, in shorthand:
+
+```js
+var x = d3.scaleLinear([10, 130], [0, 960]);
+var color = d3.scaleLinear([10, 100], ["brown", "steelblue"]);
+```
+
+<a name="continuous_invert" href="#continuous_invert">#</a> <i>continuous</i>.<b>invert</b>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+Given a *value* from the [range](#continuous_range), returns the corresponding value from the [domain](#continuous_domain). Inversion is useful for interaction, say to determine the data value corresponding to the position of the mouse. For example, to invert a position encoding:
+
+```js
+var x = d3.scaleLinear()
+    .domain([10, 130])
+    .range([0, 960]);
+
+x.invert(80); // 20
+x.invert(320); // 50
+```
+
+If the given *value* is outside the range, and [clamping](#continuous_clamp) is not enabled, the mapping may be extrapolated such that the returned value is outside the domain. This method is only supported if the range is numeric. If the range is not numeric, returns NaN.
+
+For a valid value *y* in the range, <i>continuous</i>(<i>continuous</i>.invert(<i>y</i>)) approximately equals *y*; similarly, for a valid value *x* in the domain, <i>continuous</i>.invert(<i>continuous</i>(<i>x</i>)) approximately equals *x*. The scale and its inverse may not be exact due to the limitations of floating point precision.
+
+<a name="continuous_domain" href="#continuous_domain">#</a> <i>continuous</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+If *domain* is specified, sets the scale’s domain to the specified array of numbers. The array must contain two or more elements. If the elements in the given array are not numbers, they will be coerced to numbers. If *domain* is not specified, returns a copy of the scale’s current domain.
+
+Although continuous scales typically have two values each in their domain and range, specifying more than two values produces a piecewise scale. For example, to create a [diverging color scale](#diverging-scales) that interpolates between white and red for negative values, and white and green for positive values, say:
+
+```js
+var color = d3.scaleLinear()
+    .domain([-1, 0, 1])
+    .range(["red", "white", "green"]);
+
+color(-0.5); // "rgb(255, 128, 128)"
+color(+0.5); // "rgb(128, 192, 128)"
+```
+
+Internally, a piecewise scale performs a [binary search](https://github.com/d3/d3-array/blob/master/README.md#bisect) for the range interpolator corresponding to the given domain value. Thus, the domain must be in ascending or descending order. If the domain and range have different lengths *N* and *M*, only the first *min(N,M)* elements in each are observed.
+
+<a name="continuous_range" href="#continuous_range">#</a> <i>continuous</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+If *range* is specified, sets the scale’s range to the specified array of values. The array must contain two or more elements. Unlike the [domain](#continuous_domain), elements in the given array need not be numbers; any value that is supported by the underlying [interpolator](#continuous_interpolate) will work, though note that numeric ranges are required for [invert](#continuous_invert). If *range* is not specified, returns a copy of the scale’s current range. See [*continuous*.interpolate](#continuous_interpolate) for more examples.
+
+<a name="continuous_rangeRound" href="#continuous_rangeRound">#</a> <i>continuous</i>.<b>rangeRound</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+Sets the scale’s [*range*](#continuous_range) to the specified array of values while also setting the scale’s [interpolator](#continuous_interpolate) to [interpolateRound](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolateRound). This is a convenience method equivalent to:
+
+```js
+continuous
+    .range(range)
+    .interpolate(d3.interpolateRound);
+```
+
+The rounding interpolator is sometimes useful for avoiding antialiasing artifacts, though also consider the [shape-rendering](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/shape-rendering) “crispEdges” styles. Note that this interpolator can only be used with numeric ranges.
+
+<a name="continuous_clamp" href="#continuous_clamp">#</a> <i>continuous</i>.<b>clamp</b>(<i>clamp</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+If *clamp* is specified, enables or disables clamping accordingly. If clamping is disabled and the scale is passed a value outside the [domain](#continuous_domain), the scale may return a value outside the [range](#continuous_range) through extrapolation. If clamping is enabled, the return value of the scale is always within the scale’s range. Clamping similarly applies to [*continuous*.invert](#continuous_invert). For example:
+
+```js
+var x = d3.scaleLinear()
+    .domain([10, 130])
+    .range([0, 960]);
+
+x(-10); // -160, outside range
+x.invert(-160); // -10, outside domain
+
+x.clamp(true);
+x(-10); // 0, clamped to range
+x.invert(-160); // 10, clamped to domain
+```
+
+If *clamp* is not specified, returns whether or not the scale currently clamps values to within the range.
+
+<a name="continuous_unknown" href="#continuous_unknown">#</a> <i>continuous</i>.<b>unknown</b>([<i>value</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+If *value* is specified, sets the output value of the scale for undefined (or NaN) input values and returns this scale. If *value* is not specified, returns the current unknown value, which defaults to undefined.
+
+<a name="continuous_interpolate" href="#continuous_interpolate">#</a> <i>continuous</i>.<b>interpolate</b>(<i>interpolate</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+If *interpolate* is specified, sets the scale’s [range](#continuous_range) interpolator factory. This interpolator factory is used to create interpolators for each adjacent pair of values from the range; these interpolators then map a normalized domain parameter *t* in [0, 1] to the corresponding value in the range. If *factory* is not specified, returns the scale’s current interpolator factory, which defaults to [d3.interpolate](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate). See [d3-interpolate](https://github.com/d3/d3-interpolate) for more interpolators.
+
+For example, consider a diverging color scale with three colors in the range:
+
+```js
+var color = d3.scaleLinear()
+    .domain([-100, 0, +100])
+    .range(["red", "white", "green"]);
+```
+
+Two interpolators are created internally by the scale, equivalent to:
+
+```js
+var i0 = d3.interpolate("red", "white"),
+    i1 = d3.interpolate("white", "green");
+```
+
+A common reason to specify a custom interpolator is to change the color space of interpolation. For example, to use [HCL](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolateHcl):
+
+```js
+var color = d3.scaleLinear()
+    .domain([10, 100])
+    .range(["brown", "steelblue"])
+    .interpolate(d3.interpolateHcl);
+```
+
+Or for [Cubehelix](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolateCubehelix) with a custom gamma:
+
+```js
+var color = d3.scaleLinear()
+    .domain([10, 100])
+    .range(["brown", "steelblue"])
+    .interpolate(d3.interpolateCubehelix.gamma(3));
+```
+
+Note: the [default interpolator](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate) **may reuse return values**. For example, if the range values are objects, then the value interpolator always returns the same object, modifying it in-place. If the scale is used to set an attribute or style, this is typically acceptable (and desirable for performance); however, if you need to store the scale’s return value, you must specify your own interpolator or make a copy as appropriate.
+
+<a name="continuous_ticks" href="#continuous_ticks">#</a> <i>continuous</i>.<b>ticks</b>([<i>count</i>])
+
+Returns approximately *count* representative values from the scale’s [domain](#continuous_domain). If *count* is not specified, it defaults to 10. The returned tick values are uniformly spaced, have human-readable values (such as multiples of powers of 10), and are guaranteed to be within the extent of the domain. Ticks are often used to display reference lines, or tick marks, in conjunction with the visualized data. The specified *count* is only a hint; the scale may return more or fewer values depending on the domain. See also d3-array’s [ticks](https://github.com/d3/d3-array/blob/master/README.md#ticks).
+
+<a name="continuous_tickFormat" href="#continuous_tickFormat">#</a> <i>continuous</i>.<b>tickFormat</b>([<i>count</i>[, <i>specifier</i>]]) · [Source](https://github.com/d3/d3-scale/blob/master/src/tickFormat.js), [Examples](https://observablehq.com/@d3/scale-ticks)
+
+Returns a [number format](https://github.com/d3/d3-format) function suitable for displaying a tick value, automatically computing the appropriate precision based on the fixed interval between tick values. The specified *count* should have the same value as the count that is used to generate the [tick values](#continuous_ticks).
+
+An optional *specifier* allows a [custom format](https://github.com/d3/d3-format/blob/master/README.md#locale_format) where the precision of the format is automatically set by the scale as appropriate for the tick interval. For example, to format percentage change, you might say:
+
+```js
+var x = d3.scaleLinear()
+    .domain([-1, 1])
+    .range([0, 960]);
+
+var ticks = x.ticks(5),
+    tickFormat = x.tickFormat(5, "+%");
+
+ticks.map(tickFormat); // ["-100%", "-50%", "+0%", "+50%", "+100%"]
+```
+
+If *specifier* uses the format type `s`, the scale will return a [SI-prefix format](https://github.com/d3/d3-format/blob/master/README.md#locale_formatPrefix) based on the largest value in the domain. If the *specifier* already specifies a precision, this method is equivalent to [*locale*.format](https://github.com/d3/d3-format/blob/master/README.md#locale_format).
+
+See also [d3.tickFormat](#tickFormat).
+
+<a name="continuous_nice" href="#continuous_nice">#</a> <i>continuous</i>.<b>nice</b>([<i>count</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/nice.js), [Examples](https://observablehq.com/@d3/d3-scalelinear)
+
+Extends the [domain](#continuous_domain) so that it starts and ends on nice round values. This method typically modifies the scale’s domain, and may only extend the bounds to the nearest round value. An optional tick *count* argument allows greater control over the step size used to extend the bounds, guaranteeing that the returned [ticks](#continuous_ticks) will exactly cover the domain. Nicing is useful if the domain is computed from data, say using [extent](https://github.com/d3/d3-array/blob/master/README.md#extent), and may be irregular. For example, for a domain of [0.201479…, 0.996679…], a nice domain might be [0.2, 1.0]. If the domain has more than two values, nicing the domain only affects the first and last value. See also d3-array’s [tickStep](https://github.com/d3/d3-array/blob/master/README.md#tickStep).
+
+Nicing a scale only modifies the current domain; it does not automatically nice domains that are subsequently set using [*continuous*.domain](#continuous_domain). You must re-nice the scale after setting the new domain, if desired.
+
+<a name="continuous_copy" href="#continuous_copy">#</a> <i>continuous</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+Returns an exact copy of this scale. Changes to this scale will not affect the returned scale, and vice versa.
+
+<a name="tickFormat" href='#tickFormat'>#</a> d3.<b>tickFormat</b>(<i>start</i>, <i>stop</i>, <i>count</i>[, <i>specifier</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/tickFormat.js), [Examples](https://observablehq.com/@d3/scale-ticks)
+
+Returns a [number format](https://github.com/d3/d3-format) function suitable for displaying a tick value, automatically computing the appropriate precision based on the fixed interval between tick values, as determined by [d3.tickStep](https://github.com/d3/d3-array/blob/master/README.md#tickStep).
+
+An optional *specifier* allows a [custom format](https://github.com/d3/d3-format/blob/master/README.md#locale_format) where the precision of the format is automatically set by the scale as appropriate for the tick interval. For example, to format percentage change, you might say:
+
+```js
+var tickFormat = d3.tickFormat(-1, 1, 5, "+%");
+
+tickFormat(-0.5); // "-50%"
+```
+
+If *specifier* uses the format type `s`, the scale will return a [SI-prefix format](https://github.com/d3/d3-format/blob/master/README.md#locale_formatPrefix) based on the larger absolute value of *start* and *stop*. If the *specifier* already specifies a precision, this method is equivalent to [*locale*.format](https://github.com/d3/d3-format/blob/master/README.md#locale_format).
+
+#### Linear Scales
+
+<a name="scaleLinear" href="#scaleLinear">#</a> d3.<b>scaleLinear</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/linear.js), [Examples](https://observablehq.com/@d3/d3-scalelinear)
+
+Constructs a new [continuous scale](#continuous-scales) with the specified [domain](#continuous_domain) and [range](#continuous_range), the [default](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate) [interpolator](#continuous_interpolate) and [clamping](#continuous_clamp) disabled. If either *domain* or *range* are not specified, each defaults to [0, 1]. Linear scales are a good default choice for continuous quantitative data because they preserve proportional differences. Each range value *y* can be expressed as a function of the domain value *x*: *y* = *mx* + *b*.
+
+#### Power Scales
+
+Power scales are similar to [linear scales](#linear-scales), except an exponential transform is applied to the input domain value before the output range value is computed. Each range value *y* can be expressed as a function of the domain value *x*: *y* = *mx^k* + *b*, where *k* is the [exponent](#pow_exponent) value. Power scales also support negative domain values, in which case the input value and the resulting output value are multiplied by -1.
+
+<a name="scalePow" href="#scalePow">#</a> d3.<b>scalePow</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+Constructs a new [continuous scale](#continuous-scales) with the specified [domain](#continuous_domain) and [range](#continuous_range), the [exponent](#pow_exponent) 1, the [default](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate) [interpolator](#continuous_interpolate) and [clamping](#continuous_clamp) disabled. If either *domain* or *range* are not specified, each defaults to [0, 1]. (Note that this is effectively a [linear](#linear-scales) scale until you set a different exponent.)
+
+<a name="_pow" href="#_pow">#</a> <i>pow</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*](#_continuous).
+
+<a name="pow_invert" href="#pow_invert">#</a> <i>pow</i>.<b>invert</b>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.invert](#continuous_invert).
+
+<a name="pow_exponent" href="#pow_exponent">#</a> <i>pow</i>.<b>exponent</b>([<i>exponent</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+If *exponent* is specified, sets the current exponent to the given numeric value. If *exponent* is not specified, returns the current exponent, which defaults to 1. (Note that this is effectively a [linear](#linear-scales) scale until you set a different exponent.)
+
+<a name="pow_domain" href="#pow_domain">#</a> <i>pow</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.domain](#continuous_domain).
+
+<a name="pow_range" href="#pow_range">#</a> <i>pow</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.range](#continuous_range).
+
+<a name="pow_rangeRound" href="#pow_rangeRound">#</a> <i>pow</i>.<b>rangeRound</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.rangeRound](#continuous_rangeRound).
+
+<a name="pow_clamp" href="#pow_clamp">#</a> <i>pow</i>.<b>clamp</b>(<i>clamp</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.clamp](#continuous_clamp).
+
+<a name="pow_interpolate" href="#pow_interpolate">#</a> <i>pow</i>.<b>interpolate</b>(<i>interpolate</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.interpolate](#continuous_interpolate).
+
+<a name="pow_ticks" href="#pow_ticks">#</a> <i>pow</i>.<b>ticks</b>([<i>count</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/scale-ticks)
+
+See [*continuous*.ticks](#continuous_ticks).
+
+<a name="pow_tickFormat" href="#pow_tickFormat">#</a> <i>pow</i>.<b>tickFormat</b>([<i>count</i>[, <i>specifier</i>]]) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/scale-ticks)
+
+See [*continuous*.tickFormat](#continuous_tickFormat).
+
+<a name="pow_nice" href="#pow_nice">#</a> <i>pow</i>.<b>nice</b>([<i>count</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.nice](#continuous_nice).
+
+<a name="pow_copy" href="#pow_copy">#</a> <i>pow</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.copy](#continuous_copy).
+
+<a name="scaleSqrt" href="#scaleSqrt">#</a> d3.<b>scaleSqrt</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/pow.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+Constructs a new [continuous](#continuous-scales) [power scale](#power-scales) with the specified [domain](#continuous_domain) and [range](#continuous_range), the [exponent](#pow_exponent) 0.5, the [default](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate) [interpolator](#continuous_interpolate) and [clamping](#continuous_clamp) disabled. If either *domain* or *range* are not specified, each defaults to [0, 1]. This is a convenience method equivalent to `d3.scalePow(…).exponent(0.5)`.
+
+#### Log Scales
+
+Log scales are similar to [linear scales](#linear-scales), except a logarithmic transform is applied to the input domain value before the output range value is computed. The mapping to the range value *y* can be expressed as a function of the domain value *x*: *y* = *m* log(<i>x</i>) + *b*.
+
+As log(0) = -∞, a log scale domain must be **strictly-positive or strictly-negative**; the domain must not include or cross zero. A log scale with a positive domain has a well-defined behavior for positive values, and a log scale with a negative domain has a well-defined behavior for negative values. (For a negative domain, input and output values are implicitly multiplied by -1.) The behavior of the scale is undefined if you pass a negative value to a log scale with a positive domain or vice versa.
+
+<a name="scaleLog" href="#scaleLog">#</a> d3.<b>scaleLog</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+Constructs a new [continuous scale](#continuous-scales) with the specified [domain](#log_domain) and [range](#log_range), the [base](#log_base) 10, the [default](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate) [interpolator](#log_interpolate) and [clamping](#log_clamp) disabled. If *domain* is not specified, it defaults to [1, 10]. If *range* is not specified, it defaults to [0, 1].
+
+<a name="_log" href="#_log">#</a> <i>log</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*](#_continuous).
+
+<a name="log_invert" href="#log_invert">#</a> <i>log</i>.<b>invert</b>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.invert](#continuous_invert).
+
+<a name="log_base" href="#log_base">#</a> <i>log</i>.<b>base</b>([<i>base</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+If *base* is specified, sets the base for this logarithmic scale to the specified value. If *base* is not specified, returns the current base, which defaults to 10.
+
+<a name="log_domain" href="#log_domain">#</a> <i>log</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.domain](#continuous_domain).
+
+<a name="log_range" href="#log_range">#</a> <i>log</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/continuous.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.range](#continuous_range).
+
+<a name="log_rangeRound" href="#log_rangeRound">#</a> <i>log</i>.<b>rangeRound</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.rangeRound](#continuous_rangeRound).
+
+<a name="log_clamp" href="#log_clamp">#</a> <i>log</i>.<b>clamp</b>(<i>clamp</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.clamp](#continuous_clamp).
+
+<a name="log_interpolate" href="#log_interpolate">#</a> <i>log</i>.<b>interpolate</b>(<i>interpolate</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.interpolate](#continuous_interpolate).
+
+<a name="log_ticks" href="#log_ticks">#</a> <i>log</i>.<b>ticks</b>([<i>count</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/scale-ticks)
+
+Like [*continuous*.ticks](#continuous_ticks), but customized for a log scale. If the [base](#log_base) is an integer, the returned ticks are uniformly spaced within each integer power of base; otherwise, one tick per power of base is returned. The returned ticks are guaranteed to be within the extent of the domain. If the orders of magnitude in the [domain](#log_domain) is greater than *count*, then at most one tick per power is returned. Otherwise, the tick values are unfiltered, but note that you can use [*log*.tickFormat](#log_tickFormat) to filter the display of tick labels. If *count* is not specified, it defaults to 10.
+
+<a name="log_tickFormat" href="#log_tickFormat">#</a> <i>log</i>.<b>tickFormat</b>([<i>count</i>[, <i>specifier</i>]]) · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/scale-ticks)
+
+Like [*continuous*.tickFormat](#continuous_tickFormat), but customized for a log scale. The specified *count* typically has the same value as the count that is used to generate the [tick values](#continuous_ticks). If there are too many ticks, the formatter may return the empty string for some of the tick labels; however, note that the ticks are still shown. To disable filtering, specify a *count* of Infinity. When specifying a count, you may also provide a format *specifier* or format function. For example, to get a tick formatter that will display 20 ticks of a currency, say `log.tickFormat(20, "$,f")`. If the specifier does not have a defined precision, the precision will be set automatically by the scale, returning the appropriate format. This provides a convenient way of specifying a format whose precision will be automatically set by the scale.
+
+<a name="log_nice" href="#log_nice">#</a> <i>log</i>.<b>nice</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/d3-scalelinear)
+
+Like [*continuous*.nice](#continuous_nice), except extends the domain to integer powers of [base](#log_base). For example, for a domain of [0.201479…, 0.996679…], and base 10, the nice domain is [0.1, 1]. If the domain has more than two values, nicing the domain only affects the first and last value.
+
+<a name="log_copy" href="#log_copy">#</a> <i>log</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/log.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+See [*continuous*.copy](#continuous_copy).
+
+#### Symlog Scales
+
+See [A bi-symmetric log transformation for wide-range data](https://www.researchgate.net/profile/John_Webber4/publication/233967063_A_bi-symmetric_log_transformation_for_wide-range_data/links/0fcfd50d791c85082e000000.pdf) by Webber for more.
+
+<a name="scaleSymlog" href="#scaleSymlog">#</a> d3.<b>scaleSymlog</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/symlog.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+Constructs a new [continuous scale](#continuous-scales) with the specified [domain](#continuous_domain) and [range](#continuous_range), the [constant](#symlog_constant) 1, the [default](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate) [interpolator](#continuous_interpolate) and [clamping](#continuous_clamp) disabled. If *domain* is not specified, it defaults to [0, 1]. If *range* is not specified, it defaults to [0, 1].
+
+<a name="symlog_constant" href="#symlog_constant">#</a> <i>symlog</i>.<b>constant</b>([<i>constant</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/symlog.js), [Examples](https://observablehq.com/@d3/continuous-scales)
+
+If *constant* is specified, sets the symlog constant to the specified number and returns this scale; otherwise returns the current value of the symlog constant, which defaults to 1. See “A bi-symmetric log transformation for wide-range data” by Webber for more.
+
+#### Identity Scales
+
+Identity scales are a special case of [linear scales](#linear-scales) where the domain and range are identical; the scale and its invert method are thus the identity function. These scales are occasionally useful when working with pixel coordinates, say in conjunction with an axis. Identity scales do not support [rangeRound](#continuous_rangeRound), [clamp](#continuous_clamp) or [interpolate](#continuous_interpolate).
+
+<a name="scaleIdentity" href="#scaleIdentity">#</a> d3.<b>scaleIdentity</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/identity.js), [Examples](https://observablehq.com/@d3/d3-scalelinear)
+
+Constructs a new identity scale with the specified [domain](#continuous_domain) and [range](#continuous_range). If *range* is not specified, it defaults to [0, 1].
+
+#### Radial Scales
+
+Radial scales are a variant of [linear scales](#linear-scales) where the range is internally squared so that an input value corresponds linearly to the squared output value. These scales are useful when you want the input value to correspond to the area of a graphical mark and the mark is specified by radius, as in a radial bar chart. Radial scales do not support [interpolate](#continuous_interpolate).
+
+<a name="scaleRadial" href="#scaleRadial">#</a> d3.<b>scaleRadial</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/radial.js), [Examples](https://observablehq.com/@d3/radial-stacked-bar-chart)
+
+Constructs a new radial scale with the specified [domain](#continuous_domain) and [range](#continuous_range). If *domain* or *range* is not specified, each defaults to [0, 1].
+
+#### Time Scales
+
+Time scales are a variant of [linear scales](#linear-scales) that have a temporal domain: domain values are coerced to [dates](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Date) rather than numbers, and [invert](#continuous_invert) likewise returns a date. Time scales implement [ticks](#time_ticks) based on [calendar intervals](https://github.com/d3/d3-time), taking the pain out of generating axes for temporal domains.
+
+For example, to create a position encoding:
+
+```js
+var x = d3.scaleTime()
+    .domain([new Date(2000, 0, 1), new Date(2000, 0, 2)])
+    .range([0, 960]);
+
+x(new Date(2000, 0, 1,  5)); // 200
+x(new Date(2000, 0, 1, 16)); // 640
+x.invert(200); // Sat Jan 01 2000 05:00:00 GMT-0800 (PST)
+x.invert(640); // Sat Jan 01 2000 16:00:00 GMT-0800 (PST)
+```
+
+For a valid value *y* in the range, <i>time</i>(<i>time</i>.invert(<i>y</i>)) equals *y*; similarly, for a valid value *x* in the domain, <i>time</i>.invert(<i>time</i>(<i>x</i>)) equals *x*. The invert method is useful for interaction, say to determine the value in the domain that corresponds to the pixel location under the mouse.
+
+<a name="scaleTime" href="#scaleTime">#</a> d3.<b>scaleTime</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+
+Constructs a new time scale with the specified [domain](#time_domain) and [range](#time_range), the [default](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate) [interpolator](#time_interpolate) and [clamping](#time_clamp) disabled. If *domain* is not specified, it defaults to [2000-01-01, 2000-01-02]. If *range* is not specified, it defaults to [0, 1].
+
+<a name="_time" href="#_time">#</a> <i>time</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+
+See [*continuous*](#_continuous).
+
+<a name="time_invert" href="#time_invert">#</a> <i>time</i>.<b>invert</b>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+
+See [*continuous*.invert](#continuous_invert).
+
+<a name="time_domain" href="#time_domain">#</a> <i>time</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+
+See [*continuous*.domain](#continuous_domain).
+
+<a name="time_range" href="#time_range">#</a> <i>time</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+
+See [*continuous*.range](#continuous_range).
+
+<a name="time_rangeRound" href="#time_rangeRound">#</a> <i>time</i>.<b>rangeRound</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+
+See [*continuous*.rangeRound](#continuous_rangeRound).
+
+<a name="time_clamp" href="#time_clamp">#</a> <i>time</i>.<b>clamp</b>(<i>clamp</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+
+See [*continuous*.clamp](#continuous_clamp).
+
+<a name="time_interpolate" href="#time_interpolate">#</a> <i>time</i>.<b>interpolate</b>(<i>interpolate</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+
+See [*continuous*.interpolate](#continuous_interpolate).
+
+<a name="time_ticks" href="#time_ticks">#</a> <i>time</i>.<b>ticks</b>([<i>count</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+<br><a name="time_ticks" href="#time_ticks">#</a> <i>time</i>.<b>ticks</b>([<i>interval</i>])
+
+Returns representative dates from the scale’s [domain](#time_domain). The returned tick values are uniformly-spaced (mostly), have sensible values (such as every day at midnight), and are guaranteed to be within the extent of the domain. Ticks are often used to display reference lines, or tick marks, in conjunction with the visualized data.
+
+An optional *count* may be specified to affect how many ticks are generated. If *count* is not specified, it defaults to 10. The specified *count* is only a hint; the scale may return more or fewer values depending on the domain. For example, to create ten default ticks, say:
+
+```js
+var x = d3.scaleTime();
+
+x.ticks(10);
+// [Sat Jan 01 2000 00:00:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 03:00:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 06:00:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 09:00:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 12:00:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 15:00:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 18:00:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 21:00:00 GMT-0800 (PST),
+//  Sun Jan 02 2000 00:00:00 GMT-0800 (PST)]
+```
+
+The following time intervals are considered for automatic ticks:
+
+* 1-, 5-, 15- and 30-second.
+* 1-, 5-, 15- and 30-minute.
+* 1-, 3-, 6- and 12-hour.
+* 1- and 2-day.
+* 1-week.
+* 1- and 3-month.
+* 1-year.
+
+In lieu of a *count*, a [time *interval*](https://github.com/d3/d3-time/blob/master/README.md#intervals) may be explicitly specified. To prune the generated ticks for a given time *interval*, use [*interval*.every](https://github.com/d3/d3-time/blob/master/README.md#interval_every). For example, to generate ticks at 15-[minute](https://github.com/d3/d3-time/blob/master/README.md#minute) intervals:
+
+```js
+var x = d3.scaleTime()
+    .domain([new Date(2000, 0, 1, 0), new Date(2000, 0, 1, 2)]);
+
+x.ticks(d3.timeMinute.every(15));
+// [Sat Jan 01 2000 00:00:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 00:15:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 00:30:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 00:45:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 01:00:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 01:15:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 01:30:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 01:45:00 GMT-0800 (PST),
+//  Sat Jan 01 2000 02:00:00 GMT-0800 (PST)]
+```
+
+Alternatively, pass a test function to [*interval*.filter](https://github.com/d3/d3-time/blob/master/README.md#interval_filter):
+
+```js
+x.ticks(d3.timeMinute.filter(function(d) {
+  return d.getMinutes() % 15 === 0;
+}));
+```
+
+Note: in some cases, such as with day ticks, specifying a *step* can result in irregular spacing of ticks because time intervals have varying length.
+
+<a name="time_tickFormat" href="#time_tickFormat">#</a> <i>time</i>.<b>tickFormat</b>([<i>count</i>[, <i>specifier</i>]]) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/scale-ticks)
+<br><a href="#time_tickFormat">#</a> <i>time</i>.<b>tickFormat</b>([<i>interval</i>[, <i>specifier</i>]])
+
+Returns a time format function suitable for displaying [tick](#time_ticks) values. The specified *count* or *interval* is currently ignored, but is accepted for consistency with other scales such as [*continuous*.tickFormat](#continuous_tickFormat). If a format *specifier* is specified, this method is equivalent to [format](https://github.com/d3/d3-time-format/blob/master/README.md#format). If *specifier* is not specified, the default time format is returned. The default multi-scale time format chooses a human-readable representation based on the specified date as follows:
+
+* `%Y` - for year boundaries, such as `2011`.
+* `%B` - for month boundaries, such as `February`.
+* `%b %d` - for week boundaries, such as `Feb 06`.
+* `%a %d` - for day boundaries, such as `Mon 07`.
+* `%I %p` - for hour boundaries, such as `01 AM`.
+* `%I:%M` - for minute boundaries, such as `01:23`.
+* `:%S` - for second boundaries, such as `:45`.
+* `.%L` - milliseconds for all other times, such as `.012`.
+
+Although somewhat unusual, this default behavior has the benefit of providing both local and global context: for example, formatting a sequence of ticks as [11 PM, Mon 07, 01 AM] reveals information about hours, dates, and day simultaneously, rather than just the hours [11 PM, 12 AM, 01 AM]. See [d3-time-format](https://github.com/d3/d3-time-format) if you’d like to roll your own conditional time format.
+
+<a name="time_nice" href="#time_nice">#</a> <i>time</i>.<b>nice</b>([<i>count</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/time.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+<br><a name="time_nice" href="#time_nice">#</a> <i>time</i>.<b>nice</b>([<i>interval</i>])
+
+Extends the [domain](#time_domain) so that it starts and ends on nice round values. This method typically modifies the scale’s domain, and may only extend the bounds to the nearest round value. See [*continuous*.nice](#continuous_nice) for more.
+
+An optional tick *count* argument allows greater control over the step size used to extend the bounds, guaranteeing that the returned [ticks](#time_ticks) will exactly cover the domain. Alternatively, a [time *interval*](https://github.com/d3/d3-time/blob/master/README.md#intervals) may be specified to explicitly set the ticks. If an *interval* is specified, an optional *step* may also be specified to skip some ticks. For example, `time.nice(d3.timeSecond.every(10))` will extend the domain to an even ten seconds (0, 10, 20, <i>etc.</i>). See [*time*.ticks](#time_ticks) and [*interval*.every](https://github.com/d3/d3-time/blob/master/README.md#interval_every) for further detail.
+
+Nicing is useful if the domain is computed from data, say using [extent](https://github.com/d3/d3-array/blob/master/README.md#extent), and may be irregular. For example, for a domain of [2009-07-13T00:02, 2009-07-13T23:48], the nice domain is [2009-07-13, 2009-07-14]. If the domain has more than two values, nicing the domain only affects the first and last value.
+
+<a name="scaleUtc" href="#scaleUtc">#</a> d3.<b>scaleUtc</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/utcTime.js), [Examples](https://observablehq.com/@d3/d3-scaletime)
+
+Equivalent to [scaleTime](#scaleTime), but the returned time scale operates in [Coordinated Universal Time](https://en.wikipedia.org/wiki/Coordinated_Universal_Time) rather than local time.
+
+### Sequential Scales
+
+Sequential scales, like [diverging scales](#diverging-scales), are similar to [continuous scales](#continuous-scales) in that they map a continuous, numeric input domain to a continuous output range. However, unlike continuous scales, the input domain and output range of a sequential scale always has exactly two elements, and the output range is typically specified as an interpolator rather than an array of values. These scales do not expose [invert](#continuous_invert) and [interpolate](#continuous_interpolate) methods.
+
+<a name="scaleSequential" href="#scaleSequential">#</a> d3.<b>scaleSequential</b>([[<i>domain</i>, ]<i>interpolator</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+Constructs a new sequential scale with the specified [*domain*](#sequential_domain) and [*interpolator*](#sequential_interpolator) function. If *domain* is not specified, it defaults to [0, 1]. If *interpolator* is not specified, it defaults to the identity function. When the scale is [applied](#_sequential), the interpolator will be invoked with a value typically in the range [0, 1], where 0 represents the minimum value and 1 represents the maximum value. For example, to implement the ill-advised [HSL](https://github.com/d3/d3-color/blob/master/README.md#hsl) rainbow scale:
+
+```js
+var rainbow = d3.scaleSequential(function(t) {
+  return d3.hsl(t * 360, 1, 0.5) + "";
+});
+```
+
+A more aesthetically-pleasing and perceptually-effective cyclical hue encoding is to use [d3.interpolateRainbow](https://github.com/d3/d3-scale-chromatic/blob/master/README.md#interpolateRainbow):
+
+```js
+var rainbow = d3.scaleSequential(d3.interpolateRainbow);
+```
+
+<a name="_sequential" href="#_sequential">#</a> <i>sequential</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+See [*continuous*](#_continuous).
+
+<a name="sequential_domain" href="#sequential_domain">#</a> <i>sequential</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+See [*continuous*.domain](#continuous_domain). Note that a sequential scale’s domain must be numeric and must contain exactly two values.
+
+<a name="sequential_clamp" href="#sequential_clamp">#</a> <i>sequential</i>.<b>clamp</b>([<i>clamp</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+See [*continuous*.clamp](#continuous_clamp).
+
+<a name="sequential_interpolator" href="#sequential_interpolator">#</a> <i>sequential</i>.<b>interpolator</b>([<i>interpolator</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+If *interpolator* is specified, sets the scale’s interpolator to the specified function. If *interpolator* is not specified, returns the scale’s current interpolator.
+
+<a name="sequential_range" href="#sequential_range">#</a> <i>sequential</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+See [*continuous*.range](#continuous_range). If *range* is specified, implicitly uses [d3.interpolate](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate) as the interpolator.
+
+<a name="sequential_rangeRound" href="#sequential_rangeRound">#</a> <i>sequential</i>.<b>rangeRound</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+See [*continuous*.rangeRound](#continuous_rangeRound). If *range* is specified, implicitly uses [d3.interpolateRound](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolateRound) as the interpolator.
+
+<a name="sequential_copy" href="#sequential_copy">#</a> <i>sequential</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+See [*continuous*.copy](#continuous_copy).
+
+<a name="scaleSequentialLog" href="#scaleSequentialLog">#</a> d3.<b>scaleSequentialLog</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+A [sequential scale](#sequential-scales) with a logarithmic transform, analogous to a [log scale](#log-scales).
+
+<a name="scaleSequentialPow" href="#scaleSequentialPow">#</a> d3.<b>scaleSequentialPow</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+A [sequential scale](#sequential-scales) with an exponential transform, analogous to a [power scale](#pow-scales).
+
+<a name="scaleSequentialSqrt" href="#scaleSequentialSqrt">#</a> d3.<b>scaleSequentialSqrt</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+A [sequential scale](#sequential-scales) with a square-root transform, analogous to a [d3.scaleSqrt](#scaleSqrt).
+
+<a name="scaleSequentialSymlog" href="#scaleSequentialSymlog">#</a> d3.<b>scaleSequentialSymlog</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequential.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+A [sequential scale](#sequential-scales) with a symmetric logarithmic transform, analogous to a [symlog scale](#symlog-scales).
+
+<a name="scaleSequentialQuantile" href="#scaleSequentialQuantile">#</a> d3.<b>scaleSequentialQuantile</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequentialQuantile.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+A [sequential scale](#sequential-scales) using a *p*-quantile transform, analogous to a [quantile scale](#quantile-scales).
+
+<a name="sequentialQuantile_quantiles" href="#sequentialQuantile_quantiles">#</a> <i>sequentialQuantile</i>.<b>quantiles</b>(<i>n</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/sequentialQuantile.js), [Examples](https://observablehq.com/@d3/sequential-scales)
+
+Returns an array of *n* + 1 quantiles. For example, if *n* = 4, returns an array of five numbers: the minimum value, the first quartile, the median, the third quartile, and the maximum.
+
+### Diverging Scales
+
+Diverging scales, like [sequential scales](#sequential-scales), are similar to [continuous scales](#continuous-scales) in that they map a continuous, numeric input domain to a continuous output range. However, unlike continuous scales, the input domain and output range of a diverging scale always has exactly three elements, and the output range is typically specified as an interpolator rather than an array of values. These scales do not expose [invert](#continuous_invert) and [interpolate](#continuous_interpolate) methods.
+
+<a name="scaleDiverging" href="#scaleDiverging">#</a> d3.<b>scaleDiverging</b>([[<i>domain</i>, ]<i>interpolator</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+Constructs a new diverging scale with the specified [*domain*](#diverging_domain) and [*interpolator*](#diverging_interpolator) function. If *domain* is not specified, it defaults to [0, 1]. If *interpolator* is not specified, it defaults to the identity function. When the scale is [applied](#_diverging), the interpolator will be invoked with a value typically in the range [0, 1], where 0 represents the extreme negative value, 0.5 represents the neutral value, and 1 represents the extreme positive value. For example, using [d3.interpolateSpectral](https://github.com/d3/d3-scale-chromatic/blob/master/README.md#interpolateSpectral):
+
+```js
+var spectral = d3.scaleDiverging(d3.interpolateSpectral);
+```
+
+<a name="_diverging" href="#_diverging">#</a> <i>diverging</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+See [*continuous*](#_continuous).
+
+<a name="diverging_domain" href="#diverging_domain">#</a> <i>diverging</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+See [*continuous*.domain](#continuous_domain). Note that a diverging scale’s domain must be numeric and must contain exactly three values. The default domain is [0, 0.5, 1].
+
+<a name="diverging_clamp" href="#diverging_clamp">#</a> <i>diverging</i>.<b>clamp</b>([<i>clamp</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+See [*continuous*.clamp](#continuous_clamp).
+
+<a name="diverging_interpolator" href="#diverging_interpolator">#</a> <i>diverging</i>.<b>interpolator</b>([<i>interpolator</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+If *interpolator* is specified, sets the scale’s interpolator to the specified function. If *interpolator* is not specified, returns the scale’s current interpolator.
+
+<a name="diverging_range" href="#diverging_range">#</a> <i>diverging</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+See [*continuous*.range](#continuous_range). If *range* is specified, implicitly uses [d3.interpolate](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolate) as the interpolator.
+
+<a name="diverging_rangeRound" href="#diverging_rangeRound">#</a> <i>diverging</i>.<b>rangeRound</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+See [*continuous*.range](#continuous_rangeRound). If *range* is specified, implicitly uses [d3.interpolateRound](https://github.com/d3/d3-interpolate/blob/master/README.md#interpolateRound) as the interpolator.
+
+<a name="diverging_copy" href="#diverging_copy">#</a> <i>diverging</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+See [*continuous*.copy](#continuous_copy).
+
+<a name="diverging_unknown" href="#diverging_unknown">#</a> <i>diverging</i>.<b>unknown</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+See [*continuous*.unknown](#continuous_unknown).
+
+<a name="scaleDivergingLog" href="#scaleDivergingLog">#</a> d3.<b>scaleDivergingLog</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+A [diverging scale](#diverging-scales) with a logarithmic transform, analogous to a [log scale](#log-scales).
+
+<a name="scaleDivergingPow" href="#scaleDivergingPow">#</a> d3.<b>scaleDivergingPow</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+A [diverging scale](#diverging-scales) with an exponential transform, analogous to a [power scale](#pow-scales).
+
+<a name="scaleDivergingSqrt" href="#scaleDivergingSqrt">#</a> d3.<b>scaleDivergingSqrt</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+A [diverging scale](#diverging-scales) with a square-root transform, analogous to a [d3.scaleSqrt](#scaleSqrt).
+
+<a name="scaleDivergingSymlog" href="#scaleDivergingSymlog">#</a> d3.<b>scaleDivergingSymlog</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/diverging.js), [Examples](https://observablehq.com/@d3/diverging-scales)
+
+A [diverging scale](#diverging-scales) with a symmetric logarithmic transform, analogous to a [symlog scale](#symlog-scales).
+
+### Quantize Scales
+
+Quantize scales are similar to [linear scales](#linear-scales), except they use a discrete rather than continuous range. The continuous input domain is divided into uniform segments based on the number of values in (*i.e.*, the cardinality of) the output range. Each range value *y* can be expressed as a quantized linear function of the domain value *x*: *y* = *m round(x)* + *b*. See [this choropleth](https://observablehq.com/@d3/choropleth) for an example.
+
+<a name="scaleQuantize" href="#scaleQuantize">#</a> d3.<b>scaleQuantize</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantize.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Constructs a new quantize scale with the specified [*domain*](#quantize_domain) and [*range*](#quantize_range). If either *domain* or *range* is not specified, each defaults to [0, 1]. Thus, the default quantize scale is equivalent to the [Math.round](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Math/round) function.
+
+<a name="_quantize" href="#_quantize">#</a> <i>quantize</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantize.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Given a *value* in the input [domain](#quantize_domain), returns the corresponding value in the output [range](#quantize_range). For example, to apply a color encoding:
+
+```js
+var color = d3.scaleQuantize()
+    .domain([0, 1])
+    .range(["brown", "steelblue"]);
+
+color(0.49); // "brown"
+color(0.51); // "steelblue"
+```
+
+Or dividing the domain into three equally-sized parts with different range values to compute an appropriate stroke width:
+
+```js
+var width = d3.scaleQuantize()
+    .domain([10, 100])
+    .range([1, 2, 4]);
+
+width(20); // 1
+width(50); // 2
+width(80); // 4
+```
+
+<a name="quantize_invertExtent" href="#quantize_invertExtent">#</a> <i>quantize</i>.<b>invertExtent</b>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantize.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Returns the extent of values in the [domain](#quantize_domain) [<i>x0</i>, <i>x1</i>] for the corresponding *value* in the [range](#quantize_range): the inverse of [*quantize*](#_quantize). This method is useful for interaction, say to determine the value in the domain that corresponds to the pixel location under the mouse.
+
+```js
+var width = d3.scaleQuantize()
+    .domain([10, 100])
+    .range([1, 2, 4]);
+
+width.invertExtent(2); // [40, 70]
+```
+
+<a name="quantize_domain" href="#quantize_domain">#</a> <i>quantize</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantize.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+If *domain* is specified, sets the scale’s domain to the specified two-element array of numbers. If the elements in the given array are not numbers, they will be coerced to numbers. The numbers must be in ascending order or the behavior of the scale is undefined. If *domain* is not specified, returns the scale’s current domain.
+
+<a name="quantize_range" href="#quantize_range">#</a> <i>quantize</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantize.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+If *range* is specified, sets the scale’s range to the specified array of values. The array may contain any number of discrete values. The elements in the given array need not be numbers; any value or type will work. If *range* is not specified, returns the scale’s current range.
+
+<a name="quantize_ticks" href="#quantize_ticks">#</a> <i>quantize</i>.<b>ticks</b>([<i>count</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantize.js), [Examples](https://observablehq.com/@d3/scale-ticks)
+
+Equivalent to [*continuous*.ticks](#continuous_ticks).
+
+<a name="quantize_tickFormat" href="#quantize_tickFormat">#</a> <i>quantize</i>.<b>tickFormat</b>([<i>count</i>[, <i>specifier</i>]]) · [Source](https://github.com/d3/d3-scale/blob/master/src/linear.js), [Examples](https://observablehq.com/@d3/scale-ticks)
+
+Equivalent to [*continuous*.tickFormat](#continuous_tickFormat).
+
+<a name="quantize_nice" href="#quantize_nice">#</a> <i>quantize</i>.<b>nice</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/quantize.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Equivalent to [*continuous*.nice](#continuous_nice).
+
+<a name="quantize_thresholds" href="#quantize_thresholds">#</a> <i>quantize</i>.<b>thresholds</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/quantize.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Returns the array of computed thresholds within the [domain](#quantize_domain).
+
+<a name="quantize_copy" href="#quantize_copy">#</a> <i>quantize</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/quantize.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Returns an exact copy of this scale. Changes to this scale will not affect the returned scale, and vice versa.
+
+### Quantile Scales
+
+Quantile scales map a sampled input domain to a discrete range. The domain is considered continuous and thus the scale will accept any reasonable input value; however, the domain is specified as a discrete set of sample values. The number of values in (the cardinality of) the output range determines the number of quantiles that will be computed from the domain. To compute the quantiles, the domain is sorted, and treated as a [population of discrete values](https://en.wikipedia.org/wiki/Quantile#Quantiles_of_a_population); see d3-array’s [quantile](https://github.com/d3/d3-array/blob/master/README.md#quantile). See [this quantile choropleth](https://observablehq.com/@d3/quantile-choropleth) for an example.
+
+<a name="scaleQuantile" href="#scaleQuantile">#</a> d3.<b>scaleQuantile</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantile.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Constructs a new quantile scale with the specified [*domain*](#quantile_domain) and [*range*](#quantile_range). If either *domain* or *range* is not specified, each defaults to the empty array. The quantile scale is invalid until both a domain and range are specified.
+
+<a name="_quantile" href="#_quantile">#</a> <i>quantile</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantile.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Given a *value* in the input [domain](#quantile_domain), returns the corresponding value in the output [range](#quantile_range).
+
+<a name="quantile_invertExtent" href="#quantile_invertExtent">#</a> <i>quantile</i>.<b>invertExtent</b>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantile.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Returns the extent of values in the [domain](#quantile_domain) [<i>x0</i>, <i>x1</i>] for the corresponding *value* in the [range](#quantile_range): the inverse of [*quantile*](#_quantile). This method is useful for interaction, say to determine the value in the domain that corresponds to the pixel location under the mouse.
+
+<a name="quantile_domain" href="#quantile_domain">#</a> <i>quantile</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantile.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+If *domain* is specified, sets the domain of the quantile scale to the specified set of discrete numeric values. The array must not be empty, and must contain at least one numeric value; NaN, null and undefined values are ignored and not considered part of the sample population. If the elements in the given array are not numbers, they will be coerced to numbers. A copy of the input array is sorted and stored internally. If *domain* is not specified, returns the scale’s current domain.
+
+<a name="quantile_range" href="#quantile_range">#</a> <i>quantile</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/quantile.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+If *range* is specified, sets the discrete values in the range. The array must not be empty, and may contain any type of value. The number of values in (the cardinality, or length, of) the *range* array determines the number of quantiles that are computed. For example, to compute quartiles, *range* must be an array of four elements such as [0, 1, 2, 3]. If *range* is not specified, returns the current range.
+
+<a name="quantile_quantiles" href="#quantile_quantiles">#</a> <i>quantile</i>.<b>quantiles</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/quantile.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Returns the quantile thresholds. If the [range](#quantile_range) contains *n* discrete values, the returned array will contain *n* - 1 thresholds. Values less than the first threshold are considered in the first quantile; values greater than or equal to the first threshold but less than the second threshold are in the second quantile, and so on. Internally, the thresholds array is used with [bisect](https://github.com/d3/d3-array/blob/master/README.md#bisect) to find the output quantile associated with the given input value.
+
+<a name="quantile_copy" href="#quantile_copy">#</a> <i>quantile</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/quantile.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Returns an exact copy of this scale. Changes to this scale will not affect the returned scale, and vice versa.
+
+### Threshold Scales
+
+Threshold scales are similar to [quantize scales](#quantize-scales), except they allow you to map arbitrary subsets of the domain to discrete values in the range. The input domain is still continuous, and divided into slices based on a set of threshold values. See [this choropleth](https://observablehq.com/@d3/threshold-choropleth) for an example.
+
+<a name="scaleThreshold" href="#scaleThreshold">#</a> d3.<b>scaleThreshold</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/threshold.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Constructs a new threshold scale with the specified [*domain*](#threshold_domain) and [*range*](#threshold_range). It *domain* is not specified, it defaults to [0.5]. If *range* is not specified, it defaults to [0, 1]. Thus, the default threshold scale is equivalent to the [Math.round](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Math/round) function for numbers; for example threshold(0.49) returns 0, and threshold(0.51) returns 1.
+
+<a name="_threshold" href="#_threshold">#</a> <i>threshold</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/threshold.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Given a *value* in the input [domain](#threshold_domain), returns the corresponding value in the output [range](#threshold_range). For example:
+
+```js
+var color = d3.scaleThreshold()
+    .domain([0, 1])
+    .range(["red", "white", "green"]);
+
+color(-1);   // "red"
+color(0);    // "white"
+color(0.5);  // "white"
+color(1);    // "green"
+color(1000); // "green"
+```
+
+<a name="threshold_invertExtent" href="#threshold_invertExtent">#</a> <i>threshold</i>.<b>invertExtent</b>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/threshold.js), [Examples](https://observablehq.com/@d3/choropleth)
+
+Returns the extent of values in the [domain](#threshold_domain) [<i>x0</i>, <i>x1</i>] for the corresponding *value* in the [range](#threshold_range), representing the inverse mapping from range to domain. This method is useful for interaction, say to determine the value in the domain that corresponds to the pixel location under the mouse. For example:
+
+```js
+var color = d3.scaleThreshold()
+    .domain([0, 1])
+    .range(["red", "white", "green"]);
+
+color.invertExtent("red"); // [undefined, 0]
+color.invertExtent("white"); // [0, 1]
+color.invertExtent("green"); // [1, undefined]
+```
+
+<a name="threshold_domain" href="#threshold_domain">#</a> <i>threshold</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/threshold.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+If *domain* is specified, sets the scale’s domain to the specified array of values. The values must be in ascending order or the behavior of the scale is undefined. The values are typically numbers, but any naturally ordered values (such as strings) will work; a threshold scale can be used to encode any type that is ordered. If the number of values in the scale’s range is N+1, the number of values in the scale’s domain must be N. If there are fewer than N elements in the domain, the additional values in the range are ignored. If there are more than N elements in the domain, the scale may return undefined for some inputs. If *domain* is not specified, returns the scale’s current domain.
+
+<a name="threshold_range" href="#threshold_range">#</a> <i>threshold</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/threshold.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+If *range* is specified, sets the scale’s range to the specified array of values. If the number of values in the scale’s domain is N, the number of values in the scale’s range must be N+1. If there are fewer than N+1 elements in the range, the scale may return undefined for some inputs. If there are more than N+1 elements in the range, the additional values are ignored. The elements in the given array need not be numbers; any value or type will work. If *range* is not specified, returns the scale’s current range.
+
+<a name="threshold_copy" href="#threshold_copy">#</a> <i>threshold</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/threshold.js), [Examples](https://observablehq.com/@d3/quantile-quantize-and-threshold-scales)
+
+Returns an exact copy of this scale. Changes to this scale will not affect the returned scale, and vice versa.
+
+### Ordinal Scales
+
+Unlike [continuous scales](#continuous-scales), ordinal scales have a discrete domain and range. For example, an ordinal scale might map a set of named categories to a set of colors, or determine the horizontal positions of columns in a column chart.
+
+<a name="scaleOrdinal" href="#scaleOrdinal">#</a> d3.<b>scaleOrdinal</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/ordinal.js), [Examples](https://observablehq.com/@d3/d3-scaleordinal)
+
+Constructs a new ordinal scale with the specified [*domain*](#ordinal_domain) and [*range*](#ordinal_range). If *domain* is not specified, it defaults to the empty array. If *range* is not specified, it defaults to the empty array; an ordinal scale always returns undefined until a non-empty range is defined.
+
+<a name="_ordinal" href="#_ordinal">#</a> <i>ordinal</i>(<i>value</i>) · [Source](https://github.com/d3/d3-scale/blob/master/src/ordinal.js), [Examples](https://observablehq.com/@d3/d3-scaleordinal)
+
+Given a *value* in the input [domain](#ordinal_domain), returns the corresponding value in the output [range](#ordinal_range). If the given *value* is not in the scale’s [domain](#ordinal_domain), returns the [unknown](#ordinal_unknown); or, if the unknown value is [implicit](#scaleImplicit) (the default), then the *value* is implicitly added to the domain and the next-available value in the range is assigned to *value*, such that this and subsequent invocations of the scale given the same input *value* return the same output value.
+
+<a name="ordinal_domain" href="#ordinal_domain">#</a> <i>ordinal</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/ordinal.js), [Examples](https://observablehq.com/@d3/d3-scaleordinal)
+
+If *domain* is specified, sets the domain to the specified array of values. The first element in *domain* will be mapped to the first element in the range, the second domain value to the second range value, and so on. Domain values are stored internally in a map from stringified value to index; the resulting index is then used to retrieve a value from the range. Thus, an ordinal scale’s values must be coercible to a string, and the stringified version of the domain value uniquely identifies the corresponding range value. If *domain* is not specified, this method returns the current domain.
+
+Setting the domain on an ordinal scale is optional if the [unknown value](#ordinal_unknown) is [implicit](#scaleImplicit) (the default). In this case, the domain will be inferred implicitly from usage by assigning each unique value passed to the scale a new value from the range. Note that an explicit domain is recommended to ensure deterministic behavior, as inferring the domain from usage will be dependent on ordering.
+
+<a name="ordinal_range" href="#ordinal_range">#</a> <i>ordinal</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/ordinal.js), [Examples](https://observablehq.com/@d3/d3-scaleordinal)
+
+If *range* is specified, sets the range of the ordinal scale to the specified array of values. The first element in the domain will be mapped to the first element in *range*, the second domain value to the second range value, and so on. If there are fewer elements in the range than in the domain, the scale will reuse values from the start of the range. If *range* is not specified, this method returns the current range.
+
+<a name="ordinal_unknown" href="#ordinal_unknown">#</a> <i>ordinal</i>.<b>unknown</b>([<i>value</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/ordinal.js), [Examples](https://observablehq.com/@d3/d3-scaleordinal)
+
+If *value* is specified, sets the output value of the scale for unknown input values and returns this scale. If *value* is not specified, returns the current unknown value, which defaults to [implicit](#scaleImplicit). The implicit value enables implicit domain construction; see [*ordinal*.domain](#ordinal_domain).
+
+<a name="ordinal_copy" href="#ordinal_copy">#</a> <i>ordinal</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/ordinal.js), [Examples](https://observablehq.com/@d3/d3-scaleordinal)
+
+Returns an exact copy of this ordinal scale. Changes to this scale will not affect the returned scale, and vice versa.
+
+<a name="scaleImplicit" href="#scaleImplicit">#</a> d3.<b>scaleImplicit</b> · [Source](https://github.com/d3/d3-scale/blob/master/src/ordinal.js), [Examples](https://observablehq.com/@d3/d3-scaleordinal)
+
+A special value for [*ordinal*.unknown](#ordinal_unknown) that enables implicit domain construction: unknown values are implicitly added to the domain.
+
+#### Band Scales
+
+Band scales are like [ordinal scales](#ordinal-scales) except the output range is continuous and numeric. Discrete output values are automatically computed by the scale by dividing the continuous range into uniform bands. Band scales are typically used for bar charts with an ordinal or categorical dimension. The [unknown value](#ordinal_unknown) of a band scale is effectively undefined: they do not allow implicit domain construction.
+
+<img src="https://raw.githubusercontent.com/d3/d3-scale/master/img/band.png" width="751" height="238" alt="band">
+
+<a name="scaleBand" href="#scaleBand">#</a> d3.<b>scaleBand</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+Constructs a new band scale with the specified [*domain*](#band_domain) and [*range*](#band_range), no [padding](#band_padding), no [rounding](#band_round) and center [alignment](#band_align). If *domain* is not specified, it defaults to the empty domain. If *range* is not specified, it defaults to the unit range [0, 1].
+
+<a name="_band" href="#_band">#</a> <i>band</i>(*value*) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+Given a *value* in the input [domain](#band_domain), returns the start of the corresponding band derived from the output [range](#band_range). If the given *value* is not in the scale’s domain, returns undefined.
+
+<a name="band_domain" href="#band_domain">#</a> <i>band</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+If *domain* is specified, sets the domain to the specified array of values. The first element in *domain* will be mapped to the first band, the second domain value to the second band, and so on. Domain values are stored internally in a map from stringified value to index; the resulting index is then used to determine the band. Thus, a band scale’s values must be coercible to a string, and the stringified version of the domain value uniquely identifies the corresponding band. If *domain* is not specified, this method returns the current domain.
+
+<a name="band_range" href="#band_range">#</a> <i>band</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+If *range* is specified, sets the scale’s range to the specified two-element array of numbers. If the elements in the given array are not numbers, they will be coerced to numbers. If *range* is not specified, returns the scale’s current range, which defaults to [0, 1].
+
+<a name="band_rangeRound" href="#band_rangeRound">#</a> <i>band</i>.<b>rangeRound</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+Sets the scale’s [*range*](#band_range) to the specified two-element array of numbers while also enabling [rounding](#band_round). This is a convenience method equivalent to:
+
+```js
+band
+    .range(range)
+    .round(true);
+```
+
+Rounding is sometimes useful for avoiding antialiasing artifacts, though also consider the [shape-rendering](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/shape-rendering) “crispEdges” styles.
+
+<a name="band_round" href="#band_round">#</a> <i>band</i>.<b>round</b>([<i>round</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+If *round* is specified, enables or disables rounding accordingly. If rounding is enabled, the start and stop of each band will be integers. Rounding is sometimes useful for avoiding antialiasing artifacts, though also consider the [shape-rendering](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/shape-rendering) “crispEdges” styles. Note that if the width of the domain is not a multiple of the cardinality of the range, there may be leftover unused space, even without padding! Use [*band*.align](#band_align) to specify how the leftover space is distributed.
+
+<a name="band_paddingInner" href="#band_paddingInner">#</a> <i>band</i>.<b>paddingInner</b>([<i>padding</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+If *padding* is specified, sets the inner padding to the specified number which must be less than or equal to 1. If *padding* is not specified, returns the current inner padding which defaults to 0. The inner padding specifies the proportion of the range that is reserved for blank space between bands; a value of 0 means no blank space between bands, and a value of 1 means a [bandwidth](#band_bandwidth) of zero.
+
+<a name="band_paddingOuter" href="#band_paddingOuter">#</a> <i>band</i>.<b>paddingOuter</b>([<i>padding</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+If *padding* is specified, sets the outer padding to the specified number which is typically in the range [0, 1]. If *padding* is not specified, returns the current outer padding which defaults to 0. The outer padding specifies the amount of blank space, in terms of multiples of the [step](#band_step), to reserve before the first band and after the last band.
+
+<a name="band_padding" href="#band_padding">#</a> <i>band</i>.<b>padding</b>([<i>padding</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+A convenience method for setting the [inner](#band_paddingInner) and [outer](#band_paddingOuter) padding to the same *padding* value. If *padding* is not specified, returns the inner padding.
+
+<a name="band_align" href="#band_align">#</a> <i>band</i>.<b>align</b>([<i>align</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+If *align* is specified, sets the alignment to the specified value which must be in the range [0, 1]. If *align* is not specified, returns the current alignment which defaults to 0.5. The alignment specifies how outer padding is distributed in the range. A value of 0.5 indicates that the outer padding should be equally distributed before the first band and after the last band; *i.e.*, the bands should be centered within the range. A value of 0 or 1 may be used to shift the bands to one side, say to position them adjacent to an axis. For more, [see this explainer](https://observablehq.com/@d3/band-align).
+
+<a name="band_bandwidth" href="#band_bandwidth">#</a> <i>band</i>.<b>bandwidth</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+Returns the width of each band.
+
+<a name="band_step" href="#band_step">#</a> <i>band</i>.<b>step</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+Returns the distance between the starts of adjacent bands.
+
+<a name="band_copy" href="#band_copy">#</a> <i>band</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scaleband)
+
+Returns an exact copy of this scale. Changes to this scale will not affect the returned scale, and vice versa.
+
+#### Point Scales
+
+Point scales are a variant of [band scales](#band-scales) with the bandwidth fixed to zero. Point scales are typically used for scatterplots with an ordinal or categorical dimension. The [unknown value](#ordinal_unknown) of a point scale is always undefined: they do not allow implicit domain construction.
+
+<img src="https://raw.githubusercontent.com/d3/d3-scale/master/img/point.png" width="648" height="155" alt="point">
+
+<a name="scalePoint" href="#scalePoint">#</a> d3.<b>scalePoint</b>([[<i>domain</i>, ]<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+Constructs a new point scale with the specified [*domain*](#point_domain) and [*range*](#point_range), no [padding](#point_padding), no [rounding](#point_round) and center [alignment](#point_align). If *domain* is not specified, it defaults to the empty domain. If *range* is not specified, it defaults to the unit range [0, 1].
+
+<a name="_point" href="#_point">#</a> <i>point</i>(*value*) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+Given a *value* in the input [domain](#point_domain), returns the corresponding point derived from the output [range](#point_range). If the given *value* is not in the scale’s domain, returns undefined.
+
+<a name="point_domain" href="#point_domain">#</a> <i>point</i>.<b>domain</b>([<i>domain</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+If *domain* is specified, sets the domain to the specified array of values. The first element in *domain* will be mapped to the first point, the second domain value to the second point, and so on. Domain values are stored internally in a map from stringified value to index; the resulting index is then used to determine the point. Thus, a point scale’s values must be coercible to a string, and the stringified version of the domain value uniquely identifies the corresponding point. If *domain* is not specified, this method returns the current domain.
+
+<a name="point_range" href="#point_range">#</a> <i>point</i>.<b>range</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+If *range* is specified, sets the scale’s range to the specified two-element array of numbers. If the elements in the given array are not numbers, they will be coerced to numbers. If *range* is not specified, returns the scale’s current range, which defaults to [0, 1].
+
+<a name="point_rangeRound" href="#point_rangeRound">#</a> <i>point</i>.<b>rangeRound</b>([<i>range</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+Sets the scale’s [*range*](#point_range) to the specified two-element array of numbers while also enabling [rounding](#point_round). This is a convenience method equivalent to:
+
+```js
+point
+    .range(range)
+    .round(true);
+```
+
+Rounding is sometimes useful for avoiding antialiasing artifacts, though also consider the [shape-rendering](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/shape-rendering) “crispEdges” styles.
+
+<a name="point_round" href="#point_round">#</a> <i>point</i>.<b>round</b>([<i>round</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+If *round* is specified, enables or disables rounding accordingly. If rounding is enabled, the position of each point will be integers. Rounding is sometimes useful for avoiding antialiasing artifacts, though also consider the [shape-rendering](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/shape-rendering) “crispEdges” styles. Note that if the width of the domain is not a multiple of the cardinality of the range, there may be leftover unused space, even without padding! Use [*point*.align](#point_align) to specify how the leftover space is distributed.
+
+<a name="point_padding" href="#point_padding">#</a> <i>point</i>.<b>padding</b>([<i>padding</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+If *padding* is specified, sets the outer padding to the specified number which is typically in the range [0, 1]. If *padding* is not specified, returns the current outer padding which defaults to 0. The outer padding specifies the amount of blank space, in terms of multiples of the [step](#band_step), to reserve before the first point and after the last point. Equivalent to [*band*.paddingOuter](#band_paddingOuter).
+
+<a name="point_align" href="#point_align">#</a> <i>point</i>.<b>align</b>([<i>align</i>]) · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+If *align* is specified, sets the alignment to the specified value which must be in the range [0, 1]. If *align* is not specified, returns the current alignment which defaults to 0.5. The alignment specifies how any leftover unused space in the range is distributed. A value of 0.5 indicates that the leftover space should be equally distributed before the first point and after the last point; *i.e.*, the points should be centered within the range. A value of 0 or 1 may be used to shift the points to one side, say to position them adjacent to an axis.
+
+<a name="point_bandwidth" href="#point_bandwidth">#</a> <i>point</i>.<b>bandwidth</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+Returns zero.
+
+<a name="point_step" href="#point_step">#</a> <i>point</i>.<b>step</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+Returns the distance between the starts of adjacent points.
+
+<a name="point_copy" href="#point_copy">#</a> <i>point</i>.<b>copy</b>() · [Source](https://github.com/d3/d3-scale/blob/master/src/band.js), [Examples](https://observablehq.com/@d3/d3-scalepoint)
+
+Returns an exact copy of this scale. Changes to this scale will not affect the returned scale, and vice versa.

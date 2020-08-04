@@ -1,0 +1,9 @@
+README
+setup.py
+rison/__init__.py
+rison/parser.py
+rison/tests.py
+rison.egg-info/PKG-INFO
+rison.egg-info/SOURCES.txt
+rison.egg-info/dependency_links.txt
+rison.egg-info/top_level.txt

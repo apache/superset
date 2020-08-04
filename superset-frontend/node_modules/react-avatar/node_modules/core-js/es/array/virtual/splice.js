@@ -1,0 +1,4 @@
+require('../../../modules/es.array.splice');
+var entryVirtual = require('../../../internals/entry-virtual');
+
+module.exports = entryVirtual('Array').splice;

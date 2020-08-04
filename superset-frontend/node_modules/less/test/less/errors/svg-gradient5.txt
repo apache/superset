@@ -1,0 +1,4 @@
+ArgumentError: error evaluating function `svg-gradient`: svg-gradient expects direction, start_color [start_position], [color position,]..., end_color [end_position] or direction, color list in {path}svg-gradient5.less on line 2, column 6:
+1 .a {
+2   a: svg-gradient(to bottom, @colors);
+3 }

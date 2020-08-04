@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="naturalSort.js" type="text/javascript"></script>
+
+<script>
+
+/* Mike Grier's fixes on v0.2 http://mgrier.com/code/natsort.optimized.txt */
+function naturalSort2(a,b){
+	// setup temp-scope variables for comparison evauluation
+	var x = a.toString().toLowerCase() || '',
+	re=/(-?[0-9.]+)/g,
+	y = b.toString().toLowerCase() || '',
+	nC = String.fromCharCode(0),
+	xN = x.replace( re, nC + '$1' + nC ).split(nC),
+	yN = y.replace( re, nC + '$1' + nC ).split(nC),
+	xD = (new Date(x)).getTime(),yD;
+
+	if(xD) yD = (new Date(y)).getTime(); //no point in getting yD if xD is not a date
+
+	// natural sorting of dates
+	if(yD){ // we already checked if(xD), so if(yD), it's a date, too
+		if( xD < yD ) return -1;
+		else if( xD > yD ) return 1;
+	}
+
+	// natural sorting through split numeric strings and default strings
+	var cLoc, numS=Math.max(xN.length,yN.length);
+	for(cLoc=0; cLoc<numS; cLoc++){
+		// instead of performing these next 6 operations in the if
+		// and the same 6 operations in the else if, just do them once
+		// so we can reuse results instead of computing twice
+		xNcL = xN[cLoc]; // only look up values
+		yNcL = yN[cLoc]; // in arrays once
+		FxNcL = parseFloat(xNcL);
+		FyNcL = parseFloat(yNcL);
+		oFxNcL = FxNcL || xNcL;
+		oFyNcL = FyNcL || yNcL;
+
+		if(oFxNcL < oFyNcL)return -1;
+		else if(oFxNcL > oFyNcL)return 1;
+	}
+	return 0;
+}
+
+/*
+ * Natural Sort algorithm for Javascript
+ *	Version 0.3
+ * Author: Jim Palmer (based on chunking idea from Dave Koelle)
+ *	optimizations and safari fix by Mike Grier (mgrier.com)
+ * Released under MIT license.
+ */
+function naturalSort3(a, b){
+	// setup temp-scope variables for comparison evauluation
+	var re = /(-?[0-9\.]+)/g,
+		x = a.toString().toLowerCase() || '',
+		y = b.toString().toLowerCase() || '',
+		nC = String.fromCharCode(0),
+		xN = x.replace( re, nC + '$1' + nC ).split(nC),
+		yN = y.replace( re, nC + '$1' + nC ).split(nC),
+		xD = (new Date(x)).getTime(),
+		yD = xD ? (new Date(y)).getTime() : null;
+	// natural sorting of dates
+	if ( yD )
+		if ( xD < yD ) return -1;
+		else if ( xD > yD )	return 1;
+	// natural sorting through split numeric strings and default strings
+	for( var cLoc = 0, numS = Math.max(xN.length, yN.length); cLoc < numS; cLoc++ ) {
+		oFxNcL = parseFloat(xN[cLoc]) || xN[cLoc];
+		oFyNcL = parseFloat(yN[cLoc]) || yN[cLoc];
+		if (oFxNcL < oFyNcL) return -1;
+		else if (oFxNcL > oFyNcL) return 1;
+	}
+	return 0;
+}
+
+var a = [], b = [], c = [];
+for ( var i = 0; i < 1000; i++ ) {
+	a.push(String.fromCharCode( Math.floor(Math.random() * (90-66)) + 65, Math.floor(Math.random() * (90-66)) + 65, Math.floor(Math.random() * (90-66)) + 65 ));
+	b.push(String.fromCharCode( Math.floor(Math.random() * (90-66)) + 65, Math.floor(Math.random() * (90-66)) + 65, Math.floor(Math.random() * (90-66)) + 65 ));
+	c.push(String.fromCharCode( Math.floor(Math.random() * (90-66)) + 65, Math.floor(Math.random() * (90-66)) + 65, Math.floor(Math.random() * (90-66)) + 65 ));
+}
+for ( i = 0; i < 1000; i++ ) {
+	a.push(Math.floor(Math.random() * 9).toString() + Math.floor(Math.random() * 9).toString() + Math.floor(Math.random() * 9).toString() );
+	b.push(Math.floor(Math.random() * 9).toString() + Math.floor(Math.random() * 9).toString() + Math.floor(Math.random() * 9).toString() );
+	c.push(Math.floor(Math.random() * 9).toString() + Math.floor(Math.random() * 9).toString() + Math.floor(Math.random() * 9).toString() );
+}
+for ( i = 0; i < 1000; i++ ) {
+	a.push( (Math.floor(Math.random() * 12) + 1).toString() + '/' + (Math.floor(Math.random() * 28) + 1).toString() + '/' + ( 2009 - Math.floor(Math.random() * 2)) );
+	b.push( (Math.floor(Math.random() * 12) + 1).toString() + '/' + (Math.floor(Math.random() * 28) + 1).toString() + '/' + ( 2009 - Math.floor(Math.random() * 2)) );
+	c.push( (Math.floor(Math.random() * 12) + 1).toString() + '/' + (Math.floor(Math.random() * 28) + 1).toString() + '/' + ( 2009 - Math.floor(Math.random() * 2)) );
+}
+
+var d = new Date();
+document.write(a.sort(naturalSort)[0] + ' <BR>[' + ((new Date()).getTime() - d.getTime()) + 'ms]<BR><BR>');
+//d = new Date();
+//document.write(b.sort(naturalSort2)[0] + ' <BR>[' + ((new Date()).getTime() - d.getTime()) + 'ms]<BR><BR>');
+//d = new Date();
+//document.write(c.sort(naturalSort3)[0] + ' <BR>[' + ((new Date()).getTime() - d.getTime()) + 'ms]');
+
+</script>
+<style>*{font-family:tahoma;font-size:9px;}</style>
+</head>
+<body></body>
+</html>

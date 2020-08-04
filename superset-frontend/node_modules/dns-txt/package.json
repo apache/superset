@@ -1,0 +1,54 @@
+{
+  "name": "dns-txt",
+  "version": "2.0.2",
+  "description": "Encode/decode DNS-SD TXT record RDATA fields",
+  "main": "index.js",
+  "dependencies": {
+    "buffer-indexof": "^1.0.0"
+  },
+  "devDependencies": {
+    "tape": "^4.2.2",
+    "standard": "^5.3.1"
+  },
+  "scripts": {
+    "test": "standard && tape test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/watson/dns-txt.git"
+  },
+  "keywords": [
+    "rfc6763",
+    "6763",
+    "rfc6762",
+    "6762",
+    "dns",
+    "mdns",
+    "multicast",
+    "txt",
+    "rdata",
+    "dns-sd",
+    "encode",
+    "decode",
+    "parse",
+    "encoder",
+    "decoder",
+    "parser",
+    "service",
+    "discovery"
+  ],
+  "author": "Thomas Watson Steen <w@tson.dk> (https://twitter.com/wa7son)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/watson/dns-txt/issues"
+  },
+  "homepage": "https://github.com/watson/dns-txt",
+  "coordinates": [
+    55.6465696,
+    12.5491067
+  ]
+
+,"_resolved": "https://registry.npmjs.org/dns-txt/-/dns-txt-2.0.2.tgz"
+,"_integrity": "sha1-uR2Ab10nGI5Ks+fRB9iBocxGQrY="
+,"_from": "dns-txt@2.0.2"
+}

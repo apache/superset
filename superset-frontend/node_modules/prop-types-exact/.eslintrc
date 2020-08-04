@@ -1,0 +1,7 @@
+{
+  "extends": "airbnb",
+  "root": true,
+  "rules": {
+    "dot-notation": [2, { "allowKeywords": false }],
+  },
+}

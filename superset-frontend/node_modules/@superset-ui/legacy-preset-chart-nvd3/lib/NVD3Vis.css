@@ -1,0 +1,176 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+.superset-legacy-chart-nvd3-dist-bar {
+  overflow-x: auto !important;
+}
+
+.superset-legacy-chart-nvd3-dist-bar svg.nvd3-svg {
+  width: auto;
+  font-size: 14px;
+}
+
+.superset-legacy-chart-nvd3-bar {
+  overflow-x: auto !important;
+}
+
+.superset-legacy-chart-nvd3-bar svg.nvd3-svg {
+  width: auto;
+}
+
+.superset-legacy-chart-nvd3 .nv-x text {
+  font-size: 12px;
+}
+
+.superset-legacy-chart-nvd3 g.superset path {
+  stroke-dasharray: 5, 5;
+}
+
+.superset-legacy-chart-nvd3 .nvtooltip tr.highlight td {
+  font-weight: bold;
+  font-size: 15px !important;
+}
+
+.superset-legacy-chart-nvd3 text.nv-axislabel {
+  font-size: 14px;
+}
+
+.superset-legacy-chart-nvd3 text.nv-axislabel {
+  font-size: 14px !important;
+}
+
+.superset-legacy-chart-nvd3 g.solid path,
+.superset-legacy-chart-nvd3 line.solid {
+  stroke-dasharray: unset;
+}
+
+.superset-legacy-chart-nvd3 g.dashed path,
+.superset-legacy-chart-nvd3 line.dashed {
+  stroke-dasharray: 5, 5;
+}
+
+.superset-legacy-chart-nvd3 g.longDashed path,
+.superset-legacy-chart-nvd3 line.longDashed {
+  stroke-dasharray: 10, 2;
+}
+
+.superset-legacy-chart-nvd3 g.dotted path,
+.superset-legacy-chart-nvd3 line.dotted {
+  stroke-dasharray: 1, 1;
+}
+
+.superset-legacy-chart-nvd3 g.opacityLow path,
+.superset-legacy-chart-nvd3 line.opacityLow {
+  stroke-opacity: 0.2;
+}
+
+.superset-legacy-chart-nvd3 g.opacityMedium path,
+.superset-legacy-chart-nvd3 line.opacityMedium {
+  stroke-opacity: 0.5;
+}
+
+.superset-legacy-chart-nvd3 g.opacityHigh path,
+.superset-legacy-chart-nvd3 line.opacityHigh {
+  stroke-opacity: 0.8;
+}
+
+.superset-legacy-chart-nvd3 g.time-shift-0 path,
+.superset-legacy-chart-nvd3 line.time-shift-0 {
+  stroke-dasharray: 5, 5;
+}
+.superset-legacy-chart-nvd3 g.time-shift-1 path,
+.superset-legacy-chart-nvd3 line.time-shift-1 {
+  stroke-dasharray: 1, 5;
+}
+.superset-legacy-chart-nvd3 g.time-shift-2 path,
+.superset-legacy-chart-nvd3 line.time-shift-2 {
+  stroke-dasharray: 10, 5;
+}
+.superset-legacy-chart-nvd3 g.time-shift-3 path,
+.superset-legacy-chart-nvd3 line.time-shift-3 {
+  stroke-dasharray: 5, 1;
+}
+.superset-legacy-chart-nvd3 g.time-shift-4 path,
+.superset-legacy-chart-nvd3 line.time-shift-4 {
+  stroke-dasharray: 5, 10;
+}
+.superset-legacy-chart-nvd3 g.time-shift-5 path,
+.superset-legacy-chart-nvd3 line.time-shift-5 {
+  stroke-dasharray: 0.9;
+}
+.superset-legacy-chart-nvd3 g.time-shift-6 path,
+.superset-legacy-chart-nvd3 line.time-shift-6 {
+  stroke-dasharray: 15, 10, 5;
+}
+.superset-legacy-chart-nvd3 g.time-shift-7 path,
+.superset-legacy-chart-nvd3 line.time-shift-7 {
+  stroke-dasharray: 15, 10, 5, 10;
+}
+.superset-legacy-chart-nvd3 g.time-shift-8 path,
+.superset-legacy-chart-nvd3 line.time-shift-8 {
+  stroke-dasharray: 15, 10, 5, 10, 15;
+}
+.superset-legacy-chart-nvd3 g.time-shift-9 path,
+.superset-legacy-chart-nvd3 line.time-shift-9 {
+  stroke-dasharray: 5, 5, 1, 5;
+}
+.superset-legacy-chart-nvd3-tr-highlight {
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  font-weight: bold;
+}
+
+.superset-legacy-chart-nvd3-tr-total {
+  font-weight: bold;
+}
+
+/* START tooltip styles - these prevent long column names from overflowing the tooltip */
+.nvtooltip .tooltip-header {
+  white-space: nowrap;
+  font-weight: bold;
+}
+.nvtooltip tbody tr:not(.tooltip-header) td:nth-child(2) {
+  word-break: break-word;
+}
+/* END tooltip styles */
+
+.superset-legacy-chart-nvd3 .nv-noData.body {
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.d3-tip.nv-event-annotation-layer-table,
+.d3-tip.nv-event-annotation-layer-NATIVE {
+  width: 200px;
+  border-radius: 2px;
+  background-color: #484848;
+  fill-opacity: 0.6;
+  margin: 8px;
+  padding: 8px;
+  color: #fff;
+}
+
+.d3-tip.nv-event-annotation-layer-table::after,
+.d3-tip.nv-event-annotation-layer-NATIVE::after {
+  content: '\25BC';
+  font-size: 14px;
+  color: #484848;
+  position: absolute;
+  bottom: -14px;
+  left: 94px;
+}

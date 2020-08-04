@@ -1,0 +1,13 @@
+{
+    "tags": {
+        "allowUnknownTags": true
+    },
+    "source": {
+        "include": ["dist/long.js"]
+    },
+    "opts": {
+        "template": "templates/esoccer",
+        "destination": "docs"
+    },
+    "plugins": []
+}

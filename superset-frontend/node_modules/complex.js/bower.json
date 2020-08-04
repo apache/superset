@@ -1,0 +1,31 @@
+{
+    "name": "complex.js",
+    "main": "complex.js",
+    "version": "2.0.4",
+    "homepage": "https://github.com/infusion/Complex.js",
+    "description": "A complex number library",
+    "keywords": [
+       "math", "complex", "number", "calculus", "parser"
+    ],
+    "moduleType": [
+      "amd",
+      "globals",
+      "node"
+    ],
+    "authors": [
+        "Robert Eisele <robert@xarg.org> (http://www.xarg.org/)"
+    ],
+    "license": [
+        "MIT",
+        "GPL"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/infusion/Complex.js.git"
+    },
+    "ignore": [
+        "tests",
+        ".travis.yml",
+        "package.json"
+    ]
+}

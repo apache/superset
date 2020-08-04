@@ -1,0 +1,42 @@
+#!/usr/bin/env node
+
+
+var argv = require('minimist')(process.argv.slice(2), {
+        boolean: 'json'
+    }),
+    validate = require('../').validate,
+    rw = require('rw'),
+    status = 0;
+
+if (argv.help || argv.h || (!argv._.length && process.stdin.isTTY)) {
+    return help();
+}
+
+if (!argv._.length) {
+    argv._.push('/dev/stdin');
+}
+
+argv._.forEach(function(file) {
+    var errors = validate(rw.readFileSync(file, 'utf8'));
+    if (errors.length) {
+        if (argv.json) {
+            process.stdout.write(JSON.stringify(errors, null, 2));
+        } else {
+            errors.forEach(function (e) {
+                console.log('%s:%d: %s', file, e.line, e.message);
+            });
+        }
+        status = 1;
+    }
+});
+
+process.exit(status);
+
+function help() {
+    console.log('usage:');
+    console.log('  gl-style-validate file.json');
+    console.log('  gl-style-validate < file.json');
+    console.log('');
+    console.log('options:');
+    console.log('--json  output errors as json');
+}

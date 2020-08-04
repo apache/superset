@@ -1,0 +1,52 @@
+{
+  "name": "raw-body",
+  "description": "Get and validate the raw body of a readable stream.",
+  "version": "2.3.3",
+  "author": "Jonathan Ong <me@jongleberry.com> (http://jongleberry.com)",
+  "contributors": [
+    "Douglas Christopher Wilson <doug@somethingdoug.com>",
+    "Raynos <raynos2@gmail.com>"
+  ],
+  "license": "MIT",
+  "repository": "stream-utils/raw-body",
+  "dependencies": {
+    "bytes": "3.0.0",
+    "http-errors": "1.6.3",
+    "iconv-lite": "0.4.23",
+    "unpipe": "1.0.0"
+  },
+  "devDependencies": {
+    "bluebird": "3.5.1",
+    "eslint": "4.19.1",
+    "eslint-config-standard": "11.0.0",
+    "eslint-plugin-import": "2.11.0",
+    "eslint-plugin-markdown": "1.0.0-beta.6",
+    "eslint-plugin-node": "6.0.1",
+    "eslint-plugin-promise": "3.7.0",
+    "eslint-plugin-standard": "3.1.0",
+    "istanbul": "0.4.5",
+    "mocha": "2.5.3",
+    "readable-stream": "2.3.6",
+    "safe-buffer": "5.1.2"
+  },
+  "engines": {
+    "node": ">= 0.8"
+  },
+  "files": [
+    "HISTORY.md",
+    "LICENSE",
+    "README.md",
+    "index.d.ts",
+    "index.js"
+  ],
+  "scripts": {
+    "lint": "eslint --plugin markdown --ext js,md .",
+    "test": "mocha --trace-deprecation --reporter spec --bail --check-leaks test/",
+    "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- --trace-deprecation --reporter dot --check-leaks test/",
+    "test-travis": "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --trace-deprecation --reporter spec --check-leaks test/"
+  }
+
+,"_resolved": "https://registry.npmjs.org/raw-body/-/raw-body-2.3.3.tgz"
+,"_integrity": "sha512-9esiElv1BrZoI3rCDuOuKCBRbuApGGaDPQfjSflGxdy4oyzqghxu6klEkkVIvBje+FF0BX9coEv8KqW6X/7njw=="
+,"_from": "raw-body@2.3.3"
+}

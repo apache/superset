@@ -1,0 +1,38 @@
+{
+  "name": "end-of-stream",
+  "version": "1.4.1",
+  "description": "Call a callback when a readable/writable/duplex stream has completed or failed.",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mafintosh/end-of-stream.git"
+  },
+  "dependencies": {
+    "once": "^1.4.0"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "stream",
+    "streams",
+    "callback",
+    "finish",
+    "close",
+    "end",
+    "wait"
+  ],
+  "bugs": {
+    "url": "https://github.com/mafintosh/end-of-stream/issues"
+  },
+  "homepage": "https://github.com/mafintosh/end-of-stream",
+  "main": "index.js",
+  "author": "Mathias Buus <mathiasbuus@gmail.com>",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/end-of-stream/-/end-of-stream-1.4.1.tgz"
+,"_integrity": "sha512-1MkrZNvWTKCaigbn+W15elq2BB/L22nqrSY5DKlo3X6+vclJm8Bb5djXJBmEX6fS3+zCh/F4VBK5Z2KxJt4s2Q=="
+,"_from": "end-of-stream@1.4.1"
+}

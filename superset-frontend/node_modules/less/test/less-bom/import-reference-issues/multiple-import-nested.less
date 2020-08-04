@@ -1,0 +1,12 @@
+﻿/* double nested file */
+should {
+  be: invisible;
+}
+/* do not extend outside of this */
+.something {
+  invisible: suppress warning;
+}
+.invisible {
+ &:extend(.something all);
+}
+

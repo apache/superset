@@ -1,0 +1,10 @@
+version: '3.1'
+services:
+  math-expression-evaluator:
+    volumes:
+      - ./:/home/math-expression-evaluator
+      - /home/math-expression-evaluator/node_modules
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    command: tail -F anything

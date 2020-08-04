@@ -1,0 +1,68 @@
+{
+  "name": "for-in",
+  "description": "Iterate over the own and inherited enumerable properties of an object, and return an object with properties that evaluate to true from the callback. Exit early by returning `false`. JavaScript/Node.js",
+  "version": "0.1.8",
+  "homepage": "https://github.com/jonschlinkert/for-in",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)",
+    "Paul Irish (http://paulirish.com)"
+  ],
+  "repository": "jonschlinkert/for-in",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/for-in/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "for",
+    "for-in",
+    "for-own",
+    "has",
+    "has-own",
+    "hasOwn",
+    "in",
+    "key",
+    "keys",
+    "object",
+    "own",
+    "value"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "arr-flatten",
+        "for-own",
+        "collection-map"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/for-in/-/for-in-0.1.8.tgz"
+,"_integrity": "sha1-2Hc5COMSVhCZUrH9ubP6hn0ndeE="
+,"_from": "for-in@0.1.8"
+}

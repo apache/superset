@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+<link href="teststyle.css" rel="stylesheet" type="text/css">
+<script src="../bower_components/d3/d3.js" charset="utf-8"></script>
+<script src="../build/nv.d3.js"></script>
+<style>
+#chart13, #chart14 {
+  overflow: scroll;
+  width: 500px;
+  height: 300px;
+}
+
+#chart13 svg, #chart14 svg {
+  width: 700px;
+  height: 400px;
+}
+</style>
+</head>
+<body>
+  <h3>Line chart test cases - feel free to add more tests</h3>
+  <div style='position:relative;'>
+      <div class='navigation'>
+          Tests:
+          <a href="lineChartTest.html">Line Chart</a>
+          <a href="stackedAreaChartTest.html">Stacked Area</a>
+          <a href="../examples/cumulativeLineChart.html">Cumulative Line</a>
+          <a href="ScatterChartTest.html">Scatter</a>
+          <a href="pieChartTest.html">Pie chart</a>
+          <a href="multiBarCharttest.html">Multi Bar Chart</a>
+          <a href="realTimeChartTest.html">Real time test</a>
+          <a href="polylinearTest.html">Polylinear test</a>
+      </div>
+      <div class='chart full' id='chart1'>
+        Example of chart with many series', and new interactive guideline plus tooltip. A chunk of data was purposely removed
+        to show how the chart handles it.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+      <div class='chart half with-transitions' id='chart2'>
+        Chart with old tooltip style (with-transitions).
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+      <div class='chart half' id='chart3'>
+        Chart with three data points.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+      <div class='chart third' id='chart4'>
+        Chart where two series have different number of points.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+       <div class='chart third' id='chart5'>
+        Chart with one point.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+       <div class='chart third' id='chart6'>
+        Chart with 1000 points.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+
+      <div class='chart third' id='chart7'>
+        Chart with no data.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+       <div class='chart third' id='chart8'>
+        All points random. No order.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+       <div class='chart third' id='chart9'>
+        Points do not increase linearly.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+
+      <div class='chart third' id='chart10'>
+        Chart with 15 series'
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+       <div class='chart third' id='chart11'>
+        Data points go backwards
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+       <div class='chart third' id='chart12'>
+        Duplicate X coordinate points.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+
+      <div class='chart third' id='chart16'>
+        Duplicate Y coordinate points.
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+
+      <div class='chart third' id='chart13'>
+        Chart in a overflow div with scrolls (new tooltips)
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+
+      <div class='chart third' id='chart14'>
+        Chart in a overflow div with scrolls (old tooltips)
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+
+      <div style='clear:both;'></div>
+      <div class='chart third' id='chart15'>
+        What if there are null, Infinity and NaN values in points?
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+      <div class='chart third' id='chart17'>
+        Chart with very small, 1e-10, points (old tooltips)
+        <button>Select chart</button>
+        <svg></svg>
+      </div>
+
+      <div class='chart half' id='chart18'>
+        Chart with missing data (discontinuous lines). Check that all highlighted points
+        have the same x, matching the guideline. Check that "N/A" appears in tooltip for
+        points with undefined y.
+        <svg></svg>
+      </div>
+
+    </div>
+
+<script src="testScript.js"></script>
+<script>
+
+d3.select("body").on("keydown",function() {
+  if (d3.event.ctrlKey && d3.event.which === 75) {
+     alert("keydowned");
+  }
+});
+//------------ CHART 1
+defaultChartConfig("chart1", dummyStocks(),true, true, {forceY:false});
+
+//-------------- CHART 2  --- Chart without the interactive guideline.
+nv.addGraph(function() {
+  var chart;
+  chart = nv.models.lineChart().useInteractiveGuideline(false);
+
+  chart
+      .x(function(d,i) { return d.x });
+
+
+  chart.xAxis // chart sub-models (ie. xAxis, yAxis, etc) when accessed directly, return themselves, not the parent chart, so need to chain separately
+      .tickFormat(d3.format(',.1f'));
+
+  chart.yAxis
+      .axisLabel('Voltage (v)')
+      .tickFormat(d3.format(',.4f'));
+
+  chart.showXAxis(true).showYAxis(true).rightAlignYAxis(true).margin({right: 90});
+
+  d3.select('#chart2 svg')
+      //.datum([]) //for testing noData
+      .datum(dummyStocks(50))
+      .transition().duration(500)
+      .call(chart);
+
+  nv.utils.windowResize(chart.update);
+
+  chart.dispatch.on('stateChange', function(e) { nv.log('New State:', JSON.stringify(e)); });
+
+  return chart;
+});
+
+defaultChartConfig("chart3", smallDataSet(3));
+defaultChartConfig("chart4", badDataSet());
+defaultChartConfig("chart5", smallDataSet(1));
+defaultChartConfig("chart6", normalDist());
+
+defaultChartConfig("chart7", smallDataSet(0));
+defaultChartConfig("chart8", allRandom(),false);
+defaultChartConfig("chart9", fibonacci());
+
+defaultChartConfig("chart10", lotsofSeries());
+defaultChartConfig("chart11", backwards(),false);
+defaultChartConfig("chart12", duplicateX(),false);
+defaultChartConfig("chart13",hyperbole(), true, false, {width: 700, height: 400});
+defaultChartConfig("chart14",hyperbole(), false, false, {width: 700, height: 400});
+defaultChartConfig("chart15", withNaNs());
+defaultChartConfig("chart16", duplicateY(), false);
+defaultChartConfig("chart17", tinyPoints(), false);
+defaultChartConfig("chart18", missingData(), true);
+
+function defaultChartConfig(containerid, data, guideline, useDates, auxOptions) {
+  if (auxOptions === undefined) auxOptions = {};
+  if (guideline === undefined) guideline = true;
+  nv.addGraph(function() {
+    var chart;
+    chart = nv.models.lineChart().useInteractiveGuideline(guideline);
+
+    chart
+        .x(function(d,i) {
+          return d.x;
+        });
+
+    if (auxOptions.width)
+      chart.width(auxOptions.width);
+
+    if (auxOptions.height)
+      chart.height(auxOptions.height);
+
+    if (auxOptions.forceY)
+      chart.forceY([0]);
+
+    var formatter;
+    if (useDates !== undefined) {
+        formatter = function(d,i) {
+                var now = (new Date()).getTime() - 86400 * 1000 * 365;
+                now = new Date(now + d * 86400 * 1000);
+                return d3.time.format('%b %d %Y')(now );
+        }
+    }
+    else {
+        formatter = d3.format(",.1f");
+    }
+    chart.margin({right: 40});
+    chart.xAxis // chart sub-models (ie. xAxis, yAxis, etc) when accessed directly, return themselves, not the parent chart, so need to chain separately
+        .tickFormat(
+            formatter
+          );
+
+    chart.yAxis
+        .axisLabel('Voltage (v)')
+        .tickFormat(d3.format(',.2f'));
+
+
+    d3.select('#' + containerid + ' svg')
+        .datum(data)
+      .transition().duration(500)
+        .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    chart.dispatch.on('stateChange', function(e) { nv.log('New State:', JSON.stringify(e)); });
+
+    return chart;
+  });
+}
+
+function sinAndCos() {
+  var sin = [],
+      cos = [],
+      rand = [],
+      rand2 = []
+      ;
+
+  var now = (new Date()).getTime();
+  for (var i = 0; i < 100; i++) {
+    sin.push({x: i, y: i % 10 == 5 ? null : Math.sin(i/10) }); //the nulls are to show how defined works
+    cos.push({x: i, y: .5 * Math.cos(i/10)});
+    rand.push({x:i, y: Math.random() / 10});
+    rand2.push({x: i, y: Math.cos(i/10) + Math.random() / 10 })
+  }
+
+  return [
+    {
+      area: true,
+      values: sin,
+      key: "Sine Wave",
+      color: "#ff7f0e"
+    },
+    {
+      values: cos,
+      key: "Cosine Wave",
+      color: "#2ca02c"
+    },
+    {
+      values: rand,
+      key: "Random Points",
+      color: "#2222ff"
+    }
+    ,
+    {
+      values: rand2,
+      key: "Random Cosine",
+      color: "#667711"
+    }
+  ];
+}
+
+function hyperbole() {
+  var series1 = [], series2 = [], series3 = [];
+  for(var i = 1; i < 100; i++) {
+      series1.push({x: i, y: 1 / i});
+      series2.push({x: i, y: 5 / i});
+      series3.push({x: i, y: -8 / i});
+  }
+
+  return [
+    {values: series1, key: "Series 1"},
+    {values: series2, key: "Series 2"},
+    {values: series3, key: "Series 3"}
+  ];
+}
+
+function smallDataSet(n) {
+  var series = [];
+  for(var i = 0; i < n; i++) {
+      series.push({x: i, y: i * 0.3 + 2})
+  }
+  return [
+    {values: series, key: "Line 1"}
+  ];
+}
+
+function badDataSet() {
+  var series1 = [], series2 = [];
+  for(var i =0; i < 30; i++) {
+    series1.push({x:i, y: i*0.3 + 12});
+  }
+  for(i = 0; i < 30; i += 5) {
+    series2.push({x:i, y: i*0.7 + 8});
+  }
+  return [
+      {values: series1, key:"Series 1"},
+      {values: series2, key:"Series 2"}
+  ];
+}
+
+function normalDist() {
+  var series1 = [], series2 = [];
+  for(var i = -500; i < 500; i += 1) {
+     var x = i / 100;
+     var y = 0.3989 * Math.pow(2.71, -0.5*x*x);
+     series1.push({x:i, y:y});
+     series2.push({x:i, y:y*2});
+  }
+  return [
+  {values: series1, key:"Normal 1", area:true},
+  {values: series2, key:"Normal 2"}];
+}
+
+
+function allRandom() {
+  var series = [];
+  for(var i = 0; i < 20; i++) {
+    series.push({x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20) });
+  }
+  return [{values: series,area:true, key: "Total Chaos"}];
+}
+
+function fibonacci() {
+  var series = [
+      {x:1, y:1},
+      {x:2, y:2.5},
+      {x:3, y:4},
+      {x:5, y:6.7},
+      {x:8, y:10.1},
+      {x:13, y:20.1},
+      {x:21, y:35.1},
+      {x:34, y:60.0},
+      {x:55, y:70.9},
+      {x:89, y:100.3}
+  ];
+
+  return [{values: series,area:true,color: "#22fb88", key: "Fibonacci"}];
+}
+
+function lotsofSeries() {
+  var rval = [];
+  for(var n = 0; n < 15; n++) {
+      var values = [];
+      var slope = Math.random() * 5;
+      for(var i =0; i < 30; i++) {
+          values.push(
+              {x: i,
+              y: i * slope + Math.random()*5}
+            );
+      }
+      var isArea = (Math.random() > 0.5);
+      rval.push({key: "Series " + n, area: isArea, values: values});
+  }
+  return rval;
+}
+
+function backwards() {
+  var series = [];
+  for(var i = 30; i >= 1; i--) {
+      series.push({x: i, y: Math.sqrt(i) });
+  }
+  return [{values: series, key: "Backwards series", area:true}];
+}
+
+function duplicateX() {
+  return [
+    {key: "Duplicate X",
+      area: true,
+      values: [
+        {x: 4, y: 10},
+        {x: 4, y: 11},
+        {x: 4, y: 12},
+        {x: 4, y: 13}
+      ]
+    }
+  ];
+}
+
+function duplicateY() {
+  return [
+    {key: "Duplicate Y",
+     values: [
+        {x: 0, y: 10}, {x:1, y:10},{x:2, y:10},{x:3, y:10}
+     ]
+    }
+  ];
+}
+
+function withNaNs() {
+  return [
+      {key: "NaN Points",
+        values: [
+            {x: 1, y: NaN},
+            {x: 2, y: undefined},
+            {x: 3, y: false},
+            {x: 4, y: null},
+            {x: 5, y: "Hello"},
+            {x: NaN, y: NaN},
+            {x: null, y: null},
+            {x: undefined, y: undefined},
+            {x: "Hello", y: "World"},
+            {x: Infinity, y: Infinity}
+        ]
+      }
+  ]
+}
+
+function tinyPoints() {
+  var rval = {key: "Tiny points", values: []};
+  for(var i =1; i < 20; i++) {
+    rval.values.push({
+       x: i,
+       y: Math.random() * 1e-10
+    });
+  }
+  return [rval];
+}
+
+function missingData() {
+  var sin = [],
+      sin2 = [],
+      cos = [],
+      rand = [],
+      rand2 = []
+      ;
+
+
+  for (var i = 0; i < 100; i++) {
+
+      sin.push(i % 17 === 0 ? {x: i, y: null} : {x: i, y: Math.sin(i/10) });
+      sin2.push(i % 19 === 0 ? {x: i, y: null} : {x: i, y: Math.sin(i/5) * 0.4 - 0.25});
+      cos.push(i % 7 === 0 ? {x: i, y:null} : {x: i, y:.5 * Math.cos(i/10)});
+      rand.push(i % 11 === 0 ? {x: i, y: null} : {x: i , y: Math.random() / 10});
+      rand2.push( i % 13 === 0 ? {x: i, y: null} : {x: i, y: Math.cos(i/10) + Math.random() / 10 });
+  }
+
+  return [
+      {
+          area: true,
+          values: sin,
+          key: "Sine Wave",
+          color: "#ff7f0e",
+          strokeWidth: 4,
+          classed: 'dashed'
+      },
+      {
+          values: cos,
+          key: "Cosine Wave",
+          color: "#2ca02c"
+      },
+      {
+          values: rand,
+          key: "Random Points",
+          color: "#2222ff"
+      },
+      {
+          values: rand2,
+          key: "Random Cosine",
+          color: "#667711",
+          strokeWidth: 3.5
+      },
+      {
+          area: true,
+          values: sin2,
+          key: "Fill opacity",
+          color: "#EF9CFB",
+          fillOpacity: .1
+      }
+  ];
+}
+
+function dummyStocks(numPoints) {
+  numPoints = numPoints || 200;
+  function volatileChart(key,startPrice, volatility, isArea) {
+     var rval = {key: key, values: []};
+     if (isArea) rval.area = true;
+     for(var i = 1; i < numPoints; i++) {
+
+        rval.values.push({x: i, y: (i > 110 && i < 130) ? null : startPrice});
+        var rnd = Math.random();
+        var changePct = 2 * volatility * rnd;
+        if ( changePct > volatility) {
+           changePct -= (2*volatility);
+        }
+
+        startPrice = startPrice + startPrice * changePct;
+
+     }
+     return rval;
+  }
+
+  var stocks = [];
+  stocks.push(volatileChart("APPL",5.00, 0.02));
+  stocks.push(volatileChart("GOOG", 6.01,0.024));
+  stocks.push(volatileChart("MSFT", 2.01, 0.012));
+  stocks.push(volatileChart("IBM US", 2.5, 0.08, true));
+  return stocks;
+}
+
+</script>
+
+</body></html>

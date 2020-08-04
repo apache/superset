@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>math.js | custom separators</title>
+  <style>
+    body, input, select {
+      font: 11pt sans-serif;
+    }
+    input, select, th, #result {
+      padding: 5px 10px;
+    }
+    th {
+      text-align: left;
+    }
+  </style>
+
+  <script src="../../dist/math.js"></script>
+</head>
+<body>
+
+<p>
+  This code example shows how to apply custom separators for function arguments and decimal separator.
+</p>
+
+<table>
+  <tr>
+    <th>Argument separator</th>
+    <td>
+      <input id="args" type="text" value=";">
+    </td>
+  </tr>
+  <tr>
+    <th>Decimal separator</th>
+    <td>
+      <input id="decimals" type="text" value=",">
+    </td>
+  </tr>
+  <tr>
+    <th>Expression</th>
+    <td>
+      <input id="expression" type="text" value="sum(3,4; 2,1; 2,0)" />
+      <input id="evaluate" type="button" value="Evaluate">
+    </td>
+  </tr>
+  <tr>
+    <th>Result</th>
+    <td id="result"></td>
+  </tr>
+</table>
+
+<script>
+  // pointers to the input elements
+  var expression = document.getElementById('expression');
+  var evaluate   = document.getElementById('evaluate');
+  var result     = document.getElementById('result');
+  var args       = document.getElementById('args');
+  var decimals   = document.getElementById('decimals');
+
+  // attach event handler to the button
+  evaluate.onclick = function () {
+    // replace the custom separators in the input with the default separators
+    var expr = expression.value
+        .replace(new RegExp('\\' + decimals.value + '|\\' + args.value, 'g'), function (match) {
+          return match == decimals.value ? '.': ',';
+        });
+
+    // do the actual evaluation
+    var res = math.eval(expr);
+
+    // replace the default separators in the output with custom separators
+    result.innerHTML = res.toString()
+        .replace(new RegExp(',|\\.', 'g'), function (match) {
+          return match == '.' ? decimals.value : args.value;
+        });
+  };
+</script>
+
+
+</body>
+</html>

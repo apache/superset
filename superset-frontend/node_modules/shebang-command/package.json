@@ -1,0 +1,43 @@
+{
+  "name": "shebang-command",
+  "version": "1.2.0",
+  "description": "Get the command from a shebang",
+  "license": "MIT",
+  "repository": "kevva/shebang-command",
+  "author": {
+    "name": "Kevin Martensson",
+    "email": "kevinmartensson@gmail.com",
+    "url": "github.com/kevva"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "cmd",
+    "command",
+    "parse",
+    "shebang"
+  ],
+  "dependencies": {
+    "shebang-regex": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  },
+  "xo": {
+    "ignores": [
+      "test.js"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/shebang-command/-/shebang-command-1.2.0.tgz"
+,"_integrity": "sha1-RKrGW2lbAzmJaMOfNj/uXer98eo="
+,"_from": "shebang-command@1.2.0"
+}

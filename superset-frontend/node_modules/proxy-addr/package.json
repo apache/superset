@@ -1,0 +1,50 @@
+{
+  "name": "proxy-addr",
+  "description": "Determine address of proxied request",
+  "version": "2.0.4",
+  "author": "Douglas Christopher Wilson <doug@somethingdoug.com>",
+  "license": "MIT",
+  "keywords": [
+    "ip",
+    "proxy",
+    "x-forwarded-for"
+  ],
+  "repository": "jshttp/proxy-addr",
+  "dependencies": {
+    "forwarded": "~0.1.2",
+    "ipaddr.js": "1.8.0"
+  },
+  "devDependencies": {
+    "benchmark": "2.1.4",
+    "beautify-benchmark": "0.2.4",
+    "eslint": "4.19.1",
+    "eslint-config-standard": "11.0.0",
+    "eslint-plugin-import": "2.13.0",
+    "eslint-plugin-markdown": "1.0.0-beta.6",
+    "eslint-plugin-node": "6.0.1",
+    "eslint-plugin-promise": "3.8.0",
+    "eslint-plugin-standard": "3.1.0",
+    "mocha": "3.5.3",
+    "nyc": "10.3.2"
+  },
+  "files": [
+    "LICENSE",
+    "HISTORY.md",
+    "README.md",
+    "index.js"
+  ],
+  "engines": {
+    "node": ">= 0.10"
+  },
+  "scripts": {
+    "bench": "node benchmark/index.js",
+    "lint": "eslint --plugin markdown --ext js,md .",
+    "test": "mocha --reporter spec --bail --check-leaks test/",
+    "test-cov": "nyc --reporter=text npm test",
+    "test-travis": "nyc --reporter=html --reporter=text npm test"
+  }
+
+,"_resolved": "https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.4.tgz"
+,"_integrity": "sha512-5erio2h9jp5CHGwcybmxmVqHmnCBZeewlfJ0pex+UW7Qny7OOZXTtH56TGNyBizkgiOwhJtMKrVzDTeKcySZwA=="
+,"_from": "proxy-addr@2.0.4"
+}

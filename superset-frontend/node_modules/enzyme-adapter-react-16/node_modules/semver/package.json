@@ -1,0 +1,32 @@
+{
+  "name": "semver",
+  "version": "5.7.1",
+  "description": "The semantic version parser used by npm.",
+  "main": "semver.js",
+  "scripts": {
+    "test": "tap",
+    "preversion": "npm test",
+    "postversion": "npm publish",
+    "postpublish": "git push origin --all; git push origin --tags"
+  },
+  "devDependencies": {
+    "tap": "^13.0.0-rc.18"
+  },
+  "license": "ISC",
+  "repository": "https://github.com/npm/node-semver",
+  "bin": {
+    "semver": "./bin/semver"
+  },
+  "files": [
+    "bin",
+    "range.bnf",
+    "semver.js"
+  ],
+  "tap": {
+    "check-coverage": true
+  }
+
+,"_resolved": "https://registry.npmjs.org/semver/-/semver-5.7.1.tgz"
+,"_integrity": "sha512-sauaDf/PZdVgrLTNYHRtpXa1iRiKcaebiKQ1BJdpQlWH2lCvexQdX55snPFyK7QzpudqbCI0qXFfOasHdyNDGQ=="
+,"_from": "semver@5.7.1"
+}

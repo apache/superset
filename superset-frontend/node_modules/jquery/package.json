@@ -1,0 +1,117 @@
+{
+  "name": "jquery",
+  "title": "jQuery",
+  "description": "JavaScript library for DOM operations",
+  "version": "3.4.1",
+  "main": "dist/jquery.js",
+  "homepage": "https://jquery.com",
+  "author": {
+    "name": "JS Foundation and other contributors",
+    "url": "https://github.com/jquery/jquery/blob/3.4.1/AUTHORS.txt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jquery/jquery.git"
+  },
+  "keywords": [
+    "jquery",
+    "javascript",
+    "browser",
+    "library"
+  ],
+  "bugs": {
+    "url": "https://github.com/jquery/jquery/issues"
+  },
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/core": "7.3.3",
+    "@babel/plugin-transform-for-of": "7.2.0",
+    "commitplease": "3.2.0",
+    "core-js": "2.6.5",
+    "eslint-config-jquery": "1.0.1",
+    "grunt": "1.0.3",
+    "grunt-babel": "8.0.0",
+    "grunt-cli": "1.3.2",
+    "grunt-compare-size": "0.4.2",
+    "grunt-contrib-uglify": "3.4.0",
+    "grunt-contrib-watch": "1.1.0",
+    "grunt-eslint": "21.0.0",
+    "grunt-git-authors": "3.2.0",
+    "grunt-jsonlint": "1.1.0",
+    "grunt-karma": "3.0.1",
+    "grunt-newer": "1.3.0",
+    "grunt-npmcopy": "0.1.0",
+    "gzip-js": "0.3.2",
+    "husky": "1.3.1",
+    "insight": "0.10.1",
+    "jsdom": "13.2.0",
+    "karma": "4.0.1",
+    "karma-browserstack-launcher": "1.4.0",
+    "karma-chrome-launcher": "2.2.0",
+    "karma-firefox-launcher": "1.1.0",
+    "karma-ie-launcher": "1.0.0",
+    "karma-jsdom-launcher": "7.1.0",
+    "karma-qunit": "3.0.0",
+    "load-grunt-tasks": "4.0.0",
+    "native-promise-only": "0.8.1",
+    "promises-aplus-tests": "2.1.2",
+    "q": "1.5.1",
+    "qunit": "2.9.2",
+    "raw-body": "2.3.3",
+    "requirejs": "2.3.6",
+    "sinon": "2.3.7",
+    "sizzle": "2.3.4",
+    "strip-json-comments": "2.0.1",
+    "testswarm": "1.1.0",
+    "uglify-js": "3.4.7"
+  },
+  "scripts": {
+    "build": "npm install && grunt",
+    "start": "grunt watch",
+    "test:browserless": "grunt && grunt test:slow",
+    "test:browser": "grunt && grunt karma:main",
+    "test": "grunt && grunt test:slow && grunt karma:main",
+    "jenkins": "npm run test:browserless"
+  },
+  "commitplease": {
+    "nohook": true,
+    "components": [
+      "Docs",
+      "Tests",
+      "Build",
+      "Support",
+      "Release",
+      "Core",
+      "Ajax",
+      "Attributes",
+      "Callbacks",
+      "CSS",
+      "Data",
+      "Deferred",
+      "Deprecated",
+      "Dimensions",
+      "Effects",
+      "Event",
+      "Manipulation",
+      "Offset",
+      "Queue",
+      "Selector",
+      "Serialize",
+      "Traversing",
+      "Wrap"
+    ],
+    "markerPattern": "^((clos|fix|resolv)(e[sd]|ing))|^(refs?)",
+    "ticketPattern": "^((Closes|Fixes) ([a-zA-Z]{2,}-)[0-9]+)|^(Refs? [^#])"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "node node_modules/commitplease",
+      "pre-commit": "grunt lint:newer qunit_fixture"
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/jquery/-/jquery-3.4.1.tgz"
+,"_integrity": "sha512-36+AdBzCL+y6qjw5Tx7HgzeGCzC81MDDgaUP8ld2zhx58HdqXGoBd+tHdrBMiyjGQs0Hxs/MLZTu/eHNJJuWPw=="
+,"_from": "jquery@3.4.1"
+}

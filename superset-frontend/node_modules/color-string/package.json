@@ -1,0 +1,43 @@
+{
+  "name": "color-string",
+  "description": "Parser and generator for CSS color strings",
+  "version": "1.5.3",
+  "author": "Heather Arthur <fayearthur@gmail.com>",
+  "contributors": [
+    "Maxime Thirouin",
+    "Dyma Ywanov <dfcreative@gmail.com>",
+    "Josh Junon"
+  ],
+  "repository": "Qix-/color-string",
+  "scripts": {
+    "pretest": "xo",
+    "test": "node test/basic.js"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "xo": {
+    "rules": {
+      "no-cond-assign": 0,
+      "operator-linebreak": 0
+    }
+  },
+  "dependencies": {
+    "color-name": "^1.0.0",
+    "simple-swizzle": "^0.2.2"
+  },
+  "devDependencies": {
+    "xo": "^0.12.1"
+  },
+  "keywords": [
+    "color",
+    "colour",
+    "rgb",
+    "css"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/color-string/-/color-string-1.5.3.tgz"
+,"_integrity": "sha512-dC2C5qeWoYkxki5UAXapdjqO672AM4vZuPGRQfO8b5HKuKGBbKWpITyDYN7TOFKvRW7kOgAn3746clDBMDJyQw=="
+,"_from": "color-string@1.5.3"
+}

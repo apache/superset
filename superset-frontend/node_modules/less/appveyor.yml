@@ -1,0 +1,32 @@
+# Test against these versions of Node.js.
+environment:
+  matrix:
+    - nodejs_version: "4"
+    - nodejs_version: "6"
+    - nodejs_version: "8"
+    - nodejs_version: "9"
+
+# Install scripts. (runs after repo cloning)
+install:
+  # node 0.10 & 0.12 have race condition issues when running custom install scripts
+  # this can cause phantomjs-prebuilt install script to fail with the error:
+  # <Cannot find module 'boom'>
+  # Seems related to: https://github.com/npm/npm/issues/8152
+  # using <appveyor_retry> solves this.
+  - appveyor-retry call npm install
+
+  # Grunt-specific stuff.
+  - npm install -g grunt-cli
+
+# Post-install test scripts.
+test_script:
+  # Output useful info for debugging.
+  - node --version && npm --version
+  # Run test
+  - grunt test
+
+# Don't actually build.
+build: off
+
+# Set build version format here instead of in the admin panel.
+version: "{build}"

@@ -1,0 +1,50 @@
+{
+  "name": "domutils",
+  "version": "1.5.1",
+  "description": "utilities for working with htmlparser2's dom",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha test/tests/**.js && jshint index.js test/**/*.js lib/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/FB55/domutils.git"
+  },
+  "keywords": [
+    "dom",
+    "htmlparser2"
+  ],
+  "dependencies": {
+    "dom-serializer": "0",
+    "domelementtype": "1"
+  },
+  "devDependencies": {
+    "htmlparser2": "~3.3.0",
+    "domhandler": "2",
+    "jshint": "~2.3.0",
+    "mocha": "~1.15.1"
+  },
+  "author": "Felix Boehm <me@feedic.com>",
+  "jshintConfig": {
+    "proto": true,
+    "unused": true,
+    "eqnull": true,
+    "undef": true,
+    "quotmark": "double",
+    "eqeqeq": true,
+    "trailing": true,
+    "node": true,
+    "globals": {
+      "describe": true,
+      "it": true,
+      "beforeEach": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/domutils/-/domutils-1.5.1.tgz"
+,"_integrity": "sha1-3NhIiib1Y9YQeeSMn3t+Mjc2gs8="
+,"_from": "domutils@1.5.1"
+}

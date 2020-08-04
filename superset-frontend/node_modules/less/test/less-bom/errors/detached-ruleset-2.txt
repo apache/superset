@@ -1,0 +1,4 @@
+ParseError: Missing '[...]' lookup in variable call in {path}detached-ruleset-2.less on line 5, column 10:
+4 .a {
+5   a: @a();
+6 }

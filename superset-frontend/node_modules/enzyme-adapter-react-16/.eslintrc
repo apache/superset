@@ -1,0 +1,20 @@
+{
+  "extends": "airbnb",
+  "root": true,
+  "rules": {
+    "max-len": 0,
+    "import/no-extraneous-dependencies": 2,
+    "import/no-unresolved": 2,
+    "import/extensions": 2,
+    "react/no-deprecated": 0,
+    "react/no-find-dom-node": 0,
+    "react/no-multi-comp": 0,
+    "no-underscore-dangle": 0,
+    "class-methods-use-this": 0
+  },
+  "settings": {
+    "react": {
+      "version": "16",
+    },
+  },
+}

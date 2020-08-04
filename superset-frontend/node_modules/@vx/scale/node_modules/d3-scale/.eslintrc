@@ -1,0 +1,13 @@
+parserOptions:
+    sourceType: module
+
+env:
+    node: true
+
+extends:
+    "eslint:recommended"
+
+rules:
+    no-cond-assign: 0
+    no-floating-decimal: 2
+    no-sparse-arrays: 0

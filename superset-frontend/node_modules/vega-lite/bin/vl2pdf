@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Expects the path to a Vega-Lite specification as the first argument. Passes remaining arguments to vg2pdf
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# only passes the first argument to vl2vg
+$DIR/vl2vg $1 | vg2pdf '/dev/stdin' ${@:2}

@@ -1,0 +1,91 @@
+{
+    "name": "DOM level 1",
+    "options": { "withDomLvl1": true },
+    "html": "<div>some stray text<h1>Hello, world.</h1><!-- comment node -->more stray text</div>",
+    "expected": [
+        {
+            "type": "tag",
+            "nodeType": 1,
+            "name": "div",
+            "tagName": "div",
+            "attribs": {},
+            "children": [
+                {
+                    "type": "text",
+                    "nodeType": 3,
+                    "data": "some stray text",
+                    "nodeValue": "some stray text"
+                },
+                {
+                    "type": "tag",
+                    "nodeType": 1,
+                    "name": "h1",
+                    "tagName": "h1",
+                    "attribs": {},
+                    "children": [
+                        {
+                            "type": "text",
+                            "nodeType": 3,
+                            "data": "Hello, world.",
+                            "nodeValue": "Hello, world."
+                        }
+                    ],
+                    "firstChild": {
+                        "type": "text",
+                        "nodeType": 3,
+                        "data": "Hello, world.",
+                        "nodeValue": "Hello, world."
+                    },
+                    "lastChild": {
+                        "type": "text",
+                        "nodeType": 3,
+                        "data": "Hello, world.",
+                        "nodeValue": "Hello, world."
+                    }
+                },
+                {
+                    "type": "comment",
+                    "nodeType": 8,
+                    "data": " comment node ",
+                    "nodeValue": " comment node ",
+                    "prev": {
+                        "type": "tag",
+                        "name": "h1",
+                        "attribs": {}
+                    },
+                    "previousSibling": {
+                        "type": "tag",
+                        "name": "h1",
+                        "attribs": {}
+                    },
+                    "next": {
+                        "type": "text",
+                        "data": "more stray text"
+                    },
+                    "nextSibling": {
+                        "type": "text",
+                        "data": "more stray text"
+                    }
+                },
+                {
+                    "type": "text",
+                    "nodeType": 3,
+                    "data": "more stray text",
+                    "nodeValue": "more stray text"
+                }
+            ],
+            "firstChild": {
+                "type": "text",
+                "nodeType": 3,
+                "data": "some stray text",
+                "nodeValue": "some stray text"
+            },
+            "lastChild": {
+                "type": "text",
+                "nodeType": 3,
+                "data": "more stray text",
+                "nodeValue": "more stray text"
+            }
+        }
+    ]
+}

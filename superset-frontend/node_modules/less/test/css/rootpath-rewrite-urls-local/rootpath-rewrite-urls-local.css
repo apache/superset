@@ -1,0 +1,17 @@
+#imported-file {
+  background-image: url("http://example.com/assets/css/folder/relative/path");
+  background-image: url("http://example.com/assets/css/relative/path");
+  background-image: url("http://example.com/assets/relative/path");
+  background-image: url("module");
+  background-image: url("module/path");
+  background-image: url("module/relative/path");
+}
+#rootpath-rewrite-urls-local {
+  background-image: url("http://example.com/assets/css/relative/path");
+  background-image: url("http://example.com/assets/relative/path");
+  background-image: url("http://example.com/assets/css/path");
+  background-image: url("http://example.com/assets/css");
+  background-image: url("module");
+  background-image: url("module/path");
+  background-image: url("module/relative/path");
+}

@@ -1,0 +1,29 @@
+/* Demo */
+body {
+  font-family: "Droid Sans",sans-serif;
+}
+body,
+a,
+a:visited {
+  color: #333;
+}
+h1 {
+  text-align: center;
+  margin: 40px 0px;
+  font-size: 36px;
+  text-shadow: 2px 2px 0 #CCC;
+}
+p {
+  text-align: center;
+}
+ul {
+  list-style: none;
+}
+div#content {
+  margin: 0px auto;
+  width: 930px;
+}
+div.footer {
+  margin-top: 50px;
+  text-align: right;
+}

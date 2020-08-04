@@ -1,0 +1,63 @@
+{
+  "name": "postcss-calc",
+  "version": "7.0.1",
+  "description": "PostCSS plugin to reduce calc()",
+  "keywords": [
+    "css",
+    "postcss",
+    "postcss-plugin",
+    "calculation",
+    "calc"
+  ],
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prepublish": "npm run build",
+    "build": "del-cli dist && cross-env BABEL_ENV=publish babel src --out-dir dist --ignore src/__tests__/**/*.js && jison src/parser.jison -o dist/parser.js",
+    "pretest": "eslint src && npm run build",
+    "test": "ava"
+  },
+  "author": "Andy Jansson",
+  "license": "MIT",
+  "repository": "https://github.com/postcss/postcss-calc.git",
+  "eslintConfig": {
+    "parser": "babel-eslint",
+    "extends": "eslint-config-i-am-meticulous"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.1.2",
+    "@babel/core": "^7.1.2",
+    "@babel/polyfill": "^7.0.0",
+    "@babel/preset-env": "^7.1.0",
+    "@babel/register": "^7.0.0",
+    "ava": "^1.0.0-beta.8",
+    "babel-eslint": "^10.0.1",
+    "babel-plugin-add-module-exports": "^1.0.0",
+    "cross-env": "^5.2.0",
+    "del-cli": "^1.1.0",
+    "eslint": "^5.7.0",
+    "eslint-config-i-am-meticulous": "^11.0.0",
+    "eslint-plugin-babel": "^5.2.1",
+    "eslint-plugin-import": "^2.14.0",
+    "jison-gho": "^0.6.1-215"
+  },
+  "dependencies": {
+    "css-unit-converter": "^1.1.1",
+    "postcss": "^7.0.5",
+    "postcss-selector-parser": "^5.0.0-rc.4",
+    "postcss-value-parser": "^3.3.1"
+  },
+  "ava": {
+    "require": [
+      "@babel/register",
+      "@babel/polyfill"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-calc/-/postcss-calc-7.0.1.tgz"
+,"_integrity": "sha512-oXqx0m6tb4N3JGdmeMSc/i91KppbYsFZKdH0xMOqK8V1rJlzrKlTdokz8ozUXLVejydRN6u2IddxpcijRj2FqQ=="
+,"_from": "postcss-calc@7.0.1"
+}

@@ -1,0 +1,37 @@
+#!/usr/bin/env node
+
+var commander = require("commander"),
+    d3 = require("../"),
+    read = require("./read"),
+    write = require("./write");
+
+commander
+    .version(require("../package.json").version)
+    .usage("[options] [file]")
+    .description("Stitch equirectangular GeoJSON in degrees, removing antimeridian and polar cuts.")
+    .option("-o, --out <file>", "output file name; defaults to “-” for stdout", "-")
+    .option("-n, --newline-delimited", "use newline-delimited JSON")
+    .parse(process.argv);
+
+if (commander.args.length === 0) commander.args[0] = "-";
+else if (commander.args.length !== 1) {
+  console.error();
+  console.error("  error: multiple input files");
+  console.error();
+  process.exit(1);
+}
+
+var reader = read(commander.args[0], commander.newlineDelimited, stitch).then(end).catch(abort),
+    writer = write(commander.out);
+
+function stitch(d) {
+  return writer.write(JSON.stringify(d3.geoStitch(d)) + "\n");
+}
+
+function end() {
+  return writer.end();
+}
+
+function abort(error) {
+  console.error(error.stack);
+}

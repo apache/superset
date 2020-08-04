@@ -1,0 +1,52 @@
+extends:
+    - sinon
+    - 'plugin:prettier/recommended'
+
+env:
+  browser: true
+  node: true
+
+globals:
+  ArrayBuffer: false
+  Map: false
+  Promise: false
+  Set: false
+  Symbol: false
+
+plugins:
+  - ie11
+  - local-rules
+
+rules:
+  strict: [error, 'global']
+  # authors are expected to understand function hoisting
+  no-use-before-define: off
+
+  ie11/no-collection-args: error
+  ie11/no-for-in-const: error
+  ie11/no-loop-func: warn
+  ie11/no-weak-collections: error
+  local-rules/no-prototype-methods: error
+
+overrides:
+    - files: '*.test.*'
+      plugins:
+          - mocha
+      env:
+          mocha: true
+      rules:
+        max-nested-callbacks:
+          - warn
+          - 6
+        mocha/handle-done-callback: error
+        mocha/no-exclusive-tests: error
+        mocha/no-global-tests: error
+        mocha/no-hooks-for-single-case: off
+        mocha/no-identical-title: error
+        mocha/no-mocha-arrows: error
+        mocha/no-nested-tests: error
+        mocha/no-return-and-callback: error
+        mocha/no-sibling-hooks: error
+        mocha/no-skipped-tests: error
+        mocha/no-top-level-hooks: error
+        local-rules/no-prototype-methods: off

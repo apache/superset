@@ -1,0 +1,47 @@
+{
+  "name": "html-comment-regex",
+  "version": "1.1.2",
+  "description": "Regular expression for matching HTML comments",
+  "homepage": "https://github.com/stevemao/html-comment-regex",
+  "author": {
+    "name": "Steve Mao",
+    "email": "maochenyan@gmail.com",
+    "url": "https://github.com/stevemao"
+  },
+  "repository": "stevemao/html-comment-regex",
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "html-comment-regex",
+    "text",
+    "string",
+    "regex",
+    "regexp",
+    "re",
+    "match",
+    "test",
+    "find",
+    "pattern",
+    "comment",
+    "comments",
+    "html",
+    "HTML",
+    "HyperText Markup Language"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "jscs": "^1.11.3",
+    "jshint": "^2.6.3",
+    "mocha": "*"
+  },
+  "scripts": {
+    "lint": "jshint *.js --exclude node_modules && jscs *.js",
+    "test": "npm run-script lint && mocha"
+  }
+
+,"_resolved": "https://registry.npmjs.org/html-comment-regex/-/html-comment-regex-1.1.2.tgz"
+,"_integrity": "sha512-P+M65QY2JQ5Y0G9KKdlDpo0zK+/OHptU5AaBwUfAIDJZk1MYf32Frm84EcOytfJE0t5JvkAnKlmjsXDnWzCJmQ=="
+,"_from": "html-comment-regex@1.1.2"
+}

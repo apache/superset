@@ -1,0 +1,30 @@
+message HelloRequest {
+  optional string greeting = 1;
+}
+
+message HelloResponse {
+  required string reply = 1;
+}
+
+service HelloService {
+  rpc SayHello(HelloRequest) returns (HelloResponse) {
+    option (google.api.http) = {
+      get: "/v1/say-hello/echo/{greeting}"
+      additional_bindings {
+        post: "/v2/say-hello"
+        body: "greeting"
+      }
+      additional_bindings {
+        get: "/v2/say-hello"
+      }
+    };
+  }
+  rpc LotsOfReplies(HelloRequest) returns (stream HelloResponse);
+  rpc LotsOfGreetings(stream HelloRequest) returns (HelloResponse) {
+    option (google.api.http) = {
+      post: "/v1/lots-of-greetings"
+      body: "*"
+    };
+  }
+  rpc BidiHello(stream HelloRequest) returns (stream HelloResponse);
+}

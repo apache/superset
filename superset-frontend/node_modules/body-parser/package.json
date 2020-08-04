@@ -1,0 +1,56 @@
+{
+  "name": "body-parser",
+  "description": "Node.js body parsing middleware",
+  "version": "1.18.3",
+  "contributors": [
+    "Douglas Christopher Wilson <doug@somethingdoug.com>",
+    "Jonathan Ong <me@jongleberry.com> (http://jongleberry.com)"
+  ],
+  "license": "MIT",
+  "repository": "expressjs/body-parser",
+  "dependencies": {
+    "bytes": "3.0.0",
+    "content-type": "~1.0.4",
+    "debug": "2.6.9",
+    "depd": "~1.1.2",
+    "http-errors": "~1.6.3",
+    "iconv-lite": "0.4.23",
+    "on-finished": "~2.3.0",
+    "qs": "6.5.2",
+    "raw-body": "2.3.3",
+    "type-is": "~1.6.16"
+  },
+  "devDependencies": {
+    "eslint": "4.19.1",
+    "eslint-config-standard": "11.0.0",
+    "eslint-plugin-import": "2.11.0",
+    "eslint-plugin-markdown": "1.0.0-beta.6",
+    "eslint-plugin-node": "6.0.1",
+    "eslint-plugin-promise": "3.7.0",
+    "eslint-plugin-standard": "3.1.0",
+    "istanbul": "0.4.5",
+    "methods": "1.1.2",
+    "mocha": "2.5.3",
+    "safe-buffer": "5.1.2",
+    "supertest": "1.1.0"
+  },
+  "files": [
+    "lib/",
+    "LICENSE",
+    "HISTORY.md",
+    "index.js"
+  ],
+  "engines": {
+    "node": ">= 0.8"
+  },
+  "scripts": {
+    "lint": "eslint --plugin markdown --ext js,md .",
+    "test": "mocha --require test/support/env --reporter spec --check-leaks --bail test/",
+    "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- --require test/support/env --reporter dot --check-leaks test/",
+    "test-travis": "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --require test/support/env --reporter spec --check-leaks test/"
+  }
+
+,"_resolved": "https://registry.npmjs.org/body-parser/-/body-parser-1.18.3.tgz"
+,"_integrity": "sha1-WykhmP/dVTs6DyDe0FkrlWlVyLQ="
+,"_from": "body-parser@1.18.3"
+}

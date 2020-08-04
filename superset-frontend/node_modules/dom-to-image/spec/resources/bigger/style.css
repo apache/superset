@@ -1,0 +1,26 @@
+#dom-node {
+    width: 100px;
+}
+
+.child-node {
+    height: auto;
+}
+
+.red {
+    background-color: red;
+}
+
+.green {
+    background-color: green;
+}
+
+.blue {
+    background-color: blue;
+}
+
+.red,
+.green,
+.blue {
+    height: 3px;
+    border: 1px solid lightgrey;
+}

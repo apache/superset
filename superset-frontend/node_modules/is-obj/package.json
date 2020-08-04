@@ -1,0 +1,37 @@
+{
+  "name": "is-obj",
+  "version": "1.0.1",
+  "description": "Check if a value is an object",
+  "license": "MIT",
+  "repository": "sindresorhus/is-obj",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "obj",
+    "object",
+    "is",
+    "check",
+    "test",
+    "type"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/is-obj/-/is-obj-1.0.1.tgz"
+,"_integrity": "sha1-PkcprB9f3gJc19g6iW2rn09n2w8="
+,"_from": "is-obj@1.0.1"
+}

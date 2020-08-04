@@ -1,0 +1,106 @@
+#!/usr/bin/env node
+
+var fs = require("fs"),
+    path = require("path"),
+    commander = require("commander"),
+    topojson = require("../");
+
+commander
+    .version(require("../package.json").version)
+    .usage("[options] <name=file>…")
+    .description("Converts TopoJSON objects to GeoJSON features.")
+    .option("-i, --in <file>", "input topology file name; defaults to “-” for stdin", "-")
+    .option("-l, --list", "list the object names on the input topology")
+    .option("-n, --newline-delimited", "output newline-delimited JSON")
+    .parse(process.argv);
+
+if (!commander.list === commander.args.length < 1) {
+  console.error();
+  console.error("  error: " + (commander.list ? "--list does not take arguments" : "no arguments specified"));
+  console.error();
+  process.exit(1);
+}
+
+read(commander.in).then(write).catch(abort);
+
+function read(file) {
+  return new Promise(function(resolve, reject) {
+    var data = [];
+    readStream(file)
+        .on("data", function(d) { data.push(d); })
+        .on("end", function() { resolve(JSON.parse(Buffer.concat(data))); })
+        .on("error", reject);
+  });
+}
+
+function readStream(file) {
+  return file === "-" ? process.stdin : fs.createReadStream(file);
+}
+
+function write(topology) {
+  var write, writer = commander.newlineDelimited ? writeNewlineDelimitedFeature : writeFeature, name;
+  if (commander.list) {
+    for (name in topology.objects) {
+      console.log(name);
+    }
+    return;
+  }
+  write = Promise.resolve();
+  commander.args.forEach(function(specifier) {
+    var i = specifier.indexOf("="),
+        file = i >= 0 ? specifier.slice(i + 1) : specifier,
+        name = i >= 0 ? specifier.slice(0, i) : path.basename(specifier, path.extname(specifier));
+    if (!(name in topology.objects)) {
+      console.error();
+      console.error("  error: object “" + name + "” not found");
+      console.error();
+      process.exit(1);
+    }
+    write = write.then(writer(file, topojson.feature(topology, topology.objects[name])));
+  });
+  return write;
+}
+
+function writeStream(file) {
+  return (file === "-" ? process.stdout : fs.createWriteStream(file)).on("error", handleEpipe);
+}
+
+function writeFeature(file, feature) {
+  return new Promise(function(resolve, reject) {
+    writeStream(file).on("error", reject)[file === "-" ? "write" : "end"](JSON.stringify(feature) + "\n", function(error) {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
+function writeNewlineDelimitedFeature(file, feature) {
+  return feature == null || feature.type != "FeatureCollection" ? writeFeature(file, feature) : new Promise(function(resolve, reject) {
+    var stream = writeStream(file).on("error", reject), i = -1, n = feature.features.length;
+
+    (function writeNext(error) {
+      if (error) return void reject(error);
+      if (++i >= n) {
+        if (file !== "-") stream.end(writeEnd);
+        else writeEnd();
+      } else {
+        stream.write(JSON.stringify(feature.features[i]) + "\n", writeNext);
+      }
+    })(null);
+
+    function writeEnd(error) {
+      if (error) return void reject(error);
+      resolve();
+    }
+  });
+}
+
+function handleEpipe(error) {
+  if (error.code === "EPIPE" || error.errno === "EPIPE") {
+    process.exit(0);
+  }
+}
+
+function abort(error) {
+  console.error(error.stack);
+}

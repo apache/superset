@@ -1,0 +1,8 @@
+# Paths
+src_dir: "../js/"
+spec_dir: "../spec/"
+
+src_files:
+  - "imagediff.js"
+spec_files:
+  - "ImageDiffSpec.js"

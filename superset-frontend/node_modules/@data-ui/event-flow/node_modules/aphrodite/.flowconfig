@@ -1,0 +1,14 @@
+[ignore]
+<PROJECT_ROOT>/.nyc_output/.*
+<PROJECT_ROOT>/coverage/.*
+<PROJECT_ROOT>/dist/.*
+.*/node_modules/babel.*
+.*/node_modules/fbjs/.*
+.*/node_modules/y18n/test/.*
+
+[include]
+
+[libs]
+
+[options]
+suppress_comment= \\(.\\|\n\\)*\\$FlowFixMe

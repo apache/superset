@@ -1,0 +1,12 @@
+{
+  "env": {
+    "mocha": true
+  },
+  "rules": {
+    "react/jsx-indent": 1,
+    "react/jsx-one-expression-per-line": 1,
+    "react/no-multi-comp": 0,
+    "react/jsx-props-no-spreading": 0,
+    "max-classes-per-file": 0,
+  }
+}

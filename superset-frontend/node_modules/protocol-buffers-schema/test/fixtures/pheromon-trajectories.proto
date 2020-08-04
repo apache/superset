@@ -1,0 +1,8 @@
+message deviceTrajectory {
+  required bytes dates = 1 [packed=true];
+  required bytes signal_strengths = 2 [packed=true];
+}
+
+message trajectories {
+    repeated deviceTrajectory trajectories = 1 [packed=true];
+}

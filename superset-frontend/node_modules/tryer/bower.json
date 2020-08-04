@@ -1,0 +1,16 @@
+{
+  "name": "tryer",
+  "version": "1.0.1",
+  "main": "lib/tryer.min.js",
+  "ignore": [
+    "AUTHORS",
+    "component.json",
+    "config",
+    "node_modules",
+    "package.json",
+    "README.md",
+    "src",
+    "test"
+  ]
+}
+

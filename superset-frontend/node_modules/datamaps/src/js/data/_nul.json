@@ -1,0 +1,7 @@
+{
+"type": "FeatureCollection",
+                                                                                
+"features": [
+{ "type": "Feature", "properties": { "adm1_code": "NUL+99?", "OBJECTID_1": 3652, "diss_me": 10132, "adm1_cod_1": "NUL+99?", "iso_3166_2": "-99", "wikipedia": null, "iso_a2": "-1", "adm0_sr": 100, "name": null, "name_alt": null, "name_local": null, "type": null, "type_en": null, "code_local": null, "code_hasc": "-99", "note": "NUL-99 (NULL minor island)", "hasc_maybe": null, "region": null, "region_cod": null, "provnum_ne": 0, "gadm_level": 0, "check_me": 0, "scalerank": 11, "datarank": 11, "abbrev": null, "postal": null, "area_sqkm": 0, "sameascity": -99, "labelrank": 20, "featurecla": "Admin-1 minor island", "name_len": 0, "mapcolor9": 6, "mapcolor13": 0, "fips": null, "fips_alt": null, "woe_id": -99, "woe_label": null, "woe_name": null, "latitude": 2.60001e-08, "longitude": -1.29999e-08, "sov_a3": "NUL", "adm0_a3": "NUL", "adm0_label": 100, "admin": "Null Island", "geonunit": null, "gu_a3": "NUL", "gn_id": 0, "gn_name": null, "gns_id": 0, "gns_name": null, "gn_level": 0, "gn_region": null, "gn_a1_code": "-1", "region_sub": null, "sub_code": null, "gns_level": 0, "gns_lang": null, "gns_adm1": null, "gns_region": null }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -0.000004544999911, 0.000004556000107 ], [ 0.000004508000131, 0.000004556000107 ], [ 0.000004508000131, -0.000004496999935 ], [ -0.000004544999911, -0.000004496999935 ], [ -0.000004544999911, 0.000004556000107 ] ] ] } }
+]
+}

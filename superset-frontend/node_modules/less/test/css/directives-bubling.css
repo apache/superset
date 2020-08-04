@@ -1,0 +1,119 @@
+.parent {
+  color: green;
+}
+@document url-prefix() {
+  .parent .child {
+    color: red;
+  }
+}
+@supports (sandwitch: butter) {
+  .inside .top {
+    property: value;
+  }
+}
+@supports (sandwitch: bread) {
+  .in1 .in2 {
+    property: value;
+  }
+}
+@supports (sandwitch: ham) {
+  .inside .top {
+    property: value;
+  }
+}
+@supports (font-family: weirdFont) {
+  @font-face {
+    font-family: something;
+    src: made-up-url;
+  }
+}
+@font-face {
+  @supports not (-webkit-font-smoothing: subpixel-antialiased) {
+    font-family: something;
+    src: made-up-url;
+  }
+}
+@supports (property: value) {
+  @media (max-size: 2px) {
+    @supports (whatever: something) {
+      .outOfMedia  {
+        property: value;
+      }
+    }
+  }
+}
+@supports (property: value) {
+  @media (max-size: 2px) {
+    @supports (whatever: something) {
+      .onTop  {
+        property: value;
+      }
+    }
+  }
+}
+@media print {
+  html {
+    in-html: visible;
+  }
+  @supports (upper: test) {
+    html {
+      in-supports: first;
+    }
+    html div {
+      in-div: visible;
+    }
+    @supports not (-webkit-font-smoothing: subpixel-antialiased) {
+      html div {
+        in-supports: second;
+      }
+      @media screen {
+        html div {
+          font-weight: 400;
+        }
+        html div nested {
+          property: value;
+        }
+      }
+    }
+  }
+}
+@media print and (max-size: 2px) {
+  .in1 {
+    stay: here;
+  }
+  @supports not (-webkit-font-smoothing: subpixel-antialiased) {
+    @supports (whatever: something) {
+      .in2 .in1 {
+        property: value;
+      }
+    }
+  }
+}
+html {
+  font-weight: 300;
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+@supports not (-webkit-font-smoothing: subpixel-antialiased) {
+  html {
+    font-weight: 400;
+  }
+  html nested {
+    property: value;
+  }
+}
+.onTop {
+  animation: "textscale";
+  font-family: something;
+}
+@font-face {
+  font-family: something;
+  src: made-up-url;
+}
+@keyframes "textscale" {
+  0% {
+    font-size: 1em;
+  }
+  100% {
+    font-size: 2em;
+  }
+}

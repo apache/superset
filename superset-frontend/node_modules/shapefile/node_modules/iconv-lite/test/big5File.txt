@@ -1,0 +1,13 @@
+<HTML>
+<HEAD>    
+	<TITLE> meta 標籤的使用：中文網頁 </TITLE>
+	<meta HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=big5">
+</HEAD>
+<BODY>
+
+這是一個繁體中文網頁！<br>
+(This page uses big5 character set.)<br>
+charset=big5
+
+</BODY>
+</HTML>

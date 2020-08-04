@@ -1,0 +1,19 @@
+.no-math {
+  root: calc(100% - 30px);
+  root2: calc(100% - 40px);
+  width: calc(50% + (25vh - 20px));
+  height: calc(50% + (25vh - 20px));
+  min-height: calc(10vh + calc(5vh));
+  foo: 3 calc(3 + 4) 11;
+  bar: calc(1 + 20%);
+}
+.b {
+  one: calc(100% - 20px);
+  two: calc(100% - (10px + 10px));
+  three: calc(100% - (3 * 1));
+  four: calc(100% - (3 * 1));
+  nested: calc(calc(2.25rem + 2px) - 1px * 2);
+}
+.c {
+  height: calc(100% - ((10px * 3) + (10px * 2)));
+}

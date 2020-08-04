@@ -1,0 +1,48 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`defaults > snapshot 1`] = `
+<Select
+  backspaceRemovesValue={true}
+  blurInputOnSelect={true}
+  captureMenuScroll={false}
+  closeMenuOnScroll={false}
+  closeMenuOnSelect={true}
+  components={Object {}}
+  controlShouldRenderValue={true}
+  escapeClearsValue={false}
+  filterOption={[Function]}
+  formatGroupLabel={[Function]}
+  getOptionLabel={[Function]}
+  getOptionValue={[Function]}
+  inputValue=""
+  isDisabled={false}
+  isLoading={false}
+  isMulti={false}
+  isOptionDisabled={[Function]}
+  isRtl={false}
+  isSearchable={true}
+  loadingMessage={[Function]}
+  maxMenuHeight={300}
+  menuIsOpen={false}
+  menuPlacement="bottom"
+  menuPosition="absolute"
+  menuShouldBlockScroll={false}
+  menuShouldScrollIntoView={true}
+  minMenuHeight={140}
+  noOptionsMessage={[Function]}
+  onChange={[Function]}
+  onInputChange={[Function]}
+  onMenuClose={[Function]}
+  onMenuOpen={[Function]}
+  openMenuOnClick={true}
+  openMenuOnFocus={false}
+  options={Array []}
+  pageSize={5}
+  placeholder="Select..."
+  screenReaderStatus={[Function]}
+  styles={Object {}}
+  tabIndex="0"
+  tabSelectsValue={true}
+  value={null}
+/>
+`;

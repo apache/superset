@@ -1,0 +1,25 @@
+{
+    "authors": "Kieran Simpson <https://github.com/kierans/DefinitelyTyped>",
+    "definitionFilename": "index.d.ts",
+    "libraryDependencies": [],
+    "moduleDependencies": [],
+    "libraryMajorVersion": "0",
+    "libraryMinorVersion": "1",
+    "libraryName": "clone 0.1.11",
+    "typingsPackageName": "clone",
+    "projectName": "https://github.com/pvorb/node-clone",
+    "sourceRepoURL": "https://www.github.com/DefinitelyTyped/DefinitelyTyped",
+    "sourceBranch": "types-2.0",
+    "kind": "ProperModule",
+    "globals": [
+        "clone"
+    ],
+    "declaredModules": [
+        "clone"
+    ],
+    "files": [
+        "index.d.ts"
+    ],
+    "hasPackageJson": false,
+    "contentHash": "29fd82aa066f07307712c9ce140436aba20b3bfbe9bf8f702f359c230c481f03"
+}

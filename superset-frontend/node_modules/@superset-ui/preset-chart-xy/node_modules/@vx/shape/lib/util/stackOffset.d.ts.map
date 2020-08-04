@@ -1,0 +1,1 @@
+{"version":3,"file":"stackOffset.d.ts","sourceRoot":"","sources":["../../src/util/stackOffset.ts"],"names":[],"mappings":"AAAA,OAAO,EACL,iBAAiB,EACjB,oBAAoB,EACpB,eAAe,EACf,qBAAqB,EACrB,iBAAiB,EAClB,MAAM,UAAU,CAAC;AAElB,eAAO,MAAM,aAAa;;;;;;CAMzB,CAAC;AAEF,eAAO,MAAM,kBAAkB,UAA6B,CAAC;AAE7D,MAAM,CAAC,OAAO,UAAU,WAAW,CAAC,MAAM,CAAC,EAAE,MAAM,OAAO,aAAa,4BAEtE"}

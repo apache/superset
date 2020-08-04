@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+
+        }
+        html, body, svg {
+            margin: 0px;
+            padding: 0px;
+            width: 100%;
+            height: 100%;
+        }
+        .container {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .container > div {
+            float: left;
+        }
+    </style>
+</head>
+<body>
+<!-- just make a circle to create the tooltip over -->
+<div class="container" style="left: 200px;">
+    <div style="height: 20px; width: 100%; float: left; display: inline-block;"></div>
+    <div style="position: relative; margin-top: 10px; margin-left: 10px; margin-bottom: -50px; margin-right: -50px; display: inline-block; width: 300px; height: 300px;">
+        <div style="position: absolute; right: 0; bottom: 0; display: inline-block; width: 110px; height: 110px;">
+            <svg id="test1">
+                <g transform="translate(55, 55)">
+                    <circle class="tooltip_me" r="50" style="stroke-width: 2px; fill: rgb(148, 103, 189); stroke: rgb(148, 103, 189);"></circle>
+                </g>
+            </svg>
+        </div>
+    </div>
+</div>
+<div class="container">
+    <div style="height: 10px; width: 100%; display: inline-block;"></div>
+    <div style="position: relative; margin-top: 20px; margin-left: 20px; margin-bottom: -50px; margin-right: -50px; display: inline-block; width: 300px; height: 400px;">
+        <div style="position: absolute; right: 100; bottom: 0; display: inline-block; width: 300px; height: 300px;">
+            <svg id="test2">
+            </svg>
+        </div>
+    </div>
+</div>
+<script>
+    var width = 500,
+        height = 20;
+
+    var tooltip = nv.models.tooltip();
+    tooltip.duration(0);
+
+    d3.select('.tooltip_me')
+        .on('mouseover', function(d,i) {
+            console.log("mouseover", d, i);
+            var data = {series: {
+                key: "title",
+                value: "the value",
+                color: "#229922"
+            }};
+            tooltip.data(data).hidden(false);
+        })
+        .on('mouseout', function(d,i) {
+            console.log("mouseout", d, i);
+            tooltip.hidden(true);
+        })
+        .on('mousemove', function(d,i) {
+            console.log("mousemove", d, i);
+            tooltip.position({top: d3.event.pageY, left: d3.event.pageX})();
+        });
+
+
+    // we must also test the scatter/line way of getting position
+    // Wrapping in nv.addGraph allows for '0 timeout render', stores rendered charts in nv.graphs, and may do more in the future... it's NOT required
+    var chart;
+    nv.addGraph(function() {
+        chart = nv.models.lineChart()
+                .showXAxis(false)
+                .showLegend(false)
+                .clipVoronoi(false)
+                .showVoronoi(true)
+                .showYAxis(false);
+        d3.select('#test2')
+                .datum(sinAndCos())
+                .call(chart);
+        return chart;
+    });
+
+    function sinAndCos() {
+        var cos = [];
+        for (var i = 0; i < 5; i++) {
+            cos.push({x: i, y: Math.round(.5 * Math.cos(i/10) * 100) / 100});
+        }
+        return [{
+            values: cos,
+            key: "Cosine Wave",
+            color: "#2ca02c"
+        }];
+    }
+</script>
+</body>
+</html>

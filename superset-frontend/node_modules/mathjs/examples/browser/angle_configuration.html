@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>math.js | angle configuration</title>
+  <style>
+    body, input, select {
+      font: 11pt sans-serif;
+    }
+    input, select, th, #result {
+      padding: 5px 10px;
+    }
+    th {
+      text-align: left;
+    }
+  </style>
+
+  <script src="../../dist/math.js"></script>
+</head>
+<body>
+
+<p>
+  This code example extends the trigonometric functions of math.js with configurable angles: degrees, radians, or gradians.
+</p>
+
+<table>
+  <tr>
+    <th>Angles</th>
+    <td>
+      <select id="angles">
+        <option value="deg">deg</option>
+        <option value="grad">grad</option>
+        <option value="rad">rad</option>
+      </select>
+    </td>
+  </tr>
+  <tr>
+    <th>Expression</th>
+    <td>
+      <input id="expression" type="text" value="sin(45)" />
+      <input id="evaluate" type="button" value="Evaluate">
+    </td>
+  </tr>
+  <tr>
+    <th>Result</th>
+    <td id="result"></td>
+  </tr>
+</table>
+
+<script>
+  var replacements = {};
+
+  // our extended configuration options
+  var config = {
+    angles: 'deg' // 'rad', 'deg', 'grad'
+  };
+
+  // create trigonometric functions replacing the input depending on angle config
+  ['sin', 'cos', 'tan', 'sec', 'cot', 'csc'].forEach(function(name) {
+    var fn = math[name]; // the original function
+
+    var fnNumber = function (x) {
+      // convert from configured type of angles to radians
+      switch (config.angles) {
+        case 'deg':
+          return fn(x / 360 * 2 * Math.PI);
+        case 'grad':
+          return fn(x / 400 * 2 * Math.PI);
+        default:
+          return fn(x);
+      }
+    };
+
+    // create a typed-function which check the input types
+    replacements[name] = math.typed(name, {
+      'number': fnNumber,
+      'Array | Matrix': function (x) {
+        return math.map(x, fnNumber);
+      }
+    });
+  });
+
+  // create trigonometric functions replacing the output depending on angle config
+  ['asin', 'acos', 'atan', 'atan2', 'acot', 'acsc', 'asec'].forEach(function(name) {
+    var fn = math[name]; // the original function
+
+    var fnNumber = function (x) {
+      var result = fn(x);
+
+      if (typeof result === 'number') {
+        // convert to radians to configured type of angles
+        switch(config.angles) {
+          case 'deg':  return result / 2 / Math.PI * 360;
+          case 'grad': return result / 2 / Math.PI * 400;
+          default: return result;
+        }
+      }
+
+      return result;
+    };
+
+    // create a typed-function which check the input types
+    replacements[name] = math.typed(name, {
+      'number': fnNumber,
+      'Array | Matrix': function (x) {
+        return math.map(x, fnNumber);
+      }
+    });
+  });
+
+  // import all replacements into math.js, override existing trigonometric functions
+  math.import(replacements, {override: true});
+
+  // pointers to the input elements
+  var expression = document.getElementById('expression');
+  var evaluate   = document.getElementById('evaluate');
+  var result     = document.getElementById('result');
+  var angles     = document.getElementById('angles');
+
+  // attach event handlers for select box and button
+  angles.onchange = function () {
+    config.angles = this.value;
+  };
+  evaluate.onclick = function () {
+    result.innerHTML = math.eval(expression.value);
+  };
+</script>
+
+
+</body>
+</html>

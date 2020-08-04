@@ -1,0 +1,39 @@
+{
+  "name": "dom-serializer",
+  "version": "0.1.1",
+  "description": "render dom nodes to string",
+  "author": "Felix Boehm <me@feedic.com>",
+  "keywords": [
+    "html",
+    "xml",
+    "render"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/cheeriojs/dom-renderer.git"
+  },
+  "main": "./index.js",
+  "files": [
+    "index.js"
+  ],
+  "dependencies": {
+    "domelementtype": "^1.3.0",
+    "entities": "^1.1.1"
+  },
+  "devDependencies": {
+    "cheerio": "*",
+    "expect.js": "^0.3.1",
+    "jshint": "^2.9.1-rc1",
+    "lodash": "^4.17.11",
+    "mocha": "^5.2.0",
+    "xyz": "^3.0.0"
+  },
+  "scripts": {
+    "test": "mocha test.js"
+  },
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/dom-serializer/-/dom-serializer-0.1.1.tgz"
+,"_integrity": "sha512-l0IU0pPzLWSHBcieZbpOKgkIn3ts3vAh7ZuFyXNwJxJXk/c4Gwj9xaTJwIDVQCXawWD0qb3IzMGH5rglQaO0XA=="
+,"_from": "dom-serializer@0.1.1"
+}

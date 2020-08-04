@@ -1,0 +1,83 @@
+{
+  "name": "set-value",
+  "description": "Create nested values and any intermediaries using dot notation (`'a.b.c'`) paths.",
+  "version": "2.0.1",
+  "homepage": "https://github.com/jonschlinkert/set-value",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "(https://github.com/wtgtybhertgeghgtwtg)",
+    "Vadim Demedes (https://vadimdemedes.com)"
+  ],
+  "repository": "jonschlinkert/set-value",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/set-value/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "extend-shallow": "^2.0.1",
+    "is-extendable": "^0.1.1",
+    "is-plain-object": "^2.0.3",
+    "split-string": "^3.0.1"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.12",
+    "mocha": "^3.4.2"
+  },
+  "keywords": [
+    "get",
+    "has",
+    "hasown",
+    "key",
+    "keys",
+    "nested",
+    "notation",
+    "object",
+    "prop",
+    "properties",
+    "property",
+    "props",
+    "set",
+    "value",
+    "values"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "assign-value",
+        "get-value",
+        "has-value",
+        "merge-value",
+        "omit-value",
+        "set-value",
+        "union-value",
+        "unset-value"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/set-value/-/set-value-2.0.1.tgz"
+,"_integrity": "sha512-JxHc1weCN68wRY0fhCoXpyK55m/XPHafOmK4UWD7m2CI14GMcFypt4w/0+NV5f/ZMby2F6S2wwA7fgynh9gWSw=="
+,"_from": "set-value@2.0.1"
+}

@@ -1,0 +1,71 @@
+{
+  "name": "define-property",
+  "description": "Define a non-enumerable property on an object. Uses Reflect.defineProperty when available, otherwise Object.defineProperty.",
+  "version": "2.0.2",
+  "homepage": "https://github.com/jonschlinkert/define-property",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/define-property",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/define-property/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-descriptor": "^1.0.2",
+    "isobject": "^3.0.1"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.5.3"
+  },
+  "keywords": [
+    "define",
+    "define-property",
+    "enumerable",
+    "key",
+    "non",
+    "non-enumerable",
+    "object",
+    "prop",
+    "property",
+    "value"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "assign-deep",
+        "extend-shallow",
+        "merge-deep",
+        "mixin-deep"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/define-property/-/define-property-2.0.2.tgz"
+,"_integrity": "sha512-jwK2UV4cnPpbcG7+VRARKTZPUWowwXA8bzH5NP6ud0oeAxyYPuGZUAC7hMugpCdz4BeSZl2Dl9k66CHJ/46ZYQ=="
+,"_from": "define-property@2.0.2"
+}

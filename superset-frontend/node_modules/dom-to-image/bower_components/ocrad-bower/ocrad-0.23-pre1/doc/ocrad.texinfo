@@ -1,0 +1,575 @@
+\input texinfo @c -*-texinfo-*-
+@c %**start of header
+@setfilename ocrad.info
+@documentencoding ISO-8859-15
+@settitle GNU Ocrad Manual
+@finalout
+@c %**end of header
+
+@set UPDATED 4 September 2013
+@set VERSION 0.23-pre1
+
+@dircategory GNU Packages
+@direntry
+* Ocrad: (ocrad).               The GNU OCR program
+@end direntry
+
+
+@ifnothtml
+@titlepage
+@title GNU Ocrad
+@subtitle The GNU OCR Program
+@subtitle for GNU Ocrad version @value{VERSION}, @value{UPDATED}
+@author by Antonio Diaz Diaz
+
+@page
+@vskip 0pt plus 1filll
+@end titlepage
+
+@contents
+@end ifnothtml
+
+@node Top
+@top
+
+This manual is for GNU Ocrad (version @value{VERSION}, @value{UPDATED}).
+
+@sp 1
+GNU Ocrad is an OCR (Optical Character Recognition) program and library
+based on a feature extraction method. It reads images in pbm (bitmap),
+pgm (greyscale) or ppm (color) formats and produces text in @w{byte
+(8-bit)} or UTF-8 formats. The pbm, pgm and ppm formats are collectively
+known as pnm.
+
+Ocrad includes a layout analyser able to separate the columns or blocks
+of text normally found on printed pages.
+
+@menu
+* Character sets::              Input charsets and output formats
+* Invoking ocrad::              Command line interface
+* Library version::             Checking library version
+* Library functions::           Descriptions of the library functions
+* Library error codes::         Meaning of codes returned by functions
+* Image format conversion::     How to convert other formats to pnm
+* Algorithm::                   How ocrad does its job
+* OCR results file::            Description of the ORF file format
+* Problems::                    Reporting bugs
+* Concept index::               Index of concepts
+@end menu
+
+@sp 1
+Copyright @copyright{} 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+2011, 2012, 2013 Antonio Diaz Diaz.
+
+This manual is free documentation: you have unlimited permission
+to copy, distribute and modify it.
+
+
+@node Character sets
+@chapter Character sets
+@cindex input charsets
+@cindex output format
+
+The character set internally used by ocrad is ISO 10646, also known as
+UCS (Universal Character Set), which can represent over two thousand
+million characters (2^31).
+
+As it is unpractical to try to recognize one among so many different
+characters, you can tell ocrad what character sets to recognize. You do
+this with the @samp{--charset} option.
+
+If the input page contains characters from only one character set, say
+@w{@samp{ISO-8859-15}}, you can use the default @samp{byte} output
+format. But in a page with @w{@samp{ISO-8859-9}} and
+@w{@samp{ISO-8859-15}} characters, you can't tell if a code of 0xFD
+represents a 'latin small letter i dotless' or a 'latin small letter y
+with acute'. You should use @w{@samp{--format=utf8}} instead.@*
+Of course, you may request UTF-8 output in any case.
+
+@sp 1
+NOTE: 10^9 is a thousand millions, a billion is a million millions
+(million^2), a trillion is a million million millions (million^3), and
+so on. Please, don't "embrace and extend" the meaning of prefixes,
+making communication among all people difficult. Thanks.
+
+
+@node Invoking ocrad
+@chapter Invoking ocrad
+@cindex invoking
+@cindex options
+@cindex usage
+@cindex version
+
+The format for running ocrad is:
+
+@example
+ocrad [@var{options}] [@var{files}]
+@end example
+
+Ocrad supports the following options:
+
+@table @samp
+@item -h
+@itemx --help
+Print an informative help message describing the options and exit.
+@w{@samp{ocrad --verbose --help}} describes also hidden options.
+
+@item -V
+@itemx --version
+Print the version number of ocrad on the standard output and exit.
+
+@item -a
+@itemx --append
+Append generated text to the output file instead of overwriting it.
+
+@item -c @var{name}
+@itemx --charset=@var{name}
+Enable recognition of the characters belonging to the given character set.
+You can repeat this option multiple times with different names for
+processing a page with characters from different character sets.@*
+If no charset is specified, @w{@samp{iso-8859-15}} (latin9) is assumed.@*
+Try @w{@samp{--charset=help}} for a list of valid charset names.
+
+@item -e @var{name}
+@itemx --filter=@var{name}
+Pass the output text through the given postprocessing filter.@*
+@w{@samp{--filter=letters}} forces every character that resembles a
+letter to be recognized as a letter. Other characters will be output
+without change.@*
+@w{@samp{--filter=letters_only}}, same as @w{@samp{--filter=letters}},
+but other characters will be discarded.@*
+@w{@samp{--filter=numbers}} forces every character that resembles a
+number to be recognized as a number. Other characters will be output
+without change.@*
+@w{@samp{--filter=numbers_only}}, same as @w{@samp{--filter=numbers}}
+but other characters will be discarded.@*
+Try @w{@samp{--filter=help}} for a list of valid filter names.
+
+@item -f
+@itemx --force
+Force overwrite of output files.
+
+@item -F @var{name}
+@itemx --format=@var{name}
+Select the output format. The valid names are @samp{byte} and @samp{utf8}.@*
+If no output format is specified, @samp{byte} (8 bit) is assumed.
+
+@item -i
+@itemx --invert
+Invert image levels (white on black).
+
+@item -l
+@itemx --layout
+Enable page layout analysis. Ocrad is able to separate blocks of text of
+arbitrary shape as long as they are clearly delimited by white space.
+
+@item -o @var{file}
+@itemx --output=@var{file}
+Place the output into @var{file} instead of into the standard output.
+
+@item -q
+@itemx --quiet
+Quiet operation.
+
+@item -s @var{value}
+@itemx --scale=@var{value}
+Scale up the input image by @var{value} before layout analysis and
+recognition. If @var{value} is negative, the input image is scaled down
+by @var{-value}.
+
+@item -t @var{name}
+@itemx --transform=@var{name}
+Perform given transformation (rotation or mirroring) on the input image
+before scaling, layout analysis and recognition.@*
+Try @w{@samp{--transform=help}} for a list of valid transformation names.
+
+@item -T @var{value}
+@itemx --threshold=@var{value}
+Set binarization threshold for pgm or ppm files or for @samp{--scale}
+option (only for scaled down images). @var{value} should be a rational
+number between 0 and 1, and may be given as a percentage (50%), a
+fraction (1/2), or a decimal value (0.5). Image values greater than
+threshold are converted to white. The default value is 0.5.
+
+@item -u @var{left},@var{top},@var{width},@var{height}
+@itemx --cut=@var{left},@var{top},@var{width},@var{height}
+Cut the input image by the rectangle defined by @var{left}, @var{top},
+@var{width} and @var{height}. Values may be relative to the image size
+@w{(-1.0 <= value <= +1.0)}, or absolute @w{(abs( value ) > 1)}.
+Negative values of @var{left}, @var{top} are relative to the
+right-bottom corner of the image. Values of @var{width} and @var{height}
+must be positive. Absolute and relative values can be mixed. For example
+@w{@samp{ocrad --cut 700,960,1,1}} will extract from @samp{700,960} to
+the right-bottom corner of the image.@*
+The cutting is performed before any other transformation (rotation or
+mirroring) on the input image, and before scaling, layout analysis and
+recognition.
+
+@item -v
+@itemx --verbose
+Verbose mode.
+
+@item -x @var{file}
+@itemx --export=@var{file}
+Write (export) OCR results file to @var{file} (@pxref{OCR results file}).
+@w{@samp{-x -}} writes to stdout, overriding text output except if
+output has been also redirected with the @samp{-o} option.
+
+@end table
+
+Exit status: 0 for a normal exit, 1 for environmental problems (file not
+found, invalid flags, I/O errors, etc), 2 to indicate a corrupt or
+invalid input file, 3 for an internal consistency error (eg, bug) which
+caused ocrad to panic.
+
+
+@node Library version
+@chapter Library version
+@cindex library version
+
+@deftypefun {const char *} OCRAD_version ( void )
+Returns the library version as a string.
+@end deftypefun
+
+@deftypevr Constant {const char *} OCRAD_version_string
+This constant is defined in the header file @samp{ocradlib.h}.
+@end deftypevr
+
+The application should compare OCRAD_version and OCRAD_version_string
+for consistency. If the first character differs, the library code
+actually used may be incompatible with the @samp{ocradlib.h} header file
+used by the application.
+
+@example
+if( OCRAD_version()[0] != OCRAD_version_string[0] )
+  error( "bad library version" );
+@end example
+
+
+@node Library functions
+@chapter Library functions
+@cindex library functions
+
+These are the OCRAD library functions. In case of error, all of them
+return -1 or a null pointer, except @samp{OCRAD_open} whose return value
+must be verified by calling @samp{OCRAD_get_errno} before using it.
+
+
+@deftypefun {struct OCRAD_Descriptor *} OCRAD_open ( void )
+Initializes the internal library state and returns a pointer that can
+only be used as the @var{ocrdes} argument for the other OCRAD functions,
+or a null pointer if the descriptor could not be allocated.
+
+The returned pointer must be verified by calling @samp{OCRAD_get_errno}
+before using it. If @samp{OCRAD_get_errno} does not return
+@samp{OCRAD_ok}, the returned pointer must not be used and should be
+freed with @samp{OCRAD_close} to avoid memory leaks.
+@end deftypefun
+
+
+@deftypefun int OCRAD_close ( struct OCRAD_Descriptor * const @var{ocrdes} )
+Frees all dynamically allocated data structures for this descriptor.
+After a call to @samp{OCRAD_close}, @var{ocrdes} can no more be used as
+an argument to any OCRAD function.
+@end deftypefun
+
+
+@deftypefun {enum OCRAD_Errno} OCRAD_get_errno ( struct OCRAD_Descriptor * const @var{ocrdes} )
+Returns the current error code for @var{ocrdes} (@pxref{Library error codes}).
+@end deftypefun
+
+
+@deftypefun int OCRAD_set_image ( struct OCRAD_Descriptor * const @var{ocrdes}, const struct OCRAD_Pixmap * const @var{image}, const bool @var{invert} )
+Loads @var{image} into the internal buffer. If @var{invert} is true,
+image levels are inverted (white on black). Loading a new image deletes
+any previous text results.
+@end deftypefun
+
+
+@deftypefun int OCRAD_set_image_from_file ( struct OCRAD_Descriptor * const @var{ocrdes}, const char * const @var{filename}, const bool @var{invert} )
+Loads a image from the file @var{filename} into the internal buffer. If
+@var{invert} is true, image levels are inverted (white on black).
+Loading a new image deletes any previous text results.
+@end deftypefun
+
+
+@deftypefun int OCRAD_set_utf8_format ( struct OCRAD_Descriptor * const @var{ocrdes}, const bool @var{utf8} )
+Set the output format to @samp{byte} (if @var{utf8}=false) or to
+@samp{utf8}. By default ocrad produces @samp{byte} (8 bit) output.
+@end deftypefun
+
+
+@deftypefun int OCRAD_set_threshold ( struct OCRAD_Descriptor * const @var{ocrdes}, const int @var{threshold} )
+Set binarization threshold for greymap or RGB images. @var{threshold}
+values between 0 and 255 set a fixed threshold. A value of -1 sets an
+automatic threshold. Pixel values greater than the resulting threshold
+are converted to white. The default threshold value if this function is
+not called is 127.
+@end deftypefun
+
+
+@deftypefun int OCRAD_scale ( struct OCRAD_Descriptor * const @var{ocrdes}, const int @var{value} )
+Scale up the image in the internal buffer by @var{value}. If @var{value}
+is negative, the image is scaled down by @var{-value}.
+@end deftypefun
+
+
+@deftypefun int OCRAD_recognize ( struct OCRAD_Descriptor * const @var{ocrdes}, const bool @var{layout} )
+Recognize the image loaded in the internal buffer and produce text
+results which can be later retrieved with the @samp{OCRAD_result}
+functions. The same image can be recognized as many times as desired,
+for example setting a new threshold each time for 3D greymap
+recognition. Every time this function is called, the produced text
+results replace any previous ones. If @var{layout} is true, page layout
+analysis is enabled, probably producing more than one text block.
+@end deftypefun
+
+
+@deftypefun int OCRAD_result_blocks ( struct OCRAD_Descriptor * const @var{ocrdes} )
+Returns the number of text blocks found in the image by the layout
+analyser or 1 if no layout analysis was requested.
+@end deftypefun
+
+
+@deftypefun int OCRAD_result_lines ( struct OCRAD_Descriptor * const @var{ocrdes}, const int @var{blocknum} )
+Returns the number of text lines contained in the given text block.
+@end deftypefun
+
+
+@deftypefun int OCRAD_result_chars_total ( struct OCRAD_Descriptor * const @var{ocrdes} )
+Returns the total number of text characters contained in the recognized
+image.
+@end deftypefun
+
+
+@deftypefun int OCRAD_result_chars_block ( struct OCRAD_Descriptor * const @var{ocrdes}, const int @var{blocknum} )
+Returns the number of text characters contained in the given text block.
+@end deftypefun
+
+
+@deftypefun int OCRAD_result_chars_line ( struct OCRAD_Descriptor * const @var{ocrdes}, const int @var{blocknum}, const int @var{linenum} )
+Returns the number of text characters contained in the given text line.
+@end deftypefun
+
+
+
+@deftypefun {const char *} OCRAD_result_line ( struct OCRAD_Descriptor * const @var{ocrdes}, const int @var{blocknum}, const int @var{linenum} )
+Returns the line of text specified by @var{blocknum} and @var{linenum}.
+@end deftypefun
+
+
+@deftypefun int OCRAD_result_first_character ( struct OCRAD_Descriptor * const @var{ocrdes} )
+Returns the byte result for the first character in the image. Returns 0
+if the image has no characters or if the first character could not be
+recognized. This function is a convenient short cut to the result for
+images containing a single character.
+@end deftypefun
+
+
+@node Library error codes
+@chapter Library error codes
+@cindex library error codes
+
+Most library functions return -1 or a null pointer to indicate that they
+have failed. But this return value only tells you that an error has
+occurred. To find out what kind of error it was, you need to verify the
+error code by calling @samp{OCRAD_get_errno}.
+
+Library functions do not change the value returned by
+@samp{OCRAD_get_errno} when they succeed; thus, the value returned by
+@samp{OCRAD_get_errno} after a successful call is not necessarily
+OCRAD_ok, and you should not use @samp{OCRAD_get_errno} to determine
+whether a call failed. If the call failed, then you can examine
+@samp{OCRAD_get_errno}.
+
+The error codes are defined in the header file @samp{ocradlib.h}.
+
+@deftypevr Constant {enum OCRAD_Errno} OCRAD_ok
+The value of this constant is 0 and is used to indicate that there is no
+error.
+@end deftypevr
+
+@deftypevr Constant {enum OCRAD_Errno} OCRAD_bad_argument
+At least one of the arguments passed to the library function was
+invalid.
+@end deftypevr
+
+@deftypevr Constant {enum OCRAD_Errno} OCRAD_mem_error
+No memory available. The system cannot allocate more virtual memory
+because its capacity is full.
+@end deftypevr
+
+@deftypevr Constant {enum OCRAD_Errno} OCRAD_sequence_error
+A library function was called in the wrong order. For example
+@samp{OCRAD_result_line} was called before @samp{OCRAD_recognize}.
+@end deftypevr
+
+@deftypevr Constant {enum OCRAD_Errno} OCRAD_library_error
+A bug was detected in the library. Please, report it (@pxref{Problems}).
+@end deftypevr
+
+
+@node Image format conversion
+@chapter Image format conversion
+@cindex image format conversion
+
+There are a lot of image formats, but ocrad is able to decode only three
+of them; pbm, pgm and ppm. In this chapter you will find command
+examples and advice about how to convert image files to a format that
+ocrad can manage.
+
+@table @samp
+@item .png
+Portable Network Graphics file. Use the command
+@w{@code{pngtopnm filename.png | ocrad}}.@*
+In some cases, like the ocrad.png icon, you have to invert the image
+with the @samp{-i} option: @w{@code{pngtopnm filename.png | ocrad -i}}.
+
+@item .ps
+@itemx .pdf
+Postscript or Portable Document Format file. Use the command
+@w{@code{gs -sPAPERSIZE=a4 -sDEVICE=pnmraw -r300 -dNOPAUSE -dBATCH -sOutputFile=- -q filename.ps | ocrad}}.@*
+You may also use the command
+@w{@code{pstopnm -stdout -dpi=300 -pgm filename.ps | ocrad}},@*
+but it seems not to work with pdf files. Also old versions of
+@code{pstopnm} don't recognize the @samp{-dpi} option and produce an
+image too small for OCR.
+
+@item .tiff
+TIFF file. Use the command@*
+@w{@code{tifftopnm filename.tiff | ocrad}}.
+
+@item .jpg
+JPEG file. Use the command
+@w{@code{djpeg -greyscale -pnm filename.jpg | ocrad}}.@*
+JPEG is a lossy format and is in general not recommended for text images.
+
+@item .pnm.gz
+Pnm file compressed with gzip. Use the command
+@w{@code{gzip -cd filename.pnm.gz | ocrad}}
+
+@item .pnm.lz
+Pnm file compressed with lzip. Use the command
+@w{@code{lzip -cd filename.pnm.lz | ocrad}}
+
+@end table
+
+
+@node Algorithm
+@chapter Algorithm
+@cindex algorithm
+
+Ocrad is mainly a research project. Many of the algorithms ocrad uses
+are ad hoc, and will change in successive releases as I myself gain
+understanding about OCR issues.
+
+The overall working of ocrad may be described as follows:@*
+1) read the image.@*
+2) optionally, perform some transformations (cut, rotate, scale, etc).@*
+3) optionally, perform layout detection.@*
+4) remove frames and pictures.@*
+5) detect characters and group them in lines.@*
+6) recognize characters (very ad hoc; one algorithm per character).@*
+7) correct some errors (transform l.OOO into 1.000, etc).@*
+8) output result.
+
+@sp 1
+Ocrad recognizes characters by its shape, and the reason it is so fast
+is that it does not compare the shape of every character against some
+sort of database of shapes and then chooses the best match. Instead of
+this, ocrad only compares the shape differences that are relevant to
+choose between two character categories, mostly like a binary search.
+
+As there is no such thing as a free lunch, this approach has some
+drawbacks. It makes ocrad very sensitive to character defects, and makes
+difficult to modify ocrad to recognize new characters.
+
+
+@node OCR results file
+@chapter OCR results file
+@cindex OCR results file
+
+Calling ocrad with option @samp{-x} produces an OCR results file (ORF),
+that is, a parsable file containing the OCR results. The ORF format is
+as follows:
+
+@itemize @minus
+@item
+Any line beginning with @samp{#} is a comment line.
+@item
+The first non-comment line has the form
+@w{@samp{source file @var{filename}}}, where @var{filename} is the name
+of the file being processed (@samp{-} for stdin). This is the only line
+guaranteed to exist for every input file read without errors. If the
+file, or any block or line, has no text, the corresponding part in the
+ORF file will be missing.
+@item
+The second non-comment line has the form
+@w{@samp{total text blocks @var{n}}}, where @var{n} is the total number
+of text blocks in the source image.
+@end itemize
+
+@noindent
+For each text block in the source image, the following data follows:
+
+@itemize @minus
+@item
+A line in the form @w{@samp{text block @var{i} @var{x y w h}}}. Where
+@var{i} is the block number and @var{x y w h} are the block position and
+size as described below for character boxes.
+@item
+A line in the form @samp{lines @var{n}}. Where @var{n} is the number of
+lines in this block.
+@end itemize
+
+@noindent
+For each line in every text block, the following data follows:
+
+@itemize @minus
+@item
+A line in the form @samp{line @var{i} chars @var{n} height @var{h}},
+where @var{i} is the line number, @var{n} is the number of characters in
+this line, and @var{h} is the mean height of the characters in this line
+(in pixels).
+@item
+N lines (one for every character) in the form
+@w{@samp{@var{x} @var{y} @var{w} @var{h}; @var{g}[, '@var{c}'@var{v}]...}},
+where:@*
+@var{x} is the left border (x-coordinate) of the char bounding box in the
+source image (in pixels).@*
+@var{y} is the top border (y-coordinate).@*
+@var{w} is the width of the bounding box.@*
+@var{h} is the height of the bounding box.@*
+@var{g} is the number of different recognition guesses for this character.@*
+The result characters follow after the number of guesses in the form of
+a comma-separated list of pairs. Every pair is formed by the actual
+recognised char @var{c} enclosed in single quotes, followed by the
+confidence value @var{v}, without space between them. The higher the
+value of confidence, the more confident is the result.
+@end itemize
+
+Running @code{./ocrad -x test.orf examples/test.pbm} in the source directory
+will give you an example ORF file.
+
+
+@node Problems
+@chapter Reporting bugs
+@cindex bugs
+@cindex getting help
+
+There are probably bugs in ocrad. There are certainly errors and
+omissions in this manual. If you report them, they will get fixed. If
+you don't, no one will ever know about them and they will remain unfixed
+for all eternity, if not longer.
+
+If you find a bug in GNU Ocrad, please send electronic mail to
+@email{bug-ocrad@@gnu.org}. Include the version number, which you can
+find by running @w{@samp{ocrad --version}}.
+
+
+@node Concept index
+@unnumbered Concept index
+
+@printindex cp
+
+@bye

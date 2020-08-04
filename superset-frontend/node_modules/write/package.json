@@ -1,0 +1,78 @@
+{
+  "name": "write",
+  "description": "Write data to a file, replacing the file if it already exists and creating any intermediate directories if they don't already exist. Thin wrapper around node's native fs methods.",
+  "version": "1.0.3",
+  "homepage": "https://github.com/jonschlinkert/write",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Charlike Mike Reagent (https://i.am.charlike.online)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/write",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/write/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "mkdirp": "^0.5.1"
+  },
+  "devDependencies": {
+    "async-each": "^1.0.1",
+    "delete": "^1.1.0",
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.4.2"
+  },
+  "keywords": [
+    "file",
+    "filepath",
+    "files",
+    "filesystem",
+    "folder",
+    "fs",
+    "fs.writeFile",
+    "fs.writeFileSync",
+    "path",
+    "write"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "delete",
+        "read-data",
+        "read-yaml",
+        "write-data",
+        "write-json",
+        "write-yaml"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/write/-/write-1.0.3.tgz"
+,"_integrity": "sha512-/lg70HAjtkUgWPVZhZcm+T4hkL8Zbtp1nFNOn3lRrxnlv50SRBv7cR7RqR+GMsd3hUXy9hWBo4CHTbFTcOYwig=="
+,"_from": "write@1.0.3"
+}

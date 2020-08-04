@@ -1,0 +1,82 @@
+.sel-blue {
+  a: b;
+}
+.sel-green {
+  a: b;
+}
+.sel-red {
+  a: b;
+}
+.each {
+  index: 1, 2, 3, 4;
+  item1: a;
+  item2: b;
+  item3: c;
+  item4: d;
+  nest-1-1: 10px 1;
+  nest-2-1: 15px 2;
+  nest-1-2: 20px 1;
+  nest-2-2: 25px 2;
+  padding: 10px 20px 30px 40px;
+}
+.each .nest-anon {
+  nest-1-1: a c;
+  nest-1-2: a d;
+  nest-2-1: b c;
+  nest-2-2: b d;
+}
+.set {
+  one: blue;
+  two: green;
+  three: red;
+}
+.set-2 {
+  one-1: blue;
+  two-2: green;
+  three-3: red;
+}
+.single {
+  val: true;
+  val2: 2;
+  val3: 4;
+}
+.column-list {
+  list: 1 2 3 4;
+}
+.col-1 {
+  width: 25%;
+}
+.col-2 {
+  width: 25%;
+}
+.col-3 {
+  width: 25%;
+}
+.col-4 {
+  width: 25%;
+}
+.row-1 {
+  width: 10px;
+}
+.row-2 {
+  width: 20px;
+}
+.row-3 {
+  width: 30px;
+}
+.box {
+  -less-log: a;
+  -less-log: b;
+  -less-log: c;
+  -less-log: d;
+}
+.test {
+  color: blue;
+  color: red;
+}
+.foo {
+  content: red;
+}
+.bar {
+  content: blue;
+}

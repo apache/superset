@@ -1,0 +1,20 @@
+// @flow
+import type {
+    GeoJSONGeometry
+} from '../../index';
+
+const geojson: GeoJSONGeometry = {
+  "type": "MultiPoint",
+  "coordinates": [
+    [
+      100,
+      0,
+      1
+    ],
+    [
+      101,
+      1,
+      2
+    ]
+  ]
+}

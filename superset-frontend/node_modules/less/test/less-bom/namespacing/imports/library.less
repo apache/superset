@@ -1,0 +1,14 @@
+﻿
+// I am a library
+#library {
+  .sizes() {
+    @width: 600px;
+  }
+  .add-one(@val) {
+    @return: @val + 1px;
+  }
+  .sizes(@test) when (@test = true) {
+    @width: 400px;
+  }
+}
+

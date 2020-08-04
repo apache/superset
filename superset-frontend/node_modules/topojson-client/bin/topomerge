@@ -1,0 +1,216 @@
+#!/usr/bin/env node
+
+var fs = require("fs"),
+    vm = require("vm"),
+    commander = require("commander"),
+    topojson = require("../");
+
+commander
+    .version(require("../package.json").version)
+    .usage("[options] <target=source> [file]")
+    .description("Merges the source TopoJSON geometry collection, assigning to the target.")
+    .option("-o, --out <file>", "output topology file name; defaults to “-” for stdout", "-")
+    .option("-k, --key <expression>", "group geometries by key")
+    .option("-f, --filter <expression>", "filter merged geometries or meshed lines")
+    .option("--mesh", "mesh lines instead of merging polygons")
+    .parse(process.argv);
+
+if (commander.args.length < 1) {
+  console.error();
+  console.error("  error: missing source and target names");
+  console.error();
+  process.exit(1);
+} else if (commander.args.length > 2) {
+  console.error();
+  console.error("  error: multiple input files");
+  console.error();
+  process.exit(1);
+} else if (commander.args.length === 1) {
+  commander.args.push("-");
+}
+
+var keyFunction = function() {},
+    postfilterFunction = function() { return true; },
+    prefilterFunction = function() { return true; };
+
+if (commander.key != null) {
+  var keySandbox = {d: undefined, i: -1},
+      keyContext = new vm.createContext(keySandbox),
+      keyScript = new vm.Script("(" + commander.key + ")");
+  keyFunction = function(d, i) {
+    keySandbox.d = d;
+    keySandbox.i = i;
+    return keyScript.runInContext(keyContext);
+  };
+}
+
+if (commander.filter != null) {
+  if (commander.mesh) {
+    var filterSandbox = {a: undefined, b: undefined},
+        filterContext = new vm.createContext(filterSandbox),
+        filterScript = new vm.Script("(" + commander.filter + ")");
+    postfilterFunction = function(a, b) {
+      filterSandbox.a = a;
+      filterSandbox.b = b;
+      return filterScript.runInContext(filterContext);
+    };
+  } else {
+    var filterSandbox = {d: undefined, i: -1},
+        filterContext = new vm.createContext(filterSandbox),
+        filterScript = new vm.Script("(" + commander.filter + ")");
+    prefilterFunction = function(d, i) {
+      filterSandbox.d = d;
+      filterSandbox.i = i;
+      return filterScript.runInContext(filterContext);
+    };
+  }
+}
+
+read(commander.args[1]).then(merge).then(write(commander.out)).catch(abort);
+
+function read(file) {
+  return new Promise(function(resolve, reject) {
+    var data = [], stream = file === "-" ? process.stdin : fs.createReadStream(file);
+    stream
+        .on("data", function(d) { data.push(d); })
+        .on("end", function() { resolve(JSON.parse(Buffer.concat(data))); })
+        .on("error", reject);
+  });
+}
+
+function merge(topology) {
+  var name = commander.args[0], i = name.indexOf("="),
+      sourceName = i >= 0 ? name.slice(i + 1) : name,
+      targetName = i >= 0 ? name.slice(0, i) : name,
+      source = topology.objects[sourceName],
+      target = topology.objects[targetName] = {type: "GeometryCollection", geometries: []},
+      geometries = target.geometries,
+      geometriesByKey = {},
+      k;
+
+  if (!source) {
+    console.error();
+    console.error("  error: source object “" + name + "” not found");
+    console.error();
+    process.exit(1);
+  }
+
+  if (source.type !== "GeometryCollection") {
+    console.error();
+    console.error("  error: expected GeometryCollection, not " + source.type);
+    console.error();
+    process.exit(1);
+  }
+
+  source.geometries.forEach(function(geometry, i) {
+    if (!prefilterFunction(geometry, i)) return;
+    var k = stringify(keyFunction(geometry, i)), v;
+    if (v = geometriesByKey[k]) v.push(geometry);
+    else geometriesByKey[k] = v = [geometry];
+  });
+
+  if (commander.mesh) {
+    for (k in geometriesByKey) {
+      var v = geometriesByKey[k],
+          o = topojson.meshArcs(topology, {type: "GeometryCollection", geometries: v}, postfilterFunction);
+      o.id = k.length > 1 ? k.slice(1) : undefined;
+      o.properties = properties(v);
+      geometries.push(o);
+    }
+  } else {
+    for (k in geometriesByKey) {
+      var v = geometriesByKey[k],
+          o = topojson.mergeArcs(topology, v);
+      o.id = k.length > 1 ? k.slice(1) : undefined;
+      o.properties = properties(v);
+      geometries.push(o);
+    }
+  }
+
+  return topology;
+}
+
+function stringify(key) {
+  return key == null ? "$" : "$" + key;
+}
+
+function properties(objects) {
+  var properties = undefined, hasProperties;
+
+  objects.forEach(function(object) {
+    var newProperties = object.properties, key;
+
+    // If no properties have yet been merged,
+    // then we need to initialize the merged properties object.
+    if (properties === undefined) {
+
+      // If the first set of properties is null, undefined or empty,
+      // then the result of the merge will be the empty set.
+      // Otherwise, the new properties can copied into the merged object.
+      if (newProperties != null) for (key in newProperties) {
+        properties = {};
+        for (key in newProperties) properties[key] = newProperties[key];
+        return;
+      }
+
+      properties = null;
+      return;
+    }
+
+    // If any of the new properties are null or undefined,
+    // then the result of the merge will be the empty set.
+    if (newProperties == null) properties = null;
+    if (properties === null) return;
+
+    // Now mark as inconsistent any of the properties
+    // that differ from previously-merged values.
+    for (key in newProperties) {
+      if ((key in properties) && !is(properties[key], newProperties[key])) {
+        properties[key] = undefined;
+      }
+    }
+
+    // And mark as inconsistent any of the properties
+    // that are missing from this new set of merged values.
+    for (key in properties) {
+      if (!(key in newProperties)) {
+        properties[key] = undefined;
+      }
+    }
+
+    return object;
+  });
+
+  // Return undefined if there are no properties.
+  for (var key in properties) {
+    if (properties[key] !== undefined) {
+      return properties;
+    }
+  }
+};
+
+function write(file) {
+  var stream = (file === "-" ? process.stdout : fs.createWriteStream(file)).on("error", handleEpipe);
+  return function(topology) {
+    return new Promise(function(resolve, reject) {
+      stream.on("error", reject)[stream === process.stdout ? "write" : "end"](JSON.stringify(topology) + "\n", function(error) {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+  };
+}
+
+function handleEpipe(error) {
+  if (error.code === "EPIPE" || error.errno === "EPIPE") {
+    process.exit(0);
+  }
+}
+
+function abort(error) {
+  console.error(error.stack);
+}
+
+function is(x, y) {
+  return x === y ? x !== 0 || 1 / x === 1 / y : x !== x && y !== y;
+}

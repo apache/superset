@@ -1,0 +1,56 @@
+{
+  "name": "postcss-modules-scope",
+  "version": "1.1.0",
+  "description": "A CSS Modules transform to extract export statements from local-scope classes",
+  "main": "lib/index.js",
+  "scripts": {
+    "lint": "eslint src",
+    "build": "babel --out-dir lib src",
+    "watch": "chokidar src -c 'npm run build'",
+    "test": "mocha --compilers js:babel/register",
+    "posttest": "npm run lint && npm run build",
+    "autotest": "chokidar src test -c 'npm test'",
+    "precover": "npm run lint && npm run build",
+    "cover": "babel-istanbul cover node_modules/.bin/_mocha",
+    "travis": "npm run cover -- --report lcovonly",
+    "prepublish": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/css-modules/postcss-modules-scope.git"
+  },
+  "keywords": [
+    "css-modules",
+    "postcss",
+    "plugin"
+  ],
+  "files": [
+    "lib"
+  ],
+  "author": "Glen Maddern",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/css-modules/postcss-modules-scope/issues"
+  },
+  "homepage": "https://github.com/css-modules/postcss-modules-scope",
+  "dependencies": {
+    "css-selector-tokenizer": "^0.7.0",
+    "postcss": "^6.0.1"
+  },
+  "devDependencies": {
+    "babel": "^5.4.7",
+    "babel-eslint": "^6.1.2",
+    "babel-istanbul": "^0.4.0",
+    "babelify": "^7.1.0",
+    "chokidar-cli": "^1.0.1",
+    "codecov.io": "^0.1.2",
+    "coveralls": "^2.11.2",
+    "css-selector-parser": "^1.0.4",
+    "eslint": "^1.5.0",
+    "mocha": "^3.0.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-modules-scope/-/postcss-modules-scope-1.1.0.tgz"
+,"_integrity": "sha1-1upkmUx5+XtipytCb75gVqGUu5A="
+,"_from": "postcss-modules-scope@1.1.0"
+}

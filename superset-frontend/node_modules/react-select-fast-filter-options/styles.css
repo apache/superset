@@ -1,0 +1,75 @@
+html, body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: #2196f3;
+}
+a:hover {
+  text-decoration: none;
+}
+
+.header {
+  color: #fff;
+  text-align: center;
+  background-color: #F1F2B5;
+  background-image: linear-gradient(120deg, #135058, #F1F2B5);
+  padding: 2rem;
+}
+
+.header__title {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.header_tagline {
+  margin: 1rem 0 2rem;
+  opacity: 0.85;
+}
+
+.header__button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  font-size: 1.25rem;
+  padding: 1.5rem;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 0.3rem;
+  transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+}
+.header__button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+.header__button__image {
+  margin-left: 1rem;
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
+
+.container {
+  width: 1000px;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.section {
+}
+
+.section__header {
+  font-size: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #135058;
+}

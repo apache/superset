@@ -1,0 +1,67 @@
+﻿
+.block_1 {
+  color: red;
+  background-color: $color;
+  @width: 50px;
+  width: @width;
+  height: ($width / 2);
+  @color: red;
+  border: 1px solid lighten($color, 10%);
+  &:hover {
+    color: $color;
+    background-color: $color;
+    .mixin1();
+  }
+  .one {
+    background: $color;
+  }
+  content: "${color}";
+  prop: $color;
+
+}
+
+.block_2 {
+  color: red; 
+  .two {
+    background-color: $color; 
+  }
+  color: blue;  
+}
+
+.block_3 {
+  color: red; 
+  .three {
+    background-color: $color;
+  }
+  .mixin2();
+  color: blue;
+}
+.block_4 {
+  color: red; 
+  .four {
+    background-color: $color;
+  }
+  color: blue;
+  .mixin2();
+}
+// property merging
+a {
+    background-color+: red;
+    background-color+: foo;
+
+    &b {
+        background: $background-color;
+    }
+}
+
+.value_as_property {
+  prop1: color;
+  ${prop1}: #FF0000;  // not sure why you'd want to do this, but ok
+}
+
+.mixin1() {
+  color: green;
+}
+.mixin2() { 
+  color: yellow;
+}

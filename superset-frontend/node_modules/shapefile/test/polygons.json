@@ -1,0 +1,9 @@
+{
+  "type": "FeatureCollection",
+  "bbox": [0, 0, 5, 5],
+  "features": [
+    {"type": "Feature","properties": {},"geometry": {"type": "Polygon", "coordinates": [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]]}},
+    {"type": "Feature","properties": {},"geometry": {"type": "Polygon", "coordinates": [[[0, 0], [0, 4], [4, 4], [4, 0], [0, 0]], [[1, 1], [3, 1], [3, 3], [1, 3], [1, 1]]]}},
+    {"type": "Feature","properties": {},"geometry": {"type": "MultiPolygon", "coordinates": [[[[2, 2], [2, 3], [3, 3], [3, 2], [2, 2]]], [[[4, 4], [4, 5], [5, 5], [5, 4], [4, 4]]]]}}
+  ]
+}

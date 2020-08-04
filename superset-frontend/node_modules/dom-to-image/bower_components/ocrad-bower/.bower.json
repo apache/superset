@@ -1,0 +1,32 @@
+{
+  "name": "ocrad-bower",
+  "description": "OCR in Javascript via Emscripten as a bower package",
+  "main": "ocrad.js",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "ocr"
+  ],
+  "authors": [
+    "Kevin Kwok",
+    "Robert Agthe"
+  ],
+  "license": "GPL",
+  "homepage": "http://antimatter15.github.io/ocrad.js/demo.html",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components"
+  ],
+  "dependencies": {},
+  "_release": "1c837341c6",
+  "_resolution": {
+    "type": "branch",
+    "branch": "master",
+    "commit": "1c837341c6196b77113f9fba10dee5527ba1ba13"
+  },
+  "_source": "https://github.com/polarity/ocrad-bower.git",
+  "_target": "*",
+  "_originalSource": "ocrad-bower"
+}

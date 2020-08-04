@@ -1,0 +1,38 @@
+language: node_js
+node_js:
+- '8'
+install:
+- npm install react
+- npm install react-dom
+- npm install
+script:
+- npm run build
+- npm run lint
+- npm run coverage
+- npm run build:example
+after_success:
+  - cat ./coverage/*.info | ./node_modules/coveralls/bin/coveralls.js
+deploy:
+  - provider: releases
+    api_key:
+      secure: R4xxz1QwZlkXP3jFKqCnIW/IdGCBpaKJ9dPm53PM1cHcovvIJtY/ZJXS+e1Vs1zwCODhj6AN7BjyysS/YLVs2SV7G9YgjZECKnINXVIGnNGefutWuKho2uXFBBU25pXe10/GjvadlJDA7lbAKJoL0mDi0RituksIx6K+rDheOSI=
+    file: dist/react-ace.min.js
+    skip_cleanup: true
+    on:
+      tags: true
+      repo: securingsincity/react-ace
+  - provider: npm
+    email: james.hrisho@gmail.com
+    api_key:
+      secure: J5+W0ILDSk70KElNF7jzAOSQc72G+U/gbYml+ULepm4xMxUHwB1b5R0P0UTVDQ5x1H+tfrXruTSTF81ood4DYmQRicrvjAOxdgDDaLQ118sw6dIA67IpIbjUgu5KJeFvM48jU3HcxH73myZv/EaKSVHAFP5ZQhLOi818zCTyeh0=
+    skip_cleanup: true
+    on:
+      tags: true
+      repo: securingsincity/react-ace
+  - provider: pages
+    skip_cleanup: true
+    github_token: $GITHUB_TOKEN
+    on:
+      branch: master
+      repo: securingsincity/react-ace
+    local_dir: example

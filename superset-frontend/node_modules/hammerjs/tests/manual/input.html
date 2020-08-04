@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+    <meta name="msapplication-tap-highlight" content="no"/>
+    <link rel="stylesheet" href="assets/style.css">
+    <title>Hammer.js</title>
+</head>
+<body>
+    <div class="container">
+        <div id="hit" class="bg1" style="padding: 30px; height: 200px;">
+        </div>
+
+        <pre id="debug" style="overflow:hidden; background: #eee; padding: 15px;"></pre>
+
+        <pre id="log" style="overflow:hidden;"></pre>
+    </div>
+    <script src="../../hammer.js"></script>
+    <script>
+
+        Object.prototype.toDirString = function() {
+            var output = [];
+            for(var key in this) {
+                if(this.hasOwnProperty(key)) {
+                    var value = this[key];
+                    if(Array.isArray(value)) {
+                        value = "Array("+ value.length +"):"+ value;
+                    } else if(value instanceof HTMLElement) {
+                        value = value +" ("+ value.outerHTML.substring(0, 50) +"...)";
+                    }
+                    output.push(key +": "+ value);
+                }
+            }
+            return output.join("\n")
+        };
+
+        var el = document.querySelector("#hit");
+        var log = document.querySelector("#log");
+        var debug = document.querySelector("#debug");
+
+        var mc = new Hammer(el);
+        mc.get('pinch').set({ enable: true });
+
+        mc.on("hammer.input", function(ev) {
+            debug.innerHTML = [ev.srcEvent.type, ev.pointers.length, ev.isFinal, ev.deltaX, ev.deltaY].join("<br>");
+        });
+
+    </script>
+</body>
+</html>

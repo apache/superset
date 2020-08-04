@@ -1,0 +1,17 @@
+/* scatter */
+.nvd3 .nv-groups .nv-point.hover {
+    stroke-width: 20px;
+    stroke-opacity: .5;
+}
+
+.nvd3 .nv-scatter .nv-point.hover {
+    fill-opacity: 1;
+}
+
+.nv-noninteractive {
+    pointer-events: none;
+}
+
+.nv-distx, .nv-disty {
+    pointer-events: none;
+}

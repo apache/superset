@@ -1,0 +1,35 @@
+{
+  "name": "cli-width",
+  "version": "2.2.0",
+  "description": "Get stdout window width, with two fallbacks, tty and then a default.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test | tspec",
+    "coverage": "isparta cover test/*.js | tspec",
+    "coveralls": "npm run coverage -s && coveralls < coverage/lcov.info",
+    "postcoveralls": "rimraf ./coverage",
+    "release": "standard-version"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:knownasilya/cli-width.git"
+  },
+  "author": "Ilya Radchenko <ilya@burstcreations.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/knownasilya/cli-width/issues"
+  },
+  "homepage": "https://github.com/knownasilya/cli-width",
+  "devDependencies": {
+    "coveralls": "^2.11.4",
+    "isparta": "^3.0.4",
+    "rimraf": "^2.4.3",
+    "standard-version": "^4.2.0",
+    "tap-spec": "^4.1.0",
+    "tape": "^3.4.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/cli-width/-/cli-width-2.2.0.tgz"
+,"_integrity": "sha1-/xnt6Kml5XkyQUewwR8PvLq+1jk="
+,"_from": "cli-width@2.2.0"
+}

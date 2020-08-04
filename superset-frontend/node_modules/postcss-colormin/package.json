@@ -1,0 +1,53 @@
+{
+  "name": "postcss-colormin",
+  "version": "4.0.3",
+  "description": "Minify colors in your CSS files with PostCSS.",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "LICENSE-MIT"
+  ],
+  "scripts": {
+    "prepublish": "cross-env BABEL_ENV=publish babel-node ./src/generate.js && babel src --out-dir dist --ignore /__tests__/,src/generate.js"
+  },
+  "keywords": [
+    "color",
+    "colors",
+    "compression",
+    "css",
+    "minify",
+    "postcss",
+    "postcss-plugin"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "babel-cli": "^6.0.0",
+    "cross-env": "^5.0.0",
+    "css-color-names": "0.0.4",
+    "write-file": "^1.0.0"
+  },
+  "homepage": "https://github.com/cssnano/cssnano",
+  "author": {
+    "name": "Ben Briggs",
+    "email": "beneb.info@gmail.com",
+    "url": "http://beneb.info"
+  },
+  "repository": "cssnano/cssnano",
+  "dependencies": {
+    "browserslist": "^4.0.0",
+    "color": "^3.0.0",
+    "has": "^1.0.0",
+    "postcss": "^7.0.0",
+    "postcss-value-parser": "^3.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/cssnano/cssnano/issues"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-colormin/-/postcss-colormin-4.0.3.tgz"
+,"_integrity": "sha512-WyQFAdDZpExQh32j0U0feWisZ0dmOtPl44qYmJKkq9xFWY3p+4qnRzCHeNrkeRhwPHz9bQ3mo0/yVkaply0MNw=="
+,"_from": "postcss-colormin@4.0.3"
+}

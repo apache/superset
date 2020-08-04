@@ -1,0 +1,9 @@
+body {
+  width: 100%;
+}
+data-uri {
+  property: url("data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%20standalone%3D%22no%22%3F%3E%0A%3Csvg%20height%3D%22100%22%20width%3D%22100%22%3E%0A%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2240%22%20stroke%3D%22black%22%20stroke-width%3D%221%22%20fill%3D%22blue%22%20%2F%3E%0A%3C%2Fsvg%3E%0A");
+}
+image-size {
+  property: 100px 100px;
+}

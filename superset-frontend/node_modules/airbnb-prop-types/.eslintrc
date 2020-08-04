@@ -1,0 +1,8 @@
+{
+  "root": true,
+  "extends": "airbnb",
+  "rules": {
+    "function-paren-newline": 0,
+    "no-restricted-globals": 1
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "esquery",
+  "preferGlobal": false,
+  "version": "1.0.1",
+  "author": "Joel Feenstra <jrfeenst+esquery@gmail.com>",
+  "description": "A query library for ECMAScript AST using a CSS selector like query language.",
+  "main": "esquery.js",
+  "files": [
+    "esquery.js",
+    "parser.js",
+    "license.txt",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node node_modules/jstestr/bin/jstestr.js path=tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrfeenst/esquery.git"
+  },
+  "keywords": [
+    "ast",
+    "ecmascript",
+    "javascript",
+    "query"
+  ],
+  "devDependencies": {
+    "jstestr": ">=0.4",
+    "pegjs": "~0.7.0",
+    "commonjs-everywhere": "~0.9.4",
+    "esprima": "~1.1.1"
+  },
+  "license": "BSD-3-Clause",
+  "engines": {
+    "node": ">=0.6"
+  },
+  "dependencies": {
+    "estraverse": "^4.0.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/esquery/-/esquery-1.0.1.tgz"
+,"_integrity": "sha512-SmiyZ5zIWH9VM+SRUReLS5Q8a7GxtRdxEBVZpm98rJM7Sb+A9DVCndXfkeFUd3byderg+EbDkfnevfCwynWaNA=="
+,"_from": "esquery@1.0.1"
+}

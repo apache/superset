@@ -1,0 +1,83 @@
+{
+  "name": "snapdragon",
+  "description": "Fast, pluggable and easy-to-use parser-renderer factory.",
+  "version": "0.8.2",
+  "homepage": "https://github.com/jonschlinkert/snapdragon",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Edward Betts (http://edwardbetts.com)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/snapdragon",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/snapdragon/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "base": "^0.11.1",
+    "debug": "^2.2.0",
+    "define-property": "^0.2.5",
+    "extend-shallow": "^2.0.1",
+    "map-cache": "^0.2.2",
+    "source-map": "^0.5.6",
+    "source-map-resolve": "^0.5.0",
+    "use": "^3.1.0"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.10",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.1",
+    "gulp-unused": "^0.2.0",
+    "mocha": "^3.0.2"
+  },
+  "keywords": [
+    "lexer",
+    "snapdragon"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "description": "These libraries use snapdragon:",
+      "list": [
+        "braces",
+        "expand-brackets",
+        "extglob",
+        "micromatch"
+      ]
+    },
+    "reflinks": [
+      "css",
+      "pug",
+      "verb",
+      "verb-generate-readme"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/snapdragon/-/snapdragon-0.8.2.tgz"
+,"_integrity": "sha512-FtyOnWN/wCHTVXOMwvSv26d+ko5vWlIDD6zoUJ7LW8vh+ZBC8QdljveRP+crNrtBwioEUWy/4dMtbBjA4ioNlg=="
+,"_from": "snapdragon@0.8.2"
+}

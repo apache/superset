@@ -1,0 +1,67 @@
+{
+  "name": "postcss-modules-extract-imports",
+  "version": "1.2.1",
+  "description": "A CSS Modules transform to extract local aliases for inline imports",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "babel --out-dir lib src",
+    "test": "jest --coverage",
+    "precommit": "lint-staged",
+    "prepublish": "yarn run test && yarn run build"
+  },
+  "lint-staged": {
+    "*.js": [
+      "prettier --single-quote --no-semi --write",
+      "git add"
+    ]
+  },
+  "babel": {
+    "presets": [
+      [
+        "env",
+        {
+          "targets": {
+            "node": 4
+          }
+        }
+      ]
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/css-modules/postcss-modules-extract-imports.git"
+  },
+  "keywords": [
+    "css-modules",
+    "postcss",
+    "plugin"
+  ],
+  "author": "Glen Maddern",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/css-modules/postcss-modules-extract-imports/issues"
+  },
+  "homepage": "https://github.com/css-modules/postcss-modules-extract-imports",
+  "dependencies": {
+    "postcss": "^6.0.1"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-eslint": "^7.2.2",
+    "babel-jest": "^20.0.3",
+    "babel-preset-env": "^1.5.1",
+    "codecov.io": "^0.1.2",
+    "coveralls": "^2.11.2",
+    "husky": "^0.13.3",
+    "jest": "^20.0.3",
+    "lint-staged": "^3.4.2",
+    "prettier": "^1.3.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-modules-extract-imports/-/postcss-modules-extract-imports-1.2.1.tgz"
+,"_integrity": "sha512-6jt9XZwUhwmRUhb/CkyJY020PYaPJsCyt3UjbaWo6XEbH/94Hmv6MP7fG2C5NDU/BcHzyGYxNtHvM+LTf9HrYw=="
+,"_from": "postcss-modules-extract-imports@1.2.1"
+}

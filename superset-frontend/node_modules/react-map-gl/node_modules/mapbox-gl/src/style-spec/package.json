@@ -1,0 +1,38 @@
+{
+  "name": "@mapbox/mapbox-gl-style-spec",
+  "description": "a specification for mapbox gl styles",
+  "version": "13.7.0",
+  "author": "Mapbox",
+  "keywords": [
+    "mapbox",
+    "mapbox-gl",
+    "mapbox-gl-js"
+  ],
+  "license": "ISC",
+  "main": "./dist/index.js",
+  "scripts": {
+    "copy-flow-typed": "cp -R ../../flow-typed .",
+    "build": "../../node_modules/.bin/rollup -c",
+    "prepublish": "yarn copy-flow-typed && yarn build",
+    "postpublish": "rm -r flow-typed dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:mapbox/mapbox-gl-js.git"
+  },
+  "bin": {
+    "gl-style-migrate": "bin/gl-style-migrate",
+    "gl-style-validate": "bin/gl-style-validate",
+    "gl-style-format": "bin/gl-style-format",
+    "gl-style-composite": "bin/gl-style-composite"
+  },
+  "dependencies": {
+    "@mapbox/jsonlint-lines-primitives": "~2.0.2",
+    "@mapbox/unitbezier": "^0.0.0",
+    "csscolorparser": "~1.0.2",
+    "json-stringify-pretty-compact": "^2.0.0",
+    "minimist": "0.0.8",
+    "rw": "^1.3.3",
+    "sort-object": "^0.3.2"
+  }
+}

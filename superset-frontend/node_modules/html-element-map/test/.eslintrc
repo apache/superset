@@ -1,0 +1,10 @@
+{
+	"rules": {
+		"array-bracket-newline": 0,
+		"complexity": 0,
+		"max-nested-callbacks": 0,
+		"max-params": 0,
+		"max-statements-per-line": 0,
+		"max-statements": 0,
+	},
+}

@@ -1,0 +1,127 @@
+{
+    "charset": "utf-8",
+    "headers": {
+        "project-id-version": "gettext-parser",
+        "report-msgid-bugs-to": "andris@node.ee",
+        "pot-creation-date": "2012-05-18 14:28:00+03:00",
+        "po-revision-date": "2012-05-18 14:37+0300",
+        "last-translator": "Andris Reinman <andris@kreata.ee>",
+        "language-team": "gettext-parser <andris@node.ee>",
+        "mime-version": "1.0",
+        "content-type": "text/plain; charset=utf-8",
+        "content-transfer-encoding": "8bit",
+        "language": "",
+        "plural-forms": "nplurals=2; plural=(n!=1);",
+        "x-poedit-language": "Estonian",
+        "x-poedit-country": "ESTONIA",
+        "x-poedit-sourcecharset": "utf-8"
+    },
+    "translations": {
+        "": {
+            "": {
+                "msgid": "",
+                "comments": {
+                    "translator": "gettext-parser test file.\nCopyright (C) 2012 Andris Reinman\nThis file is distributed under the same license as the gettext-parser package.\nANDRIS REINMAN <andris@node.ee>, 2012.\n"
+                },
+                "msgstr": [
+                    "Project-Id-Version: gettext-parser\nReport-Msgid-Bugs-To: andris@node.ee\nPOT-Creation-Date: 2012-05-18 14:28:00+03:00\nPO-Revision-Date: 2012-05-18 14:37+0300\nLast-Translator: Andris Reinman <andris@kreata.ee>\nLanguage-Team: gettext-parser <andris@node.ee>\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\nContent-Transfer-Encoding: 8bit\nLanguage: \nPlural-Forms: nplurals=2; plural=(n!=1);\nX-Poedit-Language: Estonian\nX-Poedit-Country: ESTONIA\nX-Poedit-Sourcecharset: utf-8\n"
+                ]
+            },
+            "o1": {
+                "msgid": "o1",
+                "comments": {
+                    "translator": "Normal string"
+                },
+                "msgstr": [
+                    "t1"
+                ]
+            },
+            "o2-1": {
+                "msgid": "o2-1",
+                "comments": {
+                    "translator": "Plural string"
+                },
+                "msgid_plural": "o2-2\no2-3\no2-4",
+                "msgstr": [
+                    "t2-1",
+                    "t2-2"
+                ]
+            },
+            "o3-õäöü": {
+                "msgid": "o3-õäöü",
+                "comments": {
+                    "translator": "Normal string with special chars"
+                },
+                "msgstr": [
+                    "t3-žš"
+                ]
+            },
+            "test": {
+                "msgid": "test",
+                "comments": {
+                    "translator": "Normal comment line 1\nNormal comment line 2",
+                    "extracted": "Editors note line 1\nEditors note line 2",
+                    "reference": "/absolute/path:13\n/absolute/path:14",
+                    "flag": "line 1\nline 2",
+                    "previous": "line 3\nline 4"
+                },
+                "msgstr": [
+                    "test"
+                ]
+            },
+            "\"\\'\t": {
+                "msgid": "\"\\'\t",
+                "comments": {
+                    "translator": "String with escapes"
+                },
+                "msgstr": [
+                    "\"\\'\t"
+                ]
+            }
+        },
+        "c1": {
+            "co1": {
+                "msgid": "co1",
+                "msgctxt": "c1",
+                "comments": {
+                    "translator": "Normal string in a context"
+                },
+                "msgstr": [
+                    "ct1"
+                ]
+            }
+        },
+        "c2": {
+            "co2-1": {
+                "msgid": "co2-1",
+                "msgctxt": "c2",
+                "comments": {
+                    "translator": "Plural string in a context"
+                },
+                "msgid_plural": "co2-2",
+                "msgstr": [
+                    "ct2-1",
+                    "ct2-2"
+                ]
+            }
+        },
+        "Button label": {
+            "Log in": {
+                "msgid": "Log in",
+                "msgctxt": "Button label",
+                "msgstr": [
+                    ""
+                ]
+            }
+        },
+        "Dialog title": {
+            "Log in": {
+                "msgid": "Log in",
+                "msgctxt": "Dialog title",
+                "msgstr": [
+                    ""
+                ]
+            }
+        }
+    }
+}

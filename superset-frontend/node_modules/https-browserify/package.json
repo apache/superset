@@ -1,0 +1,32 @@
+{
+  "name": "https-browserify",
+  "description": "https module compatability for browserify",
+  "version": "1.0.0",
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "devDependencies": {
+    "standard": "^9.0.2"
+  },
+  "homepage": "https://github.com/substack/https-browserify",
+  "keywords": [
+    "browser",
+    "browserify",
+    "https"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/https-browserify.git"
+  },
+  "scripts": {
+    "test": "standard"
+  }
+
+,"_resolved": "https://registry.npmjs.org/https-browserify/-/https-browserify-1.0.0.tgz"
+,"_integrity": "sha1-7AbBDgo0wPL68Zn3/X/Hj//QPHM="
+,"_from": "https-browserify@1.0.0"
+}

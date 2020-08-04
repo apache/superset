@@ -1,0 +1,48 @@
+@charset "UTF-8";
+/** comment at the top**/
+@import url(/absolute/something.css) screen and (color) and (max-width: 600px);
+@import url("//ha.com/file.css") (min-width: 100px);
+#import-test {
+  height: 10px;
+  color: red;
+  width: 10px;
+  height: 30%;
+}
+@media screen and (max-width: 600px) {
+  body {
+    width: 100%;
+  }
+}
+#import {
+  color: red;
+}
+.mixin {
+  height: 10px;
+  color: red;
+}
+.test-f {
+  height: 10px;
+}
+.deep-import-url {
+  color: red;
+}
+@media screen and (max-width: 601px) {
+  #css {
+    color: yellow;
+  }
+}
+@media screen and (max-width: 602px) {
+  body {
+    width: 100%;
+  }
+}
+@media screen and (max-width: 603px) {
+  #css {
+    color: yellow;
+  }
+}
+@media print {
+  body {
+    width: 100%;
+  }
+}

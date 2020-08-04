@@ -1,0 +1,6 @@
+Fuse.js {VERSION} - Lightweight fuzzy-search ({HOMEPAGE})
+
+Copyright (c) 2012-2017 Kirollos Risk ({AUTHOR_URL})
+All Rights Reserved. Apache Software License 2.0
+
+http://www.apache.org/licenses/LICENSE-2.0

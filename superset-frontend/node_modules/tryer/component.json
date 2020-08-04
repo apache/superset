@@ -1,0 +1,24 @@
+{
+  "name": "tryer",
+  "version": "1.0.1",
+  "description": "Because everyone loves a tryer! Conditional and repeated task invocation for node and browser.",
+  "repo": "philbooth/tryer",
+  "license": "MIT",
+  "main": "src/tryer.js",
+  "keywords": [
+    "repeat",
+    "retry",
+    "predicate",
+    "conditional",
+    "invocation",
+    "execution",
+    "loop",
+    "condition",
+    "termination",
+    "exponential",
+    "backoff"
+  ],
+  "scripts": [
+    "src/tryer.js"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "path-to-regexp",
+  "description": "Express style path to RegExp utility",
+  "version": "2.4.0",
+  "main": "index.js",
+  "typings": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "LICENSE"
+  ],
+  "scripts": {
+    "lint": "standard",
+    "test-spec": "mocha --require ts-node/register -R spec --bail test.ts",
+    "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- --require ts-node/register -R spec test.ts",
+    "test": "npm run lint && npm run test-cov"
+  },
+  "keywords": [
+    "express",
+    "regexp",
+    "route",
+    "routing"
+  ],
+  "component": {
+    "scripts": {
+      "path-to-regexp": "index.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pillarjs/path-to-regexp.git"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.0.4",
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.7.1",
+    "chai": "^4.1.1",
+    "istanbul": "^0.4.5",
+    "mocha": "^5.2.0",
+    "standard": "^11.0.1",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.0.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-2.4.0.tgz"
+,"_integrity": "sha512-G6zHoVqC6GGTQkZwF4lkuEyMbVOjoBKAEybQUypI1WTkqinCOrq2x6U2+phkJ1XsEMTy4LjtwPI7HW+NVrRR2w=="
+,"_from": "path-to-regexp@2.4.0"
+}

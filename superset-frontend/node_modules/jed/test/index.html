@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8 />
+    <title>Jed.js Test Suite</title>
+    <link rel="stylesheet" href="/node_modules/mocha/mocha.css" />
+    <script src="/test/jquery.min.js"></script>
+    <script src="/node_modules/mocha/mocha.js"></script>
+    <script src="/node_modules/expect.js/expect.js"></script>
+    <script>mocha.setup('bdd')</script>
+
+    <script src="/jed.js"></script>
+    <script src="/test/tests.js"></script>
+  </head>
+  <body>
+    <h1>Jed.js Test Suite</h1>
+    <div id="mocha"></div>
+    <script>
+      window.onload = function () {
+        mocha.run().globals(['Jed']);
+      };
+    </script>
+  </body>
+</html>

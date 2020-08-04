@@ -1,0 +1,60 @@
+{
+  "name": "copy-descriptor",
+  "description": "Copy a descriptor from object A to object B",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/copy-descriptor",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/copy-descriptor",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/copy-descriptor/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "copy",
+    "descriptor"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "is-accessor-descriptor",
+        "is-data-descriptor",
+        "is-descriptor",
+        "is-plain-object",
+        "isobject"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb-readme-generator",
+      "verb"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/copy-descriptor/-/copy-descriptor-0.1.1.tgz"
+,"_integrity": "sha1-Z29us8OZl8LuGsOpJP1hJHSPV40="
+,"_from": "copy-descriptor@0.1.1"
+}

@@ -1,0 +1,89 @@
+{
+  "name": "expand-brackets",
+  "description": "Expand POSIX bracket expressions (character classes) in glob patterns.",
+  "version": "2.1.4",
+  "homepage": "https://github.com/jonschlinkert/expand-brackets",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Elan Shanker (https://github.com/es128)",
+    "Eugene Sharygin (https://github.com/eush77)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)",
+    "Martin Kolárik <martin@kolarik.sk> (http://kolarik.sk)"
+  ],
+  "repository": "jonschlinkert/expand-brackets",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/expand-brackets/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "debug": "^2.3.3",
+    "define-property": "^0.2.5",
+    "extend-shallow": "^2.0.1",
+    "posix-character-classes": "^0.1.0",
+    "regex-not": "^1.0.0",
+    "snapdragon": "^0.8.1",
+    "to-regex": "^3.0.1"
+  },
+  "devDependencies": {
+    "bash-match": "^0.1.1",
+    "gulp-format-md": "^0.1.10",
+    "helper-changelog": "^0.3.0",
+    "minimatch": "^3.0.3",
+    "mocha": "^3.0.2",
+    "multimatch": "^2.1.0",
+    "yargs-parser": "^4.0.0"
+  },
+  "keywords": [
+    "bracket",
+    "brackets",
+    "character class",
+    "expand",
+    "expression",
+    "posix"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "helpers": [
+      "helper-changelog"
+    ],
+    "related": {
+      "list": [
+        "braces",
+        "extglob",
+        "micromatch",
+        "nanomatch"
+      ]
+    },
+    "reflinks": [
+      "micromatch",
+      "verb",
+      "verb-generate-readme"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/expand-brackets/-/expand-brackets-2.1.4.tgz"
+,"_integrity": "sha1-t3c14xXOMPa27/D4OwQVGiJEliI="
+,"_from": "expand-brackets@2.1.4"
+}

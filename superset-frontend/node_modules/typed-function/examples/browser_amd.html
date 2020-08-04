@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>typed-function | basic usage with amd</title>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.15/require.min.js"></script>
+</head>
+<body>
+
+<script>
+  // load math.js using require.js
+  require(['../typed-function.js'], function (typed) {
+    // create a typed function
+    var fn1 = typed({
+      'number, string': function (a, b) {
+        return 'a is a number, b is a string';
+      }
+    });
+
+    // use the function
+    document.write(fn1(2, 'foo') + '<br>'); // outputs 'a is a number, b is a string'
+  });
+</script>
+
+</body>
+</html>

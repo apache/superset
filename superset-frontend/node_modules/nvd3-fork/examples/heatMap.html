@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+<script src="../build/nv.d3.js"></script>
+
+<head>
+    <style>
+
+        #chart {
+            height: 400px;
+        }
+
+        html, body, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+            font-family: 'system-ui';
+        }
+
+        .buttons {
+            margin-top: 5px;
+            margin-left: 10px;
+            font-size: 80%;
+        }
+
+        button {
+            margin-bottom: 5px;
+        }
+
+        .cell-hover rect {
+            stroke-width: 3;
+            fill-opacity: 0.2;
+        }
+
+        .cell-hover text {
+            fill: #000 !important;
+        }
+
+        .no-hover {
+            fill-opacity: 0.2;
+        }
+
+        .gridLines {
+            stroke: #bcbcbc;
+        }
+
+
+    </style>
+</head>
+
+<body>
+
+    <div class="buttons">
+        <button onclick="updatePlot(defaultChart);">Default</button>
+        <button onclick="updatePlot({cellAspectRatio: 1});">Square</button>
+        <button onclick="updatePlot({cellBorderWidth: 0, cellRadius: 0});">No border</button>
+        <button onclick="highContrast = !highContrast; updatePlot({highContrastText: highContrast});">Toggle high contrast labels</button>
+        <button onclick="showAxes = !showAxes; updatePlot({showYAxis: showAxes, showXAxis: showAxes, showLegend: showAxes, showCellValues: showAxes});">Toggle axes/legend/values</button>
+        <button onclick="showGrid = !showGrid; updatePlot({showGrid: showGrid});">Toggle grid</button>
+        <button onclick="updatePlot({cellValue: function(d) { return d.level }, colorRange: ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']});">Discrete cell values</button>
+        <br>
+        Normalize
+        <button onclick="updatePlot({normalize: false});">None</button>
+        <button onclick="updatePlot({normalize: 'centerRow'});">centerRow</button>
+        <button onclick="updatePlot({normalize: 'centerScaleColumn'});">centerScaleColumn</button>
+        <button onclick="updatePlot({normalize: 'robustCenterAll'});">robustCenterAll</button>
+        <br>
+        Axes
+        <button onclick="updatePlot({alignXAxis: 'bottom'});">X bottom</button>
+        <button onclick="updatePlot({alignXAxis: 'top'});">X top</button>
+        <button onclick="updatePlot({alignYAxis: 'left'});">Y left</button>
+        <button onclick="updatePlot({alignYAxis: 'right'});">Y right</button>
+        | Metadata
+        <button onclick="updatePlot({xMeta: function(d) { return d.category }});">X</button>
+        <button onclick="updatePlot({yMetaWidth: function() { return 30; }, yMeta: function(d) { return d.group }});">Y</button>
+        | Cell Color
+        <button onclick="updatePlot({colorRange: ['#fff7f3','#fde0dd','#fcc5c0','#fa9fb5','#f768a1','#dd3497','#ae017e','#7a0177','#49006a']});">Sequential color</button>
+        <button onclick="updatePlot({colorRange: ['#d01c8b','#f1b6da','#f7f7f7','#b8e186','#4dac26']});">5-class diverging</button>
+    </div>
+
+    <svg id='heatMap'></svg>
+
+</body>
+
+<script>
+
+	var chart = nv.models.heatMapChart();
+    var highContrast = true;
+    var showGrid = false;
+    var showAxes = true;
+	var defaultChart = {
+        x: function(d) { return d.hour },
+        y: function(d) { return d.day },
+        cellValue: function(d) { return d.value },
+        cellAspectRatio: false,
+        normalize: false,
+        colorRange: ["#a50026","#d73027","#f46d43","#fdae61","#fee090","#ffffbf","#e0f3f8","#abd9e9","#74add1","#4575b4","#313695"],
+        highContrastText: highContrast,
+        showXAxis: true,
+        showYAxis: true,
+        showLegend: true,
+        showGrid: showGrid,
+        showCellValues: true,
+        alignXAxis: 'top',
+        alignYAxis: 'left',
+        cellValueFormat: function(d) { return typeof d === 'number' ? d.toFixed(0) : d },
+        cellBorderWidth: 4,
+        cellRadius: 0,
+        missingDataColor: '#bcbcbc',
+        missingDataLabel: '',
+        xMeta: false,
+        yMeta: false,
+        metaOffset: 5,
+        margin: {top: 50, right: 50}
+	}
+
+
+	// setup default chart
+	nv.addGraph(function() {
+
+		setChartOptions(defaultChart);
+
+		d3.select('svg#heatMap')
+			.datum(data)
+			.call(chart);
+
+		nv.utils.windowResize(chart.update);
+
+		return chart;
+	})
+
+	// update chart with new settings
+	function updatePlot(update) {
+		setChartOptions(update);
+		chart.update();
+	}
+
+	// set chart settings
+	function setChartOptions(update) {
+
+		Object.keys(update).forEach(function(optName, i) {
+			var optVal = Object.values(update)[i];
+            console.log('Setting the option ' + optName + ' to ' + optVal);
+			chart[optName](optVal)
+		});
+
+	}
+
+
+	var data = [
+        {day: 'Tu', hour: 1, value: 6, group: 13, category: 1, level: 'F'},
+        {day: 'Tu', hour: 2, value: 2, group: 13, category: 1, level: 'J'},
+        {day: 'Tu', hour: 3, value: 0, group: 13, category: 1, level: 'F'},
+        {day: 'Tu', hour: 15, value: 60, group: 13, category: 2, level: 'A'},
+        {day: 'Tu', hour: 16, value: 50, group: 13, category: 2, level: 'C'},
+        {day: 'Tu', hour: 17, value: 65, group: 13, category: 2, level: 'E'},
+        {day: 'Tu', hour: 18, value: 50, group: 13, category: 2, level: 'D'},
+        {day: 'Tu', hour: 19, value: 22, group: 13, category: 2, level: 'J'},
+        {day: 'Tu', hour: 20, value: 11, group: 13, category: 2, level: 'J'},
+        {day: 'Tu', hour: 21, value: 12, group: 13, category: 2, level: 'H'},
+        {day: 'Tu', hour: 4, value: 0, group: 13, category: 1, level: 'F'},
+        {day: 'Tu', hour: 5, value: 0, group: 13, category: 1, level: 'E'},
+        {day: 'Tu', hour: 6, value: 2, group: 13, category: 1, level: 'E'},
+        {day: 'Tu', hour: 7, value: 4, group: 13, category: 1, level: 'F'},
+        {day: 'Tu', hour: 8, value: 11, group: 13, category: 1, level: 'D'},
+        {day: 'Tu', hour: 9, value: 28, group: 13, category: 1, level: 'H'},
+        {day: 'Tu', hour: 10, value: 49, group: 13, category: 1, level: 'D'},
+        {day: 'Tu', hour: 11, value: 51, group: 13, category: 1, level: 'C'},
+        {day: 'Tu', hour: 12, value: 47, group: 13, category: 1, level: 'H'},
+        {day: 'Tu', hour: 13, value: 38, group: 13, category: 2, level: 'B'},
+        {day: 'Tu', hour: 14, value: 65, group: 13, category: 2, level: 'H'},
+        {day: 'Tu', hour: 22, value: 9, group: 13, category: 2, level: 'H'},
+        {day: 'Tu', hour: 23, value: 0, group: 13, category: 2, level: 'A'},
+        {day: 'Tu', hour: 24, value: 13, group: 13, category: 2, level: 'I'},
+        {day: 'Mo', hour: 7, value: 0, group: 84, category: 1, level: 'F'},
+        {day: 'Mo', hour: 8, value: 9, group: 84, category: 1, level: 'G'},
+        {day: 'Mo', hour: 1, value: 16, group: 84, category: 1, level: 'H'},
+        {day: 'Mo', hour: 6, value: 2, group: 84, category: 1, level: 'B'},
+        {day: 'Mo', hour: 9, value: 25, group: 84, category: 1, level: 'J'},
+        {day: 'Mo', hour: 10, value: 49, group: 84, category: 1, level: 'B'},
+        {day: 'Mo', hour: 11, value: 57, group: 84, category: 1, level: 'A'},
+        {day: 'Mo', hour: 12, value: 61, group: 84, category: 1, level: 'H'},
+        {day: 'Mo', hour: 13, value: 37, group: 84, category: 2, level: 'G'},
+        {day: 'Mo', hour: 14, value: 66, group: 84, category: 2, level: 'G'},
+        {day: 'Mo', hour: 15, value: 70, group: 84, category: 2, level: 'E'},
+        {day: 'Mo', hour: 16, value: 55, group: 84, category: 2, level: 'D'},
+        {day: 'Mo', hour: 2, value: 20, group: 84, category: 1, level: 'D'},
+        {day: 'Mo', hour: 3, value: 0, group: 84, category: 1, level: 'A'},
+        {day: 'Mo', hour: 4, value: 0, group: 84, category: 1, level: 'C'},
+        {day: 'Mo', hour: 5, value: 0, group: 84, category: 1, level: 'G'},
+        {day: 'Mo', hour: 17, value: 51, group: 84, category: 2, level: 'F'},
+        {day: 'Mo', hour: 18, value: 55, group: 84, category: 2, level: 'E'},
+        {day: 'Mo', hour: 19, value: 17, group: 84, category: 2, level: 'E'},
+        {day: 'Mo', hour: 20, value: 20, group: 84, category: 2, level: 'K'},
+        {day: 'Mo', hour: 21, value: 9, group: 84, category: 2, level: 'E'},
+        {day: 'Mo', hour: 22, value: 4, group: 84, category: 2, level: 'C'},
+        {day: 'Mo', hour: 23, value: 0, group: 84, category: 2, level: 'F'},
+        {day: 'Mo', hour: 24, value: 12, group: 84, category: 2, level: 'F'},
+        {day: 'We', hour: 1, value: 5, group: 84, category: 1, level: 'A'},
+        {day: 'We', hour: 2, value: 8, group: 84, category: 1, level: 'I'},
+        {day: 'We', hour: 3, value: 8, group: 84, category: 1, level: 'K'},
+        {day: 'We', hour: 9, value: 34, group: 84, category: 1, level: 'C'},
+        {day: 'We', hour: 10, value: 43, group: 84, category: 1, level: 'E'},
+        {day: 'We', hour: 11, value: 54, group: 84, category: 1, level: 'D'},
+        {day: 'We', hour: 12, value: 44, group: 84, category: 1, level: 'I'},
+        {day: 'We', hour: 13, value: 40, group: 84, category: 2, level: 'A'},
+        {day: 'We', hour: 14, value: 48, group: 84, category: 2, level: 'E'},
+        {day: 'We', hour: 15, value: 54, group: 84, category: 2, level: 'J'},
+        {day: 'We', hour: 16, value: 59, group: 84, category: 2, level: 'C'},
+        {day: 'We', hour: 4, value: 0, group: 84, category: 1, level: 'I'},
+        {day: 'We', hour: 5, value: 0, group: 84, category: 1, level: 'E'},
+        {day: 'We', hour: 6, value: 2, group: 84, category: 1, level: 'E'},
+        {day: 'We', hour: 7, value: 5, group: 84, category: 1, level: 'B'},
+        //{day: 'We', hour: 8, value: 12, group: 84, category: 1, level: 'B'}, // simulate missing data
+        {day: 'We', hour: 17, value: 60, group: 84, category: 2, level: 'D'},
+        {day: 'We', hour: 18, value: 51, group: 84, category: 2, level: 'A'},
+        {day: 'We', hour: 19, value: 21, group: 84, category: 2, level: 'F'},
+        {day: 'We', hour: 20, value: 16, group: 84, category: 2, level: 'E'},
+        {day: 'We', hour: 21, value: 9, group: 84, category: 2, level: 'B'},
+        {day: 'We', hour: 22, value: 5, group: 84, category: 2, level: 'K'},
+        {day: 'We', hour: 23, value: 4, group: 84, category: 2, level: 'C'},
+        {day: 'We', hour: 24, value: 7, group: 84, category: 2, level: 'B'},
+        {day: 'Th', hour: 1, value: 0, group: 13, category: 1, level: 'G'},
+        {day: 'Th', hour: 2, value: 0, group: 13, category: 1, level: 'I'},
+        {day: 'Th', hour: 7, value: 4, group: 13, category: 1, level: 'D'},
+        {day: 'Th', hour: 8, value: 13, group: 13, category: 1, level: 'J'},
+        {day: 'Th', hour: 9, value: 26, group: 13, category: 1, level: 'E'},
+        {day: 'Th', hour: 10, value: 58, group: 13, category: 1, level: 'J'},
+        {day: 'Th', hour: 11, value: 61, group: 13, category: 1, level: 'G'},
+        {day: 'Th', hour: 12, value: 59, group: 13, category: 1, level: 'E'},
+        {day: 'Th', hour: 3, value: 0, group: 13, category: 1, level: 'C'},
+        {day: 'Th', hour: 4, value: 0, group: 13, category: 1, level: 'I'},
+        {day: 'Th', hour: 5, value: 0, group: 13, category: 1, level: 'A'},
+        {day: 'Th', hour: 6, value: 2, group: 13, category: 1, level: 'A'},
+        {day: 'Th', hour: 13, value: 53, group: 13, category: 2, level: 'E'},
+        {day: 'Th', hour: 14, value: 54, group: 13, category: 2, level: 'G'},
+        {day: 'Th', hour: 15, value: 64, group: 13, category: 2, level: 'B'},
+        {day: 'Th', hour: 16, value: 55, group: 13, category: 2, level: 'C'},
+        {day: 'Th', hour: 17, value: 52, group: 13, category: 2, level: 'B'},
+        {day: 'Th', hour: 18, value: 53, group: 13, category: 2, level: 'I'},
+        {day: 'Th', hour: 19, value: 18, group: 13, category: 2, level: 'G'},
+        {day: 'Th', hour: 20, value: 3, group: 13, category: 2, level: 'C'},
+        {day: 'Th', hour: 21, value: 9, group: 13, category: 2, level: 'A'},
+        {day: 'Th', hour: 22, value: 12, group: 13, category: 2, level: 'G'},
+        {day: 'Th', hour: 23, value: 2, group: 13, category: 2, level: 'K'},
+        {day: 'Th', hour: 24, value: 8, group: 13, category: 2, level: 'K'},
+        {day: 'Fr', hour: 6, value: 2, group: 53, category: 1, level: 'B'},
+        {day: 'Fr', hour: 7, value: 4, group: 53, category: 1, level: 'E'},
+        {day: 'Fr', hour: 8, value: 14, group: 53, category: 1, level: 'K'},
+        {day: 'Fr', hour: 9, value: 31, group: 53, category: 1, level: 'C'},
+        {day: 'Fr', hour: 10, value: 48, group: 53, category: 1, level: 'C'},
+        {day: 'Fr', hour: 11, value: 46, group: 53, category: 1, level: 'F'},
+        {day: 'Fr', hour: 12, value: 50, group: 53, category: 1, level: 'A'},
+        {day: 'Fr', hour: 13, value: 66, group: 53, category: 2, level: 'H'},
+        {day: 'Fr', hour: 14, value: 54, group: 53, category: 2, level: 'E'},
+        {day: 'Fr', hour: 1, value: 2, group: 53, category: 1, level: 'C'},
+        {day: 'Fr', hour: 2, value: 0, group: 53, category: 1, level: 'K'},
+        //{day: 'Fr', hour: 3, value: 8, group: 53, category: 1, level: 'G'},  // simulate missing data
+        {day: 'Fr', hour: 4, value: 2, group: 53, category: 1, level: 'K'},
+        {day: 'Fr', hour: 5, value: 0, group: 53, category: 1, level: 'F'},
+        {day: 'Fr', hour: 15, value: 56, group: 53, category: 2, level: 'D'},
+        {day: 'Fr', hour: 16, value: 67, group: 53, category: 2, level: 'I'},
+        {day: 'Fr', hour: 17, value: 54, group: 53, category: 2, level: 'A'},
+        {day: 'Fr', hour: 18, value: 23, group: 53, category: 2, level: 'D'},
+        {day: 'Fr', hour: 19, value: 14, group: 53, category: 2, level: 'A'},
+        {day: 'Fr', hour: 20, value: 6, group: 53, category: 2, level: 'I'},
+        {day: 'Fr', hour: 21, value: 8, group: 53, category: 2, level: 'I'},
+        {day: 'Fr', hour: 22, value: 7, group: 53, category: 2, level: 'D'},
+        {day: 'Fr', hour: 23, value: 0, group: 53, category: 2, level: 'E'},
+        {day: 'Fr', hour: 24, value: 8, group: 53, category: 2, level: 'E'},
+        {day: 'Sa', hour: 1, value: 2, group: 53, category: 1, level: 'G'},
+        {day: 'Sa', hour: 2, value: 0, group: 53, category: 1, level: 'F'},
+        {day: 'Sa', hour: 3, value: 2, group: 53, category: 1, level: 'F'},
+        {day: 'Sa', hour: 8, value: 8, group: 53, category: 1, level: 'F'},
+        {day: 'Sa', hour: 9, value: 8, group: 53, category: 1, level: 'K'},
+        {day: 'Sa', hour: 10, value: 6, group: 53, category: 1, level: 'I'},
+        {day: 'Sa', hour: 11, value: 14, group: 53, category: 1, level: 'F'},
+        {day: 'Sa', hour: 12, value: 12, group: 53, category: 1, level: 'A'},
+        {day: 'Sa', hour: 13, value: 9, group: 53, category: 2, level: 'E'},
+        {day: 'Sa', hour: 14, value: 14, group: 53, category: 2, level: 'A'},
+        {day: 'Sa', hour: 15, value: 0, group: 53, category: 2, level: 'F'},
+        {day: 'Sa', hour: 4, value: 0, group: 53, category: 1, level: 'C'},
+        {day: 'Sa', hour: 5, value: 0, group: 53, category: 1, level: 'J'},
+        {day: 'Sa', hour: 6, value: 0, group: 53, category: 1, level: 'A'},
+        {day: 'Sa', hour: 7, value: 4, group: 53, category: 1, level: 'B'},
+        {day: 'Sa', hour: 16, value: 4, group: 53, category: 2, level: 'G'},
+        {day: 'Sa', hour: 17, value: 7, group: 53, category: 2, level: 'D'},
+        {day: 'Sa', hour: 18, value: 6, group: 53, category: 2, level: 'H'},
+        {day: 'Sa', hour: 19, value: 0, group: 53, category: 2, level: 'H'},
+        {day: 'Sa', hour: 20, value: 0, group: 53, category: 2, level: 'K'},
+        {day: 'Sa', hour: 21, value: 0, group: 53, category: 2, level: 'A'},
+        {day: 'Sa', hour: 22, value: 0, group: 53, category: 2, level: 'G'},
+        {day: 'Sa', hour: 23, value: 0, group: 53, category: 2, level: 'B'},
+        {day: 'Sa', hour: 24, value: 0, group: 53, category: 2, level: 'K'},
+        {day: 'Su', hour: 1, value: 7, group: 53, category: 1, level: 'G'},
+        {day: 'Su', hour: 2, value: 6, group: 53, category: 1, level: 'D'},
+        {day: 'Su', hour: 8, value: 0, group: 53, category: 1, level: 'B'},
+        {day: 'Su', hour: 9, value: 0, group: 53, category: 1, level: 'K'},
+        {day: 'Su', hour: 10, value: 0, group: 53, category: 1, level: 'J'},
+        {day: 'Su', hour: 11, value: 2, group: 53, category: 1, level: 'D'},
+        {day: 'Su', hour: 12, value: 2, group: 53, category: 1, level: 'G'},
+        {day: 'Su', hour: 3, value: 0, group: 53, category: 1, level: 'D'},
+        {day: 'Su', hour: 4, value: 0, group: 53, category: 1, level: 'A'},
+        {day: 'Su', hour: 5, value: 0, group: 53, category: 1, level: 'F'},
+        {day: 'Su', hour: 6, value: 0, group: 53, category: 1, level: 'A'},
+        {day: 'Su', hour: 7, value: 0, group: 53, category: 1, level: 'K'},
+        {day: 'Su', hour: 13, value: 5, group: 53, category: 2, level: 'K'},
+        {day: 'Su', hour: 14, value: 6, group: 53, category: 2, level: 'K'},
+        {day: 'Su', hour: 15, value: 0, group: 53, category: 2, level: 'D'},
+        {day: 'Su', hour: 16, value: 4, group: 53, category: 2, level: 'C'},
+        {day: 'Su', hour: 17, value: 0, group: 53, category: 2, level: 'D'},
+        {day: 'Su', hour: 18, value: 2, group: 53, category: 2, level: 'G'},
+        {day: 'Su', hour: 19, value: 10, group: 53, category: 2, level: 'I'},
+        {day: 'Su', hour: 20, value: 7, group: 53, category: 2, level: 'K'},
+        {day: 'Su', hour: 21, value: 0, group: 53, category: 2, level: 'I'},
+        {day: 'Su', hour: 22, value: 19, group: 53, category: 2, level: 'B'},
+        {day: 'Su', hour: 23, value: 9, group: 53, category: 2, level: 'H'},
+        {day: 'Su', hour: 24, value: 4, group: 53, category: 2, level: 'K'},
+	];
+
+</script>

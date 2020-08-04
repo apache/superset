@@ -1,0 +1,1 @@
+{"version":3,"file":"ChartControlPanelRegistrySingleton.d.ts","sourceRoot":"","sources":["../../src/registries/ChartControlPanelRegistrySingleton.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAiB,MAAM,mBAAmB,CAAC;AAC5D,OAAO,EAAE,iBAAiB,EAAE,MAAM,6BAA6B,CAAC;AAEhE,cAAM,yBAA0B,SAAQ,QAAQ,CAAC,iBAAiB,EAAE,iBAAiB,CAAC;;CAIrF;AAED,QAAA,MAAM,WAAW,iCAA2C,CAAC;AAE7D,eAAe,WAAW,CAAC"}

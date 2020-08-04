@@ -1,0 +1,44 @@
+{
+  "name": "path-exists",
+  "version": "3.0.0",
+  "description": "Check if a path exists",
+  "license": "MIT",
+  "repository": "sindresorhus/path-exists",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "path",
+    "exists",
+    "exist",
+    "file",
+    "filepath",
+    "fs",
+    "filesystem",
+    "file-system",
+    "access",
+    "stat"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  },
+  "xo": {
+    "esnext": true
+  }
+
+,"_resolved": "https://registry.npmjs.org/path-exists/-/path-exists-3.0.0.tgz"
+,"_integrity": "sha1-zg6+ql94yxiSXqfYENe1mwEP1RU="
+,"_from": "path-exists@3.0.0"
+}

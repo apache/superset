@@ -1,0 +1,103 @@
+{
+	"name": "es-abstract",
+	"version": "1.13.0",
+	"author": {
+		"name": "Jordan Harband",
+		"email": "ljharb@gmail.com",
+		"url": "http://ljharb.codes"
+	},
+	"contributors": [
+		{
+			"name": "Jordan Harband",
+			"email": "ljharb@gmail.com",
+			"url": "http://ljharb.codes"
+		}
+	],
+	"description": "ECMAScript spec abstract operations.",
+	"license": "MIT",
+	"main": "index.js",
+	"scripts": {
+		"prepublish": "safe-publish-latest",
+		"pretest": "npm run --silent lint",
+		"test": "npm run tests-only",
+		"posttest": "npm run audit",
+		"tests-only": "node test",
+		"coverage": "nyc npm run --silent tests-only >/dev/null",
+		"postcoverage": "nyc report",
+		"lint": "eslint test/*.js *.js",
+		"eccheck": "editorconfig-tools check *.js **/*.js > /dev/null",
+		"preaudit": "npm install --package-lock --package-lock-only",
+		"audit": "npm audit",
+		"postaudit": "rm package-lock.json"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/ljharb/es-abstract.git"
+	},
+	"keywords": [
+		"ECMAScript",
+		"ES",
+		"abstract",
+		"operation",
+		"abstract operation",
+		"JavaScript",
+		"ES5",
+		"ES6",
+		"ES7"
+	],
+	"dependencies": {
+		"es-to-primitive": "^1.2.0",
+		"function-bind": "^1.1.1",
+		"has": "^1.0.3",
+		"is-callable": "^1.1.4",
+		"is-regex": "^1.0.4",
+		"object-keys": "^1.0.12"
+	},
+	"devDependencies": {
+		"@ljharb/eslint-config": "^13.1.1",
+		"cheerio": "^1.0.0-rc.2",
+		"editorconfig-tools": "^0.1.1",
+		"eslint": "^5.11.1",
+		"foreach": "^2.0.5",
+		"nyc": "^10.3.2",
+		"object-inspect": "^1.6.0",
+		"object-is": "^1.0.1",
+		"object.assign": "^4.1.0",
+		"object.fromentries": "^2.0.0",
+		"replace": "^1.0.1",
+		"safe-publish-latest": "^1.1.2",
+		"semver": "^5.6.0",
+		"tape": "^4.9.2"
+	},
+	"testling": {
+		"files": "test/index.js",
+		"browsers": [
+			"iexplore/6.0..latest",
+			"firefox/3.0..6.0",
+			"firefox/15.0..latest",
+			"firefox/nightly",
+			"chrome/4.0..10.0",
+			"chrome/20.0..latest",
+			"chrome/canary",
+			"opera/10.0..latest",
+			"opera/next",
+			"safari/4.0..latest",
+			"ipad/6.0..latest",
+			"iphone/6.0..latest",
+			"android-browser/4.2"
+		]
+	},
+	"engines": {
+		"node": ">= 0.4"
+	},
+	"greenkeeper": {
+		"//": "nyc is ignored because it requires node 4+, and we support older than that",
+		"ignore": [
+			"nyc"
+		]
+	}
+
+,"_resolved": "https://registry.npmjs.org/es-abstract/-/es-abstract-1.13.0.tgz"
+,"_integrity": "sha512-vDZfg/ykNxQVwup/8E1BZhVzFfBxs9NqMzGcvIJrqg5k2/5Za2bWo40dK2J1pgLngZ7c+Shh8lwYtLGyrwPutg=="
+,"_from": "es-abstract@1.13.0"
+}

@@ -1,0 +1,80 @@
+//
+// Select Menu
+// ------------------------------
+
+
+// wrapper around the menu
+
+.Select-menu-outer {
+	// Unfortunately, having both border-radius and allows scrolling using overflow defined on the same
+	// element forces the browser to repaint on scroll.  However, if these definitions are split into an
+	// outer and an inner element, the browser is able to optimize the scrolling behavior and does not
+	// have to repaint on scroll.
+	.border-bottom-radius( @select-input-border-radius );
+	background-color: @select-input-bg;
+	border: 1px solid @select-input-border-color;
+	border-top-color: mix(@select-input-bg, @select-input-border-color, 50%);
+	box-shadow: @select-menu-box-shadow;
+	box-sizing: border-box;
+	margin-top: -1px;
+	max-height: @select-menu-max-height;
+	position: absolute;
+	left: 0;
+	top: 100%;
+	width: 100%;
+	z-index: @select-menu-zindex;
+	-webkit-overflow-scrolling: touch;
+}
+
+
+// wrapper
+
+.Select-menu {
+	max-height: (@select-menu-max-height - 2px);
+	overflow-y: auto;
+}
+
+
+// options
+
+.Select-option {
+	box-sizing: border-box;
+	background-color: @select-option-bg;
+	color: @select-option-color;
+	cursor: pointer;
+	display: block;
+	padding: @select-padding-vertical @select-padding-horizontal;
+
+	&:last-child {
+		.border-bottom-radius( @select-input-border-radius );
+	}
+
+	&.is-selected {
+		background-color: @select-option-selected-bg-fb;  /* Fallback color for IE 8 */
+		background-color: @select-option-selected-bg;
+		color: @select-option-selected-color;
+	}
+
+	&.is-focused {
+		background-color: @select-option-focused-bg-fb;  /* Fallback color for IE 8 */
+		background-color: @select-option-focused-bg;
+		color: @select-option-focused-color;
+	}
+
+	&.is-disabled {
+		color: @select-option-disabled-color;
+		cursor: default;
+	}
+
+}
+
+
+// no results
+
+.Select-noresults {
+	box-sizing: border-box;
+	color: @select-noresults-color;
+	cursor: default;
+	display: block;
+	padding: @select-padding-vertical @select-padding-horizontal;
+}

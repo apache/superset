@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+message Reserved {
+  string x = 1;
+  reserved 2, 3;
+  reserved 5 to 9;
+  reserved "foo", "bar";
+  string y = 10;
+}
+

@@ -1,0 +1,8 @@
+<% if (mode === 'static') { %>
+  <!-- <%= filename %> -->
+  <script>
+    <%- assetContent(filename) %>
+  </script>
+<% } else { %>
+  <script src="<%= filename %>"></script>
+<% } %>

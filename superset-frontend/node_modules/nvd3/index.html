@@ -1,0 +1,20 @@
+<html><body>
+<style>
+html, body, iframe {
+ margin: 0px;
+ padding: 0px;
+ width: 100%;
+ height: 100%;
+ border: 0px;
+}
+</style>
+<script>
+    // force https to avoid stupid mixed content stuff.
+    // don't force just http because http-everywhere plugins cause infinite redirect loop
+    // can't use relative links because they break when loading the site locally on disk (browsers suck)
+    // if (window.location.protocol == "http:")
+    //     window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
+</script>
+<iframe src="examples/site.html"></iframe>
+</body>
+</html>

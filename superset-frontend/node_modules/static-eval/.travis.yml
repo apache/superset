@@ -1,0 +1,18 @@
+language: node_js
+os: linux
+dist: bionic
+before_install:
+  - "nvm install-latest-npm"
+node_js:
+  - "0.8"
+  - "0.10"
+  - "0.12"
+  - "4"
+  - "6"
+  - "8"
+  - "9"
+  - "10"
+  - "11"
+  - "12"
+  - "13"
+  - "14"

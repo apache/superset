@@ -1,0 +1,14 @@
+backup
+dist
+docs
+tests
+src
+*.bconf
+.babelrc
+.eslintrc
+.tern-project
+*.caret
+*.log
+.DS_Store
+*.tgz
+npm-debug.log.*

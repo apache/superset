@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    .active {
+      fill: blue !important;
+    }
+    /*.datamaps-key dt, .datamaps-key dd {float: none !important;}
+          .datamaps-key {right: -50px; top: 0;}*/
+  </style>
+</head>
+
+<body>
+  <!-- SVG gradients and filters used by bubbles -->
+  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: inherit; width: 0; height: 0;">
+    <defs>
+      <!-- Horizontal Stripe pattern -->
+      <pattern id="horizontal-stripe" width="4" height="4" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="2" x2="4" y2="2" stroke="blue" />
+      </pattern>
+
+      <!-- Vertical Stripe pattern -->
+      <pattern id="vertical-stripe" width="4" height="4" patternUnits="userSpaceOnUse">
+        <line x1="2" y1="0" x2="2" y2="4" stroke="green" />
+      </pattern>
+
+      <!-- Diagonal Stripe pattern -->
+      <pattern id="diagonal-stripe" patternTransform="rotate(45)" width="4" height="4" patternUnits="userSpaceOnUse">
+        <line x1="2" y1="0" x2="2" y2="4" stroke="#bada55" stroke-width="2" />
+      </pattern>
+
+      <!-- Circles pattern -->
+      <pattern id="circles" width="4" height="4" patternUnits="userSpaceOnUse">
+        <circle cx="2.5" cy="2.5" r="1.3" fill="green" />
+      </pattern>
+
+      <!-- Gradient pattern. Wouldn't really recommend this one. -->
+      <linearGradient id="gradient">
+        <stop offset="5%" stop-color="#F60" />
+        <stop offset="95%" stop-color="#FF6" />
+      </linearGradient>
+
+      <!-- Triangles pattern -->
+      <pattern id="triangle" width="8" height="8" patternUnits="userSpaceOnUse">
+        <polygon points="3,0 6,6 0,6" fill="purple" />
+      </pattern>
+
+      <!-- Red Radial Gradient -->
+      <radialGradient id="bad" cx="50%" cy="50%" r="50%" fx="65%" fy="35%">
+        <stop offset="0%" style="stop-color:#FFA196;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#FF3B30;stop-opacity:1" />
+      </radialGradient>
+
+      <!-- Yellow Radial Gradient -->
+      <radialGradient id="medium" cx="50%" cy="50%" r="50%" fx="65%" fy="35%">
+        <stop offset="0%" style="stop-color:#FFFF66;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#FFCC00;stop-opacity:1" />
+      </radialGradient>
+
+      <!-- Green Radial Gradient -->
+      <radialGradient id="good" cx="50%" cy="50%" r="50%" fx="35%" fy="35%">
+        <stop offset="0%" style="stop-color:#B2FFCA;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#4CD964;stop-opacity:1" />
+      </radialGradient>
+
+      <filter id="dropShadow" x="-50%" y="-50%" width="250%" height="250%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="2"></feGaussianBlur>
+        <!-- stdDeviation is how much to blur -->
+        <feOffset dx="1" dy="1" result="offsetblur"></feOffset>
+        <!-- how much to offset -->
+        <feComponentTransfer>
+          <feFuncA type="linear" slope="0.75"></feFuncA>
+        </feComponentTransfer>
+        <feMerge>
+          <feMergeNode></feMergeNode>
+          <!-- this contains the offset blurred image -->
+          <feMergeNode in="SourceGraphic"></feMergeNode>
+          <!-- this contains the element that the filter is applied to -->
+        </feMerge>
+      </filter>
+
+
+      <filter id="bigShadow" x="-50%" y="-50%" width="250%" height="250%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="10"></feGaussianBlur>
+        <!-- stdDeviation is how much to blur -->
+        <feOffset dx="3" dy="3" result="offsetblur"></feOffset>
+        <!-- how much to offset -->
+        <feComponentTransfer>
+          <feFuncA type="linear" slope="1.5"></feFuncA>
+        </feComponentTransfer>
+        <feMerge>
+          <feMergeNode></feMergeNode>
+          <!-- this contains the offset blurred image -->
+          <feMergeNode in="SourceGraphic"></feMergeNode>
+          <!-- this contains the element that the filter is applied to -->
+        </feMerge>
+      </filter>
+
+    </defs>
+  </svg>
+
+  <div id="container1" style="border:1px dotted blue; width: 700px; height: 475px; position: relative;"></div>
+  <script src="../../src/js/components/d3/d3.min.js"></script>
+  <script src="../../src/js/components/topojson/topojson.js"></script>
+  <!-- <script src="../../src/js/json2.js"></script> -->
+  <script src="../../src/rel/datamaps.world.hires.js"></script>
+  <script>
+    var election = new Datamap({
+            scope: 'world',
+            element: document.getElementById('container1'),
+            geographyConfig: {
+              borderColor: '#444',
+              borderWidth: 0.5
+            },
+            bubblesConfig: {
+			        //animate: false,
+              borderColor: '#000',
+              borderWidth: 1,
+              fillOpacity: 1.0,
+              filterKey: 'dropShadow',
+              popupTemplate: function(geography, data) {
+                return '<div class="hoverinfo">Some From New: data about ' + data.centered + '</div>'
+              }
+            },
+            fills: {
+              'defaultFill': '#dddddd',
+              'good': 'url(#good)',
+              'medium': 'url(#medium)',
+              'bad': 'url(#bad)',
+              'horizontalStripe': 'url(#horizontal-stripe)',
+              'diagonalStripe': 'url(#diagonal-stripe)'
+            },
+            filters: {
+              'dropShadow': 'url(#dropShadow)',
+              'bigShadow': 'url(#bigShadow)'
+            },
+            data:{
+              'TX': {fillKey: 'diagonalStripe'}
+            }
+          });
+
+          election.bubbles([
+            {centered: 'NY', fillKey: 'bad', radius: 10},
+            {centered: 'KY', fillKey: 'medium', radius: 5},
+            {centered: 'TX', fillKey: 'medium', radius: 15},
+            {centered: 'CA', fillKey: 'bad', radius: 46, filterKey: 'bigShadow'},
+            {centered: 'WA', fillKey: 'medium', radius: 3},
+            {centered: 'MA', fillKey: 'bad', radius: 10},
+            {centered: 'FL', fillKey: 'horizontalStripe', radius: 30},
+            {centered: 'NC', fillKey: 'medium', radius: 30},
+            {centered: 'GA', fillKey: 'good', radius: 5},
+            {centered: 'WY', fillKey: 'medium', radius: 5},
+            {centered: 'ME', fillKey: 'medium', radius: 5},
+            {centered: 'VT', fillKey: 'good', radius: 5},
+            {centered: 'NH', fillKey: 'medium', radius: 5},
+            {centered: 'CT', fillKey: 'good', radius: 5},
+            {centered: 'HI', fillKey: 'medium', radius: 5},
+            {centered: 'AK', fillKey: 'medium', radius: 15},
+            {centered: 'SC', fillKey: 'good', radius: 5},
+            {centered: 'MI', fillKey: 'bad', radius: 20},
+            {centered: 'AL', fillKey: 'medium', radius: 20},
+            {centered: 'LA', fillKey: 'good', radius: 20},
+            {centered: 'OK', fillKey: 'bad', radius: 20},
+            {centered: 'NE', fillKey: 'medium', radius: 20},
+            {centered: 'KS', fillKey: 'medium', radius: 10},
+            {centered: 'NM', fillKey: 'good', radius: 20},
+            {centered: 'AZ', fillKey: 'medium', radius: 20},
+            {centered: 'CO', fillKey: 'medium', radius: 20},
+            {centered: 'OR', fillKey: 'bad', radius: 10},
+            {centered: 'ND', fillKey: 'medium', radius: 10},
+            {centered: 'SD', fillKey: 'medium', radius: 10},
+            {centered: 'OH', fillKey: 'medium', radius: 10},
+            {centered: 'IA', fillKey: 'good', radius: 10},
+            {centered: 'IN', fillKey: 'good', radius: 10},
+            {centered: 'PA', fillKey: 'medium', radius: 10},
+            {centered: 'NJ', fillKey: 'medium', radius: 10},
+            {centered: 'ID', fillKey: 'medium', radius: 10},
+            {centered: 'MO', fillKey: 'medium', radius: 2},
+            {centered: 'WI', fillKey: 'good', radius: 10},
+          ], {
+            // popupTemplate: function(geography, data) {
+            //   return '<div class="hoverinfo">Some data about ' + data.centered + '</div>'
+            // }
+          });
+  </script>
+</body>
+
+</html>

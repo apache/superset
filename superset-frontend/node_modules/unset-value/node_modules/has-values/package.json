@@ -1,0 +1,79 @@
+{
+  "name": "has-values",
+  "version": "0.1.4",
+  "description": "Returns true if any values exist, false if empty. Works for booleans, functions, numbers, strings, nulls, objects and arrays. ",
+  "homepage": "https://github.com/jonschlinkert/has-values",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/has-values",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/has-values/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.7",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "array",
+    "boolean",
+    "empty",
+    "find",
+    "function",
+    "has",
+    "hasOwn",
+    "javascript",
+    "js",
+    "key",
+    "keys",
+    "node.js",
+    "null",
+    "number",
+    "object",
+    "properties",
+    "property",
+    "string",
+    "type",
+    "util",
+    "utilities",
+    "utility",
+    "value"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "has-value",
+        "isobject",
+        "is-plain-object"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/has-values/-/has-values-0.1.4.tgz"
+,"_integrity": "sha1-bWHeldkd/Km5oCCJrThL/49it3E="
+,"_from": "has-values@0.1.4"
+}

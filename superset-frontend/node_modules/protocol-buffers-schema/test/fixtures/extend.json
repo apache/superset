@@ -1,0 +1,167 @@
+{
+  "syntax": 3,
+  "package": null,
+  "imports": [],
+  "enums": [],
+  "messages": [
+    {
+      "name": "MsgNormal",
+      "enums": [],
+      "extends": [],
+      "options": {},
+      "messages": [],
+      "fields": [
+        {
+          "name": "field1",
+          "type": "int32",
+          "tag": 1,
+          "map": null,
+          "oneof": null,
+          "required": true,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "field2",
+          "type": "string",
+          "tag": 2,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "field3",
+          "type": "int32",
+          "tag": 3,
+          "map": null,
+          "oneof": null,
+          "required": true,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "exField1",
+          "type": "int32",
+          "tag": 101,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "exField2",
+          "type": "string",
+          "tag": 102,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        }
+      ],
+      "extensions": null
+    },
+    {
+      "name": "MsgExtend",
+      "enums": [],
+      "extends": [],
+      "messages": [],
+      "options": {},
+      "fields": [
+        {
+          "name": "field1",
+          "type": "int32",
+          "tag": 1,
+          "map": null,
+          "oneof": null,
+          "required": true,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "field2",
+          "type": "string",
+          "tag": 2,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "field3",
+          "type": "int32",
+          "tag": 3,
+          "map": null,
+          "oneof": null,
+          "required": true,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "exField1",
+          "type": "int32",
+          "tag": 101,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "exField2",
+          "type": "string",
+          "tag": 102,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        }
+      ],
+      "extensions": {
+        "from": 100,
+        "to": 200
+      }
+    }
+  ],
+  "options": {},
+  "extends": [
+    {
+      "name": "MsgExtend",
+      "message": {
+        "name": "MsgExtend",
+        "enums": [],
+        "extends": [],
+        "options": {},
+        "messages": [],
+        "fields": [
+          {
+            "name": "exField1",
+            "type": "int32",
+            "tag": 101,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {}
+          },
+          {
+            "name": "exField2",
+            "type": "string",
+            "tag": 102,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {}
+          }
+        ],
+        "extensions": null
+      }
+    }
+  ]
+}

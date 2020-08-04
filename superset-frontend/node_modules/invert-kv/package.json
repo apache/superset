@@ -1,0 +1,36 @@
+{
+	"name": "invert-kv",
+	"version": "2.0.0",
+	"description": "Invert the key/value of an object. Example: `{foo: 'bar'}` → `{bar: 'foo'}`",
+	"license": "MIT",
+	"repository": "sindresorhus/invert-kv",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=4"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"object",
+		"key",
+		"value",
+		"kv",
+		"invert"
+	],
+	"devDependencies": {
+		"ava": "*",
+		"xo": "*"
+	}
+
+,"_resolved": "https://registry.npmjs.org/invert-kv/-/invert-kv-2.0.0.tgz"
+,"_integrity": "sha512-wPVv/y/QQ/Uiirj/vh3oP+1Ww+AWehmi1g5fFWGPF6IpCBCDVrhgHRMvrLfdYcwDh3QJbGXDW4JAuzxElLSqKA=="
+,"_from": "invert-kv@2.0.0"
+}

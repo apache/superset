@@ -1,0 +1,65 @@
+{
+  "name": "css-select",
+  "version": "1.2.0",
+  "description": "a CSS selector compiler/engine",
+  "author": "Felix Boehm <me@feedic.com>",
+  "keywords": [
+    "css",
+    "selector",
+    "sizzle"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/fb55/css-select.git"
+  },
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "dependencies": {
+    "css-what": "2.1",
+    "domutils": "1.5.1",
+    "boolbase": "~1.0.0",
+    "nth-check": "~1.0.1"
+  },
+  "devDependencies": {
+    "htmlparser2": "*",
+    "cheerio-soupselect": "*",
+    "mocha": "*",
+    "mocha-lcov-reporter": "*",
+    "coveralls": "*",
+    "istanbul": "*",
+    "expect.js": "*",
+    "jshint": "2"
+  },
+  "scripts": {
+    "test": "mocha && npm run lint",
+    "lint": "jshint index.js lib/*.js test/*.js",
+    "lcov": "istanbul cover _mocha --report lcovonly -- -R spec",
+    "coveralls": "npm run lint && npm run lcov && (cat coverage/lcov.info | coveralls || exit 0)"
+  },
+  "license": "BSD-like",
+  "jshintConfig": {
+    "eqeqeq": true,
+    "freeze": true,
+    "latedef": "nofunc",
+    "noarg": true,
+    "nonbsp": true,
+    "quotmark": "double",
+    "undef": true,
+    "unused": true,
+    "trailing": true,
+    "eqnull": true,
+    "proto": true,
+    "smarttabs": true,
+    "node": true,
+    "globals": {
+      "describe": true,
+      "it": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/css-select/-/css-select-1.2.0.tgz"
+,"_integrity": "sha1-KzoRBTnFNV8c2NMUYj6HCxIeyFg="
+,"_from": "css-select@1.2.0"
+}

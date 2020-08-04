@@ -1,0 +1,14 @@
+---
+  parser: "babel-eslint"
+  env:
+    node: true
+  rules:
+    strict: 0
+    indent: [2, 4]
+    quotes: [2, 'single']
+    no-unused-vars: 0 // see https://github.com/babel/babel-eslint/issues/21
+    no-underscore-dangle: 0
+    yoda: 0
+    no-alert: false
+    new-cap: false
+    no-empty-class: 0

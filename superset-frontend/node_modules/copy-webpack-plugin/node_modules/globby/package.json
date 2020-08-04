@@ -1,0 +1,78 @@
+{
+  "name": "globby",
+  "version": "7.1.1",
+  "description": "Extends `glob` with support for multiple patterns and exposes a Promise API",
+  "license": "MIT",
+  "repository": "sindresorhus/globby",
+  "author": {
+    "email": "sindresorhus@gmail.com",
+    "name": "Sindre Sorhus",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "bench": "npm update glob-stream fast-glob && matcha bench.js",
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js",
+    "gitignore.js"
+  ],
+  "keywords": [
+    "all",
+    "array",
+    "directories",
+    "dirs",
+    "expand",
+    "files",
+    "filesystem",
+    "filter",
+    "find",
+    "fnmatch",
+    "folders",
+    "fs",
+    "glob",
+    "globbing",
+    "globs",
+    "gulpfriendly",
+    "match",
+    "matcher",
+    "minimatch",
+    "multi",
+    "multiple",
+    "paths",
+    "pattern",
+    "patterns",
+    "traverse",
+    "util",
+    "utility",
+    "wildcard",
+    "wildcards",
+    "promise",
+    "gitignore",
+    "git"
+  ],
+  "dependencies": {
+    "array-union": "^1.0.1",
+    "dir-glob": "^2.0.0",
+    "glob": "^7.1.2",
+    "ignore": "^3.3.5",
+    "pify": "^3.0.0",
+    "slash": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "fast-glob": "^1.0.1",
+    "glob-stream": "^6.1.0",
+    "globby": "sindresorhus/globby#master",
+    "matcha": "^0.7.0",
+    "rimraf": "^2.2.8",
+    "xo": "^0.18.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/globby/-/globby-7.1.1.tgz"
+,"_integrity": "sha1-+yzP+UAfhgCUXfral0QMypcrhoA="
+,"_from": "globby@7.1.1"
+}

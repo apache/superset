@@ -1,0 +1,19 @@
+{
+  "name": "cyclist",
+  "version": "0.2.2",
+  "repository": "git://github.com/mafintosh/cyclist",
+  "description": "Cyclist is an efficient cyclic list implemention.",
+  "dependencies": {},
+  "keywords": [
+    "circular",
+    "buffer",
+    "ring",
+    "cyclic",
+    "data"
+  ],
+  "author": "Mathias Buus Madsen <mathiasbuus@gmail.com>"
+
+,"_resolved": "https://registry.npmjs.org/cyclist/-/cyclist-0.2.2.tgz"
+,"_integrity": "sha1-GzN5LhHpFKL9bW7WRHRkRE5fpkA="
+,"_from": "cyclist@0.2.2"
+}

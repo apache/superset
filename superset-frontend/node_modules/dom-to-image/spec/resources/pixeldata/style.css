@@ -1,0 +1,27 @@
+.pixel {
+    width: 10px;
+    height: 10px;
+    float: left;
+}
+.top {
+    background-color: rgb(255, 0, 0);
+}
+.middle {
+    background-color: rgb(0, 255, 0);
+}
+.bottom {
+    background-color: rgb(0, 0, 255);
+}
+.left {
+    clear: left;
+}
+.center {
+    opacity: 0.4;
+}
+.right {
+    opacity: 0.2;
+}
+#dom-node {
+    width: 30px;
+    height: 30px;
+}

@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+
+var sharkdown = require('./'),
+    fs = require('fs'),
+    argv = require('minimist')(process.argv.slice(2));
+
+if (argv.help || argv.h) return help();
+
+((argv._[0] && fs.createReadStream(argv._[0])) || process.stdin).pipe(sharkdown()).pipe(process.stdout);
+
+function help() { fs.createReadStream(__dirname + '/README.md').pipe(sharkdown()).pipe(process.stdout); }

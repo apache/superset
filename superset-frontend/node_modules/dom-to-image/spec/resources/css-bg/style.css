@@ -1,0 +1,10 @@
+#dom-node {
+    width: 100px;
+    height: 100px;
+}
+.with-background {
+    background: url(/base/spec/resources/images/image.jpeg) no-repeat left top;
+    background-size: 100px 100px;
+    width: 100px;
+    height: 100px;
+}

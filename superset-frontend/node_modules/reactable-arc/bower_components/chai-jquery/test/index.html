@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>Mocha</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../node_modules/mocha/mocha.js"></script>
+    <script src="../node_modules/chai/chai.js"></script>
+    <script src="../chai-jquery.js"></script>
+    <script>
+      mocha.setup('bdd');
+      var should = chai.should();
+      window.onload = function () {
+        (window.mochaPhantomJS || window.mocha).run();
+      };
+    </script>
+    <script src="jquery-inspect-spec.js"></script>
+    <script src="chai-jquery-spec.js"></script>
+  </head>
+  <body>
+    <div id="mocha"></div>
+  </body>
+</html>

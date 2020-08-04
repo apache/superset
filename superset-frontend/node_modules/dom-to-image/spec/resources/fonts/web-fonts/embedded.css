@@ -1,0 +1,6 @@
+@font-face {
+    font-family: 'Font1';
+    src: url("data:application/x-font-woff2;base64,AAA") format("woff2"), local(Arial);
+    font-weight: normal;
+    font-style: normal;
+}

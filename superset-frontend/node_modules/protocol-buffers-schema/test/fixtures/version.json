@@ -1,0 +1,90 @@
+{
+  "syntax": 2,
+  "package": null,
+  "imports": [],
+  "enums": [],
+  "extends": [],
+  "messages": [
+    {
+      "name": "Point",
+      "enums": [],
+      "extends": [],
+      "messages": [],
+      "extensions": null,
+      "options": {},
+      "fields": [
+        {
+          "name": "x",
+          "type": "int32",
+          "tag": 1,
+          "map": null,
+          "oneof": null,
+          "required": true,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "y",
+          "type": "int32",
+          "tag": 2,
+          "map": null,
+          "oneof": null,
+          "required": true,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "tag": 3,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        }
+      ]
+    },
+    {
+      "name": "Line",
+      "enums": [],
+      "extends": [],
+      "extensions": null,
+      "options": {},
+      "messages": [],
+      "fields": [
+        {
+          "name": "start",
+          "type": "Point",
+          "tag": 1,
+          "map": null,
+          "oneof": null,
+          "required": true,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "end",
+          "type": "Point",
+          "tag": 2,
+          "map": null,
+          "oneof": null,
+          "required": true,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "tag": 3,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        }
+      ]
+    }
+  ],
+  "options":{}
+}

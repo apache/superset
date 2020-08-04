@@ -1,0 +1,4 @@
+RuntimeError: error evaluating function `image-width`: Image size functions are not supported in browser version of less in image-width-error.less on line 2, column 10:
+1 .test-width{
+2   width: image-width("../data/image.jpg")
+3 }

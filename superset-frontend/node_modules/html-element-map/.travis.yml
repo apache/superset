@@ -1,0 +1,48 @@
+language: node_js
+os:
+ - linux
+node_js:
+  - "11"
+  - "10"
+  - "9"
+  - "8"
+  - "7"
+  - "6"
+  - "5"
+  - "4"
+  - "iojs"
+  - "0.12"
+  - "0.10"
+  - "0.8"
+before_install:
+  - 'case "${TRAVIS_NODE_VERSION}" in 0.*) export NPM_CONFIG_STRICT_SSL=false ;; esac'
+  - 'nvm install-latest-npm'
+install:
+  - 'if [ "${TRAVIS_NODE_VERSION}" = "0.6" ] || [ "${TRAVIS_NODE_VERSION}" = "0.9" ]; then nvm install --latest-npm 0.8 && npm install && nvm use "${TRAVIS_NODE_VERSION}"; else npm install; fi;'
+script:
+  - 'if [ -n "${PRETEST-}" ]; then npm run pretest ; fi'
+  - 'if [ -n "${POSTTEST-}" ]; then npm run posttest ; fi'
+  - 'if [ -n "${COVERAGE-}" ]; then npm run coverage ; fi'
+  - 'if [ -n "${TEST-}" ]; then npm run tests-only ; fi'
+sudo: false
+env:
+  - TEST=true
+matrix:
+  fast_finish: true
+  include:
+    - node_js: "lts/*"
+      env: PRETEST=true
+    - node_js: "lts/*"
+      env: POSTTEST=true
+    - node_js: "0.11"
+      env: TEST=true ALLOW_FAILURE=true
+    - node_js: "0.9"
+      env: TEST=true ALLOW_FAILURE=true
+    - node_js: "0.6"
+      env: TEST=true ALLOW_FAILURE=true
+    - node_js: "0.4"
+      env: TEST=true ALLOW_FAILURE=true
+  allow_failures:
+    - os: osx
+    - env: TEST=true ALLOW_FAILURE=true
+    - env: COVERAGE=true

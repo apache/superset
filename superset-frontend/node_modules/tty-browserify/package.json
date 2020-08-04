@@ -1,0 +1,33 @@
+{
+  "name": "tty-browserify",
+  "version": "0.0.0",
+  "description": "the tty module from node core for browsers",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "tape": "~1.0.4"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/tty-browserify.git"
+  },
+  "homepage": "https://github.com/substack/tty-browserify",
+  "keywords": [
+    "tty",
+    "browser",
+    "browserify"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/tty-browserify/-/tty-browserify-0.0.0.tgz"
+,"_integrity": "sha1-oVe6QC2iTpv5V/mqadUk7tQpAaY="
+,"_from": "tty-browserify@0.0.0"
+}

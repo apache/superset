@@ -1,0 +1,30 @@
+// @flow
+import type {
+    GeoJSONGeometry
+} from '../../index';
+
+const geojson: GeoJSONGeometry = {
+  "type": "GeometryCollection",
+  "geometries": [
+    {
+      "type": "Point",
+      "coordinates": [
+        100,
+        0
+      ]
+    },
+    {
+      "type": "LineString",
+      "coordinates": [
+        [
+          101,
+          0
+        ],
+        [
+          102,
+          1
+        ]
+      ]
+    }
+  ]
+}

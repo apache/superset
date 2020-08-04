@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+    <head>
+      <style>
+        path {
+          /*fill: #BADA55;*/
+          stroke: #FFFFFF;
+          stroke-width: 1px;
+        }
+
+        .hoverover { 
+          font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+        .hoverinfo {
+          padding: 4px;
+          border-radius: 1px;
+          background-color: #FFF;
+          box-shadow: 1px 1px 5px #CCC;
+          font-size: 12px;
+          border: 1px solid #CCC;
+        }
+
+        .hoverinfo hr {
+          border:1px dotted #CCC;
+        }
+      </style>
+    </head>
+    <body>
+        <script src="src/underscore-1.2.4.js"></script>
+        <script src="src/backbone-0.5.3.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="lib/jasmine-1.2.0/jasmine.css">
+        <script type="text/javascript" src="lib/jasmine-1.2.0/jasmine.js"></script>
+        <script type="text/javascript" src="lib/jasmine-1.2.0/jasmine-html.js"></script>
+        <div id="container1" style="border:3px dotted blue; height: 350px; width: 660px"></div>
+
+        <!-- Datamaps Source -->
+        <script src="../../dist/datamaps-all.js"></script>
+
+        <!-- Specs -->
+        <script type="text/javascript" src="spec/ClobberSpec.js"></script>
+
+        <!-- Map Generating Function -->
+        <script src="src/USChoropleth.js"></script>
+
+        <!-- Jasmine Runner -->
+        <script src="lib/runner.js"></script>
+    </body>
+</html>
+

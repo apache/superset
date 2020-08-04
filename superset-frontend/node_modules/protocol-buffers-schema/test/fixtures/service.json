@@ -1,0 +1,108 @@
+{
+  "syntax": 3,
+  "package": null,
+  "imports": [],
+  "enums": [],
+  "extends": [],
+  "messages": [
+		{
+		  "name": "HelloRequest",
+		  "extensions": null,
+		  "enums": [],
+		  "extends": [],
+		  "options": {},
+		  "messages": [],
+		  "fields": [
+				{
+			    "name": "greeting",
+			    "type": "string",
+			    "tag": 1,
+			    "map": null,
+			    "oneof": null,
+			    "required": false,
+			    "repeated": false,
+			    "options": {}
+			  }
+			]
+		},
+		{
+		  "name": "HelloResponse",
+		  "extensions": null,
+		  "enums": [],
+		  "extends": [],
+		  "messages": [],
+		  "options": {},
+		  "fields": [
+				{
+			    "name": "reply",
+			    "type": "string",
+			    "tag": 1,
+			    "map": null,
+			    "oneof": null,
+			    "required": true,
+			    "repeated": false,
+			    "options": {}
+	    	}
+			]
+		}
+	],
+  "services": [
+		{
+      "name": "HelloService",
+      "methods": [
+				{
+		      "name": "SayHello",
+		      "input_type": "HelloRequest",
+		      "output_type": "HelloResponse",
+		      "client_streaming": false,
+		      "server_streaming": false,
+		      "options": {
+		        "google.api.http": {
+		          "get": "/v1/say-hello/echo/{greeting}",
+		          "additional_bindings": [
+								{
+			            "post": "/v2/say-hello",
+			            "body": "greeting"
+			          },
+								{
+			            "get": "/v2/say-hello"
+			          }
+							]
+		        }
+        	}
+	      },
+				{
+	        "name": "LotsOfReplies",
+	        "input_type": "HelloRequest",
+	        "output_type": "HelloResponse",
+	        "client_streaming": false,
+	        "server_streaming": true,
+	        "options": {}
+	      },
+				{
+	        "name": "LotsOfGreetings",
+	        "input_type": "HelloRequest",
+	        "output_type": "HelloResponse",
+	        "client_streaming": true,
+	        "server_streaming": false,
+	        "options": {
+          	"google.api.http": {
+          		"post": "/v1/lots-of-greetings",
+          		"body": "*"
+        		}
+        	}
+	      },
+				{
+	        "name": "BidiHello",
+	        "input_type": "HelloRequest",
+	        "output_type": "HelloResponse",
+	        "client_streaming": true,
+	        "server_streaming": true,
+	        "options": {}
+	      }
+			],
+      "options": {}
+		}
+	],
+  "options": {}
+}

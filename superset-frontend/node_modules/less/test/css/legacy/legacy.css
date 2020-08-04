@@ -1,0 +1,21 @@
+@media (-o-min-device-pixel-ratio: 2) {
+  .test-math-and-units {
+    font: ignores 0/0 rules;
+    test-division: 7em;
+    simple: 2px;
+  }
+}
+#units {
+  t1: 22em;
+  t2: 22em;
+  t3: 2em;
+  t4: 22em;
+  t5: 22em;
+  t6: 2em;
+  t7: 22em;
+  t8: 22em;
+  t9: 2em;
+  t10: 22em;
+  t11: 22em;
+  t12: 2em;
+}

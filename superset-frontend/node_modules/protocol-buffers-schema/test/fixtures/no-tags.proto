@@ -1,0 +1,8 @@
+message wallet {
+  optional int32 dollars;
+  optional int32 pesos;
+}
+
+message traveller {
+  required wallet wallet;
+}

@@ -1,0 +1,39 @@
+name: Node CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version:
+          - '0.8'
+          - '0.10'
+          - '0.12'
+          - '4.x'
+          - '6.x'
+          - '8.x'
+          - '10.x'
+          - '12.x'
+          - '13.x'
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm install
+      if: matrix.node-version != '0.8'
+    - name: Run npm install for Node.js 0.8
+      run: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
+        . "$HOME/.nvm/nvm.sh"
+        nvm install-latest-npm
+        npm install
+      env:
+        NPM_CONFIG_STRICT_SSL: 'false'
+      if: matrix.node-version == '0.8'
+    - run: npm test

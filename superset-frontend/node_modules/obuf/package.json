@@ -1,0 +1,31 @@
+{
+  "name": "obuf",
+  "version": "1.1.2",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/**/*-test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:indutny/offset-buffer"
+  },
+  "keywords": [
+    "Offset",
+    "Buffer",
+    "reader"
+  ],
+  "author": "Fedor Indutny <fedor@indutny.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/indutny/offset-buffer/issues"
+  },
+  "homepage": "https://github.com/indutny/offset-buffer",
+  "devDependencies": {
+    "mocha": "^1.21.4"
+  }
+
+,"_resolved": "https://registry.npmjs.org/obuf/-/obuf-1.1.2.tgz"
+,"_integrity": "sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg=="
+,"_from": "obuf@1.1.2"
+}

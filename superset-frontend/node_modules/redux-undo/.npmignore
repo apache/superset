@@ -1,0 +1,5 @@
+.DS_Store
+*.log
+src
+test
+coverage

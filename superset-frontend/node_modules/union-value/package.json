@@ -1,0 +1,74 @@
+{
+  "name": "union-value",
+  "description": "Set an array of unique values as the property of an object. Supports setting deeply nested properties using using object-paths/dot notation.",
+  "version": "1.0.1",
+  "homepage": "https://github.com/jonschlinkert/union-value",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/union-value",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/union-value/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-union": "^3.1.0",
+    "get-value": "^2.0.6",
+    "is-extendable": "^0.1.1",
+    "set-value": "^2.0.1"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.11",
+    "mocha": "^3.2.0",
+    "should": "^11.2.0"
+  },
+  "keywords": [
+    "array",
+    "dot",
+    "get",
+    "has",
+    "nested",
+    "notation",
+    "object",
+    "path",
+    "prop",
+    "property",
+    "set",
+    "union",
+    "value"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "assign-value",
+        "get-value",
+        "has-value",
+        "set-value",
+        "unset-value"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/union-value/-/union-value-1.0.1.tgz"
+,"_integrity": "sha512-tJfXmxMeWYnczCVs7XAEvIV7ieppALdyepWMkHkwciRpZraG/xwT+s2JN8+pr1+8jCRf80FFzvr+MpQeeoF4Xg=="
+,"_from": "union-value@1.0.1"
+}

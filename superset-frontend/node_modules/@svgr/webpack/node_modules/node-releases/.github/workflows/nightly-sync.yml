@@ -1,0 +1,35 @@
+name: Nightly Sync of content
+
+on:
+  schedule:
+  - cron: '0 3 * * *' # run daily at 3am
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "12.x"
+
+      - name: Install
+        run: npm ci
+
+      - name: Collect latest releases
+        run: npm run build
+
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v4
+        with:
+          author_name: GitHub Action
+          author_email: action@github.com
+          message: "feat: Nightly Sync"
+
+      - name: Push changes
+        # Only run this on the main nodejs repo and not forks
+        if: github.repository == 'chicoxyzzy/node-releases'
+        uses: ad-m/github-push-action@v0.5.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

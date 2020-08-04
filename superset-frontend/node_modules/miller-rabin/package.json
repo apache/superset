@@ -1,0 +1,36 @@
+{
+  "name": "miller-rabin",
+  "version": "4.0.1",
+  "description": "Miller Rabin algorithm for primality test",
+  "main": "lib/mr.js",
+  "bin": "bin/miller-rabin",
+  "scripts": {
+    "test": "mocha --reporter=spec test/**/*-test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:indutny/miller-rabin"
+  },
+  "keywords": [
+    "prime",
+    "miller-rabin",
+    "bignumber"
+  ],
+  "author": "Fedor Indutny <fedor@indutny.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/indutny/miller-rabin/issues"
+  },
+  "homepage": "https://github.com/indutny/miller-rabin",
+  "devDependencies": {
+    "mocha": "^2.0.1"
+  },
+  "dependencies": {
+    "bn.js": "^4.0.0",
+    "brorand": "^1.0.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/miller-rabin/-/miller-rabin-4.0.1.tgz"
+,"_integrity": "sha512-115fLhvZVqWwHPbClyntxEVfVDfl9DLLTuJvq3g2O/Oxi8AiNouAHvDSzHS0viUJc+V5vm3eq91Xwqn9dp4jRA=="
+,"_from": "miller-rabin@4.0.1"
+}

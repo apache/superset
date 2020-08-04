@@ -1,0 +1,289 @@
+'use strict'
+
+// Do a two-pass walk, first to get the list of packages that need to be
+// bundled, then again to get the actual files and folders.
+// Keep a cache of node_modules content and package.json data, so that the
+// second walk doesn't have to re-do all the same work.
+
+const bundleWalk = require('npm-bundled')
+const BundleWalker = bundleWalk.BundleWalker
+const BundleWalkerSync = bundleWalk.BundleWalkerSync
+
+const ignoreWalk = require('ignore-walk')
+const IgnoreWalker = ignoreWalk.Walker
+const IgnoreWalkerSync = ignoreWalk.WalkerSync
+
+const rootBuiltinRules = Symbol('root-builtin-rules')
+const packageNecessaryRules = Symbol('package-necessary-rules')
+const path = require('path')
+
+const normalizePackageBin = require('npm-normalize-package-bin')
+
+const defaultRules = [
+  '.npmignore',
+  '.gitignore',
+  '**/.git',
+  '**/.svn',
+  '**/.hg',
+  '**/CVS',
+  '**/.git/**',
+  '**/.svn/**',
+  '**/.hg/**',
+  '**/CVS/**',
+  '/.lock-wscript',
+  '/.wafpickle-*',
+  '/build/config.gypi',
+  'npm-debug.log',
+  '**/.npmrc',
+  '.*.swp',
+  '.DS_Store',
+  '**/.DS_Store/**',
+  '._*',
+  '**/._*/**',
+  '*.orig',
+  '/package-lock.json',
+  '/yarn.lock',
+  'archived-packages/**',
+  'core',
+  '!core/',
+  '!**/core/',
+  '*.core',
+  '*.vgcore',
+  'vgcore.*',
+  'core.+([0-9])',
+]
+
+// There may be others, but :?|<> are handled by node-tar
+const nameIsBadForWindows = file => /\*/.test(file)
+
+// a decorator that applies our custom rules to an ignore walker
+const npmWalker = Class => class Walker extends Class {
+  constructor (opt) {
+    opt = opt || {}
+
+    // the order in which rules are applied.
+    opt.ignoreFiles = [
+      rootBuiltinRules,
+      'package.json',
+      '.npmignore',
+      '.gitignore',
+      packageNecessaryRules
+    ]
+
+    opt.includeEmpty = false
+    opt.path = opt.path || process.cwd()
+    const dirName = path.basename(opt.path)
+    const parentName = path.basename(path.dirname(opt.path))
+    opt.follow =
+      dirName === 'node_modules' ||
+      (parentName === 'node_modules' && /^@/.test(dirName))
+    super(opt)
+
+    // ignore a bunch of things by default at the root level.
+    // also ignore anything in node_modules, except bundled dependencies
+    if (!this.parent) {
+      this.bundled = opt.bundled || []
+      this.bundledScopes = Array.from(new Set(
+        this.bundled.filter(f => /^@/.test(f))
+        .map(f => f.split('/')[0])))
+      const rules = defaultRules.join('\n') + '\n'
+      this.packageJsonCache = opt.packageJsonCache || new Map()
+      super.onReadIgnoreFile(rootBuiltinRules, rules, _=>_)
+    } else {
+      this.bundled = []
+      this.bundledScopes = []
+      this.packageJsonCache = this.parent.packageJsonCache
+    }
+  }
+
+  onReaddir (entries) {
+    if (!this.parent) {
+      entries = entries.filter(e =>
+        e !== '.git' &&
+        !(e === 'node_modules' && this.bundled.length === 0)
+      )
+    }
+    return super.onReaddir(entries)
+  }
+
+  filterEntry (entry, partial) {
+    // get the partial path from the root of the walk
+    const p = this.path.substr(this.root.length + 1)
+    const pkgre = /^node_modules\/(@[^\/]+\/?[^\/]+|[^\/]+)(\/.*)?$/
+    const isRoot = !this.parent
+    const pkg = isRoot && pkgre.test(entry) ?
+      entry.replace(pkgre, '$1') : null
+    const rootNM = isRoot && entry === 'node_modules'
+    const rootPJ = isRoot && entry === 'package.json'
+
+    return (
+      // if we're in a bundled package, check with the parent.
+      /^node_modules($|\/)/i.test(p) ? this.parent.filterEntry(
+          this.basename + '/' + entry, partial)
+
+      // if package is bundled, all files included
+      // also include @scope dirs for bundled scoped deps
+      // they'll be ignored if no files end up in them.
+      // However, this only matters if we're in the root.
+      // node_modules folders elsewhere, like lib/node_modules,
+      // should be included normally unless ignored.
+      : pkg ? -1 !== this.bundled.indexOf(pkg) ||
+        -1 !== this.bundledScopes.indexOf(pkg)
+
+      // only walk top node_modules if we want to bundle something
+      : rootNM ? !!this.bundled.length
+
+      // always include package.json at the root.
+      : rootPJ ? true
+
+      // otherwise, follow ignore-walk's logic
+      : super.filterEntry(entry, partial)
+    )
+  }
+
+  filterEntries () {
+    if (this.ignoreRules['package.json'])
+      this.ignoreRules['.gitignore'] = this.ignoreRules['.npmignore'] = null
+    else if (this.ignoreRules['.npmignore'])
+      this.ignoreRules['.gitignore'] = null
+    this.filterEntries = super.filterEntries
+    super.filterEntries()
+  }
+
+  addIgnoreFile (file, then) {
+    const ig = path.resolve(this.path, file)
+    if (this.packageJsonCache.has(ig))
+      this.onPackageJson(ig, this.packageJsonCache.get(ig), then)
+    else
+      super.addIgnoreFile(file, then)
+  }
+
+  onPackageJson (ig, pkg, then) {
+    this.packageJsonCache.set(ig, pkg)
+
+    // if there's a bin, browser or main, make sure we don't ignore it
+    // also, don't ignore the package.json itself!
+    //
+    // Weird side-effect of this: a readme (etc) file will be included
+    // if it exists anywhere within a folder with a package.json file.
+    // The original intent was only to include these files in the root,
+    // but now users in the wild are dependent on that behavior for
+    // localized documentation and other use cases.  Adding a `/` to
+    // these rules, while tempting and arguably more "correct", is a
+    // breaking change.
+    const rules = [
+      pkg.browser ? '!' + pkg.browser : '',
+      pkg.main ? '!' + pkg.main : '',
+      '!package.json',
+      '!npm-shrinkwrap.json',
+      '!@(readme|copying|license|licence|notice|changes|changelog|history){,.*[^~$]}'
+    ]
+    if (pkg.bin) {
+      // always an object, because normalized already
+      for (const key in pkg.bin)
+        rules.push('!' + pkg.bin[key])
+    }
+
+    const data = rules.filter(f => f).join('\n') + '\n'
+    super.onReadIgnoreFile(packageNecessaryRules, data, _=>_)
+
+    if (Array.isArray(pkg.files))
+      super.onReadIgnoreFile('package.json', '*\n' + pkg.files.map(
+        f => '!' + f + '\n!' + f.replace(/\/+$/, '') + '/**'
+      ).join('\n') + '\n', then)
+    else
+      then()
+  }
+
+  // override parent stat function to completely skip any filenames
+  // that will break windows entirely.
+  // XXX(isaacs) Next major version should make this an error instead.
+  stat (entry, file, dir, then) {
+    if (nameIsBadForWindows(entry))
+      then()
+    else
+      super.stat(entry, file, dir, then)
+  }
+
+  // override parent onstat function to nix all symlinks
+  onstat (st, entry, file, dir, then) {
+    if (st.isSymbolicLink())
+      then()
+    else
+      super.onstat(st, entry, file, dir, then)
+  }
+
+  onReadIgnoreFile (file, data, then) {
+    if (file === 'package.json')
+      try {
+        const ig = path.resolve(this.path, file)
+        this.onPackageJson(ig, normalizePackageBin(JSON.parse(data)), then)
+      } catch (er) {
+        // ignore package.json files that are not json
+        then()
+      }
+    else
+      super.onReadIgnoreFile(file, data, then)
+  }
+
+  sort (a, b) {
+    return sort(a, b)
+  }
+}
+
+class Walker extends npmWalker(IgnoreWalker) {
+  walker (entry, then) {
+    new Walker(this.walkerOpt(entry)).on('done', then).start()
+  }
+}
+
+class WalkerSync extends npmWalker(IgnoreWalkerSync) {
+  walker (entry, then) {
+    new WalkerSync(this.walkerOpt(entry)).start()
+    then()
+  }
+}
+
+const walk = (options, callback) => {
+  options = options || {}
+  const p = new Promise((resolve, reject) => {
+    const bw = new BundleWalker(options)
+    bw.on('done', bundled => {
+      options.bundled = bundled
+      options.packageJsonCache = bw.packageJsonCache
+      new Walker(options).on('done', resolve).on('error', reject).start()
+    })
+    bw.start()
+  })
+  return callback ? p.then(res => callback(null, res), callback) : p
+}
+
+const walkSync = options => {
+  options = options || {}
+  const bw = new BundleWalkerSync(options).start()
+  options.bundled = bw.result
+  options.packageJsonCache = bw.packageJsonCache
+  const walker = new WalkerSync(options)
+  walker.start()
+  return walker.result
+}
+
+// optimize for compressibility
+// extname, then basename, then locale alphabetically
+// https://twitter.com/isntitvacant/status/1131094910923231232
+const sort = (a, b) => {
+  const exta = path.extname(a).toLowerCase()
+  const extb = path.extname(b).toLowerCase()
+  const basea = path.basename(a).toLowerCase()
+  const baseb = path.basename(b).toLowerCase()
+
+  return exta.localeCompare(extb) ||
+    basea.localeCompare(baseb) ||
+    a.localeCompare(b)
+}
+
+
+module.exports = walk
+walk.sync = walkSync
+walk.Walker = Walker
+walk.WalkerSync = WalkerSync

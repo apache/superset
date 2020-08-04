@@ -1,0 +1,52 @@
+{
+  "name": "http-errors",
+  "description": "Create HTTP error objects",
+  "version": "1.6.3",
+  "author": "Jonathan Ong <me@jongleberry.com> (http://jongleberry.com)",
+  "contributors": [
+    "Alan Plum <me@pluma.io>",
+    "Douglas Christopher Wilson <doug@somethingdoug.com>"
+  ],
+  "license": "MIT",
+  "repository": "jshttp/http-errors",
+  "dependencies": {
+    "depd": "~1.1.2",
+    "inherits": "2.0.3",
+    "setprototypeof": "1.1.0",
+    "statuses": ">= 1.4.0 < 2"
+  },
+  "devDependencies": {
+    "eslint": "4.18.1",
+    "eslint-config-standard": "11.0.0",
+    "eslint-plugin-import": "2.9.0",
+    "eslint-plugin-markdown": "1.0.0-beta.6",
+    "eslint-plugin-node": "6.0.1",
+    "eslint-plugin-promise": "3.6.0",
+    "eslint-plugin-standard": "3.0.1",
+    "istanbul": "0.4.5",
+    "mocha": "1.21.5"
+  },
+  "engines": {
+    "node": ">= 0.6"
+  },
+  "scripts": {
+    "lint": "eslint --plugin markdown --ext js,md .",
+    "test": "mocha --reporter spec --bail",
+    "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- --reporter dot",
+    "test-travis": "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --reporter dot"
+  },
+  "keywords": [
+    "http",
+    "error"
+  ],
+  "files": [
+    "index.js",
+    "HISTORY.md",
+    "LICENSE",
+    "README.md"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/http-errors/-/http-errors-1.6.3.tgz"
+,"_integrity": "sha1-i1VoC7S+KDoLW/TqLjhYC+HZMg0="
+,"_from": "http-errors@1.6.3"
+}

@@ -1,0 +1,32 @@
+.nvd3 .background path {
+    fill: none;
+    stroke: #EEE;
+    stroke-opacity: .4;
+    shape-rendering: crispEdges;
+}
+
+.nvd3 .foreground path {
+    fill: none;
+    stroke-opacity: .7;
+}
+
+.nvd3 .nv-parallelCoordinates-brush .extent {
+    fill: #fff;
+    fill-opacity: .6;
+    stroke: gray;
+    shape-rendering: crispEdges;
+}
+
+.nvd3 .nv-parallelCoordinates .hover  {
+    fill-opacity: 1;
+	stroke-width: 3px;
+}
+
+
+.nvd3 .missingValuesline line {
+  fill: none;
+  stroke: black;
+  stroke-width: 1;
+  stroke-opacity: 1;
+  stroke-dasharray: 5, 5;
+}

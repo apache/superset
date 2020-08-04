@@ -1,0 +1,24 @@
+.test-c {
+  background-color: green;
+}
+.theOnlySelector {
+  shall-have: one selector;
+}
+show-all-content {
+  /*
+  tralala
+*/
+}
+show-all-content .fix {
+  fix: fix;
+}
+show-all-content .something {
+  inside: something;
+}
+#used-namespaced-mixin {
+  was: included;
+  shall-see: another property above;
+}
+call-mixin-with-import-by-reference-inside {
+  the-only-property: nothing-below-this;
+}

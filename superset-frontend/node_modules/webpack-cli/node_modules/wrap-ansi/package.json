@@ -1,0 +1,65 @@
+{
+	"name": "wrap-ansi",
+	"version": "5.1.0",
+	"description": "Wordwrap a string with ANSI escape codes",
+	"license": "MIT",
+	"repository": "chalk/wrap-ansi",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=6"
+	},
+	"scripts": {
+		"test": "xo && nyc ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"wrap",
+		"break",
+		"wordwrap",
+		"wordbreak",
+		"linewrap",
+		"ansi",
+		"styles",
+		"color",
+		"colour",
+		"colors",
+		"terminal",
+		"console",
+		"cli",
+		"string",
+		"tty",
+		"escape",
+		"formatting",
+		"rgb",
+		"256",
+		"shell",
+		"xterm",
+		"log",
+		"logging",
+		"command-line",
+		"text"
+	],
+	"dependencies": {
+		"ansi-styles": "^3.2.0",
+		"string-width": "^3.0.0",
+		"strip-ansi": "^5.0.0"
+	},
+	"devDependencies": {
+		"ava": "^1.2.1",
+		"chalk": "^2.4.2",
+		"coveralls": "^3.0.3",
+		"has-ansi": "^3.0.0",
+		"nyc": "^13.3.0",
+		"xo": "^0.24.0"
+	}
+
+,"_resolved": "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-5.1.0.tgz"
+,"_integrity": "sha512-QC1/iN/2/RPVJ5jYK8BGttj5z83LmSKmvbvrXPNCLZSEb32KKVDJDl/MOt2N01qU2H/FkzEa9PKto1BqDjtd7Q=="
+,"_from": "wrap-ansi@5.1.0"
+}

@@ -1,0 +1,28 @@
+@map: {
+  @width: 400px;
+  @colors: {
+    toolbar-background: red;
+    toolbar-foreground: white;
+  }
+};
+
+#ns {
+  .mixin() {
+    @height: 200px;
+  }
+}
+
+@breakpoints: {
+  mobile: 320px;
+  tablet: 768px;
+  desktop: 1024px;
+};
+
+@media (min-width: @breakpoints[mobile]) {
+  .toolbar {
+    width: @map[@width];
+    height: #ns.mixin[@height];
+    background: @map[@colors][toolbar-background];
+    color: @map[@colors][toolbar-foreground];
+  }
+}

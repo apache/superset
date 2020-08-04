@@ -1,0 +1,13 @@
+#dom-node {
+    width: 100px;
+}
+
+.include {
+    height: 50px;
+    background-color: blue;
+}
+
+.omit {
+    height: 50px;
+    background-color: red;
+}

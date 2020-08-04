@@ -1,0 +1,53 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+.superset-legacy-chart-table {
+  margin: 0px auto;
+}
+.superset-legacy-chart-table table {
+  width: 100%;
+}
+.superset-legacy-chart-table .dt-metric {
+  text-align: right;
+}
+.superset-legacy-chart-table td.dt-is-filter {
+  cursor: pointer;
+}
+.superset-legacy-chart-table td.dt-is-filter:hover {
+  background-color: linen;
+}
+.superset-legacy-chart-table td.dt-is-active-filter,
+.superset-legacy-chart-table td.dt-is-active-filter:hover {
+  background-color: lightcyan;
+}
+.superset-legacy-chart-table div.dataTables_wrapper div.dataTables_paginate {
+  line-height: 0;
+}
+.superset-legacy-chart-table div.dataTables_wrapper div.dataTables_paginate ul.pagination {
+  margin-top: 0.5em;
+}
+
+.superset-legacy-chart-table table.table thead th.sorting:after,
+.superset-legacy-chart-table table.table thead th.sorting_asc:after,
+.superset-legacy-chart-table table.table thead th.sorting_desc:after {
+  top: auto;
+  bottom: 6px;
+}
+.superset-legacy-chart-table td {
+  white-space: pre-wrap;
+}

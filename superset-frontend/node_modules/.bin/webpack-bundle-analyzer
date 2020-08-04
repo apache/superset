@@ -1,0 +1,1 @@
+../webpack-bundle-analyzer/lib/bin/analyzer.js

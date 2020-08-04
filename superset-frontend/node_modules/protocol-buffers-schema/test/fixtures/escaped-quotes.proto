@@ -1,0 +1,3 @@
+message Event {
+    EntityId id = 1 [(tagger.tags) = "bson:\"_id,omitempty\"" ];
+}

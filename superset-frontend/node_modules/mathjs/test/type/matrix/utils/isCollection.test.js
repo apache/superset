@@ -1,0 +1,2 @@
+// TODO: test isCollection.js
+

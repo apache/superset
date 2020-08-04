@@ -1,0 +1,11 @@
+// @flow strict
+
+import type {
+    GeoJSONGeometry
+} from '../../index';
+
+const wrongType: GeoJSONGeometry = {
+    type: 'Point',
+    coordinates: [[[[[0, 0], [1, 2]]]]]
+};
+

@@ -1,0 +1,37 @@
+{
+  "name": "hsla-regex",
+  "description": "Regex for matching HSLA colors.",
+  "author": "John Otander",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/regexps/hsla-regex.git"
+  },
+  "keywords": [
+    "hsla",
+    "regex",
+    "regexp",
+    "color",
+    "css"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/regexps/hsla-regex/issues"
+  },
+  "homepage": "https://github.com/regexps/hsla-regex",
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/hsla-regex/-/hsla-regex-1.0.0.tgz"
+,"_integrity": "sha1-wc56MWjIxmFAM6S194d/OyJfnDg="
+,"_from": "hsla-regex@1.0.0"
+}

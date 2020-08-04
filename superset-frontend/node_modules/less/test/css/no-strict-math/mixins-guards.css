@@ -1,0 +1,12 @@
+.test-2798 {
+  regression: fixed;
+}
+.conditions-parser-1 {
+  only-atomic: ok;
+}
+.conditions-parser-2 {
+  only-atomic-with-nested-parenthesis: ok;
+}
+.conditions-parser-3 {
+  only-atomic-nested-parenthesis-on-right: ok;
+}

@@ -1,0 +1,22 @@
+// 
+// Spinner
+// ------------------------------
+
+.Select-spinner(@size, @orbit, @satellite) {
+	.animation( Select-animation-spin 400ms infinite linear );
+	.square(@size);
+	box-sizing: border-box;
+	border-radius: 50%;
+	border: floor((@size / 8)) solid @orbit;
+	border-right-color: @satellite;
+	display: inline-block;
+	position: relative;
+	
+}
+
+@keyframes Select-animation-spin {
+	to { transform: rotate(1turn); }
+}
+@-webkit-keyframes Select-animation-spin {
+	to { -webkit-transform: rotate(1turn); }
+}

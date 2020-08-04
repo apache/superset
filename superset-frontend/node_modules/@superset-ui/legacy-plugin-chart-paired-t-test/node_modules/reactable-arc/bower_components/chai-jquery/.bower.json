@@ -1,0 +1,14 @@
+{
+  "name": "chai-jquery",
+  "homepage": "https://github.com/chaijs/chai-jquery",
+  "version": "1.2.3",
+  "_release": "1.2.3",
+  "_resolution": {
+    "type": "version",
+    "tag": "1.2.3",
+    "commit": "5d94617cf003702ebc4cfe9ed99515a42de5d773"
+  },
+  "_source": "git://github.com/chaijs/chai-jquery.git",
+  "_target": "~1.2.1",
+  "_originalSource": "chai-jquery"
+}

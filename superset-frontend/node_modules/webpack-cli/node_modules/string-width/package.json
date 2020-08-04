@@ -1,0 +1,60 @@
+{
+	"name": "string-width",
+	"version": "3.1.0",
+	"description": "Get the visual width of a string - the number of columns required to display it",
+	"license": "MIT",
+	"repository": "sindresorhus/string-width",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=6"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"string",
+		"str",
+		"character",
+		"char",
+		"unicode",
+		"width",
+		"visual",
+		"column",
+		"columns",
+		"fullwidth",
+		"full-width",
+		"full",
+		"ansi",
+		"escape",
+		"codes",
+		"cli",
+		"command-line",
+		"terminal",
+		"console",
+		"cjk",
+		"chinese",
+		"japanese",
+		"korean",
+		"fixed-width"
+	],
+	"dependencies": {
+		"emoji-regex": "^7.0.1",
+		"is-fullwidth-code-point": "^2.0.0",
+		"strip-ansi": "^5.1.0"
+	},
+	"devDependencies": {
+		"ava": "^1.0.1",
+		"xo": "^0.23.0"
+	}
+
+,"_resolved": "https://registry.npmjs.org/string-width/-/string-width-3.1.0.tgz"
+,"_integrity": "sha512-vafcv6KjVZKSgz06oM/H6GDBrAtz8vdhQakGjFIvNrHA6y3HCF1CInLy+QLq8dTJPQ1b+KDUqDFctkdRW44e1w=="
+,"_from": "string-width@3.1.0"
+}

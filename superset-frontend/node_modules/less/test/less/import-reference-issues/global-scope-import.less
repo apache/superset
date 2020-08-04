@@ -1,0 +1,13 @@
+.theOnlySelector {
+  avoid: warning;
+}
+.unusedAndReference:extend(.theOnlySelector) {
+    unused-and: reference;
+}
+
+@import (reference) "global-scope-nested.less";
+
+.test-b {
+  background-color: green;
+  &:extend(.test-a all);
+}

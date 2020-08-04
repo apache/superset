@@ -1,0 +1,67 @@
+{
+  "name": "cssnano-preset-default",
+  "version": "4.0.7",
+  "main": "dist/index.js",
+  "description": "Safe defaults for cssnano which require minimal configuration.",
+  "scripts": {
+    "prepublish": "cross-env BABEL_ENV=publish babel src --out-dir dist --ignore /__tests__/"
+  },
+  "files": [
+    "LICENSE-MIT",
+    "dist"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "css-declaration-sorter": "^4.0.1",
+    "cssnano-util-raw-cache": "^4.0.1",
+    "postcss": "^7.0.0",
+    "postcss-calc": "^7.0.1",
+    "postcss-colormin": "^4.0.3",
+    "postcss-convert-values": "^4.0.1",
+    "postcss-discard-comments": "^4.0.2",
+    "postcss-discard-duplicates": "^4.0.2",
+    "postcss-discard-empty": "^4.0.1",
+    "postcss-discard-overridden": "^4.0.1",
+    "postcss-merge-longhand": "^4.0.11",
+    "postcss-merge-rules": "^4.0.3",
+    "postcss-minify-font-values": "^4.0.2",
+    "postcss-minify-gradients": "^4.0.2",
+    "postcss-minify-params": "^4.0.2",
+    "postcss-minify-selectors": "^4.0.2",
+    "postcss-normalize-charset": "^4.0.1",
+    "postcss-normalize-display-values": "^4.0.2",
+    "postcss-normalize-positions": "^4.0.2",
+    "postcss-normalize-repeat-style": "^4.0.2",
+    "postcss-normalize-string": "^4.0.2",
+    "postcss-normalize-timing-functions": "^4.0.2",
+    "postcss-normalize-unicode": "^4.0.1",
+    "postcss-normalize-url": "^4.0.1",
+    "postcss-normalize-whitespace": "^4.0.2",
+    "postcss-ordered-values": "^4.1.2",
+    "postcss-reduce-initial": "^4.0.3",
+    "postcss-reduce-transforms": "^4.0.2",
+    "postcss-svgo": "^4.0.2",
+    "postcss-unique-selectors": "^4.0.1"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.0.0",
+    "cross-env": "^5.0.0"
+  },
+  "author": {
+    "name": "Ben Briggs",
+    "email": "beneb.info@gmail.com",
+    "url": "http://beneb.info"
+  },
+  "repository": "cssnano/cssnano",
+  "homepage": "https://github.com/cssnano/cssnano",
+  "bugs": {
+    "url": "https://github.com/cssnano/cssnano/issues"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/cssnano-preset-default/-/cssnano-preset-default-4.0.7.tgz"
+,"_integrity": "sha512-x0YHHx2h6p0fCl1zY9L9roD7rnlltugGu7zXSKQx6k2rYw0Hi3IqxcoAGF7u9Q5w1nt7vK0ulxV8Lo+EvllGsA=="
+,"_from": "cssnano-preset-default@4.0.7"
+}

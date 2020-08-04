@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .active { fill: blue !important;}
+          /*.datamaps-key dt, .datamaps-key dd {float: none !important;}
+          .datamaps-key {right: -50px; top: 0;}*/
+        </style>
+      </head>
+      <body>
+
+        <div id="container1" style="border:1px dotted blue; width: 700px; height: 475px; position: relative;"></div>
+        <script src="/src/js/components/d3/d3.min.js"></script>
+        <script src="/src/js/components/topojson/topojson.js"></script>
+        <!-- <script src="/src/js/json2.js"></script> -->
+        <script src="/src/rel/datamaps.all.js"></script>
+        <script>
+
+          var election = new Datamap({
+            scope: 'world',
+            element: document.getElementById('container1'),
+            projection: 'mercator',
+            geographyConfig: {
+              popupOnHover: true,
+              highlightBorderColor: '#bada55',
+              popupTemplate: function(geography, data) {
+                if ( data )
+                  return '<div class="hoverinfo" style="max-width: 300px;"><strong>' + geography.properties.name + '</strong> <br />' +  data.peaceTalks + ' </div>'
+              },
+              highlightBorderWidth: 1
+            },
+
+
+            fills: {
+              'Visited': '#306596',
+              'neato': '#0fa0fa',
+              defaultFill: '#EDDC4E'
+            },
+            data:{
+              "USA": {
+                "fillKey": "Visited",
+                desc: "Upon arriving in Tel Aviv, President Obama examined a battery of the \"Iron Dome\" defense system before traveling to Jerusalem for bilateral talks with Israeli President Shimon Peres and Prime Minister Benjamin Netanyahu, after which they held a joint press conference and attended a working dinner together."
+              },
+              "GBR": {
+                "fillKey": "Visited",
+                desc: "The President attended the 39th G8 summit at Lough Erne Resort in County Fermanagh, Northern Ireland."
+              },
+              "CAN": {
+                "fillKey": "neato",
+                peaceTalks: 1
+              }
+            }
+          });
+
+window.setTimeout(function() {
+election.updateChoropleth({
+  'USA': { color: 'blue' },
+  'CAN': { color: 'yellow', peaceTalks: 40 }
+})
+}, 1000);
+window.setTimeout(function() {
+election.updateChoropleth({
+  'USA': { color: 'green', peaceTalks: 4 },
+  'CAN': { fillKey: 'neato', peaceTalks: 10 },
+  'JPN': {color: 'pink'},
+  'RUS': 'blue'
+})
+}, 3000);
+
+election.bubbles([
+  {
+    name: 'Castle Bravo',
+    radius: 25,
+    yeild: 15000,
+    country: 'USA',
+    significance: 'First dry fusion fuel "staged" thermonuclear weapon; a serious nuclear fallout accident occurred',
+    fillKey: 'USA',
+    date: '1954-03-01',
+    latitude: 11.415,
+    longitude: 165.1619
+  }
+], {
+});
+
+window.setTimeout(function() {
+
+  election.bubbles([{
+    name: 'Tsar Bomba',
+    radius: 70,
+    yeild: 50000,
+    country: 'USSR',
+    fillKey: 'RUS',
+    significance: 'Largest thermonuclear weapon ever tested—scaled down from its initial 100 Mt design by 50%',
+    date: '1961-10-31',
+    latitude: 73.482,
+    longitude: 54.5854
+  }], {exitDelay: 1000});
+
+}, 2000);
+
+var l = {
+  legendTitle: "Where Have We Been",
+  defaultFillName: "Whats left",
+  labels: {
+     Visited: "Fred",
+     spouse: "Wilma",
+     together: "Together",
+     separately: "Separately",
+  },
+};
+election.legend(l);
+</script>
+</body>
+</html>
+

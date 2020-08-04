@@ -1,0 +1,40 @@
+#!/usr/bin/env node
+
+var commander = require("commander"),
+    d3 = Object.assign({}, require("d3-geo"), require("../")),
+    read = require("./read"),
+    write = require("./write");
+
+commander
+    .version(require("../package.json").version)
+    .usage("[options] [file]")
+    .description("Quantize GeoJSON.")
+    .option("-o, --out <file>", "output file name; defaults to “-” for stdout", "-")
+    .option("-p, --precision <value>", "number of output digits after the decimal point")
+    .option("-n, --newline-delimited", "use newline-delimited JSON")
+    .parse(process.argv);
+
+if (commander.args.length > 1) {
+  console.error();
+  console.error("  error: multiple input files");
+  console.error();
+  process.exit(1);
+} else if (commander.args.length === 0) {
+  commander.args.push("-");
+}
+
+var reader = read(commander.args[0], commander.newlineDelimited, quantize).then(end).catch(abort),
+    writer = write(commander.out);
+
+function quantize(d, i) {
+  if (commander.precision != null) d = d3.geoQuantize(d, commander.precision);
+  return writer.write(JSON.stringify(d) + "\n");
+}
+
+function end() {
+  return writer.end();
+}
+
+function abort(error) {
+  console.error(error.stack);
+}

@@ -1,0 +1,34 @@
+{
+  "name": "dom-to-image",
+  "version": "2.6.0",
+  "homepage": "https://github.com/tsayen/dom-to-image",
+  "authors": [
+    "Anatolii Saienko <anatoly.sayenko@gmail.com>"
+  ],
+  "description": "Generates an image from a DOM node using HTML5 canvas and SVG",
+  "main": "src/dom-to-image.js",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "dom",
+    "image",
+    "raster",
+    "render",
+    "html",
+    "canvas",
+    "svg"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "spec"
+  ],
+  "devDependencies": {
+    "js-imagediff": "~1.0.8",
+    "jquery": "~2.1.3",
+    "fontawesome": "~4.4.0"
+  }
+}

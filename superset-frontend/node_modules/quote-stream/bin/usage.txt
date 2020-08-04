@@ -1,0 +1,4 @@
+usage: quote-stream
+
+  Transform stdin to a quoted string on stdout.
+

@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+	<head>
+	</head>
+	<body>
+		<script src="../ocrad.js"></script>
+		<script>
+			function OCRImage(image){
+				var canvas = document.createElement('canvas')
+				canvas.width  = image.naturalWidth;
+				canvas.height = image.naturalHeight;
+				canvas.getContext('2d').drawImage(image, 0, 0)
+				return OCRAD(canvas)
+			}
+			
+			function OCRPath(url, callback){
+				var image = new Image()
+				image.src = url;
+				image.onload = function(){ callback(OCRImage(image)) }
+			}
+
+			OCRPath("message.png", function(words){
+				alert(words)
+			})
+		</script>
+	</body>	
+</html>

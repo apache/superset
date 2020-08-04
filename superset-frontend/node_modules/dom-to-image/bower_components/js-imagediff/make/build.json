@@ -1,0 +1,9 @@
+{
+  "JAVASCRIPT": {
+    "DIST_DIR": "./",
+    "imagediff": [
+      "./js/license.js",
+      "./js/imagediff.js"
+    ]
+  }
+}

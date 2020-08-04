@@ -1,0 +1,2 @@
+export default function createTime(mode: 'local' | 'utc', year: number, month?: number, date?: number, hours?: number, minutes?: number, seconds?: number, milliseconds?: number): Date;
+//# sourceMappingURL=createTime.d.ts.map

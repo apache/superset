@@ -1,0 +1,33 @@
+{
+  "name": "decimal.js",
+  "main": "decimal.js",
+  "version": "9.0.1",
+  "homepage": "https://github.com/MikeMcl/decimal.js",
+  "authors": [
+    "Michael Mclaughlin <M8ch88l@gmail.com>"
+  ],
+  "description": "An arbitrary-precision Decimal type for JavaScript",
+  "moduleType": [
+    "amd",
+    "globals",
+    "node"
+  ],
+  "keywords": [
+    "arbitrary",
+    "precision",
+    "arithmetic",
+    "bignumber",
+    "decimal",
+    "float",
+    "biginteger",
+    "bigdecimal",
+    "bignum",
+    "math"
+  ],
+  "license": "MIT",
+  "ignore": [
+    ".*",
+    "*.json",
+    "test"
+  ]
+}

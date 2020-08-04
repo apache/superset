@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+        }
+        html, body, #chart1, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="gallery" id="chart1">
+    <svg></svg>
+</div>
+
+<script>
+    nv.addGraph(function() {
+        var chart = nv.models.boxPlotChart()
+            .x(function(d) { return d.title })
+            .staggerLabels(true)
+            .maxBoxWidth(75) // prevent boxes from being incredibly wide
+            .itemColor(function (d) { return d.seriesColor })
+            .outliers(function (d) { return d.outlData })
+            .outlierValue(function (d) { return d.data })
+            .outlierLabel(function (d) {
+                if (d.text) { return d.data + ' ' + d.text }
+                return d.data;
+            })
+            .outlierColor(function (d) { return d.color })
+            .q1(function (d) { return d.q1 })
+            .q2(function (d) { return d.median })
+            .q3(function (d) { return d.q3 })
+            .wl(function (d) { return d.minRegularValue })
+            .wh(function (d) { return d.maxRegularValue });
+
+        d3.select('#chart1 svg')
+            .datum(exampleData())
+            .call(chart);
+
+        nv.utils.windowResize(chart.update);
+        return chart;
+    });
+
+    function exampleData() {
+        return  [
+            {
+                title: 'Custom Attributes 1',
+                q1: 1.05, q3: 2.7, maxOutlier: 6, maxRegularValue: 4.4,
+                mean: 3.365, median: 1.3, minOutlier: 0.4, minRegularValue: 0.4,
+                outlData: [
+                    {data: 6, text: 'Source 1'},
+                    {data: 14.5, text: 'Source 2'},
+                    {data: 12, text: 'Reference Value', color: '#000'},
+                    {data: 4.5, text: 'Source 3'}
+                ],
+                seriesColor: '#247E42'
+            },
+            {
+                title: 'Custom Attributes 2',
+                q1: 1.05, q3: 2.849999996, maxOutlier: 4.9, maxRegularValue: 4.9,
+                mean: 3.4949999, median: 1.5, minOutlier: 0.3, minRegularValue: 0.3,
+                outlData: [
+                    {data: 15.2, text: 'Source 1'},
+                    {data: 10, text: 'Reference Value', color: '#F00'},
+                    {data: 7.5, color: '#00F'}
+                ],
+                seriesColor: '#334693'
+            }
+        ];
+    }
+</script>
+
+</body>
+</html>

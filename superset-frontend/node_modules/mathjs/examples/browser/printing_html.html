@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>math.js | printing HTML</title>
+
+	<script src="../../dist/math.js"></script>
+
+	<style>
+		body {
+			font-size: 11pt;
+			font-family: verdana, arial, sans-serif;
+		}
+
+		h1 {
+			font-size: 1rem;
+		}
+
+		fieldset {
+			display: inline;
+			margin: 0 50px 10px 0;
+			padding: 0;
+			border: none;
+		}
+
+		input[type=text] {
+			font-size: 11pt;
+			font-family: verdana, arial, sans-serif;
+			padding: 5px;
+			width: calc(100% - 14px);
+		}
+
+		label {
+			margin: 0 5px 0 0;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+		}
+
+		table td,
+		table th {
+			padding: 5px;
+			border: 1px solid LightGrey;
+		}
+
+		table th {
+			background-color: LightGrey;
+		}
+
+		/* style the HTML output */
+		.math-function {
+			color: Purple;
+			font-weight: bold;
+		}
+
+		.math-number {
+			color: Blue;
+		}
+
+		.math-boolean {
+			color: Green;
+		}
+
+		.math-string {
+			color: Grey;
+		}
+
+		.math-string::before,
+		.math-string::after {
+			content: "\"";
+		}
+
+		.math-property {
+			font-style: italic;
+		}
+
+		.math-explicit-binary-operator::before,
+		.math-explicit-binary-operator::after {
+			content: " ";
+		}
+
+		.math-separator::after,
+		.math-assignment-operator::after {
+			content: " ";
+		}
+	</style>
+</head>
+<body>
+<h1>Expression evaluation and HTML code generation with math.js</h1>
+<form>
+	<fieldset>
+		Parenthesis option:
+		<label><input type="radio" name="parenthesis" value="keep" checked>keep</label>
+		<label><input type="radio" name="parenthesis" value="auto">auto</label>
+		<label><input type="radio" name="parenthesis" value="all">all</label>
+	</fieldset>
+	<fieldset>
+		Implicit multiplication:
+		<label><input type="radio" name="implicit" value="hide" checked>hide</label>
+		<label><input type="radio" name="implicit" value="show">show</label>
+	</fieldset>
+</form>
+<table>
+	<tr>
+		<th>Expression</th>
+		<td><input type="text" id="expr"/></td>
+	</tr>
+	<tr>
+		<th>Result</th>
+		<td><div id="result"></div></td>
+	</tr>
+	<tr>
+		<th>HTML output</th>
+		<td><div id="output">$$$$</div></td>
+	</tr>
+	<tr>
+		<th>HTML code</th>
+		<td><div id="code">$$$$</div></td>
+	</tr>
+</table>
+<script>
+  var expr = document.getElementById('expr');
+  var output = document.getElementById('output');
+  var code = document.getElementById('code');
+  var result = document.getElementById('result');
+  var options = {parenthesis: 'keep', implicit: 'hide'};
+
+  // initialize with an example expression
+  expr.value = 'sqrt(75/3)+det([[-1,2],[3,1]])-sin(pi/4)^2';
+
+  function print () {
+    var parsed = null;
+
+    try {
+      // parse the expression
+      parsed = math.parse(expr.value);
+
+      // evaluate the result of the expression
+      result.innerHTML = math.format(parsed.compile().eval());
+
+      // print the HTML output
+      var html = math.parse(expr.value).toHTML(options);
+      output.innerHTML = html;
+
+      // print the HTML code
+      code.innerHTML = html.replace(/</g, '&lt;').
+      replace(/>/g, '&gt;').
+      replace(/&lt;\/span&gt;/g, '&lt;/span&gt;<br />');
+    }
+    catch (err) {
+      result.innerHTML = '<span style="color: red;">' + err.toString() + '</span>';
+    }
+  }
+
+  window.onload = print;
+  expr.oninput = print;
+
+  // make the controls work
+  var controls = document.querySelectorAll('input[type=radio]');
+  controls.forEach(function (control) {
+    control.onclick = function() {
+      options[control.name] = control.value;
+      print();
+    };
+  });
+</script>
+</body>
+</html>

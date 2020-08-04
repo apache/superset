@@ -1,0 +1,115 @@
+{
+  "name": "base",
+  "description": "base is the foundation for creating modular, unit testable and highly pluggable node.js applications, starting with a handful of common methods, like `set`, `get`, `del` and `use`.",
+  "version": "0.11.2",
+  "homepage": "https://github.com/node-base/base",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "maintainers": [
+    "Brian Woodward (https://github.com/doowb)",
+    "Jon Schlinkert (https://github.com/jonschlinkert)"
+  ],
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "John O'Donnell (https://github.com/criticalmash)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "tunnckoCore (https://i.am.charlike.online)",
+    "(https://github.com/wtgtybhertgeghgtwtg)"
+  ],
+  "repository": "node-base/base",
+  "bugs": {
+    "url": "https://github.com/node-base/base/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "cache-base": "^1.0.1",
+    "class-utils": "^0.3.5",
+    "component-emitter": "^1.2.1",
+    "define-property": "^1.0.0",
+    "isobject": "^3.0.1",
+    "mixin-deep": "^1.2.0",
+    "pascalcase": "^0.1.1"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^4.0.0",
+    "gulp-format-md": "^1.0.0",
+    "gulp-istanbul": "^1.1.2",
+    "gulp-mocha": "^3.0.1",
+    "helper-coverage": "^0.1.3",
+    "mocha": "^3.5.0",
+    "should": "^13.0.1",
+    "through2": "^2.0.3",
+    "verb-generate-readme": "^0.6.0"
+  },
+  "keywords": [
+    "base",
+    "boilerplate",
+    "cache",
+    "del",
+    "get",
+    "inherit",
+    "methods",
+    "set",
+    "starter",
+    "unset",
+    "visit"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "helpers": [
+      "helper-coverage"
+    ],
+    "related": {
+      "description": "There are a number of different plugins available for extending base. Let us know if you create your own!",
+      "hightlight": "generate",
+      "list": [
+        "base-cwd",
+        "base-data",
+        "base-fs",
+        "base-generators",
+        "base-option",
+        "base-pipeline",
+        "base-pkg",
+        "base-plugins",
+        "base-questions",
+        "base-store",
+        "base-task"
+      ]
+    },
+    "reflinks": [
+      "assemble",
+      "boilerplate",
+      "cache-base",
+      "class-utils",
+      "generate",
+      "scaffold",
+      "static-extend",
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/base/-/base-0.11.2.tgz"
+,"_integrity": "sha512-5T6P4xPgpp0YDFvSWwEZ4NoE3aM4QBQXDzmVbraCkFj8zHM+mba8SyqB5DbZWyR7mYHo6Y7BdQo3MoA4m0TeQg=="
+,"_from": "base@0.11.2"
+}

@@ -1,0 +1,8 @@
+@media (min-width: 320px) {
+  .toolbar {
+    width: 400px;
+    height: 200px;
+    background: red;
+    color: white;
+  }
+}

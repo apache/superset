@@ -1,0 +1,1 @@
+{"version":3,"file":"stackOrder.d.ts","sourceRoot":"","sources":["../../src/util/stackOrder.ts"],"names":[],"mappings":"AAAA,OAAO,EACL,mBAAmB,EACnB,oBAAoB,EACpB,mBAAmB,EACnB,cAAc,EACd,iBAAiB,EAClB,MAAM,UAAU,CAAC;AAElB,eAAO,MAAM,YAAY;;;;;;CAMxB,CAAC;AAEF,eAAO,MAAM,iBAAiB,UAA4B,CAAC;AAE3D,MAAM,CAAC,OAAO,UAAU,UAAU,CAAC,KAAK,CAAC,EAAE,MAAM,OAAO,YAAY,8BAEnE"}

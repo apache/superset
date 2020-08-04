@@ -1,0 +1,21 @@
+{
+  "name": "po2json",
+  "version": "0.3.2",
+  "ignore": [
+    "**/.*",
+    "test",
+    "lib",
+    "*.md",
+    ".json",
+    ".yml",
+    "package.json",
+    "*.js"
+  ],
+  "keywords": [
+    "i18n",
+    "l10n",
+    "gettext",
+    "po"
+  ],
+  "license": "LGPL"
+}

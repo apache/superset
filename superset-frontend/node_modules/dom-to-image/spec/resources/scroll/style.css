@@ -1,0 +1,10 @@
+#dom-node {
+    width: 50px;
+    height: 50px;
+    overflow: auto;
+}
+#scrolled {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+}

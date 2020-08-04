@@ -1,0 +1,62 @@
+{
+  "name": "lazy-cache",
+  "description": "Cache requires to be lazy-loaded when needed.",
+  "version": "1.0.4",
+  "homepage": "https://github.com/jonschlinkert/lazy-cache",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/lazy-cache",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/lazy-cache/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "ansi-yellow": "^0.1.1",
+    "glob": "^7.0.3",
+    "gulp-format-md": "^0.1.8",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "cache",
+    "caching",
+    "dependencies",
+    "dependency",
+    "lazy",
+    "require",
+    "requires"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "lint-deps"
+      ]
+    },
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/lazy-cache/-/lazy-cache-1.0.4.tgz"
+,"_integrity": "sha1-odePw6UEdMuAhF07O24dpJpEbo4="
+,"_from": "lazy-cache@1.0.4"
+}

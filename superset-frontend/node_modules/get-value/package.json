@@ -1,0 +1,83 @@
+{
+  "name": "get-value",
+  "description": "Use property paths (`a.b.c`) to get a nested value from an object.",
+  "version": "2.0.6",
+  "homepage": "https://github.com/jonschlinkert/get-value",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/get-value",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/get-value/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "ansi-bold": "^0.1.1",
+    "arr-reduce": "^1.0.1",
+    "benchmarked": "^0.1.4",
+    "dot-prop": "^2.2.0",
+    "getobject": "^0.1.0",
+    "gulp": "^3.9.0",
+    "gulp-eslint": "^1.1.1",
+    "gulp-format-md": "^0.1.5",
+    "gulp-istanbul": "^0.10.2",
+    "gulp-mocha": "^2.1.3",
+    "isobject": "^2.0.0",
+    "matched": "^0.3.2",
+    "minimist": "^1.2.0"
+  },
+  "keywords": [
+    "get",
+    "key",
+    "nested",
+    "object",
+    "path",
+    "paths",
+    "prop",
+    "properties",
+    "property",
+    "props",
+    "segment",
+    "value",
+    "values"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "has-any",
+        "has-any-deep",
+        "has-value",
+        "set-value",
+        "unset-value"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/get-value/-/get-value-2.0.6.tgz"
+,"_integrity": "sha1-3BXKHGcjh8p2vTesCjlbogQqLCg="
+,"_from": "get-value@2.0.6"
+}

@@ -1,0 +1,38 @@
+// @flow
+import type {
+    GeoJSONFeature
+} from '../../index';
+
+const geom = {
+  "type": "Point",
+  "coordinates": [
+    100,
+    0
+  ]
+}
+
+const feature: GeoJSONFeature = {
+  id: 1,
+  type: "Feature",
+  properties: {
+    "number": 1,
+    "boolean": false,
+    "string": "hello",
+    "object": { "x": 1 },
+    "array": [ 1, "a", false, null ],
+    "null": null
+  },
+  geometry: geom
+};
+
+const nullGeometry: GeoJSONFeature = {
+  type: "Feature",
+  properties: {},
+  geometry: null
+};
+
+const nullProperties: GeoJSONFeature = {
+  type: "Feature",
+  properties: null,
+  geometry: null
+}

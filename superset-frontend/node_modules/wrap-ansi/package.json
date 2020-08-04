@@ -1,0 +1,72 @@
+{
+  "name": "wrap-ansi",
+  "version": "2.1.0",
+  "description": "Wordwrap a string with ANSI escape codes",
+  "license": "MIT",
+  "repository": "chalk/wrap-ansi",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "maintainers": [
+    "Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)",
+    "Joshua Appelman <jappelman@xebia.com> (jbnicolai.com)",
+    "JD Ballard <i.am.qix@gmail.com> (github.com/qix-)",
+    "Benjamin Coe <ben@npmjs.com> (github.com/bcoe)"
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && nyc ava",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "wrap",
+    "break",
+    "wordwrap",
+    "wordbreak",
+    "linewrap",
+    "ansi",
+    "styles",
+    "color",
+    "colour",
+    "colors",
+    "terminal",
+    "console",
+    "cli",
+    "string",
+    "tty",
+    "escape",
+    "formatting",
+    "rgb",
+    "256",
+    "shell",
+    "xterm",
+    "log",
+    "logging",
+    "command-line",
+    "text"
+  ],
+  "dependencies": {
+    "string-width": "^1.0.1",
+    "strip-ansi": "^3.0.1"
+  },
+  "devDependencies": {
+    "ava": "^0.16.0",
+    "chalk": "^1.1.0",
+    "coveralls": "^2.11.4",
+    "has-ansi": "^2.0.0",
+    "nyc": "^6.2.1",
+    "strip-ansi": "^3.0.0",
+    "xo": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-2.1.0.tgz"
+,"_integrity": "sha1-2Pw9KE3QV5T+hJc8rs3Rz4JP3YU="
+,"_from": "wrap-ansi@2.1.0"
+}

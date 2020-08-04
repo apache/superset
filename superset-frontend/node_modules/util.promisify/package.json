@@ -1,0 +1,45 @@
+{
+	"name": "util.promisify",
+	"version": "1.0.0",
+	"description": "Polyfill/shim for util.promisify in node versions < v8",
+	"main": "index.js",
+	"dependencies": {
+		"define-properties": "^1.1.2",
+		"object.getownpropertydescriptors": "^2.0.3"
+	},
+	"devDependencies": {
+		"@es-shims/api": "^1.2.0",
+		"@ljharb/eslint-config": "^11.0.0",
+		"eslint": "^3.19.0",
+		"safe-publish-latest": "^1.1.1"
+	},
+	"scripts": {
+		"prepublish": "safe-publish-latest",
+		"lint": "eslint .",
+		"pretest": "npm run lint",
+		"tests-only": "es-shim-api --bound",
+		"test": "npm run tests-only"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ljharb/util.promisify.git"
+	},
+	"keywords": [
+		"promisify",
+		"promise",
+		"util",
+		"polyfill",
+		"shim",
+		"util.promisify"
+	],
+	"author": "Jordan Harband <ljharb@gmail.com>",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/ljharb/util.promisify/issues"
+	},
+	"homepage": "https://github.com/ljharb/util.promisify#readme"
+
+,"_resolved": "https://registry.npmjs.org/util.promisify/-/util.promisify-1.0.0.tgz"
+,"_integrity": "sha512-i+6qA2MPhvoKLuxnJNpXAGhg7HphQOSUq2LKMZD0m15EiskXUkMvKdF4Uui0WYeCUGea+o2cw/ZuwehtfsrNkA=="
+,"_from": "util.promisify@1.0.0"
+}

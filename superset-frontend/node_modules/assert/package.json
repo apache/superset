@@ -1,0 +1,34 @@
+{
+  "name": "assert",
+  "description": "commonjs assert - node.js api compatible",
+  "keywords": [
+    "assert"
+  ],
+  "version": "1.4.1",
+  "homepage": "https://github.com/defunctzombie/commonjs-assert",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/defunctzombie/commonjs-assert.git"
+  },
+  "main": "./assert.js",
+  "dependencies": {
+    "util": "0.10.3"
+  },
+  "devDependencies": {
+    "mocha": "~1.21.4",
+    "zuul": "~3.10.0",
+    "zuul-ngrok": "^4.0.0"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test-node": "mocha --ui qunit test.js",
+    "test-browser": "zuul -- test.js",
+    "test": "npm run test-node && npm run test-browser",
+    "test-native": "TEST_NATIVE=true mocha --ui qunit test.js",
+    "browser-local": "zuul --no-coverage --local 8000 -- test.js"
+  }
+
+,"_resolved": "https://registry.npmjs.org/assert/-/assert-1.4.1.tgz"
+,"_integrity": "sha1-mZEtWRg2tab1s0XA8H7vwI/GXZE="
+,"_from": "assert@1.4.1"
+}

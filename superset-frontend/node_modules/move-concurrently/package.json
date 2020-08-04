@@ -1,0 +1,46 @@
+{
+  "name": "move-concurrently",
+  "version": "1.0.1",
+  "description": "Promises of moves of files or directories with rename, falling back to recursive rename/copy on EXDEV errors, with configurable concurrency and win32 junction support.",
+  "main": "move.js",
+  "scripts": {
+    "test": "standard && tap --coverage test"
+  },
+  "keywords": [
+    "move"
+  ],
+  "author": "Rebecca Turner <me@re-becca.org> (http://re-becca.org/)",
+  "license": "ISC",
+  "dependencies": {
+    "copy-concurrently": "^1.0.0",
+    "aproba": "^1.1.1",
+    "fs-write-stream-atomic": "^1.0.8",
+    "mkdirp": "^0.5.1",
+    "rimraf": "^2.5.4",
+    "run-queue": "^1.0.3"
+  },
+  "devDependencies": {
+    "standard": "^8.6.0",
+    "tacks": "^1.2.6",
+    "tap": "^10.1.1"
+  },
+  "files": [
+    "move.js",
+    "is-windows.js"
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/npm/move-concurrently.git"
+  },
+  "bugs": {
+    "url": "https://github.com/npm/move-concurrently/issues"
+  },
+  "homepage": "https://www.npmjs.com/package/move-concurrently"
+
+,"_resolved": "https://registry.npmjs.org/move-concurrently/-/move-concurrently-1.0.1.tgz"
+,"_integrity": "sha1-viwAX9oy4LKa8fBdfEszIUxwH5I="
+,"_from": "move-concurrently@1.0.1"
+}

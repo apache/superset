@@ -1,0 +1,16 @@
+.foo {
+  color1: red;
+  color2: yellow;
+  color3: red;
+  color4: yellow;
+  color5: red;
+  prop: uno;
+  var: dos;
+  sub: tres;
+}
+#ns1 {
+  foo: bar;
+}
+#ns1 {
+  foo: uno;
+}

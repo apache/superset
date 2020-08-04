@@ -1,0 +1,15 @@
+{
+  "name": "spdx-exceptions",
+  "description": "list of SPDX standard license exceptions",
+  "version": "2.2.0",
+  "author": "The Linux Foundation",
+  "contributors": [
+    "Kyle E. Mitchell <kyle@kemitchell.com> (https://kemitchell.com/)"
+  ],
+  "license": "CC-BY-3.0",
+  "repository": "kemitchell/spdx-exceptions.json"
+
+,"_resolved": "https://registry.npmjs.org/spdx-exceptions/-/spdx-exceptions-2.2.0.tgz"
+,"_integrity": "sha512-2XQACfElKi9SlVb1CYadKDXvoajPgBVPn/gOQLrTvHdElaVhr7ZEbqJaRnJLVNeaI4cMEAgVCeBMKF6MWRDCRA=="
+,"_from": "spdx-exceptions@2.2.0"
+}

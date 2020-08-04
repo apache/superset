@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+
+var queue = require("d3-queue"),
+    dbf = require("../dbf");
+
+var reader = dbf.reader(process.argv[2] || "/dev/stdin");
+
+queue(1)
+    .defer(readHeader)
+    .defer(readAllRecords)
+    .defer(close)
+    .await(function(error) { if (error) throw error; });
+
+function readHeader(callback) {
+  reader.readHeader(function(error, header) {
+    if (error) return callback(error);
+    console.log("header", header);
+    callback(null);
+  });
+}
+
+function readAllRecords(callback) {
+  (function readRecord() {
+    reader.readRecord(function(error, record) {
+      if (error) return callback(error);
+      if (record === dbf.end) return callback(null);
+      console.log("record", record);
+      process.nextTick(readRecord);
+    });
+  })();
+}
+
+function close(callback) {
+  reader.close(function(error) {
+    if (error) return callback(error);
+    console.log("end");
+    callback(null);
+  });
+}

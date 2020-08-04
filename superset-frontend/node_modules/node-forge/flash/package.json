@@ -1,0 +1,28 @@
+{
+  "name": "node-forge-flash",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Flash build support for Forge.",
+  "homepage": "https://github.com/digitalbazaar/forge",
+  "author": {
+    "name": "Digital Bazaar, Inc.",
+    "email": "support@digitalbazaar.com",
+    "url": "http://digitalbazaar.com/"
+  },
+  "devDependencies": {
+    "flex-sdk": ""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/digitalbazaar/forge"
+  },
+  "bugs": {
+    "url": "https://github.com/digitalbazaar/forge/issues",
+    "email": "support@digitalbazaar.com"
+  },
+  "license": "(BSD-3-Clause OR GPL-2.0)",
+  "scripts": {
+    "build": "mxmlc -debug=false -define=CONFIG::debugging,false -define=CONFIG::release,true -compiler.source-path=. -static-link-runtime-shared-libraries -output=swf/SocketPool.swf SocketPool.as",
+    "build-debug": "mxmlc -debug=true -define=CONFIG::debugging,true -define=CONFIG::release,false -compiler.source-path=. -static-link-runtime-shared-libraries -output=swf/SocketPool.swf SocketPool.as"
+  }
+}

@@ -1,0 +1,4 @@
+NameError: variable @not-found not found in {path}namespacing-4.less on line 6, column 11:
+5 .val {
+6   foo: @dr[@not-found];
+7 }

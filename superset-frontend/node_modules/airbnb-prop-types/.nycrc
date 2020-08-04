@@ -1,0 +1,15 @@
+{
+  "all": true,
+  "check-coverage": true,
+  "instrumentation": false,
+  "sourceMap": false,
+  "reporter": "html",
+  "lines": 99.42,
+  "statements": 99.43,
+  "functions": 100,
+  "branches": 98,
+  "exclude": [
+    "build",
+    "test"
+  ]
+}

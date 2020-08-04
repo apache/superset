@@ -1,0 +1,24 @@
+{
+    "extends": "dtslint/dtslint.json",
+    "rules": {
+        "array-type": [
+            true,
+            "generic"
+        ],
+        "semicolon": false,
+        "whitespace": [
+            true,
+            "check-branch",
+            "check-decl",
+            "check-operator",
+            "check-module",
+            "check-rest-spread",
+            "check-type",
+            "check-typecast",
+            "check-type-operator",
+            "check-preblock"
+        ],
+        "no-null-undefined-union": false,
+        "no-unnecessary-generics": false
+    }
+}

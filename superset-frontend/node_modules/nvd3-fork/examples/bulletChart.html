@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+        }
+        html, body, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+Normal Bullet Chart
+<div class="gallery with-transitions" id="chart"></div>
+
+Bullet Chart with Custom Labels
+<div class='gallery with-transitions' id='chart2'></div>
+
+<script>
+
+    var width = 960,
+        height = 80,
+        margin = {top: 5, right: 40, bottom: 20, left: 120};
+
+    var chart = nv.models.bulletChart()
+            .width(width - margin.right - margin.left)
+            .height(height - margin.top - margin.bottom);
+
+    var chart2 = nv.models.bulletChart()
+            .width(width - margin.right - margin.left)
+            .height(height - margin.top - margin.bottom);
+
+    data = [
+        {"title":"Revenue","subtitle":"US$, in thousands","ranges":[150,225,300],"measures":[220],"markers":[250],"markerLines":[270]},
+        {"title":"Order Size","subtitle":"US$, average","ranges":[350,500,600],"measures":[100],"markers":[550], "markerLines":[530]},
+        {"title":"Satisfaction","subtitle":"out of 5","ranges":[3.5,4.25,5],"measures":[3.2,4.7],"markers":[4.4], "markerLines":[3.8]}
+    ];
+
+    dataWithLabels = [{
+        "title":"Revenue",
+        "subtitle":"US$, in thousands",
+        "ranges":[150,225,300],
+        "measures":[220],
+        "markers":[250, 100],
+        "markerLines":[240, 120],
+        "markerLabels":['Target Inventory', 'Low Inventory'],
+        "markerLineLabels":['Break even Inventory', 'Threshold Inventory'],
+        "rangeLabels":['Maximum Inventory','Average Inventory','Minimum Inventory'],
+        "measureLabels":['Current Inventory']
+    }];
+
+    //TODO: to be consistent with other models, should be appending a g to an already made svg, not creating the svg element
+    var vis = d3.select("#chart").selectAll("svg")
+        .data(data)
+        .enter().append("svg")
+        .attr("class", "bullet nvd3")
+        .attr("width", width)
+        .attr("height", height);
+
+    vis.call(chart);
+
+    var vis2 = d3.select("#chart2").selectAll("svg")
+        .data(dataWithLabels)
+        .enter().append('svg')
+        .attr('class',"bullet nvd3")
+        .attr("width",width)
+        .attr("height",height);
+
+    vis2.call(chart2);
+
+    window.transition = function() {
+        vis.datum(randomize).call(chart);
+        vis2.datum(randomize).call(chart2);
+    };
+
+    function randomize(d) {
+        if (!d.randomizer) d.randomizer = randomizer(d);
+        d.ranges = d.ranges.map(d.randomizer);
+        d.markers = d.markers.map(d.randomizer);
+        d.markerLines = d.markerLines.map(d.randomizer);
+        d.measures = d.measures.map(d.randomizer);
+        return d;
+    }
+
+    function randomizer(d) {
+        var k = d3.max(d.ranges) * .2;
+        return function(d) {
+            return Math.max(0, d + k * (Math.random() - .5));
+        };
+    }
+
+    d3.select('body').on('click', window.transition);
+
+</script>
+</body>
+</html>
