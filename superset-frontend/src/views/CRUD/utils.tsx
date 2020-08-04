@@ -20,6 +20,7 @@ import {
   SupersetClient,
   SupersetClientResponse,
 } from '@superset-ui/connection';
+import { t } from '@superset-ui/translation';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 
@@ -57,5 +58,58 @@ export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
     const parsedError = await getClientErrorObject(e);
     console.error(e); // eslint-disable-line no-console
     handleErrorFunc(parsedError.message);
+  };
+}
+
+export function createFaveStarHandlers(
+  baseURL: string,
+  context: any,
+  handleErrorFunc: (message: string) => void,
+) {
+  const fetchFaveStar = (id: number) => {
+    SupersetClient.get({
+      endpoint: `${baseURL}/${id}/count/`,
+    })
+      .then(({ json }) => {
+        const faves = {
+          ...context.state.favoriteStatus,
+        };
+
+        faves[id] = json.count > 0;
+
+        context.setState({
+          favoriteStatus: faves,
+        });
+      })
+      .catch(() =>
+        handleErrorFunc(t('There was an error fetching the favorite status')),
+      );
+  };
+
+  const saveFaveStar = (id: number, isStarred: boolean) => {
+    const urlSuffix = isStarred ? 'unselect' : 'select';
+
+    SupersetClient.get({
+      endpoint: `${baseURL}/${id}/${urlSuffix}/`,
+    })
+      .then(() => {
+        const faves = {
+          ...context.state.favoriteStatus,
+        };
+
+        faves[id] = !isStarred;
+
+        context.setState({
+          favoriteStatus: faves,
+        });
+      })
+      .catch(() =>
+        handleErrorFunc(t('There was an error saving the favorite status')),
+      );
+  };
+
+  return {
+    fetchFaveStar,
+    saveFaveStar,
   };
 }
