@@ -580,13 +580,15 @@ def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
             "Superset.slice", slice_id=alert.slice.id, standalone="true"
         )
         screenshot = ChartScreenshot(chart_url, alert.slice.digest)
-        cache_key = screenshot.cache_key()
-        image_url = get_url_path(
-            "ChartRestApi.screenshot", pk=alert.slice.id, digest=cache_key
+        image_url = _get_url_path(
+            "Superset.slice",
+            user_friendly=True,
+            slice_id=alert.slice.id,
+            standalone="true",
         )
-        standalone_index = chart_url.find("/?standalone=true")
+        standalone_index = image_url.find("/?standalone=true")
         if standalone_index != -1:
-            image_url = chart_url[:standalone_index]
+            image_url = image_url[:standalone_index]
 
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         img_data = screenshot.compute_and_cache(
@@ -605,7 +607,7 @@ def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
         images = {"screenshot": img_data}
     body = render_template(
         "email/alert.txt",
-        alert_url=get_url_path("AlertModelView.show", pk=alert.id),
+        alert_url=_get_url_path("AlertModelView.show", user_friendly=True, pk=alert.id),
         label=alert.label,
         sql=alert.sql,
         image_url=image_url,
