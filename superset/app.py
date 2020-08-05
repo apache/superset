@@ -145,7 +145,7 @@ class SupersetAppInitializer:
         )
         from superset.views.api import Api
         from superset.views.core import Superset
-        import superset.views.extra
+        #import superset.views.extra
         from superset.views.redirects import R
         from superset.views.key_value import KV
         from superset.views.access_requests import AccessRequestsModelView
