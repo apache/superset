@@ -54,6 +54,7 @@ const ListViewStyles = styled.div`
   }
 
   .row-count-container {
+    margin-top: 8px;
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
