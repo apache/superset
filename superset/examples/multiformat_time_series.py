@@ -59,8 +59,8 @@ def load_multiformat_time_series(
             if_exists="replace",
             chunksize=500,
             dtype={
-                "ds": Date if database.backend != "presto" else String(255),
-                "ds2": DateTime if datdocker/requirements-extra.txtabase.backend != "presto" else String(255),
+                "ds": String(255) if database.backend == "presto" else Date,
+                "ds2": String(255) if database.backend == "presto" else DateTime,
                 "epoch_s": BigInteger,
                 "epoch_ms": BigInteger,
                 "string0": String(100),

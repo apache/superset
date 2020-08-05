@@ -16,8 +16,8 @@ babel==2.8.0              # via flask-babel
 backoff==1.10.0           # via apache-superset
 billiard==3.6.3.0         # via celery
 bleach==3.1.5             # via apache-superset
-boto3==1.14.34            # via tabulator
-botocore==1.17.34         # via boto3, s3transfer
+boto3==1.14.36            # via tabulator
+botocore==1.17.36         # via boto3, s3transfer
 brotli==1.0.7             # via flask-compress
 cached-property==1.5.1    # via tableschema
 cachelib==0.1.1           # via apache-superset
@@ -55,9 +55,8 @@ geographiclib==1.50       # via geopy
 geopy==2.0.0              # via apache-superset
 gunicorn==20.0.4          # via apache-superset
 humanize==2.5.0           # via apache-superset
-idna-ssl==1.1.0           # via aiohttp
-idna==2.10                # via email-validator, idna-ssl, requests, yarl
-ijson==3.1.post0          # via tabulator
+idna==2.10                # via email-validator, requests, yarl
+ijson==3.1.1              # via tabulator
 importlib-metadata==1.7.0  # via jsonschema, kombu, markdown
 isodate==0.6.0            # via apache-superset, tableschema
 itsdangerous==1.1.0       # via flask, flask-wtf
@@ -92,7 +91,7 @@ py==1.9.0                 # via retry
 pyarrow==0.17.1           # via apache-superset
 pycparser==2.20           # via cffi
 pydruid==0.6.1            # via apache-superset
-pyhive[hive]==0.6.2       # via apache-superset
+pyhive[hive]==0.6.3       # via apache-superset
 pyjwt==1.7.1              # via flask-appbuilder, flask-jwt-extended
 pyparsing==2.4.7          # via packaging
 pyrsistent==0.16.0        # via jsonschema
@@ -119,7 +118,7 @@ tableschema==1.19.2       # via apache-superset
 tabulator==1.52.3         # via tableschema
 thrift-sasl==0.4.2        # via pyhive
 thrift==0.13.0            # via apache-superset, pyhive, thrift-sasl
-typing-extensions==3.7.4.2  # via aiohttp, yarl
+typing-extensions==3.7.4.2  # via yarl
 unicodecsv==0.14.1        # via tableschema, tabulator
 urllib3==1.25.10          # via botocore, requests, selenium
 vine==1.3.0               # via amqp, celery
