@@ -92,33 +92,37 @@ export default class CollectionControl extends React.Component {
         lockAxis="y"
         onSortEnd={this.onSortEnd.bind(this)}
       >
-        {this.props.value.map((o, i) => (
-          <SortableListGroupItem
-            className="clearfix"
-            key={this.props.keyAccessor(o)}
-            index={i}
-          >
-            <div className="pull-left m-r-5">
-              <SortableDragger />
-            </div>
-            <div className="pull-left">
-              <Control
-                {...this.props}
-                {...o}
-                onChange={this.onChange.bind(this, i)}
-              />
-            </div>
-            <div className="pull-right">
-              <InfoTooltipWithTrigger
-                icon="times"
-                label="remove-item"
-                tooltip="remove item"
-                bsStyle="primary"
-                onClick={this.removeItem.bind(this, i)}
-              />
-            </div>
-          </SortableListGroupItem>
-        ))}
+        {this.props.value.map((o, i) => {
+          // label relevant only for header, not here
+          const { label, ...commonProps } = this.props;
+          return (
+            <SortableListGroupItem
+              className="clearfix"
+              key={this.props.keyAccessor(o)}
+              index={i}
+            >
+              <div className="pull-left m-r-5">
+                <SortableDragger />
+              </div>
+              <div className="pull-left">
+                <Control
+                  {...commonProps}
+                  {...o}
+                  onChange={this.onChange.bind(this, i)}
+                />
+              </div>
+              <div className="pull-right">
+                <InfoTooltipWithTrigger
+                  icon="times"
+                  label="remove-item"
+                  tooltip="remove item"
+                  bsStyle="primary"
+                  onClick={this.removeItem.bind(this, i)}
+                />
+              </div>
+            </SortableListGroupItem>
+          );
+        })}
       </SortableListGroup>
     );
   }
