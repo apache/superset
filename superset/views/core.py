@@ -1651,6 +1651,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             edit_mode=edit_mode,
         )
 
+        # hide the download page for normal user
+        if not is_owner(dash, g.user) and not superset_can_explore:
+            if dash.css:
+                dash.css += "\n#tabs>ul>:nth-child(3){display:none}"
+
         dashboard_data = dash.data
         dashboard_data.update(
             {
