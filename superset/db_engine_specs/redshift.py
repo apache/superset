@@ -19,7 +19,7 @@ from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = "redshift"
-    engine_name = "Redshift"
+    engine_name = "Amazon Redshift"
     max_column_name_length = 127
 
     @staticmethod

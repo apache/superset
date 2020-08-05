@@ -96,17 +96,14 @@ export default function ErrorAlert({
   body,
   copyText,
   level,
-  source,
+  source = 'dashboard',
   subtitle,
   title,
 }: ErrorAlertProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBodyExpanded, setIsBodyExpanded] = useState(false);
 
-  const isExpandable = (['explore', 'sqllab'] as (
-    | string
-    | undefined
-  )[]).includes(source);
+  const isExpandable = ['explore', 'sqllab'].includes(source);
 
   return (
     <ErrorAlertDiv level={level}>

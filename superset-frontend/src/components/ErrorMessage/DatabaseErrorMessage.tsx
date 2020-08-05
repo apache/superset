@@ -29,19 +29,16 @@ interface DatabaseErrorExtra {
     code: number;
     message: string;
   }[];
-  engine_name: string;
+  engine_name: string | null;
 }
 
 function DatabaseErrorMessage({
   error,
-  source,
+  source = 'dashboard',
 }: ErrorMessageComponentProps<DatabaseErrorExtra>) {
   const { extra, level, message } = error;
 
-  const isVisualization = (['dashboard', 'explore'] as (
-    | string
-    | undefined
-  )[]).includes(source);
+  const isVisualization = ['dashboard', 'explore'].includes(source);
 
   const body = (
     <>
@@ -81,7 +78,7 @@ ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
 
   return (
     <ErrorAlert
-      title={t('%s Error', extra.engine_name)}
+      title={t('%s Error', extra.engine_name || t('DB Engine'))}
       subtitle={message}
       level={level}
       source={source}

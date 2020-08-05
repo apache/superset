@@ -25,7 +25,7 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Dialect for Apache Kylin"""
 
     engine = "kylin"
-    engine_name = "Kylin"
+    engine_name = "Apache Kylin"
 
     _time_grain_expressions = {
         None: "{col}",

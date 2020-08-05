@@ -23,7 +23,7 @@ from superset.utils import core as utils
 
 class AthenaEngineSpec(BaseEngineSpec):
     engine = "awsathena"
-    engine_name = "AWS Athena"
+    engine_name = "Amazon Athena"
 
     _time_grain_expressions = {
         None: "{col}",

@@ -27,7 +27,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
 
     engine = "impala"
-    engine_name = "Impala"
+    engine_name = "Apache Impala"
 
     _time_grain_expressions = {
         None: "{col}",
