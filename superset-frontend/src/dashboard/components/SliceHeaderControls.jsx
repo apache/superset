@@ -176,18 +176,6 @@ class SliceHeaderControls extends React.PureComponent {
 
           <MenuItem onClick={this.handleToggleFullSize}>{resizeLabel}</MenuItem>
 
-          <URLShortLinkModal
-            url={getDashboardUrl(
-              window.location.pathname,
-              getActiveFilters(),
-              componentId,
-            )}
-            addDangerToast={addDangerToast}
-            isMenuItem
-            title={t('Share chart')}
-            triggerNode={<span>{t('Share chart')}</span>}
-          />
-
           <MenuItem
             onClick={downloadAsImage(
               '.dashboard-component-chart-holder',

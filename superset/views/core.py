@@ -1628,9 +1628,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dash, raise_if_false=False
         ) and security_manager.can_access("can_save_dash", "Superset")
         dash_save_perm = security_manager.can_access("can_save_dash", "Superset")
-        superset_can_explore = security_manager.can_access("can_explore", "Superset")
+        # do not allow explore chart metadata
+        superset_can_explore = False
         superset_can_csv = security_manager.can_access("can_csv", "Superset")
-        slice_can_edit = security_manager.can_access("can_edit", "SliceModelView")
+        # do not allow edit chart
+        slice_can_edit = False
+        is_admin = security_manager.can_access("can_edit", "RoleModelView")
 
         standalone_mode = (
             request.args.get(utils.ReservedUrlParameters.STANDALONE.value) == "true"
@@ -1651,8 +1654,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             edit_mode=edit_mode,
         )
 
-        # hide the download page for normal user
-        if not is_owner(dash, g.user) and not superset_can_explore:
+        # download page is available only for admin and owner
+        if not is_owner(dash, g.user) and not is_admin:
             if dash.css:
                 dash.css += "\n#tabs>ul>:nth-child(3){display:none}"
 

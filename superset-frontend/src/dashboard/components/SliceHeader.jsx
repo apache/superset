@@ -103,8 +103,9 @@ class SliceHeader extends React.PureComponent {
     } = this.props;
 
     return (
-      <div className="chart-header" ref={innerRef}>
+      <div className="chart-header-row" ref={innerRef}>
         <div className="header">
+          <div className="chart-header">
           <EditableTitle
             title={
               sliceName ||
@@ -117,6 +118,7 @@ class SliceHeader extends React.PureComponent {
             onSaveTitle={updateSliceName}
             showTooltip={false}
           />
+          </div>
           {!!Object.values(annotationQuery).length && (
             <TooltipWrapper
               label="annotations-loading"
