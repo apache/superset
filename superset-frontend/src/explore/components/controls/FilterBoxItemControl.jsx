@@ -52,6 +52,7 @@ const propTypes = {
   clearable: PropTypes.bool,
   multiple: PropTypes.bool,
   column: PropTypes.string,
+  label: PropTypes.string,
   metric: PropTypes.string,
   searchAllOptions: PropTypes.bool,
   defaultValue: PropTypes.string,
