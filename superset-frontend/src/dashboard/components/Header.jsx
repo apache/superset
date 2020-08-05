@@ -20,6 +20,7 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
+import styled from '@superset-ui/style';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
@@ -98,6 +99,14 @@ const defaultProps = {
   colorNamespace: undefined,
   colorScheme: undefined,
 };
+
+// Styled Components
+const StyledDashboardHeader = styled.div`
+  button,
+  .fave-unfave-icon {
+    margin-left: 8px;
+  }
+`;
 
 class Header extends React.PureComponent {
   static discardChanges() {
@@ -360,7 +369,7 @@ class Header extends React.PureComponent {
     const popButton = hasUnsavedChanges;
 
     return (
-      <div className="dashboard-header">
+      <StyledDashboardHeader className="dashboard-header">
         <div className="dashboard-component-header header-large">
           <EditableTitle
             title={dashboardTitle}
@@ -368,24 +377,21 @@ class Header extends React.PureComponent {
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
           />
-          <span className="publish">
-            <PublishedStatus
-              dashboardId={dashboardInfo.id}
-              isPublished={isPublished}
-              savePublished={this.props.savePublished}
-              canEdit={userCanEdit}
-              canSave={userCanSaveAs}
-            />
-          </span>
+          <PublishedStatus
+            dashboardId={dashboardInfo.id}
+            isPublished={isPublished}
+            savePublished={this.props.savePublished}
+            canEdit={userCanEdit}
+            canSave={userCanSaveAs}
+          />
           {dashboardInfo.userId && (
-            <span className="favstar">
-              <FaveStar
-                itemId={dashboardInfo.id}
-                fetchFaveStar={this.props.fetchFaveStar}
-                saveFaveStar={this.props.saveFaveStar}
-                isStarred={this.props.isStarred}
-              />
-            </span>
+            <FaveStar
+              itemId={dashboardInfo.id}
+              fetchFaveStar={this.props.fetchFaveStar}
+              saveFaveStar={this.props.saveFaveStar}
+              isStarred={this.props.isStarred}
+              showTooltip
+            />
           )}
         </div>
 
@@ -532,7 +538,7 @@ class Header extends React.PureComponent {
             refreshWarning={refreshWarning}
           />
         </div>
-      </div>
+      </StyledDashboardHeader>
     );
   }
 }

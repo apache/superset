@@ -1,3 +1,4 @@
+# Note: these patterns are applied to single files or directories, not full paths
 .gitignore
 .gitattributes
 .gitkeep
@@ -40,7 +41,7 @@ _static/*
 .buildinfo
 searchindex.js
 # auto generated
-requirements.txt
+requirements/*
 # vendorized
 vendor/*
 # github configuration

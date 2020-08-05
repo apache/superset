@@ -1,0 +1,21 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<svg width="16" height="15" viewBox="0 0 16 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M15.9731 5.67407C15.8701 5.38097 15.6008 5.17499 15.2861 5.14856L10.7403 4.49755L8.70305 0.44246C8.56956 0.171867 8.29027 0 7.98403 0C7.67779 0 7.3985 0.171867 7.26501 0.44246L5.22779 4.48971L0.681994 5.14856C0.380344 5.19065 0.129343 5.39753 0.0348768 5.68192C-0.0514978 5.95951 0.0253348 6.26124 0.234604 6.46627L3.5341 9.60367L2.73519 14.0588C2.67696 14.359 2.80168 14.6651 3.05476 14.8431C3.30116 15.0161 3.626 15.0373 3.89361 14.898L7.98403 12.8038L12.0585 14.9059C12.1706 14.968 12.2972 15.0004 12.426 15C12.5952 15.0006 12.7603 14.9484 12.8973 14.851C13.1504 14.673 13.2751 14.3669 13.2169 14.0666L12.418 9.61151L15.7175 6.47411C15.9529 6.27828 16.0524 5.96685 15.9731 5.67407Z" fill="#FBC700"/>
+</svg>

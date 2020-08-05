@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { FormGroup, FormControl } from 'react-bootstrap';
 import {
   legacyValidateNumber,
@@ -25,30 +24,22 @@ import {
 } from '@superset-ui/validator';
 import ControlHeader from '../ControlHeader';
 
-const propTypes = {
-  onChange: PropTypes.func,
-  onFocus: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  isFloat: PropTypes.bool,
-  isInt: PropTypes.bool,
-  disabled: PropTypes.bool,
-};
+interface TextControlProps {
+  disabled: boolean;
+  isFloat: boolean;
+  isInt: boolean;
+  onChange: (value: any, errors: any) => {};
+  onFocus: () => {};
+  placeholder: string;
+  value: string | number;
+}
 
-const defaultProps = {
-  onChange: () => {},
-  onFocus: () => {},
-  value: '',
-  isInt: false,
-  isFloat: false,
-  disabled: false,
-};
-
-export default class TextControl extends React.Component {
-  constructor(props) {
+export default class TextControl extends React.Component<TextControlProps> {
+  constructor(props: TextControlProps) {
     super(props);
     this.onChange = this.onChange.bind(this);
   }
-  onChange(event) {
+  onChange(event: any) {
     let value = event.target.value;
 
     // Validation & casting
@@ -83,7 +74,7 @@ export default class TextControl extends React.Component {
         <FormGroup controlId="formInlineName" bsSize="small">
           <FormControl
             type="text"
-            placeholder=""
+            placeholder={this.props.placeholder}
             onChange={this.onChange}
             onFocus={this.props.onFocus}
             value={value}
@@ -94,6 +85,3 @@ export default class TextControl extends React.Component {
     );
   }
 }
-
-TextControl.propTypes = propTypes;
-TextControl.defaultProps = defaultProps;

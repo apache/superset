@@ -14,5 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-sphinx==3.0.1
-sphinx-rtd-theme==0.4.3
+pip-compile-multi!=1.5.9
+pre-commit
+tox
