@@ -23,7 +23,7 @@ import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import ace from 'brace';
 import { areArraysShallowEqual } from 'src/reduxUtils';
-import sqlKeywords from '../../utils/sqlKeywords';
+import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
   SCHEMA_AUTOCOMPLETE_SCORE,
   TABLE_AUTOCOMPLETE_SCORE,
