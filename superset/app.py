@@ -124,63 +124,62 @@ class SupersetAppInitializer:
         #
         # pylint: disable=too-many-locals
         # pylint: disable=too-many-statements
+        from superset.charts.api import ChartRestApi
         from superset.connectors.druid.views import (
-            DruidDatasourceModelView,
-            DruidClusterModelView,
-            DruidMetricInlineView,
-            DruidColumnInlineView,
             Druid,
+            DruidClusterModelView,
+            DruidColumnInlineView,
+            DruidDatasourceModelView,
+            DruidMetricInlineView,
         )
+        from superset.connectors.sqla.views import (
+            RowLevelSecurityFiltersModelView,
+            SqlMetricInlineView,
+            TableColumnInlineView,
+            TableModelView,
+        )
+        from superset.dashboards.api import DashboardRestApi
+        from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
-        from superset.connectors.sqla.views import (
-            TableColumnInlineView,
-            SqlMetricInlineView,
-            TableModelView,
-            RowLevelSecurityFiltersModelView,
-        )
+        from superset.views.access_requests import AccessRequestsModelView
+        from superset.views.alerts import AlertLogModelView, AlertModelView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
         )
         from superset.views.api import Api
+        from superset.views.chart.views import SliceAsync, SliceModelView
         from superset.views.core import Superset
-        from superset.views.redirects import R
-        from superset.views.key_value import KV
-        from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.css_templates import CssTemplateAsyncModelView
-        from superset.views.css_templates import CssTemplateModelView
-        from superset.charts.api import ChartRestApi
-        from superset.views.chart.views import SliceModelView, SliceAsync
-        from superset.dashboards.api import DashboardRestApi
+        from superset.views.css_templates import (
+            CssTemplateAsyncModelView,
+            CssTemplateModelView,
+        )
         from superset.views.dashboard.views import (
-            DashboardModelView,
             Dashboard,
+            DashboardModelView,
             DashboardModelViewAsync,
         )
-        from superset.databases.api import DatabaseRestApi
         from superset.views.database.views import (
-            DatabaseView,
             CsvToDatabaseView,
+            DatabaseView,
             ExcelToDatabaseView,
         )
         from superset.views.datasource import Datasource
+        from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
+        from superset.views.redirects import R
         from superset.views.schedules import (
             DashboardEmailScheduleView,
             SliceEmailScheduleView,
         )
-        from superset.views.alerts import (
-            AlertModelView,
-            AlertLogModelView,
-        )
         from superset.views.sql_lab import (
-            SavedQueryViewApi,
             SavedQueryView,
-            TabStateView,
-            TableSchemaView,
+            SavedQueryViewApi,
             SqlLab,
+            TableSchemaView,
+            TabStateView,
         )
         from superset.views.tags import TagView
 
@@ -541,8 +540,10 @@ class SupersetAppInitializer:
         # Doing local imports here as model importing causes a reference to
         # app.config to be invoked and we need the current_app to have been setup
         #
-        from superset.utils.url_map_converters import RegexConverter
-        from superset.utils.url_map_converters import ObjectTypeConverter
+        from superset.utils.url_map_converters import (
+            ObjectTypeConverter,
+            RegexConverter,
+        )
 
         self.flask_app.url_map.converters["regex"] = RegexConverter
         self.flask_app.url_map.converters["object_type"] = ObjectTypeConverter

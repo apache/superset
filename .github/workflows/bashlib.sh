@@ -33,24 +33,21 @@ say() {
 
 # default command to run when the `run` input is empty
 default-setup-command() {
-  pip-install
+  apt-get-install
+  pip-upgrade
 }
 
-# install python dependencies
-pip-install() {
-  cd "$GITHUB_WORKSPACE"
+apt-get-install() {
+    say "::group::apt-get install dependencies"
+    sudo apt-get update && sudo apt-get install --yes \
+      libsasl2-dev
+    say "::endgroup::"
+}
 
-  # Pip cache saves at most about 20s on a good day
-  # cache-restore pip
-
-  say "::group::Install Python pacakges"
+pip-upgrade() {
+  say "::group::Upgrade pip"
   pip install --upgrade pip
-  pip install -r requirements.txt
-  pip install -r requirements-dev.txt
-  pip install -e ".[postgres,mysql]"
   say "::endgroup::"
-
-  # cache-save pip
 }
 
 # prepare (lint and build) frontend code
@@ -123,6 +120,7 @@ testdata() {
   say "::group::Load test data"
   # must specify PYTHONPATH to make `tests.superset_test_config` importable
   export PYTHONPATH="$GITHUB_WORKSPACE"
+  pip install -e .
   superset db upgrade
   superset load_test_users
   superset load_examples --load-test-data

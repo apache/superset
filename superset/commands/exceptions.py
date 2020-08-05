@@ -49,7 +49,7 @@ class CommandInvalidError(CommandException):
     def normalized_messages(self) -> Dict[Any, Any]:
         errors: Dict[Any, Any] = {}
         for exception in self._invalid_exceptions:
-            errors.update(exception.normalized_messages())  # type: ignore
+            errors.update(exception.normalized_messages())
         return errors
 
 
