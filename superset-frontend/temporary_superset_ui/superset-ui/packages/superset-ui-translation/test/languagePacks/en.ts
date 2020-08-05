@@ -10,7 +10,7 @@ const languagePack: LanguagePack = {
         lang: 'en',
       },
       second: [''],
-      'Copy of %s': [''],
+      '%s copies': ['%s copy', '%s copies'],
     },
   },
 };

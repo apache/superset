@@ -18,7 +18,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
+import { t, addLocaleData } from '@superset-ui/translation';
 import {
   formatSelectOptions,
   D3_TIME_FORMAT_OPTIONS,
@@ -31,8 +31,18 @@ import {
 } from '@superset-ui/chart-controls';
 import { validateNonEmpty } from '@superset-ui/validator';
 import { smartDateFormatter } from '@superset-ui/time-format';
+import i18n from './i18n';
 
-export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([[0, t('All')], 10, 20, 50, 100, 200]);
+addLocaleData(i18n);
+
+export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
+  [0, t('page_size.all')],
+  10,
+  20,
+  50,
+  100,
+  200,
+]);
 
 export enum QueryMode {
   aggregate = 'aggregate',
@@ -264,7 +274,7 @@ const config: ControlPanelConfig = {
               label: t('Emit Filter Events'),
               renderTrigger: true,
               default: false,
-              description: t('Whether to apply filter when items are clicked'),
+              description: t('Whether to apply filter to dashboards when table cells are clicked'),
             },
           },
         ],
