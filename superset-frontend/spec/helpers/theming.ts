@@ -23,8 +23,8 @@ import { ReactElement } from 'react';
 type optionsType = {
   wrappingComponentProps?: any;
   wrappingComponent?: ReactElement;
-  context?: any,
-}
+  context?: any;
+};
 
 export function styledMount(
   component: ReactElement,

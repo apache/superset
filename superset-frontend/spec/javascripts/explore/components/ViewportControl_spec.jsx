@@ -34,7 +34,7 @@ const defaultProps = {
     bearing: 0,
     pitch: 0,
   },
-  name: "foo",
+  name: 'foo',
 };
 
 describe('ViewportControl', () => {
@@ -58,8 +58,6 @@ describe('ViewportControl', () => {
 
   it('renders a summary in the label', () => {
     const label = wrapper.find(Label).first();
-    expect(label.render().text()).toBe(
-      '6° 51\' 8.50" | 31° 13\' 21.56"',
-    );
+    expect(label.render().text()).toBe('6° 51\' 8.50" | 31° 13\' 21.56"');
   });
 });

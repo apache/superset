@@ -34,7 +34,7 @@ describe('Security', () => {
     expect(wrapper.find('.roles').find('.label')).toHaveLength(2);
   });
   it('renders 2 datasource labels', () => {
-    const wrapper = mount(<Security {...mockedProps} />;
+    const wrapper = mount(<Security {...mockedProps} />);
     expect(wrapper.find('.datasources').find('.label')).toHaveLength(2);
   });
   it('renders 3 database labels', () => {
