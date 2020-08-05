@@ -132,14 +132,16 @@ jobs:
       steps:
       - uses: actions/checkout@v2
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2.1.1
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@adc6f73
+        uses: apache-superset/cached-dependencies@b90713b
         with:
           run: |
-            pip-install
+            apt-get-install
+            pip-upgrade
+            pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
         run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &

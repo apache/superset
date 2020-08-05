@@ -53,11 +53,11 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
         data = get_example_data("countries.json.gz")
         pdf = pd.read_json(data)
         pdf.columns = [col.replace(".", "_") for col in pdf.columns]
-        if database.backend != "presto":
-            pdf.year = pd.to_datetime(pdf.year)
-        else:
+        if database.backend == "presto":
             pdf.year = pd.to_datetime(pdf.year)
             pdf.year = pdf.year.dt.strftime("%Y-%m-%d %H:%M%:%S")
+        else:
+            pdf.year = pd.to_datetime(pdf.year)
         pdf = pdf.head(100) if sample else pdf
 
         pdf.to_sql(
