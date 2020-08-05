@@ -23,7 +23,6 @@ import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
-
 import { initFeatureFlags } from 'src/featureFlags';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 import ErrorBoundary from 'src/components/ErrorBoundary';
