@@ -90,6 +90,7 @@ describe('DashboardList', () => {
   });
   it('edits', () => {
     expect(wrapper.find(PropertiesModal)).not.toExist();
+    wrapper.find('[data-test="list-view"]').first().simulate('click');
     wrapper.find('[data-test="pencil"]').first().simulate('click');
     expect(wrapper.find(PropertiesModal)).toExist();
   });
