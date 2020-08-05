@@ -88,14 +88,11 @@ class DashboardDAO(BaseDAO):
     ) -> None:
         positions = data["positions"]
         # find slices in the position data
-        slice_ids = []
-        for value in positions.values():
-            if isinstance(value, dict):
-                try:
-                    slice_id = value["meta"]["chartId"]
-                    slice_ids.append(slice_id)
-                except KeyError:
-                    pass
+        slice_ids = [
+            value.get("meta", {}).get("chartId")
+            for value in positions.values()
+            if isinstance(value, dict)
+        ]
 
         current_slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
         dashboard.slices = current_slices
