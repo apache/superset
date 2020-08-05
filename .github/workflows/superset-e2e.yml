@@ -36,7 +36,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v2.1.1
       with:
-        python-version: '3.6'
+        python-version: '3.7'
     - name: Install dependencies
       uses: apache-superset/cached-dependencies@b90713b
       with:
