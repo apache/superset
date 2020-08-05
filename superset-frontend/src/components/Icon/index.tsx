@@ -64,7 +64,7 @@ type IconName =
   | 'share'
   | 'warning';
 
-const iconsRegistry: Record<
+export const iconsRegistry: Record<
   IconName,
   React.ComponentType<SVGProps<SVGSVGElement>>
 > = {
