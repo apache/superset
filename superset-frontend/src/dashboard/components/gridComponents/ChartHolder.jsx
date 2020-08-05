@@ -156,7 +156,7 @@ class ChartHolder extends React.Component {
         ...component,
         meta: {
           ...component.meta,
-          sliceName: nextName,
+          sliceNameOverride: nextName,
         },
       },
     });
@@ -255,7 +255,11 @@ class ChartHolder extends React.Component {
                 dashboardId={dashboardId}
                 width={chartWidth}
                 height={chartHeight}
-                sliceName={component.meta.sliceName || ''}
+                sliceName={
+                  component.meta.sliceNameOverride ||
+                  component.meta.sliceName ||
+                  ''
+                }
                 updateSliceName={this.handleUpdateSliceName}
                 isComponentVisible={isComponentVisible}
                 handleToggleFullSize={this.handleToggleFullSize}

@@ -89,30 +89,16 @@ class DashboardDAO(BaseDAO):
         positions = data["positions"]
         # find slices in the position data
         slice_ids = []
-        slice_id_to_name = {}
         for value in positions.values():
             if isinstance(value, dict):
                 try:
                     slice_id = value["meta"]["chartId"]
                     slice_ids.append(slice_id)
-                    slice_id_to_name[slice_id] = value["meta"]["sliceName"]
                 except KeyError:
                     pass
 
         current_slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
         dashboard.slices = current_slices
-
-        # update slice names. this assumes user has permissions to update the slice
-        # we allow user set slice name be empty string
-        for slc in dashboard.slices:
-            try:
-                new_name = slice_id_to_name[slc.id]
-                if slc.slice_name != new_name:
-                    slc.slice_name = new_name
-                    db.session.merge(slc)
-                    db.session.flush()
-            except KeyError:
-                pass
 
         # remove leading and trailing white spaces in the dumped json
         dashboard.position_json = json.dumps(
