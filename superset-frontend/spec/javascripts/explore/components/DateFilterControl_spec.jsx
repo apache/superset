@@ -19,9 +19,8 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { Button } from 'react-bootstrap';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import Label from 'src/components/Label';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
@@ -39,10 +38,7 @@ describe('DateFilterControl', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = mount(<DateFilterControl {...defaultProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
+    wrapper = mount(<DateFilterControl {...defaultProps} />);
   });
 
   it('renders a ControlHeader', () => {

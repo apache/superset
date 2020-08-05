@@ -18,9 +18,8 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { OverlayTrigger } from 'react-bootstrap';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import Label from 'src/components/Label';
 import ViewportControl from 'src/explore/components/controls/ViewportControl';
@@ -42,10 +41,7 @@ describe('ViewportControl', () => {
   let wrapper;
   let inst;
   beforeEach(() => {
-    wrapper = mount(<ViewportControl {...defaultProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
+    wrapper = mount(<ViewportControl {...defaultProps} />);
     inst = wrapper.instance();
   });
 
@@ -56,10 +52,7 @@ describe('ViewportControl', () => {
   });
 
   it('renders a Popover with 5 TextControl', () => {
-    const popOver = mount(inst.renderPopover(), {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
+    const popOver = mount(inst.renderPopover());
     expect(popOver.find(TextControl)).toHaveLength(5);
   });
 
