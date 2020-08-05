@@ -36,6 +36,10 @@ module.exports = {
       ...config.module,
       rules: customConfig.module.rules,
     },
+    resolve: {
+      ...config.resolve,
+      ...customConfig.resolve,
+    },
     plugins: [...config.plugins, ...customConfig.plugins],
   }),
 };
