@@ -23,6 +23,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
+import { Label } from 'react-bootstrap';
+import styled from '@superset-ui/style';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -30,6 +32,7 @@ import {
 } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
+import AvatarIcon from 'src/components/AvatarIcon';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
@@ -41,11 +44,21 @@ import {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
-import ListViewCard, { ActionIcon } from 'src/components/ListViewCard';
-import { Menu } from 'src/common/components';
+import ListViewCard, {
+  ActionIcon,
+  ActionsWrapper,
+} from 'src/components/ListViewCard';
+import { Dropdown, Menu } from 'src/common/components';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
+
+const SecondaryLabel = styled(Label)`
+  background-color: ${({ theme }) => theme.colors.secondary.base};
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.secondary.base};
+  }
+`;
 
 interface Props {
   addDangerToast: (msg: string) => void;
@@ -223,11 +236,6 @@ class ChartList extends React.PureComponent<Props, State> {
     },
     {
       accessor: 'owners',
-      hidden: true,
-      disableSortBy: true,
-    },
-    {
-      accessor: 'datasource',
       hidden: true,
       disableSortBy: true,
     },
@@ -498,14 +506,42 @@ class ChartList extends React.PureComponent<Props, State> {
         )}
       </Menu>
     );
+
     return (
       <ListViewCard
         title={props.slice_name}
         url={props.url}
         imgURL={props.thumbnail_url ?? ''}
         imgFallbackURL={'/static/assets/images/chart-card-fallback.png'}
-        description={props.changed_on_delta_humanized ?? ''}
-        menu={menu}
+        description={t('Last modified %s', props.changed_on_delta_humanized)}
+        coverLeft={(props.owners || []).slice(0, 5).map(owner => (
+          <AvatarIcon
+            key={owner.id}
+            uniqueKey={`${owner.username}-${props.id}`}
+            firstName={owner.first_name}
+            lastName={owner.last_name}
+            iconSize={24}
+            textSize={9}
+          />
+        ))}
+        coverRight={
+          <SecondaryLabel>{props.datasource_name_text}</SecondaryLabel>
+        }
+        actions={
+          <ActionsWrapper>
+            <FaveStar
+              itemId={props.id}
+              fetchFaveStar={this.fetchMethods.fetchFaveStar}
+              saveFaveStar={this.fetchMethods.saveFaveStar}
+              isStarred={!!this.state.favoriteStatus[props.id]}
+              height={24}
+              viewBox="0 0 24 24"
+            />
+            <Dropdown overlay={menu}>
+              <Icon name="more-horiz" />
+            </Dropdown>
+          </ActionsWrapper>
+        }
       />
     );
   };

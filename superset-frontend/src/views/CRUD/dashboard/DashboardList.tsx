@@ -21,6 +21,7 @@ import { t } from '@superset-ui/translation';
 import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
+import { Label } from 'react-bootstrap';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -28,15 +29,20 @@ import {
 } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
+import AvatarIcon from 'src/components/AvatarIcon';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import ExpandableList from 'src/components/ExpandableList';
 import { FetchDataConfig, Filters } from 'src/components/ListView/types';
+import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import ListViewCard, { ActionIcon } from 'src/components/ListViewCard';
-import { Menu } from 'src/common/components';
+import ListViewCard, {
+  ActionIcon,
+  ActionsWrapper,
+} from 'src/components/ListViewCard';
+import { Dropdown, Menu } from 'src/common/components';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
@@ -67,6 +73,7 @@ interface Dashboard {
   published: boolean;
   url: string;
   thumbnail_url: string;
+  owners: Owner[];
 }
 
 class DashboardList extends React.PureComponent<Props, State> {
@@ -501,13 +508,36 @@ class DashboardList extends React.PureComponent<Props, State> {
     return (
       <ListViewCard
         title={props.dashboard_title}
+        titleRight={<Label>{props.published ? 'published' : 'draft'}</Label>}
         url={props.url}
         imgURL={props.thumbnail_url}
         imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
-        description={props.changed_on_delta_humanized}
-        coverLeft={<p>Some other Text</p>}
-        coverRight={<p>Some text</p>}
-        menu={menu}
+        description={t('Last modified %s', props.changed_on_delta_humanized)}
+        coverLeft={props.owners.slice(0, 5).map(owner => (
+          <AvatarIcon
+            key={owner.id}
+            uniqueKey={`${owner.username}-${props.id}`}
+            firstName={owner.first_name}
+            lastName={owner.last_name}
+            iconSize={24}
+            textSize={9}
+          />
+        ))}
+        actions={
+          <ActionsWrapper>
+            <FaveStar
+              itemId={props.id}
+              fetchFaveStar={this.fetchMethods.fetchFaveStar}
+              saveFaveStar={this.fetchMethods.saveFaveStar}
+              isStarred={!!this.state.favoriteStatus[props.id]}
+              height={24}
+              viewBox="0 0 24 24"
+            />
+            <Dropdown overlay={menu}>
+              <Icon name="more-horiz" />
+            </Dropdown>
+          </ActionsWrapper>
+        }
       />
     );
   };

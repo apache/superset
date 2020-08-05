@@ -29,6 +29,7 @@ interface FaveStarProps {
   width?: number;
   height?: number;
   showTooltip?: boolean;
+  viewBox?: string;
 }
 
 export default class FaveStar extends React.PureComponent<FaveStarProps> {
@@ -59,7 +60,7 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
                   ? 'favorite-selected'
                   : 'favorite-unselected'
               }
-              viewBox="0 0 16 15"
+              viewBox={this.props.viewBox || '0 0 16 16'}
               width={this.props.width || 20}
               height="auto"
             />

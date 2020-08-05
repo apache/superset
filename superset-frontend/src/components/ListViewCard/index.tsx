@@ -18,9 +18,21 @@
  */
 import React from 'react';
 import styled from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
 import Icon from 'src/components/Icon';
-import { Card, Dropdown } from 'src/common/components';
+import { Card } from 'src/common/components';
+
+export const ActionIcon = styled(Icon)`
+  width: 14px;
+  height: 14px;
+  position: relative;
+  top: 1px;
+`;
+
+export const ActionsWrapper = styled.div`
+  width: 64px;
+  display: flex;
+  justify-content: space-between;
+`;
 
 const StyledCard = styled(Card)`
   width: 459px;
@@ -35,6 +47,18 @@ const StyledCard = styled(Card)`
 
 const Cover = styled.div`
   height: 264px;
+  overflow: hidden;
+
+  .cover-footer {
+    transform: translateY(36px);
+    transition: 0.2s ease-out;
+  }
+
+  &:hover {
+    .cover-footer {
+      transform: translateY(0);
+    }
+  }
 `;
 
 const GradientContainer = styled.div`
@@ -69,9 +93,10 @@ const TitleContainer = styled.div`
   justify-content: flex-start;
   flex-direction: row;
 
-  .title-right {
+  .card-actions {
     margin-left: auto;
     align-self: flex-end;
+    padding-left: 32px;
   }
 `;
 
@@ -79,14 +104,10 @@ const TitleLink = styled.a`
   color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-right: 32px;
-`;
 
-export const ActionIcon = styled(Icon)`
-  width: 14px;
-  height: 14px;
-  position: relative;
-  top: 1px;
+  & + .title-right {
+    margin-left: 8px;
+  }
 `;
 
 const CoverFooter = styled.div`
@@ -105,28 +126,33 @@ const CoverFooterLeft = styled.div`
 const CoverFooterRight = styled.div`
   align-self: flex-end;
   margin-left: auto;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 interface CardProps {
-  title: string;
+  title: React.ReactNode;
   url: string;
   imgURL: string;
   imgFallbackURL: string;
   description: string;
+  titleRight?: React.ReactNode;
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
-  menu: React.ReactElement;
+  actions: React.ReactNode;
 }
 
 export default function ListViewCard({
   title,
   url,
+  titleRight,
   imgURL,
   imgFallbackURL,
   description,
   coverLeft,
   coverRight,
-  menu,
+  actions,
 }: CardProps) {
   return (
     <StyledCard
@@ -135,7 +161,6 @@ export default function ListViewCard({
           <a href={url}>
             <GradientContainer>
               <CardCoverImg
-                alt={title}
                 src={imgURL}
                 onError={e => {
                   e.currentTarget.src = imgFallbackURL;
@@ -143,7 +168,7 @@ export default function ListViewCard({
               />
             </GradientContainer>
           </a>
-          <CoverFooter>
+          <CoverFooter className="cover-footer">
             {coverLeft && <CoverFooterLeft>{coverLeft}</CoverFooterLeft>}
             {coverRight && <CoverFooterRight>{coverRight}</CoverFooterRight>}
           </CoverFooter>
@@ -155,15 +180,12 @@ export default function ListViewCard({
           <>
             <TitleContainer>
               <TitleLink href={url}>{title}</TitleLink>
-              <div className="title-right">
-                <Dropdown overlay={menu}>
-                  <Icon name="more-horiz" />
-                </Dropdown>
-              </div>
+              {titleRight && <div className="title-right"> {titleRight}</div>}
+              <div className="card-actions">{actions}</div>
             </TitleContainer>
           </>
         }
-        description={t('Last modified %s', description)}
+        description={description}
       />
     </StyledCard>
   );

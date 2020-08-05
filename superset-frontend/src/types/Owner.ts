@@ -18,22 +18,12 @@
  */
 
 /**
- * The Chart model as returned from the API
+ * The Owner model as returned from the API
  */
 
-import Owner from './Owner';
-
-export default interface Chart {
-  id: number;
-  url: string;
-  viz_type: string;
-  slice_name: string;
-  creator: string;
-  changed_on: string;
-  description: string | null;
-  cache_timeout: number | null;
-  thumbnail_url?: string;
-  changed_on_delta_humanized?: string;
-  owners?: Owner[];
-  datasource_name_text?: string;
+export default interface Owner {
+  first_name: string;
+  id: string;
+  last_name: string;
+  username: string;
 }

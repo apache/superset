@@ -33,19 +33,13 @@ import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
 import { FetchDataConfig, Filters } from 'src/components/ListView/types';
+import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
-
-type Owner = {
-  first_name: string;
-  id: string;
-  last_name: string;
-  username: string;
-};
 
 type Dataset = {
   changed_by_name: string;
@@ -359,10 +353,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           .map((owner: Owner) => (
             <AvatarIcon
               key={owner.id}
-              tableName={tableName}
+              uniqueKey={`${tableName}-${owner.username}`}
               firstName={owner.first_name}
               lastName={owner.last_name}
-              userName={owner.username}
               iconSize={24}
               textSize={9}
             />
