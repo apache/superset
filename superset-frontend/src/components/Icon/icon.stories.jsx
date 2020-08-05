@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { withKnobs, select } from '@storybook/addon-knobs';
-import { supersetTheme } from '@superset-ui/style';
+import { styled, supersetTheme } from '@superset-ui/style';
 import Icon, { iconsRegistry } from './';
 
 export default {
@@ -43,12 +43,29 @@ const colorKnob = {
   defaultValue: null,
 };
 
+const IconSet = styled.div`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+`;
+
+const IconBlock = styled.div`
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 10%;
+  text-align: center;
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  div {
+    white-space: nowrap;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  }
+`;
+
 export const SupersetIcon = () => {
   return (
-    <>
-      {Object.keys(iconsRegistry).map(iconName => (
-        <>
-          {iconName}: <br />
+    <IconSet>
+      {Object.keys(iconsRegistry).sort().map(iconName => (
+        <IconBlock>
           <Icon
             name={iconName}
             key={iconName}
@@ -59,9 +76,9 @@ export const SupersetIcon = () => {
               colorKnob.groupId,
             )}
           />
-          <hr />
-        </>
+          <div>{iconName}</div>
+        </IconBlock>
       ))}
-    </>
+    </IconSet>
   );
 };
