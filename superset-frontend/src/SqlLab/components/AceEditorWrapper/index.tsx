@@ -29,7 +29,7 @@ import {
   TABLE_AUTOCOMPLETE_SCORE,
   COLUMN_AUTOCOMPLETE_SCORE,
   SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
-} from '../../constants';
+} from 'src/SqlLab/constants';
 import './AceStyles.less';
 
 const langTools = ace.acequire('ace/ext/language_tools');
