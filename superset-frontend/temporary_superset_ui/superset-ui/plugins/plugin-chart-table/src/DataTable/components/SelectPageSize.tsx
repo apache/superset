@@ -20,39 +20,13 @@ import React from 'react';
 
 export type SizeOption = number | [number, string];
 
-export interface SelectPageSizeProps {
-  sizeOptions: SizeOption[];
-  currentSize?: number;
-  total?: number;
-  onChange: (pageSize: number) => void;
+export interface SelectPageSizeRendererProps {
+  current: number;
+  options: SizeOption[];
+  onChange: SelectPageSizeProps['onChange'];
 }
 
-function getOptionValue(x: SizeOption) {
-  return Array.isArray(x) ? x[0] : x;
-}
-
-export default React.memo(function SelectPageSize({
-  total,
-  sizeOptions,
-  currentSize,
-  onChange,
-}: SelectPageSizeProps) {
-  const sizeOptionValues = sizeOptions.map(getOptionValue);
-  let options = [...sizeOptions];
-  // insert current size to list
-  if (
-    currentSize !== undefined &&
-    (currentSize !== total || !sizeOptionValues.includes(0)) &&
-    !sizeOptionValues.includes(currentSize)
-  ) {
-    options = [...sizeOptions];
-    options.splice(
-      sizeOptionValues.findIndex(x => x > currentSize),
-      0,
-      currentSize,
-    );
-  }
-  const current = currentSize === undefined ? sizeOptionValues[0] : currentSize;
+function DefaultSelectRenderer({ current, options, onChange }: SelectPageSizeRendererProps) {
   return (
     <span className="dt-select-page-size form-inline">
       Show{' '}
@@ -76,4 +50,41 @@ export default React.memo(function SelectPageSize({
       entries
     </span>
   );
+}
+
+export interface SelectPageSizeProps extends SelectPageSizeRendererProps {
+  total?: number;
+  selectRenderer?: typeof DefaultSelectRenderer;
+  onChange: (pageSize: number) => void;
+}
+
+function getOptionValue(x: SizeOption) {
+  return Array.isArray(x) ? x[0] : x;
+}
+
+export default React.memo(function SelectPageSize({
+  total,
+  options: sizeOptions,
+  current: currentSize,
+  selectRenderer,
+  onChange,
+}: SelectPageSizeProps) {
+  const sizeOptionValues = sizeOptions.map(getOptionValue);
+  let options = [...sizeOptions];
+  // insert current size to list
+  if (
+    currentSize !== undefined &&
+    (currentSize !== total || !sizeOptionValues.includes(0)) &&
+    !sizeOptionValues.includes(currentSize)
+  ) {
+    options = [...sizeOptions];
+    options.splice(
+      sizeOptionValues.findIndex(x => x > currentSize),
+      0,
+      currentSize,
+    );
+  }
+  const current = currentSize === undefined ? sizeOptionValues[0] : currentSize;
+  const SelectRenderer = selectRenderer || DefaultSelectRenderer;
+  return <SelectRenderer current={current} options={options} onChange={onChange} />;
 });
