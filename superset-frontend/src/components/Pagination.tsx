@@ -77,6 +77,7 @@ interface PaginationProps {
 const PaginationList = styled.ul`
   display: inline-block;
   margin: 16px 0;
+  padding: 0;
 
   li {
     display: inline;

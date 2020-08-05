@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import React, { FunctionComponent, useState } from 'react';
-import { Col, Row, Alert } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 import cx from 'classnames';
 import Button from 'src/components/Button';
@@ -44,149 +44,17 @@ const ListViewStyles = styled.div`
     .body {
       overflow: scroll;
       max-height: 64vh;
-
-      table {
-        border-collapse: separate;
-
-        th {
-          background: white;
-          position: sticky;
-          top: 0;
-          &:first-of-type {
-            padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-          }
-        }
-      }
-    }
-
-    .filter-dropdown {
-      margin-top: 20px;
-    }
-
-    .filter-column {
-      height: 30px;
-      padding: 5px;
-      font-size: 16px;
-    }
-
-    .filter-close {
-      height: 30px;
-      padding: 5px;
-
-      i {
-        font-size: 20px;
-      }
-    }
-
-    .table-cell-loader {
-      position: relative;
-
-      .loading-bar {
-        background-color: ${({ theme }) => theme.colors.secondary.light4};
-        border-radius: 7px;
-
-        span {
-          visibility: hidden;
-        }
-      }
-
-      &:after {
-        position: absolute;
-        transform: translateY(-50%);
-        top: 50%;
-        left: 0;
-        content: '';
-        display: block;
-        width: 100%;
-        height: 48px;
-        background-image: linear-gradient(
-          100deg,
-          rgba(255, 255, 255, 0),
-          rgba(255, 255, 255, 0.5) 60%,
-          rgba(255, 255, 255, 0) 80%
-        );
-        background-size: 200px 48px;
-        background-position: -100px 0;
-        background-repeat: no-repeat;
-        animation: loading-shimmer 1s infinite;
-      }
-    }
-
-    .actions {
-      white-space: nowrap;
-      font-size: 24px;
-      min-width: 100px;
-
-      svg,
-      i {
-        margin-right: 8px;
-
-        &:hover {
-          path {
-            fill: ${({ theme }) => theme.colors.primary.base};
-          }
-        }
-      }
-    }
-
-    .table-row {
-      .actions {
-        opacity: 0;
-      }
-
-      &:hover {
-        background-color: ${({ theme }) => theme.colors.secondary.light5};
-
-        .actions {
-          opacity: 1;
-          transition: opacity ease-in ${({ theme }) => theme.transitionTiming}s;
-        }
-      }
-    }
-
-    .table-row-selected {
-      background-color: ${({ theme }) => theme.colors.secondary.light4};
-
-      &:hover {
-        background-color: ${({ theme }) => theme.colors.secondary.light4};
-      }
-    }
-
-    .table-cell {
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
-      max-width: 300px;
-      line-height: 1;
-      vertical-align: middle;
-      &:first-of-type {
-        padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-      }
-    }
-
-    .sort-icon {
-      position: absolute;
-    }
-
-    .form-actions-container {
-      position: absolute;
-      left: 28px;
-    }
-
-    .row-count-container {
-      float: right;
-      padding-right: 24px;
     }
   }
 
-  @keyframes loading-shimmer {
-    40% {
-      background-position: 100% 0;
-    }
+  .pagination-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
 
-    100% {
-      background-position: 100% 0;
-    }
+  .row-count-container {
+    color: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
 
@@ -274,7 +142,10 @@ const ViewModeToggle = ({
       <div
         role="button"
         tabIndex={0}
-        onClick={() => setMode('card')}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('card');
+        }}
         className={cx('toggle-button', { active: mode === 'card' })}
       >
         <Icon name="card-view" />
@@ -282,7 +153,10 @@ const ViewModeToggle = ({
       <div
         role="button"
         tabIndex={0}
-        onClick={() => setMode('table')}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('table');
+        }}
         className={cx('toggle-button', { active: mode === 'table' })}
       >
         <Icon name="list-view" />
@@ -447,27 +321,23 @@ const ListView: FunctionComponent<ListViewProps> = ({
             />
           )}
         </div>
-        <div className="footer">
-          <Row>
-            <Col>
-              <span className="row-count-container">
-                showing{' '}
-                <strong>
-                  {pageSize * pageIndex + (rows.length && 1)}-
-                  {pageSize * pageIndex + rows.length}
-                </strong>{' '}
-                of <strong>{count}</strong>
-              </span>
-            </Col>
-          </Row>
+      </div>
+      <div className="pagination-container">
+        <Pagination
+          totalPages={pageCount || 0}
+          currentPage={pageCount ? pageIndex + 1 : 0}
+          onChange={(p: number) => gotoPage(p - 1)}
+          hideFirstAndLastPageLinks
+        />
+        <div className="row-count-container">
+          {t(
+            '%s-%s of %s',
+            pageSize * pageIndex + (rows.length && 1),
+            pageSize * pageIndex + rows.length,
+            count,
+          )}
         </div>
       </div>
-      <Pagination
-        totalPages={pageCount || 0}
-        currentPage={pageCount ? pageIndex + 1 : 0}
-        onChange={(p: number) => gotoPage(p - 1)}
-        hideFirstAndLastPageLinks
-      />
     </ListViewStyles>
   );
 };
