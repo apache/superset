@@ -30,20 +30,21 @@ import {
 } from 'react-table';
 import matchSorter from 'match-sorter';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
-import SelectPageSize, { SizeOption } from './components/SelectPageSize';
+import SelectPageSize, { SelectPageSizeProps, SizeOption } from './components/SelectPageSize';
 import SimplePagination from './components/Pagination';
 import useSticky from './hooks/useSticky';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
   searchInput?: boolean | GlobalFilterProps<D>['searchInput'];
+  selectPageSize?: boolean | SelectPageSizeProps['selectRenderer'];
   pageSizeOptions?: SizeOption[]; // available page size options
   maxPageItemCount?: number;
   hooks?: PluginHook<D>[]; // any additional hooks
   width?: string | number;
   height?: string | number;
   pageSize?: number;
-  noResultsText?: string | ((filterString: string) => ReactNode);
+  noResults?: string | ((filterString: string) => ReactNode);
   sticky?: boolean;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
 }
@@ -65,7 +66,8 @@ export default function DataTable<D extends object>({
   maxPageItemCount = 9,
   sticky: doSticky,
   searchInput = true,
-  noResultsText = 'No data found',
+  selectPageSize,
+  noResults = 'No data found',
   hooks,
   wrapperRef: userWrapperRef,
   ...moreUseTableOptions
@@ -186,9 +188,7 @@ export default function DataTable<D extends object>({
         ) : (
           <tr>
             <td className="dt-no-results" colSpan={columns.length}>
-              {typeof noResultsText === 'function'
-                ? noResultsText(filterValue as string)
-                : noResultsText}
+              {typeof noResults === 'function' ? noResults(filterValue as string) : noResults}
             </td>
           </tr>
         )}
@@ -216,8 +216,9 @@ export default function DataTable<D extends object>({
               {hasPagination ? (
                 <SelectPageSize
                   total={data.length}
-                  sizeOptions={pageSizeOptions}
-                  currentSize={pageSize}
+                  current={pageSize}
+                  options={pageSizeOptions}
+                  selectRenderer={typeof selectPageSize === 'boolean' ? undefined : selectPageSize}
                   onChange={setPageSize}
                 />
               ) : null}
