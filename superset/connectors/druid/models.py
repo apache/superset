@@ -59,6 +59,7 @@ from superset.typing import FilterValues, Granularity, Metric, QueryObjectDict
 from superset.utils import core as utils, import_datasource
 
 try:
+    import requests
     from pydruid.client import PyDruid
     from pydruid.utils.aggregators import count
     from pydruid.utils.dimensions import (
@@ -77,7 +78,6 @@ try:
         Quantile,
         Quantiles,
     )
-    import requests
 except ImportError:
     pass
 

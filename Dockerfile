@@ -31,9 +31,9 @@ RUN mkdir /app \
 
 # First, we just wanna install requirements, which will allow us to utilize the cache
 # in order to only build if and only if requirements change
-COPY ./requirements.txt /app/
+COPY ./requirements/*.txt /app/
 RUN cd /app \
-        && pip install --no-cache -r requirements.txt
+        && pip install --no-cache -r requirements/local.txt
 
 
 ######################################################################
@@ -114,14 +114,13 @@ ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 ######################################################################
 FROM lean AS dev
 
-COPY ./requirements* ./docker/requirements* /app/
+COPY ./requirements/*.txt ./docker/requirements/ /app/
 
 USER root
 # Cache everything for dev purposes...
 RUN cd /app \
     && pip install --ignore-installed -e . \
-    && pip install --ignore-installed -r requirements.txt \
-    && pip install --ignore-installed -r requirements-dev.txt \
+    && pip install --ignore-installed -r requirements/local.txt \
     && pip install --ignore-installed -r requirements-extra.txt \
     && pip install --ignore-installed -r requirements-local.txt || true
 USER superset

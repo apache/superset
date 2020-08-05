@@ -37,15 +37,18 @@ jobs:
       uses: actions/setup-python@v2.1.1
       with:
         python-version: '3.6'
-
     - name: Install dependencies
       uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
-          npm-install && build-instrumented-assets
-          pip-install && setup-postgres && testdata
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
+          setup-postgres
+          testdata
+          npm-install
+          build-instrumented-assets
           cypress-install
-
     - name: Run Cypress
       uses: apache-superset/cached-dependencies@b90713b
       env:
