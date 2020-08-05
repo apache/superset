@@ -89,12 +89,13 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def patch(cls) -> None:
         from pyhive import hive  # pylint: disable=no-name-in-module
-        from superset.db_engines import hive as patched_hive
         from TCLIService import (
             constants as patched_constants,
-            ttypes as patched_ttypes,
             TCLIService as patched_TCLIService,
+            ttypes as patched_ttypes,
         )
+
+        from superset.db_engines import hive as patched_hive
 
         hive.TCLIService = patched_TCLIService
         hive.constants = patched_constants
