@@ -17,11 +17,11 @@
   under the License.
 #}
 
+<!DOCTYPE html>
 {% import 'appbuilder/general/lib.html' as lib %}
 {% from 'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context %}
 
 {% set favicons = appbuilder.app.config['FAVICONS'] %}
-<!DOCTYPE html>
 <html>
   <head>
     <title>
@@ -97,6 +97,7 @@
         </div>
       </div>
     </div>
+
     {% block tail_js %}
       {% if entry %}
         {{ js_bundle(entry) }}

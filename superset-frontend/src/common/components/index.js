@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import '../stylesheets/superset.less';
 
-// Importing Antd under its own stylesheet to prevent unintentional theming.
-import '../stylesheets/antd/index.less';
+/*
+  Antd is exported from here so we can override components with Emotion as needed.
+
+  For documentation, see https://ant.design/components/overview/
+ */
+/* eslint no-restricted-imports: 0 */
+export * from 'antd';
