@@ -1022,6 +1022,13 @@ def get_example_database() -> "Database":
     return get_or_create_db("examples", db_uri)
 
 
+def get_main_database() -> "Database":
+    from superset import conf
+
+    db_uri = conf.get("SQLALCHEMY_DATABASE_URI")
+    return get_or_create_db("main", db_uri)
+
+
 def is_adhoc_metric(metric: Metric) -> bool:
     return bool(
         isinstance(metric, dict)

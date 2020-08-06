@@ -111,24 +111,44 @@ class TestDatabaseModel(SupersetTestCase):
         db = get_example_database()
         table_name = "energy_usage"
         sql = db.select_star(table_name, show_cols=False, latest_partition=False)
-        expected = textwrap.dedent(
-            f"""\
+        expected = (
+            textwrap.dedent(
+                f"""\
         SELECT *
         FROM {table_name}
         LIMIT 100"""
+            )
+            if db.backend != "presto"
+            else textwrap.dedent(
+                f"""\
+        SELECT *
+        FROM "{table_name}"
+        LIMIT 100"""
+            )
         )
-        assert sql.startswith(expected)
+        assert expected in sql
 
         sql = db.select_star(table_name, show_cols=True, latest_partition=False)
-        expected = textwrap.dedent(
-            f"""\
+        expected = (
+            textwrap.dedent(
+                f"""\
         SELECT source,
                target,
                value
-        FROM energy_usage
+        FROM {table_name}
         LIMIT 100"""
+            )
+            if db.backend != "presto"
+            else textwrap.dedent(
+                f"""\
+        SELECT "source" AS "source",
+               "target" AS "target",
+               "value" AS "value"
+        FROM "{table_name}"
+        LIMIT 100"""
+            )
         )
-        assert sql.startswith(expected)
+        assert expected in sql
 
     def test_select_star_fully_qualified_names(self):
         db = get_example_database()
@@ -258,6 +278,10 @@ class TestSqlaTableModel(SupersetTestCase):
         return qr.df
 
     def test_query_with_expr_groupby_timeseries(self):
+        if get_example_database().backend == "presto":
+            # TODO(bkyryliuk): make it work for presto.
+            return
+
         def cannonicalize_df(df):
             ret = df.sort_values(by=list(df.columns.values), inplace=False)
             ret.reset_index(inplace=True, drop=True)
