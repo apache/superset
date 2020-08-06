@@ -66,6 +66,9 @@ export default function Timer({
     if (isRunning) {
       startTimer();
     }
+  }, [isRunning]);
+
+  useEffect(() => {
     return () => {
       stopTimer();
     };
