@@ -61,7 +61,13 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "code": 1001,
             "message": _("Issue 1001 - The database is under an unusual load."),
         },
-    ]
+    ],
+    SupersetErrorType.GENERIC_DB_ENGINE_ERROR: [
+        {
+            "code": 1002,
+            "message": _("Issue 1002 - The database returned an unexpected error."),
+        }
+    ],
 }
 
 

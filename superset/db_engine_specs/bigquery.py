@@ -37,6 +37,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     As contributed by @mxmzdlv on issue #945"""
 
     engine = "bigquery"
+    engine_name = "Google BigQuery"
     max_column_name_length = 128
 
     """

@@ -26,6 +26,7 @@ from superset.utils import core as utils
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = "mysql"
+    engine_name = "MySQL"
     max_column_name_length = 64
 
     _time_grain_expressions = {

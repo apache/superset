@@ -28,6 +28,7 @@ class DrillEngineSpec(BaseEngineSpec):
     """Engine spec for Apache Drill"""
 
     engine = "drill"
+    engine_name = "Apache Drill"
 
     _time_grain_expressions = {
         None: "{col}",
