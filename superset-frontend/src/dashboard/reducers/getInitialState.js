@@ -31,7 +31,6 @@ import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/store';
 import { buildActiveFilters } from '../util/activeDashboardFilters';
 import {
-  BUILDER_PANE_TYPE,
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
@@ -301,10 +300,6 @@ export default function (bootstrapData) {
       colorScheme: dashboard.metadata.color_scheme,
       editMode: dashboard.dash_edit_perm && editMode,
       isPublished: dashboard.published,
-      builderPaneType:
-        dashboard.dash_edit_perm && editMode
-          ? BUILDER_PANE_TYPE.ADD_COMPONENTS
-          : BUILDER_PANE_TYPE.NONE,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
     },

@@ -32,6 +32,7 @@ import { ReactComponent as ErrorIcon } from 'images/icons/error.svg';
 import { ReactComponent as FavoriteSelectedIcon } from 'images/icons/favorite-selected.svg';
 import { ReactComponent as FavoriteUnselectedIcon } from 'images/icons/favorite-unselected.svg';
 import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
+import { ReactComponent as MoreIcon } from 'images/icons/more.svg';
 import { ReactComponent as SearchIcon } from 'images/icons/search.svg';
 import { ReactComponent as SortAscIcon } from 'images/icons/sort-asc.svg';
 import { ReactComponent as SortDescIcon } from 'images/icons/sort-desc.svg';
@@ -55,6 +56,7 @@ type IconName =
   | 'error'
   | 'favorite-selected'
   | 'favorite-unselected'
+  | 'more'
   | 'pencil'
   | 'search'
   | 'sort'
@@ -84,6 +86,7 @@ export const iconsRegistry: Record<
   close: CloseIcon,
   compass: CompassIcon,
   error: ErrorIcon,
+  more: MoreIcon,
   pencil: PencilIcon,
   search: SearchIcon,
   sort: SortIcon,
