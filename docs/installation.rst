@@ -483,7 +483,6 @@ connect to the databases you want to access through Superset.
 
 Here's a list of some of the recommended packages.
 
-<<<<<<< HEAD
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
 | Database         | PyPI package                                                      | SQLAlchemy URI prefix                           |
 +==================+===================================================================+=================================================+
