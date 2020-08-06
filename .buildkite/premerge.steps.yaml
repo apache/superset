@@ -24,8 +24,7 @@ steps:
   - label: "frontend premerge"
     <<: *common
     commands:
-      - cd superset-frontend && npm ci
-      - cd superset-frontend && npm t
+      - cd superset-frontend && npm ci && npm t
     plugins:
       - docker#v3.5.0:
           image: "node:14"
