@@ -570,10 +570,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
         else:
             raise RuntimeError("Unknown report type")
     except NoSuchColumnError as column_error:
-        stats_logger.incr("run_alert_task.failed.NoSuchColumnError")
+        stats_logger.incr("run_alert_task.failure.NoSuchColumnError")
         raise column_error
     except ResourceClosedError as resource_error:
-        stats_logger.incr("run_alert_task.failed.ResourceClosedError")
+        stats_logger.incr("run_alert_task.failure.ResourceClosedError")
         raise resource_error
 
 
