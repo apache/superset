@@ -30,16 +30,16 @@ export default {
 const bsStyleKnob = {
   label: 'Types',
   options: {
-    Danger: 'danger',
-    Warning: 'warning',
-    Success: 'success',
-    Default: 'default',
+    danger: 'danger',
+    warning: 'warning',
+    cuccess: 'success',
+    default: 'default',
   },
   defaultValue: 'default',
 };
-
 export const SupersetLabel = () => (
   <div style={{ padding: '10px' }}>
+    <h2>Interactive</h2>
     <Label
       bsStyle={select(
         bsStyleKnob.label,
@@ -48,9 +48,18 @@ export const SupersetLabel = () => (
         bsStyleKnob.groupId,
       )}
       onClick={action('clicked')}
-      tooltip={boolean('Tooltip', false) === true ? 'This is a tooltip!' : null}
     >
       {text('Label', 'Label!')}
     </Label>
+    <h2>Gallery</h2>
+    {Object.values(bsStyleKnob.options).map(opt => (
+      <Label
+        bsStyle={opt}
+        style={{ marginRight: '10px' }}
+        onClick={action('clicked')}
+      >
+        {`style: "${opt}"`}
+      </Label>
+    ))}
   </div>
 );
