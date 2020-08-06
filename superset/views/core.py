@@ -1120,10 +1120,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 conn.scalar(select([1]))
                 return json_success('"OK"')
         except CertificateException as ex:
-            logger.info(ex.message)
+            logger.info("Certificate exception")
             return json_error_response(ex.message)
-        except (NoSuchModuleError, ModuleNotFoundError) as ex:
-            logger.info("Invalid driver %s", ex)
+        except (NoSuchModuleError, ModuleNotFoundError):
+            logger.info("Invalid driver")
             driver_name = make_url(uri).drivername
             return json_error_response(
                 _(
@@ -1132,24 +1132,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ),
                 400,
             )
-        except ArgumentError as ex:
-            logger.info("Invalid URI %s", ex)
+        except ArgumentError:
+            logger.info("Invalid URI")
             return json_error_response(
                 _(
                     "Invalid connection string, a valid string usually follows:\n"
                     "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
                 )
             )
-        except OperationalError as ex:
-            logger.warning("Connection failed %s", ex)
+        except OperationalError:
+            logger.warning("Connection failed")
             return json_error_response(
-                _("Connection failed, please check your connection settings."), 400
+                _("Connection failed, please check your connection settings"), 400
             )
         except DBSecurityException as ex:
-            logger.warning("Stopped an unsafe database connection. %s", ex)
+            logger.warning("Stopped an unsafe database connection")
             return json_error_response(_(str(ex)), 400)
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Unexpected error %s", ex)
+            logger.error("Unexpected error %s", type(ex).__name__)
             return json_error_response(
                 _("Unexpected error occurred, please check your logs for details"), 400
             )
