@@ -6,8 +6,10 @@ services:
     image: redis:3.2
     container_name: superset_cache
     restart: unless-stopped
+    networks:
+      - visortech_network
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:6490:6379"
     volumes:
       - redis:/data
 
@@ -20,12 +22,31 @@ services:
     image: postgres:10
     container_name: postgres
     restart: unless-stopped
+    networks:
+      - visortech_network
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:6543:5432"
     volumes:
       - postgres:/var/lib/postgresql/data
 
   superset:
+    container_name: visortech_superset_0.37.2
+    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
+    restart: unless-stopped
+    build:
+      args:
+        NPM_BUILD_CMD: build
+        SUPERSET_PORT: 8088
+        CLOUDSDK_PYTHON: /usr/bin/python3
+      context: ./
+      dockerfile: Dockerfile-visortech
+    ports:
+      - 8005:8088
+    depends_on:
+      - db
+      - redis
+    networks:
+      - visortech_network
     environment:
       - COMPOSE_PROJECT_NAME=superset
 
@@ -58,21 +79,12 @@ services:
       - SUPERSET_ENV=production
       - SUPERSET_LOAD_EXAMPLES=no
 
-    build:
-      args:
-        NPM_BUILD_CMD: build
-        SUPERSET_PORT: 8088
-        CLOUDSDK_PYTHON: /usr/bin/python3
-      context: ./
-      dockerfile: Dockerfile-visortech
-    container_name: visortech_superset_0.37.2
-    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
-    restart: unless-stopped
-    ports:
-      - 8005:8088
-    depends_on:
-      - db
-      - redis
+networks:
+  visortech_network:
+    external: false
+    labels:
+      - "com.visortechsolutions.description=Infrastructure Network"
+
 
 volumes:
   superset:

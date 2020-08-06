@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-export COMPOSE_PROJECT_NAME=superset
+export COMPOSE_PROJECT_NAME=visortech_docker
 
 # database configurations (do not modify)
 export DATABASE_DB=superset
