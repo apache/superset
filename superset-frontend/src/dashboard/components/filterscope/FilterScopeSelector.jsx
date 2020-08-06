@@ -513,9 +513,11 @@ export default class FilterScopeSelector extends React.PureComponent {
         </div>
 
         <div className="dashboard-modal-actions-container">
-          <Button onClick={this.onClose}>{t('Close')}</Button>
+          <Button bsSize="sm" onClick={this.onClose}>
+            {t('Close')}
+          </Button>
           {showSelector && (
-            <Button bsStyle="primary" onClick={this.onSave}>
+            <Button bsSize="sm" bsStyle="primary" onClick={this.onSave}>
               {t('Save')}
             </Button>
           )}

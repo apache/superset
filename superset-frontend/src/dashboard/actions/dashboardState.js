@@ -253,8 +253,8 @@ export function fetchCharts(
 }
 
 export const SHOW_BUILDER_PANE = 'SHOW_BUILDER_PANE';
-export function showBuilderPane(builderPaneType) {
-  return { type: SHOW_BUILDER_PANE, builderPaneType };
+export function showBuilderPane() {
+  return { type: SHOW_BUILDER_PANE };
 }
 
 export function addSliceToDashboard(id, component) {
