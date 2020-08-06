@@ -46,19 +46,20 @@ class TestImportExport(SupersetTestCase):
     def delete_imports(cls):
         with app.app_context():
             # Imported data clean up
-            for slc in db.session.query(Slice):
+            session = db.session
+            for slc in session.query(Slice):
                 if "remote_id" in slc.params_dict:
-                    db.session.delete(slc)
-            for dash in db.session.query(Dashboard):
+                    session.delete(slc)
+            for dash in session.query(Dashboard):
                 if "remote_id" in dash.params_dict:
-                    db.session.delete(dash)
-            for table in db.session.query(SqlaTable):
+                    session.delete(dash)
+            for table in session.query(SqlaTable):
                 if "remote_id" in table.params_dict:
-                    db.session.delete(table)
-            for datasource in db.session.query(DruidDatasource):
+                    session.delete(table)
+            for datasource in session.query(DruidDatasource):
                 if "remote_id" in datasource.params_dict:
-                    db.session.delete(datasource)
-            db.session.commit()
+                    session.delete(datasource)
+            session.commit()
 
     @classmethod
     def setUpClass(cls):
@@ -125,7 +126,9 @@ class TestImportExport(SupersetTestCase):
 
     def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
         cluster_name = "druid_test"
-        cluster = self.get_or_create(DruidCluster, {"cluster_name": cluster_name})
+        cluster = self.get_or_create(
+            DruidCluster, {"cluster_name": cluster_name}, db.session
+        )
 
         params = {"remote_id": id, "database_name": cluster_name}
         datasource = DruidDatasource(

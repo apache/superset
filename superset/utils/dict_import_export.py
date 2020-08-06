@@ -17,8 +17,9 @@
 import logging
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy.orm import Session
+
 from superset.connectors.druid.models import DruidCluster
-from superset.extensions import db
 from superset.models.core import Database
 
 DATABASES_KEY = "databases"
@@ -43,11 +44,11 @@ def export_schema_to_dict(back_references: bool) -> Dict[str, Any]:
 
 
 def export_to_dict(
-    recursive: bool, back_references: bool, include_defaults: bool
+    session: Session, recursive: bool, back_references: bool, include_defaults: bool
 ) -> Dict[str, Any]:
     """Exports databases and druid clusters to a dictionary"""
     logger.info("Starting export")
-    dbs = db.session.query(Database)
+    dbs = session.query(Database)
     databases = [
         database.export_to_dict(
             recursive=recursive,
@@ -57,7 +58,7 @@ def export_to_dict(
         for database in dbs
     ]
     logger.info("Exported %d %s", len(databases), DATABASES_KEY)
-    cls = db.session.query(DruidCluster)
+    cls = session.query(DruidCluster)
     clusters = [
         cluster.export_to_dict(
             recursive=recursive,
@@ -75,20 +76,22 @@ def export_to_dict(
     return data
 
 
-def import_from_dict(data: Dict[str, Any], sync: Optional[List[str]] = None) -> None:
+def import_from_dict(
+    session: Session, data: Dict[str, Any], sync: Optional[List[str]] = None
+) -> None:
     """Imports databases and druid clusters from dictionary"""
     if not sync:
         sync = []
     if isinstance(data, dict):
         logger.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
         for database in data.get(DATABASES_KEY, []):
-            Database.import_from_dict(database, sync=sync)
+            Database.import_from_dict(session, database, sync=sync)
 
         logger.info(
             "Importing %d %s", len(data.get(DRUID_CLUSTERS_KEY, [])), DRUID_CLUSTERS_KEY
         )
         for datasource in data.get(DRUID_CLUSTERS_KEY, []):
-            DruidCluster.import_from_dict(datasource, sync=sync)
-        db.session.commit()
+            DruidCluster.import_from_dict(session, datasource, sync=sync)
+        session.commit()
     else:
         logger.info("Supplied object is not a dictionary.")
