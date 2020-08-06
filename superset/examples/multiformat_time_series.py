@@ -44,17 +44,24 @@ def load_multiformat_time_series(
     if not only_metadata and (not table_exists or force):
         data = get_example_data("multiformat_time_series.json.gz")
         pdf = pd.read_json(data)
+        # TODO(bkyryliuk): move load examples data into the pytest fixture
+        if database.backend == "presto":
+            pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+            pdf.ds = pdf.ds.dt.strftime("%Y-%m-%d")
+            pdf.ds2 = pd.to_datetime(pdf.ds2, unit="s")
+            pdf.ds2 = pdf.ds2.dt.strftime("%Y-%m-%d %H:%M%:%S")
+        else:
+            pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+            pdf.ds2 = pd.to_datetime(pdf.ds2, unit="s")
 
-        pdf.ds = pd.to_datetime(pdf.ds, unit="s")
-        pdf.ds2 = pd.to_datetime(pdf.ds2, unit="s")
         pdf.to_sql(
             tbl_name,
             database.get_sqla_engine(),
             if_exists="replace",
             chunksize=500,
             dtype={
-                "ds": Date,
-                "ds2": DateTime,
+                "ds": String(255) if database.backend == "presto" else Date,
+                "ds2": String(255) if database.backend == "presto" else DateTime,
                 "epoch_s": BigInteger,
                 "epoch_ms": BigInteger,
                 "string0": String(100),

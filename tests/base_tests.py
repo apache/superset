@@ -49,6 +49,7 @@ class SupersetTestCase(TestCase):
         "sqlite": "main",
         "mysql": "superset",
         "postgresql": "public",
+        "presto": "default",
     }
 
     maxDiff = -1
