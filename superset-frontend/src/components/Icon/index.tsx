@@ -42,7 +42,6 @@ import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 import { ReactComponent as ShareIcon } from 'images/icons/share.svg';
 import { ReactComponent as CardViewIcon } from 'images/icons/card-view.svg';
 import { ReactComponent as ListViewIcon } from 'images/icons/list-view.svg';
-import { ReactComponent as MoreHorizIcon } from 'images/icons/more-horiz.svg';
 
 type IconName =
   | 'cancel-x'
@@ -69,8 +68,7 @@ type IconName =
   | 'share'
   | 'warning'
   | 'list-view'
-  | 'card-view'
-  | 'more-horiz';
+  | 'card-view';
 
 export const iconsRegistry: Record<
   IconName,
@@ -90,7 +88,6 @@ export const iconsRegistry: Record<
   'sort-desc': SortDescIcon,
   'card-view': CardViewIcon,
   'list-view': ListViewIcon,
-  'more-horiz': MoreHorizIcon,
   check: CheckIcon,
   close: CloseIcon,
   compass: CompassIcon,

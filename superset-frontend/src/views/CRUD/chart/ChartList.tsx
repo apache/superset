@@ -538,7 +538,7 @@ class ChartList extends React.PureComponent<Props, State> {
               viewBox="0 0 24 24"
             />
             <Dropdown overlay={menu}>
-              <Icon name="more-horiz" />
+              <Icon name="more" />
             </Dropdown>
           </ActionsWrapper>
         }
