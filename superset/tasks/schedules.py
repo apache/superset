@@ -81,6 +81,7 @@ config = app.config
 logger = logging.getLogger("tasks.email_reports")
 logger.setLevel(logging.INFO)
 
+stats_logger = current_app.config["STATS_LOGGER"]
 EMAIL_PAGE_RENDER_WAIT = config["EMAIL_PAGE_RENDER_WAIT"]
 WEBDRIVER_BASEURL = config["WEBDRIVER_BASEURL"]
 WEBDRIVER_BASEURL_USER_FRIENDLY = config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
@@ -546,30 +547,34 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     recipients: Optional[str] = None,
     is_test_alert: Optional[bool] = False,
 ) -> None:
-    stats_logger = current_app.config["STATS_LOGGER"]
-    stats_logger.incr("run_alert_task")
-
     model_cls = get_scheduler_model(report_type)
-    dbsession = db.create_scoped_session()
-    schedule = dbsession.query(model_cls).get(schedule_id)
 
-    # The user may have disabled the schedule. If so, ignore this
-    if not schedule or not schedule.active:
-        logger.info("Ignoring deactivated alert")
-        return
+    try:
+        schedule = db.session.query(model_cls).get(schedule_id)
 
-    if report_type == ScheduleType.alert:
-        if is_test_alert and recipients:
-            deliver_alert(schedule.id, recipients)
+        # The user may have disabled the schedule. If so, ignore this
+        if not schedule or not schedule.active:
+            logger.info("Ignoring deactivated alert")
             return
 
-        if run_alert_query(
-            schedule.id, schedule.database_id, schedule.sql, schedule.label
-        ):
-            # deliver_dashboard OR deliver_slice
-            return
-    else:
-        raise RuntimeError("Unknown report type")
+        if report_type == ScheduleType.alert:
+            if is_test_alert and recipients:
+                deliver_alert(schedule.id, recipients)
+                return
+
+            if run_alert_query(
+                schedule.id, schedule.database_id, schedule.sql, schedule.label
+            ):
+                # deliver_dashboard OR deliver_slice
+                return
+        else:
+            raise RuntimeError("Unknown report type")
+    except NoSuchColumnError as column_error:
+        stats_logger.incr("run_alert_task.failed.NoSuchColumnError")
+        raise column_error
+    except ResourceClosedError as resource_error:
+        stats_logger.incr("run_alert_task.failed.ResourceClosedError")
+        raise resource_error
 
 
 class AlertState:
