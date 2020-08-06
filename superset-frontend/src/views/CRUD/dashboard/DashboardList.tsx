@@ -41,10 +41,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import ListViewCard, {
-  ActionIcon,
-  ActionsWrapper,
-} from 'src/components/ListViewCard';
+import ListViewCard from 'src/components/ListViewCard';
 import { Dropdown, Menu } from 'src/common/components';
 
 const PAGE_SIZE = 25;
@@ -481,7 +478,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                   className="action-button"
                   onClick={confirmDelete}
                 >
-                  <ActionIcon name="trash" /> Delete
+                  <ListViewCard.MenuIcon name="trash" /> Delete
                 </div>
               )}
             </ConfirmStatusChange>
@@ -493,7 +490,7 @@ class DashboardList extends React.PureComponent<Props, State> {
             tabIndex={0}
             onClick={() => this.handleBulkDashboardExport([props])}
           >
-            <ActionIcon name="share" /> Export
+            <ListViewCard.MenuIcon name="share" /> Export
           </Menu.Item>
         )}
         {this.canEdit && (
@@ -502,7 +499,7 @@ class DashboardList extends React.PureComponent<Props, State> {
             tabIndex={0}
             onClick={() => this.openDashboardEditModal(props)}
           >
-            <ActionIcon name="pencil" /> Edit
+            <ListViewCard.MenuIcon name="pencil" /> Edit
           </Menu.Item>
         )}
       </Menu>
@@ -527,7 +524,7 @@ class DashboardList extends React.PureComponent<Props, State> {
           />
         ))}
         actions={
-          <ActionsWrapper>
+          <ListViewCard.Actions>
             <FaveStar
               itemId={props.id}
               fetchFaveStar={this.fetchMethods.fetchFaveStar}
@@ -539,7 +536,7 @@ class DashboardList extends React.PureComponent<Props, State> {
             <Dropdown overlay={menu}>
               <Icon name="more" />
             </Dropdown>
-          </ActionsWrapper>
+          </ListViewCard.Actions>
         }
       />
     );

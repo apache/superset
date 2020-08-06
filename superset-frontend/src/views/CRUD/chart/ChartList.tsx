@@ -44,10 +44,7 @@ import ListView, {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
-import ListViewCard, {
-  ActionIcon,
-  ActionsWrapper,
-} from 'src/components/ListViewCard';
+import ListViewCard from 'src/components/ListViewCard';
 import { Dropdown, Menu } from 'src/common/components';
 
 const PAGE_SIZE = 25;
@@ -489,7 +486,7 @@ class ChartList extends React.PureComponent<Props, State> {
                   className="action-button"
                   onClick={confirmDelete}
                 >
-                  <ActionIcon name="trash" /> Delete
+                  <ListViewCard.MenuIcon name="trash" /> Delete
                 </div>
               )}
             </ConfirmStatusChange>
@@ -501,7 +498,7 @@ class ChartList extends React.PureComponent<Props, State> {
             tabIndex={0}
             onClick={() => this.openChartEditModal(props)}
           >
-            <ActionIcon name="pencil" /> Edit
+            <ListViewCard.MenuIcon name="pencil" /> Edit
           </Menu.Item>
         )}
       </Menu>
@@ -528,7 +525,7 @@ class ChartList extends React.PureComponent<Props, State> {
           <SecondaryLabel>{props.datasource_name_text}</SecondaryLabel>
         }
         actions={
-          <ActionsWrapper>
+          <ListViewCard.Actions>
             <FaveStar
               itemId={props.id}
               fetchFaveStar={this.fetchMethods.fetchFaveStar}
@@ -540,7 +537,7 @@ class ChartList extends React.PureComponent<Props, State> {
             <Dropdown overlay={menu}>
               <Icon name="more" />
             </Dropdown>
-          </ActionsWrapper>
+          </ListViewCard.Actions>
         }
       />
     );

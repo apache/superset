@@ -21,14 +21,14 @@ import styled from '@superset-ui/style';
 import Icon from 'src/components/Icon';
 import { Card } from 'src/common/components';
 
-export const ActionIcon = styled(Icon)`
+const MenuIcon = styled(Icon)`
   width: 14px;
   height: 14px;
   position: relative;
   top: 1px;
 `;
 
-export const ActionsWrapper = styled.div`
+const ActionsWrapper = styled.div`
   width: 64px;
   display: flex;
   justify-content: space-between;
@@ -143,7 +143,7 @@ interface CardProps {
   actions: React.ReactNode;
 }
 
-export default function ListViewCard({
+function ListViewCard({
   title,
   url,
   titleRight,
@@ -190,3 +190,7 @@ export default function ListViewCard({
     </StyledCard>
   );
 }
+
+ListViewCard.Actions = ActionsWrapper;
+ListViewCard.MenuIcon = MenuIcon;
+export default ListViewCard;
