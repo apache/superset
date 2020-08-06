@@ -23,39 +23,22 @@ import { ErrorMessageComponentProps } from './types';
 import IssueCode from './IssueCode';
 import ErrorAlert from './ErrorAlert';
 
-interface TimeoutErrorExtra {
+interface DatabaseErrorExtra {
+  owners?: string[];
   issue_codes: {
     code: number;
     message: string;
   }[];
-  owners?: string[];
-  timeout: number;
+  engine_name: string | null;
 }
 
-function TimeoutErrorMessage({
+function DatabaseErrorMessage({
   error,
-  source,
-}: ErrorMessageComponentProps<TimeoutErrorExtra>) {
-  const { extra, level } = error;
+  source = 'dashboard',
+}: ErrorMessageComponentProps<DatabaseErrorExtra>) {
+  const { extra, level, message } = error;
 
-  const isVisualization = (['dashboard', 'explore'] as (
-    | string
-    | undefined
-  )[]).includes(source);
-
-  const subtitle = isVisualization
-    ? tn(
-        'We’re having trouble loading this visualization. Queries are set to timeout after %s second.',
-        'We’re having trouble loading this visualization. Queries are set to timeout after %s seconds.',
-        extra.timeout,
-        extra.timeout,
-      )
-    : tn(
-        'We’re having trouble loading these results. Queries are set to timeout after %s second.',
-        'We’re having trouble loading these results. Queries are set to timeout after %s seconds.',
-        extra.timeout,
-        extra.timeout,
-      );
+  const isVisualization = ['dashboard', 'explore'].includes(source);
 
   const body = (
     <>
@@ -89,14 +72,14 @@ function TimeoutErrorMessage({
     </>
   );
 
-  const copyText = `${subtitle}
+  const copyText = `${message}
 ${t('This may be triggered by:')}
 ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
 
   return (
     <ErrorAlert
-      title={t('Timeout Error')}
-      subtitle={subtitle}
+      title={t('%s Error', extra.engine_name || t('DB Engine'))}
+      subtitle={message}
       level={level}
       source={source}
       copyText={copyText}
@@ -105,4 +88,4 @@ ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
   );
 }
 
-export default TimeoutErrorMessage;
+export default DatabaseErrorMessage;

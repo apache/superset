@@ -38,6 +38,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
 
     engine = ""
+    engine_name = "PostgreSQL"
 
     _time_grain_expressions = {
         None: "{col}",
