@@ -29,10 +29,13 @@ import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DeleteModal from 'src/components/DeleteModal';
-import ListView, { ListViewProps } from 'src/components/ListView/ListView';
+import ListView, {
+  ListViewProps,
+  FetchDataConfig,
+  Filters,
+} from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
-import { FetchDataConfig, Filters } from 'src/components/ListView/types';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';

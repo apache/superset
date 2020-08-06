@@ -24,7 +24,7 @@ import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
-import ListView from 'src/components/ListView/ListView';
+import ListView from 'src/components/ListView';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 
 // store needed for withToasts(DashboardTable)

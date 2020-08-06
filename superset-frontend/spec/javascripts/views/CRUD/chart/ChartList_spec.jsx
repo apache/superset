@@ -24,7 +24,7 @@ import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import ChartList from 'src/views/CRUD/chart/ChartList';
-import ListView from 'src/components/ListView/ListView';
+import ListView from 'src/components/ListView';
 
 // store needed for withToasts(ChartTable)
 const mockStore = configureStore([thunk]);

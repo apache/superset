@@ -35,12 +35,12 @@ import SubMenu from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
-import ListView, { ListViewProps } from 'src/components/ListView/ListView';
-import {
+import ListView, {
+  ListViewProps,
   FetchDataConfig,
   Filters,
   SelectOption,
-} from 'src/components/ListView/types';
+} from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';

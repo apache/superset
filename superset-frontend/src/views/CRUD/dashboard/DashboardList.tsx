@@ -30,9 +30,12 @@ import {
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
-import ListView, { ListViewProps } from 'src/components/ListView/ListView';
+import ListView, {
+  ListViewProps,
+  FetchDataConfig,
+  Filters,
+} from 'src/components/ListView';
 import ExpandableList from 'src/components/ExpandableList';
-import { FetchDataConfig, Filters } from 'src/components/ListView/types';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
