@@ -27,6 +27,7 @@ from urllib import parse
 
 import pandas as pd
 import simplejson as json
+from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, literal_column
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -104,6 +105,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = "presto"
+    engine_name = "Presto"
 
     _time_grain_expressions = {
         None: "{col}",
@@ -780,7 +782,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             polled = cursor.poll()
 
     @classmethod
-    def _extract_error_message(cls, ex: Exception) -> Optional[str]:
+    def _extract_error_message(cls, ex: Exception) -> str:
         if (
             hasattr(ex, "orig")
             and type(ex.orig).__name__ == "DatabaseError"  # type: ignore
@@ -794,7 +796,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             )
         if type(ex).__name__ == "DatabaseError" and hasattr(ex, "args") and ex.args:
             error_dict = ex.args[0]
-            return error_dict.get("message")
+            return error_dict.get("message", _("Unknown Presto Error"))
         return utils.error_msg_from_exception(ex)
 
     @classmethod

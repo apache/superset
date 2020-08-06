@@ -137,6 +137,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations"""
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
+    engine_name: Optional[
+        str
+    ] = None  # used for user messages, overridden in child classes
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
@@ -569,7 +572,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
 
     @classmethod
-    def _extract_error_message(cls, ex: Exception) -> Optional[str]:
+    def _extract_error_message(cls, ex: Exception) -> str:
         """Extract error message for queries"""
         return utils.error_msg_from_exception(ex)
 
@@ -579,9 +582,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             dataclasses.asdict(
                 SupersetError(
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                    message=cls.extract_error_message(ex),
+                    message=cls._extract_error_message(ex),
                     level=ErrorLevel.ERROR,
-                    extra={"engine": cls.engine},
+                    extra={"engine_name": cls.engine_name},
                 )
             )
         ]
