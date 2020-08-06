@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,7 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.cli import superset
 
-if __name__ == '__main__':
-    superset()
+# https://cwiki.apache.org/confluence/display/INFRA/.asf.yaml+features+for+git+repositories
+---
+github:
+  description: "Apache Superset is a Data Visualization and Data Exploration Platform"
+  homepage: https://superset.apache.org/
+  labels:
+    - superset
+    - apache
+    - apache-superset
+    - data-visualization
+    - data-viz
+    - analytics
+    - business-intelligence
+    - data-science
+    - data-engineering
+    - asf
+  features:
+    # Enable issues management
+    issues: true
+    # Enable projects for project management boards
+    projects: true
+    # Enable wiki for documentation
+    wiki: true
+
+  enabled_merge_buttons:
+    squash: true
+    merge: false
+    rebase: false

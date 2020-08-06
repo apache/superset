@@ -34,7 +34,7 @@ describe('EditableTitle', () => {
       value: 'new title',
     },
   };
-  const editableWrapper = shallow(<EditableTable {...mockProps} />);
+  let editableWrapper = shallow(<EditableTable {...mockProps} />);
   const notEditableWrapper = shallow(
     <EditableTable title="my title" onSaveTitle={callback} />,
   );
@@ -60,8 +60,7 @@ describe('EditableTitle', () => {
 
   describe('should handle change', () => {
     afterEach(() => {
-      editableWrapper.setState({ title: 'my title' });
-      editableWrapper.setState({ lastTitle: 'my title' });
+      editableWrapper = shallow(<EditableTable {...mockProps} />);
     });
     it('should change title', () => {
       editableWrapper.find('input').simulate('change', mockEvent);
@@ -79,8 +78,7 @@ describe('EditableTitle', () => {
     });
     afterEach(() => {
       callback.resetHistory();
-      editableWrapper.setState({ title: 'my title' });
-      editableWrapper.setState({ lastTitle: 'my title' });
+      editableWrapper = shallow(<EditableTable {...mockProps} />);
     });
 
     it('default input type should be text', () => {
@@ -88,7 +86,7 @@ describe('EditableTitle', () => {
     });
 
     it('should trigger callback', () => {
-      editableWrapper.setState({ title: 'new title' });
+      editableWrapper.find('input').simulate('change', mockEvent);
       editableWrapper.find('input').simulate('blur');
       expect(editableWrapper.find('input').props().type).toBe('button');
       expect(callback.callCount).toBe(1);
@@ -101,7 +99,6 @@ describe('EditableTitle', () => {
       expect(callback.callCount).toBe(0);
     });
     it('should not save empty title', () => {
-      editableWrapper.setState({ title: '' });
       editableWrapper.find('input').simulate('blur');
       expect(editableWrapper.find('input').props().type).toBe('button');
       expect(editableWrapper.find('input').props().value).toBe('my title');

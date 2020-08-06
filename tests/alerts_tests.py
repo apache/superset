@@ -86,21 +86,21 @@ def teardown_module():
 @patch("superset.tasks.schedules.logging.Logger.error")
 def test_run_alert_query(mock_error, mock_deliver_alert):
     with app.app_context():
-        run_alert_query(db.session.query(Alert).filter_by(id=1).one())
+        run_alert_query(db.session.query(Alert).filter_by(id=1).one().id)
         alert1 = db.session.query(Alert).filter_by(id=1).one()
         assert mock_deliver_alert.call_count == 0
         assert len(alert1.logs) == 1
         assert alert1.logs[0].alert_id == 1
         assert alert1.logs[0].state == "pass"
 
-        run_alert_query(db.session.query(Alert).filter_by(id=2).one())
+        run_alert_query(db.session.query(Alert).filter_by(id=2).one().id)
         alert2 = db.session.query(Alert).filter_by(id=2).one()
         assert mock_deliver_alert.call_count == 1
         assert len(alert2.logs) == 1
         assert alert2.logs[0].alert_id == 2
         assert alert2.logs[0].state == "trigger"
 
-        run_alert_query(db.session.query(Alert).filter_by(id=3).one())
+        run_alert_query(db.session.query(Alert).filter_by(id=3).one().id)
         alert3 = db.session.query(Alert).filter_by(id=3).one()
         assert mock_deliver_alert.call_count == 1
         assert mock_error.call_count == 2
@@ -108,11 +108,11 @@ def test_run_alert_query(mock_error, mock_deliver_alert):
         assert alert3.logs[0].alert_id == 3
         assert alert3.logs[0].state == "error"
 
-        run_alert_query(db.session.query(Alert).filter_by(id=4).one())
+        run_alert_query(db.session.query(Alert).filter_by(id=4).one().id)
         assert mock_deliver_alert.call_count == 1
         assert mock_error.call_count == 3
 
-        run_alert_query(db.session.query(Alert).filter_by(id=5).one())
+        run_alert_query(db.session.query(Alert).filter_by(id=5).one().id)
         assert mock_deliver_alert.call_count == 1
         assert mock_error.call_count == 4
 

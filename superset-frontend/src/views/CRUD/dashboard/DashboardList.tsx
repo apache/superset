@@ -21,7 +21,11 @@ import { t } from '@superset-ui/translation';
 import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createFetchRelated,
+  createErrorHandler,
+  createFaveStarHandlers,
+} from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
@@ -29,9 +33,11 @@ import ExpandableList from 'src/components/ExpandableList';
 import { FetchDataConfig, Filters } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
+import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 
 const PAGE_SIZE = 25;
+const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
 
 interface Props {
   addDangerToast: (msg: string) => void;
@@ -42,6 +48,7 @@ interface State {
   bulkSelectEnabled: boolean;
   dashboardCount: number;
   dashboards: any[];
+  favoriteStatus: object;
   dashboardToEdit: Dashboard | null;
   lastFetchDataConfig: FetchDataConfig | null;
   loading: boolean;
@@ -68,6 +75,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     bulkSelectEnabled: false,
     dashboardCount: 0,
     dashboards: [],
+    favoriteStatus: {}, // Hash mapping dashboard id to 'isStarred' status
     dashboardToEdit: null,
     lastFetchDataConfig: null,
     loading: true,
@@ -105,7 +113,31 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
+  fetchMethods = createFaveStarHandlers(
+    FAVESTAR_BASE_URL,
+    this,
+    (message: string) => {
+      this.props.addDangerToast(message);
+    },
+  );
+
   columns = [
+    {
+      Cell: ({ row: { original } }: any) => {
+        return (
+          <FaveStar
+            itemId={original.id}
+            fetchFaveStar={this.fetchMethods.fetchFaveStar}
+            saveFaveStar={this.fetchMethods.saveFaveStar}
+            isStarred={!!this.state.favoriteStatus[original.id]}
+            height={20}
+          />
+        );
+      },
+      Header: '',
+      id: 'favorite',
+      disableSortBy: true,
+    },
     {
       Cell: ({
         row: {

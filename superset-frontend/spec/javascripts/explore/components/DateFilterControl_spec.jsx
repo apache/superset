@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { Button } from 'react-bootstrap';
 
 import Label from 'src/components/Label';

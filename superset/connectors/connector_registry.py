@@ -25,8 +25,8 @@ if TYPE_CHECKING:
     # pylint: disable=unused-import
     from collections import OrderedDict
 
-    from superset.models.core import Database
     from superset.connectors.base.models import BaseDatasource
+    from superset.models.core import Database
 
 
 class ConnectorRegistry:

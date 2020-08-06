@@ -96,7 +96,7 @@ class TestSqlLab(SupersetTestCase):
                 f"SELECT * FROM admin_database.{tmp_table_name}"
             ).fetchall()
             self.assertEqual(
-                75691, len(data)
+                100, len(data)
             )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
 
             # cleanup

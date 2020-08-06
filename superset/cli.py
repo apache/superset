@@ -613,8 +613,8 @@ def sync_tags() -> None:
 def alert() -> None:
     """Run the alert scheduler loop"""
     # this command is just for testing purposes
-    from superset.tasks.schedules import schedule_window
     from superset.models.schedules import ScheduleType
+    from superset.tasks.schedules import schedule_window
 
     click.secho("Processing one alert loop", fg="green")
     schedule_window(

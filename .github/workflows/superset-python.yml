@@ -8,8 +8,6 @@ jobs:
     strategy:
       matrix:
         python-version: [3.6]
-    env:
-      PYTHON_LINT_TARGET: setup.py superset tests
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -19,15 +17,36 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       uses: apache-superset/cached-dependencies@b90713b
-    - name: black
-      run: black --check $(echo $PYTHON_LINT_TARGET)
-    - name: mypy
-      run: mypy $(echo $PYTHON_LINT_TARGET)
-    - name: isort
-      run: isort --check-only --recursive $(echo $PYTHON_LINT_TARGET)
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
     - name: pylint
       # `-j 0` run Pylint in parallel
       run: pylint -j 0 superset
+
+  pre-commit:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.6]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.1.1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/integration.txt
+    - name: pre-commit
+      run: pre-commit run --all-files
 
   docs:
     runs-on: ubuntu-18.04
@@ -45,8 +64,9 @@ jobs:
       uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
-          pip-install
-          pip install -r docs/requirements.txt
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/documentation.txt
     - name: Build documentation
       run: sphinx-build -b html docs _build/html -W
 
@@ -66,8 +86,9 @@ jobs:
         uses: apache-superset/cached-dependencies@b90713b
         with:
           run: |
-            pip-install
-            pip install -r docs/requirements.txt
+            apt-get-install
+            pip-upgrade
+            pip install -r requirements/documentation.txt
       - name: Test babel extraction
         run: flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _,__,t,tn,tct
 
@@ -107,7 +128,9 @@ jobs:
       uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
-          pip-install
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
           setup-postgres
     - name: Run celery
       run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
@@ -151,7 +174,9 @@ jobs:
       uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
-          pip-install
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
           setup-mysql
     - name: Run celery
       run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
@@ -188,7 +213,9 @@ jobs:
       uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
-          pip-install
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
           mkdir ${{ github.workspace }}/.temp
     - name: Run celery
       run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
