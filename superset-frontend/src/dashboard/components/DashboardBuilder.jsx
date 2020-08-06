@@ -39,7 +39,6 @@ import getDragDropManager from '../util/getDragDropManager';
 import findTabIndexByComponentId from '../util/findTabIndexByComponentId';
 
 import {
-  BUILDER_PANE_TYPE,
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -56,7 +55,6 @@ const propTypes = {
   deleteTopLevelTabs: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   showBuilderPane: PropTypes.func.isRequired,
-  builderPaneType: PropTypes.string.isRequired,
   colorScheme: PropTypes.string,
   setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
@@ -161,7 +159,6 @@ class DashboardBuilder extends React.Component {
       dashboardLayout,
       editMode,
       showBuilderPane,
-      builderPaneType,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
     } = this.props;
@@ -265,11 +262,10 @@ class DashboardBuilder extends React.Component {
               )}
             </ParentSize>
           </div>
-          {editMode && builderPaneType !== BUILDER_PANE_TYPE.NONE && (
+          {editMode && (
             <BuilderComponentPane
               topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
               showBuilderPane={showBuilderPane}
-              builderPaneType={builderPaneType}
               setColorSchemeAndUnsavedChanges={setColorSchemeAndUnsavedChanges}
               colorScheme={colorScheme}
             />
