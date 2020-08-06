@@ -58,7 +58,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)
-        datasource = ConnectorRegistry.get_datasource(datasource_type, datasource_id)
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session
+        )
         slice = Slice(
             slice_name=slice_name,
             datasource_id=datasource.id,
