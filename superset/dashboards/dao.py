@@ -99,7 +99,9 @@ class DashboardDAO(BaseDAO):
                 except KeyError:
                     pass
 
-        current_slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        session = db.session()
+        current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+
         dashboard.slices = current_slices
 
         # update slice names. this assumes user has permissions to update the slice
@@ -109,8 +111,8 @@ class DashboardDAO(BaseDAO):
                 new_name = slice_id_to_name[slc.id]
                 if slc.slice_name != new_name:
                     slc.slice_name = new_name
-                    db.session.merge(slc)
-                    db.session.flush()
+                    session.merge(slc)
+                    session.flush()
             except KeyError:
                 pass
 

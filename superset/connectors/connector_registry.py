@@ -17,9 +17,7 @@
 from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
 
 from sqlalchemy import or_
-from sqlalchemy.orm import subqueryload
-
-from superset.extensions import db
+from sqlalchemy.orm import Session, subqueryload
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -45,20 +43,20 @@ class ConnectorRegistry:
 
     @classmethod
     def get_datasource(
-        cls, datasource_type: str, datasource_id: int
+        cls, datasource_type: str, datasource_id: int, session: Session
     ) -> "BaseDatasource":
         return (
-            db.session.query(cls.sources[datasource_type])
+            session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
             .one()
         )
 
     @classmethod
-    def get_all_datasources(cls) -> List["BaseDatasource"]:
+    def get_all_datasources(cls, session: Session) -> List["BaseDatasource"]:
         datasources: List["BaseDatasource"] = []
         for source_type in ConnectorRegistry.sources:
             source_class = ConnectorRegistry.sources[source_type]
-            qry = db.session.query(source_class)
+            qry = session.query(source_class)
             qry = source_class.default_query(qry)
             datasources.extend(qry.all())
         return datasources
@@ -66,6 +64,7 @@ class ConnectorRegistry:
     @classmethod
     def get_datasource_by_name(  # pylint: disable=too-many-arguments
         cls,
+        session: Session,
         datasource_type: str,
         datasource_name: str,
         schema: str,
@@ -73,17 +72,21 @@ class ConnectorRegistry:
     ) -> Optional["BaseDatasource"]:
         datasource_class = ConnectorRegistry.sources[datasource_type]
         return datasource_class.get_datasource_by_name(
-            datasource_name, schema, database_name
+            session, datasource_name, schema, database_name
         )
 
     @classmethod
     def query_datasources_by_permissions(  # pylint: disable=invalid-name
-        cls, database: "Database", permissions: Set[str], schema_perms: Set[str],
+        cls,
+        session: Session,
+        database: "Database",
+        permissions: Set[str],
+        schema_perms: Set[str],
     ) -> List["BaseDatasource"]:
         # TODO(bogdan): add unit test
         datasource_class = ConnectorRegistry.sources[database.type]
         return (
-            db.session.query(datasource_class)
+            session.query(datasource_class)
             .filter_by(database_id=database.id)
             .filter(
                 or_(
@@ -96,12 +99,12 @@ class ConnectorRegistry:
 
     @classmethod
     def get_eager_datasource(
-        cls, datasource_type: str, datasource_id: int
+        cls, session: Session, datasource_type: str, datasource_id: int
     ) -> "BaseDatasource":
         """Returns datasource with columns and metrics."""
         datasource_class = ConnectorRegistry.sources[datasource_type]
         return (
-            db.session.query(datasource_class)
+            session.query(datasource_class)
             .options(
                 subqueryload(datasource_class.columns),
                 subqueryload(datasource_class.metrics),
@@ -112,9 +115,13 @@ class ConnectorRegistry:
 
     @classmethod
     def query_datasources_by_name(
-        cls, database: "Database", datasource_name: str, schema: Optional[str] = None,
+        cls,
+        session: Session,
+        database: "Database",
+        datasource_name: str,
+        schema: Optional[str] = None,
     ) -> List["BaseDatasource"]:
         datasource_class = ConnectorRegistry.sources[database.type]
         return datasource_class.query_datasources_by_name(
-            database, datasource_name, schema=schema
+            session, database, datasource_name, schema=schema
         )
