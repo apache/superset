@@ -44,6 +44,7 @@ def load_multiformat_time_series(
     if not only_metadata and (not table_exists or force):
         data = get_example_data("multiformat_time_series.json.gz")
         pdf = pd.read_json(data)
+        # TODO(bkyryliuk): move load examples data into the pytest fixture
         if database.backend == "presto":
             pdf.ds = pd.to_datetime(pdf.ds, unit="s")
             pdf.ds = pdf.ds.dt.strftime("%Y-%m-%d")

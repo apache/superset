@@ -93,7 +93,7 @@ class TestDatabaseModel(SupersetTestCase):
         query_obj = dict(**base_query_obj, extras={})
         extra_cache_keys = table.get_extra_cache_keys(query_obj)
         self.assertTrue(table.has_extra_cache_key_calls(query_obj))
-        # TODO: make it work with presto
+        # TODO(bkyryliuk): make it work with presto
         if get_example_database().backend == "presto":
             assert extra_cache_keys == []
         else:
@@ -129,7 +129,7 @@ class TestDatabaseModel(SupersetTestCase):
         )
         extra_cache_keys = table.get_extra_cache_keys(query_obj)
         self.assertTrue(table.has_extra_cache_key_calls(query_obj))
-        # TODO: make it work with presto
+        # TODO(bkyryliuk): make it work with presto
         if get_example_database().backend == "presto":
             assert extra_cache_keys == []
         else:

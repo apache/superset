@@ -184,6 +184,7 @@ class TestCelery(SupersetTestCase):
                 [{"rows": 1}] if ctas_method == CtasMethod.TABLE else [{"result": True}]
             )
         self.assertEqual(expected_result, result["data"])
+        # TODO(bkyryliuk): refactor database specific logic into a separate class
         expected_columns = []
         if backend == "presto":
             expected_columns = [
@@ -256,6 +257,7 @@ class TestCelery(SupersetTestCase):
             self.assertEqual(QueryStatus.SUCCESS, result["query"]["state"], msg=result)
 
             expected_result = []
+            # TODO(bkyryliuk): refactor database specific logic into a separate class
             if backend == "presto":
                 expected_result = (
                     [{"rows": 1}]
@@ -265,6 +267,7 @@ class TestCelery(SupersetTestCase):
             self.assertEqual(expected_result, result["data"])
 
             expected_columns = []
+            # TODO(bkyryliuk): refactor database specific logic into a separate class
             if backend == "presto":
                 expected_columns = [
                     {

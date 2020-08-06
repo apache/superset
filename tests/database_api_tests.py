@@ -223,6 +223,7 @@ class TestDatabaseApi(SupersetTestCase):
             return
         uri = f"api/v1/database/{example_db.id}/select_star/table_does_not_exist/"
         rv = self.client.get(uri)
+        # TODO(bkyryliuk): investigate why presto returns 500
         self.assertEqual(rv.status_code, 404 if example_db.backend != "presto" else 500)
 
     def test_database_schemas(self):
