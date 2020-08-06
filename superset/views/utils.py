@@ -557,4 +557,4 @@ def format_pivot_table_html_2b_convenient(html_data):
     ss = ET.tostring(table)
 
     from flask_babel import gettext as _
-    return ss.replace(b"All", bytes(_("All"), "utf-8"))
+    return ss.replace(b"All", bytes(_("全部"), "utf-8"))
