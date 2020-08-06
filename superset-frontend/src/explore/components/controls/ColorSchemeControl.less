@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sliceId } from './mockChartQueries';
+.color-scheme-container {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
 
-export default {
-  sliceIds: [sliceId],
-  expandedSlices: {},
-  editMode: false,
-  hasUnsavedChanges: false,
-  maxUndoHistoryExceeded: false,
-  isStarred: true,
-  isPublished: true,
-  css: '',
-  focusedFilterField: [],
-};
+  li {
+    flex-basis: 9px;
+    height: 10px;
+    margin: 9px 1px;
+  }
+}
