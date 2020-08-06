@@ -109,7 +109,7 @@ interface FilterableTableState {
   sortDirection: SortDirectionType;
   fitted: boolean;
 }
-
+// @ts-ignore
 export default class FilterableTable extends PureComponent<
   FilterableTableProps,
   FilterableTableState
@@ -258,16 +258,19 @@ export default class FilterableTable extends PureComponent<
       if (row.hasOwnProperty(key)) {
         const cellValue = row[key];
         if (typeof cellValue === 'string') {
+          // @ts-ignore
           values.push(cellValue.toLowerCase());
         } else if (
           cellValue !== null &&
           typeof cellValue.toString === 'function'
         ) {
+          // @ts-ignore
           values.push(cellValue.toString());
         }
       }
     }
     const lowerCaseText = text.toLowerCase();
+    // @ts-ignore
     return values.some(v => v.includes(lowerCaseText));
   }
 
@@ -384,6 +387,7 @@ export default class FilterableTable extends PureComponent<
             ...style,
             top:
               typeof style.top === 'number'
+                // @ts-ignore
                 ? style.top - GRID_POSITION_ADJUSTMENT
                 : style.top,
           }}
@@ -416,6 +420,7 @@ export default class FilterableTable extends PureComponent<
           ...style,
           top:
             typeof style.top === 'number'
+              // @ts-ignore
               ? style.top - GRID_POSITION_ADJUSTMENT
               : style.top,
         }}
