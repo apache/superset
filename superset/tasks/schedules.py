@@ -547,7 +547,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     is_test_alert: Optional[bool] = False,
 ) -> None:
     stats_logger = current_app.config["STATS_LOGGER"]
-    stats_logger.incr(f"run_alert_task")
+    stats_logger.incr("run_alert_task")
 
     model_cls = get_scheduler_model(report_type)
     dbsession = db.create_scoped_session()
