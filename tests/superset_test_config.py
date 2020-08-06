@@ -25,10 +25,14 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")
 DEBUG = True
 SUPERSET_WEBSERVER_PORT = 8081
 
-# Allowing SQLALCHEMY_DATABASE_URI to be defined as an env var for
+# Allowing SQLALCHEMY_DATABASE_URI and SQLALCHEMY_EXAMPLES_URI to be defined as an env vars for
 # continuous integration
 if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:
     SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]
+
+SQLALCHEMY_EXAMPLES_URI = SQLALCHEMY_DATABASE_URI
+if "SUPERSET__SQLALCHEMY_EXAMPLES_URI" in os.environ:
+    SQLALCHEMY_EXAMPLES_URI = os.environ["SUPERSET__SQLALCHEMY_EXAMPLES_URI"]
 
 if "sqlite" in SQLALCHEMY_DATABASE_URI:
     logger.warning(
