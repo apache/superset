@@ -97,13 +97,15 @@ CTAS_SCHEMA_NAME = "sqllab_test_db"
 
 class TestCelery(SupersetTestCase):
     def get_query_by_name(self, sql):
-        query = db.session.query(Query).filter_by(sql=sql).first()
-        db.session.close()
+        session = db.session
+        query = session.query(Query).filter_by(sql=sql).first()
+        session.close()
         return query
 
     def get_query_by_id(self, id):
-        query = db.session.query(Query).filter_by(id=id).first()
-        db.session.close()
+        session = db.session
+        query = session.query(Query).filter_by(id=id).first()
+        session.close()
         return query
 
     @classmethod

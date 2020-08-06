@@ -300,6 +300,7 @@ class Slice(
         :returns: The resulting id for the imported slice
         :rtype: int
         """
+        session = db.session
         make_transient(slc_to_import)
         slc_to_import.dashboards = []
         slc_to_import.alter_params(remote_id=slc_to_import.id, import_time=import_time)
@@ -308,6 +309,7 @@ class Slice(
         slc_to_import.reset_ownership()
         params = slc_to_import.params_dict
         datasource = ConnectorRegistry.get_datasource_by_name(
+            session,
             slc_to_import.datasource_type,
             params["datasource_name"],
             params["schema"],
@@ -316,11 +318,11 @@ class Slice(
         slc_to_import.datasource_id = datasource.id  # type: ignore
         if slc_to_override:
             slc_to_override.override(slc_to_import)
-            db.session.flush()
+            session.flush()
             return slc_to_override.id
-        db.session.add(slc_to_import)
+        session.add(slc_to_import)
         logger.info("Final slice: %s", str(slc_to_import.to_json()))
-        db.session.flush()
+        session.flush()
         return slc_to_import.id
 
     @property
