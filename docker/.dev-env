@@ -1,0 +1,44 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+export COMPOSE_PROJECT_NAME=superset
+
+# database configurations (do not modify)
+export DATABASE_DB=superset
+export DATABASE_HOST=db
+export DATABASE_PASSWORD=superset
+export DATABASE_USER=superset
+
+# database engine specific environment variables
+# change the below if you prefers another database engine
+export DATABASE_PORT=5432
+export DATABASE_DIALECT=postgresql
+export POSTGRES_DB=superset
+export POSTGRES_USER=superset
+export POSTGRES_PASSWORD=superset
+#MYSQL_DATABASE=superset
+#MYSQL_USER=superset
+#MYSQL_PASSWORD=superset
+#MYSQL_RANDOM_ROOT_PASSWORD=yes
+
+# Add the mapped in /app/pythonpath_docker which allows devs to override stuff
+export PYTHONPATH=/app/pythonpath:/app/pythonpath_docker
+export REDIS_HOST=redis
+export REDIS_PORT=6379
+
+export FLASK_ENV=development
+export SUPERSET_ENV=development
+export SUPERSET_LOAD_EXAMPLES=yes
