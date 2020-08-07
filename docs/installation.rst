@@ -80,6 +80,8 @@ supported.)
 
 *Windows:*
 
+    NOTE: Windows is currently not a supported environment for Superset installation.
+    
     For Windows users, the best option may be to install an Ubuntu Desktop VM via `VirtualBox <https://www.virtualbox.org/>`__ and proceed with the Docker on Linux instructions inside of that VM. It is recommended to assign at least 8GB of RAM to the virtual machine as well as provisioning a hard drive of at least 40GB, so that there will be enough space for both the OS and all of the required dependencies.
 
 **Step 1 - Clone Superset's Github repository**
