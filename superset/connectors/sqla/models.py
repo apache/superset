@@ -41,7 +41,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.exc import CompileError
+from sqlalchemy.exc import CompileError, SQLAlchemyError
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
@@ -1234,7 +1234,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """Fetches the metadata for the table and merges it in"""
         try:
             table_ = self.get_sqla_table_object()
-        except Exception:
+        except SQLAlchemyError:
             raise QueryObjectValidationError(
                 _(
                     "Table %(table)s doesn't seem to exist in the specified database, "
