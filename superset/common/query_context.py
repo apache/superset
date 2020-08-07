@@ -238,7 +238,9 @@ class QueryContext:
             try:
                 invalid_columns = [
                     col
-                    for col in query_obj.columns + query_obj.groupby
+                    for col in query_obj.columns
+                    + query_obj.groupby
+                    + [flt["col"] for flt in query_obj.filter]
                     if col not in self.datasource.column_names
                 ]
                 if invalid_columns:
