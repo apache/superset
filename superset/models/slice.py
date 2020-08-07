@@ -155,10 +155,12 @@ class Slice(
 
     @property  # type: ignore
     @utils.memoized
-    def viz(self) -> BaseViz:
+    def viz(self) -> Optional[BaseViz]:
         form_data = json.loads(self.params)
-        viz_class = viz_types[self.viz_type]
-        return viz_class(datasource=self.datasource, form_data=form_data)
+        viz_class = viz_types.get(self.viz_type)
+        if viz_class:
+            return viz_class(datasource=self.datasource, form_data=form_data)
+        return None
 
     @property
     def description_markeddown(self) -> str:
@@ -170,8 +172,9 @@ class Slice(
         data: Dict[str, Any] = {}
         self.token = ""
         try:
-            data = self.viz.data
-            self.token = data.get("token")  # type: ignore
+            viz = self.viz
+            data = viz.data if viz else self.form_data
+            self.token = utils.get_form_data_token(data)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             data["error"] = str(ex)
