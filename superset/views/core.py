@@ -536,7 +536,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
             return self.generate_json(viz_obj, response_type)
         except SupersetException as ex:
-            return json_error_response(utils.error_msg_from_exception(ex))
+            return json_error_response(utils.error_msg_from_exception(ex), 400)
 
     @event_logger.log_this
     @has_access
