@@ -475,6 +475,8 @@ class BaseViz:
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
+            except QueryObjectValidationError as ex:
+                raise ex
             except Exception as ex:
                 logger.exception(ex)
 
