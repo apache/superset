@@ -25,6 +25,7 @@ import {
   Popover,
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import styled from '@superset-ui/style';
 
 import Label from 'src/components/Label';
 import ControlHeader from '../../explore/components/ControlHeader';
@@ -41,9 +42,9 @@ interface LimitControlState {
   showOverlay: boolean;
 }
 
-const popoverStyle = {
-  width: '150px',
-};
+const StyledPopoverContent = styled.div`
+  width: 150px;
+`;
 
 export default class LimitControl extends React.PureComponent<
   LimitControlProps,
@@ -99,10 +100,10 @@ export default class LimitControl extends React.PureComponent<
         : '');
     return (
       <Popover id="sqllab-limit-results">
-        <div style={popoverStyle}>
+        <StyledPopoverContent>
           <ControlHeader
             label={t('Row limit')}
-            validationErrors={!isValid ? [t(errorMsg)] : []}
+            validationErrors={!isValid ? [errorMsg] : []}
           />
           <FormGroup>
             <FormControl
@@ -137,7 +138,7 @@ export default class LimitControl extends React.PureComponent<
               {t('Cancel')}
             </Button>
           </div>
-        </div>
+        </StyledPopoverContent>
       </Popover>
     );
   }
