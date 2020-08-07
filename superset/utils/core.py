@@ -1380,6 +1380,16 @@ def get_iterable(x: Any) -> List[Any]:
     return x if isinstance(x, list) else [x]
 
 
+def get_form_data_token(form_data: Dict[str, Any]) -> str:
+    """
+    Return the token contained within form data or generate a new one.
+
+    :param form_data: chart form data
+    :return: original token if predefined, otherwise new uuid4 based token
+    """
+    return form_data.get("token") or "token_" + uuid.uuid4().hex[:8]
+
+
 class LenientEnum(Enum):
     """Enums that do not raise ValueError when value is invalid"""
 

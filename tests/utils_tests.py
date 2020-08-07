@@ -22,6 +22,7 @@ from decimal import Decimal
 import hashlib
 import json
 import os
+import re
 from unittest.mock import Mock, patch
 
 import numpy
@@ -40,6 +41,7 @@ from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
     format_timedelta,
+    get_form_data_token,
     get_iterable,
     get_email_address_list,
     get_or_create_db,
@@ -1365,3 +1367,8 @@ class TestUtils(SupersetTestCase):
         self.assertEqual("BaZ", validator("BaZ"))
         self.assertRaises(marshmallow.ValidationError, validator, "qwerty")
         self.assertRaises(marshmallow.ValidationError, validator, 4)
+
+    def test_get_form_data_token(self):
+        assert get_form_data_token({"token": "token_abcdefg1"}) == "token_abcdefg1"
+        generated_token = get_form_data_token({})
+        assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
