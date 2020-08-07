@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Label } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import CachedLabel from 'src/components/CachedLabel';
 
 describe('CachedLabel', () => {

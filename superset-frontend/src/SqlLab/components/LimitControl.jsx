@@ -20,7 +20,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {
   Button,
-  Label,
   FormGroup,
   FormControl,
   Overlay,
@@ -28,6 +27,7 @@ import {
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
+import Label from 'src/components/Label';
 import ControlHeader from '../../explore/components/ControlHeader';
 
 const propTypes = {
@@ -131,7 +131,7 @@ export default class LimitControl extends React.PureComponent {
   render() {
     return (
       <div>
-        <Label style={{ cursor: 'pointer' }} onClick={this.handleToggle}>
+        <Label className="pointer" onClick={this.handleToggle}>
           LIMIT {this.props.value || this.props.maxRow}
         </Label>
         <Overlay
