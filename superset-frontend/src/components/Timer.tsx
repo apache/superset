@@ -16,65 +16,74 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import { Label } from 'react-bootstrap';
+import React from 'react';
+import PropTypes from 'prop-types';
 
+import Label from 'src/components/Label';
 import { now, fDuration } from '../modules/dates';
 
-interface TimerProps {
-  endTime?: number;
-  isRunning: boolean;
-  startTime?: number;
-  status?: string;
-}
+const propTypes = {
+  endTime: PropTypes.number,
+  isRunning: PropTypes.bool.isRequired,
+  startTime: PropTypes.number,
+  status: PropTypes.string,
+};
 
-export default function Timer({
-  endTime,
-  isRunning,
-  startTime,
-  status = 'success',
-}: TimerProps) {
-  const [clockStr, setClockStr] = useState('');
-  const [timer, setTimer] = useState<NodeJS.Timeout>();
+const defaultProps = {
+  endTime: null,
+  startTime: null,
+  status: 'success',
+};
 
-  const stopTimer = () => {
-    if (timer) {
-      clearInterval(timer);
-      setTimer(undefined);
-    }
-  };
-
-  const stopwatch = () => {
-    if (startTime) {
-      const endDttm = endTime || now();
-      if (startTime < endDttm) {
-        setClockStr(fDuration(startTime, endDttm));
-      }
-      if (!isRunning) {
-        stopTimer();
-      }
-    }
-  };
-
-  const startTimer = () => {
-    setTimer(setInterval(stopwatch, 30));
-  };
-
-  useEffect(() => {
-    if (isRunning) {
-      startTimer();
-    }
-  }, [isRunning]);
-
-  useEffect(() => {
-    return () => {
-      stopTimer();
+export default class Timer extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      clockStr: '',
     };
-  });
-
-  return (
-    <Label id="timer" className="m-r-5" bsStyle={status}>
-      {clockStr}
-    </Label>
-  );
+    this.stopwatch = this.stopwatch.bind(this);
+  }
+  UNSAFE_componentWillMount() {
+    this.startTimer();
+  }
+  componentWillUnmount() {
+    this.stopTimer();
+  }
+  startTimer() {
+    if (!this.timer) {
+      this.timer = setInterval(this.stopwatch, 30);
+    }
+  }
+  stopTimer() {
+    this.timer = clearInterval(this.timer);
+  }
+  stopwatch() {
+    if (this.props && this.props.startTime) {
+      const endDttm = this.props.endTime || now();
+      if (this.props.startTime < endDttm) {
+        const clockStr = fDuration(this.props.startTime, endDttm);
+        this.setState({ clockStr });
+      }
+      if (!this.props.isRunning) {
+        this.stopTimer();
+      }
+    }
+  }
+  render() {
+    if (this.props && this.props.isRunning) {
+      this.startTimer();
+    }
+    let timerSpan = null;
+    if (this.props) {
+      timerSpan = (
+        <Label className="m-r-5" bsStyle={this.props.status}>
+          {this.state.clockStr}
+        </Label>
+      );
+    }
+    return timerSpan;
+  }
 }
+
+Timer.propTypes = propTypes;
+Timer.defaultProps = defaultProps;
