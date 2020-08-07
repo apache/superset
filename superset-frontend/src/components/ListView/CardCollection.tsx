@@ -28,15 +28,15 @@ interface Props {
 }
 
 const CardContainer = styled.div`
-  justify-content: space-between;
-  flex-wrap: wrap;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(459px, max-content));
+  grid-gap: 32px;
+  justify-content: center;
   padding: 8px 16px;
 `;
 
 const CardWrapper = styled.div`
   display: inline-block;
-  margin: 16px;
 `;
 
 export default function CardCollection({
