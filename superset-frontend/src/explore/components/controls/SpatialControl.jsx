@@ -18,16 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  Row,
-  Col,
-  Button,
-  Label,
-  OverlayTrigger,
-  Popover,
-} from 'react-bootstrap';
+import { Row, Col, Button, OverlayTrigger, Popover } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
+import Label from 'src/components/Label';
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
 import PopoverSection from '../../../components/PopoverSection';
@@ -235,9 +229,7 @@ export default class SpatialControl extends React.Component {
           placement="right"
           overlay={this.renderPopover()}
         >
-          <Label style={{ cursor: 'pointer' }}>
-            {this.renderLabelContent()}
-          </Label>
+          <Label className="pointer">{this.renderLabelContent()}</Label>
         </OverlayTrigger>
       </div>
     );

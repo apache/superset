@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Label } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 
