@@ -25,6 +25,7 @@ import sqlparse
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
+from jinja2.exceptions import TemplateError
 from sqlalchemy import (
     and_,
     asc,
@@ -40,7 +41,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.exc import CompileError
+from sqlalchemy.exc import CompileError, SQLAlchemyError
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
@@ -51,7 +52,7 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
-from superset.exceptions import DatabaseNotFound
+from superset.exceptions import DatabaseNotFound, QueryObjectValidationError
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -634,7 +635,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         if self.fetch_values_predicate:
             tp = self.get_template_processor()
-            qry = qry.where(text(tp.process_template(self.fetch_values_predicate)))
+            try:
+                qry = qry.where(text(tp.process_template(self.fetch_values_predicate)))
+            except TemplateError as ex:
+                raise QueryObjectValidationError(
+                    _(
+                        "Error in jinja expression in fetch values predicate: %(msg)s",
+                        msg=ex.message,
+                    )
+                )
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(qry.compile(engine, compile_kwargs={"literal_binds": True}))
@@ -684,7 +693,16 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if self.sql:
             from_sql = self.sql
             if template_processor:
-                from_sql = template_processor.process_template(from_sql)
+                try:
+                    from_sql = template_processor.process_template(from_sql)
+                except TemplateError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in FROM clause: %(msg)s",
+                            msg=ex.message,
+                        )
+                    )
+
             from_sql = sqlparse.format(from_sql, strip_comments=True)
             return TextAsFrom(sa.text(from_sql), []).alias("expr_qry")
         return self.get_sqla_table()
@@ -730,10 +748,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         :returns: A list of SQL clauses to be ANDed together.
         :rtype: List[str]
         """
-        return [
-            text("({})".format(template_processor.process_template(f.clause)))
-            for f in security_manager.get_rls_filters(self)
-        ]
+        try:
+            return [
+                text("({})".format(template_processor.process_template(f.clause)))
+                for f in security_manager.get_rls_filters(self)
+            ]
+        except TemplateError as ex:
+            raise QueryObjectValidationError(
+                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
+            )
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
@@ -791,7 +814,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         metrics_by_name: Dict[str, SqlMetric] = {m.metric_name: m for m in self.metrics}
 
         if not granularity and is_timeseries:
-            raise Exception(
+            raise QueryObjectValidationError(
                 _(
                     "Datetime column not provided as part table configuration "
                     "and is required by this type of chart"
@@ -802,7 +825,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             and not columns
             and (is_sip_38 or (not is_sip_38 and not groupby))
         ):
-            raise Exception(_("Empty query?"))
+            raise QueryObjectValidationError(_("Empty query?"))
         metrics_exprs: List[ColumnElement] = []
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
@@ -811,7 +834,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             elif isinstance(metric, str) and metric in metrics_by_name:
                 metrics_exprs.append(metrics_by_name[metric].get_sqla_col())
             else:
-                raise Exception(_("Metric '%(metric)s' does not exist", metric=metric))
+                raise QueryObjectValidationError(
+                    _("Metric '%(metric)s' does not exist", metric=metric)
+                )
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -958,7 +983,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                             != None
                         )
                     else:
-                        raise Exception(
+                        raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
         if config["ENABLE_ROW_LEVEL_SECURITY"]:
@@ -966,11 +991,27 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if extras:
             where = extras.get("where")
             if where:
-                where = template_processor.process_template(where)
+                try:
+                    where = template_processor.process_template(where)
+                except TemplateError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in WHERE clause: %(msg)s",
+                            msg=ex.message,
+                        )
+                    )
                 where_clause_and += [sa.text("({})".format(where))]
             having = extras.get("having")
             if having:
-                having = template_processor.process_template(having)
+                try:
+                    having = template_processor.process_template(having)
+                except TemplateError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in HAVING clause: %(msg)s",
+                            msg=ex.message,
+                        )
+                    )
                 having_clause_and += [sa.text("({})".format(having))]
         if granularity:
             qry = qry.where(and_(*(time_filters + where_clause_and)))
@@ -1117,7 +1158,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         ):
             ob = metrics_by_name[timeseries_limit_metric].get_sqla_col()
         else:
-            raise Exception(
+            raise QueryObjectValidationError(
                 _("Metric '%(metric)s' does not exist", metric=timeseries_limit_metric)
             )
 
@@ -1159,7 +1200,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             labels_expected = query_str_ext.labels_expected
             if df is not None and not df.empty:
                 if len(df.columns) != len(labels_expected):
-                    raise Exception(
+                    raise QueryObjectValidationError(
                         f"For {sql}, df.columns: {df.columns}"
                         f" differs from {labels_expected}"
                     )
@@ -1193,13 +1234,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """Fetches the metadata for the table and merges it in"""
         try:
             table_ = self.get_sqla_table_object()
-        except Exception as ex:
-            logger.exception(ex)
-            raise Exception(
+        except SQLAlchemyError:
+            raise QueryObjectValidationError(
                 _(
-                    "Table [{}] doesn't seem to exist in the specified database, "
-                    "couldn't fetch column information"
-                ).format(self.table_name)
+                    "Table %(table)s doesn't seem to exist in the specified database, "
+                    "couldn't fetch column information",
+                    table=self.table_name,
+                )
             )
 
         metrics = []
