@@ -18,9 +18,12 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+
 import { SupersetClient } from '@superset-ui/connection';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+
+import Icon from 'src/components/Icon';
 
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
@@ -28,6 +31,7 @@ import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
+import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
@@ -38,7 +42,6 @@ const propTypes = {
   dashboardInfo: PropTypes.object.isRequired,
   dashboardId: PropTypes.number.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
-  hasUnsavedChanges: PropTypes.bool.isRequired,
   customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -128,7 +131,6 @@ class HeaderActionsDropdown extends React.PureComponent {
       customCss,
       colorNamespace,
       colorScheme,
-      hasUnsavedChanges,
       layout,
       expandedSlices,
       onSave,
@@ -145,72 +147,36 @@ class HeaderActionsDropdown extends React.PureComponent {
 
     return (
       <DropdownButton
-        title=""
+        title={<Icon name="more" />}
+        noCaret
         id="save-dash-split-button"
-        bsStyle={hasUnsavedChanges ? 'primary' : undefined}
         bsSize="small"
+        style={{ border: 'none', padding: 0, marginLeft: '4px' }}
         pullRight
       >
         {userCanSave && (
-          <SaveModal
-            addSuccessToast={this.props.addSuccessToast}
-            addDangerToast={this.props.addDangerToast}
-            dashboardId={dashboardId}
-            dashboardTitle={dashboardTitle}
-            dashboardInfo={dashboardInfo}
-            saveType={SAVE_TYPE_NEWDASHBOARD}
-            layout={layout}
-            expandedSlices={expandedSlices}
-            refreshFrequency={refreshFrequency}
-            shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
-            customCss={customCss}
-            colorNamespace={colorNamespace}
-            colorScheme={colorScheme}
-            onSave={onSave}
-            isMenuItem
-            triggerNode={<span>{t('Save as')}</span>}
-            canOverwrite={userCanEdit}
-          />
+          <>
+            <SaveModal
+              addSuccessToast={this.props.addSuccessToast}
+              addDangerToast={this.props.addDangerToast}
+              dashboardId={dashboardId}
+              dashboardTitle={dashboardTitle}
+              dashboardInfo={dashboardInfo}
+              saveType={SAVE_TYPE_NEWDASHBOARD}
+              layout={layout}
+              expandedSlices={expandedSlices}
+              refreshFrequency={refreshFrequency}
+              shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
+              customCss={customCss}
+              colorNamespace={colorNamespace}
+              colorScheme={colorScheme}
+              onSave={onSave}
+              isMenuItem
+              triggerNode={<span>{t('Save as')}</span>}
+              canOverwrite={userCanEdit}
+            />
+          </>
         )}
-
-        {hasUnsavedChanges && userCanSave && (
-          <div>
-            <MenuItem
-              eventKey="discard"
-              onSelect={HeaderActionsDropdown.discardChanges}
-            >
-              {t('Discard changes')}
-            </MenuItem>
-          </div>
-        )}
-
-        {userCanSave && <MenuItem divider />}
-
-        <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
-          {t('Force refresh dashboard')}
-        </MenuItem>
-
-        <RefreshIntervalModal
-          refreshFrequency={refreshFrequency}
-          refreshLimit={refreshLimit}
-          refreshWarning={refreshWarning}
-          onChange={this.changeRefreshInterval}
-          editMode={editMode}
-          triggerNode={
-            <span>
-              {editMode
-                ? t('Set auto-refresh interval')
-                : t('Auto-refresh dashboard')}
-            </span>
-          }
-        />
-
-        {editMode && (
-          <MenuItem onClick={this.props.showPropertiesModal}>
-            {t('Edit dashboard properties')}
-          </MenuItem>
-        )}
-
         <URLShortLinkModal
           url={getDashboardUrl(
             window.location.pathname,
@@ -223,14 +189,37 @@ class HeaderActionsDropdown extends React.PureComponent {
           isMenuItem
           triggerNode={<span>{t('Share dashboard')}</span>}
         />
+        <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
+          {t('Refresh dashboard')}
+        </MenuItem>
+        <MenuItem divider />
+        <RefreshIntervalModal
+          refreshFrequency={refreshFrequency}
+          refreshLimit={refreshLimit}
+          refreshWarning={refreshWarning}
+          onChange={this.changeRefreshInterval}
+          editMode={editMode}
+          triggerNode={<span>{t('Set auto-refresh interval')}</span>}
+        />
 
         {editMode && (
-          <CssEditor
-            triggerNode={<span>{t('Edit CSS')}</span>}
-            initialCss={this.state.css}
-            templates={this.state.cssTemplates}
-            onChange={this.changeCss}
-          />
+          <>
+            <FilterScopeModal
+              className="m-r-5"
+              triggerNode={
+                <MenuItem bsSize="small">{t('Set filter mapping')}</MenuItem>
+              }
+            />
+            <MenuItem onClick={this.props.showPropertiesModal}>
+              {t('Edit dashboard properties')}
+            </MenuItem>
+            <CssEditor
+              triggerNode={<span>{t('Edit CSS')}</span>}
+              initialCss={this.state.css}
+              templates={this.state.cssTemplates}
+              onChange={this.changeCss}
+            />
+          </>
         )}
 
         {!editMode && (

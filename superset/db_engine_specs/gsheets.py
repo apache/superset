@@ -21,5 +21,6 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     """Engine for Google spreadsheets"""
 
     engine = "gsheets"
+    engine_name = "Google Sheets"
     allows_joins = False
     allows_subqueries = False

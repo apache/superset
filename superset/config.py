@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
+
     from superset.models.core import Database  # pylint: disable=unused-import
 
 # Realtime stats logger, a StatsD implementation exists
@@ -336,6 +337,12 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "null",
     "CACHE_NO_NULL_WARNING": True,
 }
+
+# Used for thumbnails and other api: Time in seconds before selenium
+# times out after trying to locate an element on the page and wait
+# for that element to load for an alert screenshot.
+SCREENSHOT_LOCATE_WAIT = 10
+SCREENSHOT_LOAD_WAIT = 60
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -912,8 +919,8 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         raise
 elif importlib.util.find_spec("superset_config"):
     try:
-        from superset_config import *  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config  # pylint: disable=import-error
+        from superset_config import *  # type: ignore  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

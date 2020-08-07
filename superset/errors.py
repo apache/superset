@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-few-public-methods,invalid-name
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from dataclasses import dataclass
 from flask_babel import gettext as _
 
 
@@ -61,7 +61,13 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "code": 1001,
             "message": _("Issue 1001 - The database is under an unusual load."),
         },
-    ]
+    ],
+    SupersetErrorType.GENERIC_DB_ENGINE_ERROR: [
+        {
+            "code": 1002,
+            "message": _("Issue 1002 - The database returned an unexpected error."),
+        }
+    ],
 }
 
 

@@ -29,7 +29,10 @@ import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
 import { ReactComponent as ErrorIcon } from 'images/icons/error.svg';
+import { ReactComponent as FavoriteSelectedIcon } from 'images/icons/favorite-selected.svg';
+import { ReactComponent as FavoriteUnselectedIcon } from 'images/icons/favorite-unselected.svg';
 import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
+import { ReactComponent as MoreIcon } from 'images/icons/more.svg';
 import { ReactComponent as SearchIcon } from 'images/icons/search.svg';
 import { ReactComponent as SortAscIcon } from 'images/icons/sort-asc.svg';
 import { ReactComponent as SortDescIcon } from 'images/icons/sort-desc.svg';
@@ -51,6 +54,9 @@ type IconName =
   | 'dataset-physical'
   | 'dataset-virtual'
   | 'error'
+  | 'favorite-selected'
+  | 'favorite-unselected'
+  | 'more'
   | 'pencil'
   | 'search'
   | 'sort'
@@ -60,7 +66,7 @@ type IconName =
   | 'share'
   | 'warning';
 
-const iconsRegistry: Record<
+export const iconsRegistry: Record<
   IconName,
   React.ComponentType<SVGProps<SVGSVGElement>>
 > = {
@@ -72,12 +78,15 @@ const iconsRegistry: Record<
   'circle-check-solid': CircleCheckSolidIcon,
   'dataset-physical': DatasetPhysicalIcon,
   'dataset-virtual': DatasetVirtualIcon,
+  'favorite-selected': FavoriteSelectedIcon,
+  'favorite-unselected': FavoriteUnselectedIcon,
   'sort-asc': SortAscIcon,
   'sort-desc': SortDescIcon,
   check: CheckIcon,
   close: CloseIcon,
   compass: CompassIcon,
   error: ErrorIcon,
+  more: MoreIcon,
   pencil: PencilIcon,
   search: SearchIcon,
   sort: SortIcon,

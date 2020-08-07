@@ -83,6 +83,7 @@ class TestQueryContext(SupersetTestCase):
         datasource = ConnectorRegistry.get_datasource(
             datasource_type=payload["datasource"]["type"],
             datasource_id=payload["datasource"]["id"],
+            session=db.session,
         )
         description_original = datasource.description
         datasource.description = "temporary description"

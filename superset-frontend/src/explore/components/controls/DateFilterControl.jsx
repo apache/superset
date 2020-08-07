@@ -24,7 +24,6 @@ import {
   FormControl,
   FormGroup,
   InputGroup,
-  Label,
   MenuItem,
   OverlayTrigger,
   Popover,
@@ -43,6 +42,7 @@ import {
   buildTimeRangeString,
   formatTimeRange,
 } from 'src/explore/dateFilterUtils';
+import Label from 'src/components/Label';
 import './DateFilterControl.less';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
@@ -87,8 +87,8 @@ const DEFAULT_SINCE = moment()
 const DEFAULT_UNTIL = moment().utc().startOf('day').format(MOMENT_FORMAT);
 const SEPARATOR = ' : ';
 const FREEFORM_TOOLTIP = t(
-  'Superset supports smart date parsing. Strings like `last sunday` or ' +
-    '`last october` can be used.',
+  'Superset supports smart date parsing. Strings like `3 weeks ago`, `last sunday`, or ' +
+    '`2 weeks from now` can be used.',
 );
 
 const DATE_FILTER_POPOVER_STYLE = { width: '250px' };
@@ -391,7 +391,7 @@ class DateFilterControl extends React.Component {
       const timeRange = buildTimeRangeString(nextState.since, nextState.until);
 
       return (
-        <Styles theme={this.props.theme}>
+        <Styles theme={this.props.theme} key={timeFrame}>
           <OverlayTrigger
             key={timeFrame}
             placement="right"
@@ -590,7 +590,7 @@ class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
           onClick={this.handleClickTrigger}
         >
-          <Label name="popover-trigger" style={{ cursor: 'pointer' }}>
+          <Label name="popover-trigger" className="pointer">
             {formatTimeRange(timeRange, this.props.endpoints)}
           </Label>
         </OverlayTrigger>

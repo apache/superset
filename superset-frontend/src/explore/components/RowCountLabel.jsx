@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label } from 'react-bootstrap';
 import { getNumberFormatter } from '@superset-ui/number-format';
 import { t } from '@superset-ui/translation';
 
+import Label from 'src/components/Label';
 import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {

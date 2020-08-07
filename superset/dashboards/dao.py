@@ -94,7 +94,9 @@ class DashboardDAO(BaseDAO):
             if isinstance(value, dict)
         ]
 
-        current_slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        session = db.session()
+        current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+
         dashboard.slices = current_slices
 
         # remove leading and trailing white spaces in the dumped json
@@ -135,10 +137,9 @@ class DashboardDAO(BaseDAO):
             key: v for key, v in default_filters_data.items() if int(key) in slice_ids
         }
         md["default_filters"] = json.dumps(applicable_filters)
+        md["color_scheme"] = data.get("color_scheme")
         if data.get("color_namespace"):
             md["color_namespace"] = data.get("color_namespace")
-        if data.get("color_scheme"):
-            md["color_scheme"] = data.get("color_scheme")
         if data.get("label_colors"):
             md["label_colors"] = data.get("label_colors")
         dashboard.json_metadata = json.dumps(md)

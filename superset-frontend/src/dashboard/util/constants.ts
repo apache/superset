@@ -63,13 +63,6 @@ export const SAVE_TYPE_NEWDASHBOARD = 'newDashboard';
 // could be overwritten by server-side config
 export const DASHBOARD_POSITION_DATA_LIMIT = 65535;
 
-// Dashboard pane types
-export const BUILDER_PANE_TYPE = {
-  NONE: 'NONE',
-  ADD_COMPONENTS: 'ADD_COMPONENTS',
-  COLORS: 'COLORS',
-};
-
 // filter indicators display length
 export const FILTER_INDICATORS_DISPLAY_LENGTH = 3;
 

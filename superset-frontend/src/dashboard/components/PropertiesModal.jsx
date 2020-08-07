@@ -27,6 +27,7 @@ import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
 import FormLabel from 'src/components/FormLabel';
+import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 import '../stylesheets/buttons.less';
@@ -35,14 +36,20 @@ const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   show: PropTypes.bool.isRequired,
   onHide: PropTypes.func,
-  onDashboardSave: PropTypes.func,
+  colorScheme: PropTypes.object,
+  setColorSchemeAndUnsavedChanges: PropTypes.func,
+  onSubmit: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
+  onlyApply: PropTypes.bool,
 };
 
 const defaultProps = {
   onHide: () => {},
-  onDashboardSave: () => {},
+  setColorSchemeAndUnsavedChanges: () => {},
+  onSubmit: () => {},
   show: false,
+  colorScheme: undefined,
+  onlyApply: false,
 };
 
 class PropertiesModal extends React.PureComponent {
@@ -55,6 +62,7 @@ class PropertiesModal extends React.PureComponent {
         slug: '',
         owners: [],
         json_metadata: '',
+        colorScheme: props.colorScheme,
       },
       isDashboardLoaded: false,
       isAdvancedOpen: false,
@@ -62,14 +70,18 @@ class PropertiesModal extends React.PureComponent {
     this.onChange = this.onChange.bind(this);
     this.onMetadataChange = this.onMetadataChange.bind(this);
     this.onOwnersChange = this.onOwnersChange.bind(this);
-    this.save = this.save.bind(this);
+    this.submit = this.submit.bind(this);
     this.toggleAdvanced = this.toggleAdvanced.bind(this);
     this.loadOwnerOptions = this.loadOwnerOptions.bind(this);
     this.handleErrorResponse = this.handleErrorResponse.bind(this);
+    this.onColorSchemeChange = this.onColorSchemeChange.bind(this);
   }
 
   componentDidMount() {
     this.fetchDashboardDetails();
+  }
+  onColorSchemeChange(value) {
+    this.updateFormState('colorScheme', value);
   }
 
   onOwnersChange(value) {
@@ -155,39 +167,55 @@ class PropertiesModal extends React.PureComponent {
     });
   }
 
-  save(e) {
+  submit(e) {
     e.preventDefault();
     e.stopPropagation();
     const { values } = this.state;
+    const { onlyApply } = this.props;
     const owners = values.owners.map(o => o.value);
-
-    SupersetClient.put({
-      endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        dashboard_title: values.dashboard_title,
-        slug: values.slug || null,
-        json_metadata: values.json_metadata || null,
-        owners,
-      }),
-    }).then(({ json }) => {
-      this.props.addSuccessToast(t('The dashboard has been saved'));
-      this.props.onDashboardSave({
+    if (onlyApply) {
+      this.props.onSubmit({
         id: this.props.dashboardId,
-        title: json.result.dashboard_title,
-        slug: json.result.slug,
-        jsonMetadata: json.result.json_metadata,
-        ownerIds: json.result.owners,
+        title: values.dashboard_title,
+        slug: values.slug,
+        jsonMetadata: values.json_metadata,
+        ownerIds: owners,
+        colorScheme: values.colorScheme,
       });
       this.props.onHide();
-    }, this.handleErrorResponse);
+    } else {
+      SupersetClient.put({
+        endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dashboard_title: values.dashboard_title,
+          slug: values.slug || null,
+          json_metadata: values.json_metadata || null,
+          owners,
+        }),
+      }).then(({ json }) => {
+        this.props.addSuccessToast(t('The dashboard has been saved'));
+        this.props.onSubmit({
+          id: this.props.dashboardId,
+          title: json.result.dashboard_title,
+          slug: json.result.slug,
+          jsonMetadata: json.result.json_metadata,
+          ownerIds: json.result.owners,
+          colorScheme: values.colorScheme,
+        });
+        this.props.onHide();
+      }, this.handleErrorResponse);
+    }
   }
 
   render() {
-    const { values, isDashboardLoaded, isAdvancedOpen } = this.state;
+    const { values, isDashboardLoaded, isAdvancedOpen, errors } = this.state;
+    const { onHide, onlyApply } = this.props;
+
+    const saveLabel = onlyApply ? t('Apply') : t('Save');
     return (
       <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
-        <form onSubmit={this.save}>
+        <form onSubmit={this.submit}>
           <Modal.Header closeButton>
             <Modal.Title>
               <div>
@@ -249,6 +277,13 @@ class PropertiesModal extends React.PureComponent {
                   )}
                 </p>
               </Col>
+              <Col md={6}>
+                <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
+                <ColorSchemeControlWrapper
+                  onChange={this.onColorSchemeChange}
+                  colorScheme={values.colorScheme}
+                />
+              </Col>
             </Row>
             <Row>
               <Col md={12}>
@@ -300,11 +335,11 @@ class PropertiesModal extends React.PureComponent {
                 bsSize="sm"
                 bsStyle="primary"
                 className="m-r-5"
-                disabled={this.state.errors.length > 0}
+                disabled={errors.length > 0}
               >
-                {t('Save')}
+                {saveLabel}
               </Button>
-              <Button type="button" bsSize="sm" onClick={this.props.onHide}>
+              <Button type="button" bsSize="sm" onClick={onHide}>
                 {t('Cancel')}
               </Button>
               <Dialog
