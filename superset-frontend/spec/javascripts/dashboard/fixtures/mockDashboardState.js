@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 import { sliceId } from './mockChartQueries';
 
 export default {
   sliceIds: [sliceId],
   expandedSlices: {},
   editMode: false,
-  builderPaneType: BUILDER_PANE_TYPE.NONE,
   hasUnsavedChanges: false,
   maxUndoHistoryExceeded: false,
   isStarred: true,

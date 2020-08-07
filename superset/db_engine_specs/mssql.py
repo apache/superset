@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
+    engine_name = "Microsoft SQL"
     limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 128
 

@@ -165,8 +165,9 @@ describe('Visualization > Table', () => {
       metrics: [],
       row_limit: 10,
     };
-
     cy.visitChartByParams(JSON.stringify(formData));
+
+    cy.get('div[data-test="query_mode"] .btn.active').contains('Raw Records');
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   });
 

@@ -17,9 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { Label } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 
+import Label from 'src/components/Label';
 import QueryStateLabel from 'src/SqlLab/components/QueryStateLabel';
 
 describe('SavedQuery', () => {

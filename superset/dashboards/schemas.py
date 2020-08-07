@@ -104,7 +104,7 @@ class DashboardJSONMetadataSchema(Schema):
     default_filters = fields.Str()
     stagger_refresh = fields.Boolean()
     stagger_time = fields.Integer()
-    color_scheme = fields.Str()
+    color_scheme = fields.Str(allow_none=True)
     label_colors = fields.Dict()
 
 

@@ -21,6 +21,7 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
+import dataclasses
 import inspect
 import logging
 import math
@@ -42,7 +43,6 @@ from typing import (
     Union,
 )
 
-import dataclasses
 import geohash
 import numpy as np
 import pandas as pd
@@ -121,7 +121,7 @@ class BaseViz:
         self.form_data = form_data
 
         self.query = ""
-        self.token = self.form_data.get("token", "token_" + uuid.uuid4().hex[:8])
+        self.token = utils.get_form_data_token(form_data)
 
         self.groupby: List[str] = self.form_data.get("groupby") or []
         self.time_shift = timedelta()

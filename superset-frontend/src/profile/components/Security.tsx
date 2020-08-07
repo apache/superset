@@ -17,8 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { Badge, Label } from 'react-bootstrap';
+import { Badge } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+
+import Label from 'src/components/Label';
 import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
 interface SecurityProps {

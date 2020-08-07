@@ -30,7 +30,6 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 
 import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
-import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 
 describe('dashboardState reducer', () => {
   it('should return initial state', () => {
@@ -72,7 +71,6 @@ describe('dashboardState reducer', () => {
       ),
     ).toEqual({
       editMode: true,
-      builderPaneType: BUILDER_PANE_TYPE.ADD_COMPONENTS,
     });
   });
 
@@ -128,7 +126,6 @@ describe('dashboardState reducer', () => {
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
       editMode: false,
-      builderPaneType: BUILDER_PANE_TYPE.NONE,
       updatedColorScheme: false,
     });
   });

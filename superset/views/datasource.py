@@ -47,7 +47,7 @@ class Datasource(BaseSupersetView):
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
         orm_datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id
+            datasource_type, datasource_id, db.session
         )
         orm_datasource.database_id = database_id
 
@@ -82,7 +82,7 @@ class Datasource(BaseSupersetView):
     def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         try:
             orm_datasource = ConnectorRegistry.get_datasource(
-                datasource_type, datasource_id
+                datasource_type, datasource_id, db.session
             )
             if not orm_datasource.data:
                 return json_error_response(
@@ -102,7 +102,7 @@ class Datasource(BaseSupersetView):
         """Gets column info from the source system"""
         if datasource_type == "druid":
             datasource = ConnectorRegistry.get_datasource(
-                datasource_type, datasource_id
+                datasource_type, datasource_id, db.session
             )
         elif datasource_type == "table":
             database = (

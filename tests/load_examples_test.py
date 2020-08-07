@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset.utils.core import get_example_database
+
 from .base_tests import SupersetTestCase
 
 

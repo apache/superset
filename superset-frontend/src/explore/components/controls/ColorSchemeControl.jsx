@@ -22,6 +22,7 @@ import { isFunction } from 'lodash';
 import { CreatableSelect } from 'src/components/Select';
 import ControlHeader from '../ControlHeader';
 import TooltipWrapper from '../../../components/TooltipWrapper';
+import './ColorSchemeControl.less';
 
 const propTypes = {
   description: PropTypes.string,
@@ -29,6 +30,7 @@ const propTypes = {
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   value: PropTypes.string,
+  clearable: PropTypes.bool,
   default: PropTypes.string,
   choices: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.array),
@@ -41,6 +43,7 @@ const propTypes = {
 const defaultProps = {
   choices: [],
   schemes: {},
+  clearable: false,
   onChange: () => {},
 };
 
@@ -111,7 +114,7 @@ export default class ColorSchemeControl extends React.PureComponent {
       options,
       value: this.props.value,
       autosize: false,
-      clearable: false,
+      clearable: this.props.clearable,
       onChange: this.onChange,
       optionRenderer: this.renderOption,
       valueRenderer: this.renderOption,
