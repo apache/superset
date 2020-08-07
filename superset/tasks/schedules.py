@@ -535,7 +535,7 @@ def schedule_email_report(  # pylint: disable=unused-argument
     name="alerts.run_query",
     bind=True,
     soft_time_limit=config["EMAIL_ASYNC_TIME_LIMIT_SEC"],
-    # TODO find cause of https://github.com/apache/incubator-superset/issues/10530
+    # TODO: find cause of https://github.com/apache/incubator-superset/issues/10530
     # and remove retry
     autoretry_for=(NoSuchColumnError, ResourceClosedError,),
     retry_kwargs={"max_retries": 5},
