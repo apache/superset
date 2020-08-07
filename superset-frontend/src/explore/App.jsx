@@ -33,10 +33,10 @@ setupPlugins();
 const App = ({ store }) => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>
-      <div>
+      <>
         <ExploreViewContainer />
         <ToastPresenter />
-      </div>
+      </>
     </ThemeProvider>
   </Provider>
 );
