@@ -27,6 +27,7 @@ from superset import app, cache, db, security_manager
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.exceptions import QueryObjectValidationError
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
@@ -244,10 +245,13 @@ class QueryContext:
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
+            except QueryObjectValidationError as ex:
+                error_message = str(ex)
+                status = utils.QueryStatus.FAILED
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
                 if not error_message:
-                    error_message = "{}".format(ex)
+                    error_message = str(ex)
                 status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
