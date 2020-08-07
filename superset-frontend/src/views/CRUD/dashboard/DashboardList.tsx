@@ -530,7 +530,6 @@ class DashboardList extends React.PureComponent<Props, State> {
               fetchFaveStar={this.fetchMethods.fetchFaveStar}
               saveFaveStar={this.fetchMethods.saveFaveStar}
               isStarred={!!this.state.favoriteStatus[props.id]}
-              height={24}
             />
             <Dropdown overlay={menu}>
               <Icon name="more" />

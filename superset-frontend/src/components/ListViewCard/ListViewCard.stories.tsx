@@ -49,8 +49,6 @@ export const SupersetListViewCard = () => {
             fetchFaveStar={action('fetchFaveStar')}
             saveFaveStar={action('saveFaveStar')}
             isStarred={boolean('isStarred', false)}
-            height={24}
-            viewBox="0 0 24 24"
           />
           <Dropdown
             overlay={
