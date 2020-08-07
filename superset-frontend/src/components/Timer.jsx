@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import { now, fDuration } from '../modules/dates';
 
 const propTypes = {
@@ -27,14 +27,12 @@ const propTypes = {
   isRunning: PropTypes.bool.isRequired,
   startTime: PropTypes.number,
   status: PropTypes.string,
-  style: PropTypes.object,
 };
 
 const defaultProps = {
   endTime: null,
   startTime: null,
   status: 'success',
-  style: null,
 };
 
 export default class Timer extends React.PureComponent {
@@ -78,11 +76,7 @@ export default class Timer extends React.PureComponent {
     let timerSpan = null;
     if (this.props) {
       timerSpan = (
-        <Label
-          className="m-r-5"
-          style={this.props.style}
-          bsStyle={this.props.status}
-        >
+        <Label className="m-r-5" bsStyle={this.props.status}>
           {this.state.clockStr}
         </Label>
       );

@@ -24,7 +24,6 @@ import {
   FormControl,
   FormGroup,
   InputGroup,
-  Label,
   MenuItem,
   OverlayTrigger,
   Popover,
@@ -43,6 +42,7 @@ import {
   buildTimeRangeString,
   formatTimeRange,
 } from 'src/explore/dateFilterUtils';
+import Label from 'src/components/Label';
 import './DateFilterControl.less';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
@@ -391,7 +391,7 @@ class DateFilterControl extends React.Component {
       const timeRange = buildTimeRangeString(nextState.since, nextState.until);
 
       return (
-        <Styles theme={this.props.theme}>
+        <Styles theme={this.props.theme} key={timeFrame}>
           <OverlayTrigger
             key={timeFrame}
             placement="right"
@@ -590,7 +590,7 @@ class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
           onClick={this.handleClickTrigger}
         >
-          <Label name="popover-trigger" style={{ cursor: 'pointer' }}>
+          <Label name="popover-trigger" className="pointer">
             {formatTimeRange(timeRange, this.props.endpoints)}
           </Label>
         </OverlayTrigger>
