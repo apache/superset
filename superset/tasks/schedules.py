@@ -47,7 +47,6 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
 from werkzeug.http import parse_cookie
 
@@ -550,7 +549,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     model_cls = get_scheduler_model(report_type)
 
     try:
-        schedule = db.session.query(model_cls).get(schedule_id)
+        schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
 
         # The user may have disabled the schedule. If so, ignore this
         if not schedule or not schedule.active:
@@ -584,7 +583,7 @@ class AlertState:
 
 
 def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
-    alert = db.session.query(Alert).get(alert_id)
+    alert = db.create_scoped_session().query(Alert).get(alert_id)
 
     logging.info("Triggering alert: %s", alert)
     img_data = None
@@ -639,9 +638,9 @@ def run_alert_query(
     """
     Execute alert.sql and return value if any rows are returned
     """
-
+    dbsession = db.create_scoped_session()
     logger.info("Processing alert ID: %i", alert_id)
-    database = db.session.query(Database).get(database_id)
+    database = dbsession.query(Database).get(database_id)
     if not database:
         logger.error("Alert database not preset")
         return None
@@ -679,8 +678,8 @@ def run_alert_query(
         if not state:
             state = AlertState.PASS
 
-    db.session.commit()
-    alert = db.session.query(Alert).get(alert_id)
+    dbsession.commit()
+    alert = dbsession.query(Alert).get(alert_id)
     if state != AlertState.ERROR:
         alert.last_eval_dttm = last_eval_dttm
     alert.last_state = state

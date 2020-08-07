@@ -84,38 +84,38 @@ def setup_database():
 @patch("superset.tasks.schedules.deliver_alert")
 @patch("superset.tasks.schedules.logging.Logger.error")
 def test_run_alert_query(mock_error, mock_deliver_alert, setup_database):
-    database = setup_database
-    alert1 = db.session.query(Alert).filter_by(id=1).one()
+    dbsession = setup_database
+    alert1 = dbsession.query(Alert).filter_by(id=1).one()
     run_alert_query(alert1.id, alert1.database_id, alert1.sql, alert1.label)
-    alert1 = db.session.query(Alert).filter_by(id=1).one()
+    alert1 = dbsession.query(Alert).filter_by(id=1).one()
     assert mock_deliver_alert.call_count == 0
     assert len(alert1.logs) == 1
     assert alert1.logs[0].alert_id == 1
     assert alert1.logs[0].state == "pass"
 
-    alert2 = db.session.query(Alert).filter_by(id=2).one()
+    alert2 = dbsession.query(Alert).filter_by(id=2).one()
     run_alert_query(alert2.id, alert2.database_id, alert2.sql, alert2.label)
-    alert2 = db.session.query(Alert).filter_by(id=2).one()
+    alert2 = dbsession.query(Alert).filter_by(id=2).one()
     assert mock_deliver_alert.call_count == 1
     assert len(alert2.logs) == 1
     assert alert2.logs[0].alert_id == 2
     assert alert2.logs[0].state == "trigger"
 
-    alert3 = db.session.query(Alert).filter_by(id=3).one()
+    alert3 = dbsession.query(Alert).filter_by(id=3).one()
     run_alert_query(alert3.id, alert3.database_id, alert3.sql, alert3.label)
-    alert3 = db.session.query(Alert).filter_by(id=3).one()
+    alert3 = dbsession.query(Alert).filter_by(id=3).one()
     assert mock_deliver_alert.call_count == 1
     assert mock_error.call_count == 2
     assert len(alert3.logs) == 1
     assert alert3.logs[0].alert_id == 3
     assert alert3.logs[0].state == "error"
 
-    alert4 = db.session.query(Alert).filter_by(id=4).one()
+    alert4 = dbsession.query(Alert).filter_by(id=4).one()
     run_alert_query(alert4.id, alert4.database_id, alert4.sql, alert4.label)
     assert mock_deliver_alert.call_count == 1
     assert mock_error.call_count == 3
 
-    alert5 = db.session.query(Alert).filter_by(id=5).one()
+    alert5 = dbsession.query(Alert).filter_by(id=5).one()
     run_alert_query(alert5.id, alert5.database_id, alert5.sql, alert5.label)
     assert mock_deliver_alert.call_count == 1
     assert mock_error.call_count == 4
@@ -124,9 +124,9 @@ def test_run_alert_query(mock_error, mock_deliver_alert, setup_database):
 @patch("superset.tasks.schedules.deliver_alert")
 @patch("superset.tasks.schedules.run_alert_query")
 def test_schedule_alert_query(mock_run_alert, mock_deliver_alert, setup_database):
-    database = setup_database
-    active_alert = database.query(Alert).filter_by(id=1).one()
-    inactive_alert = database.query(Alert).filter_by(id=3).one()
+    dbsession = setup_database
+    active_alert = dbsession.query(Alert).filter_by(id=1).one()
+    inactive_alert = dbsession.query(Alert).filter_by(id=3).one()
 
     # Test that inactive alerts are no processed
     schedule_alert_query(report_type=ScheduleType.alert, schedule_id=inactive_alert.id)
