@@ -65,7 +65,7 @@ class TestSchedules(SupersetTestCase):
             slce = db.session.query(Slice).filter_by(slice_name="Participants").one()
             dashboard = (
                 db.session.query(Dashboard)
-                .filter_by(dashboard_title="USA Births Names")
+                .filter_by(dashboard_title="World Bank's Data")
                 .one()
             )
 
