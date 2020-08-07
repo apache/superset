@@ -535,6 +535,8 @@ def schedule_email_report(  # pylint: disable=unused-argument
     name="alerts.run_query",
     bind=True,
     soft_time_limit=config["EMAIL_ASYNC_TIME_LIMIT_SEC"],
+    # TODO find cause of https://github.com/apache/incubator-superset/issues/10530
+    # and remove retry
     autoretry_for=(NoSuchColumnError, ResourceClosedError,),
     retry_kwargs={"max_retries": 5},
     retry_backoff=True,
@@ -549,7 +551,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     model_cls = get_scheduler_model(report_type)
 
     try:
-        schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
+        schedule = db.session.query(model_cls).get(schedule_id)
 
         # The user may have disabled the schedule. If so, ignore this
         if not schedule or not schedule.active:
@@ -569,10 +571,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
         else:
             raise RuntimeError("Unknown report type")
     except NoSuchColumnError as column_error:
-        stats_logger.incr("run_alert_task.failure.NoSuchColumnError")
+        stats_logger.incr("run_alert_task.error.nosuchcolumnerror")
         raise column_error
     except ResourceClosedError as resource_error:
-        stats_logger.incr("run_alert_task.failure.ResourceClosedError")
+        stats_logger.incr("run_alert_task.error.resourceclosederror")
         raise resource_error
 
 
@@ -583,7 +585,7 @@ class AlertState:
 
 
 def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
-    alert = db.create_scoped_session().query(Alert).get(alert_id)
+    alert = db.session.query(Alert).get(alert_id)
 
     logging.info("Triggering alert: %s", alert)
     img_data = None
@@ -638,9 +640,8 @@ def run_alert_query(
     """
     Execute alert.sql and return value if any rows are returned
     """
-    dbsession = db.create_scoped_session()
     logger.info("Processing alert ID: %i", alert_id)
-    database = dbsession.query(Database).get(database_id)
+    database = db.session.query(Database).get(database_id)
     if not database:
         logger.error("Alert database not preset")
         return None
@@ -678,8 +679,8 @@ def run_alert_query(
         if not state:
             state = AlertState.PASS
 
-    dbsession.commit()
-    alert = dbsession.query(Alert).get(alert_id)
+    db.session.commit()
+    alert = db.session.query(Alert).get(alert_id)
     if state != AlertState.ERROR:
         alert.last_eval_dttm = last_eval_dttm
     alert.last_state = state
@@ -691,7 +692,7 @@ def run_alert_query(
             state=state,
         )
     )
-    dbsession.commit()
+    db.session.commit()
 
     return None
 
