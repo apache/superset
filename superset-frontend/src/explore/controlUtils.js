@@ -111,7 +111,6 @@ function handleMissingChoice(control) {
 
 export function applyMapStateToPropsToControl(controlState, controlPanelState) {
   const { mapStateToProps } = controlState;
-  let { value } = controlState;
   let state = { ...controlState };
   if (mapStateToProps && controlPanelState) {
     state = {
@@ -127,6 +126,7 @@ export function applyMapStateToPropsToControl(controlState, controlPanelState) {
       delete state.default;
     }
   }
+  let { value } = state;
   // If no current value, set it as default
   if (state.default && value === undefined) {
     value = state.default;
