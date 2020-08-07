@@ -16,6 +16,7 @@ jobs:
       - name: Build and push Docker images
         uses: docker/build-push-action@v1
         with:
+          dockerfile: Dockerfile-dev
           registry: localhost:5000
           repository: temp/workflow
           tags: foo
