@@ -48,7 +48,6 @@ function getFilterConfigsFromFilterBox(form_data = {}) {
     show_druid_time_origin,
     show_sqla_time_column,
     show_sqla_time_granularity,
-    table_filter,
   } = form_data;
   const configs = { columns: {}, labels: {} };
 
