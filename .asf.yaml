@@ -31,6 +31,15 @@ github:
     - data-science
     - data-engineering
     - asf
+    - BI
+    - business-analytics
+    - data-analytics 
+    - data-analysis
+    - data-science
+    - python
+    - react
+    - sql-editor
+    - flask
   features:
     # Enable issues management
     issues: true
