@@ -24,7 +24,6 @@ import {
   InputGroup,
   Form,
   FormControl,
-  Label,
   OverlayTrigger,
   Tooltip,
 } from 'react-bootstrap';
@@ -33,8 +32,12 @@ import { t } from '@superset-ui/translation';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 
-import Button from '../../components/Button';
-import Checkbox from '../../components/Checkbox';
+import Label from 'src/components/Label';
+import Button from 'src/components/Button';
+import Checkbox from 'src/components/Checkbox';
+import Timer from 'src/components/Timer';
+import Hotkeys from 'src/components/Hotkeys';
+
 import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
@@ -42,8 +45,6 @@ import SaveQuery from './SaveQuery';
 import ScheduleQueryButton from './ScheduleQueryButton';
 import EstimateQueryCostButton from './EstimateQueryCostButton';
 import ShareSqlLabQuery from './ShareSqlLabQuery';
-import Timer from '../../components/Timer';
-import Hotkeys from '../../components/Hotkeys';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import {

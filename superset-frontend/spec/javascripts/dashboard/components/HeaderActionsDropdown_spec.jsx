@@ -58,32 +58,32 @@ describe('HeaderActionsDropdown', () => {
 
     it('should render the DropdownButton', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(DropdownButton)).toHaveLength(1);
+      expect(wrapper.find(DropdownButton)).toExist();
     });
 
     it('should not render the SaveModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(SaveModal)).toHaveLength(0);
+      expect(wrapper.find(SaveModal)).not.toExist();
     });
 
     it('should render two MenuItems', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(2);
+      expect(wrapper.find(MenuItem)).toHaveLength(3);
     });
 
     it('should render the RefreshIntervalModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(RefreshIntervalModal)).toHaveLength(1);
+      expect(wrapper.find(RefreshIntervalModal)).toExist();
     });
 
     it('should render the URLShortLinkModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(URLShortLinkModal)).toHaveLength(1);
+      expect(wrapper.find(URLShortLinkModal)).toExist();
     });
 
     it('should not render the CssEditor', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(CssEditor)).toHaveLength(0);
+      expect(wrapper.find(CssEditor)).not.toExist();
     });
   });
 
@@ -92,12 +92,12 @@ describe('HeaderActionsDropdown', () => {
 
     it('should render the DropdownButton', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(DropdownButton)).toHaveLength(1);
+      expect(wrapper.find(DropdownButton)).toExist();
     });
 
     it('should render the SaveModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(SaveModal)).toHaveLength(1);
+      expect(wrapper.find(SaveModal)).toExist();
     });
 
     it('should render three MenuItems', () => {
@@ -107,17 +107,17 @@ describe('HeaderActionsDropdown', () => {
 
     it('should render the RefreshIntervalModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(RefreshIntervalModal)).toHaveLength(1);
+      expect(wrapper.find(RefreshIntervalModal)).toExist();
     });
 
     it('should render the URLShortLinkModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(URLShortLinkModal)).toHaveLength(1);
+      expect(wrapper.find(URLShortLinkModal)).toExist();
     });
 
     it('should not render the CssEditor', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(CssEditor)).toHaveLength(0);
+      expect(wrapper.find(CssEditor)).not.toExist();
     });
   });
 
@@ -126,12 +126,12 @@ describe('HeaderActionsDropdown', () => {
 
     it('should render the DropdownButton', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(DropdownButton)).toHaveLength(1);
+      expect(wrapper.find(DropdownButton)).toExist();
     });
 
     it('should render the SaveModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(SaveModal)).toHaveLength(1);
+      expect(wrapper.find(SaveModal)).toExist();
     });
 
     it('should render three MenuItems', () => {
@@ -141,17 +141,17 @@ describe('HeaderActionsDropdown', () => {
 
     it('should render the RefreshIntervalModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(RefreshIntervalModal)).toHaveLength(1);
+      expect(wrapper.find(RefreshIntervalModal)).toExist();
     });
 
     it('should render the URLShortLinkModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(URLShortLinkModal)).toHaveLength(1);
+      expect(wrapper.find(URLShortLinkModal)).toExist();
     });
 
     it('should render the CssEditor', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(CssEditor)).toHaveLength(1);
+      expect(wrapper.find(CssEditor)).toExist();
     });
   });
 });

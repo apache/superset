@@ -20,8 +20,9 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { Label, OverlayTrigger } from 'react-bootstrap';
+import { OverlayTrigger } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
 import { AGGREGATES } from 'src/explore/constants';
@@ -52,8 +53,8 @@ function setup(overrides) {
 describe('AdhocMetricOption', () => {
   it('renders an overlay trigger wrapper for the label', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
-    expect(wrapper.find(Label)).toHaveLength(1);
+    expect(wrapper.find(OverlayTrigger)).toExist();
+    expect(wrapper.find(Label)).toExist();
   });
 
   it('overlay should open if metric is new', () => {

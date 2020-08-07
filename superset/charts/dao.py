@@ -20,7 +20,6 @@ from typing import List, Optional, TYPE_CHECKING
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.charts.filters import ChartFilter
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.dao.base import BaseDAO
 from superset.extensions import db
 from superset.models.slice import Slice
@@ -56,10 +55,6 @@ class ChartDAO(BaseDAO):
             if commit:
                 db.session.rollback()
             raise ex
-
-    @staticmethod
-    def fetch_all_datasources() -> List["BaseDatasource"]:
-        return ConnectorRegistry.get_all_datasources(db.session)
 
     @staticmethod
     def save(slc: Slice, commit: bool = True) -> None:

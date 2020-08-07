@@ -31,9 +31,17 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod
-from superset.utils.core import datetime_to_epoch, get_example_database
+from superset.utils.core import (
+    datetime_to_epoch,
+    get_example_database,
+    get_main_database,
+)
 
 from .base_tests import SupersetTestCase
+from .sqllab_test_util import (
+    setup_presto_if_needed,
+    CTAS_SCHEMA_NAME,
+)  # noqa autoused fixture
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -68,8 +76,8 @@ class TestSqlLab(SupersetTestCase):
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     def test_sql_json_cta_dynamic_db(self, ctas_method):
-        main_db = get_example_database()
-        if main_db.backend == "sqlite":
+        examples_db = get_example_database()
+        if examples_db.backend == "sqlite":
             # sqlite doesn't support database creation
             return
 
@@ -77,8 +85,8 @@ class TestSqlLab(SupersetTestCase):
             "superset.views.core.get_cta_schema_name",
             lambda d, u, s, sql: f"{u.username}_database",
         ):
-            old_allow_ctas = main_db.allow_ctas
-            main_db.allow_ctas = True  # enable cta
+            old_allow_ctas = examples_db.allow_ctas
+            examples_db.allow_ctas = True  # enable cta
 
             self.login("admin")
             tmp_table_name = f"test_target_{ctas_method.lower()}"
@@ -93,16 +101,18 @@ class TestSqlLab(SupersetTestCase):
 
             # assertions
             db.session.commit()
-            data = db.session.execute(
+            examples_db = get_example_database()
+            engine = examples_db.get_sqla_engine()
+            data = engine.execute(
                 f"SELECT * FROM admin_database.{tmp_table_name}"
             ).fetchall()
             self.assertEqual(
-                75691, len(data)
+                100, len(data)
             )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
 
             # cleanup
-            db.session.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
-            main_db.allow_ctas = old_allow_ctas
+            engine.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
+            examples_db.allow_ctas = old_allow_ctas
             db.session.commit()
 
     def test_multi_sql(self):
@@ -144,7 +154,7 @@ class TestSqlLab(SupersetTestCase):
             return
 
         sqllab_test_db_schema_permission_view = security_manager.add_permission_view_menu(
-            "schema_access", f"[{examples_db.name}].[sqllab_test_db]"
+            "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
         )
         schema_perm_role = security_manager.add_role("SchemaPermission")
         security_manager.add_permission_role(
@@ -154,20 +164,20 @@ class TestSqlLab(SupersetTestCase):
             "SchemaUser", ["SchemaPermission", "Gamma", "sql_lab"]
         )
 
-        db.session.execute(
-            "CREATE TABLE IF NOT EXISTS sqllab_test_db.test_table AS SELECT 1 as c1, 2 as c2"
+        examples_db.get_sqla_engine().execute(
+            f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
         )
 
         data = self.run_sql(
-            "SELECT * FROM sqllab_test_db.test_table", "3", user_name="SchemaUser"
+            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", user_name="SchemaUser"
         )
         self.assertEqual(1, len(data["data"]))
 
         data = self.run_sql(
-            "SELECT * FROM sqllab_test_db.test_table",
+            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",
             "4",
             user_name="SchemaUser",
-            schema="sqllab_test_db",
+            schema=CTAS_SCHEMA_NAME,
         )
         self.assertEqual(1, len(data["data"]))
 
@@ -177,12 +187,14 @@ class TestSqlLab(SupersetTestCase):
                 "SELECT * FROM test_table",
                 "5",
                 user_name="SchemaUser",
-                schema="sqllab_test_db",
+                schema=CTAS_SCHEMA_NAME,
             )
             self.assertEqual(1, len(data["data"]))
 
         db.session.query(Query).delete()
-        db.session.execute("DROP TABLE IF EXISTS sqllab_test_db.test_table")
+        get_example_database().get_sqla_engine().execute(
+            f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table"
+        )
         db.session.commit()
 
     def test_queries_endpoint(self):
@@ -375,8 +387,20 @@ class TestSqlLab(SupersetTestCase):
 
     def test_sqllab_table_viz(self):
         self.login("admin")
-        examples_dbid = get_example_database().id
-        payload = {"datasourceName": "ab_role", "columns": [], "dbId": examples_dbid}
+        examples_db = get_example_database()
+        examples_db.get_sqla_engine().execute(
+            "DROP TABLE IF EXISTS test_sqllab_table_viz"
+        )
+        examples_db.get_sqla_engine().execute(
+            "CREATE TABLE test_sqllab_table_viz AS SELECT 2 as col"
+        )
+        examples_dbid = examples_db.id
+
+        payload = {
+            "datasourceName": "test_sqllab_table_viz",
+            "columns": [],
+            "dbId": examples_dbid,
+        }
 
         data = {"data": json.dumps(payload)}
         resp = self.get_json_resp("/superset/get_or_create_table/", data=data)
@@ -387,6 +411,9 @@ class TestSqlLab(SupersetTestCase):
         table = db.session.query(SqlaTable).filter_by(id=table_id).one()
         self.assertEqual([owner.username for owner in table.owners], ["admin"])
         db.session.delete(table)
+        get_example_database().get_sqla_engine().execute(
+            "DROP TABLE test_sqllab_table_viz"
+        )
         db.session.commit()
 
     def test_sql_limit(self):
@@ -479,6 +506,8 @@ class TestSqlLab(SupersetTestCase):
     def test_api_database(self):
         self.login("admin")
         self.create_fake_db()
+        get_example_database()
+        get_main_database()
 
         arguments = {
             "keys": [],
@@ -490,7 +519,7 @@ class TestSqlLab(SupersetTestCase):
         }
         url = f"api/v1/database/?q={prison.dumps(arguments)}"
         self.assertEqual(
-            {"examples", "fake_db_100"},
+            {"examples", "fake_db_100", "main"},
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},
         )
         self.delete_fake_db()

@@ -68,11 +68,11 @@ describe('DashboardList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(DashboardList)).toHaveLength(1);
+    expect(wrapper.find(DashboardList)).toExist();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toHaveLength(1);
+    expect(wrapper.find(ListView)).toExist();
   });
 
   it('fetches info', () => {
@@ -89,8 +89,8 @@ describe('DashboardList', () => {
     );
   });
   it('edits', () => {
-    expect(wrapper.find(PropertiesModal)).toHaveLength(0);
+    expect(wrapper.find(PropertiesModal)).not.toExist();
     wrapper.find('[data-test="pencil"]').first().simulate('click');
-    expect(wrapper.find(PropertiesModal)).toHaveLength(1);
+    expect(wrapper.find(PropertiesModal)).toExist();
   });
 });

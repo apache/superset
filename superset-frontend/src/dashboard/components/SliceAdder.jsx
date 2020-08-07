@@ -20,7 +20,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
-import { CellMeasurer, CellMeasurerCache, List } from 'react-virtualized';
+import { List } from 'react-virtualized';
 import SearchInput, { createFilter } from 'react-search-input';
 import { t } from '@superset-ui/translation';
 
@@ -60,14 +60,9 @@ const KEYS_TO_SORT = [
 ];
 
 const MARGIN_BOTTOM = 16;
-const SIDEPANE_HEADER_HEIGHT = 55;
+const SIDEPANE_HEADER_HEIGHT = 30;
 const SLICE_ADDER_CONTROL_HEIGHT = 64;
-const DEFAULT_CELL_HEIGHT = 136;
-
-const cache = new CellMeasurerCache({
-  defaultHeight: DEFAULT_CELL_HEIGHT,
-  fixedWidth: true,
-});
+const DEFAULT_CELL_HEIGHT = 112;
 
 class SliceAdder extends React.Component {
   static sortByComparator(attr) {
@@ -91,7 +86,6 @@ class SliceAdder extends React.Component {
       sortBy: KEYS_TO_SORT.findIndex(item => item.key === 'changed_on'),
       selectedSliceIdsSet: new Set(props.selectedSliceIds),
     };
-
     this.rowRenderer = this.rowRenderer.bind(this);
     this.searchUpdated = this.searchUpdated.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
@@ -159,7 +153,7 @@ class SliceAdder extends React.Component {
     });
   }
 
-  rowRenderer({ key, index, style, parent }) {
+  rowRenderer({ key, index, style }) {
     const { filteredSlices, selectedSliceIdsSet } = this.state;
     const cellData = filteredSlices[index];
     const isSelected = selectedSliceIdsSet.has(cellData.slice_id);
@@ -190,23 +184,16 @@ class SliceAdder extends React.Component {
         style={{}}
       >
         {({ dragSourceRef }) => (
-          <CellMeasurer
-            cache={cache}
-            columnIndex={0}
-            key={key}
-            parent={parent}
-            rowIndex={index}
-          >
-            <AddSliceCard
-              innerRef={dragSourceRef}
-              style={style}
-              sliceName={cellData.slice_name}
-              lastModified={cellData.changed_on_humanized}
-              visType={cellData.viz_type}
-              datasourceLink={cellData.datasource_link}
-              isSelected={isSelected}
-            />
-          </CellMeasurer>
+          <AddSliceCard
+            innerRef={dragSourceRef}
+            style={style}
+            sliceName={cellData.slice_name}
+            lastModified={cellData.changed_on_humanized}
+            visType={cellData.viz_type}
+            datasourceUrl={cellData.datasource_url}
+            datasourceName={cellData.datasource_name}
+            isSelected={isSelected}
+          />
         )}
       </DragDroppable>
     );
@@ -227,7 +214,6 @@ class SliceAdder extends React.Component {
             onChange={this.searchUpdated}
             onKeyPress={this.handleKeyPress}
           />
-
           <DropdownButton
             title={`Sort by ${KEYS_TO_SORT[this.state.sortBy].label}`}
             onSelect={this.handleSelect}
@@ -246,8 +232,7 @@ class SliceAdder extends React.Component {
             width={376}
             height={slicesListHeight}
             rowCount={this.state.filteredSlices.length}
-            deferredMeasurementCache={cache}
-            rowHeight={cache.rowHeight}
+            rowHeight={DEFAULT_CELL_HEIGHT}
             rowRenderer={this.rowRenderer}
             searchTerm={this.state.searchTerm}
             sortBy={this.state.sortBy}

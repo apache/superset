@@ -26,7 +26,6 @@ interface TimerProps {
   isRunning: boolean;
   startTime?: number;
   status?: string;
-  style?: React.CSSProperties;
 }
 
 export default function Timer({
@@ -34,7 +33,6 @@ export default function Timer({
   isRunning,
   startTime,
   status = 'success',
-  style,
 }: TimerProps) {
   const [clockStr, setClockStr] = useState('');
   const [timer, setTimer] = useState<NodeJS.Timeout>();
@@ -75,7 +73,7 @@ export default function Timer({
   });
 
   return (
-    <Label id="timer" className="m-r-5" style={style} bsStyle={status}>
+    <Label id="timer" className="m-r-5" bsStyle={status}>
       {clockStr}
     </Label>
   );

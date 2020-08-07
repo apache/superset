@@ -21,10 +21,10 @@ import styled from '@superset-ui/style';
 import PropTypes from 'prop-types';
 import rison from 'rison';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
-import { Label } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
+import Label from 'src/components/Label';
 import FormLabel from 'src/components/FormLabel';
 
 import SupersetAsyncSelect from './AsyncSelect';
@@ -188,10 +188,13 @@ export default class TableSelector extends React.PureComponent {
     const actualDbId = dbId || this.props.dbId;
     if (actualDbId) {
       this.setState({ schemaLoading: true });
-      const endpoint = `/superset/schemas/${actualDbId}/${forceRefresh}/`;
+      const queryParams = rison.encode({
+        force: Boolean(forceRefresh),
+      });
+      const endpoint = `/api/v1/database/${actualDbId}/schemas/?q=${queryParams}`;
       return SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const schemaOptions = json.schemas.map(s => ({
+          const schemaOptions = json.result.map(s => ({
             value: s,
             label: s,
             title: s,

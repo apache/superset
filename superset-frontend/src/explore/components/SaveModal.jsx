@@ -25,10 +25,10 @@ import {
   Button,
   FormControl,
   FormGroup,
-  ControlLabel,
   Modal,
   Radio,
 } from 'react-bootstrap';
+import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
 import { t } from '@superset-ui/translation';
 import ReactMarkdown from 'react-markdown';
@@ -176,7 +176,7 @@ class SaveModal extends React.Component {
           </FormGroup>
           <hr />
           <FormGroup>
-            <ControlLabel>{t('Chart name')}</ControlLabel>
+            <FormLabel required>{t('Chart name')}</FormLabel>
             <FormControl
               name="new_slice_name"
               type="text"
@@ -187,7 +187,7 @@ class SaveModal extends React.Component {
             />
           </FormGroup>
           <FormGroup>
-            <ControlLabel>{t('Add to dashboard')}</ControlLabel>
+            <FormLabel required>{t('Add to dashboard')}</FormLabel>
             <CreatableSelect
               id="dashboard-creatable-select"
               className="save-modal-selector"
@@ -224,7 +224,11 @@ class SaveModal extends React.Component {
               type="button"
               id="btn_modal_save_goto_dash"
               bsSize="sm"
-              disabled={canNotSaveToDash || !this.state.newDashboardName}
+              disabled={
+                canNotSaveToDash ||
+                !this.state.newSliceName ||
+                !this.state.newDashboardName
+              }
               onClick={this.saveOrOverwrite.bind(this, true)}
             >
               {t('Save & go to dashboard')}
@@ -235,6 +239,7 @@ class SaveModal extends React.Component {
               bsSize="sm"
               bsStyle="primary"
               onClick={this.saveOrOverwrite.bind(this, false)}
+              disabled={!this.state.newSliceName}
             >
               {t('Save')}
             </Button>

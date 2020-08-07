@@ -75,7 +75,6 @@ openapi_spec_methods_override = {
         "get": {"description": "Get a list of all possible owners for a dashboard."}
     },
 }
-""" Overrides GET methods OpenApi descriptions """
 
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
@@ -105,7 +104,7 @@ class DashboardJSONMetadataSchema(Schema):
     default_filters = fields.Str()
     stagger_refresh = fields.Boolean()
     stagger_time = fields.Integer()
-    color_scheme = fields.Str()
+    color_scheme = fields.Str(allow_none=True)
     label_colors = fields.Dict()
 
 

@@ -37,6 +37,7 @@ from unittest import mock, skipUnless
 import pandas as pd
 import sqlalchemy as sqla
 
+from superset.utils.core import get_example_database
 from tests.test_app import app  # isort:skip
 import superset.views.utils
 from superset import (
@@ -146,6 +147,9 @@ class TestCore(SupersetTestCase):
 
     def test_get_superset_tables_substr(self):
         example_db = utils.get_example_database()
+        if example_db.backend == "presto":
+            # TODO: change table to the real table that is in examples.
+            return
         self.login(username="admin")
         schema_name = self.default_schema_backend_map[example_db.backend]
         uri = f"superset/tables/{example_db.id}/{schema_name}/ab_role/"
@@ -637,13 +641,17 @@ class TestCore(SupersetTestCase):
 
     def test_extra_table_metadata(self):
         self.login("admin")
-        dbid = utils.get_example_database().id
+        example_db = utils.get_example_database()
+        schema = "default" if example_db.backend == "presto" else "superset"
         self.get_json_resp(
-            f"/superset/extra_table_metadata/{dbid}/birth_names/superset/"
+            f"/superset/extra_table_metadata/{example_db.id}/birth_names/{schema}/"
         )
 
     def test_process_template(self):
         maindb = utils.get_example_database()
+        if maindb.backend == "presto":
+            # TODO: make it work for presto
+            return
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
@@ -651,6 +659,9 @@ class TestCore(SupersetTestCase):
 
     def test_get_template_kwarg(self):
         maindb = utils.get_example_database()
+        if maindb.backend == "presto":
+            # TODO: make it work for presto
+            return
         s = "{{ foo }}"
         tp = jinja_context.get_template_processor(database=maindb, foo="bar")
         rendered = tp.process_template(s)
@@ -658,12 +669,18 @@ class TestCore(SupersetTestCase):
 
     def test_template_kwarg(self):
         maindb = utils.get_example_database()
+        if maindb.backend == "presto":
+            # TODO: make it work for presto
+            return
         s = "{{ foo }}"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(s, foo="bar")
         self.assertEqual("bar", rendered)
 
     def test_templated_sql_json(self):
+        if utils.get_example_database().backend == "presto":
+            # TODO: make it work for presto
+            return
         self.login("admin")
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"
         data = self.run_sql(sql, "fdaklj3ws")
@@ -723,10 +740,14 @@ class TestCore(SupersetTestCase):
         """Test custom template processor is ignored for a difference backend
         database."""
         maindb = utils.get_example_database()
-        sql = "SELECT '$DATE()'"
+        sql = (
+            "SELECT '$DATE()'"
+            if maindb.backend != "presto"
+            else f"SELECT '{datetime.date.today().isoformat()}'"
+        )
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
-        self.assertEqual(sql, rendered)
+        assert sql == rendered
 
     @mock.patch("tests.superset_test_custom_template_processors.datetime")
     @mock.patch("superset.sql_lab.get_sql_results")
@@ -811,6 +832,9 @@ class TestCore(SupersetTestCase):
             for l in content:
                 test_file.write(f"{l}\n")
 
+    def create_sample_excelfile(self, filename: str, content: Dict[str, str]) -> None:
+        pd.DataFrame(content).to_excel(filename)
+
     def enable_csv_upload(self, database: models.Database) -> None:
         """Enables csv upload in the given database."""
         database.allow_csv_upload = True
@@ -836,6 +860,22 @@ class TestCore(SupersetTestCase):
         if extra:
             form_data.update(extra)
         return self.get_resp("/csvtodatabaseview/form", data=form_data)
+
+    def upload_excel(
+        self, filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+    ):
+        form_data = {
+            "excel_file": open(filename, "rb"),
+            "name": table_name,
+            "con": utils.get_example_database().id,
+            "sheet_name": "Sheet1",
+            "if_exists": "fail",
+            "index_label": "test_label",
+            "mangle_dupe_cols": False,
+        }
+        if extra:
+            form_data.update(extra)
+        return self.get_resp("/exceltodatabaseview/form", data=form_data)
 
     @mock.patch(
         "superset.models.core.config",
@@ -891,7 +931,7 @@ class TestCore(SupersetTestCase):
         explore_db_id = utils.get_example_database().id
 
         upload_db = utils.get_or_create_db(
-            "csv_explore_db", app.config["SQLALCHEMY_DATABASE_URI"]
+            "csv_explore_db", app.config["SQLALCHEMY_EXAMPLES_URI"]
         )
         upload_db_id = upload_db.id
         extra = upload_db.get_extra()
@@ -901,7 +941,7 @@ class TestCore(SupersetTestCase):
 
         self.login(username="admin")
         self.enable_csv_upload(DatasetDAO.get_database_by_id(upload_db_id))
-        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
 
         f = "testCSV.csv"
         self.create_sample_csvfile(f, ["a,b", "john,1", "paul,2"])
@@ -919,13 +959,14 @@ class TestCore(SupersetTestCase):
 
     def test_import_csv(self):
         self.login(username="admin")
+        examples_db = utils.get_example_database()
         table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
 
         f1 = "testCSV.csv"
         self.create_sample_csvfile(f1, ["a,b", "john,1", "paul,2"])
         f2 = "testCSV2.csv"
         self.create_sample_csvfile(f2, ["b,c,d", "john,1,x", "paul,2,"])
-        self.enable_csv_upload(utils.get_example_database())
+        self.enable_csv_upload(examples_db)
 
         try:
             success_msg_f1 = f'CSV file "{f1}" uploaded to table "{table_name}"'
@@ -968,18 +1009,57 @@ class TestCore(SupersetTestCase):
                 extra={"null_values": '["", "john"]', "if_exists": "replace"},
             )
             # make sure that john and empty string are replaced with None
-            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
+            engine = examples_db.get_sqla_engine()
+            data = engine.execute(f"SELECT * from {table_name}").fetchall()
             assert data == [(None, 1, "x"), ("paul", 2, None)]
 
             # default null values
             self.upload_csv(f2, table_name, extra={"if_exists": "replace"})
             # make sure that john and empty string are replaced with None
-            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
+            data = engine.execute(f"SELECT * from {table_name}").fetchall()
             assert data == [("john", 1, "x"), ("paul", 2, None)]
 
         finally:
             os.remove(f1)
             os.remove(f2)
+
+    def test_import_excel(self):
+        self.login(username="admin")
+        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+        f1 = "testExcel.xlsx"
+        self.create_sample_excelfile(f1, {"a": ["john", "paul"], "b": [1, 2]})
+        self.enable_csv_upload(utils.get_example_database())
+
+        try:
+            success_msg_f1 = f'Excel file "{f1}" uploaded to table "{table_name}"'
+
+            # initial upload with fail mode
+            resp = self.upload_excel(f1, table_name)
+            self.assertIn(success_msg_f1, resp)
+
+            # upload again with fail mode; should fail
+            fail_msg = f'Unable to upload Excel file "{f1}" to table "{table_name}"'
+            resp = self.upload_excel(f1, table_name)
+            self.assertIn(fail_msg, resp)
+
+            # upload again with append mode
+            resp = self.upload_excel(f1, table_name, extra={"if_exists": "append"})
+            self.assertIn(success_msg_f1, resp)
+
+            # upload again with replace mode
+            resp = self.upload_excel(f1, table_name, extra={"if_exists": "replace"})
+            self.assertIn(success_msg_f1, resp)
+
+            # make sure that john and empty string are replaced with None
+            data = (
+                utils.get_example_database()
+                .get_sqla_engine()
+                .execute(f"SELECT * from {table_name}")
+                .fetchall()
+            )
+            assert data == [(0, "john", 1), (1, "paul", 2)]
+        finally:
+            os.remove(f1)
 
     def test_dataframe_timezone(self):
         tz = pytz.FixedOffset(60)

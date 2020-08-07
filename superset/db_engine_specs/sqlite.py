@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
+    engine_name = "SQLite"
 
     _time_grain_expressions = {
         None: "{col}",

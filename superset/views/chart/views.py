@@ -84,6 +84,7 @@ class SliceAsync(SliceModelView):  # pylint: disable=too-many-ancestors
         "creator",
         "datasource_id",
         "datasource_link",
+        "datasource_url",
         "datasource_name_text",
         "datasource_type",
         "description",

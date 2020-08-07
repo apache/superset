@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Label } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 
@@ -36,8 +36,8 @@ describe('RowCountLabel', () => {
   });
   it('renders a Label and a TooltipWrapper', () => {
     const wrapper = shallow(<RowCountLabel {...defaultProps} />);
-    expect(wrapper.find(Label)).toHaveLength(1);
-    expect(wrapper.find(TooltipWrapper)).toHaveLength(1);
+    expect(wrapper.find(Label)).toExist();
+    expect(wrapper.find(TooltipWrapper)).toExist();
   });
   it('renders a danger when limit is reached', () => {
     const props = {

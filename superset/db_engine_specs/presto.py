@@ -22,11 +22,12 @@ from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
-from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 from urllib import parse
 
 import pandas as pd
 import simplejson as json
+from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, literal_column
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -40,6 +41,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
+from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 
@@ -103,6 +105,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = "presto"
+    engine_name = "Presto"
 
     _time_grain_expressions = {
         None: "{col}",
@@ -568,7 +571,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return datasource_names
 
     @classmethod
-    def expand_data(  # pylint: disable=too-many-locals
+    def expand_data(  # pylint: disable=too-many-locals,too-many-branches
         cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
     ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
         """
@@ -616,6 +619,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 current_array_level = level
 
             name = column["name"]
+            values: Optional[Union[str, List[Any]]]
 
             if column["type"].startswith("ARRAY("):
                 # keep processing array children; we append to the right so that
@@ -627,6 +631,8 @@ class PrestoEngineSpec(BaseEngineSpec):
                 while i < len(data):
                     row = data[i]
                     values = row.get(name)
+                    if isinstance(values, str):
+                        row[name] = values = destringify(values)
                     if values:
                         # how many extra rows we need to unnest the data?
                         extra_rows = len(values) - 1
@@ -653,12 +659,15 @@ class PrestoEngineSpec(BaseEngineSpec):
                 # expand columns; we append them to the left so they are added
                 # immediately after the parent
                 expanded = get_children(column)
-                to_process.extendleft((column, level) for column in expanded)
+                to_process.extendleft((column, level) for column in expanded[::-1])
                 expanded_columns.extend(expanded)
 
                 # expand row objects into new columns
                 for row in data:
-                    for value, col in zip(row.get(name) or [], expanded):
+                    values = row.get(name) or []
+                    if isinstance(values, str):
+                        row[name] = values = cast(List[Any], destringify(values))
+                    for value, col in zip(values, expanded):
                         row[col["name"]] = value
 
         data = [
@@ -773,7 +782,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             polled = cursor.poll()
 
     @classmethod
-    def _extract_error_message(cls, ex: Exception) -> Optional[str]:
+    def _extract_error_message(cls, ex: Exception) -> str:
         if (
             hasattr(ex, "orig")
             and type(ex.orig).__name__ == "DatabaseError"  # type: ignore
@@ -787,7 +796,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             )
         if type(ex).__name__ == "DatabaseError" and hasattr(ex, "args") and ex.args:
             error_dict = ex.args[0]
-            return error_dict.get("message")
+            return error_dict.get("message", _("Unknown Presto Error"))
         return utils.error_msg_from_exception(ex)
 
     @classmethod

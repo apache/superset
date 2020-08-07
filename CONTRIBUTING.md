@@ -307,7 +307,7 @@ Finally, to make changes to the rst files and build the docs using Sphinx,
 you'll need to install a handful of dependencies from the repo you cloned:
 
 ```bash
-pip install -r docs/requirements.txt
+pip install -r requirements/documentation.txt
 ```
 
 To get the feel for how to edit and build the docs, let's edit a file, build
@@ -375,7 +375,7 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 Generate the API documentation with:
 
 ```bash
-pip install -r docs/requirements.txt
+pip install -r requirements/documentation.txt
 python setup.py build_sphinx
 ```
 
@@ -399,8 +399,7 @@ virtualenv -p python3 venv # setup a python3.6 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
+pip install -r requirements/local.txt
 
 # Install Superset in editable (development) mode
 pip install -e .
@@ -553,7 +552,7 @@ in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
 
 ```bash
-pip3 install -r requirements-dev.txt
+pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
@@ -705,7 +704,7 @@ See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-s
 
 ### Storybook
 
-Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:  
+Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:
 
 ```bash
 cd superset-frontend
@@ -814,7 +813,7 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
 ### Improving visualizations
 
-Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal, we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
+To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
 
 ```bash
 git clone https://github.com/apache-superset/superset-ui.git
@@ -847,6 +846,18 @@ The topic of authoring new plugins, whether you'd like to contribute
 it back or not has been well documented in the
 [So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/) blog post
 
+To contribute a plugin to Superset-UI, your plugin must meet the following criteria:
+* The plugin should be applicable to the community at large, not a particularly specialized use case
+* The plugin should be written with TypeScript
+* The plugin should contain sufficient unit/e2e tests
+* The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
+* The plugin should use them variables via Emotion, as passed in by the ThemeProvider
+* The plugin should provide adequate error handling (no data returned, malformatted data, invalid controls, etc.)
+* The plugin should contain documentation in the form of a populated `README.md` file
+* The plugin should have a meaningful and unique icon
+* Above all else, the plugin should come with a *commitment to maintenance* from the original author(s)
+
+Submissions will be considered for submission (or removal) on a case-by-case basis.
 
 ### Adding a DB migration
 

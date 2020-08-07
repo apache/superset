@@ -36,7 +36,7 @@ describe('MetricDefinitionValue', () => {
     const wrapper = shallow(
       <MetricDefinitionValue option={{ metric_name: 'a_saved_metric' }} />,
     );
-    expect(wrapper.find(MetricOption)).toHaveLength(1);
+    expect(wrapper.find(MetricOption)).toExist();
   });
 
   it('renders an AdhocMetricOption given an adhoc metric', () => {
@@ -46,6 +46,6 @@ describe('MetricDefinitionValue', () => {
         option={sumValueAdhocMetric}
       />,
     );
-    expect(wrapper.find(AdhocMetricOption)).toHaveLength(1);
+    expect(wrapper.find(AdhocMetricOption)).toExist();
   });
 });

@@ -19,9 +19,10 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow } from 'enzyme';
-import { Button, Label } from 'react-bootstrap';
+import { styledMount as mount } from 'spec/helpers/theming';
+import { Button } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -37,7 +38,7 @@ describe('DateFilterControl', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = shallow(<DateFilterControl {...defaultProps} />);
+    wrapper = mount(<DateFilterControl {...defaultProps} />);
   });
 
   it('renders a ControlHeader', () => {
@@ -69,10 +70,10 @@ describe('DateFilterControl', () => {
     const label = wrapper.find(Label).first();
     label.simulate('click');
     setTimeout(() => {
-      expect(wrapper.find('.popover')).toHaveLength(1);
+      expect(wrapper.find('.popover')).toExist();
       expect(wrapper.find('.ok')).first().simulate('click');
       setTimeout(() => {
-        expect(wrapper.find('.popover')).toHaveLength(0);
+        expect(wrapper.find('.popover')).not.toExist();
       }, 10);
     }, 10);
   });

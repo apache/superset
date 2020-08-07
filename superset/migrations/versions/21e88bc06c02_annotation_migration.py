@@ -14,14 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-
-from alembic import op
-from sqlalchemy import Column, Integer, or_, String, Text
-from sqlalchemy.ext.declarative import declarative_base
-
-from superset import db
-
 """migrate_old_annotation_layers
 
 Revision ID: 21e88bc06c02
@@ -29,6 +21,13 @@ Revises: 67a6ac9b727b
 Create Date: 2017-12-17 11:06:30.180267
 
 """
+import json
+
+from alembic import op
+from sqlalchemy import Column, Integer, or_, String, Text
+from sqlalchemy.ext.declarative import declarative_base
+
+from superset import db
 
 # revision identifiers, used by Alembic.
 revision = "21e88bc06c02"

@@ -35,8 +35,8 @@ describe('QueryTable', () => {
   });
   it('renders a proper table', () => {
     const wrapper = shallow(<QueryTable {...mockedProps} />);
-    expect(wrapper.find(Table)).toHaveLength(1);
-    expect(wrapper.find(Table).shallow().find('table')).toHaveLength(1);
+    expect(wrapper.find(Table)).toExist();
+    expect(wrapper.find(Table).shallow().find('table')).toExist();
     expect(wrapper.find(Table).shallow().find('table').find('Tr')).toHaveLength(
       2,
     );

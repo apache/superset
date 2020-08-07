@@ -21,6 +21,7 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
+import dataclasses
 import inspect
 import logging
 import math
@@ -42,7 +43,6 @@ from typing import (
     Union,
 )
 
-import dataclasses
 import geohash
 import numpy as np
 import pandas as pd
@@ -121,7 +121,7 @@ class BaseViz:
         self.form_data = form_data
 
         self.query = ""
-        self.token = self.form_data.get("token", "token_" + uuid.uuid4().hex[:8])
+        self.token = utils.get_form_data_token(form_data)
 
         self.groupby: List[str] = self.form_data.get("groupby") or []
         self.time_shift = timedelta()
@@ -1374,8 +1374,8 @@ class MultiLineViz(NVD3Viz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         fd = self.form_data
         # Late imports to avoid circular import issues
-        from superset.models.slice import Slice
         from superset import db
+        from superset.models.slice import Slice
 
         slice_ids1 = fd.get("line_charts")
         slices1 = db.session.query(Slice).filter(Slice.id.in_(slice_ids1)).all()
@@ -1547,11 +1547,43 @@ class DistributionPieViz(NVD3Viz):
     is_timeseries = False
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        def _label_aggfunc(labels: pd.Series) -> str:
+            """
+            Convert a single or multi column label into a single label, replacing
+            null values with `NULL_STRING` and joining multiple columns together
+            with a comma. Examples:
+
+            >>> _label_aggfunc(pd.Series(["abc"]))
+            'abc'
+            >>> _label_aggfunc(pd.Series([1]))
+            '1'
+            >>> _label_aggfunc(pd.Series(["abc", "def"]))
+            'abc, def'
+            >>> # note: integer floats are stripped of decimal digits
+            >>> _label_aggfunc(pd.Series([0.1, 2.0, 0.3]))
+            '0.1, 2, 0.3'
+            >>> _label_aggfunc(pd.Series([1, None, "abc", 0.8], dtype="object"))
+            '1, <NULL>, abc, 0.8'
+            """
+            label_list: List[str] = []
+            for label in labels:
+                if isinstance(label, str):
+                    label_recast = label
+                elif label is None or isinstance(label, float) and math.isnan(label):
+                    label_recast = NULL_STRING
+                elif isinstance(label, float) and label.is_integer():
+                    label_recast = str(int(label))
+                else:
+                    label_recast = str(label)
+                label_list.append(label_recast)
+
+            return ", ".join(label_list)
+
         if df.empty:
             return None
         metric = self.metric_labels[0]
         df = pd.DataFrame(
-            {"x": df[self.groupby].agg(func=", ".join, axis=1), "y": df[metric]}
+            {"x": df[self.groupby].agg(func=_label_aggfunc, axis=1), "y": df[metric]}
         )
         df.sort_values(by="y", ascending=False, inplace=True)
         return df.to_dict(orient="records")
@@ -2252,8 +2284,8 @@ class DeckGLMultiLayer(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         fd = self.form_data
         # Late imports to avoid circular import issues
-        from superset.models.slice import Slice
         from superset import db
+        from superset.models.slice import Slice
 
         slice_ids = fd.get("deck_slices")
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()

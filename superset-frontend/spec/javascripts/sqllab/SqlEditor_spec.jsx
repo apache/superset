@@ -58,15 +58,15 @@ describe('SqlEditor', () => {
   });
   it('render a SqlEditorLeftBar', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
-    expect(wrapper.find(SqlEditorLeftBar)).toHaveLength(1);
+    expect(wrapper.find(SqlEditorLeftBar)).toExist();
   });
   it('render an AceEditorWrapper', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
-    expect(wrapper.find(AceEditorWrapper)).toHaveLength(1);
+    expect(wrapper.find(AceEditorWrapper)).toExist();
   });
   it('render an SouthPane', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
-    expect(wrapper.find(SouthPane)).toHaveLength(1);
+    expect(wrapper.find(SouthPane)).toExist();
   });
   it('does not overflow the editor window', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
@@ -93,14 +93,14 @@ describe('SqlEditor', () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const wrapper = shallow(<SqlEditor {...updatedProps} />);
-    expect(wrapper.find(LimitControl)).toHaveLength(1);
+    expect(wrapper.find(LimitControl)).toExist();
     expect(wrapper.find(LimitControl).props().value).toEqual(defaultQueryLimit);
   });
   it('render a LimitControl with existing limit', () => {
     const queryEditor = { ...defaultQueryEditor, queryLimit: 101 };
     const updatedProps = { ...mockedProps, queryEditor };
     const wrapper = shallow(<SqlEditor {...updatedProps} />);
-    expect(wrapper.find(LimitControl)).toHaveLength(1);
+    expect(wrapper.find(LimitControl)).toExist();
     expect(wrapper.find(LimitControl).props().value).toEqual(
       queryEditor.queryLimit,
     );

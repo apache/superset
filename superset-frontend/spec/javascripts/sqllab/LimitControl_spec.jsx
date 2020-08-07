@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import { Label } from 'react-bootstrap';
+import Label from 'src/components/Label';
 import LimitControl from 'src/SqlLab/components/LimitControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -41,7 +41,7 @@ describe('LimitControl', () => {
     );
   });
   it('renders a Label', () => {
-    expect(wrapper.find(Label)).toHaveLength(1);
+    expect(wrapper.find(Label)).toExist();
   });
   it('loads the correct state', () => {
     const value = 100;

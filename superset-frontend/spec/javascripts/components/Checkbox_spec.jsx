@@ -40,7 +40,7 @@ describe('Checkbox', () => {
     expect(React.isValidElement(<Checkbox {...defaultProps} />)).toBe(true);
   });
   it('inits checked when checked', () => {
-    expect(wrapper.find('i.fa-check.text-primary')).toHaveLength(1);
+    expect(wrapper.find('i.fa-check.text-primary')).toExist();
   });
   it('inits unchecked when not checked', () => {
     const el = factory({ checked: false });
@@ -48,7 +48,7 @@ describe('Checkbox', () => {
     expect(el.find('i.fa-check.text-transparent')).toHaveLength(1);
   });
   it('unchecks when clicked', () => {
-    expect(wrapper.find('i.fa-check.text-transparent')).toHaveLength(0);
+    expect(wrapper.find('i.fa-check.text-transparent')).not.toExist();
     wrapper.find('i').first().simulate('click');
     expect(defaultProps.onChange.calledOnce).toBe(true);
   });

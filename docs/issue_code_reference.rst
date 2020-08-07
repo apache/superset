@@ -37,3 +37,12 @@ Issue 1001
     The database is under an unusual load.
 
 Your query may have timed out because of unusually high load on the database engine. You can make your query simpler, or wait until the database is under less load and try again.
+
+Issue 1002
+""""""""""
+
+.. code-block:: text
+
+    The database returned an unexpected error.
+
+Your query failed because of an error that occurred on the database. This may be due to a syntax error, a bug in your query, or some other internal failure within the database. This is usually not an issue within Superset, but instead a problem with the underlying database that serves your query.

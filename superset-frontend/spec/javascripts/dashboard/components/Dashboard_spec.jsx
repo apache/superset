@@ -70,7 +70,7 @@ describe('Dashboard', () => {
 
   it('should render a DashboardBuilder', () => {
     const wrapper = setup();
-    expect(wrapper.find(DashboardBuilder)).toHaveLength(1);
+    expect(wrapper.find(DashboardBuilder)).toExist();
   });
 
   describe('componentWillReceiveProps', () => {

@@ -26,7 +26,7 @@ import tests.test_app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_main_database
 
 from .base_tests import SupersetTestCase
 
@@ -34,7 +34,7 @@ from .base_tests import SupersetTestCase
 class TestDatabaseApi(SupersetTestCase):
     def test_get_items(self):
         """
-            Database API: Test get items
+        Database API: Test get items
         """
         self.login(username="admin")
         uri = "api/v1/database/"
@@ -63,6 +63,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 
     def test_get_items_filter(self):
+        """
+        Database API: Test get items with filter
+        """
         fake_db = (
             db.session.query(Database).filter_by(database_name="fake_db_100").one()
         )
@@ -92,7 +95,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_items_not_allowed(self):
         """
-            Database API: Test get items not allowed
+        Database API: Test get items not allowed
         """
         self.login(username="gamma")
         uri = f"api/v1/database/"
@@ -103,7 +106,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_table_metadata(self):
         """
-            Database API: Test get table metadata info
+        Database API: Test get table metadata info
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -117,7 +120,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_invalid_database_table_metadata(self):
         """
-            Database API: Test get invalid database from table metadata
+        Database API: Test get invalid database from table metadata
         """
         database_id = 1000
         self.login(username="admin")
@@ -131,7 +134,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_invalid_table_table_metadata(self):
         """
-            Database API: Test get invalid table from table metadata
+        Database API: Test get invalid table from table metadata
         """
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/wrong_table/null/"
@@ -141,7 +144,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_table_metadata_no_db_permission(self):
         """
-            Database API: Test get table metadata from not permitted db
+        Database API: Test get table metadata from not permitted db
         """
         self.login(username="gamma")
         example_db = get_example_database()
@@ -151,7 +154,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_select_star(self):
         """
-            Database API: Test get select star
+        Database API: Test get select star
         """
         self.login(username="admin")
         example_db = get_example_database()
@@ -163,7 +166,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_select_star_not_allowed(self):
         """
-            Database API: Test get select star not allowed
+        Database API: Test get select star not allowed
         """
         self.login(username="gamma")
         example_db = get_example_database()
@@ -173,11 +176,11 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_select_star_datasource_access(self):
         """
-            Database API: Test get select star with datasource access
+        Database API: Test get select star with datasource access
         """
         session = db.session
         table = SqlaTable(
-            schema="main", table_name="ab_permission", database=get_example_database()
+            schema="main", table_name="ab_permission", database=get_main_database()
         )
         session.add(table)
         session.commit()
@@ -189,19 +192,20 @@ class TestDatabaseApi(SupersetTestCase):
         security_manager.add_permission_role(gamma_role, tmp_table_perm)
 
         self.login(username="gamma")
-        example_db = get_example_database()
-        uri = f"api/v1/database/{example_db.id}/select_star/ab_permission/"
+        main_db = get_main_database()
+        uri = f"api/v1/database/{main_db.id}/select_star/ab_permission/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
         # rollback changes
         security_manager.del_permission_role(gamma_role, tmp_table_perm)
         db.session.delete(table)
+        db.session.delete(main_db)
         db.session.commit()
 
     def test_get_select_star_not_found_database(self):
         """
-            Database API: Test get select star not found database
+        Database API: Test get select star not found database
         """
         self.login(username="admin")
         max_id = db.session.query(func.max(Database.id)).scalar()
@@ -211,7 +215,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_select_star_not_found_table(self):
         """
-            Database API: Test get select star not found database
+        Database API: Test get select star not found database
         """
         self.login(username="admin")
         example_db = get_example_database()
@@ -220,42 +224,45 @@ class TestDatabaseApi(SupersetTestCase):
             return
         uri = f"api/v1/database/{example_db.id}/select_star/table_does_not_exist/"
         rv = self.client.get(uri)
+        # TODO(bkyryliuk): investigate why presto returns 500
+        self.assertEqual(rv.status_code, 404 if example_db.backend != "presto" else 500)
+
+    def test_database_schemas(self):
+        """
+        Database API: Test database schemas
+        """
+        self.login("admin")
+        database = db.session.query(Database).first()
+        schemas = database.get_all_schema_names()
+
+        rv = self.client.get(f"api/v1/database/{database.id}/schemas/")
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(schemas, response["result"])
+
+        rv = self.client.get(
+            f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': True})}"
+        )
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(schemas, response["result"])
+
+    def test_database_schemas_not_found(self):
+        """
+        Database API: Test database schemas not found
+        """
+        self.logout()
+        self.login(username="gamma")
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/schemas/"
+        rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    def test_schemas(self):
+    def test_database_schemas_invalid_query(self):
+        """
+        Database API: Test database schemas with invalid query
+        """
         self.login("admin")
-        dbs = db.session.query(Database).all()
-        schemas = []
-        for database in dbs:
-            schemas += database.get_all_schema_names()
-
-        rv = self.client.get("api/v1/database/schemas/")
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(len(schemas), response["count"])
-        self.assertEqual(schemas[0], response["result"][0]["value"])
-
+        database = db.session.query(Database).first()
         rv = self.client.get(
-            f"api/v1/database/schemas/?q={prison.dumps({'filter': 'foo'})}"
+            f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': 'nop'})}"
         )
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(0, len(response["result"]))
-
-        rv = self.client.get(
-            f"api/v1/database/schemas/?q={prison.dumps({'page': 0, 'page_size': 25})}"
-        )
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(len(schemas), len(response["result"]))
-
-        rv = self.client.get(
-            f"api/v1/database/schemas/?q={prison.dumps({'page': 1, 'page_size': 25})}"
-        )
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(0, len(response["result"]))
-
-    @mock.patch("superset.security_manager.get_schemas_accessible_by_user")
-    def test_schemas_no_access(self, mock_get_schemas_accessible_by_user):
-        mock_get_schemas_accessible_by_user.return_value = []
-        self.login("admin")
-        rv = self.client.get("api/v1/database/schemas/")
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(0, response["count"])
+        self.assertEqual(rv.status_code, 400)

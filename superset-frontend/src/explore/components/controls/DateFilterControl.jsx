@@ -24,7 +24,6 @@ import {
   FormControl,
   FormGroup,
   InputGroup,
-  Label,
   MenuItem,
   OverlayTrigger,
   Popover,
@@ -37,7 +36,13 @@ import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
+import { styled, withTheme } from '@superset-ui/style';
 
+import {
+  buildTimeRangeString,
+  formatTimeRange,
+} from 'src/explore/dateFilterUtils';
+import Label from 'src/components/Label';
 import './DateFilterControl.less';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
@@ -82,8 +87,8 @@ const DEFAULT_SINCE = moment()
 const DEFAULT_UNTIL = moment().utc().startOf('day').format(MOMENT_FORMAT);
 const SEPARATOR = ' : ';
 const FREEFORM_TOOLTIP = t(
-  'Superset supports smart date parsing. Strings like `last sunday` or ' +
-    '`last october` can be used.',
+  'Superset supports smart date parsing. Strings like `3 weeks ago`, `last sunday`, or ' +
+    '`2 weeks from now` can be used.',
 );
 
 const DATE_FILTER_POPOVER_STYLE = { width: '250px' };
@@ -128,12 +133,18 @@ function getStateFromCommonTimeFrame(value) {
     tab: TABS.DEFAULTS,
     type: TYPES.DEFAULTS,
     common: value,
-    since: moment()
-      .utc()
-      .startOf('day')
-      .subtract(1, units)
-      .format(MOMENT_FORMAT),
-    until: moment().utc().startOf('day').format(MOMENT_FORMAT),
+    since:
+      value === 'No filter'
+        ? ''
+        : moment()
+            .utc()
+            .startOf('day')
+            .subtract(1, units)
+            .format(MOMENT_FORMAT),
+    until:
+      value === 'No filter'
+        ? ''
+        : moment().utc().startOf('day').format(MOMENT_FORMAT),
   };
 }
 
@@ -164,7 +175,13 @@ function getStateFromCustomRange(value) {
   };
 }
 
-export default class DateFilterControl extends React.Component {
+const Styles = styled.div`
+  .radio {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
+  }
+`;
+
+class DateFilterControl extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -363,35 +380,38 @@ export default class DateFilterControl extends React.Component {
         key={grain}
         eventKey={grain}
         active={grain === this.state.grain}
+        fullWidth={false}
       >
         {grain}
       </MenuItem>
     ));
     const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => {
       const nextState = getStateFromCommonTimeFrame(timeFrame);
-      const endpoints = this.props.endpoints;
+
+      const timeRange = buildTimeRangeString(nextState.since, nextState.until);
+
       return (
-        <OverlayTrigger
-          key={timeFrame}
-          placement="left"
-          overlay={
-            <Tooltip id={`tooltip-${timeFrame}`}>
-              {nextState.since} {endpoints && `(${endpoints[0]})`}
-              <br />
-              {nextState.until} {endpoints && `(${endpoints[1]})`}
-            </Tooltip>
-          }
-        >
-          <div>
-            <Radio
-              key={timeFrame.replace(' ', '').toLowerCase()}
-              checked={this.state.common === timeFrame}
-              onChange={() => this.setState(nextState)}
-            >
-              {timeFrame}
-            </Radio>
-          </div>
-        </OverlayTrigger>
+        <Styles theme={this.props.theme} key={timeFrame}>
+          <OverlayTrigger
+            key={timeFrame}
+            placement="right"
+            overlay={
+              <Tooltip id={`tooltip-${timeFrame}`}>
+                {formatTimeRange(timeRange, this.props.endpoints)}
+              </Tooltip>
+            }
+          >
+            <div style={{ display: 'inline-block' }}>
+              <Radio
+                key={timeFrame.replace(' ', '').toLowerCase()}
+                checked={this.state.common === timeFrame}
+                onChange={() => this.setState(nextState)}
+              >
+                {timeFrame}
+              </Radio>
+            </div>
+          </OverlayTrigger>
+        </Styles>
       );
     });
     return (
@@ -556,16 +576,7 @@ export default class DateFilterControl extends React.Component {
     );
   }
   render() {
-    let value = this.props.value || defaultProps.value;
-    const endpoints = this.props.endpoints;
-    value = value
-      .split(SEPARATOR)
-      .map(
-        (v, idx, values) =>
-          (v.replace('T00:00:00', '') || (idx === 0 ? '-∞' : '∞')) +
-          (endpoints && values.length > 1 ? ` (${endpoints[idx]})` : ''),
-      )
-      .join(SEPARATOR);
+    const timeRange = this.props.value || defaultProps.value;
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -579,14 +590,16 @@ export default class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
           onClick={this.handleClickTrigger}
         >
-          <Label name="popover-trigger" style={{ cursor: 'pointer' }}>
-            {value}
+          <Label name="popover-trigger" className="pointer">
+            {formatTimeRange(timeRange, this.props.endpoints)}
           </Label>
         </OverlayTrigger>
       </div>
     );
   }
 }
+
+export default withTheme(DateFilterControl);
 
 DateFilterControl.propTypes = propTypes;
 DateFilterControl.defaultProps = defaultProps;

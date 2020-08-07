@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Label } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import CachedLabel from 'src/components/CachedLabel';
 
 describe('CachedLabel', () => {
@@ -33,6 +33,6 @@ describe('CachedLabel', () => {
   });
   it('renders', () => {
     const wrapper = shallow(<CachedLabel {...defaultProps} />);
-    expect(wrapper.find(Label)).toHaveLength(1);
+    expect(wrapper.find(Label)).toExist();
   });
 });

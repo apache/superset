@@ -19,7 +19,7 @@ jobs:
         FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
       run: |
         set -eo pipefail
-        if [[ "${{github.event_name}}" != "pull_request" ]]; then 
+        if [[ "${{github.event_name}}" != "pull_request" ]]; then
           ./scripts/fossa.sh
           exit 0
         fi
@@ -30,10 +30,10 @@ jobs:
         cat<<EOF
         CHANGED FILES:
         $FILES
-        
+
         EOF
 
-        if [[ "${FILES}" =~ (.*package*\.json|requirements.*\.txt|setup\.py) ]]; then
+        if [[ "${FILES}" =~ (.*package*\.json|requirements/*\.txt|setup\.py) ]]; then
           echo "Detected dependency changes... running fossa check"
 
           ./scripts/fossa.sh

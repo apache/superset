@@ -62,17 +62,17 @@ describe('DatasourceControl', () => {
 
   it('renders a Modal', () => {
     const wrapper = setup();
-    expect(wrapper.find(DatasourceModal)).toHaveLength(1);
+    expect(wrapper.find(DatasourceModal)).toExist();
   });
 
   it('renders a ChangeDatasourceModal', () => {
     const wrapper = setup();
-    expect(wrapper.find(ChangeDatasourceModal)).toHaveLength(1);
+    expect(wrapper.find(ChangeDatasourceModal)).toExist();
   });
 
   it('show or hide Edit Datasource option', () => {
     let wrapper = setup();
-    expect(wrapper.find('#datasource_menu')).toHaveLength(1);
+    expect(wrapper.find('#datasource_menu')).toExist();
     expect(wrapper.find('#datasource_menu').dive().find(MenuItem)).toHaveLength(
       3,
     );
@@ -80,7 +80,7 @@ describe('DatasourceControl', () => {
     wrapper = setup({
       isEditable: false,
     });
-    expect(wrapper.find('#datasource_menu')).toHaveLength(1);
+    expect(wrapper.find('#datasource_menu')).toExist();
     expect(wrapper.find('#datasource_menu').dive().find(MenuItem)).toHaveLength(
       2,
     );

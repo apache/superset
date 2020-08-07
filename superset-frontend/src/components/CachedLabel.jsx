@@ -18,9 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label } from 'react-bootstrap';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
+
+import Label from 'src/components/Label';
 import TooltipWrapper from './TooltipWrapper';
 
 const propTypes = {

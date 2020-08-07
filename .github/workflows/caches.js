@@ -36,11 +36,11 @@ const assetsConfig = {
 module.exports = {
   pip: {
     path: [`${homeDirectory}/.cache/pip`],
-    hashFiles: [`${workspaceDirectory}/requirements*.txt`],
+    hashFiles: [`${workspaceDirectory}/requirements/*.txt`],
   },
   npm: {
     path: [`${homeDirectory}/.npm`],
-    hashFiles: ['superset-frontend/package-lock.json'],
+    hashFiles: [`${workspaceDirectory}/superset-frontend/package-lock.json`],
   },
   assets: assetsConfig,
   // use separate cache for instrumented JS files and regular assets

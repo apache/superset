@@ -214,9 +214,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "name": "row_column",
                 "type": "ROW(NESTED_OBJ1 VARCHAR, NESTED_ROW ROW(NESTED_OBJ2 VARCHAR))",
             },
+            {"name": "row_column.nested_obj1", "type": "VARCHAR"},
             {"name": "row_column.nested_row", "type": "ROW(NESTED_OBJ2 VARCHAR)"},
             {"name": "row_column.nested_row.nested_obj2", "type": "VARCHAR"},
-            {"name": "row_column.nested_obj1", "type": "VARCHAR"},
         ]
         expected_data = [
             {
@@ -433,3 +433,60 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             }
         ]
         self.assertEqual(formatted_cost, expected)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
+    )
+    def test_presto_expand_data_array(self):
+        cols = [
+            {"name": "event_id", "type": "VARCHAR", "is_date": False},
+            {"name": "timestamp", "type": "BIGINT", "is_date": False},
+            {
+                "name": "user",
+                "type": "ROW(ID BIGINT, FIRST_NAME VARCHAR, LAST_NAME VARCHAR)",
+                "is_date": False,
+            },
+        ]
+        data = [
+            {
+                "event_id": "abcdef01-2345-6789-abcd-ef0123456789",
+                "timestamp": "1595895506219",
+                "user": '[1, "JOHN", "DOE"]',
+            }
+        ]
+        actual_cols, actual_data, actual_expanded_cols = PrestoEngineSpec.expand_data(
+            cols, data
+        )
+        expected_cols = [
+            {"name": "event_id", "type": "VARCHAR", "is_date": False},
+            {"name": "timestamp", "type": "BIGINT", "is_date": False},
+            {
+                "name": "user",
+                "type": "ROW(ID BIGINT, FIRST_NAME VARCHAR, LAST_NAME VARCHAR)",
+                "is_date": False,
+            },
+            {"name": "user.id", "type": "BIGINT"},
+            {"name": "user.first_name", "type": "VARCHAR"},
+            {"name": "user.last_name", "type": "VARCHAR"},
+        ]
+        expected_data = [
+            {
+                "event_id": "abcdef01-2345-6789-abcd-ef0123456789",
+                "timestamp": "1595895506219",
+                "user": [1, "JOHN", "DOE"],
+                "user.id": 1,
+                "user.first_name": "JOHN",
+                "user.last_name": "DOE",
+            }
+        ]
+        expected_expanded_cols = [
+            {"name": "user.id", "type": "BIGINT"},
+            {"name": "user.first_name", "type": "VARCHAR"},
+            {"name": "user.last_name", "type": "VARCHAR"},
+        ]
+
+        self.assertEqual(actual_cols, expected_cols)
+        self.assertEqual(actual_data, expected_data)
+        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
