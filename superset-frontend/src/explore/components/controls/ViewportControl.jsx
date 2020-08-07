@@ -18,9 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label, Popover, OverlayTrigger } from 'react-bootstrap';
+import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { decimal2sexagesimal } from 'geolib';
 
+import Label from 'src/components/Label';
 import FormLabel from 'src/components/FormLabel';
 import TextControl from './TextControl';
 import ControlHeader from '../ControlHeader';
@@ -104,7 +105,7 @@ export default class ViewportControl extends React.Component {
           placement="right"
           overlay={this.renderPopover()}
         >
-          <Label style={{ cursor: 'pointer' }}>{this.renderLabel()}</Label>
+          <Label className="pointer">{this.renderLabel()}</Label>
         </OverlayTrigger>
       </div>
     );

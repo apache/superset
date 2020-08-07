@@ -19,12 +19,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
-import { Alert, Label, Tab, Tabs } from 'react-bootstrap';
+import { Alert, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { t } from '@superset-ui/translation';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
+import Label from 'src/components/Label';
 import * as Actions from '../actions/sqlLab';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';

@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import { Label } from 'react-bootstrap';
+import Label from 'src/components/Label';
 import LimitControl from 'src/SqlLab/components/LimitControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 

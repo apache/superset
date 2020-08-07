@@ -21,10 +21,10 @@ import styled from '@superset-ui/style';
 import PropTypes from 'prop-types';
 import rison from 'rison';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
-import { Label } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
+import Label from 'src/components/Label';
 import FormLabel from 'src/components/FormLabel';
 
 import SupersetAsyncSelect from './AsyncSelect';
