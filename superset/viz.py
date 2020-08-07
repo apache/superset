@@ -329,13 +329,17 @@ class BaseViz:
         # default order direction
         order_desc = form_data.get("order_desc", True)
 
-        since, until = utils.get_since_until(
-            relative_start=relative_start,
-            relative_end=relative_end,
-            time_range=form_data.get("time_range"),
-            since=form_data.get("since"),
-            until=form_data.get("until"),
-        )
+        try:
+            since, until = utils.get_since_until(
+                relative_start=relative_start,
+                relative_end=relative_end,
+                time_range=form_data.get("time_range"),
+                since=form_data.get("since"),
+                until=form_data.get("until"),
+            )
+        except ValueError as ex:
+            raise QueryObjectValidationError(str(ex))
+
         time_shift = form_data.get("time_shift", "")
         self.time_shift = utils.parse_past_timedelta(time_shift)
         from_dttm = None if since is None else (since - self.time_shift)
@@ -475,6 +479,16 @@ class BaseViz:
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
+            except QueryObjectValidationError as ex:
+                error = dataclasses.asdict(
+                    SupersetError(
+                        message=str(ex),
+                        level=ErrorLevel.ERROR,
+                        error_type=SupersetErrorType.VIZ_GET_DF_ERROR,
+                    )
+                )
+                self.errors.append(error)
+                self.status = utils.QueryStatus.FAILED
             except Exception as ex:
                 logger.exception(ex)
 
@@ -889,13 +903,16 @@ class CalHeatmapViz(BaseViz):
                 values[str(v / 10 ** 9)] = obj.get(metric)
             data[metric] = values
 
-        start, end = utils.get_since_until(
-            relative_start=relative_start,
-            relative_end=relative_end,
-            time_range=form_data.get("time_range"),
-            since=form_data.get("since"),
-            until=form_data.get("until"),
-        )
+        try:
+            start, end = utils.get_since_until(
+                relative_start=relative_start,
+                relative_end=relative_end,
+                time_range=form_data.get("time_range"),
+                since=form_data.get("since"),
+                until=form_data.get("until"),
+            )
+        except ValueError as ex:
+            raise QueryObjectValidationError(str(ex))
         if not start or not end:
             raise QueryObjectValidationError(
                 "Please provide both time bounds (Since and Until)"
@@ -1288,7 +1305,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         for option in time_compare:
             query_object = self.query_obj()
-            delta = utils.parse_past_timedelta(option)
+            try:
+                delta = utils.parse_past_timedelta(option)
+            except ValueError as ex:
+                raise QueryObjectValidationError(str(ex))
             query_object["inner_from_dttm"] = query_object["from_dttm"]
             query_object["inner_to_dttm"] = query_object["to_dttm"]
 
