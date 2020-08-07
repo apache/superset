@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
+import { withKnobs, select, text } from '@storybook/addon-knobs';
 import Label from './index';
 
 export default {
@@ -32,7 +32,7 @@ const bsStyleKnob = {
   options: {
     danger: 'danger',
     warning: 'warning',
-    cuccess: 'success',
+    success: 'success',
     default: 'default',
   },
   defaultValue: 'default',
