@@ -24,5 +24,6 @@ pyhive[presto]>=0.6.3
 pylint
 pytest
 pytest-cov
+pytest-xdist
 redis
 statsd
