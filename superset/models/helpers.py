@@ -34,9 +34,9 @@ from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 
-from superset.extensions import db
 from superset.utils.core import QueryStatus
 
 logger = logging.getLogger(__name__)
@@ -127,6 +127,7 @@ class ImportMixin:
     @classmethod
     def import_from_dict(  # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         cls,
+        session: Session,
         dict_rep: Dict[Any, Any],
         parent: Optional[Any] = None,
         recursive: bool = True,
@@ -177,7 +178,7 @@ class ImportMixin:
 
         # Check if object already exists in DB, break if more than one is found
         try:
-            obj_query = db.session.query(cls).filter(and_(*filters))
+            obj_query = session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
         except MultipleResultsFound as ex:
             logger.error(
@@ -195,7 +196,7 @@ class ImportMixin:
             logger.info("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
-            db.session.add(obj)
+            session.add(obj)
         else:
             is_new_obj = False
             logger.info("Updating %s %s", obj.__tablename__, str(obj))
@@ -213,7 +214,7 @@ class ImportMixin:
                 for c_obj in new_children.get(child, []):
                     added.append(
                         child_class.import_from_dict(
-                            dict_rep=c_obj, parent=obj, sync=sync
+                            session=session, dict_rep=c_obj, parent=obj, sync=sync
                         )
                     )
                 # If children should get synced, delete the ones that did not
@@ -227,11 +228,11 @@ class ImportMixin:
                         for k in back_refs.keys()
                     ]
                     to_delete = set(
-                        db.session.query(child_class).filter(and_(*delete_filters))
+                        session.query(child_class).filter(and_(*delete_filters))
                     ).difference(set(added))
                     for o in to_delete:
                         logger.info("Deleting %s %s", child, str(obj))
-                        db.session.delete(o)
+                        session.delete(o)
 
         return obj
 

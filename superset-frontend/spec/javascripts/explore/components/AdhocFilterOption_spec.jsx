@@ -20,8 +20,9 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { Label, OverlayTrigger } from 'react-bootstrap';
+import { OverlayTrigger } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,

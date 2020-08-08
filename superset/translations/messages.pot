@@ -4329,8 +4329,8 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl.jsx:85
 msgid ""
-"Superset supports smart date parsing. Strings like `last sunday` or `last"
-" october` can be used."
+"Superset supports smart date parsing. Strings like `3 weeks ago`, `last sunday`"
+" or `2 weeks from now` can be used."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:142

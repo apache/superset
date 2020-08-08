@@ -23,6 +23,7 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Engine spec for Exasol"""
 
     engine = "exa"
+    engine_name = "Exasol"
     max_column_name_length = 128
 
     # Exasol's DATE_TRUNC function is PostgresSQL compatible

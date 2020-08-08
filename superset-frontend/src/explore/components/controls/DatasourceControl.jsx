@@ -22,7 +22,6 @@ import {
   Col,
   Collapse,
   DropdownButton,
-  Label,
   MenuItem,
   OverlayTrigger,
   Row,
@@ -31,6 +30,8 @@ import {
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
+
+import Label from 'src/components/Label';
 import ControlHeader from '../ControlHeader';
 import DatasourceModal from '../../../datasource/DatasourceModal';
 import ChangeDatasourceModal from '../../../datasource/ChangeDatasourceModal';

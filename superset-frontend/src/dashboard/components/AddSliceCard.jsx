@@ -22,24 +22,28 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 
 const propTypes = {
-  datasourceLink: PropTypes.string,
+  datasourceUrl: PropTypes.string,
+  datasourceName: PropTypes.string,
   innerRef: PropTypes.func,
   isSelected: PropTypes.bool,
-  lastModified: PropTypes.string.isRequired,
+  lastModified: PropTypes.string,
   sliceName: PropTypes.string.isRequired,
   style: PropTypes.object,
   visType: PropTypes.string.isRequired,
 };
 
 const defaultProps = {
-  datasourceLink: '—',
+  datasourceUrl: null,
+  datasourceName: '-',
   innerRef: null,
   isSelected: false,
   style: null,
+  lastModified: null,
 };
 
 function AddSliceCard({
-  datasourceLink,
+  datasourceUrl,
+  datasourceName,
   innerRef,
   isSelected,
   lastModified,
@@ -62,9 +66,7 @@ function AddSliceCard({
           </div>
           <div className="item">
             <span>{t('Data source')} </span>
-            <span // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: datasourceLink }}
-            />
+            <a href={datasourceUrl}>{datasourceName}</a>
           </div>
         </div>
       </div>

@@ -68,7 +68,7 @@ describe('HeaderActionsDropdown', () => {
 
     it('should render two MenuItems', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(2);
+      expect(wrapper.find(MenuItem)).toHaveLength(3);
     });
 
     it('should render the RefreshIntervalModal', () => {

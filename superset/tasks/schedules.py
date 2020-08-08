@@ -18,7 +18,6 @@
 """Utility functions used across Superset"""
 
 import logging
-import textwrap
 import time
 import urllib.request
 from collections import namedtuple
@@ -48,6 +47,7 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
+from sqlalchemy.orm import Session
 from werkzeug.http import parse_cookie
 
 from superset import app, db, security_manager, thumbnail_cache
@@ -542,7 +542,8 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     is_test_alert: Optional[bool] = False,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
-    schedule = db.session.query(model_cls).get(schedule_id)
+    dbsession = db.create_scoped_session()
+    schedule = dbsession.query(model_cls).get(schedule_id)
 
     # The user may have disabled the schedule. If so, ignore this
     if not schedule or not schedule.active:
@@ -551,10 +552,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
 
     if report_type == ScheduleType.alert:
         if is_test_alert and recipients:
-            deliver_alert(schedule, recipients)
+            deliver_alert(schedule.id, recipients)
             return
 
-        if run_alert_query(schedule):
+        if run_alert_query(schedule.id, dbsession):
             # deliver_dashboard OR deliver_slice
             return
     else:
@@ -567,7 +568,9 @@ class AlertState:
     PASS = "pass"
 
 
-def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
+def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
+    alert = db.session.query(Alert).get(alert_id)
+
     logging.info("Triggering alert: %s", alert)
     img_data = None
     images = {}
@@ -579,10 +582,15 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
             "Superset.slice", slice_id=alert.slice.id, standalone="true"
         )
         screenshot = ChartScreenshot(chart_url, alert.slice.digest)
-        cache_key = screenshot.cache_key()
-        image_url = get_url_path(
-            "ChartRestApi.screenshot", pk=alert.slice.id, digest=cache_key
+        image_url = _get_url_path(
+            "Superset.slice",
+            user_friendly=True,
+            slice_id=alert.slice.id,
+            standalone="true",
         )
+        standalone_index = image_url.find("/?standalone=true")
+        if standalone_index != -1:
+            image_url = image_url[:standalone_index]
 
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         img_data = screenshot.compute_and_cache(
@@ -593,29 +601,29 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
         image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
 
     # generate the email
+    # TODO add sql query results to email
     subject = f"[Superset] Triggered alert: {alert.label}"
     deliver_as_group = False
     data = None
     if img_data:
         images = {"screenshot": img_data}
-    body = __(
-        textwrap.dedent(
-            """\
-            <h2>Alert: %(label)s</h2>
-            <img src="cid:screenshot" alt="%(label)s" />
-        """
-        ),
+    body = render_template(
+        "email/alert.txt",
+        alert_url=_get_url_path("AlertModelView.show", user_friendly=True, pk=alert.id),
         label=alert.label,
+        sql=alert.sql,
         image_url=image_url,
     )
 
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 
 
-def run_alert_query(alert: Alert) -> Optional[bool]:
+def run_alert_query(alert_id: int, dbsession: Session) -> Optional[bool]:
     """
     Execute alert.sql and return value if any rows are returned
     """
+    alert = db.session.query(Alert).get(alert_id)
+
     logger.info("Processing alert ID: %i", alert.id)
     database = alert.database
     if not database:
@@ -650,7 +658,7 @@ def run_alert_query(alert: Alert) -> Optional[bool]:
             for row in df.to_records():
                 if any(row):
                     state = AlertState.TRIGGER
-                    deliver_alert(alert)
+                    deliver_alert(alert.id)
                     break
         if not state:
             state = AlertState.PASS
@@ -664,7 +672,7 @@ def run_alert_query(alert: Alert) -> Optional[bool]:
             state=state,
         )
     )
-    db.session.commit()
+    dbsession.commit()
 
     return None
 
@@ -704,7 +712,8 @@ def schedule_window(
     if not model_cls:
         return None
 
-    schedules = db.session.query(model_cls).filter(model_cls.active.is_(True))
+    dbsession = db.create_scoped_session()
+    schedules = dbsession.query(model_cls).filter(model_cls.active.is_(True))
 
     for schedule in schedules:
         logging.info("Processing schedule %s", schedule)

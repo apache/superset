@@ -19,9 +19,10 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { mount } from 'enzyme';
-import { Button, Label } from 'react-bootstrap';
+import { styledMount as mount } from 'spec/helpers/theming';
+import { Button } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 

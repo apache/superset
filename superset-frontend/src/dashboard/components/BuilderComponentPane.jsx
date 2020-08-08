@@ -19,37 +19,53 @@
 /* eslint-env browser */
 import PropTypes from 'prop-types';
 import React from 'react';
+import { Tabs, Tab } from 'react-bootstrap';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 
-import InsertComponentPane, {
-  SUPERSET_HEADER_HEIGHT,
-} from './InsertComponentPane';
-import ColorComponentPane from './ColorComponentPane';
-import { BUILDER_PANE_TYPE } from '../util/constants';
+import { t } from '@superset-ui/translation';
+
+import NewColumn from './gridComponents/new/NewColumn';
+import NewDivider from './gridComponents/new/NewDivider';
+import NewHeader from './gridComponents/new/NewHeader';
+import NewRow from './gridComponents/new/NewRow';
+import NewTabs from './gridComponents/new/NewTabs';
+import NewMarkdown from './gridComponents/new/NewMarkdown';
+import SliceAdder from '../containers/SliceAdder';
 
 const propTypes = {
   topOffset: PropTypes.number,
-  showBuilderPane: PropTypes.func.isRequired,
-  builderPaneType: PropTypes.string.isRequired,
-  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
-  colorScheme: PropTypes.string,
 };
 
 const defaultProps = {
   topOffset: 0,
-  colorScheme: undefined,
 };
 
+const SUPERSET_HEADER_HEIGHT = 59;
+
 class BuilderComponentPane extends React.PureComponent {
+  renderTabs(height) {
+    const { isSticky } = this.props;
+    return (
+      <Tabs className="m-t-10 tabs-components">
+        <Tab eventKey={1} title={t('Components')}>
+          <NewTabs />
+          <NewRow />
+          <NewColumn />
+          <NewHeader />
+          <NewMarkdown />
+          <NewDivider />
+        </Tab>
+        <Tab eventKey={2} title={t('Charts')} className="tab-charts">
+          <SliceAdder
+            height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
+          />
+        </Tab>
+      </Tabs>
+    );
+  }
   render() {
-    const {
-      topOffset,
-      builderPaneType,
-      showBuilderPane,
-      setColorSchemeAndUnsavedChanges,
-      colorScheme,
-    } = this.props;
+    const { topOffset } = this.props;
     return (
       <div
         className="dashboard-builder-sidepane"
@@ -66,22 +82,7 @@ class BuilderComponentPane extends React.PureComponent {
                     className="viewport"
                     style={isSticky ? { ...style, top: topOffset } : null}
                   >
-                    {builderPaneType === BUILDER_PANE_TYPE.ADD_COMPONENTS && (
-                      <InsertComponentPane
-                        height={height}
-                        isSticky={isSticky}
-                        showBuilderPane={showBuilderPane}
-                      />
-                    )}
-                    {builderPaneType === BUILDER_PANE_TYPE.COLORS && (
-                      <ColorComponentPane
-                        showBuilderPane={showBuilderPane}
-                        setColorSchemeAndUnsavedChanges={
-                          setColorSchemeAndUnsavedChanges
-                        }
-                        colorScheme={colorScheme}
-                      />
-                    )}
+                    {this.renderTabs(height)}
                   </div>
                 )}
               </Sticky>
