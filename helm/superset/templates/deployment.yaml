@@ -35,6 +35,10 @@ spec:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
     spec:
+    {{- with .Values.image.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       securityContext:
         runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
       {{- if .Values.supersetNode.initContainers }}

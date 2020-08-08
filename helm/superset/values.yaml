@@ -47,6 +47,8 @@ image:
   repository: preset/superset
   tag: latest
   pullPolicy: IfNotPresent
+  # imagePullSecrets:
+  #   - name: docker-registry
 
 service:
   type: NodePort
