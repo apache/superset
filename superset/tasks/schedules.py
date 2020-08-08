@@ -97,6 +97,16 @@ ReportContent = namedtuple(
     ],
 )
 
+AlertContent = namedtuple(
+    "AlertContent",
+    [
+        "label",  # alert name
+        "sql",  # sql statment for alert
+        "url",  # url to alert chart/dashboard
+        "image_data",  # bytes for alert screenshot
+    ],
+)
+
 
 def _get_email_to_and_bcc(
     recipients: str, deliver_as_group: bool
@@ -400,6 +410,24 @@ def _get_slice_data(slc: Slice, delivery_type: EmailDeliveryType) -> ReportConte
     return ReportContent(body, data, None, slack_message, content)
 
 
+def _get_slice_screenshot(slice_id: int) -> Dict[str, Union[str, Optional[bytes]]]:
+    slice_obj = db.session.query(Slice).get(slice_id)
+
+    chart_url = get_url_path("Superset.slice", slice_id=slice_obj.id, standalone="true")
+    screenshot = ChartScreenshot(chart_url, slice_obj.digest)
+    image_url = _get_url_path(
+        "Superset.slice", user_friendly=True, slice_id=slice_obj.id,
+    )
+
+    user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
+    image_data = screenshot.compute_and_cache(
+        user=user, cache=thumbnail_cache, force=True,
+    )
+
+    db.session.commit()
+    return {"url": image_url, "image_data": image_data}
+
+
 def _get_slice_visualization(
     slc: Slice, delivery_type: EmailDeliveryType
 ) -> ReportContent:
@@ -546,7 +574,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     report_type: ScheduleType,
     schedule_id: int,
     recipients: Optional[str] = None,
-    is_test_alert: Optional[bool] = False,
+    slack_channel: Optional[str] = None,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
 
@@ -558,10 +586,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             logger.info("Ignoring deactivated alert")
             return
 
-        if report_type == ScheduleType.alert:
-            if is_test_alert and recipients:
-                deliver_alert(schedule.id, recipients)
-                return
+    if report_type == ScheduleType.alert:
+        if recipients or slack_channel:
+            deliver_alert(schedule.id, recipients, slack_channel)
+            return
 
             if run_alert_query(
                 schedule.id, schedule.database_id, schedule.sql, schedule.label
@@ -584,56 +612,74 @@ class AlertState:
     PASS = "pass"
 
 
-def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
+def deliver_alert(
+    alert_id: int, recipients: Optional[str] = None, slack_channel: Optional[str] = None
+) -> None:
     alert = db.session.query(Alert).get(alert_id)
 
     logging.info("Triggering alert: %s", alert)
-    img_data = None
-    images = {}
     recipients = recipients or alert.recipients
+    slack_channel = slack_channel or alert.slack_channel
+    alert_content = AlertContent(alert.label, alert.sql, None, None,)
 
     if alert.slice:
-
-        chart_url = get_url_path(
-            "Superset.slice", slice_id=alert.slice.id, standalone="true"
-        )
-        screenshot = ChartScreenshot(chart_url, alert.slice.digest)
-        image_url = _get_url_path(
-            "Superset.slice",
-            user_friendly=True,
-            slice_id=alert.slice.id,
-            standalone="true",
-        )
-        standalone_index = image_url.find("/?standalone=true")
-        if standalone_index != -1:
-            image_url = image_url[:standalone_index]
-
-        user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
-        img_data = screenshot.compute_and_cache(
-            user=user, cache=thumbnail_cache, force=True,
+        slice_screenshot = _get_slice_screenshot(alert.slice.id)
+        alert_content = AlertContent(
+            alert.label,
+            alert.sql,
+            slice_screenshot["url"],
+            slice_screenshot["image_data"],
         )
     else:
         # TODO: dashboard delivery!
-        image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
+        alert_content = AlertContent(alert.label, alert.sql, None, None,)
 
-    # generate the email
+    if recipients:
+        deliver_email_alert(alert_content, alert.id, recipients)
+    if slack_channel:
+        deliver_slack_alert(alert_content, slack_channel)
+
+
+def deliver_email_alert(
+    alert_content: AlertContent, alert_id: int, recipients: str
+) -> None:
     # TODO add sql query results to email
-    subject = f"[Superset] Triggered alert: {alert.label}"
+    subject = f"[Superset] Triggered alert: {alert_content.label}"
     deliver_as_group = False
     data = None
-    if img_data:
-        images = {"screenshot": img_data}
+    images = {}
+    if alert_content.image_data:
+        images = {"screenshot": alert_content.image_data}
+
     body = render_template(
         "email/alert.txt",
-        alert_url=_get_url_path("AlertModelView.show", user_friendly=True, pk=alert.id),
-        label=alert.label,
-        sql=alert.sql,
-        image_url=image_url,
+        alert_url=_get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
+        label=alert_content.label,
+        sql=alert_content.sql,
+        image_url=alert_content.url,
     )
 
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 
 
+def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None:
+    subject = __("[Alert] %(label)s", label=alert_content.label)
+
+    slack_message = __(
+        "*Triggered Alert: %(label)s :redalert:*\n"
+        "SQL Statement:```%(sql)s```\n"
+        "<%(url)s|Explore in Superset>",
+        label=alert_content.label,
+        sql=alert_content.sql,
+        url=alert_content.url,
+    )
+
+    deliver_slack_msg(
+        slack_channel, subject, slack_message, alert_content.image_data,
+    )
+
+
+def run_alert_query(alert_id: int, dbsession: Session) -> Optional[bool]:
 def run_alert_query(
     alert_id: int, database_id: int, sql: str, label: str
 ) -> Optional[bool]:

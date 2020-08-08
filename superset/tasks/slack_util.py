@@ -32,7 +32,7 @@ logger = logging.getLogger("tasks.slack_util")
 
 @retry(SlackApiError, delay=10, backoff=2, tries=5)
 def deliver_slack_msg(
-    slack_channel: str, subject: str, body: str, file: Union[str, IOBase]
+    slack_channel: str, subject: str, body: str, file: Union[str, IOBase, bytes]
 ) -> None:
     client = WebClient(token=config["SLACK_API_TOKEN"], proxy=config["SLACK_PROXY"])
     # files_upload returns SlackResponse as we run it in sync mode.
