@@ -27,13 +27,18 @@ RUN mkdir /app \
             build-essential \
             default-libmysqlclient-dev \
             libpq-dev \
+            libsasl2-dev \
         && rm -rf /var/lib/apt/lists/*
 
 # First, we just wanna install requirements, which will allow us to utilize the cache
 # in order to only build if and only if requirements change
-COPY ./requirements/*.txt /app/
+COPY ./requirements/*.txt  /app/requirements/
+COPY setup.py MANIFEST.in README.md /app/
+COPY superset-frontend/package.json /app/superset-frontend/
 RUN cd /app \
-        && pip install --no-cache -r requirements/local.txt
+    && mkdir -p superset/static \
+    && touch superset/static/version_info.json \
+    && pip install --no-cache -r requirements/local.txt
 
 
 ######################################################################
@@ -114,13 +119,11 @@ ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 ######################################################################
 FROM lean AS dev
 
-COPY ./requirements/*.txt ./docker/requirements/ /app/
+COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
 
 USER root
 # Cache everything for dev purposes...
 RUN cd /app \
-    && pip install --ignore-installed -e . \
-    && pip install --ignore-installed -r requirements/local.txt \
-    && pip install --ignore-installed -r requirements-extra.txt \
-    && pip install --ignore-installed -r requirements-local.txt || true
+    && pip install --no-cache -r requirements/docker.txt \
+    && pip install --no-cache -r requirements/requirements-local.txt || true
 USER superset
