@@ -361,8 +361,8 @@ class TestCore(SupersetTestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_get_user_slices_for_owners(self):
-        self.login(username="admin")
-        user = security_manager.find_user("admin")
+        self.login(username="alpha")
+        user = security_manager.find_user("alpha")
         slice_name = "Girls"
 
         # ensure user is not owner of any slices
