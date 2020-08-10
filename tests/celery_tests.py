@@ -18,6 +18,7 @@
 """Unit tests for Superset Celery worker"""
 import datetime
 import json
+from typing import Optional
 
 from parameterized import parameterized
 import time
@@ -26,13 +27,13 @@ import unittest.mock as mock
 
 import flask
 from flask import current_app
-from sqlalchemy.engine import Engine
 
 from tests.test_app import app
 from superset import db, sql_lab
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.extensions import celery_app
+from superset.models.core import Database
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, CtasMethod
@@ -220,7 +221,7 @@ class TestCelery(SupersetTestCase):
         self.assertEqual(QueryStatus.SUCCESS, query3.status)
 
     def drop_table_if_exists(
-        self, table_name: str, table_type: CtasMethod, database: Optional[Database] = None
+        self, table_name: str, table_type: CtasMethod, database: Database,
     ) -> None:
         """Drop table if it exists, works on any DB"""
         sql = f"DROP {table_type} IF EXISTS  {table_name}"
