@@ -790,15 +790,13 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 # chrome:
 #   Requires: headless chrome
 #   Limitations: unable to generate screenshots of elements
-EMAIL_REPORTS_WEBDRIVER = "firefox"
+WEBDRIVER_TYPE = "firefox"
 
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
 
 # Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
-# The webdriver to use supports "chrome" and "firefox"
-WEBDRIVER_TYPE = "firefox"
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"

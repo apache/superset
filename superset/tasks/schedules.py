@@ -209,10 +209,10 @@ def create_webdriver() -> Union[
     chrome.webdriver.WebDriver, firefox.webdriver.WebDriver
 ]:
     # Create a webdriver for use in fetching reports
-    if config["EMAIL_REPORTS_WEBDRIVER"] == "firefox":
+    if config["WEBDRIVER_TYPE"] == "firefox":
         driver_class = firefox.webdriver.WebDriver
         options = firefox.options.Options()
-    elif config["EMAIL_REPORTS_WEBDRIVER"] == "chrome":
+    elif config["WEBDRIVER_TYPE"] == "chrome":
         driver_class = chrome.webdriver.WebDriver
         options = chrome.options.Options()
 
