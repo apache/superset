@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import {
   Button,
   FormGroup,
@@ -26,19 +25,32 @@ import {
   Popover,
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import styled from '@superset-ui/style';
 
 import Label from 'src/components/Label';
 import ControlHeader from '../../explore/components/ControlHeader';
 
-const propTypes = {
-  value: PropTypes.number,
-  defaultQueryLimit: PropTypes.number.isRequired,
-  maxRow: PropTypes.number.isRequired,
-  onChange: PropTypes.func.isRequired,
-};
+export interface LimitControlProps {
+  value?: number;
+  defaultQueryLimit: number;
+  maxRow: number;
+  onChange: (value: number) => void;
+}
 
-export default class LimitControl extends React.PureComponent {
-  constructor(props) {
+interface LimitControlState {
+  textValue: string;
+  showOverlay: boolean;
+}
+
+const StyledPopoverContent = styled.div`
+  width: 150px;
+`;
+
+export default class LimitControl extends React.PureComponent<
+  LimitControlProps,
+  LimitControlState
+> {
+  constructor(props: LimitControlProps) {
     super(props);
     const { value, defaultQueryLimit } = props;
     this.state = {
@@ -50,7 +62,7 @@ export default class LimitControl extends React.PureComponent {
     this.submitAndClose = this.submitAndClose.bind(this);
   }
 
-  setValueAndClose(val) {
+  setValueAndClose(val: string) {
     this.setState({ textValue: val }, this.submitAndClose);
   }
 
@@ -61,7 +73,7 @@ export default class LimitControl extends React.PureComponent {
     this.setState({ showOverlay: false });
   }
 
-  isValidLimit(limit) {
+  isValidLimit(limit: string) {
     const value = parseInt(limit, 10);
     return !(
       Number.isNaN(value) ||
@@ -88,10 +100,10 @@ export default class LimitControl extends React.PureComponent {
         : '');
     return (
       <Popover id="sqllab-limit-results">
-        <div style={{ width: '100px' }}>
+        <StyledPopoverContent>
           <ControlHeader
             label={t('Row limit')}
-            validationErrors={!isValid ? [t(errorMsg)] : []}
+            validationErrors={!isValid ? [errorMsg] : []}
           />
           <FormGroup>
             <FormControl
@@ -99,18 +111,21 @@ export default class LimitControl extends React.PureComponent {
               value={textValue}
               placeholder={t(`Max: ${this.props.maxRow}`)}
               bsSize="small"
-              onChange={e => this.setState({ textValue: e.target.value })}
+              // @ts-ignore
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                this.setState({ textValue: event.target.value })
+              }
             />
           </FormGroup>
           <div className="clearfix">
             <Button
               bsSize="small"
               bsStyle="primary"
-              className="float-left ok"
+              className="float-right ok m-l-5"
               disabled={!isValid}
               onClick={this.submitAndClose}
             >
-              Ok
+              {t('Ok')}
             </Button>
             <Button
               bsSize="small"
@@ -120,10 +135,10 @@ export default class LimitControl extends React.PureComponent {
                 this.props.defaultQueryLimit.toString(),
               )}
             >
-              Reset
+              {t('Cancel')}
             </Button>
           </div>
-        </div>
+        </StyledPopoverContent>
       </Popover>
     );
   }
@@ -138,7 +153,6 @@ export default class LimitControl extends React.PureComponent {
           rootClose
           show={this.state.showOverlay}
           onHide={this.handleHide}
-          trigger="click"
           placement="right"
           target={this}
         >
@@ -148,5 +162,3 @@ export default class LimitControl extends React.PureComponent {
     );
   }
 }
-
-LimitControl.propTypes = propTypes;
