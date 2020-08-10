@@ -18,6 +18,7 @@
 """Unit tests for Superset Celery worker"""
 import datetime
 import json
+from typing import Optional
 
 from parameterized import parameterized
 import time
@@ -26,13 +27,13 @@ import unittest.mock as mock
 
 import flask
 from flask import current_app
-from sqlalchemy.engine import Engine
 
 from tests.test_app import app
 from superset import db, sql_lab
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.extensions import celery_app
+from superset.models.core import Database
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, CtasMethod
@@ -219,14 +220,12 @@ class TestCelery(SupersetTestCase):
         query3 = self.get_query_by_id(result3["query"]["serverId"])
         self.assertEqual(QueryStatus.SUCCESS, query3.status)
 
-    def drop_table_if_exists(self, table_name, table_type: CtasMethod, database=None):
+    def drop_table_if_exists(
+        self, table_name: str, table_type: CtasMethod, database: Database,
+    ) -> None:
         """Drop table if it exists, works on any DB"""
-        sql = f"DROP {table_type} {table_name}"
-        db_id = database.id
-        if database:
-            database.allow_dml = True
-            db.session.flush()
-        return self.run_sql(db_id, sql)
+        sql = f"DROP {table_type} IF EXISTS  {table_name}"
+        database.get_sqla_engine().execute(sql)
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     def test_run_sync_query_cta_config(self, ctas_method):
@@ -234,18 +233,20 @@ class TestCelery(SupersetTestCase):
             "superset.views.core.get_cta_schema_name",
             lambda d, u, s, sql: CTAS_SCHEMA_NAME,
         ):
-            main_db = get_example_database()
-            db_id = main_db.id
-            backend = main_db.backend
+            examples_db = get_example_database()
+            db_id = examples_db.id
+            backend = examples_db.backend
             if backend == "sqlite":
                 # sqlite doesn't support schemas
                 return
             tmp_table_name = f"tmp_async_22_{ctas_method.lower()}"
             quote = (
-                main_db.inspector.engine.dialect.identifier_preparer.quote_identifier
+                examples_db.inspector.engine.dialect.identifier_preparer.quote_identifier
             )
             expected_full_table_name = f"{CTAS_SCHEMA_NAME}.{quote(tmp_table_name)}"
-            self.drop_table_if_exists(expected_full_table_name, ctas_method, main_db)
+            self.drop_table_if_exists(
+                expected_full_table_name, ctas_method, examples_db
+            )
             name = "James"
             sql_where = f"SELECT name FROM birth_names WHERE name='{name}'"
             result = self.run_sql(
@@ -309,24 +310,24 @@ class TestCelery(SupersetTestCase):
             "superset.views.core.get_cta_schema_name",
             lambda d, u, s, sql: CTAS_SCHEMA_NAME,
         ):
-            main_db = get_example_database()
-            db_id = main_db.id
-            if main_db.backend == "sqlite":
+            example_db = get_example_database()
+            db_id = example_db.id
+            if example_db.backend == "sqlite":
                 # sqlite doesn't support schemas
                 return
 
             tmp_table_name = f"sqllab_test_table_async_1_{ctas_method}"
             quote = (
-                main_db.inspector.engine.dialect.identifier_preparer.quote_identifier
+                example_db.inspector.engine.dialect.identifier_preparer.quote_identifier
             )
 
             schema_name = (
                 quote(CTAS_SCHEMA_NAME)
-                if main_db.backend == "presto"
+                if example_db.backend == "presto"
                 else CTAS_SCHEMA_NAME
             )
             expected_full_table_name = f"{schema_name}.{quote(tmp_table_name)}"
-            self.drop_table_if_exists(expected_full_table_name, ctas_method, main_db)
+            self.drop_table_if_exists(expected_full_table_name, ctas_method, example_db)
             sql_where = "SELECT name FROM birth_names WHERE name='James' LIMIT 10"
             result = self.run_sql(
                 db_id,
@@ -351,7 +352,7 @@ class TestCelery(SupersetTestCase):
                 query.executed_sql,
             )
             self.drop_table_if_exists(
-                expected_full_table_name, ctas_method, get_example_database()
+                f"{schema_name}.{tmp_table_name}", ctas_method, get_example_database()
             )
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
@@ -404,14 +405,15 @@ class TestCelery(SupersetTestCase):
             self.assertEqual(0, query.rows)
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
+        self.drop_table_if_exists(table_name, ctas_method, get_example_database())
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     def test_run_async_cta_query_with_lower_limit(self, ctas_method):
-        main_db = get_example_database()
-        db_backend = main_db.backend
-        db_id = main_db.id
+        example_db = get_example_database()
+        db_backend = example_db.backend
+        db_id = example_db.id
         tmp_table = f"tmp_async_2_{ctas_method}"
-        self.drop_table_if_exists(tmp_table, ctas_method, main_db)
+        self.drop_table_if_exists(tmp_table, ctas_method, example_db)
 
         sql_where = "SELECT name FROM birth_names LIMIT 1"
         result = self.run_sql(
@@ -450,6 +452,7 @@ class TestCelery(SupersetTestCase):
         self.assertEqual(None, query.limit)
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
+        self.drop_table_if_exists(tmp_table, ctas_method, get_example_database())
 
     def test_default_data_serialization(self):
         data = [("a", 4, 4.0, datetime.datetime(2019, 8, 18, 16, 39, 16, 660000))]

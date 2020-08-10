@@ -366,14 +366,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         gamma = self.get_user("gamma")
 
         chart_id = self.insert_chart("title", [admin.id], 1).id
+        birth_names_table_id = SupersetTestCase.get_table_by_name("birth_names").id
         chart_data = {
             "slice_name": "title1_changed",
             "description": "description1",
             "owners": [gamma.id],
             "viz_type": "viz_type1",
-            "params": "{'a': 1}",
+            "params": """{"a": 1}""",
             "cache_timeout": 1000,
-            "datasource_id": 1,
+            "datasource_id": birth_names_table_id,
             "datasource_type": "table",
             "dashboards": [1],
         }
@@ -388,9 +389,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertIn(admin, model.owners)
         self.assertIn(gamma, model.owners)
         self.assertEqual(model.viz_type, "viz_type1")
-        self.assertEqual(model.params, "{'a': 1}")
+        self.assertEqual(model.params, """{"a": 1}""")
         self.assertEqual(model.cache_timeout, 1000)
-        self.assertEqual(model.datasource_id, 1)
+        self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")
         self.assertEqual(model.datasource_name, "birth_names")
         self.assertIn(related_dashboard, model.dashboards)
