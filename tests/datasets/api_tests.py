@@ -69,6 +69,15 @@ class TestDatasetApi(SupersetTestCase):
             .one()
         )
 
+    @staticmethod
+    def get_energy_usage_dataset():
+        example_db = get_example_database()
+        return (
+            db.session.query(SqlaTable)
+            .filter_by(database=example_db, table_name="energy_usage")
+            .one()
+        )
+
     def test_get_dataset_list(self):
         """
         Dataset API: Test get dataset list
@@ -133,7 +142,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test get dataset item
         """
-        table = self.get_birth_names_dataset()
+        table = self.get_energy_usage_dataset()
         self.login(username="admin")
         uri = f"api/v1/dataset/{table.id}"
         rv = self.get_assert_metric(uri, "get")
@@ -143,21 +152,22 @@ class TestDatasetApi(SupersetTestCase):
             "cache_timeout": None,
             "database": {"database_name": "examples", "id": 1},
             "default_endpoint": None,
-            "description": None,
+            "description": "Energy consumption",
             "fetch_values_predicate": None,
-            "filter_select_enabled": True,
+            "filter_select_enabled": False,
             "is_sqllab_view": False,
-            "main_dttm_col": "ds",
+            "main_dttm_col": None,
             "offset": 0,
             "owners": [],
             "schema": None,
             "sql": None,
-            "table_name": "birth_names",
+            "table_name": "energy_usage",
             "template_params": None,
         }
-        for key, value in expected_result.items():
-            self.assertEqual(response["result"][key], expected_result[key])
-        self.assertEqual(len(response["result"]["columns"]), 8)
+        assert {
+            k: v for k, v in response["result"].items() if k in expected_result
+        } == expected_result
+        self.assertEqual(len(response["result"]["columns"]), 3)
         self.assertEqual(len(response["result"]["metrics"]), 2)
 
     def test_get_dataset_info(self):

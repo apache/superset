@@ -14,34 +14,35 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
+import pytest
+
 from superset.utils.core import get_example_database
 
-from .base_tests import SupersetTestCase
+from tests.test_app import app  # isort:skip
 
 
-class TestSupersetDataFrame(SupersetTestCase):
-    def setUp(self) -> None:
-        # Late importing here as we need an app context to be pushed...
-        from superset import examples
-
-        self.examples = examples
-
-    def test_load_css_templates(self):
-        self.examples.load_css_templates()
-
-    def test_load_energy(self):
-        self.examples.load_energy(sample=True)
-
-    def test_load_world_bank_health_n_pop(self):
-        self.examples.load_world_bank_health_n_pop(sample=True)
-
-    def test_load_birth_names(self):
-        self.examples.load_birth_names(sample=True)
-
-    def test_load_test_users_run(self):
+@pytest.fixture(autouse=True, scope="session")
+def setup_sample_data() -> Any:
+    with app.app_context():
         from superset.cli import load_test_users_run
 
         load_test_users_run()
 
-    def test_load_unicode_test_data(self):
-        self.examples.load_unicode_test_data(sample=True)
+        from superset import examples
+
+        examples.load_css_templates()
+        examples.load_energy(sample=True)
+        examples.load_world_bank_health_n_pop(sample=True)
+        examples.load_birth_names(sample=True)
+        examples.load_unicode_test_data(sample=True)
+
+    yield
+
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE energy_usage")
+        engine.execute("DROP TABLE wb_health_population")
+        engine.execute("DROP TABLE birth_names")
+        engine.execute("DROP TABLE unicode_test")
