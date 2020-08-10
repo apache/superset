@@ -26,7 +26,7 @@ from slack.web.slack_response import SlackResponse
 from superset import app
 
 # Globals
-config = app.config  # type: ignore
+config = app.config
 logger = logging.getLogger("tasks.slack_util")
 
 
