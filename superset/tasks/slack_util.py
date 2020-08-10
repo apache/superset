@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from io import IOBase
-from typing import cast, Union, Optional
+from typing import cast, Optional, Union
 
 from retry.api import retry
 from slack import WebClient
