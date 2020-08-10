@@ -477,6 +477,15 @@ class BaseViz:
                     col
                     for col in (query_obj.get("columns") or [])
                     + (query_obj.get("groupby") or [])
+                    + [
+                        col
+                        for col in utils.get_column_names_from_metrics(
+                            cast(
+                                List[Union[str, Dict[str, Any]]],
+                                query_obj.get("metrics"),
+                            )
+                        )
+                    ]
                     if col not in self.datasource.column_names
                 ]
                 if invalid_columns:

@@ -18,8 +18,8 @@ import tests.test_app
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
+    AdhocMetricExpressionType,
     ChartDataResultFormat,
     ChartDataResultType,
     FilterOperator,
@@ -220,6 +220,27 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["metrics"] = []
         payload["queries"][0]["filters"] = [
             {"col": "*", "op": FilterOperator.EQUALS.value, "val": ";"}
+        ]
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_payload = query_context.get_payload()
+        assert query_payload[0].get("error") is not None
+
+    def test_sql_injection_via_metrics(self):
+        """
+        Ensure that calling invalid columns names in filters are caught
+        """
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id, table.type)
+        payload["queries"][0]["groupby"] = ["name"]
+        payload["queries"][0]["metrics"] = [
+            {
+                "expressionType": AdhocMetricExpressionType.SIMPLE.value,
+                "column": {"column_name": "invalid_col"},
+                "aggregate": "SUM",
+                "label": "My Simple Label",
+            }
         ]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
