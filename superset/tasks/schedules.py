@@ -29,6 +29,7 @@ from typing import (
     Dict,
     Iterator,
     List,
+    NamedTuple,
     Optional,
     Tuple,
     TYPE_CHECKING,
@@ -97,15 +98,12 @@ ReportContent = namedtuple(
     ],
 )
 
-AlertContent = namedtuple(
-    "AlertContent",
-    [
-        "label",  # alert name
-        "sql",  # sql statment for alert
-        "url",  # url to alert chart/dashboard
-        "image_data",  # bytes for alert screenshot
-    ],
-)
+
+class AlertContent(NamedTuple):
+    label: str  # alert name
+    sql: str  # sql statment for alert
+    url: Optional[str]  # url to alert chart/dashboard
+    image_data: Optional[bytes]  # bytes for alert screenshot
 
 
 def _get_email_to_and_bcc(
@@ -596,8 +594,8 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             ):
                 # deliver_dashboard OR deliver_slice
                 return
-            else:
-                raise RuntimeError("Unknown report type")
+        else:
+            raise RuntimeError("Unknown report type")
     except NoSuchColumnError as column_error:
         stats_logger.incr("run_alert_task.error.nosuchcolumnerror")
         raise column_error
@@ -626,8 +624,8 @@ def deliver_alert(
         alert_content = AlertContent(
             alert.label,
             alert.sql,
-            slice_screenshot["url"],
-            slice_screenshot["image_data"],
+            slice_screenshot["url"],  # type: ignore
+            slice_screenshot["image_data"],  # type: ignore
         )
     else:
         # TODO: dashboard delivery!
@@ -664,10 +662,8 @@ def deliver_email_alert(
 def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None:
     subject = __("[Alert] %(label)s", label=alert_content.label)
 
-    slack_message = __(
-        "*Triggered Alert: %(label)s :redalert:*\n"
-        "SQL Statement:```%(sql)s```\n"
-        "<%(url)s|Explore in Superset>",
+    slack_message = render_template(
+        "slack/alert.txt",
         label=alert_content.label,
         sql=alert_content.sql,
         url=alert_content.url,
