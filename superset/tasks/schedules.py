@@ -99,12 +99,16 @@ ReportContent = namedtuple(
 )
 
 
+class ScreenshotData(NamedTuple):
+    url: str  # url to chat/dashboard for this screenshot
+    image: Optional[bytes]  # bytes for the screenshot
+
+
 class AlertContent(NamedTuple):
     label: str  # alert name
-    sql: str  # sql statment for alert
+    sql: str  # sql statement for alert
     alert_url: str  # url to alert details
-    url: Optional[str]  # url to alert chart/dashboard
-    image_data: Optional[bytes]  # bytes for alert screenshot
+    image_data: Optional[ScreenshotData]  # data for the alert screenshot
 
 
 def _get_email_to_and_bcc(
@@ -409,7 +413,7 @@ def _get_slice_data(slc: Slice, delivery_type: EmailDeliveryType) -> ReportConte
     return ReportContent(body, data, None, slack_message, content)
 
 
-def _get_slice_screenshot(slice_id: int) -> Dict[str, Union[str, Optional[bytes]]]:
+def _get_slice_screenshot(slice_id: int) -> ScreenshotData:
     slice_obj = db.session.query(Slice).get(slice_id)
 
     chart_url = get_url_path("Superset.slice", slice_id=slice_obj.id, standalone="true")
@@ -424,7 +428,7 @@ def _get_slice_screenshot(slice_id: int) -> Dict[str, Union[str, Optional[bytes]
     )
 
     db.session.commit()
-    return {"url": image_url, "image_data": image_data}
+    return ScreenshotData(image_url, image_data)
 
 
 def _get_slice_visualization(
@@ -621,13 +625,11 @@ def deliver_alert(
     slack_channel = slack_channel or alert.slack_channel
 
     if alert.slice:
-        slice_screenshot = _get_slice_screenshot(alert.slice.id)
         alert_content = AlertContent(
             alert.label,
             alert.sql,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
-            slice_screenshot["url"],  # type: ignore
-            slice_screenshot["image_data"],  # type: ignore
+            _get_slice_screenshot(alert.slice.id),
         )
     else:
         # TODO: dashboard delivery!
@@ -635,7 +637,6 @@ def deliver_alert(
             alert.label,
             alert.sql,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
-            None,
             None,
         )
 
@@ -652,14 +653,14 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
     data = None
     images = {}
     if alert_content.image_data:
-        images = {"screenshot": alert_content.image_data}
+        images = {"screenshot": alert_content.image_data.image}
 
     body = render_template(
         "email/alert.txt",
         alert_url=alert_content.alert_url,
         label=alert_content.label,
         sql=alert_content.sql,
-        image_url=alert_content.url,
+        image_url=alert_content.image_data.url,
     )
 
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
@@ -668,12 +669,12 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
 def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None:
     subject = __("[Alert] %(label)s", label=alert_content.label)
 
-    if alert_content.image_data or alert_content.url:
+    if alert_content.image_data:
         slack_message = render_template(
             "slack/alert.txt",
             label=alert_content.label,
             sql=alert_content.sql,
-            url=alert_content.url,
+            url=alert_content.image_data.url,
             alert_url=alert_content.alert_url,
         )
     else:
@@ -685,7 +686,7 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
         )
 
     deliver_slack_msg(
-        slack_channel, subject, slack_message, alert_content.image_data,
+        slack_channel, subject, slack_message, alert_content.image_data.image,
     )
 
 
