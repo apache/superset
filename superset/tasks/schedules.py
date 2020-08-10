@@ -47,12 +47,13 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
 from werkzeug.http import parse_cookie
 
 from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app
 from superset.models.alerts import Alert, AlertLog
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     EmailDeliveryType,
@@ -79,6 +80,7 @@ config = app.config
 logger = logging.getLogger("tasks.email_reports")
 logger.setLevel(logging.INFO)
 
+stats_logger = current_app.config["STATS_LOGGER"]
 EMAIL_PAGE_RENDER_WAIT = config["EMAIL_PAGE_RENDER_WAIT"]
 WEBDRIVER_BASEURL = config["WEBDRIVER_BASEURL"]
 WEBDRIVER_BASEURL_USER_FRIENDLY = config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
@@ -533,6 +535,11 @@ def schedule_email_report(  # pylint: disable=unused-argument
     name="alerts.run_query",
     bind=True,
     soft_time_limit=config["EMAIL_ASYNC_TIME_LIMIT_SEC"],
+    # TODO: find cause of https://github.com/apache/incubator-superset/issues/10530
+    # and remove retry
+    autoretry_for=(NoSuchColumnError, ResourceClosedError,),
+    retry_kwargs={"max_retries": 5},
+    retry_backoff=True,
 )
 def schedule_alert_query(  # pylint: disable=unused-argument
     task: Task,
@@ -542,24 +549,33 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     is_test_alert: Optional[bool] = False,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
-    dbsession = db.create_scoped_session()
-    schedule = dbsession.query(model_cls).get(schedule_id)
 
-    # The user may have disabled the schedule. If so, ignore this
-    if not schedule or not schedule.active:
-        logger.info("Ignoring deactivated alert")
-        return
+    try:
+        schedule = db.session.query(model_cls).get(schedule_id)
 
-    if report_type == ScheduleType.alert:
-        if is_test_alert and recipients:
-            deliver_alert(schedule.id, recipients)
+        # The user may have disabled the schedule. If so, ignore this
+        if not schedule or not schedule.active:
+            logger.info("Ignoring deactivated alert")
             return
 
-        if run_alert_query(schedule.id, dbsession):
-            # deliver_dashboard OR deliver_slice
-            return
-    else:
-        raise RuntimeError("Unknown report type")
+        if report_type == ScheduleType.alert:
+            if is_test_alert and recipients:
+                deliver_alert(schedule.id, recipients)
+                return
+
+            if run_alert_query(
+                schedule.id, schedule.database_id, schedule.sql, schedule.label
+            ):
+                # deliver_dashboard OR deliver_slice
+                return
+        else:
+            raise RuntimeError("Unknown report type")
+    except NoSuchColumnError as column_error:
+        stats_logger.incr("run_alert_task.error.nosuchcolumnerror")
+        raise column_error
+    except ResourceClosedError as resource_error:
+        stats_logger.incr("run_alert_task.error.resourceclosederror")
+        raise resource_error
 
 
 class AlertState:
@@ -618,23 +634,23 @@ def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 
 
-def run_alert_query(alert_id: int, dbsession: Session) -> Optional[bool]:
+def run_alert_query(
+    alert_id: int, database_id: int, sql: str, label: str
+) -> Optional[bool]:
     """
     Execute alert.sql and return value if any rows are returned
     """
-    alert = db.session.query(Alert).get(alert_id)
-
-    logger.info("Processing alert ID: %i", alert.id)
-    database = alert.database
+    logger.info("Processing alert ID: %i", alert_id)
+    database = db.session.query(Database).get(database_id)
     if not database:
         logger.error("Alert database not preset")
         return None
 
-    if not alert.sql:
+    if not sql:
         logger.error("Alert SQL not preset")
         return None
 
-    parsed_query = ParsedQuery(alert.sql)
+    parsed_query = ParsedQuery(sql)
     sql = parsed_query.stripped()
 
     state = None
@@ -642,27 +658,31 @@ def run_alert_query(alert_id: int, dbsession: Session) -> Optional[bool]:
 
     df = pd.DataFrame()
     try:
-        logger.info("Evaluating SQL for alert %s", alert)
+        logger.info("Evaluating SQL for alert <%s:%s>", alert_id, label)
         df = database.get_df(sql)
     except Exception as exc:  # pylint: disable=broad-except
         state = AlertState.ERROR
         logging.exception(exc)
-        logging.error("Failed at evaluating alert: %s (%s)", alert.label, alert.id)
+        logging.error("Failed at evaluating alert: %s (%s)", label, alert_id)
 
     dttm_end = datetime.utcnow()
+    last_eval_dttm = datetime.utcnow()
 
     if state != AlertState.ERROR:
-        alert.last_eval_dttm = datetime.utcnow()
         if not df.empty:
             # Looking for truthy cells
             for row in df.to_records():
                 if any(row):
                     state = AlertState.TRIGGER
-                    deliver_alert(alert.id)
+                    deliver_alert(alert_id)
                     break
         if not state:
             state = AlertState.PASS
 
+    db.session.commit()
+    alert = db.session.query(Alert).get(alert_id)
+    if state != AlertState.ERROR:
+        alert.last_eval_dttm = last_eval_dttm
     alert.last_state = state
     alert.logs.append(
         AlertLog(
@@ -672,7 +692,7 @@ def run_alert_query(alert_id: int, dbsession: Session) -> Optional[bool]:
             state=state,
         )
     )
-    dbsession.commit()
+    db.session.commit()
 
     return None
 
