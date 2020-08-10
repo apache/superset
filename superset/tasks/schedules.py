@@ -586,18 +586,18 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             logger.info("Ignoring deactivated alert")
             return
 
-    if report_type == ScheduleType.alert:
-        if recipients or slack_channel:
-            deliver_alert(schedule.id, recipients, slack_channel)
-            return
+        if report_type == ScheduleType.alert:
+            if recipients or slack_channel:
+                deliver_alert(schedule.id, recipients, slack_channel)
+                return
 
             if run_alert_query(
                 schedule.id, schedule.database_id, schedule.sql, schedule.label
             ):
                 # deliver_dashboard OR deliver_slice
                 return
-        else:
-            raise RuntimeError("Unknown report type")
+            else:
+                raise RuntimeError("Unknown report type")
     except NoSuchColumnError as column_error:
         stats_logger.incr("run_alert_task.error.nosuchcolumnerror")
         raise column_error
@@ -678,7 +678,6 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
     )
 
 
-def run_alert_query(alert_id: int, dbsession: Session) -> Optional[bool]:
 def run_alert_query(
     alert_id: int, database_id: int, sql: str, label: str
 ) -> Optional[bool]:
