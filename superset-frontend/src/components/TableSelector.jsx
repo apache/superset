@@ -30,7 +30,6 @@ import FormLabel from 'src/components/FormLabel';
 import SupersetAsyncSelect from './AsyncSelect';
 import RefreshLabel from './RefreshLabel';
 import './TableSelector.less';
-import TooltipWrapper from './TooltipWrapper';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -247,39 +246,27 @@ export default class TableSelector extends React.PureComponent {
 
   renderDatabaseOption(db) {
     return (
-      <TooltipWrapper
-        placement="top"
-        label={`${db.database_name}-tooltip`}
-        tooltip={db.database_name}
-      >
-        <span>
-          <Label bsStyle="default" className="m-r-5">
-            {db.backend}
-          </Label>
-          {db.database_name}
-        </span>
-      </TooltipWrapper>
+      <span title={db.database_name}>
+        <Label bsStyle="default" className="m-r-5">
+          {db.backend}
+        </Label>
+        {db.database_name}
+      </span>
     );
   }
 
   renderTableOption(option) {
     return (
-      <TooltipWrapper
-        placement="top"
-        label={`${option.label}-tooltip`}
-        tooltip={option.label}
-      >
-        <span className="TableLabel">
-          <span className="m-r-5">
-            <small className="text-muted">
-              <i
-                className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`}
-              />
-            </small>
-          </span>
-          {option.label}
+      <span className="TableLabel" title={option.label}>
+        <span className="m-r-5">
+          <small className="text-muted">
+            <i
+              className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`}
+            />
+          </small>
         </span>
-      </TooltipWrapper>
+        {option.label}
+      </span>
     );
   }
 
