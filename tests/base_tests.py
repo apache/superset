@@ -50,7 +50,7 @@ def login(client, username="admin", password="general"):
 
 
 def get_resp(
-    client, url, data=None, follow_redirects=True, raise_on_error=True, json_=None
+    client: Any, url: str, data: Any = None, follow_redirects: bool = True, raise_on_error: bool = True, json_: Optional[str] = None
 ):
     """Shortcut to get the parsed results while following redirects"""
     if data:
