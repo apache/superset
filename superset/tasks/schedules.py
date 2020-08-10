@@ -47,6 +47,7 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
+from selenium.webdriver.remote.webdriver import WebDriver
 from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
 from werkzeug.http import parse_cookie
 
@@ -65,7 +66,7 @@ from superset.models.slice import Slice
 from superset.sql_parse import ParsedQuery
 from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
-from superset.utils.screenshots import ChartScreenshot
+from superset.utils.screenshots import AuthWebDriverProxy, ChartScreenshot
 from superset.utils.urls import get_url_path
 
 # pylint: disable=too-few-public-methods
@@ -207,44 +208,8 @@ def _get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
         return urllib.parse.urljoin(str(base_url), url_for(view, **kwargs))
 
 
-def create_webdriver() -> Union[
-    chrome.webdriver.WebDriver, firefox.webdriver.WebDriver
-]:
-    # Create a webdriver for use in fetching reports
-    if config["EMAIL_REPORTS_WEBDRIVER"] == "firefox":
-        driver_class = firefox.webdriver.WebDriver
-        options = firefox.options.Options()
-    elif config["EMAIL_REPORTS_WEBDRIVER"] == "chrome":
-        driver_class = chrome.webdriver.WebDriver
-        options = chrome.options.Options()
-
-    options.add_argument("--headless")
-
-    # Prepare args for the webdriver init
-    kwargs = dict(options=options)
-    kwargs.update(config["WEBDRIVER_CONFIGURATION"])
-
-    # Initialize the driver
-    driver = driver_class(**kwargs)
-
-    # Some webdrivers need an initial hit to the welcome URL
-    # before we set the cookie
-    welcome_url = _get_url_path("Superset.welcome")
-
-    # Hit the welcome URL and check if we were asked to login
-    driver.get(welcome_url)
-    elements = driver.find_elements_by_id("loginbox")
-
-    # This indicates that we were not prompted for a login box.
-    if not elements:
-        return driver
-
-    # Set the cookies in the driver
-    for cookie in _get_auth_cookies():
-        info = dict(name="session", value=cookie)
-        driver.add_cookie(info)
-
-    return driver
+def create_webdriver() -> WebDriver:
+    return AuthWebDriverProxy(driver_type=config["EMAIL_REPORTS_WEBDRIVER"]).create()
 
 
 def destroy_webdriver(
