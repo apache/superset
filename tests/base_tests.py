@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 import imp
 import json
-from typing import Any, Dict, Union, List
+from typing import Any, Dict, Union, List, Optional
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -50,7 +50,12 @@ def login(client: Any, username: str = "admin", password: str = "general"):
 
 
 def get_resp(
-    client: Any, url: str, data: Any = None, follow_redirects: bool = True, raise_on_error: bool = True, json_: Optional[str] = None
+    client: Any,
+    url: str,
+    data: Any = None,
+    follow_redirects: bool = True,
+    raise_on_error: bool = True,
+    json_: Optional[str] = None,
 ):
     """Shortcut to get the parsed results while following redirects"""
     if data:
