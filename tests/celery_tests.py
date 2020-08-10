@@ -220,7 +220,7 @@ class TestCelery(SupersetTestCase):
         self.assertEqual(QueryStatus.SUCCESS, query3.status)
 
     def drop_table_if_exists(
-        self, table_name, table_type: CtasMethod, database=None
+        self, table_name: str, table_type: CtasMethod, database: Optional[Database] = None
     ) -> None:
         """Drop table if it exists, works on any DB"""
         sql = f"DROP {table_type} IF EXISTS  {table_name}"
