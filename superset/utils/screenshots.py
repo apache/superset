@@ -181,7 +181,7 @@ class AuthWebDriverProxy:
 
 
 class BaseScreenshot:
-    driver_type = current_app.config.get("EMAIL_REPORTS_WEBDRIVER", "chrome")
+    driver_type = current_app.config["WEBDRIVER_TYPE"]
     thumbnail_type: str = ""
     element: str = ""
     window_size: WindowSize = (800, 600)
