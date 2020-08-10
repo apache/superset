@@ -102,6 +102,7 @@ ReportContent = namedtuple(
 class AlertContent(NamedTuple):
     label: str  # alert name
     sql: str  # sql statment for alert
+    alert_url: str  # url to alert details
     url: Optional[str]  # url to alert chart/dashboard
     image_data: Optional[bytes]  # bytes for alert screenshot
 
@@ -624,22 +625,27 @@ def deliver_alert(
         alert_content = AlertContent(
             alert.label,
             alert.sql,
+            _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             slice_screenshot["url"],  # type: ignore
             slice_screenshot["image_data"],  # type: ignore
         )
     else:
         # TODO: dashboard delivery!
-        alert_content = AlertContent(alert.label, alert.sql, None, None,)
+        alert_content = AlertContent(
+            alert.label,
+            alert.sql,
+            _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
+            None,
+            None,
+        )
 
     if recipients:
-        deliver_email_alert(alert_content, alert.id, recipients)
+        deliver_email_alert(alert_content, recipients)
     if slack_channel:
         deliver_slack_alert(alert_content, slack_channel)
 
 
-def deliver_email_alert(
-    alert_content: AlertContent, alert_id: int, recipients: str
-) -> None:
+def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
     # TODO add sql query results to email
     subject = f"[Superset] Triggered alert: {alert_content.label}"
     deliver_as_group = False
@@ -650,7 +656,7 @@ def deliver_email_alert(
 
     body = render_template(
         "email/alert.txt",
-        alert_url=_get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
+        alert_url=alert_content.alert_url,
         label=alert_content.label,
         sql=alert_content.sql,
         image_url=alert_content.url,
@@ -662,12 +668,21 @@ def deliver_email_alert(
 def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None:
     subject = __("[Alert] %(label)s", label=alert_content.label)
 
-    slack_message = render_template(
-        "slack/alert.txt",
-        label=alert_content.label,
-        sql=alert_content.sql,
-        url=alert_content.url,
-    )
+    if alert_content.image_data or alert_content.url:
+        slack_message = render_template(
+            "slack/alert.txt",
+            label=alert_content.label,
+            sql=alert_content.sql,
+            url=alert_content.url,
+            alert_url=alert_content.alert_url,
+        )
+    else:
+        slack_message = render_template(
+            "slack/alert_no_screenshot.txt",
+            label=alert_content.label,
+            sql=alert_content.sql,
+            alert_url=alert_content.alert_url,
+        )
 
     deliver_slack_msg(
         slack_channel, subject, slack_message, alert_content.image_data,

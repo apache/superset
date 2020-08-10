@@ -19,4 +19,3 @@
 *Triggered Alert: {{label}} :redalert:*
 SQL Statement:```{{sql}}```
 <{{alert_url}}|View Alert Details>
-<{{url}}|*Explore in Superset*>
