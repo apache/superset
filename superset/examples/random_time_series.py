@@ -16,7 +16,7 @@
 # under the License.
 
 import pandas as pd
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, String
 
 from superset import db
 from superset.models.slice import Slice
@@ -36,13 +36,18 @@ def load_random_time_series_data(
     if not only_metadata and (not table_exists or force):
         data = get_example_data("random_time_series.json.gz")
         pdf = pd.read_json(data)
-        pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+        if database.backend == "presto":
+            pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+            pdf.ds = pdf.ds.dt.strftime("%Y-%m-%d %H:%M%:%S")
+        else:
+            pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+
         pdf.to_sql(
             tbl_name,
             database.get_sqla_engine(),
             if_exists="replace",
             chunksize=500,
-            dtype={"ds": DateTime},
+            dtype={"ds": DateTime if database.backend != "presto" else String(255)},
             index=False,
         )
         print("Done loading table!")

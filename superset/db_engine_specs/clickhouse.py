@@ -25,6 +25,7 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Dialect for ClickHouse analytical DB."""
 
     engine = "clickhouse"
+    engine_name = "ClickHouse"
 
     time_secondary_columns = True
     time_groupby_inline = True

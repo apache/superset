@@ -132,7 +132,8 @@ def session_scope(nullpool: bool) -> Iterator[Session]:
         )
     if nullpool:
         engine = sqlalchemy.create_engine(database_uri, poolclass=NullPool)
-        session_class = sessionmaker(bind=engine)
+        session_class = sessionmaker()
+        session_class.configure(bind=engine)
         session = session_class()
     else:
         session = db.session()

@@ -18,16 +18,18 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
+import { Alert, Badge, Col, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import styled from '@superset-ui/style';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-import getClientErrorObject from '../utils/getClientErrorObject';
 
-import Button from '../components/Button';
-import Loading from '../components/Loading';
-import TableSelector from '../components/TableSelector';
+import Label from 'src/components/Label';
+import Button from 'src/components/Button';
+import Loading from 'src/components/Loading';
+import TableSelector from 'src/components/TableSelector';
+
+import getClientErrorObject from '../utils/getClientErrorObject';
 import CheckboxControl from '../explore/components/controls/CheckboxControl';
 import TextControl from '../explore/components/controls/TextControl';
 import SelectControl from '../explore/components/controls/SelectControl';
@@ -170,7 +172,7 @@ function ColumnCollectionTable({
           ) : (
             v
           ),
-        type: d => <Label style={{ fontSize: '75%' }}>{d}</Label>,
+        type: d => <Label bsStyle="s">{d}</Label>,
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,

@@ -24,6 +24,7 @@ from superset.utils import core as utils
 
 class HanaEngineSpec(PostgresBaseEngineSpec):
     engine = "hana"
+    engine_name = "SAP HANA"
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30

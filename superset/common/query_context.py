@@ -23,10 +23,11 @@ from typing import Any, ClassVar, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from superset import app, cache, security_manager
+from superset import app, cache, db, security_manager
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.exceptions import QueryObjectValidationError
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
@@ -64,7 +65,7 @@ class QueryContext:
         result_format: Optional[utils.ChartDataResultFormat] = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
-            str(datasource["type"]), int(datasource["id"])
+            str(datasource["type"]), int(datasource["id"]), db.session
         )
         self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
@@ -244,10 +245,13 @@ class QueryContext:
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
+            except QueryObjectValidationError as ex:
+                error_message = str(ex)
+                status = utils.QueryStatus.FAILED
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
                 if not error_message:
-                    error_message = "{}".format(ex)
+                    error_message = str(ex)
                 status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 

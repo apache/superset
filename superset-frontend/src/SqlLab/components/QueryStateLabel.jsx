@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label } from 'react-bootstrap';
+import Label from 'src/components/Label';
 
 import { STATE_BSSTYLE_MAP } from '../constants';
 
