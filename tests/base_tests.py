@@ -44,7 +44,7 @@ from superset.views.base_api import BaseSupersetModelRestApi
 FAKE_DB_NAME = "fake_db_100"
 
 
-def login(client, username="admin", password="general"):
+def login(client: Any, username: str = "admin", password: str = "general"):
     resp = get_resp(client, "/login/", data=dict(username=username, password=password))
     assert "User confirmation needed" not in resp
 
