@@ -90,6 +90,19 @@ class AnnotationDatasource(BaseDatasource):
     cache_timeout = 0
     changed_on = None
     type = "annotation"
+    column_names = [
+        "created_on",
+        "changed_on",
+        "id",
+        "start_dttm",
+        "end_dttm",
+        "layer_id",
+        "short_descr",
+        "long_descr",
+        "json_metadata",
+        "created_by_fk",
+        "changed_by_fk",
+    ]
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         error_message = None
