@@ -241,12 +241,7 @@ class QueryContext:
                     for col in query_obj.columns
                     + query_obj.groupby
                     + [flt["col"] for flt in query_obj.filter]
-                    + [
-                        col
-                        for col in utils.get_column_names_from_metrics(
-                            query_obj.metrics
-                        )
-                    ]
+                    + utils.get_column_names_from_metrics(query_obj.metrics)
                     if col not in self.datasource.column_names
                 ]
                 if invalid_columns:
