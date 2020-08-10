@@ -620,7 +620,6 @@ def deliver_alert(
     logging.info("Triggering alert: %s", alert)
     recipients = recipients or alert.recipients
     slack_channel = slack_channel or alert.slack_channel
-    alert_content = AlertContent(alert.label, alert.sql, None, None,)
 
     if alert.slice:
         slice_screenshot = _get_slice_screenshot(alert.slice.id)
