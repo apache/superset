@@ -86,8 +86,7 @@ class ChartRenderer extends React.Component {
     if (resultsReady) {
       this.hasQueryResponseChange =
         nextProps.queryResponse !== this.props.queryResponse;
-
-      if (
+      return (
         this.hasQueryResponseChange ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.height !== this.props.height ||
@@ -95,9 +94,7 @@ class ChartRenderer extends React.Component {
         nextProps.triggerRender ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp
-      ) {
-        return true;
-      }
+      );
     }
     return false;
   }
