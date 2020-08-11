@@ -70,6 +70,13 @@ class AbstractEventLogger(ABC):
             value = f(*args, **kwargs)
             duration_ms = (datetime.now() - start_dttm).total_seconds() * 1000
 
+            try:
+                json_data = json.loads(value.data)
+                if "is_cached" in json_data:
+                    payload["is_cached"] = json_data["is_cached"]
+            except Exception:
+                pass
+
             # bulk insert
             try:
                 explode_by = payload.get("explode")
@@ -78,7 +85,6 @@ class AbstractEventLogger(ABC):
                 records = [payload]
 
             referrer = request.referrer[:1000] if request.referrer else None
-
             self.log(
                 user_id,
                 f.__name__,
