@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from io import IOBase
-from typing import cast, Union
+from typing import cast, Optional, Union
 
 from retry.api import retry
 from slack import WebClient
@@ -26,21 +26,30 @@ from slack.web.slack_response import SlackResponse
 from superset import app
 
 # Globals
-config = app.config
+config = app.config  # type: ignore
 logger = logging.getLogger("tasks.slack_util")
 
 
 @retry(SlackApiError, delay=10, backoff=2, tries=5)
 def deliver_slack_msg(
-    slack_channel: str, subject: str, body: str, file: Union[str, IOBase]
+    slack_channel: str,
+    subject: str,
+    body: str,
+    file: Optional[Union[str, IOBase, bytes]],
 ) -> None:
     client = WebClient(token=config["SLACK_API_TOKEN"], proxy=config["SLACK_PROXY"])
     # files_upload returns SlackResponse as we run it in sync mode.
-    response = cast(
-        SlackResponse,
-        client.files_upload(
-            channels=slack_channel, file=file, initial_comment=body, title=subject
-        ),
-    )
+    if file:
+        response = cast(
+            SlackResponse,
+            client.files_upload(
+                channels=slack_channel, file=file, initial_comment=body, title=subject
+            ),
+        )
+        assert response["file"], str(response)  # the uploaded file
+    else:
+        response = cast(
+            SlackResponse, client.chat_postMessage(channel=slack_channel, text=body),
+        )
+        assert response["message"]["text"], str(response)
     logger.info("Sent the report to the slack %s", slack_channel)
-    assert response["file"], str(response)  # the uploaded file

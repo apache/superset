@@ -74,6 +74,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         # "alert_type",
         "owners",
         "recipients",
+        "slack_channel",
         "slice",
         # TODO: implement dashboard screenshots with alerts
         # "dashboard",
@@ -81,6 +82,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "grace_period",
         "test_alert",
         "test_email_recipients",
+        "test_slack_channel",
     )
     label_columns = {
         "sql": "SQL",
@@ -123,6 +125,12 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
             description="List of recipients to send test email to. "
             "If empty, an email will be sent to the original recipients.",
         ),
+        "test_slack_channel": StringField(
+            "Test Slack Channel",
+            default=None,
+            description="A slack channel to send a test message to. "
+            "If empty, an alert will be sent to the original channel.",
+        ),
     }
     edit_form_extra_fields = add_form_extra_fields
     edit_columns = add_columns
@@ -133,8 +141,15 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         if form.test_email_recipients.data:
             email_recipients = get_email_address_str(form.test_email_recipients.data)
 
+        test_slack_channel = (
+            form.test_slack_channel.data.strip()
+            if form.test_slack_channel.data
+            else None
+        )
+
         self._extra_data["test_alert"] = form.test_alert.data
         self._extra_data["test_email_recipients"] = email_recipients
+        self._extra_data["test_slack_channel"] = test_slack_channel
 
     def pre_add(self, item: "AlertModelView") -> None:
         item.recipients = get_email_address_str(item.recipients)
@@ -145,8 +160,9 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     def post_add(self, item: "AlertModelView") -> None:
         if self._extra_data["test_alert"]:
             recipients = self._extra_data["test_email_recipients"] or item.recipients
+            slack_channel = self._extra_data["test_slack_channel"] or item.slack_channel
             args = (ScheduleType.alert, item.id)
-            kwargs = dict(recipients=recipients, is_test_alert=True)
+            kwargs = dict(recipients=recipients, slack_channel=slack_channel)
             schedule_alert_query.apply_async(args=args, kwargs=kwargs)
 
     def post_update(self, item: "AlertModelView") -> None:

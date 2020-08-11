@@ -29,6 +29,7 @@ from typing import (
     Dict,
     Iterator,
     List,
+    NamedTuple,
     Optional,
     Tuple,
     TYPE_CHECKING,
@@ -96,6 +97,18 @@ ReportContent = namedtuple(
         "slack_attachment",
     ],
 )
+
+
+class ScreenshotData(NamedTuple):
+    url: str  # url to chat/dashboard for this screenshot
+    image: Optional[bytes]  # bytes for the screenshot
+
+
+class AlertContent(NamedTuple):
+    label: str  # alert name
+    sql: str  # sql statement for alert
+    alert_url: str  # url to alert details
+    image_data: Optional[ScreenshotData]  # data for the alert screenshot
 
 
 def _get_email_to_and_bcc(
@@ -400,6 +413,24 @@ def _get_slice_data(slc: Slice, delivery_type: EmailDeliveryType) -> ReportConte
     return ReportContent(body, data, None, slack_message, content)
 
 
+def _get_slice_screenshot(slice_id: int) -> ScreenshotData:
+    slice_obj = db.session.query(Slice).get(slice_id)
+
+    chart_url = get_url_path("Superset.slice", slice_id=slice_obj.id, standalone="true")
+    screenshot = ChartScreenshot(chart_url, slice_obj.digest)
+    image_url = _get_url_path(
+        "Superset.slice", user_friendly=True, slice_id=slice_obj.id,
+    )
+
+    user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
+    image_data = screenshot.compute_and_cache(
+        user=user, cache=thumbnail_cache, force=True,
+    )
+
+    db.session.commit()
+    return ScreenshotData(image_url, image_data)
+
+
 def _get_slice_visualization(
     slc: Slice, delivery_type: EmailDeliveryType
 ) -> ReportContent:
@@ -546,7 +577,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     report_type: ScheduleType,
     schedule_id: int,
     recipients: Optional[str] = None,
-    is_test_alert: Optional[bool] = False,
+    slack_channel: Optional[str] = None,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
 
@@ -559,8 +590,8 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             return
 
         if report_type == ScheduleType.alert:
-            if is_test_alert and recipients:
-                deliver_alert(schedule.id, recipients)
+            if recipients or slack_channel:
+                deliver_alert(schedule.id, recipients, slack_channel)
                 return
 
             if run_alert_query(
@@ -584,54 +615,85 @@ class AlertState:
     PASS = "pass"
 
 
-def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
+def deliver_alert(
+    alert_id: int, recipients: Optional[str] = None, slack_channel: Optional[str] = None
+) -> None:
     alert = db.session.query(Alert).get(alert_id)
 
     logging.info("Triggering alert: %s", alert)
-    img_data = None
-    images = {}
     recipients = recipients or alert.recipients
+    slack_channel = slack_channel or alert.slack_channel
 
     if alert.slice:
-
-        chart_url = get_url_path(
-            "Superset.slice", slice_id=alert.slice.id, standalone="true"
-        )
-        screenshot = ChartScreenshot(chart_url, alert.slice.digest)
-        image_url = _get_url_path(
-            "Superset.slice",
-            user_friendly=True,
-            slice_id=alert.slice.id,
-            standalone="true",
-        )
-        standalone_index = image_url.find("/?standalone=true")
-        if standalone_index != -1:
-            image_url = image_url[:standalone_index]
-
-        user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
-        img_data = screenshot.compute_and_cache(
-            user=user, cache=thumbnail_cache, force=True,
+        alert_content = AlertContent(
+            alert.label,
+            alert.sql,
+            _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
+            _get_slice_screenshot(alert.slice.id),
         )
     else:
         # TODO: dashboard delivery!
-        image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
+        alert_content = AlertContent(
+            alert.label,
+            alert.sql,
+            _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
+            None,
+        )
 
-    # generate the email
+    if recipients:
+        deliver_email_alert(alert_content, recipients)
+    if slack_channel:
+        deliver_slack_alert(alert_content, slack_channel)
+
+
+def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
     # TODO add sql query results to email
-    subject = f"[Superset] Triggered alert: {alert.label}"
+    subject = f"[Superset] Triggered alert: {alert_content.label}"
     deliver_as_group = False
     data = None
-    if img_data:
-        images = {"screenshot": img_data}
+    images = {}
+    # TODO(JasonD28): add support for emails with no screenshot
+    image_url = None
+    if alert_content.image_data:
+        image_url = alert_content.image_data.url
+        if alert_content.image_data.image:
+            images = {"screenshot": alert_content.image_data.image}
+
     body = render_template(
         "email/alert.txt",
-        alert_url=_get_url_path("AlertModelView.show", user_friendly=True, pk=alert.id),
-        label=alert.label,
-        sql=alert.sql,
+        alert_url=alert_content.alert_url,
+        label=alert_content.label,
+        sql=alert_content.sql,
         image_url=image_url,
     )
 
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
+
+
+def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None:
+    subject = __("[Alert] %(label)s", label=alert_content.label)
+
+    image = None
+    if alert_content.image_data:
+        slack_message = render_template(
+            "slack/alert.txt",
+            label=alert_content.label,
+            sql=alert_content.sql,
+            url=alert_content.image_data.url,
+            alert_url=alert_content.alert_url,
+        )
+        image = alert_content.image_data.image
+    else:
+        slack_message = render_template(
+            "slack/alert_no_screenshot.txt",
+            label=alert_content.label,
+            sql=alert_content.sql,
+            alert_url=alert_content.alert_url,
+        )
+
+    deliver_slack_msg(
+        slack_channel, subject, slack_message, image,
+    )
 
 
 def run_alert_query(
