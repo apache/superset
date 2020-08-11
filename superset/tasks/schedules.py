@@ -652,15 +652,19 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
     deliver_as_group = False
     data = None
     images = {}
+    # TODO(JasonD28): add support for emails with no screenshot
+    image_url = None
     if alert_content.image_data:
-        images = {"screenshot": alert_content.image_data.image}
+        image_url = alert_content.image_data.url
+        if alert_content.image_data.image:
+            images = {"screenshot": alert_content.image_data.image}
 
     body = render_template(
         "email/alert.txt",
         alert_url=alert_content.alert_url,
         label=alert_content.label,
         sql=alert_content.sql,
-        image_url=alert_content.image_data.url,
+        image_url=image_url,
     )
 
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
@@ -669,6 +673,7 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
 def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None:
     subject = __("[Alert] %(label)s", label=alert_content.label)
 
+    image = None
     if alert_content.image_data:
         slack_message = render_template(
             "slack/alert.txt",
@@ -677,6 +682,7 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
             url=alert_content.image_data.url,
             alert_url=alert_content.alert_url,
         )
+        image = alert_content.image_data.image
     else:
         slack_message = render_template(
             "slack/alert_no_screenshot.txt",
@@ -686,7 +692,7 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
         )
 
     deliver_slack_msg(
-        slack_channel, subject, slack_message, alert_content.image_data.image,
+        slack_channel, subject, slack_message, image,
     )
 
 
