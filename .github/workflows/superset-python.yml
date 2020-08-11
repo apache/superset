@@ -286,7 +286,7 @@ jobs:
       run: |
         bash <(curl -s https://codecov.io/bash) -cF python
 
-test-sqlite:
+  test-thumbnails:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
