@@ -46,7 +46,11 @@ class DeleteDatasetCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            view_menu = security_manager.find_view_menu(self._model.get_perm())
+            view_menu = (
+                security_manager.find_view_menu(self._model.get_perm())
+                if self._model
+                else None
+            )
             permission_views = (
                 security_manager.get_session.query(
                     security_manager.permissionview_model
