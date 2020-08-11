@@ -146,7 +146,7 @@ def _deliver_email(  # pylint: disable=too-many-arguments
 
 
 def _generate_report_content(
-    delivery_type: EmailDeliveryType, screenshot: bytes, name: str, url: str
+    delivery_type: EmailDeliveryType, screenshot: Optional[bytes], name: str, url: str
 ) -> ReportContent:
     data: Optional[Dict[str, Any]]
 
@@ -224,24 +224,12 @@ def destroy_webdriver(
         pass
 
 
-def deliver_dashboard(
-    dashboard_id: int,
-    recipients: Optional[str],
-    slack_channel: Optional[str],
-    delivery_type: EmailDeliveryType,
-    deliver_as_group: bool,
-) -> None:
-
-    """
-    Given a schedule, delivery the dashboard as an email report
-    """
-    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
-
+def _get_dashboard_screenshot(dashboard_id: int) -> ScreenshotData:
     dashboard_url = _get_url_path(
-        "Superset.dashboard", dashboard_id_or_slug=dashboard.id
+        "Superset.dashboard", dashboard_id_or_slug=dashboard_id
     )
     dashboard_url_user_friendly = _get_url_path(
-        "Superset.dashboard", user_friendly=True, dashboard_id_or_slug=dashboard.id
+        "Superset.dashboard", user_friendly=True, dashboard_id_or_slug=dashboard_id
     )
 
     # Create a driver, fetch the page, wait for the page to render
@@ -267,12 +255,29 @@ def deliver_dashboard(
     finally:
         destroy_webdriver(driver)
 
+    return ScreenshotData(dashboard_url_user_friendly, screenshot)
+
+
+def deliver_dashboard(
+    dashboard_id: int,
+    recipients: Optional[str],
+    slack_channel: Optional[str],
+    delivery_type: EmailDeliveryType,
+    deliver_as_group: bool,
+) -> None:
+
+    """
+    Given a schedule, delivery the dashboard as an email report
+    """
+    screenshot_data = _get_dashboard_screenshot(dashboard_id)
+
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
     # Generate the email body and attachments
     report_content = _generate_report_content(
         delivery_type,
-        screenshot,
+        screenshot_data.image,
         dashboard.dashboard_title,
-        dashboard_url_user_friendly,
+        screenshot_data.url,
     )
 
     subject = __(
@@ -586,10 +591,16 @@ def deliver_alert(
             sql,
             observation_value,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
-            _get_slice_screenshot(alert.slice.id),
+            _get_slice_screenshot(alert.slice_id),
+        )
+    elif alert.dashboard:
+        alert_content = AlertContent(
+            alert.label,
+            alert.sql,
+            _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
+            _get_dashboard_screenshot(alert.dashboard_id),
         )
     else:
-        # TODO: dashboard delivery!
         alert_content = AlertContent(
             alert.label,
             sql,
@@ -617,14 +628,21 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
         if alert_content.image_data.image:
             images = {"screenshot": alert_content.image_data.image}
 
-    body = render_template(
-        "email/alert.txt",
-        alert_url=alert_content.alert_url,
-        label=alert_content.label,
-        sql=alert_content.sql,
-        observation_value=alert_content.observation_value,
-        image_url=image_url,
-    )
+        body = render_template(
+            "email/alert.txt",
+            alert_url=alert_content.alert_url,
+            label=alert_content.label,
+            sql=alert_content.sql,
+            image_url=alert_content.image_data.url,
+        )
+    else:
+        body = render_template(
+            "email/alert_no_screenshot.txt",
+            alert_url=alert_content.alert_url,
+            label=alert_content.label,
+            sql=alert_content.sql,
+        )
+
 
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 

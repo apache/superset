@@ -202,8 +202,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "recipients",
         "slack_channel",
         "slice",
-        # TODO: implement dashboard screenshots with alerts
-        # "dashboard",
+        "dashboard",
         "log_retention",
         "grace_period",
         "test_alert",
@@ -221,6 +220,10 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
             True,
         ),
         "recipients": _("A semicolon ';' delimited list of email addresses"),
+        "dashboard": _(
+            "If a slice is chosen, the alert will contain slice info"
+            " instead of dashboard info."
+        ),
         "log_retention": _("How long to keep the logs around for this alert"),
         "grace_period": _(
             "Once an alert is triggered, how long, in seconds, before "
