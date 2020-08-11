@@ -109,7 +109,7 @@ def etag_cache(max_age: int, check_perms: Callable[..., Any]) -> Callable[..., A
                     except Exception:  # pylint: disable=broad-except
                         if app.debug:
                             raise
-                    logger.exception("Exception possibly due to cache backend.")
+                        logger.exception("Exception possibly due to cache backend.")
 
             return response.make_conditional(request)
 
