@@ -16,7 +16,6 @@
 # under the License.
 # from superset import db
 # from superset.models.dashboard import Dashboard
-import subprocess
 import urllib.request
 from unittest import skipUnless
 from unittest.mock import patch
@@ -24,16 +23,15 @@ from unittest.mock import patch
 from flask_testing import LiveServerTestCase
 from sqlalchemy.sql import func
 
-import tests.test_app
 from superset import db, is_feature_enabled, security_manager, thumbnail_cache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.screenshots import (
     ChartScreenshot,
     DashboardScreenshot,
-    get_auth_cookies,
 )
 from superset.utils.urls import get_url_path
+from superset.utils.webdriver import get_auth_cookies
 from tests.test_app import app
 
 from .base_tests import SupersetTestCase

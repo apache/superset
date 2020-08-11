@@ -285,3 +285,39 @@ jobs:
     - name: Upload code coverage
       run: |
         bash <(curl -s https://codecov.io/bash) -cF python
+
+test-sqlite:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.7]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config_thumbnails
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        sqlite:///${{ github.workspace }}/.temp/unittest.db
+    services:
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.1.1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
+          mkdir ${{ github.workspace }}/.temp
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+    - name: Python unit tests (SQLite)
+      run: |
+        ./scripts/python_tests.sh

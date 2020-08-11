@@ -28,7 +28,6 @@ from typing import (
     Callable,
     Dict,
     Iterator,
-    List,
     Optional,
     Tuple,
     TYPE_CHECKING,
@@ -41,15 +40,13 @@ import pandas as pd
 import simplejson as json
 from celery.app.task import Task
 from dateutil.tz import tzlocal
-from flask import current_app, render_template, Response, session, url_for
+from flask import current_app, render_template, url_for
 from flask_babel import gettext as __
-from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
 from selenium.webdriver.remote.webdriver import WebDriver
 from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
-from werkzeug.http import parse_cookie
 
 from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app
@@ -66,7 +63,7 @@ from superset.models.slice import Slice
 from superset.sql_parse import ParsedQuery
 from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
-from superset.utils.screenshots import AuthWebDriverProxy, ChartScreenshot
+from superset.utils.screenshots import ChartScreenshot, WebDriverProxy
 from superset.utils.urls import get_url_path
 
 # pylint: disable=too-few-public-methods
@@ -179,27 +176,6 @@ def _generate_report_content(
     return ReportContent(body, data, images, slack_message, screenshot)
 
 
-def _get_auth_cookies() -> List["TypeConversionDict[Any, Any]"]:
-    # Login with the user specified to get the reports
-    with app.test_request_context():
-        user = security_manager.find_user(config["EMAIL_REPORTS_USER"])
-        login_user(user)
-
-        # A mock response object to get the cookie information from
-        response = Response()
-        app.session_interface.save_session(app, session, response)
-
-    cookies = []
-
-    # Set the cookies in the driver
-    for name, value in response.headers:
-        if name.lower() == "set-cookie":
-            cookie = parse_cookie(value)
-            cookies.append(cookie["session"])
-
-    return cookies
-
-
 def _get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
     with app.test_request_context():
         base_url = (
@@ -209,7 +185,13 @@ def _get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
 
 
 def create_webdriver() -> WebDriver:
-    return AuthWebDriverProxy(driver_type=config["EMAIL_REPORTS_WEBDRIVER"]).create()
+    return WebDriverProxy(driver_type=config["EMAIL_REPORTS_WEBDRIVER"]).auth(
+        get_reports_user()
+    )
+
+
+def get_reports_user() -> "User":
+    return security_manager.find_user(config["EMAIL_REPORTS_USER"])
 
 
 def destroy_webdriver(
@@ -317,7 +299,9 @@ def _get_slice_data(slc: Slice, delivery_type: EmailDeliveryType) -> ReportConte
     )
 
     cookies = {}
-    for cookie in _get_auth_cookies():
+    for cookie in WebDriverProxy(
+        driver_type=config["EMAIL_REPORTS_WEBDRIVER"]
+    ).get_auth_cookies(get_reports_user()):
         cookies["session"] = cookie
 
     opener = urllib.request.build_opener()

@@ -795,6 +795,15 @@ EMAIL_REPORTS_WEBDRIVER = "firefox"
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
 
+# An optional override to the default auth hook used to provide auth to the
+# offline webdriver
+WEBDRIVER_AUTH_FUNC = None
+
+# An optional override the the default get_cookies hook used by offline
+# processing that needs to access protected resources (used by thumbnails,
+# reporting, etc.)
+WEBDRIVER_AUTH_COOKIES_FUNC = None
+
 # Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
 

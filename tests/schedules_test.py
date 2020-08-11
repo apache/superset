@@ -40,8 +40,7 @@ from superset.tasks.schedules import (
 )
 from superset.models.slice import Slice
 from tests.base_tests import SupersetTestCase
-
-from .utils import read_fixture
+from tests.utils import read_fixture
 
 
 class TestSchedules(SupersetTestCase):
@@ -172,7 +171,6 @@ class TestSchedules(SupersetTestCase):
         mock_driver_class.return_value = mock_driver
         mock_driver.find_elements_by_id.side_effect = [True, False]
 
-        create_webdriver()
         create_webdriver()
         mock_driver.add_cookie.assert_called_once()
 
