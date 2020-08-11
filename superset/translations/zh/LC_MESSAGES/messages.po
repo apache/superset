@@ -1109,8 +1109,14 @@ msgstr "周"
 #~ msgid "Save as"
 #~ msgstr "另存为"
 
-#~ msgid "Force Refresh"
+#~ msgid "Force refresh"
 #~ msgstr "强制刷新"
+
+#~ msgid "Fetched %s"
+#~ msgstr "刷新于%s"
+
+#~ msgid "Cached %s"
+#~ msgstr "缓存于%s"
 
 #~ msgid "Force refresh the whole dashboard"
 #~ msgstr "强制刷新整个仪表板"
@@ -4113,3 +4119,18 @@ msgstr "周"
 
 #~ msgid "Line Width"
 #~ msgstr "线宽"
+
+#~ msgid "Edit chart metadata"
+#~ msgstr "编辑图表元数据"
+
+#~ msgid "Maximize"
+#~ msgstr "最大化"
+
+#~ msgid "Minimize"
+#~ msgstr "还原"
+
+#~ msgid "Share chart"
+#~ msgstr "共享图表"
+
+#~ msgid "Download as image"
+#~ msgstr "下载为图片"
