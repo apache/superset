@@ -23,16 +23,7 @@ import urllib.request
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    Optional,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterator, Optional, Tuple, TYPE_CHECKING, Union
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
@@ -71,6 +62,7 @@ from superset.utils.urls import get_url_path
 if TYPE_CHECKING:
     # pylint: disable=unused-import
     from werkzeug.datastructures import TypeConversionDict
+    from flask_appbuilder.security.sqla.models import User
 
 
 # Globals

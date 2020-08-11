@@ -16,9 +16,9 @@
 # under the License.
 
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple
-
 import time
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+
 from flask import current_app, request, Response, session
 from flask_login import login_user
 from retry.api import retry_call
@@ -39,6 +39,11 @@ logger = logging.getLogger(__name__)
 SELENIUM_CHECK_INTERVAL = 2
 SELENIUM_RETRIES = 5
 SELENIUM_HEADSTART = 3
+
+
+if TYPE_CHECKING:
+    # pylint: disable=unused-import
+    from flask_appbuilder.security.sqla.models import User
 
 
 def get_auth_cookies(user: "User") -> List[Dict[Any, Any]]:
@@ -62,7 +67,7 @@ def get_auth_cookies(user: "User") -> List[Dict[Any, Any]]:
 def auth_driver(
     driver: WebDriver,
     user: "User",
-    auth_cookies_func: Optional[Callable] = get_auth_cookies,
+    auth_cookies_func: Optional[Callable[["User"], List[Dict[Any, Any]]]] = None,
 ) -> WebDriver:
     """
         Default AuthDriverFuncType type that sets a session cookie flask-login style
@@ -71,7 +76,7 @@ def auth_driver(
 
     if user:
         # Set the cookies in the driver
-        for cookie in auth_cookies_func(user):
+        for cookie in (auth_cookies_func or get_auth_cookies)(user):
             info = dict(name="session", value=cookie)
             driver.add_cookie(info)
     elif request.cookies:

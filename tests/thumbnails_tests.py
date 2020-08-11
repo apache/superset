@@ -26,10 +26,7 @@ from sqlalchemy.sql import func
 from superset import db, is_feature_enabled, security_manager, thumbnail_cache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.screenshots import (
-    ChartScreenshot,
-    DashboardScreenshot,
-)
+from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import get_auth_cookies
 from tests.test_app import app

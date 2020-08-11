@@ -21,7 +21,7 @@ from typing import Optional, TYPE_CHECKING, Union
 from flask import current_app
 
 from superset.utils.hashing import md5_sha_from_dict
-from superset.utils.webdriver import WindowSize, WebDriverProxy
+from superset.utils.webdriver import WebDriverProxy, WindowSize
 
 logger = logging.getLogger(__name__)
 

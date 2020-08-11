@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 from superset.utils.webdriver import WebDriverProxy
 from tests.base_tests import SupersetTestCase
