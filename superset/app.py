@@ -40,6 +40,7 @@ from superset.extensions import (
     migrate,
     results_backend_manager,
     talisman,
+    machine_auth_provider_factory,
 )
 from superset.security import SupersetSecurityManager
 from superset.typing import FlaskResponse
@@ -468,6 +469,7 @@ class SupersetAppInitializer:
         self.configure_fab()
         self.configure_url_map_converters()
         self.configure_data_sources()
+        self.configure_auth_provider()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -498,6 +500,9 @@ class SupersetAppInitializer:
             self.init_app_in_ctx()
 
         self.post_init()
+
+    def configure_auth_provider(self) -> None:
+        machine_auth_provider_factory.init_app(self.flask_app)
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(

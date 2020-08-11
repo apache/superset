@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
+import random
 from unittest.mock import Mock, patch
 
 from superset.utils.webdriver import WebDriverProxy, MachineAuthProvider
@@ -81,5 +81,5 @@ class MachineAuthProviderTests(SupersetTestCase):
         self._auth_provider.init_app(self.app)
 
     def test_get_auth_cookies(self):
-        user = self.create_user("test", "test", "Gamma")
+        user = self.create_user_with_roles(f"test{random.randint(1000,9999)}", ["Gamma"])
         self._auth_provider.get_auth_cookies(user)

@@ -50,7 +50,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
 
 from superset import app, db, security_manager, thumbnail_cache
-from superset.extensions import celery_app
+from superset.extensions import celery_app, machine_auth_provider_factory
 from superset.models.alerts import Alert, AlertLog
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -312,14 +312,15 @@ def _get_slice_data(slc: Slice, delivery_type: EmailDeliveryType) -> ReportConte
         "Superset.slice", slice_id=slc.id, user_friendly=True
     )
 
-    cookies = {}
-    for cookie in WebDriverProxy(
-        driver_type=config["EMAIL_REPORTS_WEBDRIVER"]
-    ).get_auth_cookies(get_reports_user()):
-        cookies["session"] = cookie
+    # Login on behalf of the "reports" user in order to get cookies to deal with auth
+    auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
+        get_reports_user()
+    )
+    # Build something like "session=cool_sess.val;other-cookie=awesome_other_cookie"
+    cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
 
     opener = urllib.request.build_opener()
-    opener.addheaders.append(("Cookie", f"session={cookies['session']}"))
+    opener.addheaders.append(("Cookie", cookie_str))
     response = opener.open(slice_url)
     if response.getcode() != 200:
         raise URLError(response.getcode())
