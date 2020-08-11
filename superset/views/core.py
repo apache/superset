@@ -1630,7 +1630,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         dash_save_perm = security_manager.can_access("can_save_dash", "Superset")
         # do not allow explore chart metadata
         superset_can_explore = False
-        superset_can_csv = security_manager.can_access("can_csv", "Superset")
+        superset_can_csv = True
         # do not allow edit chart
         slice_can_edit = False
         is_admin = security_manager.can_access("can_edit", "RoleModelView")
