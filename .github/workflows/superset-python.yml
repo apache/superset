@@ -294,10 +294,18 @@ jobs:
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.superset_test_config_thumbnails
+      SUPERSET__SQLALCHEMY_DATABASE_URI:
+        postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       REDIS_PORT: 16379
-      SUPERSET__SQLALCHEMY_DATABASE_URI: |
-        sqlite:///${{ github.workspace }}/.temp/unittest.db
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     services:
+      postgres:
+        image: postgres:10-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          - 15432:5432
       redis:
         image: redis:5-alpine
         ports:
