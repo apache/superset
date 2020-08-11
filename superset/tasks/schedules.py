@@ -596,7 +596,8 @@ def deliver_alert(
     elif alert.dashboard:
         alert_content = AlertContent(
             alert.label,
-            alert.sql,
+            sql,
+            observation_value,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             _get_dashboard_screenshot(alert.dashboard_id),
         )
@@ -633,7 +634,8 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
             alert_url=alert_content.alert_url,
             label=alert_content.label,
             sql=alert_content.sql,
-            image_url=alert_content.image_data.url,
+            observation_value=alert_content.observation_value,
+            image_url=image_url,
         )
     else:
         body = render_template(
@@ -641,8 +643,8 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
             alert_url=alert_content.alert_url,
             label=alert_content.label,
             sql=alert_content.sql,
+            observation_value=alert_content.observation_value,
         )
-
 
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 
