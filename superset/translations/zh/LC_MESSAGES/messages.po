@@ -4121,7 +4121,7 @@ msgstr "周"
 #~ msgstr "线宽"
 
 #~ msgid "Edit chart metadata"
-#~ msgstr "编辑图表"
+#~ msgstr "编辑图表元数据"
 
 #~ msgid "Maximize"
 #~ msgstr "最大化"
