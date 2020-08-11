@@ -548,6 +548,9 @@ def format_pivot_table_html_2b_convenient(html_data):
     # move tbody last tr to tfoot
     tbody = table.find("./tbody")
     tbody_last_tr = tbody.findall("tr")[-1]
+    for x in tbody_last_tr:
+        if x.text != "All":
+            x.text = "{:,.2f}".format(float(x.text))
 
     tfoot = ET.SubElement(table, "tfoot")
     tfoot.insert(0, tbody_last_tr)
