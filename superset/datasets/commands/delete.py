@@ -52,9 +52,7 @@ class DeleteDatasetCommand(BaseCommand):
                 else None
             )
             permission_views = (
-                db.session.query(
-                    security_manager.permissionview_model
-                )
+                db.session.query(security_manager.permissionview_model)
                 .filter_by(view_menu=view_menu)
                 .all()
             )
