@@ -964,8 +964,14 @@
          "Save as": [
             "另存为"
          ],
-         "Force Refresh": [
+         "Force refresh": [
             "强制刷新"
+         ],
+         "Fetched %s": [
+            "刷新于%s"
+         ],
+         "Cached %s": [
+            "缓存于%s"
          ],
          "Force refresh the whole dashboard": [
             "强制刷新整个仪表板"
@@ -1128,6 +1134,15 @@
          ],
          "Export CSV": [
             "导出 CSV"
+         ],
+         "Maximize": [
+            "最大化"
+         ],
+         "Minimize": [
+            "还原"
+         ],
+         "Download as image": [
+            "下载为图片"
          ],
          "Explore chart": [
             "探索图表"
