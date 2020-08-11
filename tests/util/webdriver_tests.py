@@ -17,7 +17,7 @@
 
 from unittest.mock import Mock, patch
 
-from superset.utils.webdriver import WebDriverProxy
+from superset.utils.webdriver import WebDriverProxy, MachineAuthProvider
 from tests.base_tests import SupersetTestCase
 
 
@@ -73,3 +73,13 @@ class WebdriverTests(SupersetTestCase):
         driver.auth(self.get_user("admin"))
         auth_func_orig.assert_not_called()
         auth_func.asset_called_once()
+
+
+class MachineAuthProviderTests(SupersetTestCase):
+    def setUp(self) -> None:
+        self._auth_provider = MachineAuthProvider()
+        self._auth_provider.init_app(self.app)
+
+    def test_get_auth_cookies(self):
+        user = self.create_user("test", "test", "Gamma")
+        self._auth_provider.get_auth_cookies(user)

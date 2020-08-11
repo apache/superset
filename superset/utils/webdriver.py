@@ -19,7 +19,7 @@ import logging
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-from flask import current_app, request, Response, session
+from flask import current_app, request, Response, session, Flask
 from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import TimeoutException, WebDriverException
@@ -46,45 +46,63 @@ if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
 
 
-def get_auth_cookies(user: "User") -> List[Dict[Any, Any]]:
-    # Login with the user specified to get the reports
-    with current_app.test_request_context("/login"):
-        login_user(user)
-        # A mock response object to get the cookie information from
-        response = Response()
-        current_app.session_interface.save_session(current_app, session, response)
+class MachineAuthProvider:
+    def __init__(self):
+        self._auth_webdriver_func_override = None
 
-    cookies = []
+    def init_app(self, app: Flask):
+        # This is here in order to allow for the authenticate_webdriver func to be
+        # overridden via config, as opposed to the entire provider implementation
+        self._auth_webdriver_func_override = app.config["WEBDRIVER_AUTH_FUNC"]
 
-    # Set the cookies in the driver
-    for name, value in response.headers:
-        if name.lower() == "set-cookie":
-            cookie = parse_cookie(value)
-            cookies.append(cookie["session"])
-    return cookies
+    def authenticate_webdriver(
+        self,
+        driver: WebDriver,
+        user: "User",
+    ) -> WebDriver:
+        """
+            Default AuthDriverFuncType type that sets a session cookie flask-login style
+            :return: The WebDriver passed in (fluent)
+        """
+        # Short-circuit this method if we have an override configured
+        if self._auth_webdriver_func_override:
+            return self._auth_webdriver_func_override(driver, user)
 
+        if user:
+            # Set the cookies in the driver
+            for cookie in self.get_auth_cookies(user):
+                info = dict(name="session", value=cookie)
+                driver.add_cookie(info)
+        elif request.cookies:
+            cookies = request.cookies
+            for k, v in cookies.items():
+                cookie = dict(name=k, value=v)
+                driver.add_cookie(cookie)
 
-def auth_driver(
-    driver: WebDriver,
-    user: "User",
-    auth_cookies_func: Optional[Callable[["User"], List[Dict[Any, Any]]]] = None,
-) -> WebDriver:
-    """
-        Default AuthDriverFuncType type that sets a session cookie flask-login style
-    :return: WebDriver
-    """
+        return driver
 
-    if user:
-        # Set the cookies in the driver
-        for cookie in (auth_cookies_func or get_auth_cookies)(user):
-            info = dict(name="session", value=cookie)
-            driver.add_cookie(info)
-    elif request.cookies:
-        cookies = request.cookies
-        for k, v in cookies.items():
-            cookie = dict(name=k, value=v)
-            driver.add_cookie(cookie)
-    return driver
+    def get_auth_cookies(self, user: "User") -> List[Dict[Any, Any]]:
+        # Login with the user specified to get the reports
+        with current_app.test_request_context("/login"):
+            login_user(user)
+            # A mock response object to get the cookie information from
+            response = Response()
+            current_app.session_interface.save_session(current_app, session, response)
+
+        cookies = []
+
+        # Grab any "set-cookie" headers from the login response
+        for name, value in response.headers:
+            if name.lower() == "set-cookie":
+                cookie = parse_cookie(value)
+                if cookie.get(self.auth_cookie_name):
+                    cookies.append({self.auth_cookie_name, cookie[self.auth_cookie_name]})
+
+        return cookies
+
+    @property
+    def auth_cookie_name(self):
+        return "session"
 
 
 class WebDriverProxy:
@@ -92,23 +110,9 @@ class WebDriverProxy:
         self,
         driver_type: str,
         window: Optional[WindowSize] = None,
-        auth_func: Optional[
-            Callable[..., Any]
-        ] = None,  # pylint: disable=bad-whitespace
-        get_cookies_func: Optional[
-            Callable[..., Any]
-        ] = None,  # pylint: disable=bad-whitespace
     ):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
-
-        config_auth_func = current_app.config["WEBDRIVER_AUTH_FUNC"] or auth_driver
-        self._auth_func = auth_func or config_auth_func
-
-        config_auth_cookies_func = (
-            current_app.config["WEBDRIVER_AUTH_COOKIES_FUNC"] or get_auth_cookies
-        )
-        self._auth_cookies_func = get_cookies_func or config_auth_cookies_func
 
     def create(self) -> WebDriver:
         if self._driver_type == "firefox":
@@ -125,6 +129,9 @@ class WebDriverProxy:
         else:
             raise Exception(f"Webdriver name ({self._driver_type}) not supported")
         # Prepare args for the webdriver init
+
+        # add_configured_options_here!!
+
         options.add_argument("--headless")
         kwargs: Dict[Any, Any] = dict(options=options)
         kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
@@ -136,9 +143,6 @@ class WebDriverProxy:
         # Setting cookies requires doing a request first
         driver.get(headless_url("/login/"))
         return self._auth_func(driver, user, auth_cookies_func=self._auth_cookies_func)
-
-    def get_auth_cookies(self, user: "User") -> List[Dict[Any, Any]]:
-        return self._auth_cookies_func(user)
 
     @staticmethod
     def destroy(driver: WebDriver, tries: int = 2) -> None:
