@@ -33,6 +33,7 @@ import {
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
   SET_DIRECT_PATH,
+  SET_MOUNTED_TAB,
   SET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
 
@@ -122,8 +123,17 @@ export default function dashboardStateReducer(state = {}, action) {
     [SET_DIRECT_PATH]() {
       return {
         ...state,
+        // change of direct path (tabs) will reset current mounted tab
+        mountedTab: null,
         directPathToChild: action.path,
         directPathLastUpdated: Date.now(),
+      };
+    },
+    [SET_MOUNTED_TAB]() {
+      // set current mounted tab after tab is really mounted to DOM
+      return {
+        ...state,
+        mountedTab: action.mountedTab,
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {
