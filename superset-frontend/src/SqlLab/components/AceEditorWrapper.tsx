@@ -22,14 +22,14 @@ import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import ace from 'brace';
-import { areArraysShallowEqual } from '../../reduxUtils';
-import sqlKeywords from '../utils/sqlKeywords';
+import { areArraysShallowEqual } from 'src/reduxUtils';
+import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
   SCHEMA_AUTOCOMPLETE_SCORE,
   TABLE_AUTOCOMPLETE_SCORE,
   COLUMN_AUTOCOMPLETE_SCORE,
   SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
-} from '../constants';
+} from 'src/SqlLab/constants';
 
 const langTools = ace.acequire('ace/ext/language_tools');
 
