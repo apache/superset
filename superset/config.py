@@ -761,6 +761,11 @@ SLACK_PROXY = None
 # * Emails are sent using dry-run mode (logging only)
 SCHEDULED_EMAIL_DEBUG_MODE = False
 
+# This auth provider is used by background (offline) tasks that need to access
+# protected resources. Can be overridden by end users in order to support
+# custom auth mechanisms
+MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
+
 # Email reports - minimum time resolution (in minutes) for the crontab
 EMAIL_REPORTS_CRON_RESOLUTION = 15
 
@@ -795,8 +800,21 @@ EMAIL_REPORTS_WEBDRIVER = "firefox"
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
 
+# An optional override to the default auth hook used to provide auth to the
+# offline webdriver
+WEBDRIVER_AUTH_FUNC = None
+
 # Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
+
+# Additional args to be passed as arguments to the config object
+# Note: these options are Chrome-specific. For FF, these should
+# only include the "--headless" arg
+WEBDRIVER_OPTION_ARGS = [
+    "--force-device-scale-factor=2.0",
+    "--high-dpi-support=2.0",
+    "--headless",
+]
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
