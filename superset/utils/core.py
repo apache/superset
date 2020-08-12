@@ -222,8 +222,8 @@ def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float
     10
     >>> cast_to_num(10.1)
     10.1
-    >>> cast_to_num(None)
-    None
+    >>> cast_to_num(None) is None
+    True
     >>> cast_to_num('this is not a string') is None
     True
 
