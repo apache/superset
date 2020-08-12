@@ -58,6 +58,13 @@ dashboard_slices = Table(
     Column("slice_id", Integer, ForeignKey("slices.id")),
 )
 
+slice_user = Table(
+    "slice_user",
+    Base.metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("ab_user.id")),
+    Column("slice_id", Integer, ForeignKey("slices.id")),
+)
 
 class Dashboard(Base):
     __tablename__ = "dashboards"
@@ -153,6 +160,27 @@ def upgrade():
                         sort_keys=True,
                     )
                     session.merge(dashboard)
+
+        # remove iframe, separator and markup charts
+        slices_to_remove = session.query(Slice).filter(
+            Slice.viz_type.in_(["iframe", "separator", "markup"])
+        ).all()
+        slices_ids = [slc.id for slc in slices_to_remove]
+
+        # remove dependencies first
+        session.query(dashboard_slices).filter(
+            dashboard_slices.c.slice_id.in_(slices_ids)
+        ).delete(synchronize_session=False)
+
+        session.query(slice_user).filter(
+            slice_user.c.slice_id.in_(slices_ids)
+        ).delete(synchronize_session=False)
+
+        # remove slices
+        session.query(Slice).filter(
+            Slice.id.in_(slices_ids)
+        ).delete(synchronize_session=False)
+
     except Exception as ex:
         logging.exception(f"dashboard {dashboard.id} has error: {ex}")
 

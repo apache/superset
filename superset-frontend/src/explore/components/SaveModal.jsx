@@ -33,8 +33,6 @@ import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
 import { t } from '@superset-ui/translation';
 import ReactMarkdown from 'react-markdown';
 
-import { EXPLORE_ONLY_VIZ_TYPE } from '../constants';
-
 const propTypes = {
   can_overwrite: PropTypes.bool,
   onHide: PropTypes.func.isRequired,
@@ -134,9 +132,6 @@ class SaveModal extends React.Component {
     this.setState({ alert: null });
   }
   render() {
-    // do not add iframe/markdown/separator chart to dashboard
-    const canNotSaveToDash =
-      EXPLORE_ONLY_VIZ_TYPE.indexOf(this.state.vizType) > -1;
     return (
       <Modal show onHide={this.props.onHide}>
         <Modal.Header closeButton>
@@ -226,9 +221,7 @@ class SaveModal extends React.Component {
               id="btn_modal_save_goto_dash"
               bsSize="sm"
               disabled={
-                canNotSaveToDash ||
-                !this.state.newSliceName ||
-                !this.state.newDashboardName
+                !this.state.newSliceName || !this.state.newDashboardName
               }
               onClick={this.saveOrOverwrite.bind(this, true)}
             >
@@ -240,10 +233,7 @@ class SaveModal extends React.Component {
               bsSize="sm"
               bsStyle="primary"
               onClick={this.saveOrOverwrite.bind(this, false)}
-              disabled={
-                !this.state.newSliceName ||
-                (canNotSaveToDash && this.state.newDashboardName)
-              }
+              disabled={!this.state.newSliceName}
             >
               {t('Save')}
             </Button>
