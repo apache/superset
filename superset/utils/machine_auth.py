@@ -49,14 +49,14 @@ class MachineAuthProvider:
             return self._auth_webdriver_func_override(driver, user)
 
         if user:
-            # Set the cookies in the driver
-            for cookie_name, cookie_val in self.get_auth_cookies(user).items():
-                driver.add_cookie({cookie_name: cookie_val})
+            cookies = self.get_auth_cookies(user)
         elif request.cookies:
             cookies = request.cookies
-            for k, v in cookies.items():
-                cookie = dict(name=k, value=v)
-                driver.add_cookie(cookie)
+        else:
+            cookies = {}
+
+        for cookie_name, cookie_val in cookies.items():
+            driver.add_cookie(dict(name=cookie_name, value=cookie_val))
 
         return driver
 
