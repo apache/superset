@@ -475,10 +475,10 @@ export default class DateFilterControl extends React.Component {
                         bsSize="small"
                         componentClass={InputGroup.Button}
                         id="input-dropdown-grain"
-                        title={this.state.grain}
+                        title={t(this.state.grain)}
                         onFocus={this.setTypeCustomRange}
                       >
-                        {grainOptions}
+                        {t(grainOptions)}
                       </DropdownButton>
                     </div>
                   </div>
