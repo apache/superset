@@ -17,7 +17,7 @@
 
 import importlib
 import logging
-from typing import Callable, Dict, Optional, TYPE_CHECKING
+from typing import Callable, Dict, TYPE_CHECKING
 
 from flask import current_app, Flask, request, Response, session
 from flask_login import login_user
@@ -86,6 +86,9 @@ class MachineAuthProvider:
 
 
 class MachineAuthProviderFactory:
+    def __init__(self) -> None:
+        self._auth_provider = None
+
     def init_app(self, app: Flask) -> None:
         auth_provider_fqclass = app.config["MACHINE_AUTH_PROVIDER_CLASS"]
         auth_provider_classname = auth_provider_fqclass[
@@ -102,4 +105,4 @@ class MachineAuthProviderFactory:
 
     @property
     def instance(self) -> MachineAuthProvider:
-        return self._auth_provider
+        return self._auth_provider  # type: ignore
