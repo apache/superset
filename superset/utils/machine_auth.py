@@ -24,6 +24,8 @@ from flask_login import login_user
 from selenium.webdriver.remote.webdriver import WebDriver
 from werkzeug.http import parse_cookie
 
+from superset.utils.urls import headless_url
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -47,6 +49,9 @@ class MachineAuthProvider:
         # Short-circuit this method if we have an override configured
         if self._auth_webdriver_func_override:
             return self._auth_webdriver_func_override(driver, user)
+
+        # Setting cookies requires doing a request first
+        driver.get(headless_url("/login/"))
 
         if user:
             cookies = self.get_auth_cookies(user)

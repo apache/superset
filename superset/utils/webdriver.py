@@ -29,7 +29,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from superset.extensions import machine_auth_provider_factory
-from superset.utils.urls import headless_url
 
 WindowSize = Tuple[int, int]
 logger = logging.getLogger(__name__)
@@ -51,6 +50,8 @@ class WebDriverProxy:
     ):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
+        self._screenshot_locate_wait = current_app.config["SCREENSHOT_LOCATE_WAIT"]
+        self._screenshot_load_wait = current_app.config["SCREENSHOT_LOAD_WAIT"]
 
     def create(self) -> WebDriver:
         if self._driver_type == "firefox":
@@ -76,8 +77,6 @@ class WebDriverProxy:
 
     def auth(self, user: "User") -> WebDriver:
         driver = self.create()
-        # Setting cookies requires doing a request first
-        driver.get(headless_url("/login/"))
         return machine_auth_provider_factory.instance.authenticate_webdriver(
             driver, user
         )
@@ -112,16 +111,16 @@ class WebDriverProxy:
         try:
             logger.debug("Wait for the presence of %s", element_name)
             element = WebDriverWait(
-                driver, current_app.config["SCREENSHOT_LOCATE_WAIT"]
+                driver, self._screenshot_locate_wait
             ).until(EC.presence_of_element_located((By.CLASS_NAME, element_name)))
             logger.debug("Wait for .loading to be done")
-            WebDriverWait(driver, current_app.config["SCREENSHOT_LOAD_WAIT"]).until_not(
+            WebDriverWait(driver, self._screenshot_load_wait).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
-            logger.info("Taking a PNG screenshot")
+            logger.info(f"Taking a PNG screenshot or url {url}")
             img = element.screenshot_as_png
         except TimeoutException:
-            logger.error("Selenium timed out")
+            logger.error(f"Selenium timed out requesting url {url}")
         except WebDriverException as ex:
             logger.error(ex)
             # Some webdrivers do not support screenshots for elements.

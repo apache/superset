@@ -58,7 +58,7 @@ function test_init() {
 #
 # Init global vars
 #
-DB_NAME="superset"
+DB_NAME="test"
 DB_USER="superset"
 DB_PASSWORD="superset"
 export SUPERSET__SQLALCHEMY_DATABASE_URI=${SUPERSET__SQLALCHEMY_DATABASE_URI:-postgresql+psycopg2://"${DB_USER}":"${DB_PASSWORD}"@localhost/"${DB_NAME}"}
