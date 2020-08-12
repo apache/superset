@@ -58,6 +58,7 @@ const ErrorAlertDiv = styled.div<{ level: ErrorLevel }>`
 
 const ErrorModal = styled(Modal)<{ level: ErrorLevel }>`
   color: ${({ level, theme }) => theme.colors[level].dark2};
+  overflow-wrap: break-word;
 
   .icon {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
