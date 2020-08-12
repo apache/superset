@@ -134,6 +134,7 @@ class SaveModal extends React.Component {
     this.setState({ alert: null });
   }
   render() {
+    // do not add iframe/markdown/separator chart to dashboard
     const canNotSaveToDash =
       EXPLORE_ONLY_VIZ_TYPE.indexOf(this.state.vizType) > -1;
     return (
@@ -239,7 +240,10 @@ class SaveModal extends React.Component {
               bsSize="sm"
               bsStyle="primary"
               onClick={this.saveOrOverwrite.bind(this, false)}
-              disabled={!this.state.newSliceName}
+              disabled={
+                !this.state.newSliceName ||
+                (canNotSaveToDash && this.state.newDashboardName)
+              }
             >
               {t('Save')}
             </Button>

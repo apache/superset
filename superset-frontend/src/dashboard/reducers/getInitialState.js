@@ -108,7 +108,9 @@ export default function (bootstrapData) {
   const sliceIds = new Set();
   dashboard.slices.forEach(slice => {
     const key = slice.slice_id;
-    if (['separator', 'markup'].indexOf(slice.form_data.viz_type) === -1) {
+    if (
+      ['separator', 'markup', 'iframe'].indexOf(slice.form_data.viz_type) === -1
+    ) {
       const form_data = {
         ...slice.form_data,
         url_params: {
