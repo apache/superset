@@ -100,6 +100,7 @@ class SupersetTestCase(TestCase):
             assert user_to_create
         user_to_create.roles = [security_manager.find_role(r) for r in roles]
         db.session.commit()
+        return user_to_create
 
     @staticmethod
     def create_user(
