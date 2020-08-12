@@ -455,7 +455,7 @@ You can override the base URL for selenium using:
     WEBDRIVER_BASEURL = "https://superset.company.com"
 
 
-Additional selenium web driver config can be set using `WEBDRIVER_CONFIGURATION`
+Additional selenium web drive config can be set using `WEBDRIVER_CONFIGURATION`
 
 You can implement a custom function to authenticate selenium, the default uses flask-login session cookie.
 An example of a custom function signature:
@@ -465,18 +465,12 @@ An example of a custom function signature:
     def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
         pass
 
-    # Optionally override get_auth_cookies if you want to retain the default auth mechanism
-    def my_custom_cookies_func(user: "User") -> List[Dict[Any, Any]]:
-        pass
-
 
 Then on config:
 
 .. code-block:: python
 
     WEBDRIVER_AUTH_FUNC = auth_driver
-
-    WEBDRIVER_AUTH_COOKIES_FUNC = my_custom_cookies_func
 
 Database dependencies
 ---------------------
@@ -501,7 +495,7 @@ Here's a list of some of the recommended packages.
 |                  |                                                                   | For JDBC                                        |
 |                  |                                                                   | ``drill+jdbc://``                               |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
-| Apache Druid     | ``"apache-superset[druid]"``                                      | ``druid://``                                    |
+| Apache Druid     | ``"git+https://github.com/JohnOmernik/sqlalchemy-drill"``         | ``druid://``                                    |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
 | Apache Hive      | ``"apache-superset[hive]"``                                       | ``hive://``                                     |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
