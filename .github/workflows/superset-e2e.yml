@@ -38,7 +38,7 @@ jobs:
       with:
         python-version: '3.7'
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
+      uses: apache-superset/cached-dependencies@688c1873f
       with:
         run: |
           apt-get-install
@@ -50,7 +50,7 @@ jobs:
           build-instrumented-assets
           cypress-install
     - name: Run Cypress
-      uses: apache-superset/cached-dependencies@b90713b
+      uses: apache-superset/cached-dependencies@688c1873f
       env:
         CYPRESS_BROWSER: ${{ matrix.browser }}
         CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}

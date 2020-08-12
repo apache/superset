@@ -10,7 +10,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
+      uses: apache-superset/cached-dependencies@688c1873f
       with:
         run: npm-install
     - name: lint

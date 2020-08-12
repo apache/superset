@@ -16,7 +16,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
+      uses: apache-superset/cached-dependencies@688c1873f
       with:
         run: |
           apt-get-install
@@ -39,7 +39,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
+      uses: apache-superset/cached-dependencies@688c1873f
       with:
         run: |
           apt-get-install
@@ -61,7 +61,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
+      uses: apache-superset/cached-dependencies@688c1873f
       with:
         run: |
           apt-get-install
@@ -83,7 +83,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: apache-superset/cached-dependencies@688c1873f
         with:
           run: |
             apt-get-install
@@ -136,7 +136,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: apache-superset/cached-dependencies@688c1873f
         with:
           run: |
             apt-get-install
@@ -185,7 +185,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
+      uses: apache-superset/cached-dependencies@688c1873f
       with:
         run: |
           apt-get-install
@@ -231,7 +231,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
+      uses: apache-superset/cached-dependencies@688c1873f
       with:
         run: |
           apt-get-install
@@ -270,7 +270,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
+      uses: apache-superset/cached-dependencies@688c1873f
       with:
         run: |
           apt-get-install
