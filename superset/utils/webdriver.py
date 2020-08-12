@@ -117,10 +117,10 @@ class WebDriverProxy:
             WebDriverWait(driver, self._screenshot_load_wait).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
-            logger.info(f"Taking a PNG screenshot or url {url}")
+            logger.info("Taking a PNG screenshot or url %s", url)
             img = element.screenshot_as_png
         except TimeoutException:
-            logger.error(f"Selenium timed out requesting url {url}")
+            logger.error("Selenium timed out requesting url %s", url)
         except WebDriverException as ex:
             logger.error(ex)
             # Some webdrivers do not support screenshots for elements.
