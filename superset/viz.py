@@ -21,6 +21,7 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
+import dataclasses
 import inspect
 import logging
 import math
@@ -42,7 +43,6 @@ from typing import (
     Union,
 )
 
-import dataclasses
 import geohash
 import numpy as np
 import pandas as pd
