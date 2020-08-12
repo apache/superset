@@ -211,7 +211,7 @@ def parse_js_uri_path_item(
     return unquote_plus(item) if unquote and item else item
 
 
-def cast_to_num(value: Union[float, int, str]) -> Optional[Union[float, int]]:
+def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float, int]]:
     """Casts a value to an int/float
 
     >>> cast_to_num('5')
@@ -222,6 +222,8 @@ def cast_to_num(value: Union[float, int, str]) -> Optional[Union[float, int]]:
     10
     >>> cast_to_num(10.1)
     10.1
+    >>> cast_to_num(None) is None
+    True
     >>> cast_to_num('this is not a string') is None
     True
 
@@ -229,6 +231,8 @@ def cast_to_num(value: Union[float, int, str]) -> Optional[Union[float, int]]:
     :returns: value cast to `int` if value is all digits, `float` if `value` is
               decimal value and `None`` if it can't be converted
     """
+    if value is None:
+        return None
     if isinstance(value, (int, float)):
         return value
     if value.isdigit():
