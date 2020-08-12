@@ -38,6 +38,7 @@ from superset.models.core import Database, Log
 from superset.utils.cache_manager import CacheManager
 from superset.utils.core import (
     base_json_conv,
+    cast_to_num,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
     format_timedelta,
@@ -1367,6 +1368,14 @@ class TestUtils(SupersetTestCase):
         self.assertEqual("BaZ", validator("BaZ"))
         self.assertRaises(marshmallow.ValidationError, validator, "qwerty")
         self.assertRaises(marshmallow.ValidationError, validator, 4)
+
+    def test_cast_to_num(self) -> None:
+        assert cast_to_num("5") == 5
+        assert cast_to_num("5.2") == 5.2
+        assert cast_to_num(10) == 10
+        assert cast_to_num(10.1) == 10.1
+        assert cast_to_num(None) is None
+        assert cast_to_num("this is not a string") is None
 
     def test_get_form_data_token(self):
         assert get_form_data_token({"token": "token_abcdefg1"}) == "token_abcdefg1"
