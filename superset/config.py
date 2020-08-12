@@ -808,6 +808,8 @@ WEBDRIVER_AUTH_FUNC = None
 WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
 
 # Additional args to be passed as arguments to the config object
+# Note: these options are Chrome-specific. For FF, these should
+# only include the "--headless" arg
 WEBDRIVER_OPTION_ARGS = [
     "--force-device-scale-factor=2.0",
     "--high-dpi-support=2.0",
