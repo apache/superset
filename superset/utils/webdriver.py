@@ -110,9 +110,9 @@ class WebDriverProxy:
         time.sleep(SELENIUM_HEADSTART)
         try:
             logger.debug("Wait for the presence of %s", element_name)
-            element = WebDriverWait(
-                driver, self._screenshot_locate_wait
-            ).until(EC.presence_of_element_located((By.CLASS_NAME, element_name)))
+            element = WebDriverWait(driver, self._screenshot_locate_wait).until(
+                EC.presence_of_element_located((By.CLASS_NAME, element_name))
+            )
             logger.debug("Wait for .loading to be done")
             WebDriverWait(driver, self._screenshot_load_wait).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
