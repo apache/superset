@@ -14,13 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import dataclasses
 import functools
 import logging
 import traceback
 from datetime import datetime
 from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
+import dataclasses
 import simplejson as json
 import yaml
 from flask import abort, flash, g, get_flashed_messages, redirect, Response, session

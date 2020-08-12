@@ -16,9 +16,9 @@
 # under the License.
 
 import logging
+import time
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
-import time
 from flask import current_app
 from retry.api import retry_call
 from selenium.common.exceptions import TimeoutException, WebDriverException

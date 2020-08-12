@@ -36,11 +36,11 @@ from superset.extensions import (
     db,
     feature_flag_manager,
     jinja_context_manager,
+    machine_auth_provider_factory,
     manifest_processor,
     migrate,
     results_backend_manager,
     talisman,
-    machine_auth_provider_factory,
 )
 from superset.security import SupersetSecurityManager
 from superset.typing import FlaskResponse
