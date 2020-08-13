@@ -66,6 +66,7 @@ slice_user = Table(
     Column("slice_id", Integer, ForeignKey("slices.id")),
 )
 
+
 class Dashboard(Base):
     __tablename__ = "dashboards"
     id = Column(Integer, primary_key=True)
@@ -131,18 +132,18 @@ def upgrade():
             # find iframe chart position in metadata
             # and replace it with markdown component
             position_dict = json.loads(dashboard.position_json or "{}")
-            for key, value in position_dict.items():
+            for key, chart_position in position_dict.items():
                 if (
-                    value
-                    and isinstance(value, dict)
-                    and value["type"] == "CHART"
-                    and value["meta"]
-                    and value["meta"]["chartId"] in iframe_ids
+                    chart_position
+                    and isinstance(chart_position, dict)
+                    and chart_position["type"] == "CHART"
+                    and chart_position["meta"]
+                    and chart_position["meta"]["chartId"] in iframe_ids
                 ):
-                    iframe_id = value["meta"]["chartId"]
+                    iframe_id = chart_position["meta"]["chartId"]
                     # make new markdown component
                     markdown = create_new_markdown_component(
-                        value, iframe_urls[iframe_id]
+                        chart_position, iframe_urls[iframe_id]
                     )
                     position_dict.pop(key)
                     position_dict[markdown["id"]] = markdown
@@ -162,9 +163,11 @@ def upgrade():
                     session.merge(dashboard)
 
         # remove iframe, separator and markup charts
-        slices_to_remove = session.query(Slice).filter(
-            Slice.viz_type.in_(["iframe", "separator", "markup"])
-        ).all()
+        slices_to_remove = (
+            session.query(Slice)
+            .filter(Slice.viz_type.in_(["iframe", "separator", "markup"]))
+            .all()
+        )
         slices_ids = [slc.id for slc in slices_to_remove]
 
         # remove dependencies first
@@ -172,14 +175,14 @@ def upgrade():
             dashboard_slices.c.slice_id.in_(slices_ids)
         ).delete(synchronize_session=False)
 
-        session.query(slice_user).filter(
-            slice_user.c.slice_id.in_(slices_ids)
-        ).delete(synchronize_session=False)
+        session.query(slice_user).filter(slice_user.c.slice_id.in_(slices_ids)).delete(
+            synchronize_session=False
+        )
 
         # remove slices
-        session.query(Slice).filter(
-            Slice.id.in_(slices_ids)
-        ).delete(synchronize_session=False)
+        session.query(Slice).filter(Slice.id.in_(slices_ids)).delete(
+            synchronize_session=False
+        )
 
     except Exception as ex:
         logging.exception(f"dashboard {dashboard.id} has error: {ex}")
@@ -189,4 +192,7 @@ def upgrade():
 
 
 def downgrade():
+    # note: this upgrade is irreversible.
+    # this migration removed all iframe, separator, and markup type slices,
+    # and Superset will not support these 3 viz_type anymore.
     pass
