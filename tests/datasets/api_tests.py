@@ -129,7 +129,6 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test get dataset related databases gamma
         """
-        example_db = get_example_database()
         self.login(username="gamma")
         uri = "api/v1/dataset/related/database"
         rv = self.client.get(uri)
@@ -174,6 +173,14 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test get dataset distinct schema
         """
+
+        def pg_test_query_parameter(query_parameter, expected_response):
+            uri = f"api/v1/dataset/distinct/schema?q={prison.dumps(query_parameter)}"
+            rv = self.client.get(uri)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(response, expected_response)
+
         example_db = get_example_database()
         datasets = []
         if example_db.backend == "postgresql":
@@ -191,13 +198,32 @@ class TestDatasetApi(SupersetTestCase):
             }
         else:
             datasets.append(self.insert_default_dataset())
-            expected_response = {"count": 1, "result": [{"text": "",}]}
+            expected_response = {"count": 1, "result": [{"text": ""}]}
         self.login(username="admin")
         uri = "api/v1/dataset/distinct/schema"
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(response, expected_response)
+
+        if example_db.backend == "postgresql":
+            # Test filter
+            query_parameter = {"filter": "in"}
+            pg_test_query_parameter(
+                query_parameter,
+                {"count": 1, "result": [{"text": "information_schema"}]},
+            )
+
+            query_parameter = {"page": 0, "page_size": 1}
+            pg_test_query_parameter(
+                query_parameter,
+                {"count": 2, "result": [{"text": "information_schema"}]},
+            )
+
+            query_parameter = {"page": 1, "page_size": 1}
+            pg_test_query_parameter(
+                query_parameter, {"count": 2, "result": [{"text": "public"}]}
+            )
 
         for dataset in datasets:
             db.session.delete(dataset)
@@ -210,8 +236,24 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         uri = "api/v1/dataset/distinct/table_name"
         rv = self.client.get(uri)
-        response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 404)
+
+    def test_get_dataset_distinct_gamma(self):
+        """
+        Dataset API: Test get dataset distinct with gamma
+        """
+        dataset = self.insert_default_dataset()
+
+        self.login(username="gamma")
+        uri = "api/v1/dataset/distinct/schema"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response["count"], 0)
+        self.assertEqual(response["result"], [])
+
+        db.session.delete(dataset)
+        db.session.commit()
 
     def test_get_dataset_info(self):
         """

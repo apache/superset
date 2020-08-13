@@ -152,7 +152,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         # Setup statsd
         self.stats_logger = BaseStatsLogger()
         # Add base API spec base query parameter schemas
-        if self.apispec_parameter_schemas is None:
+        if self.apispec_parameter_schemas is None:  # type: ignore
             self.apispec_parameter_schemas = {}
         self.apispec_parameter_schemas["get_related_schema"] = get_related_schema
         if self.openapi_spec_component_schemas is None:
