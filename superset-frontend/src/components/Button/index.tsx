@@ -55,7 +55,7 @@ const SupersetButton = styled(BootstrapButton)`
     border-radius: ${({ theme }) => theme.borderRadius}px;
     border: none;
     color: ${({ theme }) => theme.colors.secondary.light5};
-    font-size: ${({ theme }) => theme.typography.sizes.s};
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     font-weight: ${({ theme }) => theme.typography.weights.bold};
     min-width: ${({ theme }) => theme.gridUnit * 36}px;
     min-height: ${({ theme }) => theme.gridUnit * 8}px;

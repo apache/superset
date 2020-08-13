@@ -37,7 +37,7 @@ const StyledHeader = styled.header`
   .navbar-nav {
     li {
       a {
-        font-size: ${({ theme }) => theme.typography.sizes.s};
+        font-size: ${({ theme }) => theme.typography.sizes.s}px;
         padding: ${({ theme }) => theme.gridUnit * 2}px;
         margin: ${({ theme }) => theme.gridUnit * 2}px;
         color: ${({ theme }) => theme.colors.secondary.dark1};

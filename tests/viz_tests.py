@@ -24,12 +24,13 @@ from typing import Any, Dict, List, Set
 
 import numpy as np
 import pandas as pd
+import pytest
 
 import tests.test_app
 import superset.viz as viz
 from superset import app
 from superset.constants import NULL_STRING
-from superset.exceptions import SpatialException
+from superset.exceptions import QueryObjectValidationError, SpatialException
 from superset.utils.core import DTTM_ALIAS
 
 from .base_tests import SupersetTestCase
@@ -1265,6 +1266,26 @@ class TestTimeSeriesViz(SupersetTestCase):
             .tolist(),
             [1.0, 1.5, 2.0, 2.5],
         )
+
+    def test_apply_rolling_without_data(self):
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            index=pd.to_datetime(
+                ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+            ),
+            data={"y": [1.0, 2.0, 3.0, 4.0]},
+        )
+        test_viz = viz.BigNumberViz(
+            datasource,
+            {
+                "metrics": ["y"],
+                "rolling_type": "cumsum",
+                "rolling_periods": 4,
+                "min_periods": 4,
+            },
+        )
+        with pytest.raises(QueryObjectValidationError):
+            test_viz.apply_rolling(df)
 
 
 class TestBigNumberViz(SupersetTestCase):
