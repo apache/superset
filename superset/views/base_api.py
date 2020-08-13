@@ -356,7 +356,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     @statsd_metrics
     @rison(get_related_schema)
     def distinct(self, column_name: str, **kwargs: Any) -> FlaskResponse:
-        """Get related fields data
+        """Get distinct values from field data
         ---
         get:
           parameters:
@@ -372,7 +372,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
                   $ref: '#/components/schemas/get_related_schema'
           responses:
             200:
-              description: Related column data
+              description: Distinct field data
               content:
                 application/json:
                   schema:
