@@ -218,7 +218,10 @@ interface UIFiltersProps {
 }
 
 const FilterWrapper = styled.div`
-  padding: 24px 16px 8px;
+  display: inline-block;
+  padding: ${({ theme }) => theme.gridUnit * 6}px
+    ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 function UIFilters({
