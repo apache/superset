@@ -195,7 +195,7 @@ class ChartList extends React.PureComponent<Props, State> {
         },
       }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
       Header: t('Datasource'),
-      accessor: 'datasource_id',
+      accessor: 'datasource_name',
     },
     {
       Cell: ({
@@ -225,6 +225,11 @@ class ChartList extends React.PureComponent<Props, State> {
     },
     {
       accessor: 'owners',
+      hidden: true,
+      disableSortBy: true,
+    },
+    {
+      accessor: 'datasource_id',
       hidden: true,
       disableSortBy: true,
     },

@@ -130,6 +130,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name",
         "viz_type",
         "datasource_name",
+        "datasource_id",
         "changed_by.first_name",
         "changed_on_delta_humanized",
     ]
