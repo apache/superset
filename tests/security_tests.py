@@ -26,6 +26,7 @@ import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.constants import Security as SecurityConsts
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -711,6 +712,24 @@ class TestRolePermission(SupersetTestCase):
             security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
                     "all_database_access", "all_database_access"
+                )
+            )
+        )
+
+        self.assertTrue(
+            security_manager._is_alpha_only(
+                security_manager.find_permission_view_menu(
+                    SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
+                    SecurityConsts.AllDashboard.VIEW_NAME
+                )
+            )
+        )
+
+        self.assertTrue(
+            security_manager._is_alpha_only(
+                security_manager.find_permission_view_menu(
+                    SecurityConsts.AllDashboard.EDIT_PERMISSION_NAME,
+                    SecurityConsts.AllDashboard.VIEW_NAME
                 )
             )
         )
