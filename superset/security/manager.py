@@ -143,7 +143,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Queries",
         "Import dashboards",
         "Upload a CSV",
-        SecurityConsts.AllDashboard.VIEW_NAME
+        SecurityConsts.AllDashboard.VIEW_NAME,
     }
 
     ADMIN_ONLY_PERMISSIONS = {
@@ -550,11 +550,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("all_query_access", "all_query_access")
         self.add_permission_view_menu(
             SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
-            SecurityConsts.AllDashboard.VIEW_NAME)
+            SecurityConsts.AllDashboard.VIEW_NAME,
+        )
         self.add_permission_view_menu(
             SecurityConsts.AllDashboard.EDIT_PERMISSION_NAME,
-            SecurityConsts.AllDashboard.VIEW_NAME)
-
+            SecurityConsts.AllDashboard.VIEW_NAME,
+        )
 
     def create_missing_perms(self) -> None:
         """

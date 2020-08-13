@@ -712,7 +712,7 @@ class TestRolePermission(SupersetTestCase):
             security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
                     SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
-                    SecurityConsts.AllDashboard.VIEW_NAME
+                    SecurityConsts.AllDashboard.VIEW_NAME,
                 )
             )
         )
@@ -721,7 +721,7 @@ class TestRolePermission(SupersetTestCase):
             security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
                     SecurityConsts.AllDashboard.EDIT_PERMISSION_NAME,
-                    SecurityConsts.AllDashboard.VIEW_NAME
+                    SecurityConsts.AllDashboard.VIEW_NAME,
                 )
             )
         )
