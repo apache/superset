@@ -24,6 +24,7 @@ import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import { Button } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+import styled from '@superset-ui/style';
 
 import FormLabel from 'src/components/FormLabel';
 
@@ -98,6 +99,13 @@ const defaultProps = {
   showDruidTimeOrigin: false,
   instantFiltering: false,
 };
+
+const Styles = styled.div`
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  overflow: visible;
+`;
 
 class FilterBox extends React.Component {
   constructor(props) {
@@ -424,23 +432,21 @@ class FilterBox extends React.Component {
     const { instantFiltering } = this.props;
 
     return (
-      <div className="scrollbar-container">
-        <div className="scrollbar-content">
-          {this.renderDateFilter()}
-          {this.renderDatasourceFilters()}
-          {this.renderFilters()}
-          {!instantFiltering && (
-            <Button
-              bsSize="small"
-              bsStyle="primary"
-              onClick={this.clickApply.bind(this)}
-              disabled={!this.state.hasChanged}
-            >
-              {t('Apply')}
-            </Button>
-          )}
-        </div>
-      </div>
+      <Styles>
+        {this.renderDateFilter()}
+        {this.renderDatasourceFilters()}
+        {this.renderFilters()}
+        {!instantFiltering && (
+          <Button
+            bsSize="small"
+            bsStyle="primary"
+            onClick={this.clickApply.bind(this)}
+            disabled={!this.state.hasChanged}
+          >
+            {t('Apply')}
+          </Button>
+        )}
+      </Styles>
     );
   }
 }
