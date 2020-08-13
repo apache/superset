@@ -221,7 +221,7 @@ class TestDatasetApi(SupersetTestCase):
 
         if example_db.backend == "postgresql":
             # Test filter
-            query_parameter = {"filter": "in"}
+            query_parameter = {"filter": "inf"}
             pg_test_query_parameter(
                 query_parameter,
                 {"count": 1, "result": [{"text": "information_schema"}]},
@@ -230,12 +230,12 @@ class TestDatasetApi(SupersetTestCase):
             query_parameter = {"page": 0, "page_size": 1}
             pg_test_query_parameter(
                 query_parameter,
-                {"count": 2, "result": [{"text": "information_schema"}]},
+                {"count": 5, "result": [{"text": ""}]},
             )
 
             query_parameter = {"page": 1, "page_size": 1}
             pg_test_query_parameter(
-                query_parameter, {"count": 2, "result": [{"text": "public"}]}
+                query_parameter, {"count": 5, "result": [{"text": "admin_database"}]}
             )
 
         for dataset in datasets:
