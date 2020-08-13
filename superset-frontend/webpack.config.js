@@ -370,6 +370,8 @@ if (isDevMode) {
       },
     ],
     contentBase: path.join(process.cwd(), '../static/assets'),
+    host: '0.0.0.0',
+    disableHostCheck: true,
   };
 
   // find all the symlinked plugins and use their source code for imports

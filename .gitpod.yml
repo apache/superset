@@ -1,0 +1,27 @@
+image:
+  file: .gitpod.Dockerfile
+
+ports:
+  - port: 5432
+    onOpen: ignore
+  - port: 6379
+    onOpen: ignore
+  - port: 8088
+    onOpen: open-preview
+
+tasks:
+  - name: Redis
+    before: redis-server &
+  - name: Superset (backend)
+    init: pip install . && gp sync-done dependencies
+    command: flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+  - name: Superset (worker)
+    init: gp sync-await dependencies
+    command: celery worker --app=superset.tasks.celery_app:app -Ofair -l INFO
+  - name: Superset (front-end)
+    before: cd superset-frontend
+    init: >
+      npm install --global webpack webpack-cli &&
+      npm install &&
+      npm run build-dev
+    command: npm run dev
