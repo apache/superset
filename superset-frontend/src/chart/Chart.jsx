@@ -200,12 +200,9 @@ class Chart extends React.PureComponent {
         onError={this.handleRenderContainerFailure}
         showMessage={false}
       >
-        <Styles className={`chart-container`}>
+        <Styles className="chart-container">
           <div className={`slice_container ${isFaded ? ' faded' : ''}`}>
-            <ChartRenderer
-              {...this.props}
-              data-test={JSON.stringify(this.props)}
-            />
+            <ChartRenderer {...this.props} data-test={this.props.vizType} />
           </div>
 
           {!isLoading && !chartAlert && isFaded && (
