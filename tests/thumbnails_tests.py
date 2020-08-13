@@ -16,7 +16,6 @@
 # under the License.
 # from superset import db
 # from superset.models.dashboard import Dashboard
-import subprocess
 import urllib.request
 from unittest import skipUnless
 from unittest.mock import patch
@@ -24,15 +23,11 @@ from unittest.mock import patch
 from flask_testing import LiveServerTestCase
 from sqlalchemy.sql import func
 
-import tests.test_app
 from superset import db, is_feature_enabled, security_manager, thumbnail_cache
+from superset.extensions import machine_auth_provider_factory
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.screenshots import (
-    ChartScreenshot,
-    DashboardScreenshot,
-    get_auth_cookies,
-)
+from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from tests.test_app import app
 
@@ -45,10 +40,7 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
 
     def url_open_auth(self, username: str, url: str):
         admin_user = security_manager.find_user(username=username)
-        cookies = {}
-        for cookie in get_auth_cookies(admin_user):
-            cookies["session"] = cookie
-
+        cookies = machine_auth_provider_factory.instance.get_auth_cookies(admin_user)
         opener = urllib.request.build_opener()
         opener.addheaders.append(("Cookie", f"session={cookies['session']}"))
         return opener.open(f"{self.get_server_url()}/{url}")

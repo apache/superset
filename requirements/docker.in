@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-gevent==1.4.0
-psycopg2-binary==2.8.5
-redis==3.2.1
+-r base.in
+gevent
+psycopg2-binary
+redis

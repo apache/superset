@@ -366,7 +366,9 @@
       "Active Dashboard Filters": ["活跃的看板过滤器"],
       "Checkout this dashboard: %s": ["查看这个看板：%s"],
       "Save as": ["另存为"],
-      "Force Refresh": ["强制刷新"],
+      "Force refresh": ["强制刷新"],
+      "Fetched %s": ["刷新于%s"],
+      "Cached %s": ["缓存于%s"],
       "Force refresh the whole dashboard": ["强制刷新整个看板"],
       "Set autorefresh": ["设置自动刷新"],
       "Set the auto-refresh interval for this session": [
@@ -1562,7 +1564,12 @@
       "Changed on": ["改变为"],
       "Saved Queries": ["已保存查询"],
       "Show": ["每页显示"],
-      "entries": ["条"]
+      "entries": ["条"],
+      "Edit chart metadata": ["编辑图表元数据"],
+      "Maximize": ["最大化"],
+      "Minimize": ["还原"],
+      "Share chart": ["共享图表"],
+      "Download as image": ["下载为图片"]
     }
   }
 }

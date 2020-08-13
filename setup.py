@@ -116,6 +116,7 @@ setup(
         "cors": ["flask-cors>=2.0.0"],
         "db2": ["ibm-db-sa>=0.3.5, <0.4"],
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.2"],
+        "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.1,<0.7"],
         "elasticsearch": ["elasticsearch-dbapi>=0.1.0, <0.2.0"],
         "exasol": ["sqlalchemy-exasol>=2.1.0, <2.2"],
