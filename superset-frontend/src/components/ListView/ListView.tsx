@@ -54,7 +54,7 @@ const ListViewStyles = styled.div`
   }
 
   .row-count-container {
-    margin-top: 8px;
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
@@ -108,18 +108,19 @@ const bulkSelectColumnConfig = {
 };
 
 const ViewModeContainer = styled.div`
-  padding: 24px 0px 8px 16px;
+  padding: ${({ theme }) => theme.gridUnit * 6}px 0px ${({ theme }) => theme.gridUnit * 2}px ${({ theme }) => theme.gridUnit * 4}px;
   display: inline-block;
   position: relative;
   top: 8px;
 
   .toggle-button {
     display: inline-block;
-    border-radius: 2px;
-    padding: 4px 4px 0 4px;
+    border-radius: ${({ theme }) => theme.gridUnit / 2}px;
+    padding: ${({ theme }) => theme.gridUnit}px;
+    padding-bottom: 0;
 
     &:first-of-type {
-      margin-right: 8px;
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 
