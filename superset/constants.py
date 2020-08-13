@@ -61,3 +61,10 @@ class RouteMethod:  # pylint: disable=too-few-public-methods
     CRUD_SET = {ADD, LIST, EDIT, DELETE, ACTION_POST, SHOW}
     RELATED_VIEW_SET = {ADD, LIST, EDIT, DELETE}
     REST_MODEL_VIEW_CRUD_SET = {DELETE, GET, GET_LIST, POST, PUT, INFO}
+
+
+class Security:  # pylint: disable=too-few-public-methods
+    class AllDashboard:
+        VIEW_NAME = 'all_dashboards'
+        ACCESS_PERMISSION_NAME = 'can_access'
+        EDIT_PERMISSION_NAME = 'can_edit'
