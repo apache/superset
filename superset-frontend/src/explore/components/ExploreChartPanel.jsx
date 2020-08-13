@@ -56,7 +56,7 @@ const Styles = styled.div`
   flex-direction: column;
   align-items: stretch;
   align-content: stretch;
-  div:last-of-type {
+  & > div:last-of-type {
     flex-basis: 100%;
   }
 `;
