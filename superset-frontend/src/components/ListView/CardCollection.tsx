@@ -17,44 +17,40 @@
  * under the License.
  */
 import React from 'react';
-import { getCategoricalSchemeRegistry } from '@superset-ui/color';
-import Avatar, { ConfigProvider } from 'react-avatar';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { TableInstance } from 'react-table';
+import styled from '@superset-ui/style';
 
 interface Props {
-  firstName: string;
-  lastName: string;
-  uniqueKey: string;
-  iconSize: number;
-  textSize: number;
+  renderCard?: (row: any) => React.ReactNode;
+  prepareRow: TableInstance['prepareRow'];
+  rows: TableInstance['rows'];
+  loading: boolean;
 }
 
-const colorList = getCategoricalSchemeRegistry().get();
+const CardContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(459px, max-content));
+  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
+  justify-content: center;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px;
+`;
 
-export default function AvatarIcon({
-  uniqueKey,
-  firstName,
-  lastName,
-  iconSize,
-  textSize,
+export default function CardCollection({
+  renderCard,
+  prepareRow,
+  rows,
+  loading,
 }: Props) {
-  const fullName = `${firstName} ${lastName}`;
-
   return (
-    <TooltipWrapper
-      placement="bottom"
-      label={`${uniqueKey}-tooltip`}
-      tooltip={fullName}
-    >
-      <ConfigProvider colors={colorList && colorList.colors}>
-        <Avatar
-          key={uniqueKey}
-          name={fullName}
-          size={String(iconSize)}
-          textSizeRatio={iconSize / textSize}
-          round
-        />
-      </ConfigProvider>
-    </TooltipWrapper>
+    <CardContainer>
+      {rows.map(row => {
+        if (!renderCard) return null;
+        prepareRow(row);
+        return (
+          <div key={row.id}>{renderCard({ ...row.original, loading })}</div>
+        );
+      })}
+    </CardContainer>
   );
 }

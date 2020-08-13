@@ -116,15 +116,21 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "datasource_url",
         "table.default_endpoint",
         "table.table_name",
+        "thumbnail_url",
         "viz_type",
         "params",
         "cache_timeout",
+        "owners.id",
+        "owners.username",
+        "owners.first_name",
+        "owners.last_name",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
         "slice_name",
         "viz_type",
         "datasource_name",
+        "datasource_id",
         "changed_by.first_name",
         "changed_on_delta_humanized",
     ]

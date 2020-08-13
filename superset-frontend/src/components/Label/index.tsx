@@ -63,6 +63,13 @@ const SupersetLabel = styled(BootstrapLabel)`
       background-color: ${({ theme }) => theme.colors.error.base};
     }
   }
+
+  &.secondaryLabel {
+    background-color: ${({ theme }) => theme.colors.secondary.base};
+    &:hover {
+      background-color: ${({ theme }) => theme.colors.secondary.base};
+    }
+  }
 `;
 
 export default function Label(props: LabelProps) {

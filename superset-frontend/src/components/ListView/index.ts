@@ -16,30 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
 
-// Suerset's webpack.config.js
-const customConfig = require('../webpack.config.js');
+export * from './ListView';
+export * from './types';
 
-module.exports = {
-  stories: ['../src/components/**/*.stories.(t|j)sx'],
-  addons: [
-    '@storybook/addon-actions',
-    '@storybook/addon-links',
-    '@storybook/preset-typescript',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs/register',
-  ],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
-    },
-    resolve: {
-      ...config.resolve,
-      ...customConfig.resolve,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
-};
+export { default } from './ListView';
