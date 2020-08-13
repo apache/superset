@@ -216,6 +216,14 @@ class BaseViz:
             df = df.cumsum()
         if min_periods:
             df = df[min_periods:]
+        if df.empty:
+            raise QueryObjectValidationError(
+                _(
+                    "Applied rolling window did not return any data. Please make sure "
+                    "the source query satisfies the minimum periods defined in the "
+                    "rolling window."
+                )
+            )
         return df
 
     def get_samples(self) -> List[Dict[str, Any]]:
