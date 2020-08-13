@@ -17,13 +17,15 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import React, { FunctionComponent } from 'react';
-import { Col, Row, Alert } from 'react-bootstrap';
+import React, { FunctionComponent, useState } from 'react';
+import { Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 import cx from 'classnames';
 import Button from 'src/components/Button';
+import Icon from 'src/components/Icon';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import TableCollection from './TableCollection';
+import CardCollection from './CardCollection';
 import Pagination from './Pagination';
 import FilterControls from './Filters';
 import { FetchDataConfig, Filters, SortColumn } from './types';
@@ -42,172 +44,20 @@ const ListViewStyles = styled.div`
     .body {
       overflow: scroll;
       max-height: 64vh;
-
-      table {
-        border-collapse: separate;
-
-        th {
-          background: white;
-          position: sticky;
-          top: 0;
-          &:first-of-type {
-            padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-          }
-        }
-      }
-    }
-
-    .filter-dropdown {
-      margin-top: 20px;
-    }
-
-    .filter-column {
-      height: 30px;
-      padding: 5px;
-      font-size: 16px;
-    }
-
-    .filter-close {
-      height: 30px;
-      padding: 5px;
-
-      i {
-        font-size: 20px;
-      }
-    }
-
-    .table-cell-loader {
-      position: relative;
-
-      .loading-bar {
-        background-color: ${({ theme }) => theme.colors.secondary.light4};
-        border-radius: 7px;
-
-        span {
-          visibility: hidden;
-        }
-      }
-
-      &:after {
-        position: absolute;
-        transform: translateY(-50%);
-        top: 50%;
-        left: 0;
-        content: '';
-        display: block;
-        width: 100%;
-        height: 48px;
-        background-image: linear-gradient(
-          100deg,
-          rgba(255, 255, 255, 0),
-          rgba(255, 255, 255, 0.5) 60%,
-          rgba(255, 255, 255, 0) 80%
-        );
-        background-size: 200px 48px;
-        background-position: -100px 0;
-        background-repeat: no-repeat;
-        animation: loading-shimmer 1s infinite;
-      }
-    }
-
-    .actions {
-      white-space: nowrap;
-      font-size: 24px;
-      min-width: 100px;
-
-      svg,
-      i {
-        margin-right: 8px;
-
-        &:hover {
-          path {
-            fill: ${({ theme }) => theme.colors.primary.base};
-          }
-        }
-      }
-    }
-
-    .table-row {
-      .actions {
-        opacity: 0;
-      }
-
-      &:hover {
-        background-color: ${({ theme }) => theme.colors.secondary.light5};
-
-        .actions {
-          opacity: 1;
-          transition: opacity ease-in ${({ theme }) => theme.transitionTiming}s;
-        }
-      }
-    }
-
-    .table-row-selected {
-      background-color: ${({ theme }) => theme.colors.secondary.light4};
-
-      &:hover {
-        background-color: ${({ theme }) => theme.colors.secondary.light4};
-      }
-    }
-
-    .table-cell {
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
-      max-width: 300px;
-      line-height: 1;
-      vertical-align: middle;
-      &:first-of-type {
-        padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-      }
-    }
-
-    .sort-icon {
-      position: absolute;
-    }
-
-    .form-actions-container {
-      position: absolute;
-      left: 28px;
-    }
-
-    .row-count-container {
-      float: right;
-      padding-right: 24px;
     }
   }
 
-  @keyframes loading-shimmer {
-    40% {
-      background-position: 100% 0;
-    }
+  .pagination-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
 
-    100% {
-      background-position: 100% 0;
-    }
+  .row-count-container {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
-
-export interface ListViewProps {
-  columns: any[];
-  data: any[];
-  count: number;
-  pageSize: number;
-  fetchData: (conf: FetchDataConfig) => any;
-  loading: boolean;
-  className?: string;
-  initialSort?: SortColumn[];
-  filters?: Filters;
-  bulkActions?: Array<{
-    key: string;
-    name: React.ReactNode;
-    onSelect: (rows: any[]) => any;
-    type?: 'primary' | 'secondary' | 'danger';
-  }>;
-  bulkSelectEnabled?: boolean;
-  disableBulkSelect?: () => void;
-  renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
-}
 
 const BulkSelectWrapper = styled(Alert)`
   border-radius: 0;
@@ -257,6 +107,89 @@ const bulkSelectColumnConfig = {
   size: 'sm',
 };
 
+const ViewModeContainer = styled.div`
+  padding: ${({ theme }) => theme.gridUnit * 6}px 0px
+    ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px;
+  display: inline-block;
+  position: relative;
+  top: 8px;
+
+  .toggle-button {
+    display: inline-block;
+    border-radius: ${({ theme }) => theme.gridUnit / 2}px;
+    padding: ${({ theme }) => theme.gridUnit}px;
+    padding-bottom: 0;
+
+    &:first-of-type {
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+  }
+
+  .active {
+    background-color: ${({ theme }) => theme.colors.grayscale.base};
+    svg {
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+    }
+  }
+`;
+
+const ViewModeToggle = ({
+  mode,
+  setMode,
+}: {
+  mode: 'table' | 'card';
+  setMode: (mode: 'table' | 'card') => void;
+}) => {
+  return (
+    <ViewModeContainer>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('card');
+        }}
+        className={cx('toggle-button', { active: mode === 'card' })}
+      >
+        <Icon name="card-view" />
+      </div>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('table');
+        }}
+        className={cx('toggle-button', { active: mode === 'table' })}
+      >
+        <Icon name="list-view" />
+      </div>
+    </ViewModeContainer>
+  );
+};
+export interface ListViewProps<T = any> {
+  columns: any[];
+  data: T[];
+  count: number;
+  pageSize: number;
+  fetchData: (conf: FetchDataConfig) => any;
+  loading: boolean;
+  className?: string;
+  initialSort?: SortColumn[];
+  filters?: Filters;
+  bulkActions?: Array<{
+    key: string;
+    name: React.ReactNode;
+    onSelect: (rows: any[]) => any;
+    type?: 'primary' | 'secondary' | 'danger';
+  }>;
+  bulkSelectEnabled?: boolean;
+  disableBulkSelect?: () => void;
+  renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
+  renderCard?: (row: T) => React.ReactNode;
+}
+
 const ListView: FunctionComponent<ListViewProps> = ({
   columns,
   data,
@@ -271,6 +204,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
   bulkSelectEnabled = false,
   disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
+  renderCard,
 }) => {
   const {
     getTableProps,
@@ -310,10 +244,18 @@ const ListView: FunctionComponent<ListViewProps> = ({
     });
   }
 
+  const cardViewEnabled = Boolean(renderCard);
+  const [viewingMode, setViewingMode] = useState<'table' | 'card'>(
+    cardViewEnabled ? 'card' : 'table',
+  );
+
   return (
     <ListViewStyles>
       <div className={`superset-list-view ${className}`}>
         <div className="header">
+          {cardViewEnabled && (
+            <ViewModeToggle mode={viewingMode} setMode={setViewingMode} />
+          )}
           {filterable && (
             <FilterControls
               filters={filters}
@@ -364,36 +306,42 @@ const ListView: FunctionComponent<ListViewProps> = ({
               )}
             </BulkSelectWrapper>
           )}
-          <TableCollection
-            getTableProps={getTableProps}
-            getTableBodyProps={getTableBodyProps}
-            prepareRow={prepareRow}
-            headerGroups={headerGroups}
-            rows={rows}
-            loading={loading}
-          />
-        </div>
-        <div className="footer">
-          <Row>
-            <Col>
-              <span className="row-count-container">
-                showing{' '}
-                <strong>
-                  {pageSize * pageIndex + (rows.length && 1)}-
-                  {pageSize * pageIndex + rows.length}
-                </strong>{' '}
-                of <strong>{count}</strong>
-              </span>
-            </Col>
-          </Row>
+          {viewingMode === 'card' && (
+            <CardCollection
+              prepareRow={prepareRow}
+              renderCard={renderCard}
+              rows={rows}
+              loading={loading}
+            />
+          )}
+          {viewingMode === 'table' && (
+            <TableCollection
+              getTableProps={getTableProps}
+              getTableBodyProps={getTableBodyProps}
+              prepareRow={prepareRow}
+              headerGroups={headerGroups}
+              rows={rows}
+              loading={loading}
+            />
+          )}
         </div>
       </div>
-      <Pagination
-        totalPages={pageCount || 0}
-        currentPage={pageCount ? pageIndex + 1 : 0}
-        onChange={(p: number) => gotoPage(p - 1)}
-        hideFirstAndLastPageLinks
-      />
+      <div className="pagination-container">
+        <Pagination
+          totalPages={pageCount || 0}
+          currentPage={pageCount ? pageIndex + 1 : 0}
+          onChange={(p: number) => gotoPage(p - 1)}
+          hideFirstAndLastPageLinks
+        />
+        <div className="row-count-container">
+          {t(
+            '%s-%s of %s',
+            pageSize * pageIndex + (rows.length && 1),
+            pageSize * pageIndex + rows.length,
+            count,
+          )}
+        </div>
+      </div>
     </ListViewStyles>
   );
 };
