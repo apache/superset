@@ -375,7 +375,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       disableSortBy: true,
     },
     {
-      Cell: ({ row: { state, original } }: any) => {
+      Cell: ({ row: { original } }: any) => {
         const handleEdit = () => openDatasetEditModal(original);
         const handleDelete = () => openDatasetDeleteModal(original);
         if (!canEdit && !canDelete) {
