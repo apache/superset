@@ -26,9 +26,8 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import Schema, fields
-from sqlalchemy import distinct
-from sqlalchemy import func
+from marshmallow import fields, Schema
+from sqlalchemy import distinct, func
 
 from superset.stats_logger import BaseStatsLogger
 from superset.typing import FlaskResponse
