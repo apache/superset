@@ -51,6 +51,11 @@ class DeleteDatasetCommand(BaseCommand):
                 if self._model
                 else None
             )
+            if not view_menu:
+                logger.error(
+                    "Could not find the data access permission for the dataset"
+                )
+                raise DatasetDeleteFailedError()
             permission_views = (
                 db.session.query(security_manager.permissionview_model)
                 .filter_by(view_menu=view_menu)
