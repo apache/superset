@@ -22,14 +22,17 @@ import { act } from 'react-dom/test-utils';
 import { QueryParamProvider } from 'use-query-params';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
+import Button from 'src/components/Button';
+import CardCollection from 'src/components/ListView/CardCollection';
+import { CardSortSelect } from 'src/components/ListView/CardSortSelect';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import ListView from 'src/components/ListView/ListView';
 import ListViewFilters from 'src/components/ListView/Filters';
 import ListViewPagination from 'src/components/ListView/Pagination';
 import Pagination from 'src/components/Pagination';
-import Button from 'src/components/Button';
+import TableCollection from 'src/components/ListView/TableCollection';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 
 function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
@@ -98,6 +101,14 @@ const mockedProps = {
       name: 'do something',
       style: 'danger',
       onSelect: jest.fn(),
+    },
+  ],
+  cardSortSelectOptions: [
+    {
+      desc: false,
+      id: 'something',
+      label: 'Alphabetical',
+      value: 'alphabetical',
     },
   ],
 };
@@ -281,6 +292,24 @@ describe('ListView', () => {
     );
   });
 
+  it('disable card view based on prop', async () => {
+    expect(wrapper.find(CardCollection).exists()).toBe(false);
+    expect(wrapper.find(CardSortSelect).exists()).toBe(false);
+    expect(wrapper.find(TableCollection).exists()).toBe(true);
+  });
+
+  it('enable card view based on prop', async () => {
+    const wrapper2 = factory({
+      ...mockedProps,
+      renderCard: jest.fn(),
+      initialSort: [{ id: 'something' }],
+    });
+    await waitForComponentToPaint(wrapper2);
+    expect(wrapper2.find(CardCollection).exists()).toBe(true);
+    expect(wrapper2.find(CardSortSelect).exists()).toBe(true);
+    expect(wrapper2.find(TableCollection).exists()).toBe(false);
+  });
+
   it('Throws an exception if filter missing in columns', () => {
     expect.assertions(1);
     const props = {
@@ -376,5 +405,25 @@ describe('ListView', () => {
         },
       ]
     `);
+  });
+
+  it('calls fetchData on card view sort', async () => {
+    const wrapper2 = factory({
+      ...mockedProps,
+      renderCard: jest.fn(),
+      initialSort: [{ id: 'something' }],
+    });
+
+    act(() => {
+      wrapper2.find('[data-test="card-sort-select"]').first().props().onChange({
+        desc: false,
+        id: 'something',
+        label: 'Alphabetical',
+        value: 'alphabetical',
+      });
+    });
+
+    wrapper2.update();
+    expect(mockedProps.fetchData).toHaveBeenCalled();
   });
 });
