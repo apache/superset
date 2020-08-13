@@ -229,8 +229,7 @@ class TestDatasetApi(SupersetTestCase):
 
             query_parameter = {"page": 0, "page_size": 1}
             pg_test_query_parameter(
-                query_parameter,
-                {"count": 5, "result": [{"text": ""}]},
+                query_parameter, {"count": 5, "result": [{"text": ""}]},
             )
 
             query_parameter = {"page": 1, "page_size": 1}
