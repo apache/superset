@@ -24,7 +24,7 @@ import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import DatasetList from 'src/views/CRUD/dataset/DatasetList';
-import ListView from 'src/components/ListView/ListView';
+import ListView from 'src/components/ListView';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';

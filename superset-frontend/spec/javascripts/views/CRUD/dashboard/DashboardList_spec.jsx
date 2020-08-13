@@ -24,8 +24,9 @@ import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
-import ListView from 'src/components/ListView/ListView';
+import ListView from 'src/components/ListView';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
+import ListViewCard from 'src/components/ListViewCard';
 
 // store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
@@ -88,6 +89,16 @@ describe('DashboardList', () => {
       `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
   });
+
+  it('renders a card view', () => {
+    expect(wrapper.find(ListViewCard)).toExist();
+  });
+
+  it('renders a table view', () => {
+    wrapper.find('[data-test="list-view"]').first().simulate('click');
+    expect(wrapper.find('table')).toExist();
+  });
+
   it('edits', () => {
     expect(wrapper.find(PropertiesModal)).not.toExist();
     wrapper.find('[data-test="pencil"]').first().simulate('click');
