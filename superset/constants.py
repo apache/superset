@@ -55,6 +55,7 @@ class RouteMethod:  # pylint: disable=too-few-public-methods
     POST = "post"
     PUT = "put"
     RELATED = "related"
+    DISTINCT = "distinct"
 
     # Commonly used sets
     API_SET = {API_CREATE, API_DELETE, API_GET, API_READ, API_UPDATE}

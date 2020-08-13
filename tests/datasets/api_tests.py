@@ -16,7 +16,7 @@
 # under the License.
 """Unit tests for Superset"""
 import json
-from typing import List
+from typing import Any, Dict, List, Tuple, Union
 from unittest.mock import patch
 
 import prison
@@ -169,6 +169,49 @@ class TestDatasetApi(SupersetTestCase):
         } == expected_result
         self.assertEqual(len(response["result"]["columns"]), 3)
         self.assertEqual(len(response["result"]["metrics"]), 2)
+
+    def test_get_dataset_distinct_schema(self):
+        """
+        Dataset API: Test get dataset distinct schema
+        """
+        example_db = get_example_database()
+        datasets = []
+        if example_db.backend == "postgresql":
+            datasets.append(
+                self.insert_dataset("ab_permission", "public", [], get_main_database())
+            )
+            datasets.append(
+                self.insert_dataset(
+                    "columns", "information_schema", [], get_main_database()
+                )
+            )
+            expected_response = {
+                "count": 2,
+                "result": [{"text": "information_schema"}, {"text": "public"}],
+            }
+        else:
+            datasets.append(self.insert_default_dataset())
+            expected_response = {"count": 1, "result": [{"text": "",}]}
+        self.login(username="admin")
+        uri = "api/v1/dataset/distinct/schema"
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(response, expected_response)
+
+        for dataset in datasets:
+            db.session.delete(dataset)
+        db.session.commit()
+
+    def test_get_dataset_distinct_not_allowed(self):
+        """
+        Dataset API: Test get dataset distinct not allowed
+        """
+        self.login(username="admin")
+        uri = "api/v1/dataset/distinct/table_name"
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 404)
 
     def test_get_dataset_info(self):
         """
@@ -358,6 +401,7 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(SqlaTable).get(dataset.id)
         self.assertEqual(model.description, dataset_data["description"])
+
         db.session.delete(dataset)
         db.session.commit()
 
