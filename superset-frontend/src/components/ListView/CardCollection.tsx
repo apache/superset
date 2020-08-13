@@ -30,13 +30,10 @@ interface Props {
 const CardContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(459px, max-content));
-  grid-gap: 32px;
+  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: center;
-  padding: 8px 16px;
-`;
-
-const CardWrapper = styled.div`
-  display: inline-block;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 export default function CardCollection({
@@ -51,9 +48,7 @@ export default function CardCollection({
         if (!renderCard) return null;
         prepareRow(row);
         return (
-          <CardWrapper key={row.id}>
-            {renderCard({ ...row.original, loading })}
-          </CardWrapper>
+          <div key={row.id}>{renderCard({ ...row.original, loading })}</div>
         );
       })}
     </CardContainer>

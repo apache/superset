@@ -22,10 +22,10 @@ import Icon from 'src/components/Icon';
 import { Card } from 'src/common/components';
 
 const MenuIcon = styled(Icon)`
-  width: 14px;
-  height: 14px;
+  width: ${({ theme }) => theme.gridUnit * 4}px;
+  height: ${({ theme }) => theme.gridUnit * 4}px;
   position: relative;
-  top: 1px;
+  top: ${({ theme }) => theme.gridUnit / 2}px;
 `;
 
 const ActionsWrapper = styled.div`
@@ -38,7 +38,8 @@ const StyledCard = styled(Card)`
   width: 459px;
 
   .ant-card-body {
-    padding: 16px 8px;
+    padding: ${({ theme }) => theme.gridUnit * 4}px
+      ${({ theme }) => theme.gridUnit * 2}px;
   }
   .ant-card-meta-detail > div:not(:last-child) {
     margin-bottom: 0;
@@ -50,8 +51,8 @@ const Cover = styled.div`
   overflow: hidden;
 
   .cover-footer {
-    transform: translateY(36px);
-    transition: 0.2s ease-out;
+    transform: translateY(${({ theme }) => theme.gridUnit * 9}px);
+    transition: ${({ theme }) => theme.transitionTiming}s ease-out;
   }
 
   &:hover {
@@ -96,7 +97,7 @@ const TitleContainer = styled.div`
   .card-actions {
     margin-left: auto;
     align-self: flex-end;
-    padding-left: 32px;
+    padding-left: ${({ theme }) => theme.gridUnit * 8}px;
   }
 `;
 
@@ -106,7 +107,7 @@ const TitleLink = styled.a`
   text-overflow: ellipsis;
 
   & + .title-right {
-    margin-left: 8px;
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
 
@@ -114,7 +115,7 @@ const CoverFooter = styled.div`
   display: flex;
   flex-wrap: nowrap;
   position: relative;
-  top: -36px;
+  top: -${({ theme }) => theme.gridUnit * 9}px;
   padding: 0 8px;
 `;
 

@@ -21,7 +21,6 @@ import { t } from '@superset-ui/translation';
 import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-import { Label } from 'react-bootstrap';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -39,6 +38,7 @@ import ExpandableList from 'src/components/ExpandableList';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
+import Label from 'src/components/Label';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import ListViewCard from 'src/components/ListViewCard';
@@ -530,6 +530,8 @@ class DashboardList extends React.PureComponent<Props, State> {
               fetchFaveStar={this.fetchMethods.fetchFaveStar}
               saveFaveStar={this.fetchMethods.saveFaveStar}
               isStarred={!!this.state.favoriteStatus[props.id]}
+              width={20}
+              height={20}
             />
             <Dropdown overlay={menu}>
               <Icon name="more" />

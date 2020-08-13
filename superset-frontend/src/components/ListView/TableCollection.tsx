@@ -31,7 +31,65 @@ interface TableCollectionProps {
   loading: boolean;
 }
 
-const TableContainer = styled.div`
+const Table = styled.table`
+  border-collapse: separate;
+
+  th {
+    background: ${({ theme }) => theme.colors.grayscale.light5};
+    position: sticky;
+    top: 0;
+
+    &:first-of-type {
+      padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    }
+
+    &.xs {
+      min-width: 25px;
+    }
+    &.sm {
+      min-width: 50px;
+    }
+    &.md {
+      min-width: 75px;
+    }
+    &.lg {
+      min-width: 100px;
+    }
+    &.xl {
+      min-width: 150px;
+    }
+    &.xxl {
+      min-width: 200px;
+    }
+
+    svg {
+      display: inline-block;
+      top: 6px;
+      position: relative;
+    }
+  }
+
+  td {
+    &.xs {
+      width: 25px;
+    }
+    &.sm {
+      width: 50px;
+    }
+    &.md {
+      width: 75px;
+    }
+    &.lg {
+      width: 100px;
+    }
+    &.xl {
+      width: 150px;
+    }
+    &.xxl {
+      width: 200px;
+    }
+  }
+
   .table-cell-loader {
     position: relative;
 
@@ -68,7 +126,6 @@ const TableContainer = styled.div`
 
   .actions {
     white-space: nowrap;
-    font-size: 24px;
     min-width: 100px;
 
     svg,
@@ -133,66 +190,6 @@ const TableContainer = styled.div`
   }
 `;
 
-const Table = styled.table`
-  border-collapse: separate;
-
-  th {
-    background: white;
-    position: sticky;
-    top: 0;
-
-    &:first-of-type {
-      padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-    }
-
-    &.xs {
-      min-width: 25px;
-    }
-    &.sm {
-      min-width: 50px;
-    }
-    &.md {
-      min-width: 75px;
-    }
-    &.lg {
-      min-width: 100px;
-    }
-    &.xl {
-      min-width: 150px;
-    }
-    &.xxl {
-      min-width: 200px;
-    }
-
-    svg {
-      display: inline-block;
-      top: 6px;
-      position: relative;
-    }
-  }
-
-  td {
-    &.xs {
-      width: 25px;
-    }
-    &.sm {
-      width: 50px;
-    }
-    &.md {
-      width: 75px;
-    }
-    &.lg {
-      width: 100px;
-    }
-    &.xl {
-      width: 150px;
-    }
-    &.xxl {
-      width: 200px;
-    }
-  }
-`;
-
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -202,72 +199,70 @@ export default function TableCollection({
   loading,
 }: TableCollectionProps) {
   return (
-    <TableContainer>
-      <Table {...getTableProps()} className="table table-hover">
-        <thead>
-          {headerGroups.map(headerGroup => (
-            <tr {...headerGroup.getHeaderGroupProps()}>
-              {headerGroup.headers.map(column => {
-                let sortIcon = <Icon name="sort" />;
-                if (column.isSorted && column.isSortedDesc) {
-                  sortIcon = <Icon name="sort-desc" />;
-                } else if (column.isSorted && !column.isSortedDesc) {
-                  sortIcon = <Icon name="sort-asc" />;
-                }
-                return column.hidden ? null : (
-                  <th
-                    {...column.getHeaderProps(
-                      column.canSort ? column.getSortByToggleProps() : {},
-                    )}
-                    data-test="sort-header"
-                    className={cx({
-                      [column.size || '']: column.size,
+    <Table {...getTableProps()} className="table table-hover">
+      <thead>
+        {headerGroups.map(headerGroup => (
+          <tr {...headerGroup.getHeaderGroupProps()}>
+            {headerGroup.headers.map(column => {
+              let sortIcon = <Icon name="sort" />;
+              if (column.isSorted && column.isSortedDesc) {
+                sortIcon = <Icon name="sort-desc" />;
+              } else if (column.isSorted && !column.isSortedDesc) {
+                sortIcon = <Icon name="sort-asc" />;
+              }
+              return column.hidden ? null : (
+                <th
+                  {...column.getHeaderProps(
+                    column.canSort ? column.getSortByToggleProps() : {},
+                  )}
+                  data-test="sort-header"
+                  className={cx({
+                    [column.size || '']: column.size,
+                  })}
+                >
+                  <span>
+                    {column.render('Header')}
+                    {column.canSort && sortIcon}
+                  </span>
+                </th>
+              );
+            })}
+          </tr>
+        ))}
+      </thead>
+      <tbody {...getTableBodyProps()}>
+        {rows.map(row => {
+          prepareRow(row);
+          return (
+            <tr
+              {...row.getRowProps()}
+              className={cx('table-row', {
+                'table-row-selected': row.isSelected,
+              })}
+            >
+              {row.cells.map(cell => {
+                if (cell.column.hidden) return null;
+
+                const columnCellProps = cell.column.cellProps || {};
+                return (
+                  <td
+                    className={cx('table-cell', {
+                      'table-cell-loader': loading,
+                      [cell.column.size || '']: cell.column.size,
                     })}
+                    {...cell.getCellProps()}
+                    {...columnCellProps}
                   >
-                    <span>
-                      {column.render('Header')}
-                      {column.canSort && sortIcon}
+                    <span className={cx({ 'loading-bar': loading })}>
+                      <span>{cell.render('Cell')}</span>
                     </span>
-                  </th>
+                  </td>
                 );
               })}
             </tr>
-          ))}
-        </thead>
-        <tbody {...getTableBodyProps()}>
-          {rows.map(row => {
-            prepareRow(row);
-            return (
-              <tr
-                {...row.getRowProps()}
-                className={cx('table-row', {
-                  'table-row-selected': row.isSelected,
-                })}
-              >
-                {row.cells.map(cell => {
-                  if (cell.column.hidden) return null;
-
-                  const columnCellProps = cell.column.cellProps || {};
-                  return (
-                    <td
-                      className={cx('table-cell', {
-                        'table-cell-loader': loading,
-                        [cell.column.size || '']: cell.column.size,
-                      })}
-                      {...cell.getCellProps()}
-                      {...columnCellProps}
-                    >
-                      <span className={cx({ 'loading-bar': loading })}>
-                        <span>{cell.render('Cell')}</span>
-                      </span>
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
-    </TableContainer>
+          );
+        })}
+      </tbody>
+    </Table>
   );
 }

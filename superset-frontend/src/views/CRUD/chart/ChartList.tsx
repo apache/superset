@@ -23,8 +23,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
-import { Label } from 'react-bootstrap';
-import styled from '@superset-ui/style';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -45,17 +43,11 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
 import ListViewCard from 'src/components/ListViewCard';
+import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
-
-const SecondaryLabel = styled(Label)`
-  background-color: ${({ theme }) => theme.colors.secondary.base};
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.secondary.base};
-  }
-`;
 
 interface Props {
   addDangerToast: (msg: string) => void;
@@ -522,7 +514,7 @@ class ChartList extends React.PureComponent<Props, State> {
           />
         ))}
         coverRight={
-          <SecondaryLabel>{props.datasource_name_text}</SecondaryLabel>
+          <Label className="secondaryLabel">{props.datasource_name_text}</Label>
         }
         actions={
           <ListViewCard.Actions>
@@ -531,6 +523,8 @@ class ChartList extends React.PureComponent<Props, State> {
               fetchFaveStar={this.fetchMethods.fetchFaveStar}
               saveFaveStar={this.fetchMethods.saveFaveStar}
               isStarred={!!this.state.favoriteStatus[props.id]}
+              width={20}
+              height={20}
             />
             <Dropdown overlay={menu}>
               <Icon name="more" />
