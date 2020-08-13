@@ -181,19 +181,11 @@ jobs:
         ports:
           - 16379:6379
     steps:
-    - name: Checkout hive docker repo
-      uses: actions/checkout@v2
-      with:
-        path: hive
-        repository: big-data-europe/docker-hadoop
-    - name: Run hive
-      working-directory: ./hive
-      run: |
-        docker-compose up -d &
-    - name: Run hive
-      working-directory: ./hive
-      run: sleep 120 && echo $(curl localhost:10000)
     - uses: actions/checkout@v2
+    - name: Start hive service
+      run: docker-compose -f scripts/databases/hive/docker-compose.yml up -d
+    - name: Test if hive is up and running
+      run: sleep 30 && echo $(curl localhost:10000)
     - name: Setup Python
       uses: actions/setup-python@v2.1.1
       with:
