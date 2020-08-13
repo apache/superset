@@ -173,7 +173,6 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test get dataset distinct schema
         """
-        self.maxDiff = None
 
         def pg_test_query_parameter(query_parameter, expected_response):
             uri = f"api/v1/dataset/distinct/schema?q={prison.dumps(query_parameter)}"
@@ -203,23 +202,13 @@ class TestDatasetApi(SupersetTestCase):
                     {"text": "superset"},
                 ],
             }
-        else:
-            expected_response = {
-                "count": 5,
-                "result": [
-                    {"text": ""},
-                    {"text": "admin_database"},
-                    {"text": "superset"},
-                ],
-            }
-        self.login(username="admin")
-        uri = "api/v1/dataset/distinct/schema"
-        rv = self.client.get(uri)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(response, expected_response)
+            self.login(username="admin")
+            uri = "api/v1/dataset/distinct/schema"
+            rv = self.client.get(uri)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(response, expected_response)
 
-        if example_db.backend == "postgresql":
             # Test filter
             query_parameter = {"filter": "inf"}
             pg_test_query_parameter(
