@@ -615,10 +615,17 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test delete dataset item
         """
         dataset = self.insert_default_dataset()
+        view_menu = security_manager.find_view_menu(dataset.get_perm())
+        self.assertIsNotNone(view_menu)
+        view_menu_id = view_menu.id
         self.login(username="admin")
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 200)
+        non_view_menu = db.session.query(security_manager.viewmenu_model).get(
+            view_menu_id
+        )
+        self.assertIsNone(non_view_menu)
 
     def test_delete_item_dataset_not_owned(self):
         """
