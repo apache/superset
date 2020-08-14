@@ -23,13 +23,13 @@ from flask_babel import lazy_gettext as _
 from wtforms import BooleanField, Form, StringField
 
 from superset.constants import RouteMethod
-from superset.models.alerts import Alert, AlertLog
+from superset.models.alerts import Alert, AlertLog, SQLObserver
 from superset.models.schedules import ScheduleType
 from superset.tasks.schedules import schedule_alert_query
 from superset.utils.core import get_email_address_str, markdown
 
 from ..exceptions import SupersetException
-from .base import SupersetModelView
+from .base import ListWidgetWithCheckboxes, SupersetModelView
 
 # TODO: access control rules for this module
 
@@ -47,6 +47,32 @@ class AlertLogModelView(
     )
 
 
+class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin, SupersetModelView
+):
+    datamodel = SQLAInterface(SQLObserver)
+    include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
+    list_title = _("SQL Observers")
+    show_title = _("Show SQL Observer")
+    add_title = _("Add SQL Observer")
+    edit_title = _("Edit SQL Observer")
+
+    list_widget = ListWidgetWithCheckboxes
+
+    edit_columns = ["name", "validation_type", "alert", "database", "sql"]
+
+    add_columns = edit_columns
+
+    list_columns = ["name", "validation_type", "alert.label", "database"]
+
+    label_columns = {
+        "name": _("Name"),
+        "validation_type": _("Validation Type"),
+        "alert": _("Alert Label"),
+        "database": _("Database"),
+    }
+
+
 class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alert"
@@ -58,7 +84,6 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
 
     list_columns = (
         "label",
-        "database",
         "crontab",
         "last_eval_dttm",
         "last_state",
@@ -68,8 +93,6 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "label",
         "active",
         "crontab",
-        "database",
-        "sql",
         # TODO: implement different types of alerts
         # "alert_type",
         "owners",
@@ -85,18 +108,9 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "test_slack_channel",
     )
     label_columns = {
-        "sql": "SQL",
         "log_retention": _("Log Retentions (days)"),
     }
     description_columns = {
-        "sql": _(
-            "A SQL statement that defines whether the alert should get "
-            "triggered or not. If the statement return no row, the alert "
-            "is not triggered. If the statement returns one or many rows, "
-            "the cells will be evaluated to see if they are 'truthy' "
-            "if any cell is truthy, the alert will fire. Truthy values "
-            "are non zero, non null, non empty strings."
-        ),
         "crontab": markdown(
             "A CRON-like expression. "
             "[Crontab Guru](https://crontab.guru/) is "
@@ -134,7 +148,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     }
     edit_form_extra_fields = add_form_extra_fields
     edit_columns = add_columns
-    related_views = [AlertLogModelView]
+    related_views = [AlertLogModelView, SQLObserverInlineView]
 
     def process_form(self, form: Form, is_created: bool) -> None:
         email_recipients = None
