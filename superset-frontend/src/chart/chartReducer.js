@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
+import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
 
@@ -98,6 +99,10 @@ export default function chartReducer(charts = {}, action) {
           ? action.queryResponse.stacktrace
           : null,
       };
+    },
+    [actions.DYNAMIC_PLUGIN_CONTROLS_READY](state) {
+      const sliceFormData = getFormDataFromControls(action.controlsState);
+      return { ...state, sliceFormData };
     },
     [actions.TRIGGER_QUERY](state) {
       return {
