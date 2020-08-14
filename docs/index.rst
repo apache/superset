@@ -60,10 +60,14 @@ Superset Resources
   `contribution guidelines <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md>`_
   and
   `code of conduct <https://github.com/apache/incubator-superset/blob/master/CODE_OF_CONDUCT.md>`_
-  on Github.
+  on Github. (You can contribute to this documentation `here <https://github.com/apache/incubator-superset/tree/master/docs>`_)
 - Our `mailing list archives <https://lists.apache.org/list.html?dev@superset.apache.org>`_.
   To subscribe, send an email to ``dev-subscribe@superset.apache.org``
-- `Join our Slack <https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU>`_
+- `Superset Users <https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md>`_
+- `Join our commmunity Slack channel <https://join.slack.com/t/apache-superset/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ>`_
+- `Awesome Apache Superset <https://github.com/apache-superset/awesome-apache-superset>`_ collection of learning resources from around the Internet.
+- `StackOverflow Q&A <https://stackoverflow.com/questions/tagged/apache-superset>`_
+- `Community Meetup Recordings <https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g>`_
 
 Apache Software Foundation Resources
 ====================================
@@ -79,54 +83,50 @@ Overview
 Features
 --------
 
-- A rich set of data visualizations
-- An easy-to-use interface for exploring and visualizing data
-- Create and share dashboards
-- Enterprise-ready authentication with integration with major authentication
-  providers (database, OpenID, LDAP, OAuth & REMOTE_USER through
-  Flask AppBuilder)
-- An extensible, high-granularity security/permission model allowing
-  intricate rules on who can access individual features and the dataset
-- A simple semantic layer, allowing users to control how data sources are
-  displayed in the UI by defining which fields should show up in which
-  drop-down and which aggregation and function metrics are made available
-  to the user
-- Integration with most SQL-speaking RDBMS through SQLAlchemy
-- Deep integration with Druid.io
+- An intuitive interface to explore and visualize datasets, and create interactive dashboards.
+- A wide array of beautiful visualizations to showcase your data.
+- Easy, code-free, user flows to drill down and slice and dice the data underlying exposed dashboards. The dashboards and charts act as a starting point for deeper analysis.
+- A state of the art SQL editor/IDE exposing a rich metadata browser, and an easy workflow to create visualizations out of any result set.
+- An extensible, high granularity security model allowing intricate rules on who can access which product features and datasets. Integration with major authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, ...)
+- A lightweight semantic layer, allowing to control how data sources are exposed to the user by defining dimensions and metrics
+- Out of the box support for most SQL-speaking databases
+- Deep integration with Druid allows for Superset to stay blazing fast while slicing and dicing large, realtime datasets
+- Fast loading dashboards with configurable caching
+
 
 Databases
 ---------
 
 The following RDBMS are currently supported:
 
-- `Amazon Athena <https://aws.amazon.com/athena/>`_
-- `Amazon Redshift <https://aws.amazon.com/redshift/>`_
-- `Apache Drill <https://drill.apache.org/>`_
-- `Apache Druid <http://druid.io/>`_
-- `Apache Hive <https://hive.apache.org/>`_
-- `Apache Impala <https://impala.apache.org/>`_
-- `Apache Kylin <http://kylin.apache.org/>`_
-- `Apache Pinot <https://pinot.incubator.apache.org/>`_
-- `Apache Spark SQL <https://spark.apache.org/sql/>`_
-- `BigQuery <https://cloud.google.com/bigquery/>`_
-- `ClickHouse <https://clickhouse.tech/>`_
-- `CockroachDB <https://www.cockroachlabs.com/>`_
-- `Dremio <https://dremio.com/>`_
-- `Elasticsearch <https://www.elastic.co/elasticsearch/>`_
-- `Exasol <https://www.exasol.com/>`_
-- `Google Sheets <https://www.google.com/sheets/about/>`_
-- `Greenplum <https://greenplum.org/>`_
-- `IBM Db2 <https://www.ibm.com/analytics/db2/>`_
-- `MySQL <https://www.mysql.com/>`_
-- `Oracle <https://www.oracle.com/database/>`_
-- `PostgreSQL <https://www.postgresql.org/>`_
-- `Presto <http://prestodb.github.io/>`_
-- `Snowflake <https://www.snowflake.com/>`_
-- `SQLite <https://www.sqlite.org/>`_
-- `SQL Server <https://www.microsoft.com/en-us/sql-server/>`_
-- `Teradata <https://www.teradata.com/>`_
-- `Vertica <https://www.vertica.com/>`_
-- `Hana <https://www.sap.com/products/hana.html>`_
+- `Amazon Athena </installation.html#aws-athena>`_
+- `Amazon Redshift </installation.html#database-dependencies>`_
+- `Apache Drill </installation.html#apache-drill>`_
+- `Apache Druid </installation.html#druid>`_
+- `Apache Hive </installation.html#database-dependencies>`_
+- `Apache Impala </installation.html#database-dependencies>`_
+- `Apache Kylin </installation.html#database-dependencies>`_
+- `Apache Pinot </installation.html#database-dependencies/>`_
+- `Apache Spark SQL </installation.html#database-dependencies>`_
+- `BigQuery </installation.html#google-bigquery>`_
+- `ClickHouse </installation.html#database-dependencies>`_
+- `CockroachDB </installation.html#database-dependencies>`_
+- `Dremio </installation.html#dremio>`_
+- `Elasticsearch </installation.html#elasticsearch>`_
+- `Exasol </installation.html#exasol>`_
+- `Google Sheets </installation.html#database-dependencies>`_
+- `Greenplum </installation.html#database-dependencies>`_
+- `IBM Db2 </installation.html#database-dependencies>`_
+- `MySQL </installation.html#database-dependencies>`_
+- `Oracle </installation.html#database-dependencies>`_
+- `PostgreSQL </installation.html#postgresql>`_
+- `Presto </installation.html#presto>`_
+- `Snowflake </installation.html#snowflake>`_
+- `SQLite </installation.html#database-dependencies>`_
+- `SQL Server </installation.html#database-dependencies>`_
+- `Teradata </installation.html#teradata>`_
+- `Vertica </installation.html#database-dependencies>`_
+- `Hana </installation.html#hana>`_
 
 Other database engines with a proper DB-API driver and SQLAlchemy dialect should
 be supported as well.

@@ -18,8 +18,6 @@
  */
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
-import sinon from 'sinon';
-
 import Timer from 'src/components/Timer';
 import { now } from 'src/modules/dates';
 
@@ -40,28 +38,10 @@ describe('Timer', () => {
     expect(React.isValidElement(<Timer {...mockedProps} />)).toBe(true);
   });
 
-  it('componentWillMount starts timer after 30ms and sets state.clockStr', async () => {
-    expect(wrapper.state().clockStr).toBe('');
+  it('useEffect starts timer after 30ms and sets state of clockStr', async () => {
+    expect(wrapper.find('span').text()).toBe('');
     await new Promise(r => setTimeout(r, 35));
-    expect(wrapper.state().clockStr).not.toBe('');
-  });
-
-  it('calls startTimer on mount', () => {
-    // Timer is already mounted in beforeEach
-    wrapper.unmount();
-    const startTimerSpy = sinon.spy(Timer.prototype, 'startTimer');
-    wrapper.mount();
-    // Timer is started once in willUnmount and a second timer in render
-    // TODO: Questionable whether this is necessary.
-    expect(startTimerSpy.callCount).toBe(2);
-    startTimerSpy.restore();
-  });
-
-  it('calls stopTimer on unmount', () => {
-    const stopTimerSpy = sinon.spy(Timer.prototype, 'stopTimer');
-    wrapper.unmount();
-    expect(stopTimerSpy.callCount).toBe(1);
-    stopTimerSpy.restore();
+    expect(wrapper.find('span').text()).not.toBe('');
   });
 
   it('renders a span with the correct class', () => {

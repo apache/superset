@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import Chart from 'src/dashboard/components/gridComponents/Chart';
+import { ChartUnconnected as Chart } from 'src/dashboard/components/gridComponents/Chart';
 import SliceHeader from 'src/dashboard/components/SliceHeader';
 import ChartContainer from 'src/chart/ChartContainer';
 
@@ -44,6 +44,7 @@ describe('Chart', () => {
     slice: {
       ...sliceEntities.slices[queryId],
       description_markeddown: 'markdown',
+      owners: [],
     },
     sliceName: sliceEntities.slices[queryId].slice_name,
     timeout: 60,
@@ -52,6 +53,13 @@ describe('Chart', () => {
     toggleExpandSlice() {},
     addFilter() {},
     logEvent() {},
+    handleToggleFullSize() {},
+    changeFilter() {},
+    setFocusedFilterField() {},
+    unsetFocusedFilterField() {},
+    addDangerToast() {},
+    componentId: 'test',
+    dashboardId: 111,
     editMode: false,
     isExpanded: false,
     supersetCanExplore: false,

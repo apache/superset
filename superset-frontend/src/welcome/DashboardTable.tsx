@@ -20,10 +20,9 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import { debounce } from 'lodash';
-import ListView from 'src/components/ListView/ListView';
+import ListView, { FetchDataConfig } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Dashboard } from 'src/types/bootstrapTypes';
-import { FetchDataConfig } from 'src/components/ListView/types';
 
 const PAGE_SIZE = 25;
 

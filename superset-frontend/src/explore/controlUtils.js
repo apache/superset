@@ -111,11 +111,14 @@ function handleMissingChoice(control) {
 export function applyMapStateToPropsToControl(controlState, controlPanelState) {
   const { mapStateToProps } = controlState;
   let state = { ...controlState };
+  let { value } = state; // value is current user-input value
   if (mapStateToProps && controlPanelState) {
     state = {
       ...controlState,
       ...mapStateToProps(controlPanelState, controlState),
     };
+    // `mapStateToProps` may also provide a value
+    value = value || state.value;
   }
   // If default is a function, evaluate it
   if (typeof state.default === 'function') {
@@ -125,7 +128,6 @@ export function applyMapStateToPropsToControl(controlState, controlPanelState) {
       delete state.default;
     }
   }
-  let { value } = state;
   // If no current value, set it as default
   if (state.default && value === undefined) {
     value = state.default;

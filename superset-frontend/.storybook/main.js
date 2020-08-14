@@ -22,7 +22,7 @@ const path = require('path');
 const customConfig = require('../webpack.config.js');
 
 module.exports = {
-  stories: ['../src/components/**/*.stories.jsx'],
+  stories: ['../src/components/**/*.stories.(t|j)sx'],
   addons: [
     '@storybook/addon-actions',
     '@storybook/addon-links',
