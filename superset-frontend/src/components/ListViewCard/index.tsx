@@ -20,6 +20,7 @@ import React from 'react';
 import styled from '@superset-ui/style';
 import Icon from 'src/components/Icon';
 import { Card, Skeleton } from 'src/common/components';
+import ImageLoader from './ImageLoader';
 
 const MenuIcon = styled(Icon)`
   width: ${({ theme }) => theme.gridUnit * 4}px;
@@ -82,7 +83,7 @@ const GradientContainer = styled.div`
     );
   }
 `;
-const CardCoverImg = styled.img`
+const CardCoverImg = styled(ImageLoader)`
   display: block;
   object-fit: cover;
   width: 459px;
@@ -174,10 +175,9 @@ function ListViewCard({
           <a href={url}>
             <GradientContainer>
               <CardCoverImg
-                src={loading ? imgFallbackURL : imgURL}
-                onError={e => {
-                  e.currentTarget.src = imgFallbackURL;
-                }}
+                src={imgURL}
+                fallback={imgFallbackURL}
+                isLoading={loading}
               />
             </GradientContainer>
           </a>
