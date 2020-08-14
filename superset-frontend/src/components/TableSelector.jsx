@@ -33,7 +33,7 @@ import './TableSelector.less';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin: 20px 0 10px 0;
   text-transform: uppercase;
 `;

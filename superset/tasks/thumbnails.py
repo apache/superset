@@ -42,7 +42,7 @@ def cache_chart_thumbnail(
         if not thumbnail_cache:
             logger.warning("No cache set, refusing to compute")
             return None
-        logging.info("Caching chart at {url}")
+        logger.info("Caching chart: %s", url)
         screenshot = ChartScreenshot(url, digest)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         screenshot.compute_and_cache(
