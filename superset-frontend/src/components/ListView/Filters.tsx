@@ -23,29 +23,29 @@ import {
   Select,
   PaginatedSelect,
   PartialThemeConfig,
-  PartialStylesConfig,
 } from 'src/components/Select';
 
 import SearchInput from 'src/components/SearchInput';
 import {
   Filter,
-  Filters,
   FilterValue,
+  Filters,
   InternalFilter,
   SelectOption,
 } from './types';
+import { filterSelectStyles } from './utils';
 
 interface BaseFilter {
   Header: string;
   initialValue: any;
 }
 interface SelectFilterProps extends BaseFilter {
-  name?: string;
-  onSelect: (selected: any) => any;
-  selects: Filter['selects'];
   emptyLabel?: string;
   fetchSelects?: Filter['fetchSelects'];
+  name?: string;
+  onSelect: (selected: any) => any;
   paginate?: boolean;
+  selects: Filter['selects'];
   theme: SupersetThemeProps['theme'];
 }
 
@@ -61,40 +61,23 @@ const FilterTitle = styled.label`
   margin: 0 0.4em 0 0;
 `;
 
-const filterSelectStyles: PartialStylesConfig = {
-  container: (provider, { getValue }) => ({
-    ...provider,
-    // dynamic width based on label string length
-    minWidth: `${Math.min(
-      12,
-      Math.max(5, 3 + getValue()[0].label.length / 2),
-    )}em`,
-  }),
-  control: provider => ({
-    ...provider,
-    borderWidth: 0,
-    boxShadow: 'none',
-    cursor: 'pointer',
-  }),
-};
-
 const CLEAR_SELECT_FILTER_VALUE = 'CLEAR_SELECT_FILTER_VALUE';
 
 function SelectFilter({
   Header,
-  selects = [],
   emptyLabel = 'None',
+  fetchSelects,
   initialValue,
   onSelect,
-  fetchSelects,
   paginate = false,
+  selects = [],
   theme,
 }: SelectFilterProps) {
   const filterSelectTheme: PartialThemeConfig = {
     spacing: {
       baseUnit: 2,
-      minWidth: '5em',
       fontSize: theme.typography.sizes.s,
+      minWidth: '5em',
     },
   };
 
@@ -235,12 +218,12 @@ function UIFilters({
         (
           {
             Header,
+            fetchSelects,
             id,
             input,
+            paginate,
             selects,
             unfilteredLabel,
-            fetchSelects,
-            paginate,
           },
           index,
         ) => {
@@ -249,24 +232,24 @@ function UIFilters({
           if (input === 'select') {
             return (
               <StyledSelectFilter
+                Header={Header}
+                emptyLabel={unfilteredLabel}
+                fetchSelects={fetchSelects}
+                initialValue={initialValue}
                 key={id}
                 name={id}
-                Header={Header}
-                selects={selects}
-                emptyLabel={unfilteredLabel}
-                initialValue={initialValue}
-                fetchSelects={fetchSelects}
-                paginate={paginate}
                 onSelect={(value: any) => updateFilterValue(index, value)}
+                paginate={paginate}
+                selects={selects}
               />
             );
           }
           if (input === 'search') {
             return (
               <SearchFilter
-                key={id}
                 Header={Header}
                 initialValue={initialValue}
+                key={id}
                 onSubmit={(value: string) => updateFilterValue(index, value)}
               />
             );
