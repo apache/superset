@@ -718,7 +718,7 @@ class ChartDataQueryObjectSchema(Schema):
         deprecated=True,
     )
     having_filters = fields.List(
-        fields.Dict(),
+        fields.Nested(ChartDataFilterSchema),
         description="HAVING filters to be added to legacy Druid datasource queries. "
         "This field is deprecated and should be passed to `extras` "
         "as `having_druid`.",
