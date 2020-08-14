@@ -1202,6 +1202,25 @@ class TestCore(SupersetTestCase):
         database.extra = json.dumps(extra)
         self.assertEqual(database.explore_database_id, explore_database.id)
 
+    def test_get_column_names_from_metric(self):
+        simple_metric = {
+            "expressionType": utils.AdhocMetricExpressionType.SIMPLE.value,
+            "column": {"column_name": "my_col"},
+            "aggregate": "SUM",
+            "label": "My Simple Label",
+        }
+        assert utils.get_column_name_from_metric(simple_metric) == "my_col"
+
+        sql_metric = {
+            "expressionType": utils.AdhocMetricExpressionType.SQL.value,
+            "sqlExpression": "SUM(my_label)",
+            "label": "My SQL Label",
+        }
+        assert utils.get_column_name_from_metric(sql_metric) is None
+        assert utils.get_column_names_from_metrics([simple_metric, sql_metric]) == [
+            "my_col"
+        ]
+
 
 if __name__ == "__main__":
     unittest.main()

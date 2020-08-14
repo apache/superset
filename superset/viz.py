@@ -481,6 +481,24 @@ class BaseViz:
 
         if query_obj and not is_loaded:
             try:
+                invalid_columns = [
+                    col
+                    for col in (query_obj.get("columns") or [])
+                    + (query_obj.get("groupby") or [])
+                    + utils.get_column_names_from_metrics(
+                        cast(
+                            List[Union[str, Dict[str, Any]]], query_obj.get("metrics"),
+                        )
+                    )
+                    if col not in self.datasource.column_names
+                ]
+                if invalid_columns:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Columns missing in datasource: %(invalid_columns)s",
+                            invalid_columns=invalid_columns,
+                        )
+                    )
                 df = self.get_df(query_obj)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr("loaded_from_source")
