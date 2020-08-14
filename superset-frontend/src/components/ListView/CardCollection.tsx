@@ -20,11 +20,12 @@ import React from 'react';
 import { TableInstance } from 'react-table';
 import styled from '@superset-ui/style';
 
-interface Props {
-  renderCard?: (row: any) => React.ReactNode;
-  prepareRow: TableInstance['prepareRow'];
-  rows: TableInstance['rows'];
+interface CardCollectionProps {
+  bulkSelectEnabled?: boolean;
   loading: boolean;
+  prepareRow: TableInstance['prepareRow'];
+  renderCard?: (row: any) => React.ReactNode;
+  rows: TableInstance['rows'];
 }
 
 const CardContainer = styled.div`
@@ -34,21 +35,35 @@ const CardContainer = styled.div`
   justify-content: center;
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
+
+  .card-selected {
+    border: 2px solid ${({ theme }) => theme.colors.primary.base};
+  }
 `;
 
 export default function CardCollection({
-  renderCard,
-  prepareRow,
-  rows,
+  bulkSelectEnabled,
   loading,
-}: Props) {
+  prepareRow,
+  renderCard,
+  rows,
+}: CardCollectionProps) {
   return (
     <CardContainer>
       {rows.map(row => {
         if (!renderCard) return null;
         prepareRow(row);
         return (
-          <div key={row.id}>{renderCard({ ...row.original, loading })}</div>
+          <div
+            className={
+              row.isSelected && bulkSelectEnabled ? 'card-selected' : ''
+            }
+            key={row.id}
+            onClick={() => row.toggleRowSelected()}
+            role="none"
+          >
+            {renderCard({ ...row.original, loading })}
+          </div>
         );
       })}
     </CardContainer>

@@ -524,6 +524,7 @@ class ChartList extends React.PureComponent<Props, State> {
 
     return (
       <ListViewCard
+        bulkSelectEnabled={this.state.bulkSelectEnabled}
         title={props.slice_name}
         url={props.url}
         imgURL={props.thumbnail_url ?? ''}

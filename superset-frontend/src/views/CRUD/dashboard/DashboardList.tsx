@@ -528,6 +528,7 @@ class DashboardList extends React.PureComponent<Props, State> {
 
     return (
       <ListViewCard
+        bulkSelectEnabled={this.state.bulkSelectEnabled}
         title={props.dashboard_title}
         titleRight={<Label>{props.published ? 'published' : 'draft'}</Label>}
         url={props.url}
