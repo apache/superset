@@ -119,7 +119,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "table.table_name",
         "thumbnail_url",
         "url",
-        "viz_type",
+        "params",
+        "cache_timeout",
+        "owners.id",
+        "owners.username",
+        "owners.first_name",
+        "owners.last_name",
     ]
     list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
     order_columns = [

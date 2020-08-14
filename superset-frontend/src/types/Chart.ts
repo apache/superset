@@ -21,6 +21,8 @@
  * The Chart model as returned from the API
  */
 
+import Owner from './Owner';
+
 export default interface Chart {
   id: number;
   url: string;
@@ -30,4 +32,8 @@ export default interface Chart {
   changed_on: string;
   description: string | null;
   cache_timeout: number | null;
+  thumbnail_url?: string;
+  changed_on_delta_humanized?: string;
+  owners?: Owner[];
+  datasource_name_text?: string;
 }

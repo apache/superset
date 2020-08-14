@@ -167,8 +167,18 @@ describe('Visualization > Table', () => {
     };
     cy.visitChartByParams(JSON.stringify(formData));
 
+    // should display in raw records mode
     cy.get('div[data-test="query_mode"] .btn.active').contains('Raw Records');
+    cy.get('div[data-test="all_columns"]').should('be.visible');
+    cy.get('div[data-test="groupby"]').should('not.be.visible');
+
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
+
+    // should allow switch to aggregate mode
+    cy.get('div[data-test="query_mode"] .btn').contains('Aggregate').click();
+    cy.get('div[data-test="query_mode"] .btn.active').contains('Aggregate');
+    cy.get('div[data-test="all_columns"]').should('not.be.visible');
+    cy.get('div[data-test="groupby"]').should('be.visible');
   });
 
   it('Test table with columns, ordering, and row limit', () => {

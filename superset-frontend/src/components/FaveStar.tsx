@@ -61,7 +61,7 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
               }
               viewBox="0 0 16 15"
               width={this.props.width || 20}
-              height="auto"
+              height={this.props.height || 'auto'}
             />
           </a>
         </TooltipWrapper>
