@@ -90,6 +90,19 @@ class AnnotationDatasource(BaseDatasource):
     cache_timeout = 0
     changed_on = None
     type = "annotation"
+    column_names = [
+        "created_on",
+        "changed_on",
+        "id",
+        "start_dttm",
+        "end_dttm",
+        "layer_id",
+        "short_descr",
+        "long_descr",
+        "json_metadata",
+        "created_by_fk",
+        "changed_by_fk",
+    ]
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         error_message = None
@@ -721,7 +734,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         expression_type = metric.get("expressionType")
         label = utils.get_metric_name(metric)
 
-        if expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES["SIMPLE"]:
+        if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             column_name = metric["column"].get("column_name")
             table_column = columns_by_name.get(column_name)
             if table_column:
@@ -729,7 +742,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             else:
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
-        elif expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES["SQL"]:
+        elif expression_type == utils.AdhocMetricExpressionType.SQL:
             sqla_metric = literal_column(metric.get("sqlExpression"))
         else:
             return None
