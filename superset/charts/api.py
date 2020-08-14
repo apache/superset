@@ -86,38 +86,39 @@ class ChartRestApi(BaseSupersetModelRestApi):
     }
     class_permission_name = "SliceModelView"
     show_columns = [
-        "slice_name",
-        "description",
-        "owners.id",
-        "owners.username",
-        "owners.first_name",
-        "owners.last_name",
-        "dashboards.id",
-        "dashboards.dashboard_title",
-        "viz_type",
-        "params",
         "cache_timeout",
+        "dashboards.dashboard_title",
+        "dashboards.id",
+        "description",
+        "owners.first_name",
+        "owners.id",
+        "owners.last_name",
+        "owners.username",
+        "params",
+        "slice_name",
+        "viz_type",
     ]
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
-        "id",
-        "slice_name",
-        "url",
-        "description",
-        "changed_by_name",
-        "changed_by_url",
+        "cache_timeout",
         "changed_by.first_name",
         "changed_by.last_name",
-        "changed_on_utc",
+        "changed_by_name",
+        "changed_by_url",
         "changed_on_delta_humanized",
+        "changed_on_utc",
         "datasource_id",
-        "datasource_type",
         "datasource_name_text",
+        "datasource_type",
         "datasource_url",
+        "description",
+        "id",
+        "params",
+        "slice_name",
         "table.default_endpoint",
         "table.table_name",
         "thumbnail_url",
-        "viz_type",
+        "url",
         "params",
         "cache_timeout",
         "owners.id",
@@ -125,24 +126,24 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.last_name",
     ]
-    list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
+    list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
     order_columns = [
-        "slice_name",
-        "viz_type",
-        "datasource_name",
-        "datasource_id",
         "changed_by.first_name",
         "changed_on_delta_humanized",
-    ]
-    search_columns = (
-        "slice_name",
-        "description",
-        "viz_type",
-        "datasource_name",
         "datasource_id",
+        "datasource_name",
+        "slice_name",
+        "viz_type",
+    ]
+    search_columns = [
+        "datasource_id",
+        "datasource_name",
         "datasource_type",
+        "description",
         "owners",
-    )
+        "slice_name",
+        "viz_type",
+    ]
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {"slice_name": [ChartNameOrDescriptionFilter]}

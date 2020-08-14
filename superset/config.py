@@ -795,7 +795,7 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 # chrome:
 #   Requires: headless chrome
 #   Limitations: unable to generate screenshots of elements
-EMAIL_REPORTS_WEBDRIVER = "firefox"
+WEBDRIVER_TYPE = "firefox"
 
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
