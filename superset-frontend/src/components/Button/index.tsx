@@ -104,10 +104,13 @@ export default function Button(props: ButtonProps) {
     <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
   );
 
+  const whittledProps = { ...buttonProps };
+  delete whittledProps.dropdownItems;
+
   if (dropdownItems) {
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
-        <SupersetButton {...buttonProps} data-toggle="dropdown">
+        <SupersetButton {...whittledProps} data-toggle="dropdown">
           {props.children}
         </SupersetButton>
         <ul className="dropdown-menu">
