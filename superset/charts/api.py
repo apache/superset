@@ -125,6 +125,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     order_columns = [
         "changed_by.first_name",
         "changed_on_delta_humanized",
+        "datasource_id",
         "datasource_name",
         "slice_name",
         "viz_type",
