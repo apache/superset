@@ -276,8 +276,8 @@ const ListView: FunctionComponent<ListViewProps> = ({
               initialSort={initialSort}
               onChange={fetchData}
               options={cardSortSelectOptions}
-              pageSize={pageSize}
               pageIndex={pageIndex}
+              pageSize={pageSize}
             />
           )}
         </div>
