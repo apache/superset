@@ -199,7 +199,7 @@ def _get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
 
 
 def create_webdriver() -> WebDriver:
-    return WebDriverProxy(driver_type=config["EMAIL_REPORTS_WEBDRIVER"]).auth(
+    return WebDriverProxy(driver_type=config["WEBDRIVER_TYPE"]).auth(
         get_reports_user()
     )
 
