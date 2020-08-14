@@ -24,6 +24,7 @@ import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import ChartList from 'src/views/CRUD/chart/ChartList';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ListViewCard from 'src/components/ListViewCard';
@@ -49,7 +50,7 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
 }));
 
 fetchMock.get(chartsInfoEndpoint, {
-  permissions: ['can_list', 'can_edit'],
+  permissions: ['can_list', 'can_edit', 'can_delete'],
 });
 fetchMock.get(chartssOwnersEndpoint, {
   result: [],
@@ -112,5 +113,10 @@ describe('ChartList', () => {
     expect(wrapper.find(PropertiesModal)).not.toExist();
     wrapper.find('[data-test="pencil"]').first().simulate('click');
     expect(wrapper.find(PropertiesModal)).toExist();
+  });
+
+  it('delete', () => {
+    wrapper.find('[data-test="trash"]').first().simulate('click');
+    expect(wrapper.find(ConfirmStatusChange)).toExist();
   });
 });
