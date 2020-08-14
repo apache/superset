@@ -28,6 +28,13 @@ export interface SelectOption {
   value: any;
 }
 
+export interface CardSortSelectOption {
+  desc: boolean;
+  id: any;
+  label: string;
+  value: any;
+}
+
 export interface Filter {
   Header: string;
   id: string;

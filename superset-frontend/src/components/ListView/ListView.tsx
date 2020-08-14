@@ -28,7 +28,13 @@ import TableCollection from './TableCollection';
 import CardCollection from './CardCollection';
 import Pagination from './Pagination';
 import FilterControls from './Filters';
-import { FetchDataConfig, Filters, SortColumn } from './types';
+import { CardSortSelect } from './CardSortSelect';
+import {
+  FetchDataConfig,
+  Filters,
+  SortColumn,
+  CardSortSelectOption,
+} from './types';
 import { ListViewError, useListViewState } from './utils';
 
 const ListViewStyles = styled.div`
@@ -188,6 +194,7 @@ export interface ListViewProps<T = any> {
   disableBulkSelect?: () => void;
   renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
   renderCard?: (row: T) => React.ReactNode;
+  cardSortSelectOptions?: Array<CardSortSelectOption>;
 }
 
 const ListView: FunctionComponent<ListViewProps> = ({
@@ -205,6 +212,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
   disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
+  cardSortSelectOptions,
 }) => {
   const {
     getTableProps,
@@ -261,6 +269,15 @@ const ListView: FunctionComponent<ListViewProps> = ({
               filters={filters}
               internalFilters={internalFilters}
               updateFilterValue={applyFilterValue}
+            />
+          )}
+          {viewingMode === 'card' && cardSortSelectOptions && (
+            <CardSortSelect
+              initialSort={initialSort}
+              onChange={fetchData}
+              options={cardSortSelectOptions}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
             />
           )}
         </div>

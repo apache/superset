@@ -266,6 +266,27 @@ class DashboardList extends React.PureComponent<Props, State> {
     },
   ];
 
+  sortTypes = [
+    {
+      desc: false,
+      id: 'dashboard_title',
+      label: 'Alphabetical',
+      value: 'alphabetical',
+    },
+    {
+      desc: true,
+      id: 'changed_on_delta_humanized',
+      label: 'Recently Modified',
+      value: 'recently_modified',
+    },
+    {
+      desc: false,
+      id: 'changed_on_delta_humanized',
+      label: 'Least Recently Modified',
+      value: 'least_recently_modified',
+    },
+  ];
+
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
@@ -601,6 +622,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                 <ListView
                   bulkActions={bulkActions}
                   bulkSelectEnabled={bulkSelectEnabled}
+                  cardSortSelectOptions={this.sortTypes}
                   className="dashboard-list-view"
                   columns={this.columns}
                   count={dashboardCount}
