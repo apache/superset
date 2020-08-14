@@ -46,6 +46,8 @@ export default function ImageLoader({
       });
 
     return () => {
+      // theres a very brief period where isLoading is false and this component is about to unmount
+      // where the stale imgSrc is briefly rendered. Setting imgSrc to fallback smoothes the transition.
       setImgSrc(fallback);
     };
   }, [src, fallback]);
