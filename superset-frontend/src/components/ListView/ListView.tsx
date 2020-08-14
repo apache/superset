@@ -339,6 +339,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
               prepareRow={prepareRow}
               headerGroups={headerGroups}
               rows={rows}
+              columns={columns}
               loading={loading}
             />
           )}

@@ -36,6 +36,7 @@ export const SupersetListViewCard = () => {
   return (
     <ListViewCard
       title="Superset Card Title"
+      loading={boolean('loading', false)}
       url="/superset/dashboard/births/"
       imgURL={DashboardImg}
       imgFallbackURL={ChartImg}
