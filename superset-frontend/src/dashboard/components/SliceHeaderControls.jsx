@@ -173,17 +173,6 @@ class SliceHeaderControls extends React.PureComponent {
               {t('Explore chart')}
             </MenuItem>
           )}
-
-          <MenuItem onClick={this.handleToggleFullSize}>{resizeLabel}</MenuItem>
-
-          <MenuItem
-            onClick={downloadAsImage(
-              '.dashboard-component-chart-holder',
-              slice.slice_name,
-            )}
-          >
-            {t('Download as image')}
-          </MenuItem>
         </Dropdown.Menu>
       </Dropdown>
     );
