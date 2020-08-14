@@ -28,13 +28,21 @@ import {
 } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
-import ListView, { ListViewProps } from 'src/components/ListView/ListView';
+import AvatarIcon from 'src/components/AvatarIcon';
+import ListView, {
+  ListViewProps,
+  FetchDataConfig,
+  Filters,
+} from 'src/components/ListView';
 import ExpandableList from 'src/components/ExpandableList';
-import { FetchDataConfig, Filters } from 'src/components/ListView/types';
+import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
+import Label from 'src/components/Label';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
+import ListViewCard from 'src/components/ListViewCard';
+import { Dropdown, Menu } from 'src/common/components';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
@@ -47,7 +55,7 @@ interface Props {
 interface State {
   bulkSelectEnabled: boolean;
   dashboardCount: number;
-  dashboards: any[];
+  dashboards: Dashboard[];
   favoriteStatus: object;
   dashboardToEdit: Dashboard | null;
   lastFetchDataConfig: FetchDataConfig | null;
@@ -64,6 +72,8 @@ interface Dashboard {
   id: number;
   published: boolean;
   url: string;
+  thumbnail_url: string;
+  owners: Owner[];
 }
 
 class DashboardList extends React.PureComponent<Props, State> {
@@ -205,61 +215,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       disableSortBy: true,
     },
     {
-      Cell: ({ row: { original } }: any) => {
-        const handleDelete = () => this.handleDashboardDelete(original);
-        const handleEdit = () => this.openDashboardEditModal(original);
-        const handleExport = () => this.handleBulkDashboardExport([original]);
-        if (!this.canEdit && !this.canDelete && !this.canExport) {
-          return null;
-        }
-        return (
-          <span className="actions">
-            {this.canDelete && (
-              <ConfirmStatusChange
-                title={t('Please Confirm')}
-                description={
-                  <>
-                    {t('Are you sure you want to delete')}{' '}
-                    <b>{original.dashboard_title}</b>?
-                  </>
-                }
-                onConfirm={handleDelete}
-              >
-                {confirmDelete => (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={confirmDelete}
-                  >
-                    <Icon name="trash" />
-                  </span>
-                )}
-              </ConfirmStatusChange>
-            )}
-            {this.canExport && (
-              <span
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={handleExport}
-              >
-                <Icon name="share" />
-              </span>
-            )}
-            {this.canEdit && (
-              <span
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={handleEdit}
-              >
-                <Icon name="pencil" />
-              </span>
-            )}
-          </span>
-        );
-      },
+      Cell: ({ row: { original } }: any) => this.renderActions(original),
       Header: t('Actions'),
       id: 'actions',
       disableSortBy: true,
@@ -444,6 +400,148 @@ class DashboardList extends React.PureComponent<Props, State> {
       });
   };
 
+  renderActions(original: Dashboard) {
+    const handleDelete = () => this.handleDashboardDelete(original);
+    const handleEdit = () => this.openDashboardEditModal(original);
+    const handleExport = () => this.handleBulkDashboardExport([original]);
+    if (!this.canEdit && !this.canDelete && !this.canExport) {
+      return null;
+    }
+    return (
+      <span className="actions">
+        {this.canDelete && (
+          <ConfirmStatusChange
+            title={t('Please Confirm')}
+            description={
+              <>
+                {t('Are you sure you want to delete')}{' '}
+                <b>{original.dashboard_title}</b>?
+              </>
+            }
+            onConfirm={handleDelete}
+          >
+            {confirmDelete => (
+              <span
+                role="button"
+                tabIndex={0}
+                className="action-button"
+                onClick={confirmDelete}
+              >
+                <Icon name="trash" />
+              </span>
+            )}
+          </ConfirmStatusChange>
+        )}
+        {this.canExport && (
+          <span
+            role="button"
+            tabIndex={0}
+            className="action-button"
+            onClick={handleExport}
+          >
+            <Icon name="share" />
+          </span>
+        )}
+        {this.canEdit && (
+          <span
+            role="button"
+            tabIndex={0}
+            className="action-button"
+            onClick={handleEdit}
+          >
+            <Icon name="pencil" />
+          </span>
+        )}
+      </span>
+    );
+  }
+
+  renderCard = (props: Dashboard) => {
+    const menu = (
+      <Menu>
+        {this.canDelete && (
+          <Menu.Item>
+            <ConfirmStatusChange
+              title={t('Please Confirm')}
+              description={
+                <>
+                  {t('Are you sure you want to delete')}{' '}
+                  <b>{props.dashboard_title}</b>?
+                </>
+              }
+              onConfirm={() => this.handleDashboardDelete(props)}
+            >
+              {confirmDelete => (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={confirmDelete}
+                >
+                  <ListViewCard.MenuIcon name="trash" /> Delete
+                </div>
+              )}
+            </ConfirmStatusChange>
+          </Menu.Item>
+        )}
+        {this.canExport && (
+          <Menu.Item
+            role="button"
+            tabIndex={0}
+            onClick={() => this.handleBulkDashboardExport([props])}
+          >
+            <ListViewCard.MenuIcon name="share" /> Export
+          </Menu.Item>
+        )}
+        {this.canEdit && (
+          <Menu.Item
+            role="button"
+            tabIndex={0}
+            onClick={() => this.openDashboardEditModal(props)}
+          >
+            <ListViewCard.MenuIcon name="pencil" /> Edit
+          </Menu.Item>
+        )}
+      </Menu>
+    );
+
+    return (
+      <ListViewCard
+        title={props.dashboard_title}
+        titleRight={<Label>{props.published ? 'published' : 'draft'}</Label>}
+        url={props.url}
+        imgURL={props.thumbnail_url}
+        imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
+        description={t('Last modified %s', props.changed_on_delta_humanized)}
+        coverLeft={props.owners.slice(0, 5).map(owner => (
+          <AvatarIcon
+            key={owner.id}
+            uniqueKey={`${owner.username}-${props.id}`}
+            firstName={owner.first_name}
+            lastName={owner.last_name}
+            iconSize={24}
+            textSize={9}
+          />
+        ))}
+        actions={
+          <ListViewCard.Actions>
+            <FaveStar
+              itemId={props.id}
+              fetchFaveStar={this.fetchMethods.fetchFaveStar}
+              saveFaveStar={this.fetchMethods.saveFaveStar}
+              isStarred={!!this.state.favoriteStatus[props.id]}
+              width={20}
+              height={20}
+            />
+            <Dropdown overlay={menu}>
+              <Icon name="more" />
+            </Dropdown>
+          </ListViewCard.Actions>
+        }
+      />
+    );
+  };
+
   render() {
     const {
       bulkSelectEnabled,
@@ -495,6 +593,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                 {dashboardToEdit && (
                   <PropertiesModal
                     dashboardId={dashboardToEdit.id}
+                    show
                     onHide={() => this.setState({ dashboardToEdit: null })}
                     onSubmit={this.handleDashboardEdit}
                   />
@@ -512,6 +611,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                   initialSort={this.initialSort}
                   loading={loading}
                   pageSize={PAGE_SIZE}
+                  renderCard={this.renderCard}
                 />
               </>
             );
