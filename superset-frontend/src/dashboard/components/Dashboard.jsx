@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
+import { PluginContext } from 'src/components/DynamicPlugins/PluginContext';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 import DashboardBuilder from '../containers/DashboardBuilder';
@@ -40,7 +41,6 @@ import { areObjectsEqual } from '../../reduxUtils';
 import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
-import { PluginContext } from 'src/components/DynamicPlugins/PluginContext';
 
 const propTypes = {
   actions: PropTypes.shape({
@@ -69,7 +69,6 @@ const defaultProps = {
 };
 
 class Dashboard extends React.PureComponent {
-  // eslint-disable-next-line react/sort-comp
   static onBeforeUnload(hasChanged) {
     if (hasChanged) {
       window.addEventListener('beforeunload', Dashboard.unload);

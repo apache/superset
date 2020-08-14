@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer } from 'react';
-import { SupersetClient, Json } from '@superset-ui/connection';
+import { SupersetClient, JsonObject } from '@superset-ui/connection';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   PluginContext,
@@ -20,15 +20,15 @@ async function defineSharedModule(name: string, promise: Promise<any>) {
   // dependency management using global variables, because for the life of me
   // I can't figure out how to hook into UMD from a dynamically imported package.
   // Maybe someone else can help figure that out.
-  const loadingKey = '__superset__loading__/' + name;
-  const pkgKey = '__superset__/' + name;
+  const loadingKey = `__superset__loading__/${name}`;
+  const packageKey = `__superset__/${name}`;
   if (window[loadingKey]) {
     await window[loadingKey];
-    return window[pkgKey];
+    return window[packageKey];
   }
   window[loadingKey] = promise;
   const pkg = await promise;
-  window[pkgKey] = pkg;
+  window[packageKey] = pkg;
   return pkg;
 }
 
@@ -121,7 +121,7 @@ export default function DynamicPluginProvider({ children }: Props) {
       const response = await SupersetClient.get({
         endpoint: '/dynamic-plugins/api/read',
       });
-      const plugins: Plugin[] = (response.json as Json).result;
+      const plugins: Plugin[] = (response.json as JsonObject).result;
       dispatch({ type: 'begin', keys: plugins.map(plugin => plugin.key) });
       await Promise.all(
         plugins.map(async plugin => {

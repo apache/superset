@@ -76,7 +76,7 @@ const Styles = styled.div`
 `;
 
 class ExploreViewContainer extends React.Component {
-  static contextType = PluginContext; // eslint-disable-line react/sort-comp
+  static contextType = PluginContext;
 
   constructor(props) {
     super(props);
