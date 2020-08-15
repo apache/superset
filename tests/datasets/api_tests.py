@@ -511,7 +511,7 @@ class TestDatasetApi(SupersetTestCase):
 
         resp_columns[0]["groupby"] = False
         resp_columns[0]["filterable"] = False
-        v = self.client.put(uri, json={"columns": resp_columns})
+        rv = self.client.put(uri, json={"columns": resp_columns})
         self.assertEqual(rv.status_code, 200)
         columns = (
             db.session.query(TableColumn)
@@ -519,6 +519,10 @@ class TestDatasetApi(SupersetTestCase):
             .order_by("column_name")
             .all()
         )
+        print("FINDME")
+        print(dataset.to_json())
+        print(columns[0].to_json())
+        print([c.to_json() for c in columns])
         self.assertEqual(columns[0].column_name, "id")
         self.assertEqual(columns[1].column_name, "name")
         self.assertEqual(columns[0].groupby, False)
