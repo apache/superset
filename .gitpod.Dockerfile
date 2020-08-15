@@ -11,7 +11,7 @@ RUN sudo apt-get update && \
 
 
 FROM gitpod/workspace-full:latest
-RUN sudo apt-get install build-essential libssl-dev libffi-dev python3.6-dev python-pip libsasl2-dev libldap2-dev
+#RUN sudo apt-get install build-essential libssl-dev libffi-dev python3.6-dev python-pip libsasl2-dev libldap2-dev
 RUN pip install --upgrade setuptools pip && \
     pip install apache-superset && \
     superset db upgrade && \
