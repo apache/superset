@@ -34,11 +34,18 @@ SQLALCHEMY_EXAMPLES_URI = SQLALCHEMY_DATABASE_URI
 if "SUPERSET__SQLALCHEMY_EXAMPLES_URI" in os.environ:
     SQLALCHEMY_EXAMPLES_URI = os.environ["SUPERSET__SQLALCHEMY_EXAMPLES_URI"]
 
+if "UPLOAD_FOLDER" in os.environ:
+    UPLOAD_FOLDER = os.environ["UPLOAD_FOLDER"]
+
 if "sqlite" in SQLALCHEMY_DATABASE_URI:
     logger.warning(
         "SQLite Database support for metadata databases will be "
         "removed in a future version of Superset."
     )
+
+# Speeding up the tests.
+PRESTO_POLL_INTERVAL = 0.1
+HIVE_POLL_INTERVAL = 0.1
 
 SQL_MAX_ROW = 666
 SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take affect for the CTA queries

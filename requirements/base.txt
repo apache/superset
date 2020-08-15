@@ -16,8 +16,8 @@ babel==2.8.0              # via flask-babel
 backoff==1.10.0           # via apache-superset
 billiard==3.6.3.0         # via celery
 bleach==3.1.5             # via apache-superset
-boto3==1.14.36            # via tabulator
-botocore==1.17.36         # via boto3, s3transfer
+boto3==1.14.43            # via tabulator
+botocore==1.17.43         # via boto3, s3transfer
 brotli==1.0.7             # via flask-compress
 cached-property==1.5.1    # via tableschema
 cachelib==0.1.1           # via apache-superset
@@ -54,7 +54,7 @@ future==0.18.2            # via pyhive
 geographiclib==1.50       # via geopy
 geopy==2.0.0              # via apache-superset
 gunicorn==20.0.4          # via apache-superset
-humanize==2.5.0           # via apache-superset
+humanize==2.6.0           # via apache-superset
 idna==2.10                # via email-validator, requests, yarl
 ijson==3.1.1              # via tabulator
 importlib-metadata==1.7.0  # via jsonschema, kombu, markdown

@@ -25,6 +25,7 @@ from slack.errors import SlackApiError
 from slack.web.slack_response import SlackResponse
 
 # Globals
+config = app.config
 logger = logging.getLogger("tasks.slack_util")
 
 

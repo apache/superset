@@ -111,44 +111,41 @@ class TestDatabaseModel(SupersetTestCase):
         db = get_example_database()
         table_name = "energy_usage"
         sql = db.select_star(table_name, show_cols=False, latest_partition=False)
+        quote = db.inspector.engine.dialect.identifier_preparer.quote_identifier
         expected = (
             textwrap.dedent(
                 f"""\
         SELECT *
-        FROM {table_name}
+        FROM {quote(table_name)}
         LIMIT 100"""
             )
-            if db.backend != "presto"
+            if db.backend in {"presto", "hive"}
             else textwrap.dedent(
                 f"""\
         SELECT *
-        FROM "{table_name}"
+        FROM {table_name}
         LIMIT 100"""
             )
         )
         assert expected in sql
 
         sql = db.select_star(table_name, show_cols=True, latest_partition=False)
-        expected = (
-            textwrap.dedent(
-                f"""\
-        SELECT source,
-               target,
-               value
-        FROM {table_name}
-        LIMIT 100"""
+        # TODO(bkyryliuk): unify sql generation
+        if db.backend == "presto":
+            assert (
+                'SELECT "source" AS "source",\n       "target" AS "target",\n       "value" AS "value"\nFROM "energy_usage"\nLIMIT 100'
+                == sql
             )
-            if db.backend != "presto"
-            else textwrap.dedent(
-                f"""\
-        SELECT "source" AS "source",
-               "target" AS "target",
-               "value" AS "value"
-        FROM "{table_name}"
-        LIMIT 100"""
+        elif db.backend == "hive":
+            assert (
+                "SELECT `source`,\n       `target`,\n       `value`\nFROM `energy_usage`\nLIMIT 100"
+                == sql
             )
-        )
-        assert expected in sql
+        else:
+            assert (
+                "SELECT source,\n       target,\n       value\nFROM energy_usage\nLIMIT 100"
+                in sql
+            )
 
     def test_select_star_fully_qualified_names(self):
         db = get_example_database()

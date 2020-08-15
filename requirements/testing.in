@@ -16,7 +16,10 @@
 #
 -r base.in
 -r integration.in
+ipdb
+ipython==7.16.1
 flask-testing
+docker
 openapi-spec-validator
 openpyxl
 parameterized

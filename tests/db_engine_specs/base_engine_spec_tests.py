@@ -208,6 +208,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         ]
         if example_db.backend == "postgresql":
             expected = ["VARCHAR(255)", "VARCHAR(255)", "DOUBLE PRECISION"]
+        elif example_db.backend == "hive":
+            expected = ["STRING", "STRING", "FLOAT"]
         else:
             expected = ["VARCHAR(255)", "VARCHAR(255)", "FLOAT"]
         self.assertEqual(col_names, expected)

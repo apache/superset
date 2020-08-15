@@ -164,8 +164,8 @@ jobs:
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI:
         postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI:
-        hive://localhost:10000/default
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: hive://localhost:10000/default
+      UPLOAD_FOLDER: /tmp/.superset/uploads/
     services:
       postgres:
         image: postgres:10-alpine
@@ -182,10 +182,12 @@ jobs:
           - 16379:6379
     steps:
     - uses: actions/checkout@v2
-    - name: Start hive service
+    - name: Create csv upload directory
+      run: sudo mkdir -p /tmp/.superset/uploads
+    - name: Give write access to the csv upload directory
+      run: sudo chown -R $USER:$USER /tmp/.superset
+    - name: Start hadoop and hive
       run: docker-compose -f scripts/databases/hive/docker-compose.yml up -d
-    - name: Test if hive is up and running
-      run: sleep 30 && echo $(curl localhost:10000)
     - name: Setup Python
       uses: actions/setup-python@v2.1.1
       with:
