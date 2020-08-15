@@ -38,12 +38,18 @@ export default function ImageLoader({
   const [imgSrc, setImgSrc] = React.useState<string>(fallback);
 
   React.useEffect(() => {
-    fetch(src)
-      .then(response => response.blob())
-      .then(image => {
-        const imgURL = URL.createObjectURL(image);
-        setImgSrc(imgURL);
-      });
+    if (src) {
+      fetch(src)
+        .then(response => response.blob())
+        .then(image => {
+          const imgURL = URL.createObjectURL(image);
+          setImgSrc(imgURL);
+        })
+        .catch(e => {
+          console.error(e); // eslint-disable-line no-console
+          setImgSrc(fallback);
+        });
+    }
 
     return () => {
       // theres a very brief period where isLoading is false and this component is about to unmount
