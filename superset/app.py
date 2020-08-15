@@ -144,7 +144,11 @@ class SupersetAppInitializer:
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import AlertLogModelView, AlertModelView, SQLObserverInlineView
+        from superset.views.alerts import (
+            AlertLogModelView,
+            AlertModelView,
+            SQLObserverInlineView,
+        )
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,

@@ -59,14 +59,28 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
 
     list_widget = ListWidgetWithCheckboxes
 
-    edit_columns = ["name", "validation_type", "alert", "database", "sql"]
+    edit_columns = [
+        "name",
+        "observer_type",
+        "validation_type",
+        "alert",
+        "database",
+        "sql",
+    ]
 
     add_columns = edit_columns
 
-    list_columns = ["name", "validation_type", "alert.label", "database"]
+    list_columns = [
+        "name",
+        "observer_type",
+        "validation_type",
+        "alert.label",
+        "database",
+    ]
 
     label_columns = {
         "name": _("Name"),
+        "observer_type": _("Observer Type"),
         "validation_type": _("Validation Type"),
         "alert": _("Alert Label"),
         "database": _("Database"),

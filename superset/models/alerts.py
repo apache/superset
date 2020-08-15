@@ -50,6 +50,15 @@ alert_owner = Table(
 )
 
 
+class AlertObserverType(str, enum.Enum):
+    sql = "sql"
+
+
+class AlertValidatorType(str, enum.Enum):
+    not_null = "not_null"
+    deviation = "deviation"
+
+
 class AlertValidationType(str, enum.Enum):
     numerical = "Numerical"
 
@@ -111,12 +120,13 @@ class AlertLog(Model):
         return (self.dttm_end - self.dttm_start).total_seconds()
 
 
-class Observer:
+class Observer(Model):
 
     __tablename__ = "alert_observers"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(150))
+    observer_type = Column(Enum(AlertObserverType))
     validation_type = Column(Enum(AlertValidationType))
 
     @declared_attr
@@ -126,7 +136,7 @@ class Observer:
     @declared_attr
     def alert(self) -> RelationshipProperty:
         return relationship(
-            "Alert", foreign_keys=[self.alert_id], backref=self.__tablename__[:-1]
+            "Alert", foreign_keys=[self.alert_id], backref="alert_observers"
         )
 
     @declared_attr
@@ -138,13 +148,18 @@ class Observer:
         return relationship(
             "Database",
             foreign_keys=[self.database_id],
-            backref=backref(self.__tablename__, cascade="all, delete-orphan"),
+            backref=backref("alert_observers", cascade="all, delete-orphan"),
         )
 
+    __mapper_args__ = {
+        "polymorphic_identity": "base_observer",
+        "polymorphic_on": observer_type,
+    }
 
-class SQLObserver(Model, Observer):
 
-    __tablename__ = "sql_alert_observers"
+class SQLObserver(Observer):
+
+    __tablename__ = "alert_observers"
 
     sql = Column(Text)
 
@@ -154,43 +169,40 @@ class SQLObserver(Model, Observer):
         df = self.database.get_df(sql)
 
         self.observations.append(  # pylint: disable=no-member
-            SQLObservation(dttm_ts=datetime.utcnow(), value=df.to_json())
+            Observation(dttm_ts=datetime.utcnow(), value=df.to_json())
         )
 
     def get_observations(self, observation_num: int) -> List[Any]:
         return (
-            db.session.query(SQLObservation)
+            db.session.query(Observation)
             .filter_by(observer_id=self.id)
             .order_by(Observation.dttm_ts.desc())
             .limit(observation_num)
         )
 
+    __mapper_args__ = {"polymorphic_identity": AlertObserverType.sql}
 
-class Observation: # pylint: disable=too-few-public-methods
 
-    __tablename__ = "observations"
+class Observation(Model):  # pylint: disable=too-few-public-methods
+
+    __tablename__ = "alert_observations"
 
     id = Column(Integer, primary_key=True)
     dttm_ts = Column(DateTime, default=datetime.utcnow)
-
-
-class SQLObservation(Model, Observation): # pylint: disable=too-few-public-methods
-
-    __tablename__ = "sql_alert_observations"
-
-    observer_id = Column(Integer, ForeignKey("sql_alert_observers.id"), nullable=False)
+    observer_id = Column(Integer, ForeignKey("alert_observers.id"), nullable=False)
     observer = relationship(
-        "SQLObserver", foreign_keys=[observer_id], backref="observations",
+        "Observer", foreign_keys=[observer_id], backref="observations",
     )
     value = Column(Text)
 
 
-class Validator:
+class Validator(Model):
 
-    __tablename__ = "alert_validators"  # pylint: disable=too-few-public-methods
+    __tablename__ = "alert_validators"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(150))
+    validator_type = Column(Enum(AlertValidatorType))
     validation_type = Column(Enum(AlertValidationType))
 
     @declared_attr
@@ -200,21 +212,30 @@ class Validator:
     @declared_attr
     def alert(self) -> RelationshipProperty:
         return relationship(
-            "Alert", foreign_keys=[self.alert_id], backref=self.__tablename__
+            "Alert", foreign_keys=[self.alert_id], backref="alert_validators"
         )
 
+    __mapper_args__ = {
+        "polymorphic_identity": "base_observation",
+        "polymorphic_on": validator_type,
+    }
 
-class NotNullValidator(Model, Validator):
 
-    __tablename__ = "not_null_alert_validators"
+class NotNullValidator(Validator):
+
+    __tablename__ = "alert_validators"
 
     def validate(self, observation: Observation) -> None:
         pass
 
+    __mapper_args__ = {
+        "polymorphic_identity": AlertValidatorType.not_null,
+    }
 
-class DeviationValidator(Model, Validator):
 
-    __tablename__ = "deviation_alert_validators"
+class DeviationValidator(Validator):
+
+    __tablename__ = "alert_validators"
 
     deviation_difference = Column(Float)
     deviation_threshold = Column(Integer)
@@ -223,3 +244,7 @@ class DeviationValidator(Model, Validator):
 
     def validate(self, observations: List[Observation]) -> None:
         pass
+
+    __mapper_args__ = {
+        "polymorphic_identity": AlertValidatorType.deviation,
+    }
