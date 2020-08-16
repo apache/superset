@@ -23,7 +23,7 @@ cached-property==1.5.1    # via tableschema
 cachelib==0.1.1           # via apache-superset
 celery==4.4.7             # via apache-superset
 certifi==2020.6.20        # via requests
-cffi==1.14.1              # via cryptography
+cffi==1.14.2              # via cryptography
 chardet==3.0.4            # via aiohttp, requests, tabulator
 click==7.1.2              # via apache-superset, flask, flask-appbuilder, tableschema, tabulator
 colorama==0.4.3           # via apache-superset, flask-appbuilder
@@ -114,7 +114,7 @@ slackclient==2.5.0        # via apache-superset
 sqlalchemy-utils==0.36.8  # via apache-superset, flask-appbuilder
 sqlalchemy==1.3.18        # via alembic, apache-superset, flask-sqlalchemy, marshmallow-sqlalchemy, sqlalchemy-utils, tabulator
 sqlparse==0.3.0           # via apache-superset
-tableschema==1.19.2       # via apache-superset
+tableschema==1.19.3       # via apache-superset
 tabulator==1.52.3         # via tableschema
 thrift-sasl==0.4.2        # via pyhive
 thrift==0.13.0            # via apache-superset, pyhive, thrift-sasl

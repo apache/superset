@@ -52,6 +52,9 @@ hive_poll_interval = conf.get("HIVE_POLL_INTERVAL")
 
 
 def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
+    # Optional dependency
+    import boto3  # pylint: disable=import-error
+
     bucket_path = config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
     if not bucket_path:
@@ -59,8 +62,6 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
         raise Exception(
             "No upload bucket specified. You can specify one in the config file."
         )
-    # Optional dependency
-    import boto3  # pylint: disable=import-error
 
     s3 = boto3.client("s3")
     location = os.path.join("s3a://", bucket_path, upload_prefix, table.table)
