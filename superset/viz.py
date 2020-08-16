@@ -2066,25 +2066,6 @@ class FilterBoxViz(BaseViz):
         return d
 
 
-class IFrameViz(BaseViz):
-
-    """You can squeeze just about anything in this iFrame component"""
-
-    viz_type = "iframe"
-    verbose_name = _("iFrame")
-    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
-    is_timeseries = False
-
-    def query_obj(self) -> QueryObjectDict:
-        return {}
-
-    def get_df(self, query_obj: Optional[QueryObjectDict] = None) -> pd.DataFrame:
-        return pd.DataFrame()
-
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        return {"iframe": True}
-
-
 class ParallelCoordinatesViz(BaseViz):
 
     """Interactive parallel coordinate implementation

@@ -23,6 +23,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [10590](https://github.com/apache/incubator-superset/pull/10590): Breaking change: this PR will convert iframe chart into dashboard markdown component, and remove all `iframe`, `separator`, and `markup` slices (and support) from Superset. If you have important data in those slices, please backup manually.
+
 * [10562](https://github.com/apache/incubator-superset/pull/10562): EMAIL_REPORTS_WEBDRIVER is deprecated use WEBDRIVER_TYPE instead.
 
 * [10567](https://github.com/apache/incubator-superset/pull/10567): Default WEBDRIVER_OPTION_ARGS are Chrome-specific. If you're using FF, should be `--headless` only
