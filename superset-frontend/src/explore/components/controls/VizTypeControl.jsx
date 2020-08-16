@@ -74,7 +74,6 @@ const DEFAULT_ORDER = [
   'line_multi',
   'treemap',
   'box_plot',
-  'separator',
   'sunburst',
   'sankey',
   'word_cloud',
@@ -85,7 +84,6 @@ const DEFAULT_ORDER = [
   'bubble',
   'deck_geojson',
   'horizon',
-  'markup',
   'deck_multi',
   'compare',
   'partition',
@@ -95,7 +93,6 @@ const DEFAULT_ORDER = [
   'world_map',
   'paired_ttest',
   'para',
-  'iframe',
   'country_map',
 ];
 
