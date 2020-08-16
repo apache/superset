@@ -41,6 +41,7 @@ from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset.constants import Security as SecurityConsts
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater
@@ -116,8 +117,23 @@ dashboard_user = Table(
 )
 
 
+class SecuredMixin:
+    @property
+    def view_name(self) -> str:
+        return SecurityConsts.Dashboard.VIEW_NAME_FORMAT.format(obj=self)
+
+    @staticmethod
+    def after_insert(  # pylint: disable=unused-argument
+        mapper: Any, connection: Connection, target: "Dashboard"
+    ) -> None:
+        permission_view_pairs = [
+            (SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME, target.view_name)
+        ]
+        security_manager.set_permissions_views(connection, permission_view_pairs)
+
+
 class Dashboard(  # pylint: disable=too-many-instance-attributes
-    Model, AuditMixinNullable, ImportMixin
+    Model, SecuredMixin, AuditMixinNullable, ImportMixin
 ):
 
     """The dashboard object!"""
@@ -496,3 +512,5 @@ if is_feature_enabled("TAGGING_SYSTEM"):
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Dashboard, "after_insert", event_after_dashboard_changed)
     sqla.event.listen(Dashboard, "after_update", event_after_dashboard_changed)
+
+sqla.event.listen(Dashboard, "after_insert", SecuredMixin.after_insert)
