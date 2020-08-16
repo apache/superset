@@ -17,7 +17,7 @@
 """Views used by the SqlAlchemy connector"""
 import logging
 import re
-from typing import List, Union
+from typing import Dict, List, Union
 
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
@@ -428,9 +428,18 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             tables = [tables]
         successes = []
         failures = []
+        added_cols: Dict[str, List[str]] = {}
+        removed_cols: Dict[str, List[str]] = {}
+        modified_cols: Dict[str, List[str]] = {}
         for table_ in tables:
             try:
-                table_.fetch_metadata()
+                added, removed, modified = table_.fetch_metadata()
+                if added:
+                    added_cols[table_.table_name] = added
+                if removed:
+                    removed_cols[table_.table_name] = removed
+                if modified:
+                    modified_cols[table_.table_name] = modified
                 successes.append(table_)
             except Exception:  # pylint: disable=broad-except
                 failures.append(table_)
@@ -441,9 +450,42 @@ class TableModelView(  # pylint: disable=too-many-ancestors
                 tables=", ".join([t.table_name for t in successes]),
             )
             flash(success_msg, "info")
+        if added_cols:
+            added_tables = []
+            for table, cols in added_cols.items():
+                added_tables.append(f"{table} ({', '.join(cols)})")
+            flash(
+                _(
+                    "The following tables added new columns: %(tables)s",
+                    tables=", ".join(added_tables),
+                ),
+                "info",
+            )
+        if removed_cols:
+            removed_tables = []
+            for table, cols in removed_cols.items():
+                removed_tables.append(f"{table} ({', '.join(cols)})")
+            flash(
+                _(
+                    "The following tables removed columns: %(tables)s",
+                    tables=", ".join(removed_tables),
+                ),
+                "info",
+            )
+        if modified_cols:
+            modified_tables = []
+            for table, cols in modified_cols.items():
+                modified_tables.append(f"{table} ({', '.join(cols)})")
+            flash(
+                _(
+                    "The following tables update column metadata: %(tables)s",
+                    tables=", ".join(modified_tables),
+                ),
+                "info",
+            )
         if len(failures) > 0:
             failure_msg = _(
-                "Unable to retrieve metadata for the following table(s): %(tables)s",
+                "Unable to refresh metadata for the following table(s): %(tables)s",
                 tables=", ".join([t.table_name for t in failures]),
             )
             flash(failure_msg, "danger")

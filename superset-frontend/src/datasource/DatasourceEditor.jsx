@@ -290,28 +290,51 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   mergeColumns(cols) {
-    let { databaseColumns } = this.state;
-    let hasChanged;
-    const currentColNames = databaseColumns.map(col => col.column_name);
+    const { databaseColumns } = this.state;
+    const databaseColumnNames = cols.map(col => col.name);
+    const currentCols = databaseColumns.reduce(
+      (agg, col) => ({
+        ...agg,
+        [col.column_name]: col,
+      }),
+      {},
+    );
+    const finalColumns = [];
+    const addedColumns = [];
+    const modifiedColumns = [];
+    const removedColumns = databaseColumns
+      .map(col => col.column_name)
+      .filter(col => !databaseColumnNames.includes(col));
     cols.forEach(col => {
-      if (currentColNames.indexOf(col.name) < 0) {
-        // Adding columns
-        databaseColumns = databaseColumns.concat([
-          {
-            id: shortid.generate(),
-            column_name: col.name,
-            type: col.type,
-            groupby: true,
-            filterable: true,
-          },
-        ]);
-        hasChanged = true;
+      const currentCol = currentCols[col.name];
+      if (!currentCol) {
+        // new column
+        finalColumns.push({
+          id: shortid.generate(),
+          column_name: col.name,
+          type: col.type,
+          groupby: true,
+          filterable: true,
+        });
+        addedColumns.push(col.name);
+      } else if (currentCol.type !== col.type) {
+        // modified column
+        finalColumns.push({
+          ...currentCol,
+          type: col.type,
+        });
+        modifiedColumns.push(col.name);
+      } else {
+        // unchanged
+        finalColumns.push(currentCol);
       }
     });
-    if (hasChanged) {
-      this.setColumns({ databaseColumns });
+    if (addedColumns || modifiedColumns || removedColumns) {
+      this.setColumns({ databaseColumns: finalColumns });
     }
+    return [addedColumns, removedColumns, modifiedColumns];
   }
+
   syncMetadata() {
     const { datasource } = this.state;
     // Handle carefully when the schema is empty
@@ -326,7 +349,19 @@ export class DatasourceEditor extends React.PureComponent {
 
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
-        this.mergeColumns(json);
+        const [addedCols, removedCols, modifiedCols] = this.mergeColumns(json);
+        if (modifiedCols.length)
+          this.props.addSuccessToast(
+            t('Modified columns: %s', modifiedCols.join(', ')),
+          );
+        if (removedCols.length)
+          this.props.addSuccessToast(
+            t('Removed columns: %s', removedCols.join(', ')),
+          );
+        if (addedCols.length)
+          this.props.addSuccessToast(
+            t('New columns added: %s', addedCols.join(', ')),
+          );
         this.props.addSuccessToast(t('Metadata has been synced'));
         this.setState({ metadataLoading: false });
       })
