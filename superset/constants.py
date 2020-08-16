@@ -68,3 +68,7 @@ class Security:  # pylint: disable=too-few-public-methods
         VIEW_NAME = "all_dashboards"
         ACCESS_PERMISSION_NAME = "can_access"
         EDIT_PERMISSION_NAME = "can_edit"
+
+    class Dashboard:
+        VIEW_NAME_FORMAT = "dashboard.[{obj.dashboard_title}](id:{obj.id})"
+        ACCESS_PERMISSION_NAME = "can_access"

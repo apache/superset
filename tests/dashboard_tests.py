@@ -66,6 +66,8 @@ class TestDashboard(SupersetTestCase):
         self.assertIn("[ untitled dashboard ]", resp)
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)
+        dash = db.session.query(Dashboard).filter_by(id=dash_count_after)[0]
+        self.__assert_permission_was_created(dash)
 
     def test_dashboard_modes(self):
         self.login(username="admin")
@@ -93,6 +95,11 @@ class TestDashboard(SupersetTestCase):
         url = "/superset/save_dash/{}/".format(dash.id)
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
+
+    def __assert_permission_was_created(self, dash):
+        view_menu = security_manager.find_view_menu(dash.view_name)
+        self.assertIsNotNone(view_menu)
+        self.assertEqual(len(security_manager.find_permissions_view_menu(view_menu)), 1)
 
     def test_save_dash_with_filter(self, username="admin"):
         self.login(username=username)
