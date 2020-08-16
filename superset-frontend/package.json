@@ -289,7 +289,7 @@
     "webpack-dev-server": "^3.10.3",
     "webpack-manifest-plugin": "^2.2.0",
     "webpack-sources": "^1.4.3",
-    "yargs": "12 - 15"
+    "yargs": "^15.4.1"
   },
   "optionalDependencies": {
     "fsevents": "^2.0.7"
