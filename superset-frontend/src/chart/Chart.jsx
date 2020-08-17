@@ -20,6 +20,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
+import { logging } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
@@ -131,7 +132,7 @@ class Chart extends React.PureComponent {
 
   handleRenderContainerFailure(error, info) {
     const { actions, chartId } = this.props;
-    console.warn(error); // eslint-disable-line
+    logging.warn(error);
     actions.chartRenderingFailed(
       error.toString(),
       chartId,

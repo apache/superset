@@ -56,7 +56,7 @@ export const createFetchRelated = (
 export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
-    console.error(e); // eslint-disable-line no-console
+    console.error(e);
     handleErrorFunc(parsedError.message);
   };
 }
