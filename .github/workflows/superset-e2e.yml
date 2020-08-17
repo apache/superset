@@ -81,4 +81,3 @@ jobs:
       with:
         run: cypress-run-all
         parallel: true
-        record: true
