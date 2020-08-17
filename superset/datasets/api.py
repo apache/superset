@@ -67,6 +67,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.RELATED,
+        RouteMethod.DISTINCT,
         "refresh",
         "related_objects",
     }
@@ -151,6 +152,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     }
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
+    allowed_distinct_fields = {"schema"}
 
     openapi_spec_component_schemas = (DatasetRelatedObjectsResponse,)
 
