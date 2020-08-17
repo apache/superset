@@ -22,7 +22,7 @@ from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
-from flask import escape, flash, Markup
+from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError

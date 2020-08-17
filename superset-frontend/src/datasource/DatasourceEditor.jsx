@@ -300,11 +300,13 @@ export class DatasourceEditor extends React.PureComponent {
       {},
     );
     const finalColumns = [];
-    const addedColumns = [];
-    const modifiedColumns = [];
-    const removedColumns = databaseColumns
-      .map(col => col.column_name)
-      .filter(col => !databaseColumnNames.includes(col));
+    const results = {
+      added: [],
+      modified: [],
+      removed: databaseColumns
+        .map(col => col.column_name)
+        .filter(col => !databaseColumnNames.includes(col)),
+    };
     cols.forEach(col => {
       const currentCol = currentCols[col.name];
       if (!currentCol) {
@@ -316,23 +318,27 @@ export class DatasourceEditor extends React.PureComponent {
           groupby: true,
           filterable: true,
         });
-        addedColumns.push(col.name);
+        results.added.push(col.name);
       } else if (currentCol.type !== col.type) {
         // modified column
         finalColumns.push({
           ...currentCol,
           type: col.type,
         });
-        modifiedColumns.push(col.name);
+        results.modified.push(col.name);
       } else {
         // unchanged
         finalColumns.push(currentCol);
       }
     });
-    if (addedColumns || modifiedColumns || removedColumns) {
+    if (
+      results.added.length ||
+      results.modified.length ||
+      results.removed.length
+    ) {
       this.setColumns({ databaseColumns: finalColumns });
     }
-    return [addedColumns, removedColumns, modifiedColumns];
+    return results;
   }
 
   syncMetadata() {
@@ -349,18 +355,18 @@ export class DatasourceEditor extends React.PureComponent {
 
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
-        const [addedCols, removedCols, modifiedCols] = this.updateColumns(json);
-        if (modifiedCols.length)
+        const results = this.updateColumns(json);
+        if (results.modified.length)
           this.props.addSuccessToast(
-            t('Modified columns: %s', modifiedCols.join(', ')),
+            t('Modified columns: %s', results.modified.join(', ')),
           );
-        if (removedCols.length)
+        if (results.removed.length)
           this.props.addSuccessToast(
-            t('Removed columns: %s', removedCols.join(', ')),
+            t('Removed columns: %s', results.removed.join(', ')),
           );
-        if (addedCols.length)
+        if (results.added.length)
           this.props.addSuccessToast(
-            t('New columns added: %s', addedCols.join(', ')),
+            t('New columns added: %s', results.added.join(', ')),
           );
         this.props.addSuccessToast(t('Metadata has been synced'));
         this.setState({ metadataLoading: false });

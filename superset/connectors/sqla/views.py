@@ -17,6 +17,7 @@
 """Views used by the SqlAlchemy connector"""
 import logging
 import re
+from dataclasses import dataclass, field
 from typing import Dict, List, Union
 
 from flask import flash, Markup, redirect
@@ -426,33 +427,39 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     ) -> FlaskResponse:
         if not isinstance(tables, list):
             tables = [tables]
-        successes = []
-        failures = []
-        added_cols: Dict[str, List[str]] = {}
-        removed_cols: Dict[str, List[str]] = {}
-        modified_cols: Dict[str, List[str]] = {}
+
+        @dataclass
+        class RefreshResults:
+            successes: List[TableModelView] = field(default_factory=list)
+            failures: List[TableModelView] = field(default_factory=list)
+            added: Dict[str, List[str]] = field(default_factory=dict)
+            removed: Dict[str, List[str]] = field(default_factory=dict)
+            modified: Dict[str, List[str]] = field(default_factory=dict)
+
+        results = RefreshResults()
+
         for table_ in tables:
             try:
                 added, removed, modified = table_.fetch_metadata()
                 if added:
-                    added_cols[table_.table_name] = added
+                    results.added[table_.table_name] = added
                 if removed:
-                    removed_cols[table_.table_name] = removed
+                    results.removed[table_.table_name] = removed
                 if modified:
-                    modified_cols[table_.table_name] = modified
-                successes.append(table_)
+                    results.modified[table_.table_name] = modified
+                results.successes.append(table_)
             except Exception:  # pylint: disable=broad-except
-                failures.append(table_)
+                results.failures.append(table_)
 
-        if len(successes) > 0:
+        if len(results.successes) > 0:
             success_msg = _(
                 "Metadata refreshed for the following table(s): %(tables)s",
-                tables=", ".join([t.table_name for t in successes]),
+                tables=", ".join([t.table_name for t in results.successes]),
             )
             flash(success_msg, "info")
-        if added_cols:
+        if results.added:
             added_tables = []
-            for table, cols in added_cols.items():
+            for table, cols in results.added.items():
                 added_tables.append(f"{table} ({', '.join(cols)})")
             flash(
                 _(
@@ -461,9 +468,9 @@ class TableModelView(  # pylint: disable=too-many-ancestors
                 ),
                 "info",
             )
-        if removed_cols:
+        if results.removed:
             removed_tables = []
-            for table, cols in removed_cols.items():
+            for table, cols in results.removed.items():
                 removed_tables.append(f"{table} ({', '.join(cols)})")
             flash(
                 _(
@@ -472,9 +479,9 @@ class TableModelView(  # pylint: disable=too-many-ancestors
                 ),
                 "info",
             )
-        if modified_cols:
+        if results.modified:
             modified_tables = []
-            for table, cols in modified_cols.items():
+            for table, cols in results.modified.items():
                 modified_tables.append(f"{table} ({', '.join(cols)})")
             flash(
                 _(
@@ -483,10 +490,10 @@ class TableModelView(  # pylint: disable=too-many-ancestors
                 ),
                 "info",
             )
-        if len(failures) > 0:
+        if len(results.failures) > 0:
             failure_msg = _(
                 "Unable to refresh metadata for the following table(s): %(tables)s",
-                tables=", ".join([t.table_name for t in failures]),
+                tables=", ".join([t.table_name for t in results.failures]),
             )
             flash(failure_msg, "danger")
 
