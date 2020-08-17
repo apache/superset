@@ -440,13 +440,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
 
         for table_ in tables:
             try:
-                added, removed, modified = table_.fetch_metadata()
-                if added:
-                    results.added[table_.table_name] = added
-                if removed:
-                    results.removed[table_.table_name] = removed
-                if modified:
-                    results.modified[table_.table_name] = modified
+                metadata_results = table_.fetch_metadata()
+                if metadata_results.added:
+                    results.added[table_.table_name] = metadata_results.added
+                if metadata_results.removed:
+                    results.removed[table_.table_name] = metadata_results.removed
+                if metadata_results.modified:
+                    results.modified[table_.table_name] = metadata_results.modified
                 results.successes.append(table_)
             except Exception:  # pylint: disable=broad-except
                 results.failures.append(table_)

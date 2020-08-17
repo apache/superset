@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from collections import OrderedDict
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
@@ -80,6 +81,13 @@ class QueryStringExtended(NamedTuple):
     labels_expected: List[str]
     prequeries: List[str]
     sql: str
+
+
+@dataclass
+class MetadataResult:
+    added: List[str] = field(default_factory=list)
+    removed: List[str] = field(default_factory=list)
+    modified: List[str] = field(default_factory=list)
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -1230,9 +1238,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     def get_sqla_table_object(self) -> Table:
         return self.database.get_table(self.table_name, schema=self.schema)
 
-    def fetch_metadata(
-        self, commit: bool = True
-    ) -> Tuple[List[str], List[str], List[str]]:
+    def fetch_metadata(self, commit: bool = True) -> MetadataResult:
         """
         Fetches the metadata for the table and merges it in
 
@@ -1257,12 +1263,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         old_columns = db.session.query(TableColumn).filter(TableColumn.table == self)
 
         old_columns_by_name = {col.column_name: col for col in old_columns}
-        new_columns = {col.name for col in new_table.columns}
-        modified_columns: List[str] = []
-        added_columns: List[str] = []
-        removed_columns: List[str] = [
-            col for col in old_columns_by_name if col not in new_columns
-        ]
+        results = MetadataResult(
+            removed=[
+                col
+                for col in old_columns_by_name
+                if col not in {col.name for col in new_table.columns}
+            ]
+        )
 
         # clear old columns before adding modified columns back
         self.columns = []
@@ -1277,7 +1284,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 logger.exception(ex)
             old_column = old_columns_by_name.get(col.name, None)
             if not old_column:
-                added_columns.append(col.name)
+                results.added.append(col.name)
                 new_column = TableColumn(
                     column_name=col.name, type=datatype, table=self
                 )
@@ -1286,7 +1293,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             else:
                 new_column = old_column
                 if new_column.type != datatype:
-                    modified_columns.append(col.name)
+                    results.modified.append(col.name)
                 new_column.type = datatype
             new_column.groupby = True
             new_column.filterable = True
@@ -1311,7 +1318,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         db.session.merge(self)
         if commit:
             db.session.commit()
-        return added_columns, removed_columns, modified_columns
+        return results
 
     @classmethod
     def import_obj(
