@@ -8,6 +8,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        containers: [1, 2, 3]
         browser: ['chrome']
     env:
       FLASK_ENV: development
@@ -79,3 +80,4 @@ jobs:
         CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
       with:
         run: cypress-run-all
+        parallel: true
