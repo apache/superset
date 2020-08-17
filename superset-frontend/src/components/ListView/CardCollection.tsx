@@ -35,8 +35,11 @@ const CardContainer = styled.div`
   justify-content: center;
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
+`;
 
-  .card-selected {
+const CardWrapper = styled.div`
+  border: 2px solid transparent;
+  &.card-selected {
     border: 2px solid ${({ theme }) => theme.colors.primary.base};
   }
 `;
@@ -54,7 +57,7 @@ export default function CardCollection({
         if (!renderCard) return null;
         prepareRow(row);
         return (
-          <div
+          <CardWrapper
             className={
               row.isSelected && bulkSelectEnabled ? 'card-selected' : ''
             }
@@ -63,7 +66,7 @@ export default function CardCollection({
             role="none"
           >
             {renderCard({ ...row.original, loading })}
-          </div>
+          </CardWrapper>
         );
       })}
     </CardContainer>
