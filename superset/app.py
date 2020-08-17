@@ -94,7 +94,12 @@ class SupersetAppInitializer:
     def post_init(self) -> None:
         """
         Called after any other init tasks
+        Create a healthcheck file after gunicorn work ready to enable the pods' readiness function
+        See https://docs.gunicorn.org/en/stable/settings.html?highlight=worker_int#post-worker-init
+        and https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
         """
+        with open("/tmp/superset_healthcheck", "w") as f:
+            f.write("OK")
 
     def configure_celery(self) -> None:
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
