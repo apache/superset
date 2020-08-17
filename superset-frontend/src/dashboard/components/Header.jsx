@@ -29,7 +29,7 @@ import Icon from 'src/components/Icon';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
-import Button from '../../components/Button';
+import Button from 'src/components/Button';
 import FaveStar from '../../components/FaveStar';
 import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';

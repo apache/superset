@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useRef } from 'react';
-import { Alert, Button, Modal } from 'react-bootstrap';
+import { Alert, Modal } from 'react-bootstrap';
+import Button from 'src/components/Button';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/translation';

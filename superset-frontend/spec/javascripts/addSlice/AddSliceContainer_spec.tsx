@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { shallow, ShallowWrapper } from 'enzyme';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import Select from 'src/components/Select';
 import AddSliceContainer, {
   AddSliceContainerProps,

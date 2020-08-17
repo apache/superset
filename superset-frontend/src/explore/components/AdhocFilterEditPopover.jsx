@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Button, Popover, Tab, Tabs } from 'react-bootstrap';
+import { Popover, Tab, Tabs } from 'react-bootstrap';
+import Button from 'src/components/Button';
 
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';

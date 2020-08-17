@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import mathjs from 'mathjs';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';

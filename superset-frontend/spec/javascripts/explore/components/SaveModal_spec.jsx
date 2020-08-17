@@ -22,7 +22,8 @@ import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
 
 import { shallow, mount } from 'enzyme';
-import { FormControl, Modal, Button, Radio } from 'react-bootstrap';
+import { FormControl, Modal, Radio } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 

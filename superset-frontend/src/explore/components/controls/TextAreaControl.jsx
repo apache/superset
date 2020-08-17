@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Button, FormGroup, FormControl } from 'react-bootstrap';
+import { FormGroup, FormControl } from 'react-bootstrap';
+import Button from 'src/components/Button';
 
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';

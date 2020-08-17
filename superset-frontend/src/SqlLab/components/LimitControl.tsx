@@ -18,12 +18,12 @@
  */
 import React from 'react';
 import {
-  Button,
   FormGroup,
   FormControl,
   Overlay,
   Popover,
 } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import { t } from '@superset-ui/translation';
 import styled from '@superset-ui/style';
 

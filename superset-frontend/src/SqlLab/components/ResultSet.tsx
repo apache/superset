@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
+import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 

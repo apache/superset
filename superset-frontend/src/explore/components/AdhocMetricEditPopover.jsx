@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Button, FormGroup, Popover, Tab, Tabs } from 'react-bootstrap';
+import { FormGroup, Popover, Tab, Tabs } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import Select from 'src/components/Select';
 import ace from 'brace';
 import AceEditor from 'react-ace';

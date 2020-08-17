@@ -18,7 +18,6 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Button,
   Modal,
   Row,
   Col,
@@ -26,6 +25,7 @@ import {
   FormGroup,
   // @ts-ignore
 } from 'react-bootstrap';
+import Button from 'src/components/Button';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';

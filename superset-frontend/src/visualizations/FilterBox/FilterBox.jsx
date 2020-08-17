@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import styled from '@superset-ui/style';

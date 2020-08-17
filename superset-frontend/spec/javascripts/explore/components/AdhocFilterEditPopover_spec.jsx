@@ -20,7 +20,8 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { Button, Popover, Tab, Tabs } from 'react-bootstrap';
+import { Popover, Tab, Tabs } from 'react-bootstrap';
+import Button from 'src/components/Button';
 
 import AdhocFilter, {
   EXPRESSION_TYPES,

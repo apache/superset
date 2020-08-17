@@ -22,12 +22,12 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import {
   Alert,
-  Button,
   FormControl,
   FormGroup,
   Modal,
   Radio,
 } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
 import { t } from '@superset-ui/translation';
@@ -209,7 +209,6 @@ class SaveModal extends React.Component {
         <Modal.Footer>
           <div className="float-right">
             <Button
-              type="button"
               id="btn_cancel"
               bsSize="sm"
               onClick={this.props.onHide}
@@ -217,7 +216,6 @@ class SaveModal extends React.Component {
               {t('Cancel')}
             </Button>
             <Button
-              type="button"
               id="btn_modal_save_goto_dash"
               bsSize="sm"
               disabled={
@@ -228,7 +226,6 @@ class SaveModal extends React.Component {
               {t('Save & go to dashboard')}
             </Button>
             <Button
-              type="button"
               id="btn_modal_save"
               bsSize="sm"
               bsStyle="primary"

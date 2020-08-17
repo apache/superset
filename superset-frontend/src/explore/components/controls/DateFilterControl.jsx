@@ -19,7 +19,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  Button,
   DropdownButton,
   FormControl,
   FormGroup,
@@ -32,6 +31,7 @@ import {
   Tabs,
   Tooltip,
 } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';

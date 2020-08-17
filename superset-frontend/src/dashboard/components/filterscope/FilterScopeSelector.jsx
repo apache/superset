@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import { t } from '@superset-ui/translation';
 
 import buildFilterScopeTreeEntry from '../../util/buildFilterScopeTreeEntry';

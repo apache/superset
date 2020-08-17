@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, Button, Modal, FormControl } from 'react-bootstrap';
+import { Row, Col, Modal, FormControl } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { AsyncSelect } from 'src/components/Select';
 import AceEditor from 'react-ace';
