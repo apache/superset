@@ -51,6 +51,11 @@ export interface ButtonProps {
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
 
 const SupersetButton = styled(BootstrapButton)`
+  &:focus,
+  &:active,
+  &:focus:active {
+    outline: none;
+  }
   &.supersetButton {
     border-radius: ${({ theme }) => theme.borderRadius}px;
     border: none;
