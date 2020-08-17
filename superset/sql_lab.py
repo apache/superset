@@ -131,7 +131,7 @@ def session_scope(nullpool: bool) -> Iterator[Session]:
             in a future version of Superset."
         )
     if nullpool:
-        engine = sqlalchemy.create_engine(database_uri, poolclass=NullPool)
+        engine = sqlalchemy.create_engine(database_uri, pool_size=20, max_overflow=0)
         session_class = sessionmaker()
         session_class.configure(bind=engine)
         session = session_class()
