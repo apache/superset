@@ -26,10 +26,10 @@ import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
 import Icon from 'src/components/Icon';
+import Button from 'src/components/Button';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
-import Button from 'src/components/Button';
 import FaveStar from '../../components/FaveStar';
 import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';

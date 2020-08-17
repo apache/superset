@@ -20,13 +20,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import {
-  Alert,
-  FormControl,
-  FormGroup,
-  Modal,
-  Radio,
-} from 'react-bootstrap';
+import { Alert, FormControl, FormGroup, Modal, Radio } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
@@ -208,11 +202,7 @@ class SaveModal extends React.Component {
 
         <Modal.Footer>
           <div className="float-right">
-            <Button
-              id="btn_cancel"
-              bsSize="sm"
-              onClick={this.props.onHide}
-            >
+            <Button id="btn_cancel" bsSize="sm" onClick={this.props.onHide}>
               {t('Cancel')}
             </Button>
             <Button
