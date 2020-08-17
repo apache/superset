@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+import { logging } from '@superset-ui/core';
 
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 
@@ -127,8 +128,7 @@ export default class AdhocFilterControl extends React.Component {
             }
           })
           .catch(error => {
-            /* eslint-disable no-debugger, no-console */
-            console.error('fetch extra_table_metadata:', error.statusText);
+            logging.error('fetch extra_table_metadata:', error.statusText);
           });
       }
     }
