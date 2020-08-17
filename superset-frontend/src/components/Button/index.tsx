@@ -84,6 +84,28 @@ const SupersetButton = styled(BootstrapButton)`
     &.danger {
       background-color: ${({ theme }) => theme.colors.error.base};
     }
+
+    /* TODO use or remove... pulled in from CRUD button component, since deleted */
+    /* &.btn,
+    &.btn:hover {
+      background-color: ${({ theme }) => theme.colors.primary.light4};
+      color: ${({ theme }) => theme.colors.primary.base};
+    }
+    &.btn[disabled],
+    &.btn[disabled]:hover {
+      background-color: ${({ theme }) => theme.colors.grayscale.light2};
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+    }
+    &.btn-primary,
+    &.btn-primary:hover {
+      background-color: ${({ theme }) => theme.colors.primary.base};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+    }
+    &.btn-danger,
+    &.btn-danger:hover {
+      background-color: ${({ theme }) => theme.colors.error.base};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+    } */
   }
 `;
 
