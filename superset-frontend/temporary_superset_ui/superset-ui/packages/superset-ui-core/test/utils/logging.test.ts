@@ -55,6 +55,10 @@ describe('logging', () => {
       logging.warn('warn');
       logging.error('error');
       logging.trace();
+      logging.table([
+        [1, 2],
+        [3, 4],
+      ]);
     }).not.toThrow();
   });
 });
