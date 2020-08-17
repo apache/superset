@@ -289,7 +289,7 @@ export class DatasourceEditor extends React.PureComponent {
     this.validate(this.onChange);
   }
 
-  mergeColumns(cols) {
+  updateColumns(cols) {
     const { databaseColumns } = this.state;
     const databaseColumnNames = cols.map(col => col.name);
     const currentCols = databaseColumns.reduce(
@@ -349,7 +349,7 @@ export class DatasourceEditor extends React.PureComponent {
 
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
-        const [addedCols, removedCols, modifiedCols] = this.mergeColumns(json);
+        const [addedCols, removedCols, modifiedCols] = this.updateColumns(json);
         if (modifiedCols.length)
           this.props.addSuccessToast(
             t('Modified columns: %s', modifiedCols.join(', ')),
