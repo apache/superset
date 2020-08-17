@@ -422,7 +422,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     @action(
         "refresh", __("Refresh Metadata"), __("Refresh column metadata"), "fa-refresh"
     )
-    def refresh(  # pylint: disable=no-self-use
+    def refresh(  # pylint: disable=no-self-use, too-many-branches
         self, tables: Union["TableModelView", List["TableModelView"]]
     ) -> FlaskResponse:
         if not isinstance(tables, list):
