@@ -112,14 +112,13 @@ const plugins = [
     checkSyntacticErrors: true,
   }),
 
-  new CopyPlugin(
-    [
+  new CopyPlugin({
+    patterns: [
       'package.json',
       { from: 'images', to: 'images' },
       { from: 'stylesheets', to: 'stylesheets' },
     ],
-    { copyUnmodified: true },
-  ),
+  }),
 ];
 if (!process.env.CI) {
   plugins.push(new webpack.ProgressPlugin());
