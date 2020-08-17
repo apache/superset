@@ -73,7 +73,7 @@ describe('Dashboard', () => {
     expect(wrapper.find(DashboardBuilder)).toExist();
   });
 
-  describe('componentWillReceiveProps', () => {
+  describe('UNSAFE_componentWillReceiveProps', () => {
     const layoutWithExtraChart = {
       ...props.layout,
       1001: newComponentFactory(CHART_TYPE, { chartId: 1001 }),

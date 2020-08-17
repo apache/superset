@@ -79,7 +79,7 @@ describe('ExploreViewContainer', () => {
     expect(wrapper.find(ChartContainer)).toExist();
   });
 
-  describe('componentWillReceiveProps()', () => {
+  describe('UNSAFE_componentWillReceiveProps()', () => {
     it('when controls change, should call resetControls', () => {
       expect(wrapper.instance().props.controls.viz_type.value).toBe('table');
       const resetControls = sinon.stub(
@@ -91,7 +91,7 @@ describe('ExploreViewContainer', () => {
         'triggerQuery',
       );
 
-      // triggers componentWillReceiveProps
+      // triggers UNSAFE_componentWillReceiveProps
       wrapper.setProps({
         controls: {
           viz_type: {
