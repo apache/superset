@@ -116,7 +116,7 @@ const plugins = [
     patterns: [
       'package.json',
       { from: 'images', to: 'images' },
-      { from: 'stylesheets', to: 'stylesheets'},
+      { from: 'stylesheets', to: 'stylesheets' },
     ],
   }),
 ];
