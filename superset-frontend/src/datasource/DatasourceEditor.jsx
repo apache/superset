@@ -172,7 +172,7 @@ function ColumnCollectionTable({
           ) : (
             v
           ),
-        type: d => <Label bsStyle="s">{d}</Label>,
+        type: d => <Label>{d}</Label>,
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
