@@ -138,11 +138,14 @@ describe('TabbedSqlEditors', () => {
       );
     });
   });
-  describe('componentWillReceiveProps', () => {
+  describe('UNSAFE_componentWillReceiveProps', () => {
     let spy;
     beforeEach(() => {
       wrapper = getWrapper();
-      spy = sinon.spy(TabbedSqlEditors.prototype, 'componentWillReceiveProps');
+      spy = sinon.spy(
+        TabbedSqlEditors.prototype,
+        'UNSAFE_componentWillReceiveProps',
+      );
       wrapper.setProps({ queryEditors, queries, tabHistory, tables });
     });
     afterEach(() => {
