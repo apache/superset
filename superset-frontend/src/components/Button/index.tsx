@@ -46,6 +46,8 @@ export interface ButtonProps {
   style?: BootstrapButton.ButtonProps['style'];
   children?: React.ReactNode;
   dropdownItems?: DropdownItemProps[];
+  href?: string; // React-Bootstrap creates a link when these are passed in. 
+  target?: string; // React-Bootstrap creates a link when these are passed in. 
 }
 
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
