@@ -23,6 +23,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import styled from '@superset-ui/style';
 import { t } from '@superset-ui/translation';
+import { logging } from '@superset-ui/core';
 
 import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
@@ -247,8 +248,7 @@ class ExploreViewContainer extends React.Component {
         history.pushState(payload, title, longUrl);
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logging.warn(
         'Failed at altering browser history',
         payload,
         title,
