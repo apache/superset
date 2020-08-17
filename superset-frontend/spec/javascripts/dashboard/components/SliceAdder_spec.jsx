@@ -97,7 +97,7 @@ describe('SliceAdder', () => {
     props.fetchAllSlices.restore();
   });
 
-  describe('componentWillReceiveProps', () => {
+  describe('UNSAFE_componentWillReceiveProps', () => {
     let wrapper;
     beforeEach(() => {
       wrapper = shallow(<SliceAdder {...props} />);
