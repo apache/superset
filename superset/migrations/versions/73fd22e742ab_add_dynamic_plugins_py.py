@@ -39,7 +39,7 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=50), nullable=False),
         sa.Column("key", sa.String(length=50), nullable=False),
-        sa.Column("bundle_url", sa.Text(), nullable=False),
+        sa.Column("bundle_url", sa.Text(length=2000), nullable=False),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"],),
