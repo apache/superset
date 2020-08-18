@@ -31,7 +31,7 @@ interface ModalProps {
   primaryButtonType?: 'primary' | 'danger';
   show: boolean;
   title: React.ReactNode;
-  bsSize?: 'sm' | 'small' | 'lg' | 'large';
+  bsSize?: 'small' | 'large'; // react-bootstrap also supports 'sm', 'lg' but we're keeping it simple.
 }
 
 const StyledModal = styled(BaseModal)`
