@@ -540,7 +540,7 @@ class ChartList extends React.PureComponent<Props, State> {
           />
         ))}
         coverRight={
-          <Label className="secondaryLabel">{props.datasource_name_text}</Label>
+          <Label bsStyle="secondary">{props.datasource_name_text}</Label>
         }
         actions={
           <ListViewCard.Actions>
