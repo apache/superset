@@ -110,7 +110,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
 
   return (
-    <Modal show={show} onHide={onHide} bsSize="lg">
+    <Modal show={show} onHide={onHide} bsSize="large">
       <Modal.Header closeButton>
         <Modal.Title>
           <div>

@@ -95,7 +95,6 @@ class EstimateQueryCostButton extends React.PureComponent {
               <i className="fa fa-clock-o" /> {btnText}
             </Button>
           }
-          bsSize="medium"
         />
       </span>
     );

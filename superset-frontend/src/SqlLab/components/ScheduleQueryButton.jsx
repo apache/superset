@@ -201,7 +201,6 @@ class ScheduleQueryButton extends React.PureComponent {
               <i className="fa fa-calendar" /> {t('Schedule')}
             </Button>
           }
-          bsSize="medium"
         />
       </span>
     );
