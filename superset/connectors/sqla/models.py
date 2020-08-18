@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from collections import OrderedDict
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
@@ -80,6 +81,13 @@ class QueryStringExtended(NamedTuple):
     labels_expected: List[str]
     prequeries: List[str]
     sql: str
+
+
+@dataclass
+class MetadataResult:
+    added: List[str] = field(default_factory=list)
+    removed: List[str] = field(default_factory=list)
+    modified: List[str] = field(default_factory=list)
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -1243,10 +1251,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     def get_sqla_table_object(self) -> Table:
         return self.database.get_table(self.table_name, schema=self.schema)
 
-    def fetch_metadata(self, commit: bool = True) -> None:
-        """Fetches the metadata for the table and merges it in"""
+    def fetch_metadata(self, commit: bool = True) -> MetadataResult:
+        """
+        Fetches the metadata for the table and merges it in
+
+        :param commit: should the changes be committed or not.
+        :return: Tuple with lists of added, removed and modified column names.
+        """
         try:
-            table_ = self.get_sqla_table_object()
+            new_table = self.get_sqla_table_object()
         except SQLAlchemyError:
             raise QueryObjectValidationError(
                 _(
@@ -1260,35 +1273,46 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         any_date_col = None
         db_engine_spec = self.database.db_engine_spec
         db_dialect = self.database.get_dialect()
-        dbcols = (
-            db.session.query(TableColumn)
-            .filter(TableColumn.table == self)
-            .filter(or_(TableColumn.column_name == col.name for col in table_.columns))
-        )
-        dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
+        old_columns = db.session.query(TableColumn).filter(TableColumn.table == self)
 
-        for col in table_.columns:
+        old_columns_by_name = {col.column_name: col for col in old_columns}
+        results = MetadataResult(
+            removed=[
+                col
+                for col in old_columns_by_name
+                if col not in {col.name for col in new_table.columns}
+            ]
+        )
+
+        # clear old columns before adding modified columns back
+        self.columns = []
+        for col in new_table.columns:
             try:
                 datatype = db_engine_spec.column_datatype_to_string(
                     col.type, db_dialect
                 )
             except Exception as ex:  # pylint: disable=broad-except
                 datatype = "UNKNOWN"
-                logger.error("Unrecognized data type in %s.%s", table_, col.name)
+                logger.error("Unrecognized data type in %s.%s", new_table, col.name)
                 logger.exception(ex)
-            dbcol = dbcols.get(col.name, None)
-            if not dbcol:
-                dbcol = TableColumn(column_name=col.name, type=datatype, table=self)
-                dbcol.is_dttm = dbcol.is_temporal
-                db_engine_spec.alter_new_orm_column(dbcol)
+            old_column = old_columns_by_name.get(col.name, None)
+            if not old_column:
+                results.added.append(col.name)
+                new_column = TableColumn(
+                    column_name=col.name, type=datatype, table=self
+                )
+                new_column.is_dttm = new_column.is_temporal
+                db_engine_spec.alter_new_orm_column(new_column)
             else:
-                dbcol.type = datatype
-            dbcol.groupby = True
-            dbcol.filterable = True
-            self.columns.append(dbcol)
-            if not any_date_col and dbcol.is_temporal:
+                new_column = old_column
+                if new_column.type != datatype:
+                    results.modified.append(col.name)
+                new_column.type = datatype
+            new_column.groupby = True
+            new_column.filterable = True
+            self.columns.append(new_column)
+            if not any_date_col and new_column.is_temporal:
                 any_date_col = col.name
-
         metrics.append(
             SqlMetric(
                 metric_name="count",
@@ -1307,6 +1331,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         db.session.merge(self)
         if commit:
             db.session.commit()
+        return results
 
     @classmethod
     def import_obj(
