@@ -134,7 +134,7 @@ const CoverFooterRight = styled.div`
 
 interface CardProps {
   title: React.ReactNode;
-  url: string;
+  url: string | undefined;
   imgURL: string;
   imgFallbackURL: string;
   description: string;
@@ -142,7 +142,6 @@ interface CardProps {
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
   actions: React.ReactNode;
-  bulkSelectEnabled?: boolean;
 }
 
 function ListViewCard({
@@ -155,13 +154,12 @@ function ListViewCard({
   coverLeft,
   coverRight,
   actions,
-  bulkSelectEnabled,
 }: CardProps) {
   return (
     <StyledCard
       cover={
         <Cover>
-          <a href={bulkSelectEnabled ? undefined : url}>
+          <a href={url}>
             <GradientContainer>
               <CardCoverImg
                 src={imgURL}

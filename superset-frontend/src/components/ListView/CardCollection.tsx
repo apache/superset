@@ -51,6 +51,14 @@ export default function CardCollection({
   renderCard,
   rows,
 }: CardCollectionProps) {
+  function handleClick(event: React.FormEvent, onClick: any) {
+    if (bulkSelectEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      onClick();
+    }
+  }
+
   return (
     <CardContainer>
       {rows.map(row => {
@@ -62,7 +70,7 @@ export default function CardCollection({
               row.isSelected && bulkSelectEnabled ? 'card-selected' : ''
             }
             key={row.id}
-            onClick={() => row.toggleRowSelected()}
+            onClick={e => handleClick(e, row.toggleRowSelected())}
             role="none"
           >
             {renderCard({ ...row.original, loading })}
