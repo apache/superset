@@ -36,6 +36,18 @@ interface DatasourceModalProps {
   show: boolean;
 }
 
+function buildMetricExtraJsonObject(metric: Record<string, unknown>) {
+  if (metric?.certified_by || metric?.certification_details) {
+    return JSON.stringify({
+      certification: {
+        certified_by: metric?.certified_by ?? null,
+        details: metric?.certification_details ?? null,
+      },
+    });
+  }
+  return null;
+}
+
 const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   addSuccessToast,
   datasource,
@@ -48,11 +60,19 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const dialog = useRef<any>(null);
 
   const onConfirmSave = () => {
+    // Pull out extra fields into the extra object
+
     SupersetClient.post({
       endpoint: '/datasource/save/',
       postPayload: {
         data: {
           ...currentDatasource,
+          metrics: currentDatasource?.metrics?.map(
+            (metric: Record<string, unknown>) => ({
+              ...metric,
+              extra: buildMetricExtraJsonObject(metric),
+            }),
+          ),
           type: currentDatasource.type || currentDatasource.datasource_type,
         },
       },
@@ -75,8 +95,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       );
   };
 
-  const onDatasourceChange = (data: object, err: Array<any>) => {
-    setCurrentDatasource(data);
+  const onDatasourceChange = (data: Record<string, any>, err: Array<any>) => {
+    setCurrentDatasource({
+      ...data,
+      metrics: data?.metrics.map((metric: Record<string, unknown>) => ({
+        ...metric,
+        is_certified: metric?.certified_by || metric?.certification_details,
+      })),
+    });
     setErrors(err);
   };
 
