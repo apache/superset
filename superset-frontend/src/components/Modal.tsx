@@ -75,10 +75,9 @@ export default function Modal({
   primaryButtonType = 'primary',
   show,
   title,
-  bsSize = 'lg',
 }: ModalProps) {
   return (
-    <StyledModal show={show} onHide={onHide} bsSize={bsSize}>
+    <StyledModal show={show} onHide={onHide}>
       <BaseModal.Header closeButton>
         <BaseModal.Title>
           <Title>{title}</Title>
