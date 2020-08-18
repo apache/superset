@@ -42,7 +42,7 @@ const SupersetLabel = styled(BootstrapLabel)`
         onClick ? theme.colors.warning.dark1 : theme.colors.warning.base};
     }
   }
-  &.label-error {
+  &.label-danger {
     background-color: ${({ theme }) => theme.colors.error.base};
     &:hover {
       background-color: ${({ theme, onClick }) =>
