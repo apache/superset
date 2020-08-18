@@ -124,7 +124,6 @@ export const ButtonGallery = () => (
   </div>
 );
 
-
 export const InteractiveButton = () => (
   <div style={{ padding: '10px', backgroundColor: 'white' }}>
     <Button
