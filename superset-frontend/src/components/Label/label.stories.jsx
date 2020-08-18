@@ -30,11 +30,13 @@ export default {
 const bsStyleKnob = {
   label: 'Types',
   options: {
-    danger: 'danger',
-    warning: 'warning',
-    success: 'success',
-    info: 'info',
     default: 'default',
+    info: 'info',
+    success: 'success',
+    warning: 'warning',
+    danger: 'danger',
+    secondary: 'secondary',
+    primary: 'primary',
   },
   defaultValue: 'default',
 };
