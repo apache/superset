@@ -34,7 +34,7 @@ const propTypes = {
   onExit: PropTypes.func,
   isButton: PropTypes.bool,
   isMenuItem: PropTypes.bool,
-  bsSize: PropTypes.oneOf(["lg", "large", "sm", "small"]),
+  bsSize: PropTypes.oneOf(['lg', 'large', 'sm', 'small']),
   className: PropTypes.string,
   tooltip: PropTypes.string,
   backdrop: PropTypes.oneOf(['static', true, false]),
