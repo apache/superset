@@ -24,6 +24,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { StaticMap } from 'react-map-gl';
 import DeckGL from 'deck.gl';
+import styled from '@superset-ui/style';
 // eslint-disable-next-line import/extensions
 import Tooltip from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -49,7 +50,7 @@ const defaultProps = {
   bottomMargin: 0,
 };
 
-export default class DeckGLContainer extends React.Component {
+class DeckGLContainer extends React.Component {
   constructor(props) {
     super(props);
     this.tick = this.tick.bind(this);
@@ -129,3 +130,10 @@ export default class DeckGLContainer extends React.Component {
 
 DeckGLContainer.propTypes = propTypes;
 DeckGLContainer.defaultProps = defaultProps;
+
+export default styled(DeckGLContainer)`
+  .deckgl-tooltip > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
