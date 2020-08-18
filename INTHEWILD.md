@@ -130,3 +130,5 @@ Join our growing community!
  - [Let's Roam](https://www.letsroam.com/)
  - [Twitter](https://twitter.com/)
  - [Yahoo!](https://yahoo.com/)
+ - [Digitalist] (https://digitalist.se)
+ 
