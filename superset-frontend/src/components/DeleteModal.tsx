@@ -63,7 +63,6 @@ export default function DeleteModal({
       primaryButtonType="danger"
       show={open}
       title={title}
-      bsSize="medium"
     >
       <DescriptionContainer>{description}</DescriptionContainer>
       <StyleFormGroup>
