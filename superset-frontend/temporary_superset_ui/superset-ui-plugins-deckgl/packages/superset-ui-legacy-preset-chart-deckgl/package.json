@@ -46,14 +46,17 @@
     "xss": "^1.0.6"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.12.0 || ^0.13.3",
-    "@superset-ui/color": "^0.12.0 || ^0.13.3",
-    "@superset-ui/connection": "^0.12.0 || ^0.13.3",
-    "@superset-ui/core": "^0.12.0 || ^0.13.3",
-    "@superset-ui/dimension": "^0.12.0 || ^0.13.3",
-    "@superset-ui/number-format": "^0.12.0 || ^0.13.3",
-    "@superset-ui/time-format": "^0.12.0 || ^0.13.3",
-    "@superset-ui/translation": "^0.12.0 || ^0.13.3",
+    "@superset-ui/chart": "^0.14.9",
+    "@superset-ui/chart-controls": "^0.14.9",
+    "@superset-ui/color": "^0.14.9",
+    "@superset-ui/connection": "^0.14.9",
+    "@superset-ui/core": "^0.14.9",
+    "@superset-ui/dimension": "^0.14.9",
+    "@superset-ui/number-format": "^0.14.9",
+    "@superset-ui/style": "^0.14.9",
+    "@superset-ui/time-format": "^0.14.9",
+    "@superset-ui/translation": "^0.14.9",
+    "@superset-ui/validator": "^0.14.9",
     "react": "^15 || ^16"
   }
 }
