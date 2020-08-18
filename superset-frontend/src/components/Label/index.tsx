@@ -35,6 +35,7 @@ export interface LabelProps {
 
 const SupersetLabel = styled(BootstrapLabel)`
   cursor: ${({ onClick }) => (onClick ? 'pointer' : 'default')};
+  transition: background-color ${({ theme }) => theme.transitionTiming}s;
   &.label-warning {
     background-color: ${({ theme }) => theme.colors.warning.base};
     &:hover {
