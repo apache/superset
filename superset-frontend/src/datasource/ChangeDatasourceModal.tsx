@@ -120,7 +120,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   };
 
   return (
-    <Modal show={show} onHide={onHide} onEnter={onEnterModal} bsSize="lg">
+    <Modal show={show} onHide={onHide} onEnter={onEnterModal} bsSize="large">
       <Modal.Header closeButton>
         <Modal.Title>{t('Select a datasource')}</Modal.Title>
       </Modal.Header>

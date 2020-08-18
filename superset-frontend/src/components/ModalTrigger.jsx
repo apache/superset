@@ -34,7 +34,7 @@ const propTypes = {
   onExit: PropTypes.func,
   isButton: PropTypes.bool,
   isMenuItem: PropTypes.bool,
-  bsSize: PropTypes.string,
+  bsSize: PropTypes.oneOf(['large', 'small']), // react-bootstrap also supports 'sm', 'lg' but we're keeping it simple.
   className: PropTypes.string,
   tooltip: PropTypes.string,
   backdrop: PropTypes.oneOf(['static', true, false]),
