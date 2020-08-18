@@ -172,7 +172,7 @@ function ColumnCollectionTable({
           ) : (
             v
           ),
-        type: d => <Label bsStyle="s">{d}</Label>,
+        type: d => <Label>{d}</Label>,
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
@@ -289,29 +289,58 @@ export class DatasourceEditor extends React.PureComponent {
     this.validate(this.onChange);
   }
 
-  mergeColumns(cols) {
-    let { databaseColumns } = this.state;
-    let hasChanged;
-    const currentColNames = databaseColumns.map(col => col.column_name);
+  updateColumns(cols) {
+    const { databaseColumns } = this.state;
+    const databaseColumnNames = cols.map(col => col.name);
+    const currentCols = databaseColumns.reduce(
+      (agg, col) => ({
+        ...agg,
+        [col.column_name]: col,
+      }),
+      {},
+    );
+    const finalColumns = [];
+    const results = {
+      added: [],
+      modified: [],
+      removed: databaseColumns
+        .map(col => col.column_name)
+        .filter(col => !databaseColumnNames.includes(col)),
+    };
     cols.forEach(col => {
-      if (currentColNames.indexOf(col.name) < 0) {
-        // Adding columns
-        databaseColumns = databaseColumns.concat([
-          {
-            id: shortid.generate(),
-            column_name: col.name,
-            type: col.type,
-            groupby: true,
-            filterable: true,
-          },
-        ]);
-        hasChanged = true;
+      const currentCol = currentCols[col.name];
+      if (!currentCol) {
+        // new column
+        finalColumns.push({
+          id: shortid.generate(),
+          column_name: col.name,
+          type: col.type,
+          groupby: true,
+          filterable: true,
+        });
+        results.added.push(col.name);
+      } else if (currentCol.type !== col.type) {
+        // modified column
+        finalColumns.push({
+          ...currentCol,
+          type: col.type,
+        });
+        results.modified.push(col.name);
+      } else {
+        // unchanged
+        finalColumns.push(currentCol);
       }
     });
-    if (hasChanged) {
-      this.setColumns({ databaseColumns });
+    if (
+      results.added.length ||
+      results.modified.length ||
+      results.removed.length
+    ) {
+      this.setColumns({ databaseColumns: finalColumns });
     }
+    return results;
   }
+
   syncMetadata() {
     const { datasource } = this.state;
     // Handle carefully when the schema is empty
@@ -326,7 +355,19 @@ export class DatasourceEditor extends React.PureComponent {
 
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
-        this.mergeColumns(json);
+        const results = this.updateColumns(json);
+        if (results.modified.length)
+          this.props.addSuccessToast(
+            t('Modified columns: %s', results.modified.join(', ')),
+          );
+        if (results.removed.length)
+          this.props.addSuccessToast(
+            t('Removed columns: %s', results.removed.join(', ')),
+          );
+        if (results.added.length)
+          this.props.addSuccessToast(
+            t('New columns added: %s', results.added.join(', ')),
+          );
         this.props.addSuccessToast(t('Metadata has been synced'));
         this.setState({ metadataLoading: false });
       })
