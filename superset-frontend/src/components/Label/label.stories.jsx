@@ -45,6 +45,7 @@ export const LabelGallery = () => (
   <div style={{ padding: '10px' }}>
     {Object.values(bsStyleKnob.options).map(opt => (
       <Label
+        key={opt}
         bsStyle={opt}
         style={{ marginRight: '10px' }}
         onClick={action('clicked')}
