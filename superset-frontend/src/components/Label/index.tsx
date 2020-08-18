@@ -89,12 +89,23 @@ const SupersetLabel = styled(BootstrapLabel)`
 `;
 
 export default function Label(props: LabelProps) {
-  const officialBootstrapStyles = ["success", "warning", "danger", "info", "default", "primary"]
+  const officialBootstrapStyles = [
+    'success',
+    'warning',
+    'danger',
+    'info',
+    'default',
+    'primary',
+  ];
   const labelProps = {
     ...props,
     placement: props.placement || 'top',
-    bsStyle: officialBootstrapStyles.includes(props.bsStyle) ? props.bsStyle : 'default';
-    className: officialBootstrapStyles.includes(props.bsStyle) ? null : `label-${props.bsStyle}`;
+    bsStyle: officialBootstrapStyles.includes(props.bsStyle)
+      ? props.bsStyle
+      : 'default',
+    className: officialBootstrapStyles.includes(props.bsStyle)
+      ? null
+      : `label-${props.bsStyle}`,
   };
   return <SupersetLabel {...labelProps}>{props.children}</SupersetLabel>;
 }
