@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint no-console: 0 */
 import { SupersetClient } from '@superset-ui/connection';
 import parseCookie from 'src/utils/parseCookie';
+import { logging } from '@superset-ui/core';
 
 export default function setupClient() {
   const csrfNode = document.querySelector('#csrf_token');
@@ -34,6 +34,6 @@ export default function setupClient() {
   })
     .init()
     .catch(error => {
-      console.warn('Error initializing SupersetClient', error);
+      logging.warn('Error initializing SupersetClient', error);
     });
 }

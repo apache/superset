@@ -481,6 +481,24 @@ class BaseViz:
 
         if query_obj and not is_loaded:
             try:
+                invalid_columns = [
+                    col
+                    for col in (query_obj.get("columns") or [])
+                    + (query_obj.get("groupby") or [])
+                    + utils.get_column_names_from_metrics(
+                        cast(
+                            List[Union[str, Dict[str, Any]]], query_obj.get("metrics"),
+                        )
+                    )
+                    if col not in self.datasource.column_names
+                ]
+                if invalid_columns:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Columns missing in datasource: %(invalid_columns)s",
+                            invalid_columns=invalid_columns,
+                        )
+                    )
                 df = self.get_df(query_obj)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr("loaded_from_source")
@@ -2046,25 +2064,6 @@ class FilterBoxViz(BaseViz):
             else:
                 df[col] = []
         return d
-
-
-class IFrameViz(BaseViz):
-
-    """You can squeeze just about anything in this iFrame component"""
-
-    viz_type = "iframe"
-    verbose_name = _("iFrame")
-    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
-    is_timeseries = False
-
-    def query_obj(self) -> QueryObjectDict:
-        return {}
-
-    def get_df(self, query_obj: Optional[QueryObjectDict] = None) -> pd.DataFrame:
-        return pd.DataFrame()
-
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        return {"iframe": True}
 
 
 class ParallelCoordinatesViz(BaseViz):

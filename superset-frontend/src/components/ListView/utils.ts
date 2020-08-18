@@ -34,7 +34,7 @@ import {
 } from 'use-query-params';
 
 import { isEqual } from 'lodash';
-
+import { PartialStylesConfig } from 'src/components/Select';
 import {
   FetchDataConfig,
   Filter,
@@ -255,3 +255,20 @@ export function useListViewState({
     applyFilterValue,
   };
 }
+
+export const filterSelectStyles: PartialStylesConfig = {
+  container: (provider, { getValue }) => ({
+    ...provider,
+    // dynamic width based on label string length
+    minWidth: `${Math.min(
+      12,
+      Math.max(5, 3 + getValue()[0].label.length / 2),
+    )}em`,
+  }),
+  control: provider => ({
+    ...provider,
+    borderWidth: 0,
+    boxShadow: 'none',
+    cursor: 'pointer',
+  }),
+};

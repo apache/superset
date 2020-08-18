@@ -16,7 +16,7 @@
 # under the License.
 """Unit tests for Superset"""
 import json
-from typing import List
+from typing import Any, Dict, List, Tuple, Union
 from unittest.mock import patch
 
 import prison
@@ -129,7 +129,6 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test get dataset related databases gamma
         """
-        example_db = get_example_database()
         self.login(username="gamma")
         uri = "api/v1/dataset/related/database"
         rv = self.client.get(uri)
@@ -169,6 +168,93 @@ class TestDatasetApi(SupersetTestCase):
         } == expected_result
         self.assertEqual(len(response["result"]["columns"]), 3)
         self.assertEqual(len(response["result"]["metrics"]), 2)
+
+    def test_get_dataset_distinct_schema(self):
+        """
+        Dataset API: Test get dataset distinct schema
+        """
+
+        def pg_test_query_parameter(query_parameter, expected_response):
+            uri = f"api/v1/dataset/distinct/schema?q={prison.dumps(query_parameter)}"
+            rv = self.client.get(uri)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(response, expected_response)
+
+        example_db = get_example_database()
+        datasets = []
+        if example_db.backend == "postgresql":
+            datasets.append(
+                self.insert_dataset("ab_permission", "public", [], get_main_database())
+            )
+            datasets.append(
+                self.insert_dataset(
+                    "columns", "information_schema", [], get_main_database()
+                )
+            )
+            expected_response = {
+                "count": 5,
+                "result": [
+                    {"text": ""},
+                    {"text": "admin_database"},
+                    {"text": "information_schema"},
+                    {"text": "public"},
+                    {"text": "superset"},
+                ],
+            }
+            self.login(username="admin")
+            uri = "api/v1/dataset/distinct/schema"
+            rv = self.client.get(uri)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(response, expected_response)
+
+            # Test filter
+            query_parameter = {"filter": "inf"}
+            pg_test_query_parameter(
+                query_parameter,
+                {"count": 1, "result": [{"text": "information_schema"}]},
+            )
+
+            query_parameter = {"page": 0, "page_size": 1}
+            pg_test_query_parameter(
+                query_parameter, {"count": 5, "result": [{"text": ""}]},
+            )
+
+            query_parameter = {"page": 1, "page_size": 1}
+            pg_test_query_parameter(
+                query_parameter, {"count": 5, "result": [{"text": "admin_database"}]}
+            )
+
+        for dataset in datasets:
+            db.session.delete(dataset)
+        db.session.commit()
+
+    def test_get_dataset_distinct_not_allowed(self):
+        """
+        Dataset API: Test get dataset distinct not allowed
+        """
+        self.login(username="admin")
+        uri = "api/v1/dataset/distinct/table_name"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_dataset_distinct_gamma(self):
+        """
+        Dataset API: Test get dataset distinct with gamma
+        """
+        dataset = self.insert_default_dataset()
+
+        self.login(username="gamma")
+        uri = "api/v1/dataset/distinct/schema"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response["count"], 0)
+        self.assertEqual(response["result"], [])
+
+        db.session.delete(dataset)
+        db.session.commit()
 
     def test_get_dataset_info(self):
         """
@@ -358,6 +444,7 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(SqlaTable).get(dataset.id)
         self.assertEqual(model.description, dataset_data["description"])
+
         db.session.delete(dataset)
         db.session.commit()
 

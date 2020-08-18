@@ -22,6 +22,7 @@ from typing import Any, ClassVar, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
+from flask_babel import gettext as _
 
 from superset import app, cache, db, security_manager
 from superset.common.query_object import QueryObject
@@ -235,6 +236,21 @@ class QueryContext:
 
         if query_obj and not is_loaded:
             try:
+                invalid_columns = [
+                    col
+                    for col in query_obj.columns
+                    + query_obj.groupby
+                    + [flt["col"] for flt in query_obj.filter]
+                    + utils.get_column_names_from_metrics(query_obj.metrics)
+                    if col not in self.datasource.column_names
+                ]
+                if invalid_columns:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Columns missing in datasource: %(invalid_columns)s",
+                            invalid_columns=invalid_columns,
+                        )
+                    )
                 query_result = self.get_query_result(query_obj)
                 status = query_result["status"]
                 query = query_result["query"]

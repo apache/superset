@@ -145,7 +145,7 @@ describe('SelectControl', () => {
     });
   });
 
-  describe('componentWillReceiveProps', () => {
+  describe('UNSAFE_componentWillReceiveProps', () => {
     it('sets state.options if props.choices has changed', () => {
       const updatedOptions = [
         { value: 'three', label: 'three' },

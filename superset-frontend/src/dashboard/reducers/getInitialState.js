@@ -108,118 +108,116 @@ export default function (bootstrapData) {
   const sliceIds = new Set();
   dashboard.slices.forEach(slice => {
     const key = slice.slice_id;
-    if (['separator', 'markup'].indexOf(slice.form_data.viz_type) === -1) {
-      const form_data = {
-        ...slice.form_data,
-        url_params: {
-          ...slice.form_data.url_params,
-          ...urlParams,
-        },
-      };
-      chartQueries[key] = {
-        ...chart,
-        id: key,
-        form_data,
-        formData: applyDefaultFormData(form_data),
-      };
+    const form_data = {
+      ...slice.form_data,
+      url_params: {
+        ...slice.form_data.url_params,
+        ...urlParams,
+      },
+    };
+    chartQueries[key] = {
+      ...chart,
+      id: key,
+      form_data,
+      formData: applyDefaultFormData(form_data),
+    };
 
-      slices[key] = {
-        slice_id: key,
-        slice_url: slice.slice_url,
-        slice_name: slice.slice_name,
-        form_data: slice.form_data,
-        edit_url: slice.edit_url,
-        viz_type: slice.form_data.viz_type,
-        datasource: slice.form_data.datasource,
-        description: slice.description,
-        description_markeddown: slice.description_markeddown,
-        owners: slice.owners,
-        modified: slice.modified,
-        changed_on: new Date(slice.changed_on).getTime(),
-      };
+    slices[key] = {
+      slice_id: key,
+      slice_url: slice.slice_url,
+      slice_name: slice.slice_name,
+      form_data: slice.form_data,
+      edit_url: slice.edit_url,
+      viz_type: slice.form_data.viz_type,
+      datasource: slice.form_data.datasource,
+      description: slice.description,
+      description_markeddown: slice.description_markeddown,
+      owners: slice.owners,
+      modified: slice.modified,
+      changed_on: new Date(slice.changed_on).getTime(),
+    };
 
-      sliceIds.add(key);
+    sliceIds.add(key);
 
-      // if there are newly added slices from explore view, fill slices into 1 or more rows
-      if (!chartIdToLayoutId[key] && layout[parentId]) {
-        if (
-          newSlicesContainerWidth === 0 ||
-          newSlicesContainerWidth + GRID_DEFAULT_CHART_WIDTH > GRID_COLUMN_COUNT
-        ) {
-          newSlicesContainer = newComponentFactory(
-            ROW_TYPE,
-            (parent.parents || []).slice(),
-          );
-          layout[newSlicesContainer.id] = newSlicesContainer;
-          parent.children.push(newSlicesContainer.id);
-          newSlicesContainerWidth = 0;
-        }
-
-        const chartHolder = newComponentFactory(
-          CHART_TYPE,
-          {
-            chartId: slice.slice_id,
-          },
-          (newSlicesContainer.parents || []).slice(),
+    // if there are newly added slices from explore view, fill slices into 1 or more rows
+    if (!chartIdToLayoutId[key] && layout[parentId]) {
+      if (
+        newSlicesContainerWidth === 0 ||
+        newSlicesContainerWidth + GRID_DEFAULT_CHART_WIDTH > GRID_COLUMN_COUNT
+      ) {
+        newSlicesContainer = newComponentFactory(
+          ROW_TYPE,
+          (parent.parents || []).slice(),
         );
-
-        layout[chartHolder.id] = chartHolder;
-        newSlicesContainer.children.push(chartHolder.id);
-        chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
-        newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
+        layout[newSlicesContainer.id] = newSlicesContainer;
+        parent.children.push(newSlicesContainer.id);
+        newSlicesContainerWidth = 0;
       }
 
-      // build DashboardFilters for interactive filter features
-      if (slice.form_data.viz_type === 'filter_box') {
-        const configs = getFilterConfigsFromFormdata(slice.form_data);
-        let columns = configs.columns;
-        const labels = configs.labels;
-        if (preselectFilters[key]) {
-          Object.keys(columns).forEach(col => {
-            if (preselectFilters[key][col]) {
-              columns = {
-                ...columns,
-                [col]: preselectFilters[key][col],
-              };
-            }
-          });
-        }
+      const chartHolder = newComponentFactory(
+        CHART_TYPE,
+        {
+          chartId: slice.slice_id,
+        },
+        (newSlicesContainer.parents || []).slice(),
+      );
 
-        const scopesByChartId = Object.keys(columns).reduce((map, column) => {
-          const scopeSettings = {
-            ...filterScopes[key],
-          };
-          const { scope, immune } = {
-            ...DASHBOARD_FILTER_SCOPE_GLOBAL,
-            ...scopeSettings[column],
-          };
+      layout[chartHolder.id] = chartHolder;
+      newSlicesContainer.children.push(chartHolder.id);
+      chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
+      newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
+    }
 
-          return {
-            ...map,
-            [column]: {
-              scope,
-              immune,
-            },
-          };
-        }, {});
+    // build DashboardFilters for interactive filter features
+    if (slice.form_data.viz_type === 'filter_box') {
+      const configs = getFilterConfigsFromFormdata(slice.form_data);
+      let columns = configs.columns;
+      const labels = configs.labels;
+      if (preselectFilters[key]) {
+        Object.keys(columns).forEach(col => {
+          if (preselectFilters[key][col]) {
+            columns = {
+              ...columns,
+              [col]: preselectFilters[key][col],
+            };
+          }
+        });
+      }
 
-        const componentId = chartIdToLayoutId[key];
-        const directPathToFilter = (layout[componentId].parents || []).slice();
-        directPathToFilter.push(componentId);
-        dashboardFilters[key] = {
-          ...dashboardFilter,
-          chartId: key,
-          componentId,
-          datasourceId: slice.form_data.datasource,
-          filterName: slice.slice_name,
-          directPathToFilter,
-          columns,
-          labels,
-          scopes: scopesByChartId,
-          isInstantFilter: !!slice.form_data.instant_filtering,
-          isDateFilter: Object.keys(columns).includes(TIME_RANGE),
+      const scopesByChartId = Object.keys(columns).reduce((map, column) => {
+        const scopeSettings = {
+          ...filterScopes[key],
         };
-      }
+        const { scope, immune } = {
+          ...DASHBOARD_FILTER_SCOPE_GLOBAL,
+          ...scopeSettings[column],
+        };
+
+        return {
+          ...map,
+          [column]: {
+            scope,
+            immune,
+          },
+        };
+      }, {});
+
+      const componentId = chartIdToLayoutId[key];
+      const directPathToFilter = (layout[componentId].parents || []).slice();
+      directPathToFilter.push(componentId);
+      dashboardFilters[key] = {
+        ...dashboardFilter,
+        chartId: key,
+        componentId,
+        datasourceId: slice.form_data.datasource,
+        filterName: slice.slice_name,
+        directPathToFilter,
+        columns,
+        labels,
+        scopes: scopesByChartId,
+        isInstantFilter: !!slice.form_data.instant_filtering,
+        isDateFilter: Object.keys(columns).includes(TIME_RANGE),
+      };
     }
 
     // sync layout names with current slice names in case a slice was edited
