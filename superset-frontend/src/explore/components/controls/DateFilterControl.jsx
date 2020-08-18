@@ -423,8 +423,8 @@ export default class DateFilterControl extends React.Component {
                     style={{ marginTop: '12px' }}
                   >
                     <div
-                      style={{ width: '60px', marginTop: '-4px' }}
-                      className="input-inline"
+                      style={{ width: '40px', marginTop: '-4px' }}
+                      className="form-group col-md-3"
                     >
                       <DropdownButton
                         bsSize="small"
@@ -452,8 +452,11 @@ export default class DateFilterControl extends React.Component {
                       </DropdownButton>
                     </div>
                     <div
-                      style={{ width: '60px', marginTop: '-4px' }}
-                      className="input-inline m-l-5 m-r-3"
+                      style={{
+                        width: '60px',
+                        marginTop: '-4px',
+                      }}
+                      className="form-group col-md-3 col-input"
                     >
                       <FormControl
                         bsSize="small"
@@ -469,7 +472,7 @@ export default class DateFilterControl extends React.Component {
                     </div>
                     <div
                       style={{ width: '90px', marginTop: '-4px' }}
-                      className="input-inline"
+                      className="form-group col-md-3"
                     >
                       <DropdownButton
                         bsSize="small"
