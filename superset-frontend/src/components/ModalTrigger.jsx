@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Modal, MenuItem } from 'react-bootstrap';
 import cx from 'classnames';
 
-import Button from './Button';
+import Button from 'src/components/Button';
 
 const propTypes = {
   dialogClassName: PropTypes.string,
