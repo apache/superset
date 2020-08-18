@@ -71,12 +71,30 @@ const SupersetLabel = styled(BootstrapLabel)`
         onClick ? theme.colors.info.dark1 : theme.colors.info.base};
     }
   }
+  &.label-primary {
+    background-color: ${({ theme }) => theme.colors.primary.base};
+    &:hover {
+      background-color: ${({ theme, onClick }) =>
+        onClick ? theme.colors.primary.dark1 : theme.colors.primary.base};
+    }
+  }
+  /* note this is NOT a supported bootstrap label Style... this overrides default */
+  &.label-secondary {
+    background-color: ${({ theme }) => theme.colors.secondary.base};
+    &:hover {
+      background-color: ${({ theme, onClick }) =>
+        onClick ? theme.colors.secondary.dark1 : theme.colors.secondary.base};
+    }
+  }
 `;
 
 export default function Label(props: LabelProps) {
+  const officialBootstrapStyles = ["success", "warning", "danger", "info", "default", "primary"]
   const labelProps = {
     ...props,
     placement: props.placement || 'top',
+    bsStyle: officialBootstrapStyles.includes(props.bsStyle) ? props.bsStyle : 'default';
+    className: officialBootstrapStyles.includes(props.bsStyle) ? null : `label-${props.bsStyle}`;
   };
   return <SupersetLabel {...labelProps}>{props.children}</SupersetLabel>;
 }
