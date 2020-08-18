@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, select, text } from '@storybook/addon-knobs';
+import { withKnobs, select, boolean, text } from '@storybook/addon-knobs';
 import Label from './index';
 
 export default {
@@ -30,30 +30,22 @@ export default {
 const bsStyleKnob = {
   label: 'Types',
   options: {
-    danger: 'danger',
-    warning: 'warning',
-    success: 'success',
     default: 'default',
+    info: 'info',
+    success: 'success',
+    warning: 'warning',
+    danger: 'danger',
+    secondary: 'secondary',
+    primary: 'primary',
   },
   defaultValue: 'default',
 };
-export const SupersetLabel = () => (
+
+export const LabelGallery = () => (
   <div style={{ padding: '10px' }}>
-    <h2>Interactive</h2>
-    <Label
-      bsStyle={select(
-        bsStyleKnob.label,
-        bsStyleKnob.options,
-        bsStyleKnob.defaultValue,
-        bsStyleKnob.groupId,
-      )}
-      onClick={action('clicked')}
-    >
-      {text('Label', 'Label!')}
-    </Label>
-    <h2>Gallery</h2>
     {Object.values(bsStyleKnob.options).map(opt => (
       <Label
+        key={opt}
         bsStyle={opt}
         style={{ marginRight: '10px' }}
         onClick={action('clicked')}
@@ -61,5 +53,21 @@ export const SupersetLabel = () => (
         {`style: "${opt}"`}
       </Label>
     ))}
+  </div>
+);
+
+export const InteractiveLabel = () => (
+  <div style={{ padding: '10px' }}>
+    <Label
+      bsStyle={select(
+        bsStyleKnob.label,
+        bsStyleKnob.options,
+        bsStyleKnob.defaultValue,
+        bsStyleKnob.groupId,
+      )}
+      onClick={boolean('Has onClick action', false) ? action('clicked') : false}
+    >
+      {text('Label', 'Label!')}
+    </Label>
   </div>
 );
