@@ -100,11 +100,11 @@ export default function Label(props: LabelProps) {
   const labelProps = {
     ...props,
     placement: props.placement || 'top',
-    bsStyle: officialBootstrapStyles.includes(props.bsStyle)
+    bsStyle: officialBootstrapStyles.includes(props.bsStyle || '')
       ? props.bsStyle
       : 'default',
-    className: officialBootstrapStyles.includes(props.bsStyle)
-      ? null
+    className: officialBootstrapStyles.includes(props.bsStyle || '')
+      ? undefined
       : `label-${props.bsStyle}`,
   };
   return <SupersetLabel {...labelProps}>{props.children}</SupersetLabel>;
