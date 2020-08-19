@@ -29,6 +29,7 @@ module.exports = {
     '@storybook/preset-typescript',
     'storybook-addon-jsx',
     '@storybook/addon-knobs/register',
+    'storybook-addon-paddings',
   ],
   webpackFinal: config => ({
     ...config,
