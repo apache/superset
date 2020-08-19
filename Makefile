@@ -1,10 +1,2 @@
-build: npm dist
-	tar czvf superset.tar.gz requirements.txt dist
-	
-npm:
-	cd superset-frontend && \
-	npm install && \
-	npm run build
-
-dist:
-	python3 setup.py sdist
+build:
+	DOCKER_BUILDKIT=1 docker build . --file Dockerfile_buildartifact --target artifact --output type=local,dest=.
