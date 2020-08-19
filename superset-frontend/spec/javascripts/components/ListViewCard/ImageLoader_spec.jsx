@@ -24,7 +24,15 @@ import ImageLoader from 'src/components/ListViewCard/ImageLoader';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');
-fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
+const blob = new Blob([], { type: 'image/png' });
+
+fetchMock.get(
+  '/thumbnail',
+  { body: blob, headers: { 'Content-Type': 'image/png' } },
+  {
+    sendAsJson: false,
+  },
+);
 
 describe('ListViewCard', () => {
   const defaultProps = {
@@ -52,5 +60,14 @@ describe('ListViewCard', () => {
     expect(fetchMock.calls(/thumbnail/)).toHaveLength(1);
     expect(global.URL.createObjectURL).toHaveBeenCalled();
     expect(wrapper.find('img').props().src).toBe('/local_url');
+  });
+
+  it('displays fallback image when response is not an image', async () => {
+    fetchMock.once('/thumbnail2', {});
+    const wrapper = factory({ src: '/thumbnail2' });
+    expect(wrapper.find('img').props().src).toBe('/fallback');
+    await waitForComponentToPaint(wrapper);
+    expect(fetchMock.calls(/thumbnail2/)).toHaveLength(1);
+    expect(wrapper.find('img').props().src).toBe('/fallback');
   });
 });

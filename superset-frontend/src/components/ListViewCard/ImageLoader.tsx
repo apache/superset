@@ -41,9 +41,11 @@ export default function ImageLoader({
     if (src) {
       fetch(src)
         .then(response => response.blob())
-        .then(image => {
-          const imgURL = URL.createObjectURL(image);
-          setImgSrc(imgURL);
+        .then(blob => {
+          if (/image/.test(blob.type)) {
+            const imgURL = URL.createObjectURL(blob);
+            setImgSrc(imgURL);
+          }
         })
         .catch(e => {
           console.error(e); // eslint-disable-line no-console
