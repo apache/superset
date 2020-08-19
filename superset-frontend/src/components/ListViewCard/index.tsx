@@ -19,6 +19,7 @@
 import React from 'react';
 import styled from '@superset-ui/style';
 import Icon from 'src/components/Icon';
+import { css } from '@emotion/core';
 import { Card, Skeleton } from 'src/common/components';
 import ImageLoader from './ImageLoader';
 
@@ -142,7 +143,7 @@ const ThinSkeleton = styled(Skeleton)`
     margin-bottom: 0;
   }
 `;
-
+const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
   title: React.ReactNode;
   url?: string;
@@ -197,10 +198,21 @@ function ListViewCard({
           title={
             <>
               <TitleContainer>
-                <Skeleton.Input active style={{ width: 250 }} size="small" />
+                <Skeleton.Input
+                  active
+                  css={css`
+                    width: 250;
+                  `}
+                  size="small"
+                />
                 <div className="card-actions">
                   <Skeleton.Button active shape="circle" />{' '}
-                  <Skeleton.Button active style={{ width: 40 }} />
+                  <Skeleton.Button
+                    active
+                    css={css`
+                      width: 40;
+                    `}
+                  />
                 </div>
               </TitleContainer>
             </>
@@ -210,7 +222,7 @@ function ListViewCard({
               round
               active
               title={false}
-              paragraph={{ rows: 1, width: 150 }}
+              paragraph={paragraphConfig}
             />
           }
         />
