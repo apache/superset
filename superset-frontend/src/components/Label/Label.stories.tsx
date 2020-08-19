@@ -25,7 +25,7 @@ export default {
   title: 'Label',
   component: Label,
   decorators: [withKnobs],
-  excludeStories: ['bsStyleKnob']
+  excludeStories: ['bsStyleKnob'],
 };
 
 export const bsStyleKnob = {
@@ -65,7 +65,9 @@ export const InteractiveLabel = () => (
         bsStyleKnob.options,
         bsStyleKnob.defaultValue,
       )}
-      onClick={boolean('Has onClick action', false) ? action('clicked') : undefined}
+      onClick={
+        boolean('Has onClick action', false) ? action('clicked') : undefined
+      }
     >
       {text('Label', 'Label!')}
     </Label>

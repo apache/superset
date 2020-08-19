@@ -19,6 +19,7 @@
 
 /* global jest */
 import React from 'react';
+/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import Label from '.';
