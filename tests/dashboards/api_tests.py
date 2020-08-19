@@ -32,6 +32,7 @@ from superset.views.base import generate_download_headers
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
+from tests.dashboards import utils as dashboard_utils
 
 
 class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
@@ -298,13 +299,17 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test delete
         """
         admin_id = self.get_user("admin").id
-        dashboard_id = self.insert_dashboard("title", "slug1", [admin_id]).id
+        dashboard = self.insert_dashboard("title", "slug1", [admin_id])
+        dashboard_utils.arrange_to_delete_dashboard_test(dashboard)
+        dashboard_id = dashboard.id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
+        dashboard_utils.assert_permissions_were_deleted(self, dashboard)
+        dashboard_utils.clean_after_delete_dashboard_test()
 
     def test_delete_bulk_dashboards(self):
         """
@@ -515,6 +520,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Dashboard).get(data.get("id"))
+        dashboard_utils.assert_permission_was_created(self, model)
         db.session.delete(model)
         db.session.commit()
 
@@ -643,7 +649,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test update
         """
         admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
+        dashboard = self.insert_dashboard("title1", "slug1", [admin.id])
+        view_menu_before_title_changed = security_manager.find_view_menu(
+            dashboard.view_name
+        )
+        dashboard_id = dashboard.id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.put_assert_metric(uri, self.dashboard_data, "put")
@@ -656,6 +666,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
         self.assertEqual(model.published, self.dashboard_data["published"])
         self.assertEqual(model.owners, [admin])
+        dashboard_utils.assert_permission_kept_and_changed(
+            self, view_menu_before_title_changed, model
+        )
 
         db.session.delete(model)
         db.session.commit()

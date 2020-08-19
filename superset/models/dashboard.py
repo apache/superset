@@ -17,7 +17,7 @@
 import json
 import logging
 from copy import copy
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
@@ -37,6 +37,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 
@@ -118,18 +119,53 @@ dashboard_user = Table(
 
 
 class SecuredMixin:
+    previous_title = None
+
     @property
     def view_name(self) -> str:
         return SecurityConsts.Dashboard.VIEW_NAME_FORMAT.format(obj=self)
+
+    @property
+    def permission_view_pairs(self) -> List[Tuple[str, str]]:
+        return [(SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME, self.view_name)]
 
     @staticmethod
     def after_insert(  # pylint: disable=unused-argument
         mapper: Any, connection: Connection, target: "Dashboard"
     ) -> None:
-        permission_view_pairs = [
-            (SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME, target.view_name)
-        ]
-        security_manager.set_permissions_views(connection, permission_view_pairs)
+        logger.info("in after insert on %s %d", target, target.id)
+        security_manager.set_permissions_views(connection, target.permission_view_pairs)
+
+    @staticmethod
+    def on_set(  # pylint: disable=unused-argument
+        dashboard: "Dashboard", new_title: str, old_title: str, event: Any
+    ) -> None:
+        dashboard.previous_title = old_title
+
+    @staticmethod
+    def after_update(  # pylint: disable=unused-argument
+        mapper: Any, connection: Connection, target: "Dashboard"
+    ) -> None:
+        previous_title = target.previous_title
+        new_title = target.dashboard_title
+        if target.previous_title in {NEVER_SET, NO_VALUE}:
+            SecuredMixin.after_insert(mapper, connection, target)
+        elif previous_title and previous_title != new_title:
+            new_perm = target.view_name
+            old_perm = new_perm.replace(new_title, previous_title)
+            security_manager.change_view_name_by_connection(
+                connection, new_perm, old_perm
+            )
+        target.previous_title = None
+
+    @staticmethod
+    def after_delete(  # pylint: disable=unused-argument
+        mapper: Any, connection: Connection, target: "Dashboard"
+    ) -> None:
+        logger.info("in after delete on %s %d", target, target.id)
+        security_manager.delete_permissions_views(
+            connection, target.permission_view_pairs
+        )
 
 
 class Dashboard(  # pylint: disable=too-many-instance-attributes
@@ -513,4 +549,12 @@ if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Dashboard, "after_insert", event_after_dashboard_changed)
     sqla.event.listen(Dashboard, "after_update", event_after_dashboard_changed)
 
+
 sqla.event.listen(Dashboard, "after_insert", SecuredMixin.after_insert)
+sqla.event.listen(Dashboard, "after_update", SecuredMixin.after_update)
+sqla.event.listen(Dashboard, "after_delete", SecuredMixin.after_delete)
+sqla.event.listen(
+    Dashboard.dashboard_title, "set", SecuredMixin.on_set, active_history=True
+)
+
+# sqla.event.listen(Dashboard.dashboard_title, "after_update", onEvent)
