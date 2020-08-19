@@ -134,7 +134,7 @@ const CoverFooterRight = styled.div`
 
 interface CardProps {
   title: React.ReactNode;
-  url: string;
+  url: string | undefined;
   imgURL: string;
   imgFallbackURL: string;
   description: string;
