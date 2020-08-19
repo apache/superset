@@ -99,9 +99,33 @@ const hrefKnob = {
   defaultValue: null,
 };
 
-export const SupersetButton = () => (
+export const ButtonGallery = () => (
   <div style={{ padding: '10px', backgroundColor: 'white' }}>
-    <h3>Interactive</h3>
+    {Object.values(bsSizeKnob.options)
+      .filter(a => a)
+      .map(size => (
+        <div>
+          <h4>{size}</h4>
+          {Object.values(bsStyleKnob.options)
+            .filter(o => o)
+            .map(style => (
+              <Button
+                disabled={boolean('Disabled', false)}
+                bsStyle={style}
+                bsSize={size}
+                onClick={action('clicked')}
+                style={{ marginRight: 5 }}
+              >
+                {style}
+              </Button>
+            ))}
+        </div>
+      ))}
+  </div>
+);
+
+export const InteractiveButton = () => (
+  <div style={{ padding: '10px', backgroundColor: 'white' }}>
     <Button
       disabled={boolean('Disabled', false)}
       bsStyle={select(
@@ -139,26 +163,5 @@ export const SupersetButton = () => (
     >
       {text('Label', 'Button!')}
     </Button>
-    <h3>Gallery</h3>
-    {Object.values(bsSizeKnob.options)
-      .filter(a => a)
-      .map(size => (
-        <div>
-          <h4>{size}</h4>
-          {Object.values(bsStyleKnob.options)
-            .filter(o => o)
-            .map(style => (
-              <Button
-                disabled={boolean('Disabled', false)}
-                bsStyle={style}
-                bsSize={size}
-                onClick={action('clicked')}
-                style={{ marginRight: 5 }}
-              >
-                {style}
-              </Button>
-            ))}
-        </div>
-      ))}
   </div>
 );
