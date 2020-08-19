@@ -19,12 +19,13 @@
 
 /* global jest */
 import React from 'react';
+import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
-import Label from './';
+import Label from '.';
 import { LabelGallery, bsStyleKnob } from './Label.stories';
 
 describe('Label', () => {
-  let wrapper;
+  let wrapper: ReactWrapper;
 
   // test the basic component
   it('renders the base component (no onClick)', () => {
