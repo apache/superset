@@ -27,7 +27,7 @@ export default {
   decorators: [withKnobs],
 };
 
-const bsStyleKnob = {
+export const bsStyleKnob = {
   label: 'Types',
   options: {
     default: 'default',
