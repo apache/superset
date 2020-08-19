@@ -929,12 +929,6 @@ class DatasourceEditor extends React.PureComponent {
                   buttonStyle="primary"
                   onClick={this.syncMetadata}
                   className="sync-from-source"
-                  disabled={!!datasource.sql}
-                  tooltip={
-                    datasource.sql
-                      ? t('This option is not yet available for views')
-                      : null
-                  }
                 >
                   {t('Sync columns from source')}
                 </Button>
