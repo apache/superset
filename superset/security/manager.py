@@ -845,6 +845,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         for permission_name, view_menu_name in permission_view_pairs:
             self.__set_permission_view(connection, permission_name, view_menu_name)
 
+    def delete_permissions_views(
+        self, connection: Connection, permission_view_pairs: List[Tuple[str, str]]
+    ) -> None:
+        for permission_name, view_menu_name in permission_view_pairs:
+            self.__delete_permission_view(connection, permission_name, view_menu_name)
+
+    def __delete_permission_view(
+        self, connection: Connection, permission_name: str, view_name: str
+    ) -> None:
+        permission_view = self.find_permission_view_menu(permission_name, view_name)
+        connection.execute(
+            assoc_permissionview_role.delete().where(
+                assoc_permissionview_role.c.permission_view_id == permission_view.id
+            )
+        )
+
+        permission_view_table = (
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
+        connection.execute(
+            permission_view_table.delete().where(
+                permission_view_table.c.id == permission_view.id
+            )
+        )
+        view_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        view = self.find_view_menu(view_name)
+        connection.execute(
+            view_table.delete().where(self.viewmenu_model.id == view.id)
+        )
+
     def __set_permission_view(
         self, connection: Connection, permission_name: str, view_name: str
     ) -> None:
@@ -892,7 +922,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def __find_permission_view_menu_by_instances(  # pylint: disable=C0103
         self, permission: Permission, view_menu: ViewMenu
-    ) -> PermissionView:
+    ) -> Optional[PermissionView]:
         """
             Finds and returns a PermissionView by permission and view_menu
         """
@@ -903,6 +933,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .one_or_none()
             )
         return None
+
+    def change_view_name_by_connection(
+        self, connection: Connection, new_name: str, old_name: str
+    ) -> None:
+        view_menu_table = self.viewmenu_model.__table__
+        connection.execute(
+            view_menu_table.update()
+            .where(view_menu_table.c.name == old_name)
+            .values(name=new_name)
+        )
 
     def raise_for_access(  # pylint: disable=too-many-arguments,too-many-branches
         self,
@@ -1036,3 +1076,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ids = [f.id for f in self.get_rls_filters(table)]
         ids.sort()  # Combinations rather than permutations
         return ids
+
+    def del_role(self, name: str) -> bool:
+        """
+            Deletes a Role from the backend
+
+            :param name:
+                name of the Role
+        """
+        role = self.find_role(name)
+        if not role:
+            return False
+        try:
+            self.get_session.delete(role)
+            self.get_session.commit()
+            return True
+        except Exception as err:
+            self.get_session.rollback()
+            raise err
