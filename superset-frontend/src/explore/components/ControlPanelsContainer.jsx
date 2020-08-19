@@ -42,6 +42,7 @@ const propTypes = {
 };
 
 const Styles = styled.div`
+  height: 100%;
   max-height: 100%;
   .remove-alert {
     cursor: 'pointer';
@@ -49,6 +50,7 @@ const Styles = styled.div`
   #controlSections {
     display: flex;
     flex-direction: column;
+    height: 100%;
     max-height: 100%;
   }
   .nav-tabs {
