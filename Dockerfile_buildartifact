@@ -1,0 +1,40 @@
+ARG NODE_VERSION=14.5
+ARG PYTHON_VERSION=3.7.4
+
+#
+# --- Build assets with NodeJS
+#
+
+FROM node:${NODE_VERSION} AS build
+
+# Superset version to build
+ARG SUPERSET_VERSION=master
+ENV SUPERSET_HOME=/var/lib/superset/
+
+# Download source
+WORKDIR ${SUPERSET_HOME}
+ADD . ${SUPERSET_HOME}
+
+# Build assets
+WORKDIR ${SUPERSET_HOME}/superset-frontend/
+RUN npm install
+RUN npm run build
+
+#
+# --- Build dist package with Python 3
+#
+
+FROM python:${PYTHON_VERSION} AS dist
+
+# Copy prebuilt workspace into stage
+ENV SUPERSET_HOME=/var/lib/superset/
+WORKDIR ${SUPERSET_HOME}
+COPY --from=build ${SUPERSET_HOME} .
+COPY requirements-db.txt .
+
+# Create package to install
+RUN python setup.py sdist
+RUN tar czfv /tmp/superset.tar.gz requirements.txt dist
+
+FROM scratch as artifact
+COPY --from=dist /tmp/superset.tar.gz ./superset.tar.gz
