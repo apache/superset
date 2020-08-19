@@ -17,7 +17,7 @@
  * under the License.
  */
 module.exports = {
-  testRegex: '\\/spec\\/.*(_spec|\\.test)\\.(j|t)sx?$',
+  testRegex: '(\\/spec|\\/src)\\/.*(_spec|\\.test)\\.(j|t)sx?$',
   moduleNameMapper: {
     '\\.(css|less)$': '<rootDir>/spec/__mocks__/styleMock.js',
     '\\.(gif|ttf|eot)$': '<rootDir>/spec/__mocks__/fileMock.js',

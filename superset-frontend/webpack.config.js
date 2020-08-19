@@ -230,6 +230,7 @@ const config = {
       },
       {
         test: /\.tsx?$/,
+        exclude: [/\.test.tsx?$/],
         use: [
           'thread-loader',
           babelLoader,
@@ -255,8 +256,8 @@ const config = {
       },
       {
         test: /\.jsx?$/,
-        // include source code for plugins, but exclude node_modules within them
-        exclude: [/superset-ui.*\/node_modules\//],
+        // include source code for plugins, but exclude node_modules and test files within them
+        exclude: [/superset-ui.*\/node_modules\//, /\.test.jsx?$/],
         include: [
           new RegExp(`${APP_DIR}/src`),
           /superset-ui.*\/src/,
