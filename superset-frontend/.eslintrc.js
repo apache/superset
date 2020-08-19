@@ -114,6 +114,12 @@ module.exports = {
         },
       },
     },
+    {
+      files: ['*.stories.jsx','*.stories.tsx'],
+      rules: {
+        'import/no-extraneous-dependencies': 0,
+      }
+    },
   ],
   rules: {
     camelcase: [
