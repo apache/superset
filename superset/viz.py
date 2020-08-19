@@ -72,6 +72,7 @@ from superset.utils.core import (
     QueryMode,
     to_adhoc,
 )
+from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
@@ -840,8 +841,20 @@ class PivotTableViz(BaseViz):
         for metric in metrics:
             aggfuncs[metric] = self.get_aggfunc(metric, df, self.form_data)
 
-        groupby = self.form_data.get("groupby")
-        columns = self.form_data.get("columns")
+        groupby = self.form_data.get("groupby") or []
+        columns = self.form_data.get("columns") or []
+
+        def _format_datetime(value: Any) -> Optional[str]:
+            if isinstance(value, str):
+                return f"__timestamp:{datetime_to_epoch(pd.Timestamp(value))}"
+            return None
+
+        for column_name in groupby + columns:
+            column = self.datasource.get_column(column_name)
+            if column and column.type in ("DATE", "DATETIME", "TIMESTAMP"):
+                ts = df[column_name].apply(_format_datetime)
+                df[column_name] = ts
+
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
 
