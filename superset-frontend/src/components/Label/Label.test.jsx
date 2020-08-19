@@ -16,47 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/* global jest */
 import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 import { styledMount as mount } from 'spec/helpers/theming';
 import Label from './';
-import {
-  LabelGallery,
-  InteractiveLabel,
-  bsStyleKnob,
-} from './Label.stories';
+import { LabelGallery, bsStyleKnob } from './Label.stories';
 
 describe('Label', () => {
   let wrapper;
 
   // test the basic component
   it('renders the base component (no onClick)', () => {
-    console.warn('!!!!!!!')
     expect(React.isValidElement(<Label />)).toBe(true);
   });
 
   it('works with an onClick handler', () => {
     const mockAction = jest.fn();
     wrapper = mount(<Label onClick={mockAction} />);
-    wrapper.find('.label').at(1).simulate('click');
+    wrapper.find('.label').simulate('click');
     expect(mockAction).toHaveBeenCalled();
   });
 
   // test stories from the storybook!
   it('renders all the sorybook gallery variants', () => {
     wrapper = mount(<LabelGallery />);
-    bsStyleKnob.options.forEach(opt => {
-      expect(wrapper.find(`.label-${opt}`).text()).toEqual(
+    Object.values(bsStyleKnob.options).forEach(opt => {
+      expect(wrapper.find(`.label-${opt}`).at(0).text()).toEqual(
         `style: "${opt}"`,
       );
-    })    
+    });
   });
 
   // test things NOT in the storybook!
   it('renders custom label styles without melting', () => {
-    wrapper = mount(<Label bsStyle="foobar" onClick={mockAction} />);
-    expect(wrapper.firstChild).toHaveClass('label-foobar')
+    wrapper = mount(<Label bsStyle="foobar" />);
+    expect(wrapper.find('Label.label-foobar')).toHaveLength(1);
   });
-
 });
