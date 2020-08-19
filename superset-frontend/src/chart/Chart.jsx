@@ -19,6 +19,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { Alert } from 'react-bootstrap';
+import styled from '@superset-ui/style';
+import { logging } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
@@ -27,7 +29,6 @@ import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import ErrorMessageWithStackTrace from '../components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ChartRenderer from './ChartRenderer';
-import './chart.less';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -63,6 +64,8 @@ const propTypes = {
   onQuery: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  // id of the last mounted parent tab
+  mountedParent: PropTypes.string,
 };
 
 const BLANK = {};
@@ -77,6 +80,13 @@ const defaultProps = {
   dashboardId: null,
   chartStackTrace: null,
 };
+
+const Styles = styled.div`
+  .chart-tooltip {
+    opacity: 0.75;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  }
+`;
 
 class Chart extends React.PureComponent {
   constructor(props) {
@@ -122,7 +132,7 @@ class Chart extends React.PureComponent {
 
   handleRenderContainerFailure(error, info) {
     const { actions, chartId } = this.props;
-    console.warn(error); // eslint-disable-line
+    logging.warn(error);
     actions.chartRenderingFailed(
       error.toString(),
       chartId,
@@ -178,8 +188,6 @@ class Chart extends React.PureComponent {
 
     const isLoading = chartStatus === 'loading';
 
-    // this allows <Loading /> to be positioned in the middle of the chart
-    const containerStyles = isLoading ? { height, width } : null;
     const isFaded = refreshOverlayVisible && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
@@ -193,12 +201,9 @@ class Chart extends React.PureComponent {
         onError={this.handleRenderContainerFailure}
         showMessage={false}
       >
-        <div
-          className={`chart-container ${isLoading ? 'is-loading' : ''}`}
-          style={containerStyles}
-        >
+        <Styles className="chart-container">
           <div className={`slice_container ${isFaded ? ' faded' : ''}`}>
-            <ChartRenderer {...this.props} />
+            <ChartRenderer {...this.props} data-test={this.props.vizType} />
           </div>
 
           {!isLoading && !chartAlert && isFaded && (
@@ -210,7 +215,7 @@ class Chart extends React.PureComponent {
           )}
 
           {isLoading && <Loading />}
-        </div>
+        </Styles>
       </ErrorBoundary>
     );
   }

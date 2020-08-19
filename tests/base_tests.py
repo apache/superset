@@ -18,13 +18,14 @@
 """Unit tests for Superset"""
 import imp
 import json
-from typing import Any, Dict, Union, List
+from typing import Any, Dict, Union, List, Optional
 from unittest.mock import Mock, patch
 
 import pandas as pd
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy.orm import Session
 
 from tests.test_app import app
 from superset.sql_parse import CtasMethod
@@ -43,12 +44,38 @@ from superset.views.base_api import BaseSupersetModelRestApi
 FAKE_DB_NAME = "fake_db_100"
 
 
+def login(client: Any, username: str = "admin", password: str = "general"):
+    resp = get_resp(client, "/login/", data=dict(username=username, password=password))
+    assert "User confirmation needed" not in resp
+
+
+def get_resp(
+    client: Any,
+    url: str,
+    data: Any = None,
+    follow_redirects: bool = True,
+    raise_on_error: bool = True,
+    json_: Optional[str] = None,
+):
+    """Shortcut to get the parsed results while following redirects"""
+    if data:
+        resp = client.post(url, data=data, follow_redirects=follow_redirects)
+    elif json_:
+        resp = client.post(url, json=json_, follow_redirects=follow_redirects)
+    else:
+        resp = client.get(url, follow_redirects=follow_redirects)
+    if raise_on_error and resp.status_code > 400:
+        raise Exception("http request failed with code {}".format(resp.status_code))
+    return resp.data.decode("utf-8")
+
+
 class SupersetTestCase(TestCase):
 
     default_schema_backend_map = {
         "sqlite": "main",
         "mysql": "superset",
         "postgresql": "public",
+        "presto": "default",
     }
 
     maxDiff = -1
@@ -73,6 +100,7 @@ class SupersetTestCase(TestCase):
             assert user_to_create
         user_to_create.roles = [security_manager.find_role(r) for r in roles]
         db.session.commit()
+        return user_to_create
 
     @staticmethod
     def create_user(
@@ -102,25 +130,24 @@ class SupersetTestCase(TestCase):
         # create druid cluster and druid datasources
 
         with app.app_context():
+            session = db.session
             cluster = (
-                db.session.query(DruidCluster)
-                .filter_by(cluster_name="druid_test")
-                .first()
+                session.query(DruidCluster).filter_by(cluster_name="druid_test").first()
             )
             if not cluster:
                 cluster = DruidCluster(cluster_name="druid_test")
-                db.session.add(cluster)
-                db.session.commit()
+                session.add(cluster)
+                session.commit()
 
                 druid_datasource1 = DruidDatasource(
                     datasource_name="druid_ds_1", cluster=cluster
                 )
-                db.session.add(druid_datasource1)
+                session.add(druid_datasource1)
                 druid_datasource2 = DruidDatasource(
                     datasource_name="druid_ds_2", cluster=cluster
                 )
-                db.session.add(druid_datasource2)
-                db.session.commit()
+                session.add(druid_datasource2)
+                session.commit()
 
     @staticmethod
     def get_table_by_id(table_id: int) -> SqlaTable:
@@ -134,23 +161,24 @@ class SupersetTestCase(TestCase):
         except ImportError:
             return False
 
-    def get_or_create(self, cls, criteria, **kwargs):
-        obj = db.session.query(cls).filter_by(**criteria).first()
+    def get_or_create(self, cls, criteria, session, **kwargs):
+        obj = session.query(cls).filter_by(**criteria).first()
         if not obj:
             obj = cls(**criteria)
         obj.__dict__.update(**kwargs)
-        db.session.add(obj)
-        db.session.commit()
+        session.add(obj)
+        session.commit()
         return obj
 
     def login(self, username="admin", password="general"):
-        resp = self.get_resp("/login/", data=dict(username=username, password=password))
-        self.assertNotIn("User confirmation needed", resp)
+        return login(self.client, username, password)
 
-    def get_slice(self, slice_name: str, expunge_from_session: bool = True) -> Slice:
-        slc = db.session.query(Slice).filter_by(slice_name=slice_name).one()
+    def get_slice(
+        self, slice_name: str, session: Session, expunge_from_session: bool = True
+    ) -> Slice:
+        slc = session.query(Slice).filter_by(slice_name=slice_name).one()
         if expunge_from_session:
-            db.session.expunge_all()
+            session.expunge_all()
         return slc
 
     @staticmethod
@@ -186,16 +214,7 @@ class SupersetTestCase(TestCase):
     def get_resp(
         self, url, data=None, follow_redirects=True, raise_on_error=True, json_=None
     ):
-        """Shortcut to get the parsed results while following redirects"""
-        if data:
-            resp = self.client.post(url, data=data, follow_redirects=follow_redirects)
-        elif json_:
-            resp = self.client.post(url, json=json_, follow_redirects=follow_redirects)
-        else:
-            resp = self.client.get(url, follow_redirects=follow_redirects)
-        if raise_on_error and resp.status_code > 400:
-            raise Exception("http request failed with code {}".format(resp.status_code))
-        return resp.data.decode("utf-8")
+        return get_resp(self.client, url, data, follow_redirects, raise_on_error, json_)
 
     def get_json_resp(
         self, url, data=None, follow_redirects=True, raise_on_error=True, json_=None
@@ -299,6 +318,7 @@ class SupersetTestCase(TestCase):
         return self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
+            session=db.session,
             sqlalchemy_uri="sqlite:///:memory:",
             id=db_id,
             extra=extra,
@@ -320,6 +340,7 @@ class SupersetTestCase(TestCase):
         return self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
+            session=db.session,
             sqlalchemy_uri="presto://user@host:8080/hive",
             id=db_id,
         )

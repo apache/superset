@@ -59,6 +59,7 @@ class Alert(Model):
     alert_type = Column(String(50))
     owners = relationship(security_manager.user_model, secondary=alert_owner)
     recipients = Column(Text)
+    slack_channel = Column(Text)
 
     log_retention = Column(Integer, default=90)
     grace_period = Column(Integer, default=60 * 60 * 24)

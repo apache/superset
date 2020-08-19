@@ -18,16 +18,18 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
+import { Alert, Badge, Col, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import styled from '@superset-ui/style';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-import getClientErrorObject from '../utils/getClientErrorObject';
 
-import Button from '../components/Button';
-import Loading from '../components/Loading';
-import TableSelector from '../components/TableSelector';
+import Label from 'src/components/Label';
+import Button from 'src/components/Button';
+import Loading from 'src/components/Loading';
+import TableSelector from 'src/components/TableSelector';
+
+import getClientErrorObject from '../utils/getClientErrorObject';
 import CheckboxControl from '../explore/components/controls/CheckboxControl';
 import TextControl from '../explore/components/controls/TextControl';
 import SelectControl from '../explore/components/controls/SelectControl';
@@ -98,18 +100,23 @@ function ColumnCollectionTable({
               <Field
                 fieldKey="expression"
                 label={t('SQL Expression')}
-                control={<TextControl />}
+                control={
+                  <TextAreaControl
+                    language="markdown"
+                    offerEditInModal={false}
+                  />
+                }
               />
             )}
             <Field
               fieldKey="verbose_name"
               label={t('Label')}
-              control={<TextControl />}
+              control={<TextControl placeholder={t('Label')} />}
             />
             <Field
               fieldKey="description"
               label={t('Description')}
-              control={<TextControl />}
+              control={<TextControl placeholder={t('Description')} />}
             />
             {allowEditDataType && (
               <Field
@@ -145,7 +152,7 @@ function ColumnCollectionTable({
                       database/column name level via the extra parameter.`)}
                 </div>
               }
-              control={<TextControl />}
+              control={<TextControl placeholder={'%y/%m/%d'} />}
             />
           </Fieldset>
         </FormContainer>
@@ -165,7 +172,7 @@ function ColumnCollectionTable({
           ) : (
             v
           ),
-        type: d => <Label style={{ fontSize: '75%' }}>{d}</Label>,
+        type: d => <Label>{d}</Label>,
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
@@ -282,29 +289,58 @@ export class DatasourceEditor extends React.PureComponent {
     this.validate(this.onChange);
   }
 
-  mergeColumns(cols) {
-    let { databaseColumns } = this.state;
-    let hasChanged;
-    const currentColNames = databaseColumns.map(col => col.column_name);
+  updateColumns(cols) {
+    const { databaseColumns } = this.state;
+    const databaseColumnNames = cols.map(col => col.name);
+    const currentCols = databaseColumns.reduce(
+      (agg, col) => ({
+        ...agg,
+        [col.column_name]: col,
+      }),
+      {},
+    );
+    const finalColumns = [];
+    const results = {
+      added: [],
+      modified: [],
+      removed: databaseColumns
+        .map(col => col.column_name)
+        .filter(col => !databaseColumnNames.includes(col)),
+    };
     cols.forEach(col => {
-      if (currentColNames.indexOf(col.name) < 0) {
-        // Adding columns
-        databaseColumns = databaseColumns.concat([
-          {
-            id: shortid.generate(),
-            column_name: col.name,
-            type: col.type,
-            groupby: true,
-            filterable: true,
-          },
-        ]);
-        hasChanged = true;
+      const currentCol = currentCols[col.name];
+      if (!currentCol) {
+        // new column
+        finalColumns.push({
+          id: shortid.generate(),
+          column_name: col.name,
+          type: col.type,
+          groupby: true,
+          filterable: true,
+        });
+        results.added.push(col.name);
+      } else if (currentCol.type !== col.type) {
+        // modified column
+        finalColumns.push({
+          ...currentCol,
+          type: col.type,
+        });
+        results.modified.push(col.name);
+      } else {
+        // unchanged
+        finalColumns.push(currentCol);
       }
     });
-    if (hasChanged) {
-      this.setColumns({ databaseColumns });
+    if (
+      results.added.length ||
+      results.modified.length ||
+      results.removed.length
+    ) {
+      this.setColumns({ databaseColumns: finalColumns });
     }
+    return results;
   }
+
   syncMetadata() {
     const { datasource } = this.state;
     // Handle carefully when the schema is empty
@@ -319,7 +355,19 @@ export class DatasourceEditor extends React.PureComponent {
 
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
-        this.mergeColumns(json);
+        const results = this.updateColumns(json);
+        if (results.modified.length)
+          this.props.addSuccessToast(
+            t('Modified columns: %s', results.modified.join(', ')),
+          );
+        if (results.removed.length)
+          this.props.addSuccessToast(
+            t('Removed columns: %s', results.removed.join(', ')),
+          );
+        if (results.added.length)
+          this.props.addSuccessToast(
+            t('New columns added: %s', results.added.join(', ')),
+          );
         this.props.addSuccessToast(t('Metadata has been synced'));
         this.setState({ metadataLoading: false });
       })
@@ -603,12 +651,12 @@ export class DatasourceEditor extends React.PureComponent {
               <Field
                 fieldKey="description"
                 label={t('Description')}
-                control={<TextControl />}
+                control={<TextControl placeholder={t('Description')} />}
               />
               <Field
                 fieldKey="d3format"
                 label={t('D3 Format')}
-                control={<TextControl />}
+                control={<TextControl placeholder="%y/%m/%d" />}
               />
               <Field
                 label={t('Warning Message')}
@@ -616,7 +664,7 @@ export class DatasourceEditor extends React.PureComponent {
                 description={t(
                   'Warning message to display in the metric selector',
                 )}
-                control={<TextControl />}
+                control={<TextControl placeholder={t('Warning Message')} />}
               />
             </Fieldset>
           </FormContainer>

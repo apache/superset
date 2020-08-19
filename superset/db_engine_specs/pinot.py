@@ -24,6 +24,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 
 class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "pinot"
+    engine_name = "Apache Pinot"
     allows_subqueries = False
     allows_joins = False
     allows_column_aliases = False

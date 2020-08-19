@@ -21,10 +21,10 @@ import styled from '@superset-ui/style';
 import PropTypes from 'prop-types';
 import rison from 'rison';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
-import { Label } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
+import Label from 'src/components/Label';
 import FormLabel from 'src/components/FormLabel';
 
 import SupersetAsyncSelect from './AsyncSelect';
@@ -33,7 +33,7 @@ import './TableSelector.less';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin: 20px 0 10px 0;
   text-transform: uppercase;
 `;
@@ -246,7 +246,7 @@ export default class TableSelector extends React.PureComponent {
 
   renderDatabaseOption(db) {
     return (
-      <span>
+      <span title={db.database_name}>
         <Label bsStyle="default" className="m-r-5">
           {db.backend}
         </Label>
@@ -257,7 +257,7 @@ export default class TableSelector extends React.PureComponent {
 
   renderTableOption(option) {
     return (
-      <span className="TableLabel">
+      <span className="TableLabel" title={option.label}>
         <span className="m-r-5">
           <small className="text-muted">
             <i

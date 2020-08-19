@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import Security from 'src/profile/components/Security';
 
 import { user, userNoPerms } from './fixtures';

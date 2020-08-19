@@ -25,7 +25,6 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
 import Button from 'src/components/Button';
 import UndoRedoKeylisteners from 'src/dashboard/components/UndoRedoKeylisteners';
-import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 
 describe('Header', () => {
   const props = {
@@ -59,7 +58,6 @@ describe('Header', () => {
     editMode: false,
     setEditMode: () => {},
     showBuilderPane: () => {},
-    builderPaneType: BUILDER_PANE_TYPE.NONE,
     updateCss: () => {},
     hasUnsavedChanges: false,
     maxUndoHistoryExceeded: false,
@@ -111,11 +109,6 @@ describe('Header', () => {
       expect(wrapper.find(HeaderActionsDropdown)).toExist();
     });
 
-    it('should render one Button', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toExist();
-    });
-
     it('should not set up undo/redo', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(UndoRedoKeylisteners)).not.toExist();
@@ -152,11 +145,6 @@ describe('Header', () => {
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(HeaderActionsDropdown)).toExist();
-    });
-
-    it('should render one Button', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toExist();
     });
 
     it('should not set up undo/redo', () => {
@@ -199,7 +187,7 @@ describe('Header', () => {
 
     it('should render five Buttons', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toHaveLength(5);
+      expect(wrapper.find(Button)).toHaveLength(4);
     });
 
     it('should set up undo/redo', () => {
@@ -237,11 +225,6 @@ describe('Header', () => {
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(HeaderActionsDropdown)).toExist();
-    });
-
-    it('should render one Button', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toExist();
     });
 
     it('should not set up undo/redo', () => {

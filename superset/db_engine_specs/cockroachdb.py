@@ -19,3 +19,4 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec
 
 class CockroachDbEngineSpec(PostgresEngineSpec):
     engine = "cockroachdb"
+    engine_name = "CockroachDB"

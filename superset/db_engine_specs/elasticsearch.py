@@ -23,6 +23,7 @@ from superset.utils import core as utils
 
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "elasticsearch"
+    engine_name = "ElasticSearch"
     time_groupby_inline = True
     time_secondary_columns = True
     allows_joins = False

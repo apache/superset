@@ -27,6 +27,7 @@ import FormRow from 'src/components/FormRow';
 import datasources from '../../../fixtures/mockDatasource';
 
 const defaultProps = {
+  label: 'some label',
   datasource: datasources['7__table'],
   onChange: sinon.spy(),
 };
@@ -51,6 +52,9 @@ describe('FilterBoxItemControl', () => {
   it('renderForms does the job', () => {
     const popover = shallow(inst.renderForm());
     expect(popover.find(FormRow)).toHaveLength(8);
+    expect(popover.find(FormRow).get(1).props.control.props.value).toEqual(
+      'some label',
+    );
   });
 
   it('convert type for single value filter_box', () => {

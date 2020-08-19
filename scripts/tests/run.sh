@@ -26,8 +26,8 @@ function reset_db() {
   echo --------------------
   echo Reseting test DB
   echo --------------------
-  docker-compose stop superset-tests-worker
-  RESET_DB_CMD="psql \"postgresql://superset:superset@127.0.0.1:5432\" <<-EOF
+  docker-compose stop superset-tests-worker superset || true
+  RESET_DB_CMD="psql \"postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432\" <<-EOF
     DROP DATABASE IF EXISTS ${DB_NAME};
     CREATE DATABASE ${DB_NAME};
     \\c ${DB_NAME}
@@ -53,10 +53,6 @@ function test_init() {
   echo Superset init
   echo --------------------
   superset init
-  echo --------------------
-  echo Load examples
-  echo --------------------
-  pytest -s tests/load_examples_test.py
 }
 
 #
@@ -142,5 +138,5 @@ fi
 
 if [ $RUN_TESTS -eq 1 ]
 then
-  pytest -x -s --ignore=load_examples_test "${TEST_MODULE}"
+  pytest -x -s "${TEST_MODULE}"
 fi

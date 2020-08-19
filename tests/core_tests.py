@@ -37,6 +37,7 @@ from unittest import mock, skipUnless
 import pandas as pd
 import sqlalchemy as sqla
 
+from superset.utils.core import get_example_database
 from tests.test_app import app  # isort:skip
 import superset.views.utils
 from superset import (
@@ -99,7 +100,7 @@ class TestCore(SupersetTestCase):
 
     def test_slice_endpoint(self):
         self.login(username="admin")
-        slc = self.get_slice("Girls")
+        slc = self.get_slice("Girls", db.session)
         resp = self.get_resp("/superset/slice/{}/".format(slc.id))
         assert "Time Column" in resp
         assert "List Roles" in resp
@@ -113,7 +114,7 @@ class TestCore(SupersetTestCase):
 
     def test_viz_cache_key(self):
         self.login(username="admin")
-        slc = self.get_slice("Girls")
+        slc = self.get_slice("Girls", db.session)
 
         viz = slc.viz
         qobj = viz.query_obj()
@@ -146,6 +147,9 @@ class TestCore(SupersetTestCase):
 
     def test_get_superset_tables_substr(self):
         example_db = utils.get_example_database()
+        if example_db.backend == "presto":
+            # TODO: change table to the real table that is in examples.
+            return
         self.login(username="admin")
         schema_name = self.default_schema_backend_map[example_db.backend]
         uri = f"superset/tables/{example_db.id}/{schema_name}/ab_role/"
@@ -229,7 +233,7 @@ class TestCore(SupersetTestCase):
     def test_save_slice(self):
         self.login(username="admin")
         slice_name = f"Energy Sankey"
-        slice_id = self.get_slice(slice_name).id
+        slice_id = self.get_slice(slice_name, db.session).id
         copy_name_prefix = "Test Sankey"
         copy_name = f"{copy_name_prefix}[save]{random.random()}"
         tbl_id = self.table_ids.get("energy_usage")
@@ -295,7 +299,7 @@ class TestCore(SupersetTestCase):
     def test_filter_endpoint(self):
         self.login(username="admin")
         slice_name = "Energy Sankey"
-        slice_id = self.get_slice(slice_name).id
+        slice_id = self.get_slice(slice_name, db.session).id
         db.session.commit()
         tbl_id = self.table_ids.get("energy_usage")
         table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
@@ -315,7 +319,9 @@ class TestCore(SupersetTestCase):
     def test_slice_data(self):
         # slice data should have some required attributes
         self.login(username="admin")
-        slc = self.get_slice(slice_name="Girls", expunge_from_session=False)
+        slc = self.get_slice(
+            slice_name="Girls", session=db.session, expunge_from_session=False
+        )
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
         assert "modified" in slc_data_attributes
@@ -355,8 +361,8 @@ class TestCore(SupersetTestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_get_user_slices_for_owners(self):
-        self.login(username="admin")
-        user = security_manager.find_user("admin")
+        self.login(username="alpha")
+        user = security_manager.find_user("alpha")
         slice_name = "Girls"
 
         # ensure user is not owner of any slices
@@ -366,7 +372,9 @@ class TestCore(SupersetTestCase):
         self.assertEqual(data, [])
 
         # make user owner of slice and verify that endpoint returns said slice
-        slc = self.get_slice(slice_name=slice_name, expunge_from_session=False)
+        slc = self.get_slice(
+            slice_name=slice_name, session=db.session, expunge_from_session=False
+        )
         slc.owners = [user]
         db.session.merge(slc)
         db.session.commit()
@@ -377,7 +385,9 @@ class TestCore(SupersetTestCase):
         self.assertEqual(data[0]["title"], slice_name)
 
         # remove ownership and ensure user no longer gets slice
-        slc = self.get_slice(slice_name=slice_name, expunge_from_session=False)
+        slc = self.get_slice(
+            slice_name=slice_name, session=db.session, expunge_from_session=False
+        )
         slc.owners = []
         db.session.merge(slc)
         db.session.commit()
@@ -555,7 +565,7 @@ class TestCore(SupersetTestCase):
         db.session.commit()
 
     def test_warm_up_cache(self):
-        slc = self.get_slice("Girls")
+        slc = self.get_slice("Girls", db.session)
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
         self.assertEqual(
             data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
@@ -631,13 +641,17 @@ class TestCore(SupersetTestCase):
 
     def test_extra_table_metadata(self):
         self.login("admin")
-        dbid = utils.get_example_database().id
+        example_db = utils.get_example_database()
+        schema = "default" if example_db.backend == "presto" else "superset"
         self.get_json_resp(
-            f"/superset/extra_table_metadata/{dbid}/birth_names/superset/"
+            f"/superset/extra_table_metadata/{example_db.id}/birth_names/{schema}/"
         )
 
     def test_process_template(self):
         maindb = utils.get_example_database()
+        if maindb.backend == "presto":
+            # TODO: make it work for presto
+            return
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
@@ -645,6 +659,9 @@ class TestCore(SupersetTestCase):
 
     def test_get_template_kwarg(self):
         maindb = utils.get_example_database()
+        if maindb.backend == "presto":
+            # TODO: make it work for presto
+            return
         s = "{{ foo }}"
         tp = jinja_context.get_template_processor(database=maindb, foo="bar")
         rendered = tp.process_template(s)
@@ -652,12 +669,18 @@ class TestCore(SupersetTestCase):
 
     def test_template_kwarg(self):
         maindb = utils.get_example_database()
+        if maindb.backend == "presto":
+            # TODO: make it work for presto
+            return
         s = "{{ foo }}"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(s, foo="bar")
         self.assertEqual("bar", rendered)
 
     def test_templated_sql_json(self):
+        if utils.get_example_database().backend == "presto":
+            # TODO: make it work for presto
+            return
         self.login("admin")
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"
         data = self.run_sql(sql, "fdaklj3ws")
@@ -717,10 +740,14 @@ class TestCore(SupersetTestCase):
         """Test custom template processor is ignored for a difference backend
         database."""
         maindb = utils.get_example_database()
-        sql = "SELECT '$DATE()'"
+        sql = (
+            "SELECT '$DATE()'"
+            if maindb.backend != "presto"
+            else f"SELECT '{datetime.date.today().isoformat()}'"
+        )
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
-        self.assertEqual(sql, rendered)
+        assert sql == rendered
 
     @mock.patch("tests.superset_test_custom_template_processors.datetime")
     @mock.patch("superset.sql_lab.get_sql_results")
@@ -763,7 +790,7 @@ class TestCore(SupersetTestCase):
 
     def test_user_profile(self, username="admin"):
         self.login(username=username)
-        slc = self.get_slice("Girls")
+        slc = self.get_slice("Girls", db.session)
 
         # Setting some faves
         url = f"/superset/favstar/Slice/{slc.id}/select/"
@@ -817,215 +844,6 @@ class TestCore(SupersetTestCase):
 
         form_get = self.get_resp("/csvtodatabaseview/form")
         self.assertIn("CSV to Database configuration", form_get)
-
-    def upload_csv(
-        self, filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
-    ):
-        form_data = {
-            "csv_file": open(filename, "rb"),
-            "sep": ",",
-            "name": table_name,
-            "con": utils.get_example_database().id,
-            "if_exists": "fail",
-            "index_label": "test_label",
-            "mangle_dupe_cols": False,
-        }
-        if extra:
-            form_data.update(extra)
-        return self.get_resp("/csvtodatabaseview/form", data=form_data)
-
-    def upload_excel(
-        self, filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
-    ):
-        form_data = {
-            "excel_file": open(filename, "rb"),
-            "name": table_name,
-            "con": utils.get_example_database().id,
-            "sheet_name": "Sheet1",
-            "if_exists": "fail",
-            "index_label": "test_label",
-            "mangle_dupe_cols": False,
-        }
-        if extra:
-            form_data.update(extra)
-        return self.get_resp("/exceltodatabaseview/form", data=form_data)
-
-    @mock.patch(
-        "superset.models.core.config",
-        {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": lambda d, u: ["admin_database"]},
-    )
-    def test_import_csv_enforced_schema(self):
-        if utils.get_example_database().backend == "sqlite":
-            # sqlite doesn't support schema / database creation
-            return
-        self.login(username="admin")
-        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
-        full_table_name = f"admin_database.{table_name}"
-        filename = "testCSV.csv"
-        self.create_sample_csvfile(filename, ["a,b", "john,1", "paul,2"])
-        try:
-            self.enable_csv_upload(utils.get_example_database())
-
-            # no schema specified, fail upload
-            resp = self.upload_csv(filename, table_name)
-            self.assertIn(
-                'Database "examples" schema "None" is not allowed for csv uploads', resp
-            )
-
-            # user specified schema matches the expected schema, append
-            success_msg = f'CSV file "{filename}" uploaded to table "{full_table_name}"'
-            resp = self.upload_csv(
-                filename,
-                table_name,
-                extra={"schema": "admin_database", "if_exists": "append"},
-            )
-            self.assertIn(success_msg, resp)
-
-            resp = self.upload_csv(
-                filename,
-                table_name,
-                extra={"schema": "admin_database", "if_exists": "replace"},
-            )
-            self.assertIn(success_msg, resp)
-
-            # user specified schema doesn't match, fail
-            resp = self.upload_csv(filename, table_name, extra={"schema": "gold"})
-            self.assertIn(
-                'Database "examples" schema "gold" is not allowed for csv uploads',
-                resp,
-            )
-        finally:
-            os.remove(filename)
-
-    def test_import_csv_explore_database(self):
-        if utils.get_example_database().backend == "sqlite":
-            # sqlite doesn't support schema / database creation
-            return
-        explore_db_id = utils.get_example_database().id
-
-        upload_db = utils.get_or_create_db(
-            "csv_explore_db", app.config["SQLALCHEMY_DATABASE_URI"]
-        )
-        upload_db_id = upload_db.id
-        extra = upload_db.get_extra()
-        extra["explore_database_id"] = explore_db_id
-        upload_db.extra = json.dumps(extra)
-        db.session.commit()
-
-        self.login(username="admin")
-        self.enable_csv_upload(DatasetDAO.get_database_by_id(upload_db_id))
-        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
-
-        f = "testCSV.csv"
-        self.create_sample_csvfile(f, ["a,b", "john,1", "paul,2"])
-        # initial upload with fail mode
-        resp = self.upload_csv(f, table_name)
-        self.assertIn(f'CSV file "{f}" uploaded to table "{table_name}"', resp)
-        table = self.get_table_by_name(table_name)
-        self.assertEqual(table.database_id, explore_db_id)
-
-        # cleanup
-        db.session.delete(table)
-        db.session.delete(DatasetDAO.get_database_by_id(upload_db_id))
-        db.session.commit()
-        os.remove(f)
-
-    def test_import_csv(self):
-        self.login(username="admin")
-        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
-
-        f1 = "testCSV.csv"
-        self.create_sample_csvfile(f1, ["a,b", "john,1", "paul,2"])
-        f2 = "testCSV2.csv"
-        self.create_sample_csvfile(f2, ["b,c,d", "john,1,x", "paul,2,"])
-        self.enable_csv_upload(utils.get_example_database())
-
-        try:
-            success_msg_f1 = f'CSV file "{f1}" uploaded to table "{table_name}"'
-
-            # initial upload with fail mode
-            resp = self.upload_csv(f1, table_name)
-            self.assertIn(success_msg_f1, resp)
-
-            # upload again with fail mode; should fail
-            fail_msg = f'Unable to upload CSV file "{f1}" to table "{table_name}"'
-            resp = self.upload_csv(f1, table_name)
-            self.assertIn(fail_msg, resp)
-
-            # upload again with append mode
-            resp = self.upload_csv(f1, table_name, extra={"if_exists": "append"})
-            self.assertIn(success_msg_f1, resp)
-
-            # upload again with replace mode
-            resp = self.upload_csv(f1, table_name, extra={"if_exists": "replace"})
-            self.assertIn(success_msg_f1, resp)
-
-            # try to append to table from file with different schema
-            resp = self.upload_csv(f2, table_name, extra={"if_exists": "append"})
-            fail_msg_f2 = f'Unable to upload CSV file "{f2}" to table "{table_name}"'
-            self.assertIn(fail_msg_f2, resp)
-
-            # replace table from file with different schema
-            resp = self.upload_csv(f2, table_name, extra={"if_exists": "replace"})
-            success_msg_f2 = f'CSV file "{f2}" uploaded to table "{table_name}"'
-            self.assertIn(success_msg_f2, resp)
-
-            table = self.get_table_by_name(table_name)
-            # make sure the new column name is reflected in the table metadata
-            self.assertIn("d", table.column_names)
-
-            # null values are set
-            self.upload_csv(
-                f2,
-                table_name,
-                extra={"null_values": '["", "john"]', "if_exists": "replace"},
-            )
-            # make sure that john and empty string are replaced with None
-            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
-            assert data == [(None, 1, "x"), ("paul", 2, None)]
-
-            # default null values
-            self.upload_csv(f2, table_name, extra={"if_exists": "replace"})
-            # make sure that john and empty string are replaced with None
-            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
-            assert data == [("john", 1, "x"), ("paul", 2, None)]
-
-        finally:
-            os.remove(f1)
-            os.remove(f2)
-
-    def test_import_excel(self):
-        self.login(username="admin")
-        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
-        f1 = "testExcel.xlsx"
-        self.create_sample_excelfile(f1, {"a": ["john", "paul"], "b": [1, 2]})
-        self.enable_csv_upload(utils.get_example_database())
-
-        try:
-            success_msg_f1 = f'Excel file "{f1}" uploaded to table "{table_name}"'
-
-            # initial upload with fail mode
-            resp = self.upload_excel(f1, table_name)
-            self.assertIn(success_msg_f1, resp)
-
-            # upload again with fail mode; should fail
-            fail_msg = f'Unable to upload Excel file "{f1}" to table "{table_name}"'
-            resp = self.upload_excel(f1, table_name)
-            self.assertIn(fail_msg, resp)
-
-            # upload again with append mode
-            resp = self.upload_excel(f1, table_name, extra={"if_exists": "append"})
-            self.assertIn(success_msg_f1, resp)
-
-            # upload again with replace mode
-            resp = self.upload_excel(f1, table_name, extra={"if_exists": "replace"})
-            self.assertIn(success_msg_f1, resp)
-
-            # make sure that john and empty string are replaced with None
-            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
-            assert data == [(0, "john", 1), (1, "paul", 2)]
-        finally:
-            os.remove(f1)
 
     def test_dataframe_timezone(self):
         tz = pytz.FixedOffset(60)
@@ -1383,6 +1201,25 @@ class TestCore(SupersetTestCase):
         extra["explore_database_id"] = explore_database.id
         database.extra = json.dumps(extra)
         self.assertEqual(database.explore_database_id, explore_database.id)
+
+    def test_get_column_names_from_metric(self):
+        simple_metric = {
+            "expressionType": utils.AdhocMetricExpressionType.SIMPLE.value,
+            "column": {"column_name": "my_col"},
+            "aggregate": "SUM",
+            "label": "My Simple Label",
+        }
+        assert utils.get_column_name_from_metric(simple_metric) == "my_col"
+
+        sql_metric = {
+            "expressionType": utils.AdhocMetricExpressionType.SQL.value,
+            "sqlExpression": "SUM(my_label)",
+            "label": "My SQL Label",
+        }
+        assert utils.get_column_name_from_metric(sql_metric) is None
+        assert utils.get_column_names_from_metrics([simple_metric, sql_metric]) == [
+            "my_col"
+        ]
 
 
 if __name__ == "__main__":

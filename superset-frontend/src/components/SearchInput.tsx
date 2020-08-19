@@ -49,20 +49,18 @@ const commonStyles = `
   position: absolute;
   z-index: 2;
   display: block;
-  width: 28px;
-  height: 28px;
   cursor: pointer;
 `;
 const SearchIcon = styled(Icon)`
   ${commonStyles}
-  top: 2px;
+  top: 1px;
   left: 2px;
 `;
 
 const ClearIcon = styled(Icon)`
   ${commonStyles}
   right: 0px;
-  top: 3px;
+  top: 1px;
 `;
 
 export default function SearchInput({

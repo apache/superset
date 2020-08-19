@@ -35,6 +35,7 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Engine spec for Druid.io"""
 
     engine = "druid"
+    engine_name = "Apache Druid"
     allows_joins = False
     allows_subqueries = True
 

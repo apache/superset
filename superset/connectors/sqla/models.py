@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from collections import OrderedDict
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
@@ -25,6 +26,7 @@ import sqlparse
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
+from jinja2.exceptions import TemplateError
 from sqlalchemy import (
     and_,
     asc,
@@ -40,8 +42,8 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.exc import CompileError
-from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty
+from sqlalchemy.exc import CompileError, SQLAlchemyError
+from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
@@ -51,7 +53,7 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
-from superset.exceptions import DatabaseNotFound
+from superset.exceptions import DatabaseNotFound, QueryObjectValidationError
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -81,6 +83,13 @@ class QueryStringExtended(NamedTuple):
     sql: str
 
 
+@dataclass
+class MetadataResult:
+    added: List[str] = field(default_factory=list)
+    removed: List[str] = field(default_factory=list)
+    modified: List[str] = field(default_factory=list)
+
+
 class AnnotationDatasource(BaseDatasource):
     """ Dummy object so we can query annotations using 'Viz' objects just like
         regular datasources.
@@ -89,6 +98,19 @@ class AnnotationDatasource(BaseDatasource):
     cache_timeout = 0
     changed_on = None
     type = "annotation"
+    column_names = [
+        "created_on",
+        "changed_on",
+        "id",
+        "start_dttm",
+        "end_dttm",
+        "layer_id",
+        "short_descr",
+        "long_descr",
+        "json_metadata",
+        "created_by_fk",
+        "changed_by_fk",
+    ]
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         error_message = None
@@ -255,7 +277,7 @@ class TableColumn(Model, BaseColumn):
                 .first()
             )
 
-        return import_datasource.import_simple_obj(i_column, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
     def dttm_sql_literal(
         self,
@@ -375,7 +397,7 @@ class SqlMetric(Model, BaseMetric):
                 .first()
             )
 
-        return import_datasource.import_simple_obj(i_metric, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
 sqlatable_user = Table(
@@ -503,11 +525,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     @classmethod
     def get_datasource_by_name(
-        cls, datasource_name: str, schema: Optional[str], database_name: str,
+        cls,
+        session: Session,
+        datasource_name: str,
+        schema: Optional[str],
+        database_name: str,
     ) -> Optional["SqlaTable"]:
         schema = schema or None
         query = (
-            db.session.query(cls)
+            session.query(cls)
             .join(Database)
             .filter(cls.table_name == datasource_name)
             .filter(Database.database_name == database_name)
@@ -630,7 +656,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         if self.fetch_values_predicate:
             tp = self.get_template_processor()
-            qry = qry.where(text(tp.process_template(self.fetch_values_predicate)))
+            try:
+                qry = qry.where(text(tp.process_template(self.fetch_values_predicate)))
+            except TemplateError as ex:
+                raise QueryObjectValidationError(
+                    _(
+                        "Error in jinja expression in fetch values predicate: %(msg)s",
+                        msg=ex.message,
+                    )
+                )
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(qry.compile(engine, compile_kwargs={"literal_binds": True}))
@@ -680,7 +714,16 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if self.sql:
             from_sql = self.sql
             if template_processor:
-                from_sql = template_processor.process_template(from_sql)
+                try:
+                    from_sql = template_processor.process_template(from_sql)
+                except TemplateError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in FROM clause: %(msg)s",
+                            msg=ex.message,
+                        )
+                    )
+
             from_sql = sqlparse.format(from_sql, strip_comments=True)
             return TextAsFrom(sa.text(from_sql), []).alias("expr_qry")
         return self.get_sqla_table()
@@ -699,7 +742,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         expression_type = metric.get("expressionType")
         label = utils.get_metric_name(metric)
 
-        if expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES["SIMPLE"]:
+        if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             column_name = metric["column"].get("column_name")
             table_column = columns_by_name.get(column_name)
             if table_column:
@@ -707,7 +750,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             else:
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
-        elif expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES["SQL"]:
+        elif expression_type == utils.AdhocMetricExpressionType.SQL:
             sqla_metric = literal_column(metric.get("sqlExpression"))
         else:
             return None
@@ -726,10 +769,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         :returns: A list of SQL clauses to be ANDed together.
         :rtype: List[str]
         """
-        return [
-            text("({})".format(template_processor.process_template(f.clause)))
-            for f in security_manager.get_rls_filters(self)
-        ]
+        try:
+            return [
+                text("({})".format(template_processor.process_template(f.clause)))
+                for f in security_manager.get_rls_filters(self)
+            ]
+        except TemplateError as ex:
+            raise QueryObjectValidationError(
+                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
+            )
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
@@ -787,7 +835,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         metrics_by_name: Dict[str, SqlMetric] = {m.metric_name: m for m in self.metrics}
 
         if not granularity and is_timeseries:
-            raise Exception(
+            raise QueryObjectValidationError(
                 _(
                     "Datetime column not provided as part table configuration "
                     "and is required by this type of chart"
@@ -798,7 +846,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             and not columns
             and (is_sip_38 or (not is_sip_38 and not groupby))
         ):
-            raise Exception(_("Empty query?"))
+            raise QueryObjectValidationError(_("Empty query?"))
         metrics_exprs: List[ColumnElement] = []
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
@@ -807,7 +855,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             elif isinstance(metric, str) and metric in metrics_by_name:
                 metrics_exprs.append(metrics_by_name[metric].get_sqla_col())
             else:
-                raise Exception(_("Metric '%(metric)s' does not exist", metric=metric))
+                raise QueryObjectValidationError(
+                    _("Metric '%(metric)s' does not exist", metric=metric)
+                )
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -954,7 +1004,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                             != None
                         )
                     else:
-                        raise Exception(
+                        raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
         if config["ENABLE_ROW_LEVEL_SECURITY"]:
@@ -962,11 +1012,27 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if extras:
             where = extras.get("where")
             if where:
-                where = template_processor.process_template(where)
+                try:
+                    where = template_processor.process_template(where)
+                except TemplateError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in WHERE clause: %(msg)s",
+                            msg=ex.message,
+                        )
+                    )
                 where_clause_and += [sa.text("({})".format(where))]
             having = extras.get("having")
             if having:
-                having = template_processor.process_template(having)
+                try:
+                    having = template_processor.process_template(having)
+                except TemplateError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in HAVING clause: %(msg)s",
+                            msg=ex.message,
+                        )
+                    )
                 having_clause_and += [sa.text("({})".format(having))]
         if granularity:
             qry = qry.where(and_(*(time_filters + where_clause_and)))
@@ -1113,7 +1179,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         ):
             ob = metrics_by_name[timeseries_limit_metric].get_sqla_col()
         else:
-            raise Exception(
+            raise QueryObjectValidationError(
                 _("Metric '%(metric)s' does not exist", metric=timeseries_limit_metric)
             )
 
@@ -1155,7 +1221,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             labels_expected = query_str_ext.labels_expected
             if df is not None and not df.empty:
                 if len(df.columns) != len(labels_expected):
-                    raise Exception(
+                    raise QueryObjectValidationError(
                         f"For {sql}, df.columns: {df.columns}"
                         f" differs from {labels_expected}"
                     )
@@ -1185,52 +1251,68 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     def get_sqla_table_object(self) -> Table:
         return self.database.get_table(self.table_name, schema=self.schema)
 
-    def fetch_metadata(self, commit: bool = True) -> None:
-        """Fetches the metadata for the table and merges it in"""
+    def fetch_metadata(self, commit: bool = True) -> MetadataResult:
+        """
+        Fetches the metadata for the table and merges it in
+
+        :param commit: should the changes be committed or not.
+        :return: Tuple with lists of added, removed and modified column names.
+        """
         try:
-            table_ = self.get_sqla_table_object()
-        except Exception as ex:
-            logger.exception(ex)
-            raise Exception(
+            new_table = self.get_sqla_table_object()
+        except SQLAlchemyError:
+            raise QueryObjectValidationError(
                 _(
-                    "Table [{}] doesn't seem to exist in the specified database, "
-                    "couldn't fetch column information"
-                ).format(self.table_name)
+                    "Table %(table)s doesn't seem to exist in the specified database, "
+                    "couldn't fetch column information",
+                    table=self.table_name,
+                )
             )
 
         metrics = []
         any_date_col = None
         db_engine_spec = self.database.db_engine_spec
         db_dialect = self.database.get_dialect()
-        dbcols = (
-            db.session.query(TableColumn)
-            .filter(TableColumn.table == self)
-            .filter(or_(TableColumn.column_name == col.name for col in table_.columns))
-        )
-        dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
+        old_columns = db.session.query(TableColumn).filter(TableColumn.table == self)
 
-        for col in table_.columns:
+        old_columns_by_name = {col.column_name: col for col in old_columns}
+        results = MetadataResult(
+            removed=[
+                col
+                for col in old_columns_by_name
+                if col not in {col.name for col in new_table.columns}
+            ]
+        )
+
+        # clear old columns before adding modified columns back
+        self.columns = []
+        for col in new_table.columns:
             try:
                 datatype = db_engine_spec.column_datatype_to_string(
                     col.type, db_dialect
                 )
             except Exception as ex:  # pylint: disable=broad-except
                 datatype = "UNKNOWN"
-                logger.error("Unrecognized data type in %s.%s", table_, col.name)
+                logger.error("Unrecognized data type in %s.%s", new_table, col.name)
                 logger.exception(ex)
-            dbcol = dbcols.get(col.name, None)
-            if not dbcol:
-                dbcol = TableColumn(column_name=col.name, type=datatype, table=self)
-                dbcol.is_dttm = dbcol.is_temporal
-                db_engine_spec.alter_new_orm_column(dbcol)
+            old_column = old_columns_by_name.get(col.name, None)
+            if not old_column:
+                results.added.append(col.name)
+                new_column = TableColumn(
+                    column_name=col.name, type=datatype, table=self
+                )
+                new_column.is_dttm = new_column.is_temporal
+                db_engine_spec.alter_new_orm_column(new_column)
             else:
-                dbcol.type = datatype
-            dbcol.groupby = True
-            dbcol.filterable = True
-            self.columns.append(dbcol)
-            if not any_date_col and dbcol.is_temporal:
+                new_column = old_column
+                if new_column.type != datatype:
+                    results.modified.append(col.name)
+                new_column.type = datatype
+            new_column.groupby = True
+            new_column.filterable = True
+            self.columns.append(new_column)
+            if not any_date_col and new_column.is_temporal:
                 any_date_col = col.name
-
         metrics.append(
             SqlMetric(
                 metric_name="count",
@@ -1249,6 +1331,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         db.session.merge(self)
         if commit:
             db.session.commit()
+        return results
 
     @classmethod
     def import_obj(
@@ -1292,15 +1375,24 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 )
 
         return import_datasource.import_datasource(
-            i_datasource, lookup_database, lookup_sqlatable, import_time, database_id,
+            db.session,
+            i_datasource,
+            lookup_database,
+            lookup_sqlatable,
+            import_time,
+            database_id,
         )
 
     @classmethod
     def query_datasources_by_name(
-        cls, database: Database, datasource_name: str, schema: Optional[str] = None,
+        cls,
+        session: Session,
+        database: Database,
+        datasource_name: str,
+        schema: Optional[str] = None,
     ) -> List["SqlaTable"]:
         query = (
-            db.session.query(cls)
+            session.query(cls)
             .filter_by(database_id=database.id)
             .filter_by(table_name=datasource_name)
         )

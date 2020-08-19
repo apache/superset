@@ -33,9 +33,9 @@ import {
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
   SET_DIRECT_PATH,
+  SET_MOUNTED_TAB,
   SET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
-import { BUILDER_PANE_TYPE } from '../util/constants';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
@@ -70,9 +70,6 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         editMode: action.editMode,
-        builderPaneType: action.editMode
-          ? BUILDER_PANE_TYPE.ADD_COMPONENTS
-          : BUILDER_PANE_TYPE.NONE,
       };
     },
     [SET_MAX_UNDO_HISTORY_EXCEEDED]() {
@@ -80,7 +77,7 @@ export default function dashboardStateReducer(state = {}, action) {
       return { ...state, maxUndoHistoryExceeded };
     },
     [SHOW_BUILDER_PANE]() {
-      return { ...state, builderPaneType: action.builderPaneType };
+      return { ...state };
     },
     [SET_COLOR_SCHEME]() {
       return {
@@ -108,7 +105,6 @@ export default function dashboardStateReducer(state = {}, action) {
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
         editMode: false,
-        builderPaneType: BUILDER_PANE_TYPE.NONE,
         updatedColorScheme: false,
       };
     },
@@ -127,8 +123,17 @@ export default function dashboardStateReducer(state = {}, action) {
     [SET_DIRECT_PATH]() {
       return {
         ...state,
+        // change of direct path (tabs) will reset current mounted tab
+        mountedTab: null,
         directPathToChild: action.path,
         directPathLastUpdated: Date.now(),
+      };
+    },
+    [SET_MOUNTED_TAB]() {
+      // set current mounted tab after tab is really mounted to DOM
+      return {
+        ...state,
+        mountedTab: action.mountedTab,
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {

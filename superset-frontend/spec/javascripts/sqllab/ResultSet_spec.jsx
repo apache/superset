@@ -75,7 +75,7 @@ describe('ResultSet', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
     expect(wrapper.find(FilterableTable)).toExist();
   });
-  describe('componentWillReceiveProps', () => {
+  describe('UNSAFE_componentWillReceiveProps', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
     let spy;
     beforeEach(() => {

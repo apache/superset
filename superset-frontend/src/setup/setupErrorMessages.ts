@@ -19,6 +19,7 @@
 import getErrorMessageComponentRegistry from 'src/components/ErrorMessage/getErrorMessageComponentRegistry';
 import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
 import TimeoutErrorMessage from 'src/components/ErrorMessage/TimeoutErrorMessage';
+import DatabaseErrorMessage from 'src/components/ErrorMessage/DatabaseErrorMessage';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
 
@@ -32,6 +33,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.BACKEND_TIMEOUT_ERROR,
     TimeoutErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.GENERIC_DB_ENGINE_ERROR,
+    DatabaseErrorMessage,
   );
   setupErrorMessagesExtra();
 }

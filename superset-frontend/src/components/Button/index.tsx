@@ -55,7 +55,7 @@ const SupersetButton = styled(BootstrapButton)`
     border-radius: ${({ theme }) => theme.borderRadius}px;
     border: none;
     color: ${({ theme }) => theme.colors.secondary.light5};
-    font-size: ${({ theme }) => theme.typography.sizes.s};
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     font-weight: ${({ theme }) => theme.typography.weights.bold};
     min-width: ${({ theme }) => theme.gridUnit * 36}px;
     min-height: ${({ theme }) => theme.gridUnit * 8}px;
@@ -104,10 +104,13 @@ export default function Button(props: ButtonProps) {
     <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
   );
 
+  const whittledProps = { ...buttonProps };
+  delete whittledProps.dropdownItems;
+
   if (dropdownItems) {
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
-        <SupersetButton {...buttonProps} data-toggle="dropdown">
+        <SupersetButton {...whittledProps} data-toggle="dropdown">
           {props.children}
         </SupersetButton>
         <ul className="dropdown-menu">

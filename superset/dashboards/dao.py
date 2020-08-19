@@ -88,31 +88,16 @@ class DashboardDAO(BaseDAO):
     ) -> None:
         positions = data["positions"]
         # find slices in the position data
-        slice_ids = []
-        slice_id_to_name = {}
-        for value in positions.values():
-            if isinstance(value, dict):
-                try:
-                    slice_id = value["meta"]["chartId"]
-                    slice_ids.append(slice_id)
-                    slice_id_to_name[slice_id] = value["meta"]["sliceName"]
-                except KeyError:
-                    pass
+        slice_ids = [
+            value.get("meta", {}).get("chartId")
+            for value in positions.values()
+            if isinstance(value, dict)
+        ]
 
-        current_slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        session = db.session()
+        current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+
         dashboard.slices = current_slices
-
-        # update slice names. this assumes user has permissions to update the slice
-        # we allow user set slice name be empty string
-        for slc in dashboard.slices:
-            try:
-                new_name = slice_id_to_name[slc.id]
-                if slc.slice_name != new_name:
-                    slc.slice_name = new_name
-                    db.session.merge(slc)
-                    db.session.flush()
-            except KeyError:
-                pass
 
         # remove leading and trailing white spaces in the dumped json
         dashboard.position_json = json.dumps(
@@ -152,10 +137,9 @@ class DashboardDAO(BaseDAO):
             key: v for key, v in default_filters_data.items() if int(key) in slice_ids
         }
         md["default_filters"] = json.dumps(applicable_filters)
+        md["color_scheme"] = data.get("color_scheme")
         if data.get("color_namespace"):
             md["color_namespace"] = data.get("color_namespace")
-        if data.get("color_scheme"):
-            md["color_scheme"] = data.get("color_scheme")
         if data.get("label_colors"):
             md["label_colors"] = data.get("label_colors")
         dashboard.json_metadata = json.dumps(md)

@@ -86,8 +86,8 @@ SQLLAB_CTAS_NO_LIMIT = True
 # the PYTHONPATH) in order to allow for local settings to be overridden
 #
 try:
-    from superset_config_docker import *  # noqa
     import superset_config_docker
+    from superset_config_docker import *  # noqa
 
     logger.info(
         f"Loaded your Docker configuration at " f"[{superset_config_docker.__file__}]"

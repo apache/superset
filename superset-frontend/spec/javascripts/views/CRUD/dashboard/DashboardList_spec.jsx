@@ -23,8 +23,10 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
-import ListView from 'src/components/ListView/ListView';
+import ListView from 'src/components/ListView';
+import ListViewCard from 'src/components/ListViewCard';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 
 // store needed for withToasts(DashboardTable)
@@ -49,7 +51,7 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
 }));
 
 fetchMock.get(dashboardsInfoEndpoint, {
-  permissions: ['can_list', 'can_edit'],
+  permissions: ['can_list', 'can_edit', 'can_delete'],
 });
 fetchMock.get(dashboardOwnersEndpoint, {
   result: [],
@@ -88,9 +90,34 @@ describe('DashboardList', () => {
       `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
   });
+
+  it('renders a card view', () => {
+    expect(wrapper.find(ListViewCard)).toExist();
+  });
+
+  it('renders a table view', () => {
+    wrapper.find('[data-test="list-view"]').first().simulate('click');
+    expect(wrapper.find('table')).toExist();
+  });
+
   it('edits', () => {
     expect(wrapper.find(PropertiesModal)).not.toExist();
     wrapper.find('[data-test="pencil"]').first().simulate('click');
     expect(wrapper.find(PropertiesModal)).toExist();
+  });
+
+  it('card view edits', () => {
+    wrapper.find('[data-test="pencil"]').last().simulate('click');
+    expect(wrapper.find(PropertiesModal)).toExist();
+  });
+
+  it('delete', () => {
+    wrapper.find('[data-test="trash"]').first().simulate('click');
+    expect(wrapper.find(ConfirmStatusChange)).toExist();
+  });
+
+  it('card view delete', () => {
+    wrapper.find('[data-test="trash"]').last().simulate('click');
+    expect(wrapper.find(ConfirmStatusChange)).toExist();
   });
 });
