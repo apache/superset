@@ -25,6 +25,7 @@ export default {
   title: 'Label',
   component: Label,
   decorators: [withKnobs],
+  excludeStories: ['bsStyleKnob']
 };
 
 export const bsStyleKnob = {
