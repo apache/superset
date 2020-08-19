@@ -25,6 +25,7 @@ import { withPaddings } from 'storybook-addon-paddings';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import '../src/theme.ts';
+import './storybook.css';
 
 const themeDecorator = storyFn => (
   <ThemeProvider theme={supersetTheme}>{storyFn()}</ThemeProvider>
@@ -42,3 +43,4 @@ addParameters({
     { name: 'Large', value: '64px' },
   ],
 });
+  
