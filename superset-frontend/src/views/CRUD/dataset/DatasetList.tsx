@@ -448,7 +448,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         label: t('Datasets'),
         url: '/tablemodelview/list/',
       },
-      { name: 'Databases', label: t('Databases'), url: '/databaseview/list/' },
+      {
+        name: 'Dasources',
+        label: t('Datasources'),
+        url: '/databaseview/list/',
+      },
       {
         name: 'Saved Queries',
         label: t('Saved Queries'),

@@ -31,6 +31,7 @@ import FlashProvider from 'src/components/FlashProvider';
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
 import ChartList from 'src/views/CRUD/chart/ChartList';
 import DatasetList from 'src/views/CRUD/dataset/DatasetList';
+import DatasourceList from 'src/views/CRUD/datasource/DatasourceList';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
@@ -83,6 +84,11 @@ const App = () => (
               <Route path="/tablemodelview/list/">
                 <ErrorBoundary>
                   <DatasetList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/databaseview/list/">
+                <ErrorBoundary>
+                  <DatasourceList user={user} />
                 </ErrorBoundary>
               </Route>
             </Switch>

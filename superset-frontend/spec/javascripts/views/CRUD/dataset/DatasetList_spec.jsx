@@ -17,11 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatasetList from 'src/views/CRUD/dataset/DatasetList';
 import ListView from 'src/components/ListView';
@@ -30,7 +29,7 @@ import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 
-// store needed for withToasts(datasetTable)
+// store needed for withToasts(DatasetList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
@@ -69,8 +68,6 @@ fetchMock.get(databaseEndpoint, {
 async function mountAndWait(props) {
   const mounted = mount(<DatasetList {...props} />, {
     context: { store },
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
   });
   await waitForComponentToPaint(mounted);
 
