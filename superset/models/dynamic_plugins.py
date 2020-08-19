@@ -26,5 +26,5 @@ class DynamicPlugin(Model, AuditMixinNullable):
     key = Column(Text, unique=True, nullable=False)
     bundle_url = Column(Text, unique=True, nullable=False)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return self.name
