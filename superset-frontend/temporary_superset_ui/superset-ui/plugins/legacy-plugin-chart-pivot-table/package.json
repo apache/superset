@@ -36,6 +36,7 @@
     "@superset-ui/chart": "^0.14.0",
     "@superset-ui/chart-controls": "^0.14.3",
     "@superset-ui/number-format": "^0.14.0",
+    "@superset-ui/time-format": "^0.14.9",
     "@superset-ui/translation": "^0.14.0"
   }
 }
