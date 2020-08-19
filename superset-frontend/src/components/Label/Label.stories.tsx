@@ -64,7 +64,6 @@ export const InteractiveLabel = () => (
         bsStyleKnob.label,
         bsStyleKnob.options,
         bsStyleKnob.defaultValue,
-        bsStyleKnob.groupId,
       )}
       onClick={boolean('Has onClick action', false) ? action('clicked') : undefined}
     >
