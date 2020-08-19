@@ -325,6 +325,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
           )}
           {viewingMode === 'card' && (
             <CardCollection
+              bulkSelectEnabled={bulkSelectEnabled}
               prepareRow={prepareRow}
               renderCard={renderCard}
               rows={rows}

@@ -20,11 +20,12 @@ import React from 'react';
 import { TableInstance } from 'react-table';
 import styled from '@superset-ui/style';
 
-interface Props {
-  renderCard?: (row: any) => React.ReactNode;
-  prepareRow: TableInstance['prepareRow'];
-  rows: TableInstance['rows'];
+interface CardCollectionProps {
+  bulkSelectEnabled?: boolean;
   loading: boolean;
+  prepareRow: TableInstance['prepareRow'];
+  renderCard?: (row: any) => React.ReactNode;
+  rows: TableInstance['rows'];
 }
 
 const CardContainer = styled.div`
@@ -36,19 +37,44 @@ const CardContainer = styled.div`
     ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
+const CardWrapper = styled.div`
+  border: 2px solid transparent;
+  &.card-selected {
+    border: 2px solid ${({ theme }) => theme.colors.primary.base};
+  }
+`;
+
 export default function CardCollection({
-  renderCard,
-  prepareRow,
-  rows,
+  bulkSelectEnabled,
   loading,
-}: Props) {
+  prepareRow,
+  renderCard,
+  rows,
+}: CardCollectionProps) {
+  function handleClick(event: React.FormEvent, onClick: any) {
+    if (bulkSelectEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      onClick();
+    }
+  }
+
   return (
     <CardContainer>
       {rows.map(row => {
         if (!renderCard) return null;
         prepareRow(row);
         return (
-          <div key={row.id}>{renderCard({ ...row.original, loading })}</div>
+          <CardWrapper
+            className={
+              row.isSelected && bulkSelectEnabled ? 'card-selected' : ''
+            }
+            key={row.id}
+            onClick={e => handleClick(e, row.toggleRowSelected())}
+            role="none"
+          >
+            {renderCard({ ...row.original, loading })}
+          </CardWrapper>
         );
       })}
     </CardContainer>
