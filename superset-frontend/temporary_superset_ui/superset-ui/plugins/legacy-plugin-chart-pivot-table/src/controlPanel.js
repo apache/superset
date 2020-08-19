@@ -21,6 +21,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   formatSelectOptions,
+  D3_TIME_FORMAT_OPTIONS,
 } from '@superset-ui/chart-controls';
 
 export default {
@@ -54,28 +55,16 @@ export default {
               ),
             },
           },
+          null,
+        ],
+        [
           {
             name: 'pivot_margins',
             config: {
               type: 'CheckboxControl',
               label: t('Show totals'),
-              renderTrigger: false,
               default: true,
               description: t('Display total row/column'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'number_format',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Number format'),
-              renderTrigger: true,
-              default: 'SMART_NUMBER',
-              choices: D3_FORMAT_OPTIONS,
-              description: D3_FORMAT_DOCS,
             },
           },
           {
@@ -99,6 +88,40 @@ export default {
               label: t('Transpose Pivot'),
               default: false,
               description: t('Swap Groups and Columns'),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Options'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'number_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Number format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+        ],
+        [
+          {
+            name: 'date_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Date format'),
+              renderTrigger: true,
+              choices: D3_TIME_FORMAT_OPTIONS,
+              default: 'smart_date',
+              description: D3_FORMAT_DOCS,
             },
           },
         ],

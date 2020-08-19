@@ -18,15 +18,17 @@
  */
 export default function transformProps(chartProps) {
   const { height, datasource, formData, queryData } = chartProps;
-  const { groupby, numberFormat } = formData;
+  const { timeGrainSqla, groupby, numberFormat, dateFormat } = formData;
   const { columnFormats, verboseMap } = datasource;
 
   return {
-    height,
-    data: queryData.data,
     columnFormats,
-    numGroups: groupby.length,
+    data: queryData.data,
+    dateFormat,
+    granularity: timeGrainSqla,
+    height,
     numberFormat,
+    numGroups: groupby.length,
     verboseMap,
   };
 }
