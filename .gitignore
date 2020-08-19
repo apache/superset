@@ -83,3 +83,4 @@ apache-superset-*.tar.gz*
 messages.mo
 
 docker/requirements-local.txt
+superset-frontend/storybook-static/*
