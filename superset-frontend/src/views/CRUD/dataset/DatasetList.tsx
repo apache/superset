@@ -449,7 +449,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         url: '/tablemodelview/list/',
       },
       {
-        name: 'Dasources',
+        name: 'Datasources',
         label: t('Datasources'),
         url: '/databaseview/list/',
       },
