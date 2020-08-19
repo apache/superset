@@ -7,14 +7,12 @@ def assert_permission_was_created(case, dashboard):
     case.assertEqual(len(security_manager.find_permissions_view_menu(view_menu)), 1)
 
 
-def assert_permission_kept_and_changed(
-    case, view_menu_before_update, updated_dashboard
-):
+def assert_permission_kept_and_changed(case, updated_dashboard, excepted_view_id):
     view_menu_after_title_changed = security_manager.find_view_menu(
         updated_dashboard.view_name
     )
     case.assertIsNotNone(view_menu_after_title_changed)
-    case.assertEqual(view_menu_before_update.id, view_menu_after_title_changed.id)
+    case.assertEqual(view_menu_after_title_changed.id, excepted_view_id)
 
 
 def assert_permissions_were_deleted(case, deleted_dashboard):

@@ -650,9 +650,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard("title1", "slug1", [admin.id])
-        view_menu_before_title_changed = security_manager.find_view_menu(
-            dashboard.view_name
-        )
+        view_menu_id = security_manager.find_view_menu(dashboard.view_name).id
         dashboard_id = dashboard.id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -666,9 +664,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
         self.assertEqual(model.published, self.dashboard_data["published"])
         self.assertEqual(model.owners, [admin])
-        dashboard_utils.assert_permission_kept_and_changed(
-            self, view_menu_before_title_changed, model
-        )
+        dashboard_utils.assert_permission_kept_and_changed(self, model, view_menu_id)
 
         db.session.delete(model)
         db.session.commit()

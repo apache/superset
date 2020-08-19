@@ -167,7 +167,7 @@ class TestDashboard(SupersetTestCase):
     def test_save_dash_with_dashboard_title(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        view_menu_before_title_changed = security_manager.find_view_menu(dash.view_name)
+        view_menu_id = security_manager.find_view_menu(dash.view_name).id
         origin_title = dash.dashboard_title
         positions = self.get_mock_positions(dash)
         data = {
@@ -181,7 +181,7 @@ class TestDashboard(SupersetTestCase):
         updatedDash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.assertEqual(updatedDash.dashboard_title, "new title")
         dashboard_utils.assert_permission_kept_and_changed(
-            self, view_menu_before_title_changed, updatedDash
+            self, updatedDash, view_menu_id
         )
         # bring back dashboard original title
         data["dashboard_title"] = origin_title

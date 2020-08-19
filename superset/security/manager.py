@@ -871,9 +871,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         view_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         view = self.find_view_menu(view_name)
-        connection.execute(
-            view_table.delete().where(self.viewmenu_model.id == view.id)
-        )
+        connection.execute(view_table.delete().where(self.viewmenu_model.id == view.id))
 
     def __set_permission_view(
         self, connection: Connection, permission_name: str, view_name: str
