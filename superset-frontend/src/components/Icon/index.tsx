@@ -19,6 +19,7 @@
 import React, { SVGProps } from 'react';
 import { ReactComponent as CancelXIcon } from 'images/icons/cancel-x.svg';
 import { ReactComponent as CardViewIcon } from 'images/icons/card-view.svg';
+import { ReactComponent as CertifiedIcon } from 'images/icons/certified.svg';
 import { ReactComponent as CheckboxHalfIcon } from 'images/icons/checkbox-half.svg';
 import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
 import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
@@ -46,6 +47,7 @@ import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 type IconName =
   | 'cancel-x'
   | 'card-view'
+  | 'certified'
   | 'check'
   | 'checkbox-half'
   | 'checkbox-off'
@@ -88,6 +90,7 @@ export const iconsRegistry: Record<
   'list-view': ListViewIcon,
   'sort-asc': SortAscIcon,
   'sort-desc': SortDescIcon,
+  certified: CertifiedIcon,
   check: CheckIcon,
   close: CloseIcon,
   compass: CompassIcon,
