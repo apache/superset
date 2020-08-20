@@ -189,6 +189,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
         "expression",
         "table",
         "d3format",
+        "extra",
         "warning_text",
     ]
     description_columns = {
@@ -205,6 +206,14 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
             "formats",
             True,
         ),
+        "extra": utils.markdown(
+            "Extra data to specify metric metadata. Currently supports "
+            'certification data of the format: `{ "certification": "certified_by": '
+            '"Taylor Swift", "details": "This metric is the source of truth." '
+            "} }`. This should be modified from the edit datasource model in "
+            "Explore to ensure correct formatting.",
+            True,
+        ),
     }
     add_columns = edit_columns
     page_size = 500
@@ -216,6 +225,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
         "expression": _("SQL Expression"),
         "table": _("Table"),
         "d3format": _("D3 Format"),
+        "extra": _("Extra"),
         "warning_text": _("Warning Message"),
     }
 

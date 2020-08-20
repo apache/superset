@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -351,6 +352,7 @@ class SqlMetric(Model, BaseMetric):
         foreign_keys=[table_id],
     )
     expression = Column(Text, nullable=False)
+    extra = Column(Text)
 
     export_fields = [
         "metric_name",
@@ -360,6 +362,7 @@ class SqlMetric(Model, BaseMetric):
         "expression",
         "description",
         "d3format",
+        "extra",
         "warning_text",
     ]
     update_from_object_fields = list(
@@ -398,6 +401,32 @@ class SqlMetric(Model, BaseMetric):
             )
 
         return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
+
+    def get_extra_dict(self) -> Dict[str, Any]:
+        try:
+            return json.loads(self.extra)
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+    @property
+    def is_certified(self) -> bool:
+        return bool(self.get_extra_dict().get("certification"))
+
+    @property
+    def certified_by(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @property
+    def certification_details(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("details")
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        attrs = ("is_certified", "certified_by", "certification_details")
+        attr_dict = {s: getattr(self, s) for s in attrs}
+
+        attr_dict.update(super().data)
+        return attr_dict
 
 
 sqlatable_user = Table(
