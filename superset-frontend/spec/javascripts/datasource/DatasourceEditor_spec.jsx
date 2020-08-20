@@ -34,17 +34,6 @@ const props = {
   onChange: () => {},
 };
 
-const extraColumn = {
-  column_name: 'new_column',
-  type: 'VARCHAR(10)',
-  description: null,
-  filterable: true,
-  verbose_name: null,
-  is_dttm: false,
-  expression: '',
-  groupby: true,
-};
-
 const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata/*';
 
 describe('DatasourceEditor', () => {
@@ -85,11 +74,65 @@ describe('DatasourceEditor', () => {
     });
   });
 
-  it('merges columns', () => {
+  it('to add, remove and modify columns accordingly', () => {
+    const columns = [
+      {
+        name: 'ds',
+        type: 'DATETIME',
+        nullable: true,
+        default: '',
+        primary_key: false,
+      },
+      {
+        name: 'gender',
+        type: 'VARCHAR(32)',
+        nullable: true,
+        default: '',
+        primary_key: false,
+      },
+      {
+        name: 'new_column',
+        type: 'VARCHAR(10)',
+        nullable: true,
+        default: '',
+        primary_key: false,
+      },
+    ];
+
     const numCols = props.datasource.columns.length;
     expect(inst.state.databaseColumns).toHaveLength(numCols);
-    inst.mergeColumns([extraColumn]);
-    expect(inst.state.databaseColumns).toHaveLength(numCols + 1);
+    inst.updateColumns(columns);
+    expect(inst.state.databaseColumns).toEqual(
+      expect.arrayContaining([
+        {
+          type: 'DATETIME',
+          description: null,
+          filterable: false,
+          verbose_name: null,
+          is_dttm: true,
+          expression: '',
+          groupby: false,
+          column_name: 'ds',
+        },
+        {
+          type: 'VARCHAR(32)',
+          description: null,
+          filterable: true,
+          verbose_name: null,
+          is_dttm: false,
+          expression: '',
+          groupby: true,
+          column_name: 'gender',
+        },
+        expect.objectContaining({
+          column_name: 'new_column',
+          type: 'VARCHAR(10)',
+        }),
+      ]),
+    );
+    expect(inst.state.databaseColumns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'name' })]),
+    );
   });
 
   it('renders isSqla fields', () => {

@@ -525,7 +525,7 @@ class ChartList extends React.PureComponent<Props, State> {
     return (
       <ListViewCard
         title={props.slice_name}
-        url={props.url}
+        url={this.state.bulkSelectEnabled ? undefined : props.url}
         imgURL={props.thumbnail_url ?? ''}
         imgFallbackURL={'/static/assets/images/chart-card-fallback.png'}
         description={t('Last modified %s', props.changed_on_delta_humanized)}
@@ -540,7 +540,7 @@ class ChartList extends React.PureComponent<Props, State> {
           />
         ))}
         coverRight={
-          <Label className="secondaryLabel">{props.datasource_name_text}</Label>
+          <Label bsStyle="secondary">{props.datasource_name_text}</Label>
         }
         actions={
           <ListViewCard.Actions>

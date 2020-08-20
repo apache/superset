@@ -28,6 +28,7 @@ import Label from 'src/components/Label';
 import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
+import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 
 import getClientErrorObject from '../utils/getClientErrorObject';
 import CheckboxControl from '../explore/components/controls/CheckboxControl';
@@ -56,6 +57,15 @@ const DatasourceContainer = styled.div`
 
   .change-warning .bold {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+`;
+
+const FlexRowContainer = styled.div`
+  align-items: center;
+  display: flex;
+
+  > svg {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
@@ -130,7 +140,7 @@ function ColumnCollectionTable({
             <Field
               fieldKey="python_date_format"
               label={t('Datetime Format')}
-              descr={
+              description={
                 /* Note the fragmented translations may not work. */
                 <div>
                   {t('The pattern of timestamp format. For strings use ')}
@@ -172,7 +182,7 @@ function ColumnCollectionTable({
           ) : (
             v
           ),
-        type: d => <Label bsStyle="s">{d}</Label>,
+        type: d => <Label>{d}</Label>,
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
@@ -289,29 +299,58 @@ export class DatasourceEditor extends React.PureComponent {
     this.validate(this.onChange);
   }
 
-  mergeColumns(cols) {
-    let { databaseColumns } = this.state;
-    let hasChanged;
-    const currentColNames = databaseColumns.map(col => col.column_name);
+  updateColumns(cols) {
+    const { databaseColumns } = this.state;
+    const databaseColumnNames = cols.map(col => col.name);
+    const currentCols = databaseColumns.reduce(
+      (agg, col) => ({
+        ...agg,
+        [col.column_name]: col,
+      }),
+      {},
+    );
+    const finalColumns = [];
+    const results = {
+      added: [],
+      modified: [],
+      removed: databaseColumns
+        .map(col => col.column_name)
+        .filter(col => !databaseColumnNames.includes(col)),
+    };
     cols.forEach(col => {
-      if (currentColNames.indexOf(col.name) < 0) {
-        // Adding columns
-        databaseColumns = databaseColumns.concat([
-          {
-            id: shortid.generate(),
-            column_name: col.name,
-            type: col.type,
-            groupby: true,
-            filterable: true,
-          },
-        ]);
-        hasChanged = true;
+      const currentCol = currentCols[col.name];
+      if (!currentCol) {
+        // new column
+        finalColumns.push({
+          id: shortid.generate(),
+          column_name: col.name,
+          type: col.type,
+          groupby: true,
+          filterable: true,
+        });
+        results.added.push(col.name);
+      } else if (currentCol.type !== col.type) {
+        // modified column
+        finalColumns.push({
+          ...currentCol,
+          type: col.type,
+        });
+        results.modified.push(col.name);
+      } else {
+        // unchanged
+        finalColumns.push(currentCol);
       }
     });
-    if (hasChanged) {
-      this.setColumns({ databaseColumns });
+    if (
+      results.added.length ||
+      results.modified.length ||
+      results.removed.length
+    ) {
+      this.setColumns({ databaseColumns: finalColumns });
     }
+    return results;
   }
+
   syncMetadata() {
     const { datasource } = this.state;
     // Handle carefully when the schema is empty
@@ -326,7 +365,19 @@ export class DatasourceEditor extends React.PureComponent {
 
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
-        this.mergeColumns(json);
+        const results = this.updateColumns(json);
+        if (results.modified.length)
+          this.props.addSuccessToast(
+            t('Modified columns: %s', results.modified.join(', ')),
+          );
+        if (results.removed.length)
+          this.props.addSuccessToast(
+            t('Removed columns: %s', results.removed.join(', ')),
+          );
+        if (results.added.length)
+          this.props.addSuccessToast(
+            t('New columns added: %s', results.added.join(', ')),
+          );
         this.props.addSuccessToast(t('Metadata has been synced'));
         this.setState({ metadataLoading: false });
       })
@@ -419,7 +470,7 @@ export class DatasourceEditor extends React.PureComponent {
                 handleError={this.props.addDangerToast}
               />
             }
-            descr={t(
+            description={t(
               'The pointer to a physical table. Keep in mind that the chart is ' +
                 'associated to this Superset logical table, and this logical table points ' +
                 'the physical table referenced here.',
@@ -436,7 +487,7 @@ export class DatasourceEditor extends React.PureComponent {
         <Field
           fieldKey="default_endpoint"
           label={t('Default URL')}
-          descr={t(
+          description={t(
             'Default URL to redirect to when accessing from the datasource list page',
           )}
           control={<TextControl />}
@@ -444,14 +495,14 @@ export class DatasourceEditor extends React.PureComponent {
         <Field
           fieldKey="filter_select_enabled"
           label={t('Autocomplete filters')}
-          descr={t('Whether to populate autocomplete filters options')}
+          description={t('Whether to populate autocomplete filters options')}
           control={<CheckboxControl />}
         />
         {this.state.isSqla && (
           <Field
             fieldKey="fetch_values_predicate"
             label={t('Autocomplete Query Predicate')}
-            descr={t(
+            description={t(
               'When using "Autocomplete filters", this can be used to improve performance ' +
                 'of the query fetching the values. Use this option to apply a ' +
                 'predicate (WHERE clause) to the query selecting the distinct ' +
@@ -464,7 +515,7 @@ export class DatasourceEditor extends React.PureComponent {
         <Field
           fieldKey="owners"
           label={t('Owners')}
-          descr={t('Owners of the datasource')}
+          description={t('Owners of the datasource')}
           control={
             <SelectAsyncControl
               dataEndpoint="/users/api/read"
@@ -495,7 +546,7 @@ export class DatasourceEditor extends React.PureComponent {
           <Field
             fieldKey="sql"
             label={t('SQL')}
-            descr={t(
+            description={t(
               'When specifying SQL, the datasource acts as a view. ' +
                 'Superset will use this statement as a subquery while grouping and filtering ' +
                 'on the generated parent queries.',
@@ -509,7 +560,7 @@ export class DatasourceEditor extends React.PureComponent {
           <Field
             fieldKey="json"
             label={t('JSON')}
-            descr={
+            description={
               <div>{t('The JSON metric or post aggregation definition.')}</div>
             }
             control={
@@ -520,7 +571,7 @@ export class DatasourceEditor extends React.PureComponent {
         <Field
           fieldKey="cache_timeout"
           label={t('Cache Timeout')}
-          descr={t(
+          description={t(
             'The duration of time in seconds before the cache is invalidated',
           )}
           control={<TextControl />}
@@ -534,7 +585,7 @@ export class DatasourceEditor extends React.PureComponent {
           <Field
             fieldKey="template_params"
             label={t('Template parameters')}
-            descr={t(
+            description={t(
               'A set of parameters that become available in the query using Jinja templating syntax',
             )}
             control={<TextControl />}
@@ -601,7 +652,7 @@ export class DatasourceEditor extends React.PureComponent {
         }}
         expandFieldset={
           <FormContainer>
-            <Fieldset>
+            <Fieldset compact>
               <Field
                 fieldKey="verbose_name"
                 label={t('Label')}
@@ -625,6 +676,22 @@ export class DatasourceEditor extends React.PureComponent {
                 )}
                 control={<TextControl placeholder={t('Warning Message')} />}
               />
+              <Field
+                label={t('Certified By')}
+                fieldKey="certified_by"
+                description={t(
+                  'Person or group that has certified this metric',
+                )}
+                control={<TextControl placeholder={t('Certified By')} />}
+              />
+              <Field
+                label={t('Certification Details')}
+                fieldKey="certification_details"
+                description={t('Details of the certification')}
+                control={
+                  <TextControl placeholder={t('Certification Details')} />
+                }
+              />
             </Fieldset>
           </FormContainer>
         }
@@ -637,8 +704,16 @@ export class DatasourceEditor extends React.PureComponent {
           expression: '',
         })}
         itemRenderers={{
-          metric_name: (v, onChange) => (
-            <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+          metric_name: (v, onChange, _, record) => (
+            <FlexRowContainer>
+              {record.is_certified && (
+                <CertifiedIconWithTooltip
+                  certifiedBy={record.certified_by}
+                  details={record.certification_details}
+                />
+              )}
+              <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+            </FlexRowContainer>
           ),
           verbose_name: (v, onChange) => (
             <EditableTitle canEdit title={v} onSaveTitle={onChange} />

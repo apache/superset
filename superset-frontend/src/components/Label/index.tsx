@@ -34,48 +34,78 @@ export interface LabelProps {
 }
 
 const SupersetLabel = styled(BootstrapLabel)`
-  &.supersetLabel {
-    border-radius: ${({ theme }) => theme.borderRadius}px;
-    border: none;
-    color: ${({ theme }) => theme.colors.secondary.light5};
-    font-size: ${({ theme }) => theme.typography.sizes.s};
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-    min-width: ${({ theme }) => theme.gridUnit * 36}px;
-    min-height: ${({ theme }) => theme.gridUnit * 8}px;
-    text-transform: uppercase;
-    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
-    &:first-of-type {
-      margin-left: 0;
-    }
-
-    i {
-      padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
-    }
-
-    &.primary {
-      background-color: ${({ theme }) => theme.colors.primary.base};
-    }
-    &.secondary {
-      color: ${({ theme }) => theme.colors.primary.base};
-      background-color: ${({ theme }) => theme.colors.primary.light4};
-    }
-    &.danger {
-      background-color: ${({ theme }) => theme.colors.error.base};
+  cursor: ${({ onClick }) => (onClick ? 'pointer' : 'default')};
+  transition: background-color ${({ theme }) => theme.transitionTiming}s;
+  &.label-warning {
+    background-color: ${({ theme }) => theme.colors.warning.base};
+    &:hover {
+      background-color: ${({ theme, onClick }) =>
+        onClick ? theme.colors.warning.dark1 : theme.colors.warning.base};
     }
   }
-
-  &.secondaryLabel {
+  &.label-danger {
+    background-color: ${({ theme }) => theme.colors.error.base};
+    &:hover {
+      background-color: ${({ theme, onClick }) =>
+        onClick ? theme.colors.error.dark1 : theme.colors.error.base};
+    }
+  }
+  &.label-success {
+    background-color: ${({ theme }) => theme.colors.success.base};
+    &:hover {
+      background-color: ${({ theme, onClick }) =>
+        onClick ? theme.colors.success.dark1 : theme.colors.success.base};
+    }
+  }
+  &.label-default {
+    background-color: ${({ theme }) => theme.colors.grayscale.base};
+    &:hover {
+      background-color: ${({ theme, onClick }) =>
+        onClick ? theme.colors.grayscale.dark1 : theme.colors.grayscale.base};
+    }
+  }
+  &.label-info {
+    background-color: ${({ theme }) => theme.colors.info};
+    &:hover {
+      background-color: ${({ theme, onClick }) =>
+        onClick ? theme.colors.info.dark1 : theme.colors.info.base};
+    }
+  }
+  &.label-primary {
+    background-color: ${({ theme }) => theme.colors.primary.base};
+    &:hover {
+      background-color: ${({ theme, onClick }) =>
+        onClick ? theme.colors.primary.dark1 : theme.colors.primary.base};
+    }
+  }
+  /* note this is NOT a supported bootstrap label Style... this overrides default */
+  &.label-secondary {
     background-color: ${({ theme }) => theme.colors.secondary.base};
     &:hover {
-      background-color: ${({ theme }) => theme.colors.secondary.base};
+      background-color: ${({ theme, onClick }) =>
+        onClick ? theme.colors.secondary.dark1 : theme.colors.secondary.base};
     }
   }
 `;
 
 export default function Label(props: LabelProps) {
+  const officialBootstrapStyles = [
+    'success',
+    'warning',
+    'danger',
+    'info',
+    'default',
+    'primary',
+  ];
   const labelProps = {
     ...props,
     placement: props.placement || 'top',
+    bsStyle: officialBootstrapStyles.includes(props.bsStyle || '')
+      ? props.bsStyle
+      : 'default',
+    className: officialBootstrapStyles.includes(props.bsStyle || '')
+      ? undefined
+      : `label-${props.bsStyle}`,
   };
   return <SupersetLabel {...labelProps}>{props.children}</SupersetLabel>;
 }

@@ -213,7 +213,7 @@ export default class VizTypeControl extends React.PureComponent {
           onHide={this.toggleModal}
           onEnter={this.focusSearch}
           onExit={this.setSearchRef}
-          bsSize="lg"
+          bsSize="large"
         >
           <Modal.Header closeButton>
             <Modal.Title>{t('Select a visualization type')}</Modal.Title>
