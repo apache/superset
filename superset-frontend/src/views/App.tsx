@@ -33,12 +33,12 @@ import ChartList from 'src/views/CRUD/chart/ChartList';
 import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
 import DatasourceList from 'src/views/CRUD/data/database/DatabaseList';
 
-import messageToastReducer from '../messageToasts/reducers';
-import { initEnhancer } from '../reduxUtils';
-import setupApp from '../setup/setupApp';
-import setupPlugins from '../setup/setupPlugins';
-import Welcome from './Welcome';
-import ToastPresenter from '../messageToasts/containers/ToastPresenter';
+import messageToastReducer from 'src/messageToasts/reducers';
+import { initEnhancer } from 'src/reduxUtils';
+import setupApp from 'src/setup/setupApp';
+import setupPlugins from 'src/setup/setupPlugins';
+import Welcome from 'src/views/CRUD/welcome/Welcome';
+import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 
 setupApp();
 setupPlugins();
