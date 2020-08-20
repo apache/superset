@@ -21,18 +21,18 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 
-import DatasourceList from 'src/views/CRUD/datasource/DatasourceList';
+import DatabaseList from 'src/views/CRUD/database/DatabaseList';
 import SubMenu from 'src/components/Menu/SubMenu';
 
-// store needed for withToasts(DatsourceList)
+// store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-describe('DatasourceList', () => {
-  const wrapper = mount(<DatasourceList />, { context: { store } });
+describe('DatabaseList', () => {
+  const wrapper = mount(<DatabaseList />, { context: { store } });
 
   it('renders', () => {
-    expect(wrapper.find(DatasourceList)).toExist();
+    expect(wrapper.find(DatabaseList)).toExist();
   });
 
   it('renders a SubMenu', () => {

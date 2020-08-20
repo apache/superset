@@ -31,7 +31,7 @@ import FlashProvider from 'src/components/FlashProvider';
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
 import ChartList from 'src/views/CRUD/chart/ChartList';
 import DatasetList from 'src/views/CRUD/dataset/DatasetList';
-import DatasourceList from 'src/views/CRUD/datasource/DatasourceList';
+import DatasourceList from 'src/views/CRUD/database/DatabaseList';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';

@@ -32,7 +32,7 @@ function DatasourceList({
   addSuccessToast,
 }: DatasourceListProps) {
   const menuData: SubMenuProps = {
-    activeChild: 'Datasources',
+    activeChild: 'Databases',
     name: t('Data'),
     children: [
       {
@@ -41,8 +41,8 @@ function DatasourceList({
         url: '/tablemodelview/list/',
       },
       {
-        name: 'Datasources',
-        label: t('Datasources'),
+        name: 'Databases',
+        label: t('Databases'),
         url: '/databaseview/list/',
       },
       {
