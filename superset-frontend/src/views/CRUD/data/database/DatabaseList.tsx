@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
 import React from 'react';
 
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import { commonMenuData } from 'src/views/CRUD/data/common';
 
 interface DatasourceListProps {
   addDangerToast: (msg: string) => void;
@@ -33,24 +33,7 @@ function DatasourceList({
 }: DatasourceListProps) {
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
-    name: t('Data'),
-    children: [
-      {
-        name: 'Datasets',
-        label: t('Datasets'),
-        url: '/tablemodelview/list/',
-      },
-      {
-        name: 'Databases',
-        label: t('Databases'),
-        url: '/databaseview/list/',
-      },
-      {
-        name: 'Saved Queries',
-        label: t('Saved Queries'),
-        url: '/sqllab/my_queries/',
-      },
-    ],
+    ...commonMenuData,
   };
 
   return (

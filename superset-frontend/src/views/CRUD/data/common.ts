@@ -16,26 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { t } from '@superset-ui/translation';
 
-import DatabaseList from 'src/views/CRUD/database/DatabaseList';
-import SubMenu from 'src/components/Menu/SubMenu';
-
-// store needed for withToasts(DatabaseList)
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
-
-describe('DatabaseList', () => {
-  const wrapper = mount(<DatabaseList />, { context: { store } });
-
-  it('renders', () => {
-    expect(wrapper.find(DatabaseList)).toExist();
-  });
-
-  it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
-  });
-});
+export const commonMenuData = {
+  name: t('Data'),
+  children: [
+    {
+      name: 'Datasets',
+      label: t('Datasets'),
+      url: '/tablemodelview/list/',
+    },
+    {
+      name: 'Databases',
+      label: t('Databases'),
+      url: '/databaseview/list/',
+    },
+    {
+      name: 'Saved Queries',
+      label: t('Saved Queries'),
+      url: '/sqllab/my_queries/',
+    },
+  ],
+};

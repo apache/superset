@@ -21,7 +21,7 @@ import { Modal } from 'react-bootstrap';
 import { styled, supersetTheme } from '@superset-ui/style';
 import { t } from '@superset-ui/translation';
 import { noOp } from 'src/utils/common';
-import Button from 'src/views/CRUD/dataset/Button';
+import Button from 'src/views/CRUD/data/dataset/Button';
 
 import Icon from '../Icon';
 import { ErrorLevel, ErrorSource } from './types';

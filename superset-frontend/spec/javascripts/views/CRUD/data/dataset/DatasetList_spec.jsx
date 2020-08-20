@@ -22,7 +22,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 
-import DatasetList from 'src/views/CRUD/dataset/DatasetList';
+import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
 import ListView from 'src/components/ListView';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
