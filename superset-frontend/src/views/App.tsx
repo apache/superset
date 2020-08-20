@@ -30,14 +30,15 @@ import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
 import ChartList from 'src/views/CRUD/chart/ChartList';
-import DatasetList from 'src/views/CRUD/dataset/DatasetList';
+import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
+import DatasourceList from 'src/views/CRUD/data/database/DatabaseList';
 
-import messageToastReducer from '../messageToasts/reducers';
-import { initEnhancer } from '../reduxUtils';
-import setupApp from '../setup/setupApp';
-import setupPlugins from '../setup/setupPlugins';
-import Welcome from './Welcome';
-import ToastPresenter from '../messageToasts/containers/ToastPresenter';
+import messageToastReducer from 'src/messageToasts/reducers';
+import { initEnhancer } from 'src/reduxUtils';
+import setupApp from 'src/setup/setupApp';
+import setupPlugins from 'src/setup/setupPlugins';
+import Welcome from 'src/views/CRUD/welcome/Welcome';
+import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 
 setupApp();
 setupPlugins();
@@ -83,6 +84,11 @@ const App = () => (
               <Route path="/tablemodelview/list/">
                 <ErrorBoundary>
                   <DatasetList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/databaseview/list/">
+                <ErrorBoundary>
+                  <DatasourceList user={user} />
                 </ErrorBoundary>
               </Route>
             </Switch>

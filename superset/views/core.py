@@ -2539,8 +2539,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         return self.render_template(
-            "superset/welcome.html",
-            entry="welcome",
+            "superset/crud_views.html",
+            entry="crudViews",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
