@@ -65,7 +65,7 @@
     "@storybook/addon-knobs": "^5.3.19",
     "@superset-ui/chart": "^0.14.9",
     "@superset-ui/chart-composition": "^0.14.9",
-    "@superset-ui/chart-controls": "^0.14.9",
+    "@superset-ui/chart-controls": "^0.14.22",
     "@superset-ui/color": "^0.14.9",
     "@superset-ui/connection": "^0.14.19",
     "@superset-ui/core": "^0.14.20",
