@@ -17,30 +17,30 @@
  * under the License.
  */
 import React from 'react';
-import { Panel, Row, Tab } from 'react-bootstrap';
-import { shallow } from 'enzyme';
 
-import Welcome from 'src/welcome/Welcome';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import { commonMenuData } from 'src/views/CRUD/data/common';
 
-describe('Welcome', () => {
-  const mockedProps = {
-    user: {
-      username: 'alpha',
-      firstName: 'alpha',
-      lastName: 'alpha',
-      createdOn: '2016-11-11T12:34:17',
-      userId: 5,
-      email: 'alpha@alpha.com',
-      isActive: true,
-    },
+interface DatasourceListProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+}
+
+function DatasourceList({
+  addDangerToast,
+  addSuccessToast,
+}: DatasourceListProps) {
+  const menuData: SubMenuProps = {
+    activeChild: 'Databases',
+    ...commonMenuData,
   };
-  it('is valid', () => {
-    expect(React.isValidElement(<Welcome {...mockedProps} />)).toBe(true);
-  });
-  it('renders 3 Tab, Panel, and Row components', () => {
-    const wrapper = shallow(<Welcome {...mockedProps} />);
-    expect(wrapper.find(Tab)).toHaveLength(3);
-    expect(wrapper.find(Panel)).toHaveLength(3);
-    expect(wrapper.find(Row)).toHaveLength(3);
-  });
-});
+
+  return (
+    <>
+      <SubMenu {...menuData} />
+    </>
+  );
+}
+
+export default withToasts(DatasourceList);

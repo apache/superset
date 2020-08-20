@@ -21,8 +21,8 @@ import { Panel, Row, Col, Tabs, Tab, FormControl } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
-import RecentActivity from '../profile/components/RecentActivity';
-import Favorites from '../profile/components/Favorites';
+import RecentActivity from 'src/profile/components/RecentActivity';
+import Favorites from 'src/profile/components/Favorites';
 import DashboardTable from './DashboardTable';
 
 interface WelcomeProps {

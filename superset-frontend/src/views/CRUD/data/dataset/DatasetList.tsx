@@ -35,6 +35,7 @@ import ListView, {
   Filters,
 } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import { commonMenuData } from 'src/views/CRUD/data/common';
 import AvatarIcon from 'src/components/AvatarIcon';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -441,20 +442,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const menuData: SubMenuProps = {
     activeChild: 'Datasets',
-    name: t('Data'),
-    children: [
-      {
-        name: 'Datasets',
-        label: t('Datasets'),
-        url: '/tablemodelview/list/',
-      },
-      { name: 'Databases', label: t('Databases'), url: '/databaseview/list/' },
-      {
-        name: 'Saved Queries',
-        label: t('Saved Queries'),
-        url: '/sqllab/my_queries/',
-      },
-    ],
+    ...commonMenuData,
   };
 
   if (canCreate) {
