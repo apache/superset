@@ -33,7 +33,7 @@ describe('ConfirmStatusChange', () => {
     <ConfirmStatusChange {...mockedProps}>
       {confirm => (
         <>
-          <button id="btn1" onClick={confirm} />
+          <Button id="btn1" onClick={confirm} />
         </>
       )}
     </ConfirmStatusChange>,
