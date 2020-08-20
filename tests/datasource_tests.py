@@ -26,13 +26,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
-        schema = tbl.schema or ""
-        url = (
-            f"/datasource/external_metadata/table/{tbl.id}/?"
-            f"db_id={tbl.database.id}&"
-            f"table_name={tbl.table_name}&"
-            f"schema={schema}&"
-        )
+        url = f"/datasource/external_metadata/table/{tbl.id}/"
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
         self.assertEqual(

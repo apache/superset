@@ -656,7 +656,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     )
                     cols = result_set.columns
         else:
-            cols = self.database.get_columns(self.table_name, schema=self.schema)
+            cols = self.database.get_columns(self.table_name, schema=self.schema or None)
         for col in cols:
             try:
                 col["type"] = str(col["type"])
