@@ -635,11 +635,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     def external_metadata(self) -> List[Dict[str, str]]:
-        def _truncate_column_type(type_: str) -> str:
-            return str(type_).split()[0]
-
+        db_engine_spec = self.database.db_engine_spec
         if self.sql:
-            db_engine_spec = self.database.db_engine_spec
             engine = self.database.get_sqla_engine()
             parsed_query = ParsedQuery(self.sql)
             if not parsed_query.is_readonly():
@@ -659,15 +656,17 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     )
                     cols = result_set.columns
         else:
+            db_dialect = self.database.get_dialect()
             cols = self.database.get_columns(
                 self.table_name, schema=self.schema or None
             )
-        for col in cols:
-            try:
-                col["type"] = str(col["type"])
-                col["type"] = _truncate_column_type(col["type"])
-            except CompileError:
-                col["type"] = "UNKNOWN"
+            for col in cols:
+                try:
+                    col["type"] = db_engine_spec.column_datatype_to_string(
+                        col["type"], db_dialect
+                    )
+                except CompileError:
+                    col["type"] = "UNKNOWN"
         return cols
 
     @property
