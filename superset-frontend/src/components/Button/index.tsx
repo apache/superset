@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { kebabCase } from 'lodash';
+import { mix } from 'polished';
 import {
   Button as BootstrapButton,
   Tooltip,
@@ -58,6 +59,7 @@ const SupersetButton = styled(BootstrapButton)`
   &:active,
   &:focus:active {
     outline: none;
+    box-shadow: none;
   }
   transition: all ${({ theme }) => theme.transitionTiming}s;
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -79,25 +81,43 @@ const SupersetButton = styled(BootstrapButton)`
     &-secondary {
       // same as "secondary"
       background-color: ${({ theme }) => theme.colors.primary.light4};
-      color: ${({ theme }) => theme.colors.primary.base};
+      color: ${({ theme }) => theme.colors.primary.dark1};
       &:hover {
-        background-color: ${({ theme }) => theme.colors.primary.light3};
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.primary.light4)};
+        color: ${({ theme }) => theme.colors.primary.dark1};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.25, theme.colors.primary.base, theme.colors.primary.light4)};
         color: ${({ theme }) => theme.colors.primary.dark1};
       }
     }
     &-primary {
-      background-color: ${({ theme }) => theme.colors.primary.base};
-      color: ${({ theme }) => theme.colors.secondary.light5};
+      background-color: ${({ theme }) => theme.colors.primary.dark1};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
       &:hover {
-        background-color: ${({ theme }) => theme.colors.primary.dark1};
-        color: ${({ theme }) => theme.colors.secondary.light4};
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.primary.dark1)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.primary.dark1)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
       }
     }
     &-danger {
       background-color: ${({ theme }) => theme.colors.error.base};
       color: ${({ theme }) => theme.colors.grayscale.light5};
       &:hover {
-        background-color: ${({ theme }) => theme.colors.error.dark1};
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.error.base)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.error.base)};
         color: ${({ theme }) => theme.colors.grayscale.light5};
       }
     }
@@ -105,7 +125,13 @@ const SupersetButton = styled(BootstrapButton)`
       background-color: ${({ theme }) => theme.colors.success.base};
       color: ${({ theme }) => theme.colors.grayscale.light5};
       &:hover {
-        background-color: ${({ theme }) => theme.colors.success.dark1};
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.success.base)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.success.base)};
         color: ${({ theme }) => theme.colors.grayscale.light5};
       }
     }
@@ -113,15 +139,27 @@ const SupersetButton = styled(BootstrapButton)`
       background-color: ${({ theme }) => theme.colors.warning.base};
       color: ${({ theme }) => theme.colors.grayscale.light5};
       &:hover {
-        background-color: ${({ theme }) => theme.colors.warning.dark1};
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.warning.base)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.warning.base)};
         color: ${({ theme }) => theme.colors.grayscale.light5};
       }
     }
     &-info {
-      background-color: ${({ theme }) => theme.colors.info.base};
+      background-color: ${({ theme }) => theme.colors.info.dark1};
       color: ${({ theme }) => theme.colors.grayscale.light5};
       &:hover {
-        background-color: ${({ theme }) => theme.colors.info.dark1};
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.info.dark1)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.info.dark1)};
         color: ${({ theme }) => theme.colors.grayscale.light5};
       }
     }
@@ -158,16 +196,20 @@ export default function Button(props: ButtonProps) {
     buttonProps.style = { pointerEvents: 'none' };
   }
 
+  const safeProps = { 
+    ...buttonProps,
+    bsStyle: buttonProps.bsStyle || 'default' 
+  };
+  delete safeProps.dropdownItems;
+
   let button = (
-    <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
+    <SupersetButton {...safeProps}>{props.children}</SupersetButton>
   );
 
   if (dropdownItems) {
-    const whittledProps = { ...buttonProps };
-    delete whittledProps.dropdownItems;
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
-        <SupersetButton {...whittledProps} data-toggle="dropdown">
+        <SupersetButton {...safeProps} data-toggle="dropdown">
           {props.children}
         </SupersetButton>
         <ul className="dropdown-menu">
