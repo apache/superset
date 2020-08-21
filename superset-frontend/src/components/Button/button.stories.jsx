@@ -100,7 +100,7 @@ const hrefKnob = {
 };
 
 export const ButtonGallery = () => (
-  <div style={{ padding: '10px', backgroundColor: 'white' }}>
+  <>
     {Object.values(bsSizeKnob.options)
       .filter(a => a)
       .map(size => (
@@ -121,47 +121,45 @@ export const ButtonGallery = () => (
             ))}
         </div>
       ))}
-  </div>
+  </>
 );
 
 export const InteractiveButton = () => (
-  <div style={{ padding: '10px', backgroundColor: 'white' }}>
-    <Button
-      disabled={boolean('Disabled', false)}
-      bsStyle={select(
-        bsStyleKnob.label,
-        bsStyleKnob.options,
-        bsStyleKnob.defaultValue,
-        bsStyleKnob.groupId,
-      )}
-      bsSize={select(
-        bsSizeKnob.label,
-        bsSizeKnob.options,
-        bsSizeKnob.defaultValue,
-        bsSizeKnob.groupId,
-      )}
-      onClick={action('clicked')}
-      type={select(
-        typeKnob.label,
-        typeKnob.options,
-        typeKnob.defaultValue,
-        typeKnob.groupId,
-      )}
-      target={select(
-        targetKnob.label,
-        targetKnob.options,
-        targetKnob.defaultValue,
-        targetKnob.groupId,
-      )}
-      href={select(
-        hrefKnob.label,
-        hrefKnob.options,
-        hrefKnob.defaultValue,
-        hrefKnob.groupId,
-      )}
-      tooltip={boolean('Tooltip', false) === true ? 'This is a tooltip!' : null}
-    >
-      {text('Label', 'Button!')}
-    </Button>
-  </div>
+  <Button
+    disabled={boolean('Disabled', false)}
+    bsStyle={select(
+      bsStyleKnob.label,
+      bsStyleKnob.options,
+      bsStyleKnob.defaultValue,
+      bsStyleKnob.groupId,
+    )}
+    bsSize={select(
+      bsSizeKnob.label,
+      bsSizeKnob.options,
+      bsSizeKnob.defaultValue,
+      bsSizeKnob.groupId,
+    )}
+    onClick={action('clicked')}
+    type={select(
+      typeKnob.label,
+      typeKnob.options,
+      typeKnob.defaultValue,
+      typeKnob.groupId,
+    )}
+    target={select(
+      targetKnob.label,
+      targetKnob.options,
+      targetKnob.defaultValue,
+      targetKnob.groupId,
+    )}
+    href={select(
+      hrefKnob.label,
+      hrefKnob.options,
+      hrefKnob.defaultValue,
+      hrefKnob.groupId,
+    )}
+    tooltip={boolean('Tooltip', false) === true ? 'This is a tooltip!' : null}
+  >
+    {text('Label', 'Button!')}
+  </Button>
 );
