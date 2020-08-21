@@ -167,7 +167,7 @@ export default class CRUDCollection extends React.PureComponent<
           {allowDeletes && !allowAddItem && <th className="tiny-cell" />}
           {allowAddItem && (
             <th>
-              <Button bsStyle="primary" onClick={this.onAddItem}>
+              <Button buttonStyle="primary" onClick={this.onAddItem}>
                 <i className="fa fa-plus" /> {t('Add Item')}
               </Button>
             </th>

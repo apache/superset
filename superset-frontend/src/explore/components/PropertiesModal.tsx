@@ -263,13 +263,13 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
         </Row>
       </Modal.Body>
       <Modal.Footer>
-        <Button type="button" bsSize="sm" onClick={onHide}>
+        <Button type="button" buttonSize="sm" onClick={onHide}>
           {t('Cancel')}
         </Button>
         <Button
           type="submit"
-          bsSize="sm"
-          bsStyle="primary"
+          buttonSize="sm"
+          buttonStyle="primary"
           className="m-r-5"
           disabled={!owners || submitting || !name}
         >

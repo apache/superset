@@ -190,7 +190,7 @@ export default function ErrorAlert({
                 copyNode={<Button onClick={noOp}>{t('Copy Message')}</Button>}
               />
             )}
-            <Button bsStyle="primary" onClick={() => setIsModalOpen(false)}>
+            <Button buttonStyle="primary" onClick={() => setIsModalOpen(false)}>
               {t('Close')}
             </Button>
           </Modal.Footer>

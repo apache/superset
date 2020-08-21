@@ -105,7 +105,7 @@ export default class LimitControl extends React.PureComponent<
               type="text"
               value={textValue}
               placeholder={t(`Max: ${this.props.maxRow}`)}
-              bsSize="small"
+              buttonSize="small"
               // @ts-ignore
               onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                 this.setState({ textValue: event.target.value })
@@ -114,8 +114,8 @@ export default class LimitControl extends React.PureComponent<
           </FormGroup>
           <div className="clearfix">
             <Button
-              bsSize="small"
-              bsStyle="primary"
+              buttonSize="small"
+              buttonStyle="primary"
               className="float-right ok m-l-5"
               disabled={!isValid}
               onClick={this.submitAndClose}
@@ -123,7 +123,7 @@ export default class LimitControl extends React.PureComponent<
               {t('Ok')}
             </Button>
             <Button
-              bsSize="small"
+              buttonSize="small"
               className="float-right reset"
               onClick={this.setValueAndClose.bind(
                 this,

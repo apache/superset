@@ -143,7 +143,7 @@ export default class AddSliceContainer extends React.PureComponent<
             <br />
             <hr />
             <Button
-              bsStyle="primary"
+              buttonStyle="primary"
               disabled={this.isBtnDisabled()}
               onClick={this.gotoSlice}
             >

@@ -41,15 +41,16 @@ export interface ButtonProps {
   placement?: string;
   onClick?: OnClickHandler;
   disabled?: boolean;
-  bsStyle?: string;
+  buttonStyle?: string;
   btnStyles?: string;
-  bsSize?: BootstrapButton.ButtonProps['bsSize'];
+  buttonSize?: BootstrapButton.ButtonProps['bsSize'];
   style?: BootstrapButton.ButtonProps['style'];
   children?: React.ReactNode;
   dropdownItems?: DropdownItemProps[];
   href?: string; // React-Bootstrap creates a link when this is passed in.
   target?: string; // React-Bootstrap creates a link when this is passed in.
   type?: string; // React-Bootstrap supports this when rendering an HTML button element
+  cta?: boolean;
 }
 
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
@@ -171,7 +172,7 @@ const SupersetButton = styled(BootstrapButton)`
   }
 
   /* big Call to Action buttons */
-  &.supersetButton {
+  &.cta {
     min-width: ${({ theme }) => theme.gridUnit * 36}px;
     min-height: ${({ theme }) => theme.gridUnit * 8}px;
     text-transform: uppercase;
@@ -181,7 +182,7 @@ const SupersetButton = styled(BootstrapButton)`
 export default function Button(props: ButtonProps) {
   const buttonProps = {
     ...props,
-    bsSize: props.bsSize || 'sm',
+    bsSize: props.buttonSize|| 'sm',
     placement: props.placement || 'top',
   };
   const tooltip = props.tooltip;
@@ -196,20 +197,23 @@ export default function Button(props: ButtonProps) {
     buttonProps.style = { pointerEvents: 'none' };
   }
 
-  const safeProps = { 
+  const transformedProps = {
     ...buttonProps,
-    bsStyle: buttonProps.bsStyle || 'default' 
+    bsStyle: buttonProps.buttonStyle || 'default',
+    className: buttonProps.cta ? 'cta' : undefined,
   };
-  delete safeProps.dropdownItems;
+  delete transformedProps.dropdownItems;
+  delete transformedProps.buttonSize;
+  delete transformedProps.buttonStyle;
 
   let button = (
-    <SupersetButton {...safeProps}>{props.children}</SupersetButton>
+    <SupersetButton {...transformedProps}>{props.children}</SupersetButton>
   );
 
   if (dropdownItems) {
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
-        <SupersetButton {...safeProps} data-toggle="dropdown">
+        <SupersetButton {...transformedProps} data-toggle="dropdown">
           {props.children}
         </SupersetButton>
         <ul className="dropdown-menu">

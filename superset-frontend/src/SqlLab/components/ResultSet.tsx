@@ -167,7 +167,7 @@ export default class ResultSet extends React.PureComponent<
               )}
             {this.props.csv && (
               <Button
-                bsSize="small"
+                buttonSize="small"
                 href={`/superset/csv/${this.props.query.id}`}
               >
                 <i className="fa fa-file-text-o" /> {t('.CSV')}
@@ -178,7 +178,7 @@ export default class ResultSet extends React.PureComponent<
               text={prepareCopyToClipboardTabularData(data)}
               wrapped={false}
               copyNode={
-                <Button bsSize="small">
+                <Button buttonSize="small">
                   <i className="fa fa-clipboard" /> {t('Clipboard')}
                 </Button>
               }
@@ -244,7 +244,7 @@ export default class ResultSet extends React.PureComponent<
             ] {t('was created')} &nbsp;
             <ButtonGroup>
               <Button
-                bsSize="small"
+                buttonSize="small"
                 className="m-r-5"
                 onClick={() => this.popSelectStar(tempSchema, tempTable)}
               >
@@ -297,9 +297,9 @@ export default class ResultSet extends React.PureComponent<
       if (query.isDataPreview) {
         return (
           <Button
-            bsSize="sm"
+            buttonSize="sm"
             className="fetch"
-            bsStyle="primary"
+            buttonStyle="primary"
             onClick={() =>
               this.reFetchQueryResults({
                 ...query,
@@ -313,9 +313,9 @@ export default class ResultSet extends React.PureComponent<
       } else if (query.resultsKey) {
         return (
           <Button
-            bsSize="sm"
+            buttonSize="sm"
             className="fetch"
-            bsStyle="primary"
+            buttonStyle="primary"
             onClick={() => this.fetchResults(query)}
           >
             {t('Refetch Results')}
@@ -337,7 +337,7 @@ export default class ResultSet extends React.PureComponent<
     if (query.trackingUrl) {
       trackingUrl = (
         <Button
-          bsSize="small"
+          buttonSize="small"
           onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
         >
           {t('Track Job')}

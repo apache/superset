@@ -51,8 +51,8 @@ const RunQueryActionButton = ({
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
   const commonBtnProps: ButtonProps = {
-    bsSize: 'small',
-    bsStyle: btnStyle,
+    buttonSize: 'small',
+    buttonStyle: btnStyle,
     disabled: !dbId,
     style: commonBtnStyle,
   };

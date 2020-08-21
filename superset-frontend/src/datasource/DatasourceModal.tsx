@@ -159,8 +159,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       <Modal.Footer>
         <span className="float-left">
           <Button
-            bsSize="sm"
-            bsStyle="default"
+            buttonSize="sm"
+            buttonStyle="default"
             target="_blank"
             href={currentDatasource.edit_url || currentDatasource.url}
           >
@@ -170,15 +170,15 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 
         <span className="float-right">
           <Button
-            bsSize="sm"
-            bsStyle="primary"
+            buttonSize="sm"
+            buttonStyle="primary"
             className="m-r-5"
             onClick={onClickSave}
             disabled={errors.length > 0}
           >
             {t('Save')}
           </Button>
-          <Button bsSize="sm" onClick={onHide}>
+          <Button buttonSize="sm" onClick={onHide}>
             {t('Cancel')}
           </Button>
           <Dialog ref={dialog} />

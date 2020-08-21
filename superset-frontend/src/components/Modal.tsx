@@ -88,7 +88,7 @@ export default function Modal({
         <span className="float-right">
           <Button onClick={onHide}>{t('Cancel')}</Button>
           <Button
-            bsStyle={primaryButtonType}
+            buttonStyle={primaryButtonType}
             disabled={disablePrimaryButton}
             onClick={onHandledPrimaryAction}
           >

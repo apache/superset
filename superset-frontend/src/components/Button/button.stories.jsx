@@ -27,7 +27,7 @@ export default {
   decorators: [withKnobs],
 };
 
-const bsStyleKnob = {
+const buttonStyleKnob = {
   label: 'Types',
   options: {
     Primary: 'primary',
@@ -42,7 +42,7 @@ const bsStyleKnob = {
   defaultValue: null,
   // groupId: 'ButtonType',
 };
-const bsSizeKnob = {
+const buttonSizeKnob = {
   label: 'Sizes',
   options: {
     XS: 'xsmall',
@@ -101,18 +101,19 @@ const hrefKnob = {
 
 export const ButtonGallery = () => (
   <>
-    {Object.values(bsSizeKnob.options)
+    {Object.values(buttonSizeKnob.options)
       .filter(a => a)
       .map(size => (
         <div>
           <h4>{size}</h4>
-          {Object.values(bsStyleKnob.options)
+          {Object.values(buttonStyleKnob.options)
             .filter(o => o)
             .map(style => (
               <Button
                 disabled={boolean('Disabled', false)}
-                bsStyle={style}
-                bsSize={size}
+                cta={boolean('CTA', false)}
+                buttonStyle={style}
+                buttonSize={size}
                 onClick={action('clicked')}
               >
                 {style}
@@ -123,46 +124,21 @@ export const ButtonGallery = () => (
   </>
 );
 
-export const SupersetButtonGallery = () => (
-  <div style={{ padding: '10px', backgroundColor: 'white' }}>
-    {Object.values(bsSizeKnob.options)
-      .filter(a => a)
-      .map(size => (
-        <div>
-          <h4>{size}</h4>
-          {Object.values(bsStyleKnob.options)
-            .filter(o => o)
-            .map(style => (
-              <Button
-                disabled={boolean('Disabled', false)}
-                bsStyle={style}
-                bsSize={size}
-                onClick={action('clicked')}
-                className='supersetButton'
-              >
-                {style}
-              </Button>
-            ))}
-        </div>
-      ))}
-  </div>
-);
-
 export const InteractiveButton = () => (
   <Button
     disabled={boolean('Disabled', false)}
-    className={boolean('SupersetButton', false) ? 'supersetButton' : null}
-    bsStyle={select(
-      bsStyleKnob.label,
-      bsStyleKnob.options,
-      bsStyleKnob.defaultValue,
-      bsStyleKnob.groupId,
+    cta={boolean('CTA', false)}
+    buttonStyle={select(
+      buttonStyleKnob.label,
+      buttonStyleKnob.options,
+      buttonStyleKnob.defaultValue,
+      buttonStyleKnob.groupId,
     )}
-    bsSize={select(
-      bsSizeKnob.label,
-      bsSizeKnob.options,
-      bsSizeKnob.defaultValue,
-      bsSizeKnob.groupId,
+    size={select(
+      buttonSizeKnob.label,
+      buttonSizeKnob.options,
+      buttonSizeKnob.defaultValue,
+      buttonSizeKnob.groupId,
     )}
     onClick={action('clicked')}
     type={select(
