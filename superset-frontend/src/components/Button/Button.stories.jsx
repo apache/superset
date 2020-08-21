@@ -127,6 +127,31 @@ export const ButtonGallery = () => (
   </>
 );
 
+export const SupersetButtonGallery = () => (
+  <div style={{ padding: '10px', backgroundColor: 'white' }}>
+    {Object.values(bsSizeKnob.options)
+      .filter(a => a)
+      .map(size => (
+        <div>
+          <h4>{size}</h4>
+          {Object.values(bsStyleKnob.options)
+            .filter(o => o)
+            .map(style => (
+              <Button
+                disabled={boolean('Disabled', false)}
+                bsStyle={style}
+                bsSize={size}
+                onClick={action('clicked')}
+                className='supersetButton'
+              >
+                {style}
+              </Button>
+            ))}
+        </div>
+      ))}
+  </div>
+);
+
 export const InteractiveButton = () => (
   <Button
     disabled={boolean('Disabled', false)}
