@@ -88,7 +88,7 @@ function DashboardList(props: DashboardListProps) {
   });
 
   function updateState(update: Partial<State>) {
-    setState({ ...state, ...update });
+    setState(currentState => ({ ...currentState, ...update }));
   }
 
   useEffect(() => {
@@ -176,6 +176,7 @@ function DashboardList(props: DashboardListProps) {
             updateState({
               dashboards: json.result,
               dashboardCount: json.count,
+              loading: false,
             });
           },
           createErrorHandler(errMsg =>
@@ -214,7 +215,6 @@ function DashboardList(props: DashboardListProps) {
             }
             return dashboard;
           }),
-          loading: false,
         });
       },
       createErrorHandler(errMsg =>

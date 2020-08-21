@@ -114,7 +114,7 @@ function ChartList(props: ChartListProps) {
   });
 
   function updateState(update: Partial<State>) {
-    setState({ ...state, ...update });
+    setState(currentState => ({ ...currentState, ...update }));
   }
 
   useEffect(() => {
@@ -198,7 +198,10 @@ function ChartList(props: ChartListProps) {
       })
         .then(
           ({ json = {} }) => {
-            updateState({ charts: json.result, chartCount: json.count });
+            updateState({
+              charts: json.result,
+              chartCount: json.count,
+            });
           },
           createErrorHandler(errMsg =>
             props.addDangerToast(
@@ -286,7 +289,7 @@ function ChartList(props: ChartListProps) {
             itemId={original.id}
             fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
             saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-            isStarred={!!state.favoriteStatus[original.id]}
+            isStarred={state.favoriteStatus[original.id]}
             height={20}
           />
         );
@@ -555,7 +558,7 @@ function ChartList(props: ChartListProps) {
               itemId={chart.id}
               fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
               saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-              isStarred={!!state.favoriteStatus[chart.id]}
+              isStarred={state.favoriteStatus[chart.id]}
               width={20}
               height={20}
             />
