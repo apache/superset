@@ -32,9 +32,6 @@ interface Props {
   stopQuery: () => void;
   sql: string;
 }
-const commonBtnStyle = {
-  width: '140px',
-};
 
 const RunQueryActionButton = ({
   allowAsync = false,
@@ -54,12 +51,11 @@ const RunQueryActionButton = ({
     buttonSize: 'small',
     buttonStyle: btnStyle,
     disabled: !dbId,
-    style: commonBtnStyle,
   };
 
   if (shouldShowStopBtn) {
     return (
-      <Button {...commonBtnProps} onClick={stopQuery}>
+      <Button {...commonBtnProps} cta onClick={stopQuery}>
         <i className="fa fa-stop" /> {t('Stop')}
       </Button>
     );
@@ -67,6 +63,7 @@ const RunQueryActionButton = ({
     return (
       <Button
         {...commonBtnProps}
+        cta
         onClick={() => runQuery(true)}
         key="run-async-btn"
         tooltip={t('Run query asynchronously (Ctrl + ↵)')}
@@ -79,6 +76,7 @@ const RunQueryActionButton = ({
   return (
     <Button
       {...commonBtnProps}
+      cta
       onClick={() => runQuery(false)}
       key="run-btn"
       tooltip={t('Run query synchronously (Ctrl + ↵)')}
