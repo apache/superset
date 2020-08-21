@@ -19,7 +19,6 @@
 import React from 'react';
 import styled from '@superset-ui/style';
 import Icon from 'src/components/Icon';
-import { css } from '@emotion/core';
 import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
 import ImageLoader from './ImageLoader';
 
@@ -134,6 +133,14 @@ const CoverFooterRight = styled.div`
   text-overflow: ellipsis;
 `;
 
+const SkeletonTitle = styled(Skeleton.Input)`
+  width: ${({ theme }) => Math.trunc(theme.gridUnit * 62.5)}px;
+`;
+
+const SkeletonActions = styled(Skeleton.Button)`
+  width: ${({ theme }) => theme.gridUnit * 10}px;
+`;
+
 const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
   title: React.ReactNode;
@@ -189,21 +196,10 @@ function ListViewCard({
           title={
             <>
               <TitleContainer>
-                <Skeleton.Input
-                  active
-                  css={css`
-                    width: 250px;
-                  `}
-                  size="small"
-                />
+                <SkeletonTitle active size="small" />
                 <div className="card-actions">
                   <Skeleton.Button active shape="circle" />{' '}
-                  <Skeleton.Button
-                    active
-                    css={css`
-                      width: 40px;
-                    `}
-                  />
+                  <SkeletonActions active />
                 </div>
               </TitleContainer>
             </>
