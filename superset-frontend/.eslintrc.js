@@ -87,12 +87,18 @@ module.exports = {
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
         'no-restricted-syntax': 0,
-        'no-restricted-imports': ['error', {
-          'paths': [{
-            'name': 'antd',
-            'message': 'Please import Ant components from the index of common/components',
-          }]
-        }],
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: 'antd',
+                message:
+                  'Please import Ant components from the index of common/components',
+              },
+            ],
+          },
+        ],
         'padded-blocks': 0,
         'prefer-arrow-callback': 0,
         'react/forbid-prop-types': 0,
@@ -112,6 +118,17 @@ module.exports = {
         react: {
           version: 'detect',
         },
+      },
+    },
+    {
+      files: ['*.stories.jsx', '*.stories.tsx'],
+      rules: {
+        // this is to keep eslint from complaining about storybook addons,
+        // since they are included as dev dependencies rather than direct dependencies.
+        'import/no-extraneous-dependencies': [
+          'error',
+          { devDependencies: true },
+        ],
       },
     },
   ],
@@ -152,12 +169,18 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-syntax': 0,
-    'no-restricted-imports': ['error', {
-      'paths': [{
-        'name': 'antd',
-        'message': 'Please import Ant components from the index of common/components',
-      }]
-    }],
+    'no-restricted-imports': [
+      'error',
+      {
+        paths: [
+          {
+            name: 'antd',
+            message:
+              'Please import Ant components from the index of common/components',
+          },
+        ],
+      },
+    ],
     'padded-blocks': 0,
     'prefer-arrow-callback': 0,
     'prefer-object-spread': 1,
