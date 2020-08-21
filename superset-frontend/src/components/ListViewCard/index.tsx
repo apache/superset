@@ -20,7 +20,7 @@ import React from 'react';
 import styled from '@superset-ui/style';
 import Icon from 'src/components/Icon';
 import { css } from '@emotion/core';
-import { Card, Skeleton } from 'src/common/components';
+import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
 import ImageLoader from './ImageLoader';
 
 const MenuIcon = styled(Icon)`
@@ -134,15 +134,6 @@ const CoverFooterRight = styled.div`
   text-overflow: ellipsis;
 `;
 
-const ThinSkeleton = styled(Skeleton)`
-  h3 {
-    margin: 5 0;
-  }
-
-  ul {
-    margin-bottom: 0;
-  }
-`;
 const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
   title: React.ReactNode;
@@ -201,7 +192,7 @@ function ListViewCard({
                 <Skeleton.Input
                   active
                   css={css`
-                    width: 250;
+                    width: 250px;
                   `}
                   size="small"
                 />
@@ -210,7 +201,7 @@ function ListViewCard({
                   <Skeleton.Button
                     active
                     css={css`
-                      width: 40;
+                      width: 40px;
                     `}
                   />
                 </div>

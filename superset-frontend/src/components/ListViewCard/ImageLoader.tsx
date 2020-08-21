@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface ImageLoaderProps
   extends React.DetailedHTMLProps<
@@ -37,7 +37,7 @@ export default function ImageLoader({
 }: ImageLoaderProps) {
   const [imgSrc, setImgSrc] = React.useState<string>(fallback);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (src) {
       fetch(src)
         .then(response => response.blob())
