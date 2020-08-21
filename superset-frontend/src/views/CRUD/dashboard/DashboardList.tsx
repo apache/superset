@@ -477,7 +477,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     );
   }
 
-  renderCard = (props: Dashboard) => {
+  renderCard = (props: Dashboard & { loading: boolean }) => {
     const menu = (
       <Menu>
         {this.canDelete && (
@@ -529,12 +529,13 @@ class DashboardList extends React.PureComponent<Props, State> {
     return (
       <ListViewCard
         title={props.dashboard_title}
+        loading={props.loading}
         titleRight={<Label>{props.published ? 'published' : 'draft'}</Label>}
         url={this.state.bulkSelectEnabled ? undefined : props.url}
         imgURL={props.thumbnail_url}
         imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
         description={t('Last modified %s', props.changed_on_delta_humanized)}
-        coverLeft={props.owners.slice(0, 5).map(owner => (
+        coverLeft={(props.owners || []).slice(0, 5).map(owner => (
           <AvatarIcon
             key={owner.id}
             uniqueKey={`${owner.username}-${props.id}`}
