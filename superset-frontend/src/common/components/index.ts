@@ -30,7 +30,7 @@ export * from 'antd';
 
 export const ThinSkeleton = styled(Skeleton)`
   h3 {
-    margin: ${({ theme }) => theme.gridUnit} 0;
+    margin: ${({ theme }) => theme.gridUnit}px 0;
   }
 
   ul {
