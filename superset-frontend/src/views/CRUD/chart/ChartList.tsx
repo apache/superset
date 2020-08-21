@@ -19,8 +19,7 @@
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
-import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import {
@@ -49,7 +48,7 @@ import { Dropdown, Menu } from 'src/common/components';
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
-interface Props {
+interface ChartListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
@@ -102,12 +101,8 @@ const createFetchDatasets = (handleError: (err: Response) => void) => async (
   }
   return [];
 };
-class ChartList extends React.PureComponent<Props, State> {
-  static propTypes = {
-    addDangerToast: PropTypes.func.isRequired,
-  };
-
-  state: State = {
+function ChartList(props: ChartListProps) {
+  const [state, setState] = useState<State>({
     bulkSelectEnabled: false,
     chartCount: 0,
     charts: [],
@@ -116,52 +111,182 @@ class ChartList extends React.PureComponent<Props, State> {
     loading: true,
     permissions: [],
     sliceCurrentlyEditing: null,
-  };
+  });
 
-  componentDidMount() {
+  function updateState(update: Partial<State>) {
+    setState({ ...state, ...update });
+  }
+
+  useEffect(() => {
     SupersetClient.get({
       endpoint: `/api/v1/chart/_info`,
     }).then(
       ({ json: infoJson = {} }) => {
-        this.setState({
+        updateState({
           permissions: infoJson.permissions,
         });
       },
       createErrorHandler(errMsg =>
-        this.props.addDangerToast(
+        props.addDangerToast(
           t('An error occurred while fetching chart info: %s', errMsg),
+        ),
+      ),
+    );
+  }, []);
+
+  function hasPerm(perm: string) {
+    if (!state.permissions.length) {
+      return false;
+    }
+
+    return Boolean(state.permissions.find(p => p === perm));
+  }
+
+  const canEdit = hasPerm('can_edit');
+
+  const canDelete = hasPerm('can_delete');
+
+  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+
+  const fetchFaveStarMethods = createFaveStarHandlers(
+    FAVESTAR_BASE_URL,
+    {
+      state,
+      setState: updateState,
+    },
+    (message: string) => {
+      props.addDangerToast(message);
+    },
+  );
+
+  const fetchData = useCallback(
+    ({
+      pageIndex,
+      pageSize,
+      sortBy,
+      filters: filterValues,
+    }: FetchDataConfig) => {
+      // set loading state, cache the last config for fetching data in this component.
+      updateState({
+        lastFetchDataConfig: {
+          filters: filterValues,
+          pageIndex,
+          pageSize,
+          sortBy,
+        },
+        loading: true,
+      });
+
+      const filterExps = filterValues.map(
+        ({ id: col, operator: opr, value }) => ({
+          col,
+          opr,
+          value,
+        }),
+      );
+
+      const queryParams = rison.encode({
+        order_column: sortBy[0].id,
+        order_direction: sortBy[0].desc ? 'desc' : 'asc',
+        page: pageIndex,
+        page_size: pageSize,
+        ...(filterExps.length ? { filters: filterExps } : {}),
+      });
+
+      return SupersetClient.get({
+        endpoint: `/api/v1/chart/?q=${queryParams}`,
+      })
+        .then(
+          ({ json = {} }) => {
+            updateState({ charts: json.result, chartCount: json.count });
+          },
+          createErrorHandler(errMsg =>
+            props.addDangerToast(
+              t('An error occurred while fetching charts: %s', errMsg),
+            ),
+          ),
+        )
+        .finally(() => {
+          updateState({ loading: false });
+        });
+    },
+    [],
+  );
+
+  function toggleBulkSelect() {
+    updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
+  }
+
+  function openChartEditModal(chart: Chart) {
+    updateState({
+      sliceCurrentlyEditing: {
+        slice_id: chart.id,
+        slice_name: chart.slice_name,
+        description: chart.description,
+        cache_timeout: chart.cache_timeout,
+      },
+    });
+  }
+
+  function closeChartEditModal() {
+    updateState({ sliceCurrentlyEditing: null });
+  }
+
+  function handleChartUpdated(edits: Chart) {
+    // update the chart in our state with the edited info
+    const newCharts = state.charts.map(chart =>
+      chart.id === edits.id ? { ...chart, ...edits } : chart,
+    );
+    updateState({
+      charts: newCharts,
+    });
+  }
+
+  function handleChartDelete({ id, slice_name: sliceName }: Chart) {
+    SupersetClient.delete({
+      endpoint: `/api/v1/chart/${id}`,
+    }).then(
+      () => {
+        const { lastFetchDataConfig } = state;
+        if (lastFetchDataConfig) {
+          fetchData(lastFetchDataConfig);
+        }
+        props.addSuccessToast(t('Deleted: %s', sliceName));
+      },
+      () => {
+        props.addDangerToast(t('There was an issue deleting: %s', sliceName));
+      },
+    );
+  }
+
+  function handleBulkChartDelete(charts: Chart[]) {
+    SupersetClient.delete({
+      endpoint: `/api/v1/chart/?q=${rison.encode(charts.map(({ id }) => id))}`,
+    }).then(
+      ({ json = {} }) => {
+        const { lastFetchDataConfig } = state;
+        if (lastFetchDataConfig) {
+          fetchData(lastFetchDataConfig);
+        }
+        props.addSuccessToast(json.message);
+      },
+      createErrorHandler(errMsg =>
+        props.addDangerToast(
+          t('There was an issue deleting the selected charts: %s', errMsg),
         ),
       ),
     );
   }
 
-  get canEdit() {
-    return this.hasPerm('can_edit');
-  }
-
-  get canDelete() {
-    return this.hasPerm('can_delete');
-  }
-
-  initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-
-  fetchMethods = createFaveStarHandlers(
-    FAVESTAR_BASE_URL,
-    this,
-    (message: string) => {
-      this.props.addDangerToast(message);
-    },
-  );
-
-  columns = [
+  const columns = [
     {
       Cell: ({ row: { original } }: any) => {
         return (
           <FaveStar
             itemId={original.id}
-            fetchFaveStar={this.fetchMethods.fetchFaveStar}
-            saveFaveStar={this.fetchMethods.saveFaveStar}
-            isStarred={!!this.state.favoriteStatus[original.id]}
+            fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
+            saveFaveStar={fetchFaveStarMethods.saveFaveStar}
+            isStarred={!!state.favoriteStatus[original.id]}
             height={20}
           />
         );
@@ -235,15 +360,15 @@ class ChartList extends React.PureComponent<Props, State> {
     },
     {
       Cell: ({ row: { original } }: any) => {
-        const handleDelete = () => this.handleChartDelete(original);
-        const openEditModal = () => this.openChartEditModal(original);
-        if (!this.canEdit && !this.canDelete) {
+        const handleDelete = () => handleChartDelete(original);
+        const openEditModal = () => openChartEditModal(original);
+        if (!canEdit && !canDelete) {
           return null;
         }
 
         return (
           <span className="actions">
-            {this.canDelete && (
+            {canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
                 description={
@@ -266,7 +391,7 @@ class ChartList extends React.PureComponent<Props, State> {
                 )}
               </ConfirmStatusChange>
             )}
-            {this.canEdit && (
+            {canEdit && (
               <span
                 role="button"
                 tabIndex={0}
@@ -285,7 +410,7 @@ class ChartList extends React.PureComponent<Props, State> {
     },
   ];
 
-  filters: Filters = [
+  const filters: Filters = [
     {
       Header: t('Owner'),
       id: 'owners',
@@ -296,7 +421,7 @@ class ChartList extends React.PureComponent<Props, State> {
         'chart',
         'owners',
         createErrorHandler(errMsg =>
-          this.props.addDangerToast(
+          props.addDangerToast(
             t(
               'An error occurred while fetching chart dataset values: %s',
               errMsg,
@@ -324,7 +449,7 @@ class ChartList extends React.PureComponent<Props, State> {
       unfilteredLabel: 'All',
       fetchSelects: createFetchDatasets(
         createErrorHandler(errMsg =>
-          this.props.addDangerToast(
+          props.addDangerToast(
             t(
               'An error occurred while fetching chart dataset values: %s',
               errMsg,
@@ -342,7 +467,7 @@ class ChartList extends React.PureComponent<Props, State> {
     },
   ];
 
-  sortTypes = [
+  const sortTypes = [
     {
       desc: false,
       id: 'slice_name',
@@ -363,139 +488,20 @@ class ChartList extends React.PureComponent<Props, State> {
     },
   ];
 
-  hasPerm = (perm: string) => {
-    if (!this.state.permissions.length) {
-      return false;
-    }
-
-    return this.state.permissions.some(p => p === perm);
-  };
-
-  toggleBulkSelect = () => {
-    this.setState({ bulkSelectEnabled: !this.state.bulkSelectEnabled });
-  };
-
-  openChartEditModal = (chart: Chart) => {
-    this.setState({
-      sliceCurrentlyEditing: {
-        slice_id: chart.id,
-        slice_name: chart.slice_name,
-        description: chart.description,
-        cache_timeout: chart.cache_timeout,
-      },
-    });
-  };
-
-  closeChartEditModal = () => {
-    this.setState({ sliceCurrentlyEditing: null });
-  };
-
-  handleChartUpdated = (edits: Chart) => {
-    // update the chart in our state with the edited info
-    const newCharts = this.state.charts.map(chart =>
-      chart.id === edits.id ? { ...chart, ...edits } : chart,
-    );
-    this.setState({
-      charts: newCharts,
-    });
-  };
-
-  handleChartDelete = ({ id, slice_name: sliceName }: Chart) => {
-    SupersetClient.delete({
-      endpoint: `/api/v1/chart/${id}`,
-    }).then(
-      () => {
-        const { lastFetchDataConfig } = this.state;
-        if (lastFetchDataConfig) {
-          this.fetchData(lastFetchDataConfig);
-        }
-        this.props.addSuccessToast(t('Deleted: %s', sliceName));
-      },
-      () => {
-        this.props.addDangerToast(
-          t('There was an issue deleting: %s', sliceName),
-        );
-      },
-    );
-  };
-
-  handleBulkChartDelete = (charts: Chart[]) => {
-    SupersetClient.delete({
-      endpoint: `/api/v1/chart/?q=${rison.encode(charts.map(({ id }) => id))}`,
-    }).then(
-      ({ json = {} }) => {
-        const { lastFetchDataConfig } = this.state;
-        if (lastFetchDataConfig) {
-          this.fetchData(lastFetchDataConfig);
-        }
-        this.props.addSuccessToast(json.message);
-      },
-      createErrorHandler(errMsg =>
-        this.props.addDangerToast(
-          t('There was an issue deleting the selected charts: %s', errMsg),
-        ),
-      ),
-    );
-  };
-
-  fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
-    // set loading state, cache the last config for fetching data in this component.
-    this.setState({
-      lastFetchDataConfig: {
-        filters,
-        pageIndex,
-        pageSize,
-        sortBy,
-      },
-      loading: true,
-    });
-
-    const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
-      col,
-      opr,
-      value,
-    }));
-
-    const queryParams = rison.encode({
-      order_column: sortBy[0].id,
-      order_direction: sortBy[0].desc ? 'desc' : 'asc',
-      page: pageIndex,
-      page_size: pageSize,
-      ...(filterExps.length ? { filters: filterExps } : {}),
-    });
-
-    return SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=${queryParams}`,
-    })
-      .then(
-        ({ json = {} }) => {
-          this.setState({ charts: json.result, chartCount: json.count });
-        },
-        createErrorHandler(errMsg =>
-          this.props.addDangerToast(
-            t('An error occurred while fetching charts: %s', errMsg),
-          ),
-        ),
-      )
-      .finally(() => {
-        this.setState({ loading: false });
-      });
-  };
-
-  renderCard = (props: Chart & { loading: boolean }) => {
+  function renderCard(chart: Chart & { loading: boolean }) {
     const menu = (
       <Menu>
-        {this.canDelete && (
+        {canDelete && (
           <Menu.Item>
             <ConfirmStatusChange
               title={t('Please Confirm')}
               description={
                 <>
                   {t('Are you sure you want to delete')}{' '}
-                  <b>{props.slice_name}</b>?
+                  <b>{chart.slice_name}</b>?
                 </>
               }
-              onConfirm={() => this.handleChartDelete(props)}
+              onConfirm={() => handleChartDelete(chart)}
             >
               {confirmDelete => (
                 <div
@@ -510,11 +516,11 @@ class ChartList extends React.PureComponent<Props, State> {
             </ConfirmStatusChange>
           </Menu.Item>
         )}
-        {this.canEdit && (
+        {canEdit && (
           <Menu.Item
             role="button"
             tabIndex={0}
-            onClick={() => this.openChartEditModal(props)}
+            onClick={() => openChartEditModal(chart)}
           >
             <ListViewCard.MenuIcon name="pencil" /> Edit
           </Menu.Item>
@@ -524,16 +530,16 @@ class ChartList extends React.PureComponent<Props, State> {
 
     return (
       <ListViewCard
-        loading={props.loading}
-        title={props.slice_name}
-        url={this.state.bulkSelectEnabled ? undefined : props.url}
-        imgURL={props.thumbnail_url ?? ''}
+        loading={chart.loading}
+        title={chart.slice_name}
+        url={state.bulkSelectEnabled ? undefined : chart.url}
+        imgURL={chart.thumbnail_url ?? ''}
         imgFallbackURL={'/static/assets/images/chart-card-fallback.png'}
-        description={t('Last modified %s', props.changed_on_delta_humanized)}
-        coverLeft={(props.owners || []).slice(0, 5).map(owner => (
+        description={t('Last modified %s', chart.changed_on_delta_humanized)}
+        coverLeft={(chart.owners || []).slice(0, 5).map(owner => (
           <AvatarIcon
             key={owner.id}
-            uniqueKey={`${owner.username}-${props.id}`}
+            uniqueKey={`${owner.username}-${chart.id}`}
             firstName={owner.first_name}
             lastName={owner.last_name}
             iconSize={24}
@@ -541,15 +547,15 @@ class ChartList extends React.PureComponent<Props, State> {
           />
         ))}
         coverRight={
-          <Label bsStyle="secondary">{props.datasource_name_text}</Label>
+          <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
         }
         actions={
           <ListViewCard.Actions>
             <FaveStar
-              itemId={props.id}
-              fetchFaveStar={this.fetchMethods.fetchFaveStar}
-              saveFaveStar={this.fetchMethods.saveFaveStar}
-              isStarred={!!this.state.favoriteStatus[props.id]}
+              itemId={chart.id}
+              fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
+              saveFaveStar={fetchFaveStarMethods.saveFaveStar}
+              isStarred={!!state.favoriteStatus[chart.id]}
               width={20}
               height={20}
             />
@@ -560,79 +566,76 @@ class ChartList extends React.PureComponent<Props, State> {
         }
       />
     );
-  };
-
-  render() {
-    const {
-      bulkSelectEnabled,
-      charts,
-      chartCount,
-      loading,
-      sliceCurrentlyEditing,
-    } = this.state;
-    return (
-      <>
-        <SubMenu
-          name={t('Charts')}
-          secondaryButton={
-            this.canDelete
-              ? {
-                  name: t('Bulk Select'),
-                  onClick: this.toggleBulkSelect,
-                }
-              : undefined
-          }
-        />
-        {sliceCurrentlyEditing && (
-          <PropertiesModal
-            onHide={this.closeChartEditModal}
-            onSave={this.handleChartUpdated}
-            show
-            slice={sliceCurrentlyEditing}
-          />
-        )}
-        <ConfirmStatusChange
-          title={t('Please confirm')}
-          description={t(
-            'Are you sure you want to delete the selected charts?',
-          )}
-          onConfirm={this.handleBulkChartDelete}
-        >
-          {confirmDelete => {
-            const bulkActions: ListViewProps['bulkActions'] = this.canDelete
-              ? [
-                  {
-                    key: 'delete',
-                    name: t('Delete'),
-                    onSelect: confirmDelete,
-                    type: 'danger',
-                  },
-                ]
-              : [];
-
-            return (
-              <ListView
-                bulkActions={bulkActions}
-                bulkSelectEnabled={bulkSelectEnabled}
-                cardSortSelectOptions={this.sortTypes}
-                className="chart-list-view"
-                columns={this.columns}
-                count={chartCount}
-                data={charts}
-                disableBulkSelect={this.toggleBulkSelect}
-                fetchData={this.fetchData}
-                filters={this.filters}
-                initialSort={this.initialSort}
-                loading={loading}
-                pageSize={PAGE_SIZE}
-                renderCard={this.renderCard}
-              />
-            );
-          }}
-        </ConfirmStatusChange>
-      </>
-    );
   }
+
+  const {
+    bulkSelectEnabled,
+    charts,
+    chartCount,
+    loading,
+    sliceCurrentlyEditing,
+  } = state;
+
+  return (
+    <>
+      <SubMenu
+        name={t('Charts')}
+        secondaryButton={
+          canDelete
+            ? {
+                name: t('Bulk Select'),
+                onClick: toggleBulkSelect,
+              }
+            : undefined
+        }
+      />
+      {sliceCurrentlyEditing && (
+        <PropertiesModal
+          onHide={closeChartEditModal}
+          onSave={handleChartUpdated}
+          show
+          slice={sliceCurrentlyEditing}
+        />
+      )}
+      <ConfirmStatusChange
+        title={t('Please confirm')}
+        description={t('Are you sure you want to delete the selected charts?')}
+        onConfirm={handleBulkChartDelete}
+      >
+        {confirmDelete => {
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
+          return (
+            <ListView
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              cardSortSelectOptions={sortTypes}
+              className="chart-list-view"
+              columns={columns}
+              count={chartCount}
+              data={charts}
+              disableBulkSelect={toggleBulkSelect}
+              fetchData={fetchData}
+              filters={filters}
+              initialSort={initialSort}
+              loading={loading}
+              pageSize={PAGE_SIZE}
+              renderCard={renderCard}
+            />
+          );
+        }}
+      </ConfirmStatusChange>
+    </>
+  );
 }
 
 export default withToasts(ChartList);

@@ -191,6 +191,10 @@ function DashboardList(props: DashboardListProps) {
     [],
   );
 
+  function toggleBulkSelect() {
+    updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
+  }
+
   function openDashboardEditModal(dashboard: Dashboard) {
     updateState({
       dashboardToEdit: dashboard,
@@ -416,10 +420,6 @@ function DashboardList(props: DashboardListProps) {
       disableSortBy: true,
     },
   ];
-
-  function toggleBulkSelect() {
-    updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
-  }
 
   const filters: Filters = [
     {
