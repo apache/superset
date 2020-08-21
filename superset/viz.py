@@ -21,6 +21,7 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
+import dataclasses
 import inspect
 import logging
 import math
@@ -42,7 +43,6 @@ from typing import (
     Union,
 )
 
-import dataclasses
 import geohash
 import numpy as np
 import pandas as pd
@@ -323,7 +323,8 @@ class BaseViz:
         gb = self.groupby
         metrics = self.all_metrics or []
         columns = form_data.get("columns") or []
-        groupby = list(set(gb + columns))
+        # merge list and dedup while preserving order
+        groupby = list(OrderedDict.fromkeys(gb + columns))
 
         is_timeseries = self.is_timeseries
         if DTTM_ALIAS in groupby:

@@ -18,15 +18,13 @@ import logging
 from io import IOBase
 from typing import cast, Union
 
+from flask import current_app
 from retry.api import retry
 from slack import WebClient
 from slack.errors import SlackApiError
 from slack.web.slack_response import SlackResponse
 
-from superset import app
-
 # Globals
-config = app.config  # type: ignore
 logger = logging.getLogger("tasks.slack_util")
 
 
@@ -34,6 +32,7 @@ logger = logging.getLogger("tasks.slack_util")
 def deliver_slack_msg(
     slack_channel: str, subject: str, body: str, file: Union[str, IOBase]
 ) -> None:
+    config = current_app.config
     client = WebClient(token=config["SLACK_API_TOKEN"], proxy=config["SLACK_PROXY"])
     # files_upload returns SlackResponse as we run it in sync mode.
     response = cast(
