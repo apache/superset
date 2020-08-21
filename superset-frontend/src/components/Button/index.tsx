@@ -59,56 +59,84 @@ const SupersetButton = styled(BootstrapButton)`
   &:focus:active {
     outline: none;
   }
-  &.supersetButton {
-    border-radius: ${({ theme }) => theme.borderRadius}px;
-    border: none;
-    color: ${({ theme }) => theme.colors.secondary.light5};
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-    min-width: ${({ theme }) => theme.gridUnit * 36}px;
-    min-height: ${({ theme }) => theme.gridUnit * 8}px;
-    text-transform: uppercase;
-    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
-    &:first-of-type {
-      margin-left: 0;
-    }
+  transition: all ${({ theme }) => theme.transitionTiming}s;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  border: none;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+  &:first-of-type {
+    margin-left: 0;
+  }
 
-    i {
-      padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
-    }
+  i {
+    padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
+  }
 
-    &.primary {
+  /* SIP 34 colors! */
+  &.btn {
+    &-default,
+    &-secondary {
+      // same as "secondary"
+      background-color: ${({ theme }) => theme.colors.primary.light4};
+      color: ${({ theme }) => theme.colors.primary.base};
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.primary.light3};
+        color: ${({ theme }) => theme.colors.primary.dark1};
+      }
+    }
+    &-primary {
       background-color: ${({ theme }) => theme.colors.primary.base};
+      color: ${({ theme }) => theme.colors.secondary.light5};
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.primary.dark1};
+        color: ${({ theme }) => theme.colors.secondary.light4};
+      }
     }
-    &.secondary {
-      color: ${({ theme }) => theme.colors.primary.base};
-      background-color: ${({ theme }) => theme.colors.primary.light4};
-    }
-    &.danger {
+    &-danger {
       background-color: ${({ theme }) => theme.colors.error.base};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.error.dark1};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
     }
-
-    /* TODO use or remove... pulled in from CRUD button component, since deleted */
-    /* &.btn,
-    &.btn:hover {
-      background-color: ${({ theme }) => theme.colors.primary.light4};
-      color: ${({ theme }) => theme.colors.primary.base};
+    &-success {
+      background-color: ${({ theme }) => theme.colors.success.base};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.success.dark1};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
     }
-    &.btn[disabled],
-    &.btn[disabled]:hover {
+    &-warning {
+      background-color: ${({ theme }) => theme.colors.warning.base};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.warning.dark1};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+    }
+    &-info {
+      background-color: ${({ theme }) => theme.colors.info.base};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.info.dark1};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+    }
+    &[disabled],
+    &[disabled]:hover {
       background-color: ${({ theme }) => theme.colors.grayscale.light2};
       color: ${({ theme }) => theme.colors.grayscale.light1};
     }
-    &.btn-primary,
-    &.btn-primary:hover {
-      background-color: ${({ theme }) => theme.colors.primary.base};
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-    }
-    &.btn-danger,
-    &.btn-danger:hover {
-      background-color: ${({ theme }) => theme.colors.error.base};
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-    } */
+  }
+
+  /* big Call to Action buttons */
+  &.supersetButton {
+    min-width: ${({ theme }) => theme.gridUnit * 36}px;
+    min-height: ${({ theme }) => theme.gridUnit * 8}px;
+    text-transform: uppercase;
   }
 `;
 
@@ -134,10 +162,9 @@ export default function Button(props: ButtonProps) {
     <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
   );
 
-  const whittledProps = { ...buttonProps };
-  delete whittledProps.dropdownItems;
-
   if (dropdownItems) {
+    const whittledProps = { ...buttonProps };
+    delete whittledProps.dropdownItems;
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
         <SupersetButton {...whittledProps} data-toggle="dropdown">
