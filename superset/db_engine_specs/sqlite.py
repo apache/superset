@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy.engine.reflection import Inspector
 
@@ -29,8 +29,9 @@ if TYPE_CHECKING:
 
 class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
+    engine_name = "SQLite"
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",
         "PT1M": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', {col}))",
@@ -49,7 +50,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_all_datasource_names(
-        cls, database, datasource_type: str
+        cls, database: "Database", datasource_type: str
     ) -> List[utils.DatasourceName]:
         schemas = database.get_all_schema_names(
             cache=database.schema_cache_enabled,
@@ -64,26 +65,25 @@ class SqliteEngineSpec(BaseEngineSpec):
                 cache=database.table_cache_enabled,
                 cache_timeout=database.table_cache_timeout,
             )
-        elif datasource_type == "view":
+        if datasource_type == "view":
             return database.get_all_view_names_in_schema(
                 schema=schema,
                 force=True,
                 cache=database.table_cache_enabled,
                 cache_timeout=database.table_cache_timeout,
             )
-        else:
-            raise Exception(f"Unsupported datasource_type: {datasource_type}")
+        raise Exception(f"Unsupported datasource_type: {datasource_type}")
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        iso = dttm.isoformat().replace("T", " ")
-        if "." not in iso:
-            iso += ".000000"
-        return "'{}'".format(iso)
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == utils.TemporalType.TEXT:
+            return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
+        return None
 
     @classmethod
     def get_table_names(
-        cls, database: "Database", inspector: Inspector, schema: str
+        cls, database: "Database", inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())

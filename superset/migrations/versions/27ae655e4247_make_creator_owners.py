@@ -27,12 +27,13 @@ revision = "27ae655e4247"
 down_revision = "d8bc074f7aad"
 
 from alembic import op
-from superset import db
-from sqlalchemy.ext.declarative import declarative_base
-from flask_appbuilder.models.mixins import AuditMixin
-from sqlalchemy.orm import relationship
 from flask_appbuilder import Model
-from sqlalchemy import Column, Integer, ForeignKey, Table
+from flask_appbuilder.models.mixins import AuditMixin
+from sqlalchemy import Column, ForeignKey, Integer, Table
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+
+from superset import db
 
 Base = declarative_base()
 

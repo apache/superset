@@ -24,12 +24,11 @@ Create Date: 2019-04-09 16:27:03.392872
 import json
 import logging
 
+import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from alembic import op
-import sqlalchemy as sa
 
 from superset import db
 
@@ -82,8 +81,8 @@ def upgrade():
                 layout, indent=None, separators=(",", ":"), sort_keys=True
             )
             session.merge(dashboard)
-        except Exception as e:
-            logging.exception(e)
+        except Exception as ex:
+            logging.exception(ex)
 
     session.commit()
     session.close()
@@ -112,8 +111,8 @@ def downgrade():
                 layout, indent=None, separators=(",", ":"), sort_keys=True
             )
             session.merge(dashboard)
-        except Exception as e:
-            logging.exception(e)
+        except Exception as ex:
+            logging.exception(ex)
 
     session.commit()
     session.close()

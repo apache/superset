@@ -22,15 +22,15 @@ Create Date: 2018-12-15 12:34:47.228756
 
 """
 
+import sqlalchemy as sa
+from alembic import op
+
 # revision identifiers, used by Alembic.
 from superset import db
 from superset.utils.core import generic_find_fk_constraint_name
 
 revision = "3e1b21cd94a4"
 down_revision = "6c7537a6004a"
-
-from alembic import op
-import sqlalchemy as sa
 
 
 sqlatable_user = sa.Table(

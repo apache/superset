@@ -1,0 +1,58 @@
+name: E2E
+
+on: [push, pull_request]
+
+jobs:
+  cypress:
+    name: Cypress
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: true
+      matrix:
+        browser: ['chrome']
+    env:
+      FLASK_ENV: development
+      SUPERSET_CONFIG: tests.superset_test_config
+      SUPERSET__SQLALCHEMY_DATABASE_URI:
+        postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+      PYTHONPATH: ${{ github.workspace }}
+      REDIS_PORT: 16379
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    services:
+      postgres:
+        image: postgres:10-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          - 15432:5432
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.1.1
+      with:
+        python-version: '3.7'
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
+          setup-postgres
+          testdata
+          npm-install
+          build-instrumented-assets
+          cypress-install
+    - name: Run Cypress
+      uses: apache-superset/cached-dependencies@b90713b
+      env:
+        CYPRESS_BROWSER: ${{ matrix.browser }}
+        CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+      with:
+        run: cypress-run-all

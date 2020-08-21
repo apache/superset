@@ -1,0 +1,241 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Default values for superset.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+## These requirements are used to build a requirements file which is then applied on init
+## of superset containers
+additionalRequirements:
+  - "psycopg2==2.8.5"
+  - "redis==3.2.1"
+
+## The name of the secret which we will use to generate a superset_config.py file
+## Note: this secret must have the key superset_config.py in it and can include other files as well
+##
+configFromSecret: '{{ template "superset.fullname" . }}-config'
+
+## The name of the secret which we will use to populate env vars in deployed pods
+## This can be useful for secret keys, etc.
+##
+envFromSecret: '{{ template "superset.fullname" . }}-env'
+
+## Extra environment variables that will be passed into pods
+##
+extraEnv: {}
+
+configMountPath: "/app/pythonpath"
+
+image:
+  repository: preset/superset
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 8088
+
+ingress:
+  enabled: false
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  path: /
+  hosts:
+    - chart-example.local
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+##
+## Superset node configuration
+supersetNode:
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/docker-entrypoint.sh"
+  connections:
+    redis_host: '{{ template "superset.fullname" . }}-redis-headless'
+    redis_port: "6379"
+    db_host: '{{ template "superset.fullname" . }}-postgresql'
+    db_port: "5432"
+    db_user: superset
+    db_pass: superset
+    db_name: superset
+  initContainers:
+    - name: wait-for-postgres
+      image: busybox:latest
+      imagePullPolicy: IfNotPresent
+      envFrom:
+        - secretRef:
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+
+##
+## Init job configuration
+init:
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
+  enabled: true
+  loadExamples: false
+  initContainers:
+    - name: wait-for-postgres
+      image: busybox:latest
+      imagePullPolicy: IfNotPresent
+      envFrom:
+        - secretRef:
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+  initscript: |-
+    #!/bin/sh
+    echo "Upgrading DB schema..."
+    superset db upgrade
+    echo "Initializing roles..."
+    superset init
+    echo "Creating admin user..."
+    superset fab create-admin \
+                    --username admin \
+                      --firstname Superset \
+                      --lastname Admin \
+                      --email admin@superset.com \
+                      --password admin || true
+    {{ if .Values.init.loadExamples }}
+    echo "Loading examples..."
+    superset load_examples
+    {{- end }}
+##
+## Configuration values for the postgresql dependency.
+## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
+postgresql:
+  ##
+  ## Use the PostgreSQL chart dependency.
+  ## Set to false if bringing your own PostgreSQL.
+  enabled: true
+
+  ##
+  ## The name of an existing secret that contains the postgres password.
+  existingSecret:
+
+  ## Name of the key containing the secret.
+  existingSecretKey: postgresql-password
+
+  ##
+  ## If you are bringing your own PostgreSQL, you should set postgresHost and
+  ## also probably service.port, postgresqlUsername, postgresqlPassword, and postgresqlDatabase
+  ## postgresHost:
+  ##
+  ## PostgreSQL port
+  service:
+    port: 5432
+  ## PostgreSQL User to create.
+  postgresqlUsername: superset
+  ##
+  ## PostgreSQL Password for the new user.
+  ## If not set, a random 10 characters password will be used.
+  postgresqlPassword: superset
+  ##
+  ## PostgreSQL Database to create.
+  postgresqlDatabase: superset
+  ##
+  ## Persistent Volume Storage configuration.
+  ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes
+  persistence:
+    ##
+    ## Enable PostgreSQL persistence using Persistent Volume Claims.
+    enabled: true
+    ##
+    ## Persistant class
+    # storageClass: classname
+    ##
+    ## Access modes:
+    accessModes:
+      - ReadWriteOnce
+
+## Configuration values for the Redis dependency.
+## ref: https://github.com/kubernetes/charts/blob/master/stable/redis/README.md
+redis:
+  ##
+  ## Use the redis chart dependency.
+  ## Set to false if bringing your own redis.
+  enabled: true
+
+  usePassword: false
+
+  ##
+  ## The name of an existing secret that contains the redis password.
+  existingSecret:
+
+  ## Name of the key containing the secret.
+  existingSecretKey: redis-password
+
+  ##
+  ## If you are bringing your own redis, you can set the host in redisHost.
+  ## redisHost:
+  ##
+  ## Redis password
+  ##
+  password: superset
+  ##
+  ## Master configuration
+  master:
+    ##
+    ## Image configuration
+    # image:
+      ##
+      ## docker registry secret names (list)
+      # pullSecrets: nil
+    ##
+    ## Configure persistance
+    persistence:
+      ##
+      ## Use a PVC to persist data.
+      enabled: false
+      ##
+      ## Persistant class
+      # storageClass: classname
+      ##
+      ## Access mode:
+      accessModes:
+      - ReadWriteOnce
+  ##
+  ## Disable cluster management by default.
+  cluster:
+    enabled: false
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

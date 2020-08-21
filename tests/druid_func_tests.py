@@ -14,24 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import json
 import unittest
 from unittest.mock import Mock
+
+import tests.test_app
+import superset.connectors.druid.models as models
+from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
+from superset.exceptions import SupersetException
+
+from .base_tests import SupersetTestCase
 
 try:
     from pydruid.utils.dimensions import (
         MapLookupExtraction,
         RegexExtraction,
         RegisteredLookupExtraction,
+        TimeFormatExtraction,
     )
     import pydruid.utils.postaggregator as postaggs
 except ImportError:
     pass
-
-import superset.connectors.druid.models as models
-from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
-from superset.exceptions import SupersetException
-from .base_tests import SupersetTestCase
 
 
 def mock_metric(metric_name, is_postagg=False):
@@ -46,7 +50,7 @@ def emplace(metrics_dict, metric_name, is_postagg=False):
 
 
 # Unit tests that can be run without initializing base tests
-class DruidFuncTestCase(unittest.TestCase):
+class TestDruidFunc(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
@@ -138,6 +142,33 @@ class DruidFuncTestCase(unittest.TestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
+    def test_get_filters_extraction_fn_time_format(self):
+        filters = [{"col": "dayOfMonth", "val": ["1", "20"], "op": "in"}]
+        dimension_spec = {
+            "type": "extraction",
+            "dimension": "__time",
+            "outputName": "dayOfMonth",
+            "extractionFn": {
+                "type": "timeFormat",
+                "format": "d",
+                "timeZone": "Asia/Kolkata",
+                "locale": "en",
+            },
+        }
+        spec_json = json.dumps(dimension_spec)
+        col = DruidColumn(column_name="dayOfMonth", dimension_spec_json=spec_json)
+        column_dict = {"dayOfMonth": col}
+        f = DruidDatasource.get_filters(filters, [], column_dict)
+        assert isinstance(f.extraction_function, TimeFormatExtraction)
+        dim_ext_fn = dimension_spec["extractionFn"]
+        self.assertEqual(dim_ext_fn["type"], f.extraction_function.extraction_type)
+        self.assertEqual(dim_ext_fn["format"], f.extraction_function._format)
+        self.assertEqual(dim_ext_fn["timeZone"], f.extraction_function._time_zone)
+        self.assertEqual(dim_ext_fn["locale"], f.extraction_function._locale)
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_ignores_invalid_filter_objects(self):
         filtr = {"col": "col1", "op": "=="}
         filters = [filtr]
@@ -208,7 +239,7 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertFalse(res.filter["filter"]["lowerStrict"])
         self.assertEqual("A", res.filter["filter"]["dimension"])
         self.assertEqual("h", res.filter["filter"]["lower"])
-        self.assertFalse(res.filter["filter"]["alphaNumeric"])
+        self.assertEqual("lexicographic", res.filter["filter"]["ordering"])
         filtr["op"] = ">"
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertTrue(res.filter["filter"]["lowerStrict"])
@@ -219,6 +250,35 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr["op"] = "<"
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertTrue(res.filter["filter"]["upperStrict"])
+        filtr["val"] = 1
+        res = DruidDatasource.get_filters([filtr], ["A"], column_dict)
+        self.assertEqual("numeric", res.filter["filter"]["ordering"])
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
+    def test_get_filters_is_null_filter(self):
+        filtr = {"col": "A", "op": "IS NULL"}
+        col = DruidColumn(column_name="A")
+        column_dict = {"A": col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual("selector", res.filter["filter"]["type"])
+        self.assertEqual("", res.filter["filter"]["value"])
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
+    def test_get_filters_is_not_null_filter(self):
+        filtr = {"col": "A", "op": "IS NOT NULL"}
+        col = DruidColumn(column_name="A")
+        column_dict = {"A": col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual("not", res.filter["filter"]["type"])
+        self.assertIn("field", res.filter["filter"])
+        self.assertEqual(
+            "selector", res.filter["filter"]["field"].filter["filter"]["type"]
+        )
+        self.assertEqual("", res.filter["filter"]["field"].filter["filter"]["value"])
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
@@ -355,11 +415,11 @@ class DruidFuncTestCase(unittest.TestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # no groupby calls client.timeseries
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             filter=[],
             row_limit=100,
@@ -412,11 +472,11 @@ class DruidFuncTestCase(unittest.TestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # no groupby calls client.timeseries
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             filter=[],
             row_limit=100,
@@ -459,11 +519,11 @@ class DruidFuncTestCase(unittest.TestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # client.topn is called twice
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=100,
             client=client,
             order_desc=True,
@@ -483,11 +543,11 @@ class DruidFuncTestCase(unittest.TestCase):
         client = Mock()
         client.query_builder.last_query.query_dict = {"mock": 0}
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             order_desc=False,
             filter=[],
@@ -508,11 +568,11 @@ class DruidFuncTestCase(unittest.TestCase):
         client = Mock()
         client.query_builder.last_query.query_dict = {"mock": 0}
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             order_desc=True,
             timeseries_limit=5,
@@ -559,11 +619,11 @@ class DruidFuncTestCase(unittest.TestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # no groupby calls client.timeseries
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             row_limit=100,
             filter=[],
@@ -961,11 +1021,11 @@ class DruidFuncTestCase(unittest.TestCase):
         granularity = "all"
         # get the counts of the top 5 'dim1's, order by 'sum1'
         ds.run_query(
-            groupby,
             metrics,
             granularity,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=5,
             timeseries_limit_metric="sum1",
             client=client,
@@ -982,11 +1042,11 @@ class DruidFuncTestCase(unittest.TestCase):
 
         # get the counts of the top 5 'dim1's, order by 'div1'
         ds.run_query(
-            groupby,
             metrics,
             granularity,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=5,
             timeseries_limit_metric="div1",
             client=client,
@@ -1004,11 +1064,11 @@ class DruidFuncTestCase(unittest.TestCase):
         groupby = ["dim1", "dim2"]
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'sum1'
         ds.run_query(
-            groupby,
             metrics,
             granularity,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=5,
             timeseries_limit_metric="sum1",
             client=client,
@@ -1025,11 +1085,11 @@ class DruidFuncTestCase(unittest.TestCase):
 
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'div1'
         ds.run_query(
-            groupby,
             metrics,
             granularity,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=5,
             timeseries_limit_metric="div1",
             client=client,

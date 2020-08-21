@@ -21,10 +21,10 @@ Create Date: 2018-02-13 08:07:40.766277
 """
 import json
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declarative_base
+from alembic import op
 from flask_appbuilder.models.mixins import AuditMixin
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 

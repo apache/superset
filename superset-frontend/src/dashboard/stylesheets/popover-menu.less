@@ -1,0 +1,154 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+.with-popover-menu {
+  position: relative;
+  outline: none;
+}
+
+.grid-row.grid-row--empty .with-popover-menu {
+  /* drop indicator doesn't show up without this */
+  width: 100%;
+  height: 100%;
+}
+
+.with-popover-menu--focused:after {
+  content: '';
+  position: absolute;
+  top: 1;
+  left: -1;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 0 2px @indicator-color;
+  pointer-events: none;
+}
+
+.popover-menu {
+  position: absolute;
+  flex-wrap: nowrap;
+  left: 1px;
+  top: -42px;
+  height: 40px;
+  padding: 0 16px;
+  background: @lightest;
+  box-shadow: 0 1px 2px 1px fade(@darkest, @opacity-medium-light);
+  font-size: @font-size-m;
+  cursor: default;
+  z-index: @z-index-max;
+
+  &,
+  .menu-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* vertical spacer after each menu item */
+  .menu-item:not(:only-child):not(:last-child):after {
+    content: '';
+    width: 1;
+    height: 100%;
+    background: @gray-light;
+    margin: 0 16px;
+  }
+
+  .popover-dropdown.btn {
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    color: @almost-black;
+  }
+}
+
+/* the focus menu doesn't account for parent padding */
+.dashboard-component-tabs li .with-popover-menu--focused:after {
+  top: -12px;
+  left: -8px;
+  width: ~'calc(100% + 16px)'; /* escape for .less */
+  height: ~'calc(100% + 28px)';
+}
+
+.dashboard-component-tabs li .popover-menu {
+  top: -56px;
+  left: -7px;
+}
+
+.popover-menu .popover-dropdown.btn,
+.hover-dropdown .btn {
+  &:hover,
+  &:active,
+  &:focus {
+    background: initial;
+    box-shadow: none;
+  }
+}
+
+.hover-dropdown,
+.popover-menu {
+  li.dropdown-item {
+    &:hover a {
+      background: @menu-hover;
+    }
+
+    &.active a {
+      background: @gray-light;
+      font-weight: @font-weight-bold;
+      color: @almost-black;
+    }
+  }
+}
+
+.popover-dropdown .caret {
+  /* without this the caret doesn't take up full width / is clipped */
+  width: auto;
+  border-top-color: transparent;
+}
+
+/* background style menu */
+.background-style-option {
+  display: inline-block;
+
+  &:before {
+    content: '';
+    width: 1em;
+    height: 1em;
+    margin-right: 8px;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  &.background--white {
+    padding-left: 0;
+    background: transparent;
+
+    &:before {
+      background: @lightest;
+      border: 1px solid @gray-light;
+    }
+  }
+
+  /* Create the transparent rect icon */
+  &.background--transparent:before {
+    background-image: linear-gradient(45deg, @gray 25%, transparent 25%),
+      linear-gradient(-45deg, @gray 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, @gray 75%),
+      linear-gradient(-45deg, transparent 75%, @gray 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+  }
+}

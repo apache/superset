@@ -78,7 +78,7 @@ def upgrade():
     for slc in filter_box_slices.all():
         try:
             upgrade_slice(slc)
-        except Exception as e:
+        except Exception as ex:
             logging.exception(e)
 
     session.commit()
@@ -100,8 +100,8 @@ def downgrade():
             params["metric"] = flts[0].get("metric")
             params["groupby"] = [o.get("column") for o in flts]
             slc.params = json.dumps(params, sort_keys=True)
-        except Exception as e:
-            logging.exception(e)
+        except Exception as ex:
+            logging.exception(ex)
 
     session.commit()
     session.close()

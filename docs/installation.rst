@@ -24,7 +24,8 @@ Getting Started
 Superset has deprecated support for Python ``2.*`` and supports
 only ``~=3.6`` to take advantage of the newer Python features and reduce
 the burden of supporting previous versions. We run our test suite
-against ``3.6``, but ``3.7`` is fully supported as well.
+against ``3.7``, with a subset of tests additionally being run against
+``3.6`` and ``3.8``.
 
 Cloud-native!
 -------------
@@ -57,24 +58,23 @@ Start with Docker
 -----------------
 
 .. note ::
-    The Docker-related files and documentation has been
-    community-contributed and
-    is not actively maintained and managed by the core committers working on
-    the project. Some issues have been reported as of 2019-01.
-    Help and contributions around Docker are welcomed!
+    The Docker-related files and documentation are actively maintained and
+    managed by the core committers working on the project. Help and contributions
+    around Docker are welcomed!
 
 If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
-    cd incubator-superset/contrib/docker
-    # prefix with SUPERSET_LOAD_EXAMPLES=yes to load examples:
-    docker-compose run --rm superset ./docker-init.sh
+    cd incubator-superset
     # you can run this command everytime you need to start superset now:
     docker-compose up
 
 After several minutes for superset initialization to finish, you can open
-a browser and view `http://localhost:8088` to start your journey.
+a browser and view `http://localhost:8088` to start your journey. By default
+the system configures an admin user with the username of `admin` and a password
+of `admin` - if you are in a non-local environment it is highly recommended to
+change this username and password at your earliest convenience.
 
 From there, the container server will reload on modification of the superset python
 and javascript source code.
@@ -83,15 +83,14 @@ Don't forget to reload the page to take the new frontend into account though.
 See also `CONTRIBUTING.md#building <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#building>`_,
 for alternative way of serving the frontend.
 
-It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
-the volumes needed for development and change the variable `SUPERSET_ENV` to `production`.
+It is currently not recommended to run docker-compose in production.
 
 If you are attempting to build on a Mac and it exits with 137 you need to increase your docker resources.
 OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for memory)
 
 Or if you're curious and want to install superset from bottom up, then go ahead.
 
-See also `contrib/docker/README.md <https://github.com/apache/incubator-superset/blob/master/contrib/docker/README.md>`_
+See also `docker/README.md <https://github.com/apache/incubator-superset/blob/master/docker/README.md>`_
 
 OS dependencies
 ---------------
@@ -121,7 +120,7 @@ For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
 
     sudo yum upgrade python-setuptools
-    sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
+    sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel cyrus-sasl-devel openldap-devel
 
 **Mac OS X** If possible, you should upgrade to the latest version of OS X as issues are more likely to be resolved for that version.
 You *will likely need* the latest version of XCode available for your installed version of OS X. You should also install
@@ -157,7 +156,7 @@ You can create and activate a virtualenv by: ::
     python3 -m venv venv
     . venv/bin/activate
 
-On windows the syntax for activating it is a bit different: ::
+On Windows the syntax for activating it is a bit different: ::
 
     venv\Scripts\activate
 
@@ -183,7 +182,7 @@ Follow these few simple steps to install Superset.::
 
     # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
     $ export FLASK_APP=superset
-    flask fab create-admin
+    superset fab create-admin
 
     # Load some data to play with
     superset load_examples
@@ -192,7 +191,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset run -p 8080 --with-threads --reload --debugger
+    superset run -p 8088 --with-threads --reload --debugger
 
 After installation, you should be able to point your browser to the right
 hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
@@ -220,7 +219,7 @@ setup known to work well in production: ::
         --limit-request-line 0 \
         --limit-request-field_size 0 \
         --statsd-host localhost:8125 \
-        superset:app
+        "superset.app:create_app()"
 
 Refer to the
 `Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
@@ -230,7 +229,7 @@ Note that the development web
 server (`superset run` or `flask run`) is not intended for production use.
 
 If not using gunicorn, you may want to disable the use of flask-compress
-by setting `ENABLE_FLASK_COMPRESS = False` in your `superset_config.py`
+by setting `COMPRESS_REGISTER = False` in your `superset_config.py`
 
 Flask-AppBuilder Permissions
 ----------------------------
@@ -335,164 +334,6 @@ auth postback endpoint, you can add them to *WTF_CSRF_EXEMPT_LIST*
 
 .. _ref_database_deps:
 
-Database dependencies
----------------------
-
-Superset does not ship bundled with connectivity to databases, except
-for Sqlite, which is part of the Python standard library.
-You'll need to install the required packages for the database you
-want to use as your metadata database as well as the packages needed to
-connect to the databases you want to access through Superset.
-
-Here's a list of some of the recommended packages.
-
-+------------------+---------------------------------------+-------------------------------------------------+
-| database         | pypi package                          | SQLAlchemy URI prefix                           |
-+==================+=======================================+=================================================+
-| Amazon Athena    | ``pip install "PyAthenaJDBC>1.0.9"``  | ``awsathena+jdbc://``                           |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Amazon Athena    | ``pip install "PyAthena>1.2.0"``      | ``awsathena+rest://``                           |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Amazon Redshift  | ``pip install sqlalchemy-redshift``   | ``redshift+psycopg2://``                        |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Apache Drill     | ``pip install sqlalchemy-drill``      | For the REST API:``                             |
-|                  |                                       | ``drill+sadrill://``                            |
-|                  |                                       | For JDBC                                        |
-|                  |                                       | ``drill+jdbc://``                               |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Apache Druid     | ``pip install pydruid``                | ``druid://``                                    |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Apache Hive      | ``pip install pyhive``                | ``hive://``                                     |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Apache Impala    | ``pip install impyla``                | ``impala://``                                   |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Apache Kylin     | ``pip install kylinpy``               | ``kylin://``                                    |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Apache Pinot     | ``pip install pinotdb``               | ``pinot+http://CONTROLLER:5436/``               |
-|                  |                                       | ``query?server=http://CONTROLLER:5983/``        |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Apache Spark SQL | ``pip install pyhive``                | ``jdbc+hive://``                                |
-+------------------+---------------------------------------+-------------------------------------------------+
-| BigQuery         | ``pip install pybigquery``            | ``bigquery://``                                 |
-+------------------+---------------------------------------+-------------------------------------------------+
-| ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
-+------------------+---------------------------------------+-------------------------------------------------+
-| IBM Db2          | ``pip install ibm_db_sa``             | ``db2+ibm_db://``                               |
-+------------------+---------------------------------------+-------------------------------------------------+
-| MySQL            | ``pip install mysqlclient``           | ``mysql://``                                    |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Oracle           | ``pip install cx_Oracle``             | ``oracle://``                                   |
-+------------------+---------------------------------------+-------------------------------------------------+
-| PostgreSQL       | ``pip install psycopg2``              | ``postgresql+psycopg2://``                      |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Presto           | ``pip install pyhive``                | ``presto://``                                   |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Snowflake        | ``pip install snowflake-sqlalchemy``  | ``snowflake://``                                |
-+------------------+---------------------------------------+-------------------------------------------------+
-| SQLite           |                                       | ``sqlite://``                                   |
-+------------------+---------------------------------------+-------------------------------------------------+
-| SQL Server       | ``pip install pymssql``               | ``mssql://``                                    |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Teradata         | ``pip install sqlalchemy-teradata``   | ``teradata://``                                 |
-+------------------+---------------------------------------+-------------------------------------------------+
-| Vertica          | ``pip install                         |  ``vertica+vertica_python://``                  |
-|                  | sqlalchemy-vertica-python``           |                                                 |
-+------------------+---------------------------------------+-------------------------------------------------+
-
-Note that many other databases are supported, the main criteria being the
-existence of a functional SqlAlchemy dialect and Python driver. Googling
-the keyword ``sqlalchemy`` in addition of a keyword that describes the
-database you want to connect to should get you to the right place.
-
-(AWS) Athena
-------------
-
-The connection string for Athena looks like this ::
-
-    awsathena+jdbc://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
-
-Where you need to escape/encode at least the s3_staging_dir, i.e., ::
-
-    s3://... -> s3%3A//...
-
-You can also use `PyAthena` library(no java required) like this ::
-
-    awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
-
-See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
-
-(Google) BigQuery
------------------
-
-The connection string for BigQuery looks like this ::
-
-    bigquery://{project_id}
-
-To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
-
-Snowflake
----------
-
-The connection string for Snowflake looks like this ::
-
-    snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}
-
-The schema is not necessary in the connection string, as it is defined per table/query.
-The role and warehouse can be omitted if defaults are defined for the user, i.e.
-
-    snowflake://{user}:{password}@{account}.{region}/{database}
-
-Make sure the user has privileges to access and use all required
-databases/schemas/tables/views/warehouses, as the Snowflake SQLAlchemy engine does
-not test for user rights during engine creation.
-
-See `Snowflake SQLAlchemy <https://github.com/snowflakedb/snowflake-sqlalchemy>`_.
-
-Teradata
----------
-
-The connection string for Teradata looks like this ::
-
-    teradata://{user}:{password}@{host}
-
-*Note*: Its required to have Teradata ODBC drivers installed and environment variables configured for proper work of sqlalchemy dialect. Teradata ODBC Drivers available here: https://downloads.teradata.com/download/connectivity/odbc-driver/linux
-
-Required environment variables: ::
-
-    export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini
-    export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini
-
-See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
-
-Apache Drill
-------------
-At the time of writing, the SQLAlchemy Dialect is not available on pypi and must be downloaded here:
-`SQLAlchemy Drill <https://github.com/JohnOmernik/sqlalchemy-drill>`_
-
-Alternatively, you can install it completely from the command line as follows: ::
-
-    git clone https://github.com/JohnOmernik/sqlalchemy-drill
-    cd sqlalchemy-drill
-    python3 setup.py install
-
-Once that is done, you can connect to Drill in two ways, either via the REST interface or by JDBC.  If you are connecting via JDBC, you must have the
-Drill JDBC Driver installed.
-
-The basic connection string for Drill looks like this ::
-
-    drill+sadrill://{username}:{password}@{host}:{port}/{storage_plugin}?use_ssl=True
-
-If you are using JDBC to connect to Drill, the connection string looks like this: ::
-
-    drill+jdbc://{username}:{password}@{host}:{port}/{storage_plugin}
-
-For a complete tutorial about how to use Apache Drill with Superset, see this tutorial:
-`Visualize Anything with Superset and Drill <http://thedataist.com/visualize-anything-with-superset-and-drill/>`_
-
 Caching
 -------
 
@@ -562,6 +403,355 @@ section in `config.py`:
 This will cache all the charts in the top 5 most popular dashboards every hour.
 For other strategies, check the `superset/tasks/cache.py` file.
 
+Caching Thumbnails
+------------------
+
+This is an optional feature that can be turned on by activating it's feature flag on config:
+
+.. code-block:: python
+
+    FEATURE_FLAGS = {
+        "THUMBNAILS": True,
+        "THUMBNAILS_SQLA_LISTENERS": True,
+    }
+
+
+For this feature you will need a cache system and celery workers. All thumbnails are store on cache and are processed
+asynchronously by the workers.
+
+An example config where images are stored on S3 could be:
+
+.. code-block:: python
+
+    from flask import Flask
+    from s3cache.s3cache import S3Cache
+
+    ...
+
+    class CeleryConfig(object):
+        BROKER_URL = "redis://localhost:6379/0"
+        CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
+        CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+        CELERYD_PREFETCH_MULTIPLIER = 10
+        CELERY_ACKS_LATE = True
+
+
+    CELERY_CONFIG = CeleryConfig
+
+    def init_thumbnail_cache(app: Flask) -> S3Cache:
+        return S3Cache("bucket_name", 'thumbs_cache/')
+
+
+    THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
+    # Async selenium thumbnail task will use the following user
+    THUMBNAIL_SELENIUM_USER = "Admin"
+
+Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`
+
+You can override the base URL for selenium using:
+
+.. code-block:: python
+
+    WEBDRIVER_BASEURL = "https://superset.company.com"
+
+
+Additional selenium web drive config can be set using `WEBDRIVER_CONFIGURATION`
+
+You can implement a custom function to authenticate selenium, the default uses flask-login session cookie.
+An example of a custom function signature:
+
+.. code-block:: python
+
+    def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
+        pass
+
+
+Then on config:
+
+.. code-block:: python
+
+    WEBDRIVER_AUTH_FUNC = auth_driver
+
+Database dependencies
+---------------------
+
+Superset does not ship bundled with connectivity to databases, except
+for Sqlite, which is part of the Python standard library.
+You'll need to install the required packages for the database you
+want to use as your metadata database as well as the packages needed to
+connect to the databases you want to access through Superset.
+
+Here's a list of some of the recommended packages.
+
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Database         | PyPI package                                                      | SQLAlchemy URI prefix                           |
++==================+===================================================================+=================================================+
+| Amazon Athena    | ``"apache-superset[athena]"``                                     | ``awsathena+jdbc://``                           |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Amazon Redshift  | ``"apache-superset[redshift]"``                                   | ``redshift+psycopg2://``                        |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Drill     | ``"apache-superset[drill]"``                                      | For the REST API:``                             |
+|                  |                                                                   | ``drill+sadrill://``                            |
+|                  |                                                                   | For JDBC                                        |
+|                  |                                                                   | ``drill+jdbc://``                               |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Druid     | ``"apache-superset[druid]"``                                      | ``druid://``                                    |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Hive      | ``"apache-superset[hive]"``                                       | ``hive://``                                     |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Impala    | ``"apache-superset[impala]"``                                     | ``impala://``                                   |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Kylin     | ``"apache-superset[kylin]"``                                      | ``kylin://``                                    |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Pinot     | ``"apache-superset[pinot]"``                                      | ``pinot+http://CONTROLLER:5436/``               |
+|                  |                                                                   | ``query?server=http://CONTROLLER:5983/``        |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Spark SQL | ``"apache-superset[hive]"``                                       | ``jdbc+hive://``                                |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| BigQuery         | ``"apache-superset[bigquery]"``                                   | ``bigquery://``                                 |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| ClickHouse       | ``"apache-superset[clickhouse]"``                                 |                                                 |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| CockroachDB      | ``"apache-superset[cockroachdb]"``                                | ``cockroachdb://``                              |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Dremio           | ``"apache-superset[dremio]"``                                     | ``dremio://``                                   |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Elasticsearch    | ``"apache-superset[elasticsearch]"``                              | ``elasticsearch+http://``                       |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Exasol           | ``"apache-superset[exasol]"``                                     | ``exa+pyodbc://``                               |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Google Sheets    | ``"apache-superset[gsheets]"``                                    | ``gsheets://``                                  |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| IBM Db2          | ``"apache-superset[db2]"``                                        | ``db2+ibm_db://``                               |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| MySQL            | ``"apache-superset[mysql]"``                                      | ``mysql://``                                    |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Oracle           | ``"apache-superset[oracle]"``                                     | ``oracle://``                                   |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| PostgreSQL       | ``"apache-superset[postgres]"``                                   | ``postgresql+psycopg2://``                      |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Presto           | ``"apache-superset[presto]"``                                     | ``presto://``                                   |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| SAP HANA         | ``"apache-superset[hana]"``                                       |  ``hana://``                                    |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Snowflake        | ``"apache-superset[snowflake]"``                                  | ``snowflake://``                                |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| SQLite           |                                                                   | ``sqlite://``                                   |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| SQL Server       | ``"apache-superset[mssql]"``                                      | ``mssql://``                                    |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Teradata         | ``"apache-superset[teradata]"``                                   | ``teradata://``                                 |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Vertica          | ``"apache-superset[vertical]"``                                   |  ``vertica+vertica_python://``                  |
++------------------+-------------------------------------------------------------------+-------------------------------------------------+
+
+Note that many other databases are supported, the main criteria being the
+existence of a functional SqlAlchemy dialect and Python driver. Googling
+the keyword ``sqlalchemy`` in addition of a keyword that describes the
+database you want to connect to should get you to the right place.
+
+PostgreSQL
+------------
+
+The connection string for PostgreSQL looks like this ::
+
+    postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}
+
+Additional  may be configured via the ``extra`` field under ``engine_params``.
+If you would like to enable mutual SSL here is a sample configuration:
+
+.. code-block:: json
+
+    {
+        "metadata_params": {},
+        "engine_params": {
+              "connect_args":{
+                    "sslmode": "require",
+                    "sslrootcert": "/path/to/root_cert"
+            }
+         }
+    }
+
+If the key ``sslrootcert`` is present the server's certificate will be verified to be signed by the same Certificate Authority (CA).
+
+If you would like to enable mutual SSL here is a sample configuration:
+
+.. code-block:: json
+
+    {
+        "metadata_params": {},
+        "engine_params": {
+              "connect_args":{
+                    "sslmode": "require",
+                    "sslcert": "/path/to/client_cert",
+                    "sslkey": "/path/to/client_key",
+                    "sslrootcert": "/path/to/root_cert"
+            }
+         }
+    }
+
+See `psycopg2 SQLAlchemy <https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg2>`_.
+
+Hana
+------------
+
+The connection string for Hana looks like this ::
+
+    hana://{username}:{password}@{host}:{port}
+
+
+(AWS) Athena
+------------
+
+The connection string for Athena looks like this ::
+
+    awsathena+jdbc://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+
+Where you need to escape/encode at least the s3_staging_dir, i.e., ::
+
+    s3://... -> s3%3A//...
+
+You can also use `PyAthena` library(no java required) like this ::
+
+    awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+
+See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
+
+(Google) BigQuery
+-----------------
+
+The connection string for BigQuery looks like this ::
+
+    bigquery://{project_id}
+
+Additionally, you will need to configure authentication via a
+Service Account. Create your Service Account via the Google
+Cloud Platform control panel, provide it access to the appropriate
+BigQuery datasets, and download the JSON configuration file
+for the service account. In Superset, Add a JSON blob to
+the "Secure Extra" field in the database configuration page
+with the following format ::
+
+    {
+        "credentials_info": <contents of credentials JSON file>
+    }
+
+The resulting file should have this structure ::
+
+    {
+        "credentials_info": {
+            "type": "service_account",
+            "project_id": "...",
+            "private_key_id": "...",
+            "private_key": "...",
+            "client_email": "...",
+            "client_id": "...",
+            "auth_uri": "...",
+            "token_uri": "...",
+            "auth_provider_x509_cert_url": "...",
+            "client_x509_cert_url": "...",
+        }
+    }
+
+You should then be able to connect to your BigQuery datasets.
+
+To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
+
+
+Elasticsearch
+-------------
+
+The connection string for Elasticsearch looks like this ::
+
+    elasticsearch+http://{user}:{password}@{host}:9200/
+
+Using HTTPS ::
+
+    elasticsearch+https://{user}:{password}@{host}:9200/
+
+
+Elasticsearch as a default limit of 10000 rows, so you can increase this limit on your cluster
+or set Superset's row limit on config ::
+
+    ROW_LIMIT = 10000
+
+You can query multiple indices on SQLLab for example ::
+
+    select timestamp, agent from "logstash-*"
+
+But, to use visualizations for multiple indices you need to create an alias index on your cluster ::
+
+    POST /_aliases
+    {
+        "actions" : [
+            { "add" : { "index" : "logstash-**", "alias" : "logstash_all" } }
+        ]
+    }
+
+Then register your table with the ``alias`` name ``logstasg_all``
+
+Snowflake
+---------
+
+The connection string for Snowflake looks like this ::
+
+    snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}
+
+The schema is not necessary in the connection string, as it is defined per table/query.
+The role and warehouse can be omitted if defaults are defined for the user, i.e.
+
+    snowflake://{user}:{password}@{account}.{region}/{database}
+
+Make sure the user has privileges to access and use all required
+databases/schemas/tables/views/warehouses, as the Snowflake SQLAlchemy engine does
+not test for user/role rights during engine creation by default. However, when
+pressing the "Test Connection" button in the Create or Edit Database dialog,
+user/role credentials are validated by passing `"validate_default_parameters": True`
+to the `connect()` method during engine creation. If the user/role is not authorized
+to access the database, an error is recorded in the Superset logs.
+
+See `Snowflake SQLAlchemy <https://github.com/snowflakedb/snowflake-sqlalchemy>`_.
+
+Teradata
+---------
+
+The connection string for Teradata looks like this ::
+
+    teradata://{user}:{password}@{host}
+
+*Note*: Its required to have Teradata ODBC drivers installed and environment variables configured for proper work of sqlalchemy dialect. Teradata ODBC Drivers available here: https://downloads.teradata.com/download/connectivity/odbc-driver/linux
+
+Required environment variables: ::
+
+    export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini
+    export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini
+
+See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
+
+Apache Drill
+------------
+At the time of writing, the SQLAlchemy Dialect is not available on pypi and must be downloaded here:
+`SQLAlchemy Drill <https://github.com/JohnOmernik/sqlalchemy-drill>`_
+
+Alternatively, you can install it completely from the command line as follows: ::
+
+    git clone https://github.com/JohnOmernik/sqlalchemy-drill
+    cd sqlalchemy-drill
+    python3 setup.py install
+
+Once that is done, you can connect to Drill in two ways, either via the REST interface or by JDBC.  If you are connecting via JDBC, you must have the
+Drill JDBC Driver installed.
+
+The basic connection string for Drill looks like this ::
+
+    drill+sadrill://{username}:{password}@{host}:{port}/{storage_plugin}?use_ssl=True
+
+If you are using JDBC to connect to Drill, the connection string looks like this: ::
+
+    drill+jdbc://{username}:{password}@{host}:{port}/{storage_plugin}
+
+For a complete tutorial about how to use Apache Drill with Superset, see this tutorial:
+`Visualize Anything with Superset and Drill <http://thedataist.com/visualize-anything-with-superset-and-drill/>`_
 
 Deeper SQLAlchemy integration
 -----------------------------
@@ -570,7 +760,7 @@ It is possible to tweak the database connection information using the
 parameters exposed by SQLAlchemy. In the ``Database`` edit view, you will
 find an ``extra`` field as a ``JSON`` blob.
 
-.. image:: images/tutorial/add_db.png
+.. image:: _static/images/tutorial/add_db.png
    :scale: 30 %
 
 This JSON string contains extra configuration elements. The ``engine_params``
@@ -578,6 +768,9 @@ object gets unpacked into the
 `sqlalchemy.create_engine <https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine>`_ call,
 while the ``metadata_params`` get unpacked into the
 `sqlalchemy.MetaData <https://docs.sqlalchemy.org/en/rel_1_2/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
+
+.. note:: If your using CTAS on SQLLab and PostgreSQL
+    take a look at :ref:`ref_ctas_engine_config` for specific ``engine_params``.
 
 
 Schemas (Postgres & Redshift)
@@ -637,17 +830,27 @@ parameter ::
 Druid
 -----
 
-* From the UI, enter the information about your clusters in the
-  `Sources -> Druid Clusters` menu by hitting the + sign.
+The native Druid connector (behind the ``DRUID_IS_ACTIVE`` feature flag)
+is slowly getting deprecated in favor of the SQLAlchemy/DBAPI connector made
+available in the ``pydruid`` library.
 
-* Once the Druid cluster connection information is entered, hit the
-  `Sources -> Refresh Druid Metadata` menu item to populate
+To use a custom SSL certificate to validate HTTPS requests, the certificate
+contents can be entered in the ``Root Certificate`` field in the Database
+dialog. When using a custom certificate, ``pydruid`` will automatically use
+``https`` scheme. To disable SSL verification add the following to extras:
+``engine_params": {"connect_args": {"scheme": "https", "ssl_verify_cert": false}}``
 
-* Navigate to your datasources
+Dremio
+------
 
-Note that you can run the ``superset refresh_druid`` command to refresh the
-metadata from your Druid cluster(s)
+Install the following dependencies to connect to Dremio:
 
+* Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``
+
+  * If you receive any errors during the installation of ``sqlalchemy_dremio``, make sure to install the prerequisites for PyODBC properly by following the instructions for your OS here: https://github.com/narendrans/sqlalchemy_dremio#installation
+* Dremio's ODBC driver: https://www.dremio.com/drivers/
+
+Example SQLAlchemy URI: ``dremio://dremio:dremio123@localhost:31010/dremio``
 
 Presto
 ------
@@ -685,8 +888,9 @@ CORS
 
 The extra CORS Dependency must be installed:
 
-    superset[cors]
+.. code-block:: text
 
+    pip install apache-superset[cors]
 
 The following keys in `superset_config.py` can be specified to configure CORS:
 
@@ -695,7 +899,7 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 * ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <https://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
 
-DOMAIN SHARDING
+Domain Sharding
 ---------------
 
 Chrome allows up to 6 open connections per domain at a time. When there are more
@@ -707,7 +911,7 @@ doesn't allow cross-domain request).
 * ``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
 
 
-MIDDLEWARE
+Middleware
 ----------
 
 Superset allows you to add your own middleware. To add your own middleware, update the ``ADDITIONAL_MIDDLEWARE`` key in
@@ -840,14 +1044,14 @@ have the same configuration.
 
 * To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
 
 * To start a job which schedules periodic background jobs, run ::
 
     celery beat --app=superset.tasks.celery_app:app
 
 To setup a result backend, you need to pass an instance of a derivative
-of ``werkzeug.contrib.cache.BaseCache`` to the ``RESULTS_BACKEND``
+of ``from cachelib.base.BaseCache`` to the ``RESULTS_BACKEND``
 configuration key in your ``superset_config.py``. It's possible to use
 Memcached, Redis, S3 (https://pypi.python.org/pypi/s3werkzeugcache),
 memory or the file system (in a single server-type setup or for testing),
@@ -863,7 +1067,7 @@ look something like:
     RESULTS_BACKEND = S3Cache(S3_CACHE_BUCKET, S3_CACHE_KEY_PREFIX)
 
     # On Redis
-    from werkzeug.contrib.cache import RedisCache
+    from cachelib.redis import RedisCache
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
 
@@ -886,29 +1090,68 @@ cache store when upgrading an existing environment.
   resulting in weird behaviors like duplicate delivery of reports,
   higher than expected load / traffic etc.
 
+* SQL Lab will only run your queries asynchronously if you enable
+  "Asynchronous Query Execution" in your database settings.
+
 
 Email Reports
 -------------
 Email reports allow users to schedule email reports for
 
-* slice and dashboard visualization (Attachment or inline)
-* slice data (CSV attachment on inline table)
+* chart and dashboard visualization (Attachment or inline)
+* chart data (CSV attachment on inline table)
+
+**Setup**
+
+Make sure you enable email reports in your configuration file
+
+.. code-block:: python
+
+    ENABLE_SCHEDULED_EMAIL_REPORTS = True
+
+Now you will find two new items in the navigation bar that allow you to schedule email
+reports
+
+* Manage -> Dashboard Emails
+* Manage -> Chart Email Schedules
 
 Schedules are defined in crontab format and each schedule
 can have a list of recipients (all of them can receive a single mail,
 or separate mails). For audit purposes, all outgoing mails can have a
 mandatory bcc.
 
-**Requirements**
+In order get picked up you need to configure a celery worker and a celery beat
+(see section above "Celery Tasks"). Your celery configuration also
+needs an entry ``email_reports.schedule_hourly`` for ``CELERYBEAT_SCHEDULE``.
 
-* A selenium compatible driver & headless browser
+To send emails you need to configure SMTP settings in your configuration file. e.g.
+
+.. code-block:: python
+
+    EMAIL_NOTIFICATIONS = True
+
+    SMTP_HOST = "email-smtp.eu-west-1.amazonaws.com"
+    SMTP_STARTTLS = True
+    SMTP_SSL = False
+    SMTP_USER = "smtp_username"
+    SMTP_PORT = 25
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+    SMTP_MAIL_FROM = "insights@komoot.com"
+
+
+To render dashboards you need to install a local browser on your superset instance
 
   * `geckodriver <https://github.com/mozilla/geckodriver>`_ and Firefox is preferred
   * `chromedriver <http://chromedriver.chromium.org/>`_ is a good option too
-* Run `celery worker` and `celery beat` as follows ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
-    celery beat --app=superset.tasks.celery_app:app
+You need to adjust the ``EMAIL_REPORTS_WEBDRIVER`` accordingly in your configuration.
+
+You also need to specify on behalf of which username to render the dashboards. In general
+dashboards and charts are not accessible to unauthorized requests, that is why the
+worker needs to take over credentials of an existing user to take a snapshot. ::
+
+    EMAIL_REPORTS_USER = 'username_with_permission_to_access_dashboards'
+
 
 **Important notes**
 
@@ -922,6 +1165,10 @@ mandatory bcc.
 
 * It is recommended to run separate workers for ``sql_lab`` and
   ``email_reports`` tasks. Can be done by using ``queue`` field in ``CELERY_ANNOTATIONS``
+
+* Adjust ``WEBDRIVER_BASEURL`` in your config if celery workers can't access superset via its
+  default value ``http://0.0.0.0:8080/`` (notice the port number 8080, many other setups use
+  port 8088).
 
 SQL Lab
 -------
@@ -944,6 +1191,59 @@ in this dictionary are made available for users to use in their SQL.
     JINJA_CONTEXT_ADDONS = {
         'my_crazy_macro': lambda x: x*2,
     }
+
+Besides default Jinja templating, SQL lab also supports self-defined template
+processor by setting the ``CUSTOM_TEMPLATE_PROCESSORS`` in your superset configuration.
+The values in this dictionary overwrite the default Jinja template processors of the
+specified database engine.
+The example below configures a custom presto template processor which implements
+its own logic of processing macro template with regex parsing. It uses ``$`` style
+macro instead of ``{{ }}`` style in Jinja templating. By configuring it with
+``CUSTOM_TEMPLATE_PROCESSORS``, sql template on presto database is processed
+by the custom one rather than the default one.
+
+.. code-block:: python
+
+    def DATE(
+        ts: datetime, day_offset: SupportsInt = 0, hour_offset: SupportsInt = 0
+    ) -> str:
+        """Current day as a string."""
+        day_offset, hour_offset = int(day_offset), int(hour_offset)
+        offset_day = (ts + timedelta(days=day_offset, hours=hour_offset)).date()
+        return str(offset_day)
+
+    class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
+        """A custom presto template processor."""
+
+        engine = "presto"
+
+        def process_template(self, sql: str, **kwargs) -> str:
+            """Processes a sql template with $ style macro using regex."""
+            # Add custom macros functions.
+            macros = {
+                "DATE": partial(DATE, datetime.utcnow())
+            }  # type: Dict[str, Any]
+            # Update with macros defined in context and kwargs.
+            macros.update(self.context)
+            macros.update(kwargs)
+
+            def replacer(match):
+                """Expand $ style macros with corresponding function calls."""
+                macro_name, args_str = match.groups()
+                args = [a.strip() for a in args_str.split(",")]
+                if args == [""]:
+                    args = []
+                f = macros[macro_name[1:]]
+                return f(*args)
+
+            macro_names = ["$" + name for name in macros.keys()]
+            pattern = r"(%s)\s*\(([^()]*)\)" % "|".join(map(re.escape, macro_names))
+            return re.sub(pattern, replacer, sql)
+
+    CUSTOM_TEMPLATE_PROCESSORS = {
+        CustomPrestoTemplateProcessor.engine: CustomPrestoTemplateProcessor
+    }
+
 
 SQL Lab also includes a live query validation feature with pluggable backends.
 You can configure which validation implementation is used with which database
@@ -1202,7 +1502,7 @@ Then we can add this two lines to ``superset_config.py``:
   CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 
 Feature Flags
----------------------------
+-------------
 
 Because of a wide variety of users, Superset has some features that are not enabled by default. For example, some users have stronger security restrictions, while some others may not. So Superset allow users to enable or disable some features by config. For feature owners, you can add optional functionalities in Superset, but will be only affected by a subset of users.
 
@@ -1227,3 +1527,50 @@ Here is a list of flags and descriptions:
 * PRESTO_EXPAND_DATA
 
   * When this feature is enabled, nested types in Presto will be expanded into extra columns and/or arrays. This is experimental, and doesn't work with all nested types.
+
+
+SIP-15
+------
+
+`SIP-15 <https://github.com/apache/incubator-superset/issues/6360>`_ aims to ensure that time intervals are handled in a consistent and transparent manner for both the Druid and SQLAlchemy connectors.
+
+Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave like exclusive for string columns (due to lexicographical ordering) if no formatting was defined and the column formatting did not conform to an ISO 8601 date-time (refer to the SIP for details).
+
+To remedy this rather than having to define the date/time format for every non-IS0 8601 date-time column, once can define a default column mapping on a per database level via the ``extra`` parameter ::
+
+    {
+        "python_date_format_by_column_name": {
+            "ds": "%Y-%m-%d"
+        }
+    }
+
+**New deployments**
+
+All new Superset deployments should enable SIP-15 via,
+
+.. code-block:: python
+
+    SIP_15_ENABLED = True
+
+**Existing deployments**
+
+Given that it is not apparent whether the chart creator was aware of the time range inconsistencies (and adjusted the endpoints accordingly) changing the behavior of all charts is overly aggressive. Instead SIP-15 proivides a soft transistion allowing producers (chart owners) to see the impact of the proposed change and adjust their charts accordingly.
+
+Prior to enabling SIP-15 existing deployments should communicate to their users the impact of the change and define a grace period end date (exclusive of course) after which all charts will conform to the [start, end) interval, i.e.,
+
+.. code-block:: python
+
+    from dateime import date
+
+    SIP_15_ENABLED = True
+    SIP_15_GRACE_PERIOD_END = date(<YYYY>, <MM>, <DD>)
+
+To aid with transparency the current endpoint behavior is explicitly called out in the chart time range (post SIP-15 this will be [start, end) for all connectors and databases). One can override the defaults on a per database level via the ``extra``
+parameter ::
+
+    {
+        "time_range_endpoints": ["inclusive", "inclusive"]
+    }
+
+
+Note in a future release the interim SIP-15 logic will be removed (including the ``time_grain_endpoints`` form-data field) via a code change and Alembic migration.

@@ -15,16 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from typing import Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Dialect for Apache Kylin"""
 
     engine = "kylin"
+    engine_name = "Apache Kylin"
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO SECOND) AS TIMESTAMP)",
         "PT1M": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)",
@@ -39,10 +42,10 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
-            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
-        if tt == "TIMESTAMP":
-            return "CAST('{}' AS TIMESTAMP)".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+        if tt == utils.TemporalType.DATE:
+            return f"CAST('{dttm.date().isoformat()}' AS DATE)"
+        if tt == utils.TemporalType.TIMESTAMP:
+            return f"""CAST('{dttm.isoformat(sep=" ", timespec="seconds")}' AS TIMESTAMP)"""  # pylint: disable=line-too-long
+        return None

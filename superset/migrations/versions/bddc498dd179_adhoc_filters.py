@@ -27,20 +27,19 @@ revision = "bddc498dd179"
 down_revision = "80a67c5192fa"
 
 
-from collections import defaultdict
 import json
 import uuid
+from collections import defaultdict
 
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, Text
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     split_adhoc_filters_into_base_filters,
 )
-
 
 Base = declarative_base()
 

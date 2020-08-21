@@ -19,13 +19,15 @@ under the License.
 Superset
 =========
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/apache/incubator-superset)
 [![Build Status](https://travis-ci.org/apache/incubator-superset.svg?branch=master)](https://travis-ci.org/apache/incubator-superset)
 [![PyPI version](https://badge.fury.io/py/apache-superset.svg)](https://badge.fury.io/py/apache-superset)
 [![Coverage Status](https://codecov.io/github/apache/incubator-superset/coverage.svg?branch=master)](https://codecov.io/github/apache/incubator-superset)
 [![PyPI](https://img.shields.io/pypi/pyversions/apache-superset.svg?maxAge=2592000)](https://pypi.python.org/pypi/apache-superset)
-[![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://apache-superset.slack.com)
+[![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://join.slack.com/t/apache-superset/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.incubator.apache.org)
-[![dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset/assets)](https://david-dm.org/apache/incubator-superset?path=superset/assets)
+[![Dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset-frontend)](https://david-dm.org/apache/incubator-superset?path=superset-frontend)
 
 <img
   src="https://cloud.githubusercontent.com/assets/130878/20946612/49a8a25c-bbc0-11e6-8314-10bef902af51.png"
@@ -33,45 +35,47 @@ Superset
   width="500"
 />
 
-**Apache Superset** (incubating) is a modern, enterprise-ready
-business intelligence web application
+A modern, enterprise-ready business intelligence web application.
 
-[this project used to be named **Caravel**, and **Panoramix** in the past]
+[**Why Superset**](#why-superset) |
+[**Supported Databases**](#supported-databases) |
+[**Installation and Configuration**](#installation-and-configuration) |
+[**Get Help**](#get-help) |
+[**Contributor Guide**](#contributor-guide) |
+[**Resources**](#resources) |
+[**Superset Users**](INTHEWILD.md)
 
 
-Screenshots & Gifs
-------------------
+## Screenshots & Gifs
 
 **View Dashboards**
 
-<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/bank_dash.png"></kbd><br/>
+<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/bank_dash.png"></kbd><br/>
 
 **Slice & dice your data**
 
-<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/explore.png"></kbd><br/>
+<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/explore.png"></kbd><br/>
 
 **Query and visualize your data with SQL Lab**
 
-<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/sqllab.png"></kbd><br/>
+<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/sqllab.png"></kbd><br/>
 
 **Visualize geospatial data with deck.gl**
 
-<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/deckgl_dash.png"></kbd><br/>
+<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/deckgl_dash.png"></kbd><br/>
 
 **Choose from a wide array of visualizations**
 
-<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/visualizations.png"></kbd><br/>
+<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
 
-Apache Superset
----------------
-Apache Superset is a data exploration and visualization web application.
+## Why Superset
 
 Superset provides:
 * An intuitive interface to explore and visualize datasets, and
     create interactive dashboards.
 * A wide array of beautiful visualizations to showcase your data.
 * Easy, code-free, user flows to drill down and slice and dice the data
-    underlying exposed dashboards. The dashboards and charts acts as a starting
+    underlying exposed dashboards. The dashboards and charts act as a starting
     point for deeper analysis.
 * A state of the art SQL editor/IDE exposing a rich metadata browser, and
     an easy workflow to create visualizations out of any result set.
@@ -87,132 +91,69 @@ Superset provides:
 * Fast loading dashboards with configurable caching
 
 
-Database Support
-----------------
+## Supported Databases
 
-Superset speaks many SQL dialects through SQLAlchemy, a Python
-ORM that is compatible with
-[most common databases](https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html).
+Superset speaks many SQL dialects through SQLAlchemy - a Python
+SQL toolkit that is compatible with most databases. Here are some of the major database solutions that are supported:
 
-A list of currently supported SQL databases can be found
+<p align="center">
+  <img src="superset-frontend/images/redshift.png" alt="redshift" border="0" width="106" height="41"/>
+  <img src="superset-frontend/images/google-biquery.png" alt="google-biquery" border="0" width="114" height="43"/>
+  <img src="superset-frontend/images/snowflake.png" alt="snowflake" border="0" width="152" height="46"/>
+  <img src="superset-frontend/images/presto.png" alt="presto" border="0" width="152" height="46"/>
+  <img src="superset-frontend/images/druid.png" alt="druid" border="0" width="135" height="37" />
+  <img src="superset-frontend/images/postgresql.png" alt="postgresql" border="0" width="132" height="81" />
+  <img src="superset-frontend/images/mysql.png" alt="mysql" border="0" width="119" height="62" />
+  <img src="superset-frontend/images/mssql-server.png" alt="mssql-server" border="0" width="93" height="74" />
+  <img src="superset-frontend/images/db2.png" alt="db2" border="0" width="62" height="62" />
+  <img src="superset-frontend/images/sqlite.png" alt="sqlite" border="0" width="102" height="45" />
+  <img src="superset-frontend/images/sybase.png" alt="sybase" border="0" width="128" height="47" />
+  <img src="superset-frontend/images/mariadb.png" alt="mariadb" border="0" width="83" height="63" />
+  <img src="superset-frontend/images/vertica.png" alt="vertica" border="0" width="128" height="40" />
+  <img src="superset-frontend/images/oracle.png" alt="oracle" border="0" width="121" height="66" />
+  <img src="superset-frontend/images/firebird.png" alt="firebird" border="0" width="86" height="56" />
+  <img src="superset-frontend/images/greenplum.png" alt="greenplum" border="0" width="140" height="45" />
+  <img src="superset-frontend/images/clickhouse.png" alt="clickhouse" border="0" width="133" height="34" />  
+  <img src="superset-frontend/images/exasol.png" alt="exasol" border="0" width="106" height="59" />
+  <img src="superset-frontend/images/monet-db.png" alt="monet-db" border="0" width="106" height="46" />
+  <img src="superset-frontend/images/apache-kylin.png" alt="apache-kylin" border="0" width="56" height="64"/>
+</p>
+
+A complete list of supported databases can be found
 [here](https://superset.incubator.apache.org/#databases).
 
-Apache Druid (Incubating)!
-------
 
-On top of having the ability to query your relational databases,
-Superset ships with deep integration with Druid (a real time distributed
-column-store). When querying Druid,
-Superset can query humongous amounts of data on top of real time dataset.
-Note that Superset does not require Druid in any way to function, it's simply
-another database backend that it can query.
-
-Here's a description of Druid from the http://druid.io website:
-
-*Druid is an open-source analytics data store designed for
-business intelligence (OLAP) queries on event data. Druid provides low
-latency (real-time) data ingestion, flexible data exploration,
-and fast data aggregation. Existing Druid deployments have scaled to
-trillions of events and petabytes of data. Druid is best used to
-power analytic dashboards and applications.*
-
-
-Installation & Configuration
-----------------------------
+## Installation and Configuration
 
 [See in the documentation](https://superset.incubator.apache.org/installation.html)
 
 
-Resources
--------------
-* [Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
-* [Gitter (live chat) Channel](https://gitter.im/airbnb/superset)
-* [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
-* [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
-* [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
-* [Join our Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LTc2Y2QwYjE4NGYwNzQyZWUwYTExZTdiZDMzMWQwZjc2YmJmM2QyMDkwMGVjZTA4N2I2MzUxZTk2YmE5MWRhZWE)
-* [DEPRECATED Google Group](https://groups.google.com/forum/#!forum/airbnb_superset)
+## Get Involved
+
+* Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset)
+* [Join our community's Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ)
+  and please read our [Slack Community Guidelines](CODE_OF_CONDUCT.md#slack-community-guidelines)
+* [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
 
 
-Contributing
-------------
+## Contributor Guide
 
-Interested in contributing? Casual hacking? Check out
-[Contributing.MD](https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)
+Interested in contributing? Check out our
+[CONTRIBUTING.md](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)
+to find resources around contributing along with a detailed guide on
+how to set up a development environment.
 
 
-Who uses Apache Superset (incubating)?
---------------------------------------
+## Resources
 
-Here's a list of organizations who have taken the time to send a PR to let
-the world know they are using Superset. Join our growing community!
-
- 1. [6play](https://www.6play.fr)
- 1. [AiHello](https://www.aihello.com)
- 1. [Airbnb](https://github.com/airbnb)
- 1. [Airboxlab](https://foobot.io)
- 1. [Aktia Bank plc](https://www.aktia.com)
- 1. [American Express](https://www.americanexpress.com)
- 1. [Amino](https://amino.com)
- 1. [Apollo GraphQL](https://www.apollographql.com/)
- 1. [Ascendica Development](http://ascendicadevelopment.com)
- 1. [Astronomer](https://www.astronomer.io)
- 1. [Brilliant.org](https://brilliant.org/)
- 1. [Capital Service S.A.](http://capitalservice.pl)
- 1. [Clark.de](http://clark.de/)
- 1. [Cloudsmith](https://cloudsmith.io)
- 1. [CnOvit](http://www.cnovit.com/)
- 1. [Deepomatic](https://deepomatic.com/)
- 1. [Dial Once](https://www.dial-once.com/en/)
- 1. [Digit Game Studios](https://www.digitgaming.com/)
- 1. [Douban](https://www.douban.com/)
- 1. [Endress+Hauser](http://www.endress.com/)
- 1. [FBK - ICT center](http://ict.fbk.eu)
- 1. [Faasos](http://faasos.com/)
- 1. [Fanatics](https://www.fanatics.com)
- 1. [Fordeal](http://www.fordeal.com)
- 1. [GFG - Global Fashion Group](https://global-fashion-group.com)
- 1. [GfK Data Lab](http://datalab.gfk.com)
- 1. [Grassroot](https://www.grassrootinstitute.org/)
- 1. [Hostnfly](https://www.hostnfly.com/)
- 1. [HuiShouBao](http://www.huishoubao.com/)
- 1. [Intercom](https://www.intercom.com/)
- 1. [jampp](https://jampp.com/)
- 1. [Konfío](http://konfio.mx)
- 1. [Kuaishou](https://www.kuaishou.com/)
- 1. [Lime](https://www.limebike.com/)
- 1. [Living Goods](https://www.livinggoods.org)
- 1. [Lyft](https://www.lyft.com/)
- 1. [Maieutical Labs](https://maieuticallabs.it)
- 1. [Myra Labs](http://www.myralabs.com/)
- 1. [Now](https://www.now.vn/)
- 1. [PeopleDoc](https://www.people-doc.com)
- 1. [Ona](https://ona.io)
- 1. [Pronto Tools](http://www.prontotools.io)
- 1. [QPID Health](http://www.qpidhealth.com/    )
- 1. [Qunar](https://www.qunar.com/)
- 1. [Safaricom](https://www.safaricom.co.ke/)
- 1. [Scoot](https://scoot.co/)
- 1. [ScopeAI](https://www.getscopeai.com)
- 1. [Shopee](https://shopee.sg)
- 1. [Shopkick](https://www.shopkick.com)
- 1. [source{d}](https://www.sourced.tech)
- 1. [Steamroot](https://streamroot.io/)
- 1. [Showmax](https://tech.showmax.com)
- 1. [Tails.com](https://tails.com)
- 1. [Tenable](https://www.tenable.com)
- 1. [THE ICONIC](http://theiconic.com.au/)
- 1. [Tobii](http://www.tobii.com/)
- 1. [Tooploox](https://www.tooploox.com/)
- 1. [TrustMedis](https://trustmedis.com)
- 1. [Twitter](https://twitter.com/)
- 1. [Udemy](https://www.udemy.com/)
- 1. [VIPKID](https://www.vipkid.com.cn/)
- 1. [WeSure](https://www.wesure.cn/)
- 1. [Windsor.ai](https://www.windsor.ai/)
- 1. [WP-Semantix](https://wpsemantix.com/)
- 1. [Yahoo!](https://yahoo.com/)
- 1. [Zaihang](http://www.zaih.com/)
- 1. [Zalando](https://www.zalando.com)
- 1. [Zalora](https://www.zalora.com)
- 1. [TME QQMUSIC/WESING](https://www.tencentmusic.com/)
+* Superset 101 -- Getting Started Guide (From [Preset](https://preset.io) [Blog](https://preset.io/blog/))
+  * [Installing Apache Superset Locally](https://preset.io/blog/2020-05-11-getting-started-installing-superset/)
+  * [Installing Database Drivers](https://preset.io/blog/2020-05-18-install-db-drivers/)
+  * [Connect Superset To Google Sheets](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/)
+  * [Create Your First Chart](https://preset.io/blog/2020-06-08-first-chart/)
+  * [Create Time Series Charts](https://preset.io/blog/2020-06-26-timeseries-chart/)
+* [Docker image](https://hub.docker.com/r/preset/superset/)
+* [Youtube Channel](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
+  * [May 15, 2020: Virtual Meetup Recording. Topics: 0.36 Overview, Committers Self-Intro, Roadmap](https://www.youtube.com/watch?v=tXGDmqjmcTs&t=20s)
+  * [July 16, 2020: Virtual Meetup Recording. Topics: Visualization Plugins, 0.37 Preview, Demo](https://www.youtube.com/watch?v=f6up5x_iRbI)
+* [So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/)

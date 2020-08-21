@@ -18,17 +18,18 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib import parse
 
-from sqlalchemy.engine.interfaces import Dialect
-from sqlalchemy.types import TypeEngine
+from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = "mysql"
+    engine_name = "MySQL"
     max_column_name_length = 64
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
@@ -50,18 +51,20 @@ class MySQLEngineSpec(BaseEngineSpec):
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        if target_type.upper() in ("DATETIME", "DATE"):
-            return "STR_TO_DATE('{}', '%Y-%m-%d %H:%i:%s')".format(
-                dttm.strftime("%Y-%m-%d %H:%M:%S")
-            )
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == utils.TemporalType.DATE:
+            return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
+        if tt == utils.TemporalType.DATETIME:
+            return f"""STR_TO_DATE('{dttm.isoformat(sep=" ", timespec="microseconds")}', '%Y-%m-%d %H:%i:%s.%f')"""  # pylint: disable=line-too-long
+        return None
 
     @classmethod
-    def adjust_database_uri(cls, uri, selected_schema=None):
+    def adjust_database_uri(
+        cls, uri: URL, selected_schema: Optional[str] = None
+    ) -> None:
         if selected_schema:
             uri.database = parse.quote(selected_schema, safe="")
-        return uri
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
@@ -85,25 +88,12 @@ class MySQLEngineSpec(BaseEngineSpec):
         return "from_unixtime({col})"
 
     @classmethod
-    def _extract_error_message(cls, e):
+    def _extract_error_message(cls, ex: Exception) -> str:
         """Extract error message for queries"""
-        message = str(e)
+        message = str(ex)
         try:
-            if isinstance(e.args, tuple) and len(e.args) > 1:
-                message = e.args[1]
+            if isinstance(ex.args, tuple) and len(ex.args) > 1:
+                message = ex.args[1]
         except Exception:  # pylint: disable=broad-except
             pass
         return message
-
-    @classmethod
-    def column_datatype_to_string(
-        cls, sqla_column_type: TypeEngine, dialect: Dialect
-    ) -> str:
-        datatype = super().column_datatype_to_string(sqla_column_type, dialect)
-        # MySQL dialect started returning long overflowing datatype
-        # as in 'VARCHAR(255) COLLATE UTF8MB4_GENERAL_CI'
-        # and we don't need the verbose collation type
-        str_cutoff = " COLLATE "
-        if str_cutoff in datatype:
-            datatype = datatype.split(str_cutoff)[0]
-        return datatype

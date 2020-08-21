@@ -88,13 +88,13 @@ def upgrade():
             batch_op.create_unique_constraint(
                 "uq_dashboard_slice", ["dashboard_id", "slice_id"]
             )
-    except Exception as e:
-        logging.exception(e)
+    except Exception as ex:
+        logging.exception(ex)
 
 
 def downgrade():
     try:
         with op.batch_alter_table("dashboard_slices") as batch_op:
             batch_op.drop_constraint("uq_dashboard_slice", type_="unique")
-    except Exception as e:
-        logging.exception(e)
+    except Exception as ex:
+        logging.exception(ex)

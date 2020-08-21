@@ -95,7 +95,7 @@ List of Countries
 +----------+-----------------------+
 |  BR-MS   | Mato Grosso do Sul    |
 +----------+-----------------------+
-|  BR-MT   | Mato Grosso           | 
+|  BR-MT   | Mato Grosso           |
 +----------+-----------------------+
 |  BR-MG   | Minas Gerais          |
 +----------+-----------------------+
@@ -105,11 +105,11 @@ List of Countries
 +----------+-----------------------+
 |  BR-PR   | Paraná                |
 +----------+-----------------------+
-|  BR-PE   | Pernambuco            |  
+|  BR-PE   | Pernambuco            |
 +----------+-----------------------+
-|  BR-PI   | Piauí                 |  
+|  BR-PI   | Piauí                 |
 +----------+-----------------------+
-|  BR-RJ   | Rio de Janeiro        |  
+|  BR-RJ   | Rio de Janeiro        |
 +----------+-----------------------+
 |  BR-RN   | Rio Grande do Norte   |
 +----------+-----------------------+
@@ -829,6 +829,73 @@ List of Countries
 | JP-47 | Okinawa        |
 +-------+----------------+
 
+* Korea
+
++-------+----------------+
+| ISO   | Name of region |
++=======+================+
+| KR-11 | Seoul          |
++-------+----------------+
+| KR-26 | Busan          |
++-------+----------------+
+| KR-27 | Daegu          |
++-------+----------------+
+| KR-28 | Incheon        |
++-------+----------------+
+| KR-29 | Gwangju        |
++-------+----------------+
+| KR-30 | Daejeon        |
++-------+----------------+
+| KR-31 | Ulsan          |
++-------+----------------+
+| KR-41 | Gyeonggi       |
++-------+----------------+
+| KR-42 | Gangwon        |
++-------+----------------+
+| KR-43 | Chungbuk       |
++-------+----------------+
+| KR-44 | Chungnam       |
++-------+----------------+
+| KR-45 | Jeonbuk        |
++-------+----------------+
+| KR-46 | Jeonnam        |
++-------+----------------+
+| KR-47 | Gyeongbuk      |
++-------+----------------+
+| KR-48 | Gyeongnam      |
++-------+----------------+
+| KR-49 | Jeju           |
++-------+----------------+
+| KR-50 | Sejong         |
++-------+----------------+
+
+* Liechtenstein
+
++-------+----------------+
+| ISO   | Name of region |
++=======+================+
+| LI-01 | Balzers        |
++-------+----------------+
+| LI-02 | Eschen         |
++-------+----------------+
+| LI-03 | Gamprin        |
++-------+----------------+
+| LI-04 | Mauren         |
++-------+----------------+
+| LI-05 | Planken        |
++-------+----------------+
+| LI-06 | Ruggell        |
++-------+----------------+
+| LI-07 | Schaan         |
++-------+----------------+
+| LI-08 | Schellenberg   |
++-------+----------------+
+| LI-09 | Triesen        |
++-------+----------------+
+| LI-10 | Triesenberg    |
++-------+----------------+
+| LI-11 | Vaduz          |
++-------+----------------+
 
 * Morocco
 
@@ -1269,6 +1336,64 @@ List of Countries
 |ES-MU6 |                      Murcia |
 +-------+-----------------------------+
 
+* Switzerland
+
++-------+-----------------------------+
+|ISO    | Name of region              |
++=======+=============================+
+|CH-AG  |                      Aargau |
++-------+-----------------------------+
+|CH-AR  |      Appenzell Ausserrhoden |
++-------+-----------------------------+
+|CH-AI  |       Appenzell Innerrhoden |
++-------+-----------------------------+
+|CH-BL  |            Basel-Landschaft |
++-------+-----------------------------+
+|CH-BS  |                 Basel-Stadt |
++-------+-----------------------------+
+|CH-BE  |                        Bern |
++-------+-----------------------------+
+|CH-FR  |                    Freiburg |
++-------+-----------------------------+
+|CH-GE  |                        Genf |
++-------+-----------------------------+
+|CH-GL  |                      Glarus |
++-------+-----------------------------+
+|CH-GR  |                  Graubünden |
++-------+-----------------------------+
+|CH-JU  |                        Jura |
++-------+-----------------------------+
+|CH-LU  |                      Luzern |
++-------+-----------------------------+
+|CH-NE  |                   Neuenburg |
++-------+-----------------------------+
+|CH-NW  |                   Nidwalden |
++-------+-----------------------------+
+|CH-OW  |                    Obwalden |
++-------+-----------------------------+
+|CH-SH  |                Schaffhausen |
++-------+-----------------------------+
+|CH-SZ  |                      Schwyz |
++-------+-----------------------------+
+|CH-SO  |                   Solothurn |
++-------+-----------------------------+
+|CH-SG  |                  St. Gallen |
++-------+-----------------------------+
+|CH-TI  |                      Tessin |
++-------+-----------------------------+
+|CH-TG  |                     Thurgau |
++-------+-----------------------------+
+|CH-UR  |                         Uri |
++-------+-----------------------------+
+|CH-VD  |                       Waadt |
++-------+-----------------------------+
+|CH-VS  |                      Wallis |
++-------+-----------------------------+
+|CH-ZG  |                         Zug |
++-------+-----------------------------+
+|CH-ZH  |                      Zürich |
++-------+-----------------------------+
+
 * Uk
 
 +-------+------------------------------+
@@ -1664,7 +1789,7 @@ List of Countries
 +------+------------------------------+
 |ISO   | Name of region               |
 +======+==============================+
-|UA-71 |           Cherkasy           |  
+|UA-71 |           Cherkasy           |
 +------+------------------------------+
 |UA-74 |         Chernihiv            |
 +------+------------------------------+
@@ -1690,7 +1815,7 @@ List of Countries
 +------+------------------------------+
 |UA-35 |         Kirovohrad           |
 +------+------------------------------+
-|UA-46 |         L'viv                | 
+|UA-46 |         L'viv                |
 +------+------------------------------+
 |UA-09 |         Luhans'k             |
 +------+------------------------------+
@@ -1698,7 +1823,7 @@ List of Countries
 +------+------------------------------+
 |UA-51 |         Odessa               |
 +------+------------------------------+
-|UA-53 |         Poltava              | 
+|UA-53 |         Poltava              |
 +------+------------------------------+
 |UA-56 |         Rivne                |
 +------+------------------------------+
@@ -1834,24 +1959,30 @@ List of Countries
 Need to add a new Country?
 -------------------------------
 
-To add a new country in country map tools, we need to follow the following steps :
+Warning: adding a new country is not easy and requires building superset from source!
+
+To add a new country in country map tools, you need to follow the following steps :
 
 1. You need shapefiles which contain data of your map.
    You can get this file on this site: https://www.diva-gis.org/gdata
 
-2. You need to add ISO 3166-2 with column name ISO for all record in your file. 
+2. You need to add ISO 3166-2 with column name ISO for all record in your file.
    It's important because it's a norm for mapping your data with geojson file
 
 3. You need to convert shapefile to geojson file.
    This action can make with ogr2ogr tools: https://www.gdal.org/ogr2ogr.html
 
-4. Put your geojson file in next folder : superset/assets/src/visualizations/CountryMap/countries with the next name : nameofyourcountries.geojson
+4. You can to reduce size of geojson file on this site: https://mapshaper.org/
 
-5. You can to reduce size of geojson file on this site: https://mapshaper.org/
+5. You will need to put your geojson file in the right place in the @superset-ui npm package. This is the "countries" folder in
+   ./superset-frontend/node_modules/@superset-ui/legacy-plugin-chart-country-map/esm/.
+   The .geojson files for other countries are already in this folder.
 
-6. Go in file superset/assets/src/explore/controls.jsx
+6. You will also need to edit the "countries.js" file in the same directory, following the pattern of the other countries.
 
-7. Add your country in component 'select_country'
+7. Then go to the file superset-frontend/src/explore/controls.jsx
+
+8. Add your country in component 'select_country'
    Example :
 
 .. code-block:: javascript
@@ -1869,6 +2000,7 @@ To add a new country in country map tools, we need to follow the following steps
         'Germany',
         'Italy',
         'Japan',
+        'Korea',
         'Morocco',
         'Netherlands',
         'Russia',
@@ -1879,7 +2011,6 @@ To add a new country in country map tools, we need to follow the following steps
         ].map(s => [s, s]),
         description: 'The name of country that Superset should display',
     },
-       
 
 
-
+9. Rebuild the front end from source and restart superset.

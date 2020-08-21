@@ -15,19 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from typing import Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Dialect for ClickHouse analytical DB."""
 
     engine = "clickhouse"
+    engine_name = "ClickHouse"
 
     time_secondary_columns = True
     time_groupby_inline = True
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1M": "toStartOfMinute(toDateTime({col}))",
         "PT5M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)",
@@ -43,10 +46,10 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
-            return "toDate('{}')".format(dttm.strftime("%Y-%m-%d"))
-        if tt == "DATETIME":
-            return "toDateTime('{}')".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+        if tt == utils.TemporalType.DATE:
+            return f"toDate('{dttm.date().isoformat()}')"
+        if tt == utils.TemporalType.DATETIME:
+            return f"""toDateTime('{dttm.isoformat(sep=" ", timespec="seconds")}')"""
+        return None
