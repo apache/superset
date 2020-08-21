@@ -18,12 +18,16 @@
 import json
 from copy import deepcopy
 
+from superset import db
+from superset.connectors.sqla.models import SqlaTable
+from superset.utils.core import get_example_database
+
 from .base_tests import SupersetTestCase
 from .fixtures.datasource import datasource_post
 
 
 class TestDatasource(SupersetTestCase):
-    def test_external_metadata(self):
+    def test_external_metadata_for_physical_table(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
@@ -32,6 +36,25 @@ class TestDatasource(SupersetTestCase):
         self.assertEqual(
             col_names, {"sum_boys", "num", "gender", "name", "ds", "state", "sum_girls"}
         )
+
+    def test_external_metadata_for_virtual_table(self):
+        self.login(username="admin")
+        session = db.session
+        table = SqlaTable(
+            schema="main",
+            table_name="dummy_sql_table",
+            database=get_example_database(),
+            sql="select 123 as intcol, 'abc' as strcol",
+        )
+        session.add(table)
+        session.commit()
+
+        table = self.get_table_by_name("dummy_sql_table")
+        url = f"/datasource/external_metadata/table/{table.id}/"
+        resp = self.get_json_resp(url)
+        assert {o.get("name") for o in resp} == {"intcol", "strcol"}
+        session.delete(table)
+        session.commit()
 
     def compare_lists(self, l1, l2, key):
         l2_lookup = {o.get(key): o for o in l2}
