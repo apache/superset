@@ -89,14 +89,14 @@ export default function QueryAndSaveBtns({
 
   const saveButtonDisabled = errorMessage ? true : loading;
   const qryOrStopButton = loading ? (
-    <Button onClick={onStop} bsStyle="warning" className="save-btn">
+    <Button onClick={onStop} buttonStyle="warning" className="save-btn">
       <i className="fa fa-stop-circle-o" /> Stop
     </Button>
   ) : (
     <Button
       className="query save-btn"
       onClick={onQuery}
-      bsStyle={qryButtonStyle}
+      buttonStyle={qryButtonStyle}
       disabled={!!errorMessage}
     >
       <i className="fa fa-bolt" /> {t('Run')}

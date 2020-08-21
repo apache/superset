@@ -202,12 +202,12 @@ class SaveModal extends React.Component {
 
         <Modal.Footer>
           <div className="float-right">
-            <Button id="btn_cancel" bsSize="sm" onClick={this.props.onHide}>
+            <Button id="btn_cancel" buttonSize="sm" onClick={this.props.onHide}>
               {t('Cancel')}
             </Button>
             <Button
               id="btn_modal_save_goto_dash"
-              bsSize="sm"
+              buttonSize="sm"
               disabled={
                 !this.state.newSliceName || !this.state.newDashboardName
               }
@@ -217,8 +217,8 @@ class SaveModal extends React.Component {
             </Button>
             <Button
               id="btn_modal_save"
-              bsSize="sm"
-              bsStyle="primary"
+              buttonSize="sm"
+              buttonStyle="primary"
               onClick={this.saveOrOverwrite.bind(this, false)}
               disabled={!this.state.newSliceName}
             >

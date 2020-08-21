@@ -784,7 +784,7 @@ export class DatasourceEditor extends React.PureComponent {
                   }
                 />
                 <Button
-                  bsStyle="primary"
+                  buttonStyle="primary"
                   onClick={this.syncMetadata}
                   className="sync-from-source"
                   disabled={!!datasource.sql}

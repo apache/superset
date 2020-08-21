@@ -438,8 +438,8 @@ class FilterBox extends React.Component {
         {this.renderFilters()}
         {!instantFiltering && (
           <Button
-            bsSize="small"
-            bsStyle="primary"
+            buttonSize="small"
+            buttonStyle="primary"
             onClick={this.clickApply.bind(this)}
             disabled={!this.state.hasChanged}
           >

@@ -303,8 +303,8 @@ export default class AdhocMetricEditPopover extends React.Component {
         <div>
           <Button
             disabled={!stateIsValid}
-            bsStyle={hasUnsavedChanges && stateIsValid ? 'primary' : 'default'}
-            bsSize="small"
+            buttonStyle={hasUnsavedChanges && stateIsValid ? 'primary' : 'default'}
+            buttonSize="small"
             className="m-r-5"
             data-test="AdhocMetricEdit#save"
             onClick={this.onSave}
@@ -312,7 +312,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             Save
           </Button>
           <Button
-            bsSize="small"
+            buttonSize="small"
             onClick={this.props.onClose}
             data-test="AdhocMetricEdit#cancel"
           >

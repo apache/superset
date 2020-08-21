@@ -213,7 +213,7 @@ class ExploreResultsButton extends React.PureComponent {
     return (
       <>
         <Button
-          bsSize="small"
+          buttonSize="small"
           onClick={this.onClick}
           disabled={!allowsSubquery}
           tooltip={t('Explore the result set in the data exploration view')}

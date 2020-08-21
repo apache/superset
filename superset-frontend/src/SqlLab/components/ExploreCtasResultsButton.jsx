@@ -89,7 +89,7 @@ class ExploreCtasResultsButton extends React.PureComponent {
     return (
       <>
         <Button
-          bsSize="small"
+          buttonSize="small"
           onClick={this.onClick}
           tooltip={t('Explore the result set in the data exploration view')}
         >

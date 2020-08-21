@@ -205,9 +205,9 @@ export default class SpatialControl extends React.Component {
           </PopoverSection>
           <div className="clearfix">
             <Button
-              bsSize="small"
+              buttonSize="small"
               className="float-left ok"
-              bsStyle="primary"
+              buttonStyle="primary"
               onClick={this.close.bind(this)}
             >
               Ok

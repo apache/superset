@@ -619,8 +619,8 @@ export default class AnnotationLayer extends React.PureComponent {
             />
             <Button
               style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
-              bsStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
-              bsSize="xsmall"
+              buttonStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
+              buttonSize="xsmall"
               onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
             >
               Automatic Color
@@ -724,12 +724,12 @@ export default class AnnotationLayer extends React.PureComponent {
           {this.renderDisplayConfiguration()}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button bsSize="sm" onClick={this.deleteAnnotation}>
+          <Button buttonSize="sm" onClick={this.deleteAnnotation}>
             {!isNew ? t('Remove') : t('Cancel')}
           </Button>
           <div>
             <Button
-              bsSize="sm"
+              buttonSize="sm"
               disabled={!isValid}
               onClick={this.applyAnnotation}
             >
@@ -737,7 +737,7 @@ export default class AnnotationLayer extends React.PureComponent {
             </Button>
 
             <Button
-              bsSize="sm"
+              buttonSize="sm"
               disabled={!isValid}
               onClick={this.submitAnnotation}
             >

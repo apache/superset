@@ -117,10 +117,10 @@ class RefreshIntervalModal extends React.PureComponent {
         }
         modalFooter={
           <>
-            <Button bsStyle="primary" bsSize="sm" onClick={this.onSave}>
+            <Button buttonStyle="primary" buttonSize="sm" onClick={this.onSave}>
               {editMode ? t('Save') : t('Save for this session')}
             </Button>
-            <Button onClick={this.onCancel} bsSize="sm">
+            <Button onClick={this.onCancel} buttonSize="sm">
               {t('Cancel')}
             </Button>
           </>

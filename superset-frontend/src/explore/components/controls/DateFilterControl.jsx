@@ -563,9 +563,9 @@ class DateFilterControl extends React.Component {
           </Tabs>
           <div className="clearfix">
             <Button
-              bsSize="small"
+              buttonSize="small"
               className="float-right ok"
-              bsStyle="primary"
+              buttonStyle="primary"
               onClick={this.close}
             >
               Ok

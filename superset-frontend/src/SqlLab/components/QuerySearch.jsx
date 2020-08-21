@@ -273,8 +273,8 @@ class QuerySearch extends React.PureComponent {
             />
 
             <Button
-              bsSize="small"
-              bsStyle="success"
+              buttonSize="small"
+              buttonStyle="success"
               onClick={this.refreshQueries}
             >
               {t('Search')}

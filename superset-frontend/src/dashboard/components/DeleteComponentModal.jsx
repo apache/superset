@@ -66,7 +66,7 @@ export default class DeleteComponentModal extends React.PureComponent {
             </div>
             <div className="dashboard-modal-actions-container">
               <Button onClick={this.close}>{t('Cancel')}</Button>
-              <Button bsStyle="primary" onClick={this.deleteTab}>
+              <Button buttonStyle="primary" onClick={this.deleteTab}>
                 {t('Delete')}
               </Button>
             </div>

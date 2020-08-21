@@ -85,8 +85,8 @@ class EstimateQueryCostButton extends React.PureComponent {
           modalBody={this.renderModalBody()}
           triggerNode={
             <Button
-              bsStyle="warning"
-              bsSize="small"
+              buttonStyle="warning"
+              buttonSize="small"
               onClick={this.onClick}
               key="query-estimate-btn"
               tooltip={tooltip}

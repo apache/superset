@@ -289,7 +289,7 @@ class PropertiesModal extends React.PureComponent {
             <Row>
               <Col md={12}>
                 <h3 style={{ marginTop: '1em' }}>
-                  <Button bsStyle="link" onClick={this.toggleAdvanced}>
+                  <Button buttonStyle="link" onClick={this.toggleAdvanced}>
                     <i
                       className={`fa fa-angle-${
                         isAdvancedOpen ? 'down' : 'right'
@@ -329,14 +329,14 @@ class PropertiesModal extends React.PureComponent {
             <span className="float-right">
               <Button
                 type="submit"
-                bsSize="sm"
-                bsStyle="primary"
+                buttonSize="sm"
+                buttonStyle="primary"
                 className="m-r-5"
                 disabled={errors.length > 0}
               >
                 {saveLabel}
               </Button>
-              <Button type="button" bsSize="sm" onClick={onHide}>
+              <Button type="button" buttonSize="sm" onClick={onHide}>
                 {t('Cancel')}
               </Button>
               <Dialog

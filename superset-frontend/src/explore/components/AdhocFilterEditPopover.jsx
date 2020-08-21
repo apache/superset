@@ -173,14 +173,14 @@ export default class AdhocFilterEditPopover extends React.Component {
         <div>
           <Button
             disabled={!stateIsValid}
-            bsStyle={hasUnsavedChanges && stateIsValid ? 'primary' : 'default'}
-            bsSize="small"
+            buttonStyle={hasUnsavedChanges && stateIsValid ? 'primary' : 'default'}
+            buttonSize="small"
             className="m-r-5"
             onClick={this.onSave}
           >
             Save
           </Button>
-          <Button bsSize="small" onClick={this.props.onClose}>
+          <Button buttonSize="small" onClick={this.props.onClose}>
             Close
           </Button>
           <i
