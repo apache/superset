@@ -23,6 +23,7 @@ import { t } from '@superset-ui/core';
 import EditableTitle from '../../components/EditableTitle';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import SliceHeaderControls from './SliceHeaderControls';
+import FiltersBadge from './FiltersBadge';
 
 const propTypes = {
   innerRef: PropTypes.func,
@@ -104,59 +105,62 @@ class SliceHeader extends React.PureComponent {
 
     return (
       <div className="chart-header" ref={innerRef}>
-        <div className="header">
-          <EditableTitle
-            title={
-              sliceName ||
-              (editMode
-                ? '---' // this makes an empty title clickable
-                : '')
-            }
-            canEdit={editMode}
-            emptyText=""
-            onSaveTitle={updateSliceName}
-            showTooltip={false}
-          />
-          {!!Object.values(annotationQuery).length && (
-            <TooltipWrapper
-              label="annotations-loading"
-              placement="top"
-              tooltip={annoationsLoading}
-            >
-              <i className="fa fa-refresh warning" />
-            </TooltipWrapper>
-          )}
-          {!!Object.values(annotationError).length && (
-            <TooltipWrapper
-              label="annoation-errors"
-              placement="top"
-              tooltip={annoationsError}
-            >
-              <i className="fa fa-exclamation-circle danger" />
-            </TooltipWrapper>
-          )}
-          {!editMode && (
-            <SliceHeaderControls
-              slice={slice}
-              isCached={isCached}
-              isExpanded={isExpanded}
-              cachedDttm={cachedDttm}
-              updatedDttm={updatedDttm}
-              toggleExpandSlice={toggleExpandSlice}
-              forceRefresh={forceRefresh}
-              exploreChart={exploreChart}
-              exportCSV={exportCSV}
-              supersetCanExplore={supersetCanExplore}
-              supersetCanCSV={supersetCanCSV}
-              sliceCanEdit={sliceCanEdit}
-              componentId={componentId}
-              dashboardId={dashboardId}
-              addDangerToast={addDangerToast}
-              handleToggleFullSize={handleToggleFullSize}
-              isFullSize={isFullSize}
+        <div className="chart-header-container">
+          <div className="header">
+            <EditableTitle
+              title={
+                sliceName ||
+                (editMode
+                  ? '---' // this makes an empty title clickable
+                  : '')
+              }
+              canEdit={editMode}
+              emptyText=""
+              onSaveTitle={updateSliceName}
+              showTooltip={false}
             />
-          )}
+            {!!Object.values(annotationQuery).length && (
+              <TooltipWrapper
+                label="annotations-loading"
+                placement="top"
+                tooltip={annoationsLoading}
+              >
+                <i className="fa fa-refresh warning" />
+              </TooltipWrapper>
+            )}
+            {!!Object.values(annotationError).length && (
+              <TooltipWrapper
+                label="annoation-errors"
+                placement="top"
+                tooltip={annoationsError}
+              >
+                <i className="fa fa-exclamation-circle danger" />
+              </TooltipWrapper>
+            )}
+          </div>
+          <FiltersBadge chartId={slice.slice_id} />
         </div>
+        {!editMode && (
+          <SliceHeaderControls
+            slice={slice}
+            isCached={isCached}
+            isExpanded={isExpanded}
+            cachedDttm={cachedDttm}
+            updatedDttm={updatedDttm}
+            toggleExpandSlice={toggleExpandSlice}
+            forceRefresh={forceRefresh}
+            exploreChart={exploreChart}
+            exportCSV={exportCSV}
+            supersetCanExplore={supersetCanExplore}
+            supersetCanCSV={supersetCanCSV}
+            sliceCanEdit={sliceCanEdit}
+            componentId={componentId}
+            dashboardId={dashboardId}
+            addDangerToast={addDangerToast}
+            handleToggleFullSize={handleToggleFullSize}
+            isFullSize={isFullSize}
+          />
+        )}
       </div>
     );
   }

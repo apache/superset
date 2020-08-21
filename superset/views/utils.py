@@ -105,6 +105,7 @@ def get_viz(
     form_data: FormData, datasource_type: str, datasource_id: int, force: bool = False
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
+    logger.info('testaa3')
     datasource = ConnectorRegistry.get_datasource(
         datasource_type, datasource_id, db.session
     )

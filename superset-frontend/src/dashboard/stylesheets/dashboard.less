@@ -62,9 +62,29 @@ body {
   font-weight: @font-weight-bold;
   margin-bottom: 4px;
 
+  & > .chart-header-container {
+    display: flex;
+    flex-wrap: nowrap;
+    padding-right: 20px;
+
+    & > * {
+      flex: none;
+    }
+
+    & > .header {
+      flex: 1;
+    }
+  }
+
   .dropdown.btn-group {
     position: absolute;
     right: 0;
+    top: 2px;
+    pointer-events: none;
+
+    & > * {
+      pointer-events: auto;
+    }
   }
 
   .dropdown-toggle.btn.btn-default {

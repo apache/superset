@@ -468,14 +468,26 @@ class BaseViz:
 
     def get_payload(self, query_obj: Optional[QueryObjectDict] = None) -> VizPayload:
         """Returns a payload of metadata and data"""
+
         self.run_extra_queries()
         payload = self.get_df_payload(query_obj)
 
         df = payload.get("df")
+
+        # Check incompatible filters. Probably a better spot for this.
+        filters = self.form_data.get("filters")
+        labels = set()
+        for flt in filters:
+            labels.add(flt.get("col"))
+        # This doesn't seem to work for the date-time columns. Probably due to date time fields getting prefixed
+        # with underscore like __ds. To fix, we need to try comparing with ds instead.
+        payload["applied_filters"] = labels.intersection(set(self.datasource.column_names))
+
         if self.status != utils.QueryStatus.FAILED:
             payload["data"] = self.get_data(df)
         if "df" in payload:
             del payload["df"]
+
         return payload
 
     def get_df_payload(
