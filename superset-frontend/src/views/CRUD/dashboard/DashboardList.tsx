@@ -545,7 +545,7 @@ function DashboardList(props: DashboardListProps) {
           'Last modified %s',
           dashboard.changed_on_delta_humanized,
         )}
-        coverLeft={dashboard.owners.slice(0, 5).map(owner => (
+        coverLeft={(dashboard.owners || []).slice(0, 5).map(owner => (
           <AvatarIcon
             key={owner.id}
             uniqueKey={`${owner.username}-${dashboard.id}`}
