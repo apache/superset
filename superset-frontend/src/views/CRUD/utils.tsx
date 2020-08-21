@@ -62,9 +62,14 @@ export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
   };
 }
 
+interface FaveStarContext {
+  state: { favoriteStatus: object };
+  setState: (update: any) => void;
+}
+
 export function createFaveStarHandlers(
   baseURL: string,
-  context: any,
+  context: FaveStarContext,
   handleErrorFunc: (message: string) => void,
 ) {
   const fetchFaveStar = (id: number) => {

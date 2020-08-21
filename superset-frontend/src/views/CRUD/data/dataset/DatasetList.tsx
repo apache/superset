@@ -105,6 +105,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   addSuccessToast,
 }) => {
   const [datasetCount, setDatasetCount] = useState(0);
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
     (Dataset & { chart_count: number; dashboard_count: number }) | null
   >(null);
@@ -112,7 +113,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     datasetCurrentlyEditing,
     setDatasetCurrentlyEditing,
   ] = useState<Dataset | null>(null);
-  const [datasets, setDatasets] = useState<any[]>([]);
   const [
     lastFetchDataConfig,
     setLastFetchDataConfig,
