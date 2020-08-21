@@ -131,6 +131,27 @@ module.exports = {
         ],
       },
     },
+    {
+      files: [
+        'src/**/*.test.ts',
+        'src/**/*.test.tsx',
+        'src/**/*.test.js',
+        'src/**/*.test.jsx',
+      ],
+      plugins: ['jest', 'no-only-tests'],
+      env: {
+        'jest/globals': true,
+      },
+      extends: ['plugin:jest/recommended'],
+      rules: {
+        'import/no-extraneous-dependencies': [
+          'error',
+          { devDependencies: true },
+        ],
+        'jest/consistent-test-it': 'error',
+        'no-only-tests/no-only-tests': 'error',
+      },
+    },
   ],
   rules: {
     camelcase: [
