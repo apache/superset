@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import styled from '@superset-ui/style';
+import { Skeleton } from 'antd';
 
 /*
   Antd is exported from here so we can override components with Emotion as needed.
@@ -23,4 +25,15 @@
   For documentation, see https://ant.design/components/overview/
  */
 /* eslint no-restricted-imports: 0 */
+
 export * from 'antd';
+
+export const ThinSkeleton = styled(Skeleton)`
+  h3 {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
+  }
+
+  ul {
+    margin-bottom: 0;
+  }
+`;
