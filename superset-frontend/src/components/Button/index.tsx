@@ -274,6 +274,8 @@ export default function Button(props: ButtonProps) {
   );
 
   if (dropdownItems) {
+    const whittledProps = { ...buttonProps };
+    delete whittledProps.dropdownItems;
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
         <SupersetButton {...transformedProps} data-toggle="dropdown">
