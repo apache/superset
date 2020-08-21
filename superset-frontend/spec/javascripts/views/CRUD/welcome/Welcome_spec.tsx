@@ -16,31 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
+import React from 'react';
+import { Panel, Row, Tab } from 'react-bootstrap';
+import { shallow } from 'enzyme';
 
-// Suerset's webpack.config.js
-const customConfig = require('../webpack.config.js');
+import Welcome from 'src/views/CRUD/welcome/Welcome';
 
-module.exports = {
-  stories: ['../src/components/**/*.stories.@(t|j)sx'],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-links',
-    '@storybook/preset-typescript',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs/register',
-    'storybook-addon-paddings',
-  ],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
+describe('Welcome', () => {
+  const mockedProps = {
+    user: {
+      username: 'alpha',
+      firstName: 'alpha',
+      lastName: 'alpha',
+      createdOn: '2016-11-11T12:34:17',
+      userId: 5,
+      email: 'alpha@alpha.com',
+      isActive: true,
     },
-    resolve: {
-      ...config.resolve,
-      ...customConfig.resolve,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
-};
+  };
+  it('is valid', () => {
+    expect(React.isValidElement(<Welcome {...mockedProps} />)).toBe(true);
+  });
+  it('renders 3 Tab, Panel, and Row components', () => {
+    const wrapper = shallow(<Welcome {...mockedProps} />);
+    expect(wrapper.find(Tab)).toHaveLength(3);
+    expect(wrapper.find(Panel)).toHaveLength(3);
+    expect(wrapper.find(Row)).toHaveLength(3);
+  });
+});

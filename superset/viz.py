@@ -323,7 +323,8 @@ class BaseViz:
         gb = self.groupby
         metrics = self.all_metrics or []
         columns = form_data.get("columns") or []
-        groupby = list(set(gb + columns))
+        # merge list and dedup while preserving order
+        groupby = list(OrderedDict.fromkeys(gb + columns))
 
         is_timeseries = self.is_timeseries
         if DTTM_ALIAS in groupby:

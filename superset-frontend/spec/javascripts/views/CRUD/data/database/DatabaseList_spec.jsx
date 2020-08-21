@@ -16,31 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
+import React from 'react';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
+import { styledMount as mount } from 'spec/helpers/theming';
 
-// Suerset's webpack.config.js
-const customConfig = require('../webpack.config.js');
+import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
+import SubMenu from 'src/components/Menu/SubMenu';
 
-module.exports = {
-  stories: ['../src/components/**/*.stories.@(t|j)sx'],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-links',
-    '@storybook/preset-typescript',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs/register',
-    'storybook-addon-paddings',
-  ],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
-    },
-    resolve: {
-      ...config.resolve,
-      ...customConfig.resolve,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
-};
+// store needed for withToasts(DatabaseList)
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+
+describe('DatabaseList', () => {
+  const wrapper = mount(<DatabaseList />, { context: { store } });
+
+  it('renders', () => {
+    expect(wrapper.find(DatabaseList)).toExist();
+  });
+
+  it('renders a SubMenu', () => {
+    expect(wrapper.find(SubMenu)).toExist();
+  });
+});

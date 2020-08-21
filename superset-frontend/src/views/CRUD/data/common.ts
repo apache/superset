@@ -16,31 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
+import { t } from '@superset-ui/translation';
 
-// Suerset's webpack.config.js
-const customConfig = require('../webpack.config.js');
-
-module.exports = {
-  stories: ['../src/components/**/*.stories.@(t|j)sx'],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-links',
-    '@storybook/preset-typescript',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs/register',
-    'storybook-addon-paddings',
+export const commonMenuData = {
+  name: t('Data'),
+  children: [
+    {
+      name: 'Datasets',
+      label: t('Datasets'),
+      url: '/tablemodelview/list/',
+    },
+    {
+      name: 'Databases',
+      label: t('Databases'),
+      url: '/databaseview/list/',
+    },
+    {
+      name: 'Saved Queries',
+      label: t('Saved Queries'),
+      url: '/sqllab/my_queries/',
+    },
   ],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
-    },
-    resolve: {
-      ...config.resolve,
-      ...customConfig.resolve,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
 };
