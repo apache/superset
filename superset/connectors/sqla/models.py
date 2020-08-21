@@ -635,6 +635,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     def external_metadata(self) -> List[Dict[str, str]]:
+        def _truncate_column_type(type_: str) -> str:
+            return str(type_).split()[0]
+
         if self.sql:
             db_engine_spec = self.database.db_engine_spec
             engine = self.database.get_sqla_engine()
@@ -662,6 +665,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         for col in cols:
             try:
                 col["type"] = str(col["type"])
+                col["type"] = _truncate_column_type(col["type"])
             except CompileError:
                 col["type"] = "UNKNOWN"
         return cols
