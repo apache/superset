@@ -56,6 +56,47 @@ class TestDatasource(SupersetTestCase):
         session.delete(table)
         session.commit()
 
+    def test_external_metadata_for_malicious_virtual_table(self):
+        self.login(username="admin")
+        session = db.session
+        table = SqlaTable(
+            schema="main",
+            table_name="malicious_sql_table",
+            database=get_example_database(),
+            sql="delete table birth_names",
+        )
+        session.add(table)
+        session.commit()
+
+        table = self.get_table_by_name("malicious_sql_table")
+        url = f"/datasource/external_metadata/table/{table.id}/"
+        resp = self.get_json_resp(url)
+        assert "error" in resp
+
+        session.delete(table)
+        session.commit()
+
+    def test_external_metadata_for_mutistatement_virtual_table(self):
+        self.login(username="admin")
+        session = db.session
+        table = SqlaTable(
+            schema="main",
+            table_name="multistatement_sql_table",
+            database=get_example_database(),
+            sql="select 123 as intcol, 'abc' as strcol;"
+            "select 123 as intcol, 'abc' as strcol",
+        )
+        session.add(table)
+        session.commit()
+
+        table = self.get_table_by_name("multistatement_sql_table")
+        url = f"/datasource/external_metadata/table/{table.id}/"
+        resp = self.get_json_resp(url)
+        assert "error" in resp
+
+        session.delete(table)
+        session.commit()
+
     def compare_lists(self, l1, l2, key):
         l2_lookup = {o.get(key): o for o in l2}
         for obj1 in l1:

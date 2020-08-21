@@ -56,6 +56,7 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatabaseNotFound,
     QueryObjectValidationError,
@@ -641,11 +642,21 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             parsed_query = ParsedQuery(self.sql)
             if not parsed_query.is_readonly():
                 raise SupersetSecurityException(
-                    _("Only `SELECT` statements are allowed")
+                    SupersetError(
+                        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                        message=_("Only `SELECT` statements are allowed"),
+                        level=ErrorLevel.ERROR,
+                    )
                 )
             statements = parsed_query.get_statements()
             if len(statements) > 1:
-                raise SupersetSecurityException(_("Only single queries supported"))
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                        message=_("Only single queries supported"),
+                        level=ErrorLevel.ERROR,
+                    )
+                )
             with closing(engine.raw_connection()) as conn:
                 with closing(conn.cursor()) as cursor:
                     query = statements[0]
