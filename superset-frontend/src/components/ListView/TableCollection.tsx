@@ -28,6 +28,7 @@ interface TableCollectionProps {
   prepareRow: TableInstance['prepareRow'];
   headerGroups: TableInstance['headerGroups'];
   rows: TableInstance['rows'];
+  columns: TableInstance['column'][];
   loading: boolean;
 }
 
@@ -195,6 +196,7 @@ export default function TableCollection({
   getTableBodyProps,
   prepareRow,
   headerGroups,
+  columns,
   rows,
   loading,
 }: TableCollectionProps) {
@@ -231,37 +233,60 @@ export default function TableCollection({
         ))}
       </thead>
       <tbody {...getTableBodyProps()}>
-        {rows.map(row => {
-          prepareRow(row);
-          return (
-            <tr
-              {...row.getRowProps()}
-              className={cx('table-row', {
-                'table-row-selected': row.isSelected,
-              })}
-            >
-              {row.cells.map(cell => {
-                if (cell.column.hidden) return null;
-
-                const columnCellProps = cell.column.cellProps || {};
+        {loading &&
+          rows.length === 0 &&
+          [...new Array(25)].map((_, i) => (
+            <tr key={i}>
+              {columns.map((column, i2) => {
+                if (column.hidden) return null;
                 return (
                   <td
+                    key={i2}
                     className={cx('table-cell', {
                       'table-cell-loader': loading,
-                      [cell.column.size || '']: cell.column.size,
+                      [column.size || '']: column.size,
                     })}
-                    {...cell.getCellProps()}
-                    {...columnCellProps}
                   >
-                    <span className={cx({ 'loading-bar': loading })}>
-                      <span>{cell.render('Cell')}</span>
+                    <span className="loading-bar">
+                      <span>LOADING</span>
                     </span>
                   </td>
                 );
               })}
             </tr>
-          );
-        })}
+          ))}
+        {rows.length > 0 &&
+          rows.map(row => {
+            prepareRow(row);
+            return (
+              <tr
+                {...row.getRowProps()}
+                className={cx('table-row', {
+                  'table-row-selected': row.isSelected,
+                })}
+              >
+                {row.cells.map(cell => {
+                  if (cell.column.hidden) return null;
+
+                  const columnCellProps = cell.column.cellProps || {};
+                  return (
+                    <td
+                      className={cx('table-cell', {
+                        'table-cell-loader': loading,
+                        [cell.column.size || '']: cell.column.size,
+                      })}
+                      {...cell.getCellProps()}
+                      {...columnCellProps}
+                    >
+                      <span className={cx({ 'loading-bar': loading })}>
+                        <span>{cell.render('Cell')}</span>
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
       </tbody>
     </Table>
   );
