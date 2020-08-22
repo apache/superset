@@ -24,9 +24,9 @@ import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/translation';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
+import Button from 'src/components/Button';
 import { exploreChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
-import Button from 'src/components/Button';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,

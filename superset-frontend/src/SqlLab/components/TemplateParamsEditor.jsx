@@ -29,8 +29,8 @@ import 'brace/theme/textmate';
 import { t } from '@superset-ui/translation';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-import ModalTrigger from '../../components/ModalTrigger';
 import Button from 'src/components/Button';
+import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
   onChange: PropTypes.func,
