@@ -67,9 +67,7 @@
   <body {% if standalone_mode %}class="standalone"{% endif %}>
     {% block navbar %}
       {% if not standalone_mode %}
-        <header class="top" role="header">
-          {% include 'appbuilder/navbar.html' %}
-        </header>
+        {% include 'appbuilder/navbar.html' %}
       {% endif %}
     {% endblock %}
 
@@ -99,6 +97,7 @@
     </div>
 
     {% block tail_js %}
+      {{ js_bundle('menu') }}
       {% if entry %}
         {{ js_bundle(entry) }}
       {% endif %}

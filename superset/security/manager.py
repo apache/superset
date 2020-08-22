@@ -399,18 +399,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
-    def get_public_role(self) -> Optional[Any]:  # Optional[self.role_model]
-        from superset import conf
-
-        if not conf.get("PUBLIC_ROLE_LIKE_GAMMA", False):
-            return None
-
-        return (
-            self.get_session.query(self.role_model)
-            .filter_by(name="Public")
-            .one_or_none()
-        )
-
     def user_view_menu_names(self, permission_name: str) -> Set[str]:
         base_query = (
             self.get_session.query(self.viewmenu_model.name)
