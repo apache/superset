@@ -182,7 +182,7 @@ const SupersetButton = styled(BootstrapButton)`
 export default function Button(props: ButtonProps) {
   const buttonProps = {
     ...props,
-    bsSize: props.buttonSize|| 'sm',
+    bsSize: props.buttonSize || 'sm',
     placement: props.placement || 'top',
   };
   const tooltip = props.tooltip;

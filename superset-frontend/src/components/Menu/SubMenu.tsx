@@ -27,7 +27,7 @@ const StyledHeader = styled.header`
   }
   .navbar-right {
     padding: 8px 0;
-    margin-right: 0;  
+    margin-right: 0;
   }
   .navbar-nav {
     li {
@@ -98,7 +98,11 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
             </Button>
           )}
           {props.primaryButton && (
-            <Button buttonStyle="primary" onClick={props.primaryButton.onClick} cta>
+            <Button
+              buttonStyle="primary"
+              onClick={props.primaryButton.onClick}
+              cta
+            >
               {props.primaryButton.name}
             </Button>
           )}

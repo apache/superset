@@ -393,7 +393,9 @@ class Header extends React.PureComponent {
                       buttonSize="small"
                       onClick={onUndo}
                       disabled={undoLength < 1}
-                      buttonStyle={this.state.emphasizeUndo ? 'primary' : undefined}
+                      buttonStyle={
+                        this.state.emphasizeUndo ? 'primary' : undefined
+                      }
                     >
                       <i title="Undo" className="undo-action fa fa-reply" />
                       &nbsp;
@@ -402,7 +404,9 @@ class Header extends React.PureComponent {
                       buttonSize="small"
                       onClick={onRedo}
                       disabled={redoLength < 1}
-                      buttonStyle={this.state.emphasizeRedo ? 'primary' : undefined}
+                      buttonStyle={
+                        this.state.emphasizeRedo ? 'primary' : undefined
+                      }
                     >
                       &nbsp;
                       <i title="Redo" className="redo-action fa fa-share" />
