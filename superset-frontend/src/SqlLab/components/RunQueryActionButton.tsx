@@ -19,7 +19,7 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 
-import Button, { ButtonProps } from '../../components/Button';
+import Button, { ButtonProps } from 'src/components/Button';
 
 const NO_OP = () => undefined;
 

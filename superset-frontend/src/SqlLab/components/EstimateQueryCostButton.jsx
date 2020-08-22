@@ -22,7 +22,7 @@ import { Table } from 'reactable-arc';
 import { Alert } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
-import Button from '../../components/Button';
+import Button from 'src/components/Button';
 import Loading from '../../components/Loading';
 import ModalTrigger from '../../components/ModalTrigger';
 

@@ -22,7 +22,7 @@ import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
-import Button from '../../components/Button';
+import Button from 'src/components/Button';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { storeQuery } from '../../utils/common';
 import getClientErrorObject from '../../utils/getClientErrorObject';

@@ -23,7 +23,7 @@ import classnames from 'classnames';
 import { t } from '@superset-ui/translation';
 import styled from '@superset-ui/style';
 
-import Button from '../../components/Button';
+import Button from 'src/components/Button';
 import Hotkeys from '../../components/Hotkeys';
 
 const propTypes = {

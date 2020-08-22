@@ -19,7 +19,7 @@
 import React, { ReactNode } from 'react';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
-import Button from '../components/Button';
+import Button from 'src/components/Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 import './crud.less';
