@@ -96,9 +96,6 @@ export default class ModalTrigger extends React.Component {
   }
 
   render() {
-    const classNames = cx({
-      'btn btn-default btn-sm': this.props.isButton,
-    });
     if (this.props.isButton) {
       return (
         <>
@@ -123,7 +120,7 @@ export default class ModalTrigger extends React.Component {
     /* eslint-disable jsx-a11y/interactive-supports-focus */
     return (
       <>
-        <span className={classNames} onClick={this.open} role="button">
+        <span onClick={this.open} role="button">
           {this.props.triggerNode}
         </span>
         {this.renderModal()}
