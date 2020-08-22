@@ -319,6 +319,17 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     }
 
 
+@superset_app.context_processor
+def get_common_bootstrap_data() -> Dict[str, Any]:
+    def serialize_bootstrap_data() -> str:
+        return json.dumps(
+            {"common": common_bootstrap_payload()},
+            default=utils.pessimistic_json_iso_dttm_ser,
+        )
+
+    return {"bootstrap_data": serialize_bootstrap_data}
+
+
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
