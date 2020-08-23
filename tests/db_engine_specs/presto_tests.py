@@ -500,6 +500,15 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
         sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar")
         assert isinstance(sqla_type, types.String)
+        assert sqla_type.length is None
+
+        sqla_type = PrestoEngineSpec.get_sqla_column_type("char(10)")
+        assert isinstance(sqla_type, types.CHAR)
+        assert sqla_type.length == 10
+
+        sqla_type = PrestoEngineSpec.get_sqla_column_type("char")
+        assert isinstance(sqla_type, types.CHAR)
+        assert sqla_type.length is None
 
         sqla_type = PrestoEngineSpec.get_sqla_column_type("integer")
         assert isinstance(sqla_type, types.Integer)

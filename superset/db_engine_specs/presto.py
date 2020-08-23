@@ -269,7 +269,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                         column_type = cls.get_sqla_column_type(field_info[1])
                         if column_type is None:
                             raise NotImplementedError(
-                                "Unknown column type: %s", field_info[1]
+                                _("Unknown column type: %(col)s", col=field_info[1])
                             )
                         if field_info[1] == "array" or field_info[1] == "row":
                             stack.append((field_info[0], field_info[1]))
@@ -335,15 +335,13 @@ class PrestoEngineSpec(BaseEngineSpec):
         (re.compile(r"^double.*", re.IGNORECASE), types.Float()),
         (re.compile(r"^decimal.*", re.IGNORECASE), types.DECIMAL()),
         (
-            re.compile(r"^varchar\((\d+)\)$", re.IGNORECASE),
-            lambda x: types.VARCHAR(int(x[1])),
+            re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
         ),
-        (re.compile(r"^varchar$", re.IGNORECASE), types.String()),
         (
-            re.compile(r"^char\((\d+)\)$", re.IGNORECASE),
-            lambda x: types.CHAR(int(x[1])),
+            re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.CHAR(int(match[2])) if match[2] else types.CHAR(),
         ),
-        (re.compile(r"^char$", re.IGNORECASE), types.CHAR()),
         (re.compile(r"^varbinary.*", re.IGNORECASE), types.VARBINARY()),
         (re.compile(r"^json.*", re.IGNORECASE), types.JSON()),
         (re.compile(r"^date.*", re.IGNORECASE), types.DATE()),
@@ -386,7 +384,9 @@ class PrestoEngineSpec(BaseEngineSpec):
             # otherwise column is a basic data type
             column_type = cls.get_sqla_column_type(column.Type)
             if column_type is None:
-                raise NotImplementedError("Unknown column type: %s", column.Type)
+                raise NotImplementedError(
+                    _("Unknown column type: %(col)s", col=column_type)
+                )
             column_info = cls._create_column_info(column.Column, column_type)
             column_info["nullable"] = getattr(column, "Null", True)
             column_info["default"] = None

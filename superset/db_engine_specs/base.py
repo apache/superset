@@ -27,6 +27,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    Match,
     NamedTuple,
     Optional,
     Pattern,
@@ -144,8 +145,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
     _column_type_mappings: Tuple[
-        Tuple[Pattern[str], Union[TypeEngine, Callable[[re.Match[str]], TypeEngine]]],
-        ...,
+        Tuple[Pattern[str], Union[TypeEngine, Callable[[Match[str]], TypeEngine]]], ...,
     ] = ()
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
