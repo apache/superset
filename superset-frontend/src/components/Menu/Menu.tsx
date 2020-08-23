@@ -126,6 +126,10 @@ const StyledHeader = styled.header`
     margin-bottom: 8px;
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
+  .navbar-right {
+    display: flex;
+    align-items: center;
+  }
 `;
 
 export default function Menu({
