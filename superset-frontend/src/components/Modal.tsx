@@ -54,9 +54,6 @@ const StyledModal = styled(BaseModal)`
   .modal-footer {
     border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     padding: 16px;
-    .btn + .btn {
-      margin-left: 8px;
-    }
   }
 `;
 
