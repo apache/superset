@@ -74,8 +74,8 @@ class MssqlEngineSpec(BaseEngineSpec):
         return cls.pyodbc_rows_to_tuples(data)
 
     _column_type_mappings = (
-        (String(), re.compile(r"^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)", re.IGNORECASE)),
-        (UnicodeText(), re.compile(r"^N((VAR){0,1}CHAR|TEXT)", re.IGNORECASE)),
+        (re.compile(r"^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)", re.IGNORECASE), String()),
+        (re.compile(r"^N((VAR){0,1}CHAR|TEXT)", re.IGNORECASE), UnicodeText()),
     )
 
     @classmethod

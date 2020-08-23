@@ -24,6 +24,7 @@ from contextlib import closing
 from datetime import datetime
 from typing import (
     Any,
+    Callable,
     Dict,
     List,
     NamedTuple,
@@ -142,7 +143,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ] = None  # used for user messages, overridden in child classes
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
-    _column_type_mappings: Tuple[Tuple[TypeEngine, Pattern[str]], ...] = ()
+    _column_type_mappings: Tuple[
+        Tuple[Pattern[str], Union[TypeEngine, Callable[[re.Match[str]], TypeEngine]]],
+        ...,
+    ] = ()
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -893,8 +897,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param type_: Column type returned by inspector
         :return: SqlAlchemy column type
         """
-        for sqla_type, regex in cls._column_type_mappings:
-            if regex.match(type_):
+        for regex, sqla_type in cls._column_type_mappings:
+            match = regex.match(type_)
+            if match:
+                if callable(sqla_type):
+                    return sqla_type(match)
                 return sqla_type
         return None
 
