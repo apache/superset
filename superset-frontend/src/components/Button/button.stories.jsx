@@ -47,9 +47,8 @@ const buttonSizeKnob = {
   options: {
     XS: 'xsmall',
     S: 'small',
-    M: 'medium',
+    Default: null,
     L: 'large',
-    None: null,
   },
   defaultValue: null,
 };
@@ -100,29 +99,29 @@ const hrefKnob = {
 };
 
 export const ButtonGallery = () => (
-  <>
-    {Object.values(buttonSizeKnob.options)
-      .filter(a => a)
-      .map(size => (
-        <div>
-          <h4>{size}</h4>
-          {Object.values(buttonStyleKnob.options)
-            .filter(o => o)
-            .map(style => (
-              <Button
-                disabled={boolean('Disabled', false)}
-                cta={boolean('CTA', false)}
-                buttonStyle={style}
-                buttonSize={size}
-                onClick={action('clicked')}
-              >
-                {style}
-              </Button>
-            ))}
-        </div>
-      ))}
-  </>
-);
+         <>
+           {Object.entries(buttonSizeKnob.options)
+             .map(([name, size]) => (
+               <div key={size}>
+                 <h4>{name}</h4>
+                 {Object.values(buttonStyleKnob.options)
+                   .filter(o => o)
+                   .map(style => (
+                     <Button
+                       disabled={boolean('Disabled', false)}
+                       cta={boolean('CTA', false)}
+                       buttonStyle={style}
+                       buttonSize={size}
+                       onClick={action('clicked')}
+                       key={style+'_'+size}
+                     >
+                       {style}
+                     </Button>
+                   ))}
+               </div>
+             ))}
+         </>
+       );
 
 export const InteractiveButton = () => (
   <Button

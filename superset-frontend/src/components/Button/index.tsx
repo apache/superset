@@ -19,6 +19,7 @@
 import React from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
+import cx from 'classnames';
 import {
   Button as BootstrapButton,
   Tooltip,
@@ -182,7 +183,7 @@ const SupersetButton = styled(BootstrapButton)`
 export default function Button(props: ButtonProps) {
   const buttonProps = {
     ...props,
-    bsSize: props.buttonSize || 'sm',
+    bsSize: props.buttonSize,
     placement: props.placement || 'top',
   };
   const tooltip = props.tooltip;
@@ -197,14 +198,29 @@ export default function Button(props: ButtonProps) {
     buttonProps.style = { pointerEvents: 'none' };
   }
 
+  const officialBootstrapStyles = [
+    'success',
+    'warning',
+    'danger',
+    'info',
+    'default',
+    'primary',
+  ];
+
   const transformedProps = {
     ...buttonProps,
-    bsStyle: buttonProps.buttonStyle || 'default',
-    className: buttonProps.cta ? 'cta' : undefined,
+    bsStyle: officialBootstrapStyles.includes(props.buttonStyle || '')
+      ? props.buttonStyle
+      : 'default',
+    className: cx({
+      'cta' : buttonProps.cta ? true : false,
+      [`btn-${props.buttonStyle}`]: officialBootstrapStyles.includes(props.buttonStyle || '')
+    }),
   };
   delete transformedProps.dropdownItems;
   delete transformedProps.buttonSize;
   delete transformedProps.buttonStyle;
+  delete transformedProps.cta;
 
   let button = (
     <SupersetButton {...transformedProps}>{props.children}</SupersetButton>
