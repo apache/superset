@@ -73,17 +73,10 @@ class MssqlEngineSpec(BaseEngineSpec):
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)
 
-    column_types = (
+    _column_type_mappings = (
         (String(), re.compile(r"^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)", re.IGNORECASE)),
         (UnicodeText(), re.compile(r"^N((VAR){0,1}CHAR|TEXT)", re.IGNORECASE)),
     )
-
-    @classmethod
-    def get_sqla_column_type(cls, type_: str) -> Optional[TypeEngine]:
-        for sqla_type, regex in cls.column_types:
-            if regex.match(type_):
-                return sqla_type
-        return None
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:
