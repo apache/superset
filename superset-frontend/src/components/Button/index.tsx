@@ -115,7 +115,7 @@ export default function Button(props: ButtonProps) {
         </SupersetButton>
         <ul className="dropdown-menu">
           {dropdownItems.map(
-            (dropdownItem: DropdownItemProps, index1: number) => (
+            (dropdownItem: DropdownItemProps) => (
               <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
                 <i className={`fa ${dropdownItem.icon}`} />
                 &nbsp; {dropdownItem.label}
