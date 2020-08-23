@@ -289,7 +289,10 @@ class PropertiesModal extends React.PureComponent {
             <Row>
               <Col md={12}>
                 <h3 style={{ marginTop: '1em' }}>
-                  <Button buttonStyle="link" onClick={this.toggleAdvanced}>
+                  <Button
+                    buttonStyle="link"
+                    onClick={this.toggleAdvanced}
+                  >
                     <i
                       className={`fa fa-angle-${
                         isAdvancedOpen ? 'down' : 'right'
