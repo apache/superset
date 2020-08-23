@@ -333,10 +333,12 @@ class PropertiesModal extends React.PureComponent {
                 buttonStyle="primary"
                 className="m-r-5"
                 disabled={errors.length > 0}
+                cta
               >
                 {saveLabel}
               </Button>
               <Button type="button" buttonSize="sm" onClick={onHide}>
+              <Button type="button" buttonSize="sm" onClick={onHide} cta>
                 {t('Cancel')}
               </Button>
               <Dialog
