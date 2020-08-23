@@ -122,7 +122,7 @@ export default class TextAreaControl extends React.Component {
             bsSize="large"
             modalTitle={controlHeader}
             triggerNode={
-              <Button bsSize="small" className="m-t-5">
+              <Button buttonSize="small" className="m-t-5">
                 {t('Edit')} <strong>{this.props.language}</strong>{' '}
                 {t('in modal')}
               </Button>
