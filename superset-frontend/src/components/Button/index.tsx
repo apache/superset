@@ -213,8 +213,10 @@ export default function Button(props: ButtonProps) {
       ? props.buttonStyle
       : 'default',
     className: cx({
-      'cta' : buttonProps.cta ? true : false,
-      [`btn-${props.buttonStyle}`]: officialBootstrapStyles.includes(props.buttonStyle || '')
+      cta: !!buttonProps.cta,
+      [`btn-${props.buttonStyle}`]: officialBootstrapStyles.includes(
+        props.buttonStyle || '',
+      ),
     }),
   };
   delete transformedProps.dropdownItems;

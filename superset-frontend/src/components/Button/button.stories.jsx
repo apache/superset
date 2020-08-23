@@ -99,29 +99,28 @@ const hrefKnob = {
 };
 
 export const ButtonGallery = () => (
-         <>
-           {Object.entries(buttonSizeKnob.options)
-             .map(([name, size]) => (
-               <div key={size}>
-                 <h4>{name}</h4>
-                 {Object.values(buttonStyleKnob.options)
-                   .filter(o => o)
-                   .map(style => (
-                     <Button
-                       disabled={boolean('Disabled', false)}
-                       cta={boolean('CTA', false)}
-                       buttonStyle={style}
-                       buttonSize={size}
-                       onClick={action('clicked')}
-                       key={style+'_'+size}
-                     >
-                       {style}
-                     </Button>
-                   ))}
-               </div>
-             ))}
-         </>
-       );
+  <>
+    {Object.entries(buttonSizeKnob.options).map(([name, size]) => (
+      <div key={size}>
+        <h4>{name}</h4>
+        {Object.values(buttonStyleKnob.options)
+          .filter(o => o)
+          .map(style => (
+            <Button
+              disabled={boolean('Disabled', false)}
+              cta={boolean('CTA', false)}
+              buttonStyle={style}
+              buttonSize={size}
+              onClick={action('clicked')}
+              key={`${style}_${size}`}
+            >
+              {style}
+            </Button>
+          ))}
+      </div>
+    ))}
+  </>
+);
 
 export const InteractiveButton = () => (
   <Button

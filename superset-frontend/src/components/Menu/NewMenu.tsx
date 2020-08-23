@@ -41,9 +41,7 @@ const dropdownItems: DropdownItemProps[] = [
 export default function NewMenu() {
   return (
     <li className="dropdown">
-      <Button buttonStyle="primary"
-        dropdownItems={dropdownItems}
-      >
+      <Button buttonStyle="primary" dropdownItems={dropdownItems}>
         <i className="fa fa-plus" /> New
       </Button>
     </li>
