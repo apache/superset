@@ -46,7 +46,7 @@ describe('EmbedCodeButton', () => {
     expect(wrapper.find(OverlayTrigger)).toExist();
   });
 
-  it('should create short, standalone, explore url', () => {
+  it('should create a short, standalone, explore url', () => {
     const spy1 = sinon.spy(exploreUtils, 'getExploreLongUrl');
     const spy2 = sinon.spy(common, 'getShortUrl');
 
