@@ -24,8 +24,10 @@ from contextlib import closing
 from datetime import datetime
 from typing import (
     Any,
+    Callable,
     Dict,
     List,
+    Match,
     NamedTuple,
     Optional,
     Pattern,
@@ -142,6 +144,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ] = None  # used for user messages, overridden in child classes
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
+    column_type_mappings: Tuple[
+        Tuple[Pattern[str], Union[TypeEngine, Callable[[Match[str]], TypeEngine]]], ...,
+    ] = ()
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -886,12 +891,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Return a sqlalchemy native column type that corresponds to the column type
         defined in the data source (return None to use default type inferred by
-        SQLAlchemy). Needs to be overridden if column requires special handling
+        SQLAlchemy). Override `_column_type_mappings` for specific needs
         (see MSSQL for example of NCHAR/NVARCHAR handling).
 
         :param type_: Column type returned by inspector
         :return: SqlAlchemy column type
         """
+        for regex, sqla_type in cls.column_type_mappings:
+            match = regex.match(type_)
+            if match:
+                if callable(sqla_type):
+                    return sqla_type(match)
+                return sqla_type
         return None
 
     @staticmethod
