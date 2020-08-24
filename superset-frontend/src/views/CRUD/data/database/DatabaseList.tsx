@@ -97,7 +97,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         database={currentDatabase}
         show={databaseModalOpen}
         onHide={() => setDatabaseModalOpen(false)}
-        onDatabaseAdd={() => {}}
+        onDatabaseAdd={() => {
+          /* TODO: add database logic here */
+        }}
       />
     </>
   );

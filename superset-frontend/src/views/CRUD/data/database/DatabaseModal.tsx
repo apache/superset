@@ -21,8 +21,8 @@ import styled from '@superset-ui/style';
 import { t } from '@superset-ui/translation';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
-import Button from 'src/views/CRUD/data/dataset/Button';
-import { Tabs, Modal } from 'src/common/components';
+import Modal from 'src/common/components/Modal';
+import { Tabs } from 'src/common/components';
 
 type DatabaseObject = {
   id: number;
@@ -76,51 +76,6 @@ const StyledTabs = styled(Tabs)`
   }
 `;
 
-const StyledModal = styled(Modal)`
-  .ant-modal-header {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
-    border-radius: ${({ theme }) => theme.borderRadius}px
-      ${({ theme }) => theme.borderRadius}px 0 0;
-
-    .ant-modal-title h4 {
-      display: flex;
-      margin: 0;
-      align-items: center;
-    }
-  }
-
-  .ant-modal-close-x {
-    display: flex;
-    align-items: center;
-
-    .close {
-      flex: 1 1 auto;
-      margin-bottom: 3px;
-      color: ${({ theme }) => theme.colors.secondary.dark1};
-      font-size: 32px;
-      font-weight: ${({ theme }) => theme.typography.weights.light};
-    }
-  }
-
-  .ant-modal-body {
-    padding: 18px;
-  }
-
-  .ant-modal-footer {
-    border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    padding: 16px;
-
-    .btn {
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-
-    .btn + .btn {
-      margin-left: 8px;
-    }
-  }
-`;
-
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -135,35 +90,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (onDatabaseAdd) {
       onDatabaseAdd();
     }
+
+    onHide();
   };
 
+  const isEditMode = database !== null;
+
   return (
-    <StyledModal
+    <Modal
       className="database-modal"
-      centered
-      onOk={onSave}
-      onCancel={onHide}
+      disablePrimaryButton={disableSave}
+      onHandledPrimaryAction={onSave}
+      onHide={onHide}
+      primaryButtonName={isEditMode ? t('Save') : t('Add')}
       width="750px"
-      visible={show}
-      closeIcon={
-        <span className="close" aria-hidden="true">
-          ×
-        </span>
-      }
+      show={show}
       title={
         <h4>
           <StyledIcon name="databases" />
-          {t('Add Database')}
+          {isEditMode ? t('Edit Database') : t('Add Database')}
         </h4>
       }
-      footer={[
-        <Button key="back" onClick={onHide}>
-          {t('Cancel')}
-        </Button>,
-        <Button key="submit" disabled={disableSave} onClick={onSave}>
-          {t('Add')}
-        </Button>,
-      ]}
     >
       <StyledTabs defaultActiveKey="1">
         <TabPane
@@ -189,7 +136,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           Extra Form Data
         </TabPane>
       </StyledTabs>
-    </StyledModal>
+    </Modal>
   );
 };
 
