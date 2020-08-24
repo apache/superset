@@ -53,7 +53,7 @@ describe('EmbedCodeButton', () => {
     const wrapper = mount(<EmbedCodeButton {...defaultProps} />, {
       wrappingComponent: Provider,
       wrappingComponentProps: {
-        store: store,
+        store,
       },
     });
     wrapper.setState({
