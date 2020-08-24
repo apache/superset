@@ -72,15 +72,14 @@ describe('chart card view', () => {
     cy.get('.Select__menu').contains('Alphabetical').click();
     cy.get('.chart-list-view').should('be.visible');
     cy.get('.ant-card').first().contains('% Rural');
-    cy.get('.ant-card').last().contains('Growth Rate');
 
     // sort Recently Modified
     cy.get('.Select__control').last().should('be.visible');
     cy.get('.Select__control').last().click();
     cy.get('.Select__menu').contains('Recently Modified').click();
     cy.get('.chart-list-view').should('be.visible');
-    cy.get('.ant-card').first().contains('Path');
-    cy.get('.ant-card').last().contains('Genders');
+    cy.get('.ant-card').first().contains('Unicode Cloud');
+    cy.get('.ant-card').last().contains('Region Filter');
   });
 
   it('should able to delete', () => {

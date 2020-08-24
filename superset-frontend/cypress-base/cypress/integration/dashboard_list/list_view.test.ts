@@ -18,7 +18,7 @@
  */
 import { DASHBOARD_LIST } from './dashboard_list.helper';
 
-describe('dashboard card view', () => {
+describe('dashboard list view', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
@@ -26,7 +26,7 @@ describe('dashboard card view', () => {
     cy.get('[data-test="list-view"]').click();
   });
 
-  it('Should load rows', () => {
+  it('should load rows', () => {
     cy.get('.dashboard-list-view');
     cy.get('table[role="table"]').should('be.visible');
     // check dashboard list view header
@@ -36,12 +36,12 @@ describe('dashboard card view', () => {
     cy.get('th[role="columnheader"]:nth-child(5)').contains('Published');
     cy.get('th[role="columnheader"]:nth-child(6)').contains('Modified');
     cy.get('th[role="columnheader"]:nth-child(7)').contains('Actions');
-    cy.get('.table-row').should('have.length', 25);
+    cy.get('.table-row').should('have.length', 4);
   });
 
-  it('Handle sorting correctly', () => {
+  it('should sort correctly', () => {
     cy.get('th[role="columnheader"]:nth-child(2)').click();
-    cy.get('.table-row td:nth-child(2):eq(0)').contains('Misc Charts');
+    cy.get('.table-row td:nth-child(2):eq(0)').contains('Tabbed Dashboard');
     cy.get('th[role="columnheader"]:nth-child(4)').click();
     cy.get('.table-row  td:nth-child(2):eq(0)').contains('USA Births Names');
     cy.get('th[role="columnheader"]:nth-child(5)').click();

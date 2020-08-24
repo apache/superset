@@ -18,7 +18,7 @@
  */
 import { CHART_LIST } from './chart_list.helper';
 
-describe('chart card view', () => {
+describe('chart list view', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
@@ -26,7 +26,7 @@ describe('chart card view', () => {
     cy.get('[data-test="list-view"]').click();
   });
 
-  it('Should load rows', () => {
+  it('should load rows', () => {
     cy.get('.chart-list-view');
     cy.get('table[role="table"]').should('be.visible');
 
@@ -42,16 +42,12 @@ describe('chart card view', () => {
     cy.get('.table-row').should('have.length', 25);
   });
 
-  it('Handle sorting correctly', () => {
+  it('should sort correctly', () => {
     cy.get('th[role="columnheader"]:nth-child(2)').click();
     cy.get('.table-row td:nth-child(2):eq(0)').contains('% Rural');
-    cy.get('th[role="columnheader"]:nth-child(3)').click();
-    cy.get('.table-row  td:nth-child(2):eq(0)').contains("World's Pop Growth");
     cy.get('th[role="columnheader"]:nth-child(4)').click();
     cy.get('.table-row  td:nth-child(2):eq(0)').contains('Energy Sankey');
     cy.get('th[role="columnheader"]:nth-child(6)').click();
-    cy.get('.table-row  td:nth-child(2):eq(0)').contains(
-      'Growth Rate [CBQQGqp6q]',
-    );
+    cy.get('.table-row  td:nth-child(2):eq(0)').contains('Energy Sankey');
   });
 });

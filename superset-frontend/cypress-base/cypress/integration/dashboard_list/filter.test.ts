@@ -18,7 +18,7 @@
  */
 import { DASHBOARD_LIST } from './dashboard_list.helper';
 
-describe('chart filters', () => {
+describe('dashboard filters', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
@@ -39,10 +39,10 @@ describe('chart filters', () => {
     // filter by published
     cy.get('.Select__control').eq(1).click();
     cy.get('.Select__menu').contains('Published').click();
-    cy.get('.ant-card').should('have.length', 3);
-    cy.get('.ant-card').first().contains('deck.gl Demo').should('exist');
+    cy.get('.ant-card').should('have.length', 2);
+    cy.get('.ant-card').first().contains('USA Births Names').should('exist');
     cy.get('.Select__control').eq(1).click();
     cy.get('.Select__control').eq(1).type('unpub{enter}');
-    cy.get('.ant-card').should('have.length', 25);
+    cy.get('.ant-card').should('have.length', 2);
   });
 });

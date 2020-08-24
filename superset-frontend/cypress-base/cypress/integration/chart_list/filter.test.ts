@@ -38,7 +38,7 @@ describe('chart filters', () => {
   it('should filter by viz type correctly', () => {
     // filter by viz type
     cy.get('.Select__control').eq(1).click();
-    cy.get('.Select__menu').contains('deck_arc').click();
+    cy.get('.Select__menu').contains('deck_arc').click({ timeout: 5000 });
     cy.get('.ant-card').should('have.length', 1);
     cy.get('.ant-card').contains('Arc').should('exist');
     cy.get('.Select__control').eq(1).click();
@@ -54,8 +54,8 @@ describe('chart filters', () => {
     cy.get('.ant-card').should('have.length', 1);
     cy.get('.ant-card').contains('Unicode Cloud').should('exist');
     cy.get('.Select__control').eq(2).click();
-    cy.get('.Select__control').eq(2).type('bart_lines{enter}{enter}');
+    cy.get('.Select__control').eq(2).type('flights{enter}{enter}');
     cy.get('.ant-card').should('have.length', 1);
-    cy.get('.ant-card').contains('Path').should('exist');
+    cy.get('.ant-card').contains('Arcs').should('exist');
   });
 });

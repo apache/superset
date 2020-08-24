@@ -28,7 +28,7 @@ describe('Dashboard card view', () => {
   it('should load cards', () => {
     cy.get('.dashboard-list-view');
     cy.get('.ant-card').should('be.visible');
-    cy.get('.ant-card').should('have.length', 6);
+    cy.get('.ant-card').should('have.length', 4);
   });
 
   it('should allow favor/unfavor chart card', () => {
