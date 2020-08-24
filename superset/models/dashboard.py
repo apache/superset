@@ -550,7 +550,7 @@ if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Dashboard, "after_update", event_after_dashboard_changed)
 
 
-# sqla.event.listen(Dashboard, "after_insert", SecuredMixin.after_insert)
+sqla.event.listen(Dashboard, "after_insert", SecuredMixin.after_insert)
 sqla.event.listen(Dashboard, "after_update", SecuredMixin.after_update)
 sqla.event.listen(Dashboard, "after_delete", SecuredMixin.after_delete)
 sqla.event.listen(
