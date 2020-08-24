@@ -156,11 +156,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # default matching patterns for identifying column types
     db_column_types: Dict[utils.DbColumnType, Tuple[Pattern[Any], ...]] = {
         utils.DbColumnType.NUMERIC: (
+            re.compile(r"BIT", re.IGNORECASE),
             re.compile(r".*DOUBLE.*", re.IGNORECASE),
             re.compile(r".*FLOAT.*", re.IGNORECASE),
             re.compile(r".*INT.*", re.IGNORECASE),
             re.compile(r".*NUMBER.*", re.IGNORECASE),
-            re.compile(r".*LONG.*", re.IGNORECASE),
+            re.compile(r".*LONG$", re.IGNORECASE),
             re.compile(r".*REAL.*", re.IGNORECASE),
             re.compile(r".*NUMERIC.*", re.IGNORECASE),
             re.compile(r".*DECIMAL.*", re.IGNORECASE),
