@@ -61,7 +61,7 @@ describe('chart card view', () => {
   it('should sort correctly', () => {
     // sort Alphabetical
     cy.get('.Select__control').last().should('be.visible');
-    cy.get('.Select__control').last().click({ force: true });
+    cy.get('.Select__control').last().click();
     cy.get('.Select__menu').contains('Alphabetical').click();
     cy.get('.chart-list-view').should('be.visible');
     cy.get('.ant-card').first().contains('% Rural');
@@ -69,7 +69,7 @@ describe('chart card view', () => {
 
     // sort Recently Modified
     cy.get('.Select__control').last().should('be.visible');
-    cy.get('.Select__control').last().click({ force: true });
+    cy.get('.Select__control').last().click();
     cy.get('.Select__menu').contains('Recently Modified').click();
     cy.get('.chart-list-view').should('be.visible');
     cy.get('.ant-card').first().contains('Path');
