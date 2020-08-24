@@ -31,31 +31,38 @@ describe('Dashboard card view', () => {
     cy.get('.ant-card').should('have.length', 25);
   });
 
-  it('should allow favor/unfavor dashboard card', () => {
-    cy.get('.ant-card')
+  it('should allow favor/unfavor chart card', () => {
+    cy.get('.ant-card .card-actions')
       .first()
-      .then($el => {
-        cy.wrap($el)
-          .find("[data-test='favorite-selected']")
-          .should('not.exist');
-        cy.wrap($el).find("[data-test='favorite-unselected']").click();
-        cy.wrap($el).find("[data-test='favorite-selected']").should('exist');
-        cy.wrap($el)
-          .find("[data-test='favorite-unselected']")
-          .should('not.exist');
-      });
-    cy.get('.ant-card')
+      .find("[data-test='favorite-selected']")
+      .should('not.exist');
+    cy.get(".ant-card .card-actions [data-test='favorite-unselected']")
       .first()
-      .then($el => {
-        cy.wrap($el)
-          .find("[data-test='favorite-unselected']")
-          .should('not.exist');
-        cy.wrap($el).find("[data-test='favorite-selected']").click();
-        cy.wrap($el).find("[data-test='favorite-unselected']").should('exist');
-        cy.wrap($el)
-          .find("[data-test='favorite-selected']")
-          .should('not.exist');
-      });
+      .click();
+    cy.get('.ant-card .card-actions')
+      .first()
+      .find("[data-test='favorite-selected']")
+      .should('exist');
+    cy.get('.ant-card .card-actions')
+      .first()
+      .find("[data-test='favorite-unselected']")
+      .should('not.exist');
+
+    cy.get('.ant-card .card-actions')
+      .first()
+      .find("[data-test='favorite-unselected']")
+      .should('not.exist');
+    cy.get(".ant-card .card-actions [data-test='favorite-selected']")
+      .first()
+      .click();
+    cy.get('.ant-card .card-actions')
+      .first()
+      .find("[data-test='favorite-unselected']")
+      .should('exist');
+    cy.get('.ant-card .card-actions')
+      .first()
+      .find("[data-test='favorite-selected']")
+      .should('not.exist');
   });
 
   it('should sort correctly', () => {
