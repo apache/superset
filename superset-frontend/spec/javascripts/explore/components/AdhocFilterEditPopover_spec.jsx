@@ -118,9 +118,9 @@ describe('AdhocFilterEditPopover', () => {
 
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).not.toExist();
+    expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).not.toExist();
     wrapper.instance().onAdhocFilterChange(sqlAdhocFilter);
-    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).toExist();
+    expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).toExist();
   });
 
   it('will initiate a drag when clicked', () => {
