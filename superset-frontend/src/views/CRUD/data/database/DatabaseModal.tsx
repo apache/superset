@@ -24,8 +24,10 @@ import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import { Tabs } from 'src/common/components';
 
-type DatabaseObject = {
+export type DatabaseObject = {
   id: number;
+  name: string;
+  uri: string;
   // TODO: add more props
 };
 

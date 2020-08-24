@@ -23,12 +23,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
-import DatabaseModal from './DatabaseModal';
-
-type DatabaseObject = {
-  id: number;
-  // TODO: add more props
-};
+import DatabaseModal, { DatabaseObject } from './DatabaseModal';
 
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
