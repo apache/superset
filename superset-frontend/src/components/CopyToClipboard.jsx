@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Tooltip, OverlayTrigger, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const propTypes = {
   copyNode: PropTypes.node,
@@ -30,6 +31,7 @@ const propTypes = {
   inMenu: PropTypes.bool,
   wrapped: PropTypes.bool,
   tooltipText: PropTypes.string,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -41,7 +43,7 @@ const defaultProps = {
   tooltipText: t('Copy to clipboard'),
 };
 
-export default class CopyToClipboard extends React.Component {
+class CopyToClipboard extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -95,9 +97,9 @@ export default class CopyToClipboard extends React.Component {
         throw new Error(t('Not successful'));
       }
     } catch (err) {
-      window.alert(
+      this.props.addDangerToast(
         t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!'),
-      ); // eslint-disable-line
+      );
     }
 
     document.body.removeChild(span);
@@ -193,6 +195,8 @@ export default class CopyToClipboard extends React.Component {
     return inMenu ? this.renderInMenu() : this.renderLink();
   }
 }
+
+export default withToasts(CopyToClipboard);
 
 CopyToClipboard.propTypes = propTypes;
 CopyToClipboard.defaultProps = defaultProps;
