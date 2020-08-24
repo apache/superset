@@ -114,14 +114,12 @@ export default function Button(props: ButtonProps) {
           {props.children}
         </SupersetButton>
         <ul className="dropdown-menu">
-          {dropdownItems.map(
-            (dropdownItem: DropdownItemProps, index1: number) => (
-              <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
-                <i className={`fa ${dropdownItem.icon}`} />
-                &nbsp; {dropdownItem.label}
-              </MenuItem>
-            ),
-          )}
+          {dropdownItems.map((dropdownItem: DropdownItemProps) => (
+            <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
+              <i className={`fa ${dropdownItem.icon}`} />
+              &nbsp; {dropdownItem.label}
+            </MenuItem>
+          ))}
         </ul>
       </div>
     );
