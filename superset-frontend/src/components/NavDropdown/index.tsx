@@ -18,9 +18,9 @@
  */
 
 import styled from '@superset-ui/style';
-import { NavDropdown as RBNavDropdown } from 'react-bootstrap';
+import { NavDropdown as ReactBootstrapNavDropdown } from 'react-bootstrap';
 
-const NavDropdown = styled(RBNavDropdown)`
+const NavDropdown = styled(ReactBootstrapNavDropdown)`
   & > a.dropdown-toggle {
     padding-right: ${({ theme }) => theme.gridUnit * 6}px !important;
   }
