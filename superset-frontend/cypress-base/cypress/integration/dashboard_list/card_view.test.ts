@@ -28,7 +28,7 @@ describe('Dashboard card view', () => {
   it('should load cards', () => {
     cy.get('.dashboard-list-view');
     cy.get('.ant-card').should('be.visible');
-    cy.get('.ant-card').should('have.length', 25);
+    cy.get('.ant-card').should('have.length', 6);
   });
 
   it('should allow favor/unfavor chart card', () => {
@@ -72,15 +72,15 @@ describe('Dashboard card view', () => {
     cy.get('.Select__menu').contains('Alphabetical').click();
     cy.get('.dashboard-list-view').should('be.visible');
     cy.get('.ant-card').first().contains('Misc Charts');
-    cy.get('.ant-card').last().contains("World Bank's Data [copy]");
+    cy.get('.ant-card').last().contains('deck.gl Demo');
 
     // sort recently modified
     cy.get('.Select__control').last().should('be.visible');
     cy.get('.Select__control').last().click({ force: true });
     cy.get('.Select__menu').contains('Recently Modified').click();
     cy.get('.dashboard-list-view').should('be.visible');
-    cy.get('.ant-card').first().contains("World Bank's Data [copy]");
-    cy.get('.ant-card').last().contains("World Bank's Data [copy]");
+    cy.get('.ant-card').first().contains('Tabbed Dashboard');
+    cy.get('.ant-card').last().contains('Unicode Test');
   });
 
   it('should able to delete', () => {
