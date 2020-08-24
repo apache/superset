@@ -492,8 +492,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(actual_data, expected_data)
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
-    @staticmethod
-    def test_get_sqla_column_type():
+    def test_get_sqla_column_type(self):
         sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar(255)")
         assert isinstance(sqla_type, types.VARCHAR)
         assert sqla_type.length == 255

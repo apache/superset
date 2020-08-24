@@ -325,7 +325,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         columns = inspector.bind.execute("SHOW COLUMNS FROM {}".format(full_table))
         return columns
 
-    _column_type_mappings = (
+    column_type_mappings = (
         (re.compile(r"^boolean.*", re.IGNORECASE), types.Boolean()),
         (re.compile(r"^tinyint.*", re.IGNORECASE), TinyInteger()),
         (re.compile(r"^smallint.*", re.IGNORECASE), types.SmallInteger()),

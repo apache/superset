@@ -73,7 +73,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)
 
-    _column_type_mappings = (
+    column_type_mappings = (
         (re.compile(r"^N((VAR)?CHAR|TEXT)", re.IGNORECASE), UnicodeText()),
         (re.compile(r"^((VAR)?CHAR|TEXT|STRING)", re.IGNORECASE), String()),
     )

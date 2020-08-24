@@ -144,7 +144,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ] = None  # used for user messages, overridden in child classes
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
-    _column_type_mappings: Tuple[
+    column_type_mappings: Tuple[
         Tuple[Pattern[str], Union[TypeEngine, Callable[[Match[str]], TypeEngine]]], ...,
     ] = ()
     time_groupby_inline = False
@@ -897,7 +897,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param type_: Column type returned by inspector
         :return: SqlAlchemy column type
         """
-        for regex, sqla_type in cls._column_type_mappings:
+        for regex, sqla_type in cls.column_type_mappings:
             match = regex.match(type_)
             if match:
                 if callable(sqla_type):
