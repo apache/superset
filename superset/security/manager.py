@@ -935,7 +935,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def change_view_name_by_connection(
         self, connection: Connection, new_name: str, old_name: str
     ) -> None:
-        view_menu_table = self.viewmenu_model.__table__
+        view_menu_table = self.viewmenu_model.__table__ # pylint: disable=no-member
         connection.execute(
             view_menu_table.update()
             .where(view_menu_table.c.name == old_name)
