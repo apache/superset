@@ -19,7 +19,7 @@ import re
 from datetime import datetime
 from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 
-from sqlalchemy.types import String, TypeEngine, UnicodeText
+from sqlalchemy.types import String, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.utils import core as utils
@@ -73,17 +73,10 @@ class MssqlEngineSpec(BaseEngineSpec):
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)
 
-    column_types = (
-        (String(), re.compile(r"^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)", re.IGNORECASE)),
-        (UnicodeText(), re.compile(r"^N((VAR){0,1}CHAR|TEXT)", re.IGNORECASE)),
+    column_type_mappings = (
+        (re.compile(r"^N((VAR)?CHAR|TEXT)", re.IGNORECASE), UnicodeText()),
+        (re.compile(r"^((VAR)?CHAR|TEXT|STRING)", re.IGNORECASE), String()),
     )
-
-    @classmethod
-    def get_sqla_column_type(cls, type_: str) -> Optional[TypeEngine]:
-        for sqla_type, regex in cls.column_types:
-            if regex.match(type_):
-                return sqla_type
-        return None
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:
