@@ -50,13 +50,8 @@ export default function MenuObject({
     );
   }
 
-  const navTitle = <>{label}</>;
   return (
-    <NavDropdown
-      id={`menu-dropdown-${label}`}
-      eventKey={index}
-      title={navTitle}
-    >
+    <NavDropdown id={`menu-dropdown-${label}`} eventKey={index} title={label}>
       {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
         if (typeof child === 'string' && child === '-') {
           return <MenuItem key={`$${index1}`} divider />;
