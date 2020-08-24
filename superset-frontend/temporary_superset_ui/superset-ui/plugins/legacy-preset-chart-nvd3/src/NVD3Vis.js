@@ -64,7 +64,6 @@ import {
   numberOrAutoType,
   stringOrObjectWithLabelType,
 } from './PropTypes';
-import './NVD3Vis.css';
 
 const NO_DATA_RENDER_DATA = [
   { text: 'No data', dy: '-.75em', class: 'header' },
