@@ -17,6 +17,7 @@
 from unittest import mock, skipUnless
 
 import pandas as pd
+from sqlalchemy import types
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql import select
 
@@ -490,3 +491,23 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(actual_cols, expected_cols)
         self.assertEqual(actual_data, expected_data)
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+
+    def test_get_sqla_column_type(self):
+        sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar(255)")
+        assert isinstance(sqla_type, types.VARCHAR)
+        assert sqla_type.length == 255
+
+        sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar")
+        assert isinstance(sqla_type, types.String)
+        assert sqla_type.length is None
+
+        sqla_type = PrestoEngineSpec.get_sqla_column_type("char(10)")
+        assert isinstance(sqla_type, types.CHAR)
+        assert sqla_type.length == 10
+
+        sqla_type = PrestoEngineSpec.get_sqla_column_type("char")
+        assert isinstance(sqla_type, types.CHAR)
+        assert sqla_type.length is None
+
+        sqla_type = PrestoEngineSpec.get_sqla_column_type("integer")
+        assert isinstance(sqla_type, types.Integer)
