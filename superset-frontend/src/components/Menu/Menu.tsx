@@ -24,7 +24,6 @@ import MenuObject, { MenuObjectProps } from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
 import LanguagePicker, { Languages } from './LanguagePicker';
-import './Menu.less';
 
 interface BrandProps {
   path: string;
@@ -56,9 +55,30 @@ export interface MenuProps {
 }
 
 const StyledHeader = styled.header`
-  & > nav {
-    border: none;
+  .navbar .caret {
+    width: 1rem;
+    padding: 0 0 18px 0;
+
+    &:before {
+      position: relative;
+      top: -2px;
+    }
   }
+
+  .navbar-inverse {
+    border-bottom: 2px solid @gray-bg;
+  }
+
+  .version-info {
+    padding: 5px 20px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+
+    div {
+      white-space: nowrap;
+    }
+  }
+
   .navbar-brand {
     display: flex;
     flex-direction: column;
@@ -70,10 +90,6 @@ const StyledHeader = styled.header`
   }
 
   .navbar-nav > li > a {
-    /* &.dropdown-toggle {
-      padding-right: ${({ theme }) => theme.gridUnit * 6}px;
-    } */
-
     border-bottom: none;
     &:focus {
       border-bottom: none;
