@@ -44,7 +44,7 @@ describe('ConfirmStatusChange', () => {
   );
 
   it('opens a confirm modal', () => {
-    wrapper.find('#btn1').props().onClick('foo');
+    wrapper.find('#btn1').first().props().onClick('foo');
 
     wrapper.update();
 
