@@ -58,9 +58,9 @@ describe('AddSliceContainer', () => {
   });
 
   it('renders a disabled button if no datasource is selected', () => {
-    expect(
-      wrapper.find(Button).dive().find('.btn[disabled=true]'),
-    ).toHaveLength(1);
+    expect(wrapper.find(Button).dive().find({ disabled: true })).toHaveLength(
+      1,
+    );
   });
 
   it('renders an enabled button if datasource is selected', () => {
@@ -70,9 +70,9 @@ describe('AddSliceContainer', () => {
       datasourceId: datasourceValue.split('__')[0],
       datasourceType: datasourceValue.split('__')[1],
     });
-    expect(
-      wrapper.find(Button).dive().find('.btn[disabled=false]'),
-    ).toHaveLength(1);
+    expect(wrapper.find(Button).dive().find({ disabled: true })).toHaveLength(
+      0,
+    );
   });
 
   it('formats explore url', () => {
