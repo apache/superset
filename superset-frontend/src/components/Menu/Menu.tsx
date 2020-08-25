@@ -129,7 +129,8 @@ const StyledHeader = styled.header`
   .navbar-right {
     display: flex;
     align-items: center;
-    .dropdown:first-of-type { /* this is the "+ NEW" button. Sweep this up when it's replaced */
+    .dropdown:first-of-type {
+      /* this is the "+ NEW" button. Sweep this up when it's replaced */
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
