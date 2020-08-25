@@ -30,6 +30,7 @@ import { ReactComponent as CloseIcon } from 'images/icons/close.svg';
 import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
+import { ReactComponent as DropdownArrowIcon } from 'images/icons/dropdown-arrow.svg';
 import { ReactComponent as ErrorIcon } from 'images/icons/error.svg';
 import { ReactComponent as FavoriteSelectedIcon } from 'images/icons/favorite-selected.svg';
 import { ReactComponent as FavoriteUnselectedIcon } from 'images/icons/favorite-unselected.svg';
@@ -58,6 +59,7 @@ type IconName =
   | 'compass'
   | 'dataset-physical'
   | 'dataset-virtual'
+  | 'dropdown-arrow'
   | 'error'
   | 'favorite-selected'
   | 'favorite-unselected'
@@ -88,6 +90,7 @@ export const iconsRegistry: Record<
   'favorite-selected': FavoriteSelectedIcon,
   'favorite-unselected': FavoriteUnselectedIcon,
   'list-view': ListViewIcon,
+  'dropdown-arrow': DropdownArrowIcon,
   'sort-asc': SortAscIcon,
   'sort-desc': SortDescIcon,
   certified: CertifiedIcon,
