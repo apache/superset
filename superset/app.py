@@ -147,6 +147,8 @@ class SupersetAppInitializer:
         from superset.views.alerts import (
             AlertLogModelView,
             AlertModelView,
+            DeviationValidatorInlineView,
+            NotNullValidatorInlineView,
             SQLObserverInlineView,
         )
         from superset.views.annotations import (
@@ -403,8 +405,10 @@ class SupersetAppInitializer:
                 category_label=__("Manage"),
                 icon="fa-exclamation-triangle",
             )
-            appbuilder.add_view_no_menu(AlertLogModelView)
             appbuilder.add_view_no_menu(SQLObserverInlineView)
+            appbuilder.add_view_no_menu(NotNullValidatorInlineView)
+            appbuilder.add_view_no_menu(DeviationValidatorInlineView)
+            appbuilder.add_view_no_menu(AlertLogModelView)
 
         #
         # Conditionally add Access Request Model View

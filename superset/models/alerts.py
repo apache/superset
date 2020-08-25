@@ -19,6 +19,7 @@ import enum
 from datetime import datetime
 from typing import Any, List
 
+import pandas as pd
 from flask_appbuilder import Model
 from sqlalchemy import (
     Boolean,
@@ -55,8 +56,8 @@ class AlertObserverType(str, enum.Enum):
 
 
 class AlertValidatorType(str, enum.Enum):
-    not_null = "not_null"
-    deviation = "deviation"
+    not_null = "Not Null"
+    deviation = "Deviation"
 
 
 class AlertValidationType(str, enum.Enum):
@@ -77,9 +78,9 @@ class Alert(Model):
     __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True)
-    label = Column(String(150))
+    label = Column(String(150), nullable=False)
     active = Column(Boolean, default=True, index=True)
-    crontab = Column(String(50))
+    crontab = Column(String(50), nullable=False)
 
     alert_type = Column(String(50))
     owners = relationship(security_manager.user_model, secondary=alert_owner)
@@ -125,7 +126,7 @@ class Observer(Model):
     __tablename__ = "alert_observers"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(150))
+    name = Column(String(150), nullable=False)
     observer_type = Column(Enum(AlertObserverType))
     validation_type = Column(Enum(AlertValidationType))
 
@@ -136,7 +137,9 @@ class Observer(Model):
     @declared_attr
     def alert(self) -> RelationshipProperty:
         return relationship(
-            "Alert", foreign_keys=[self.alert_id], backref="alert_observers"
+            "Alert",
+            foreign_keys=[self.alert_id],
+            backref=backref("alert_observers", cascade="all, delete-orphan"),
         )
 
     @declared_attr
@@ -161,7 +164,7 @@ class SQLObserver(Observer):
 
     __tablename__ = "alert_observers"
 
-    sql = Column(Text)
+    sql = Column(Text, nullable=False)
 
     def query(self) -> None:
         parsed_query = ParsedQuery(self.sql)
@@ -171,6 +174,8 @@ class SQLObserver(Observer):
         self.observations.append(  # pylint: disable=no-member
             Observation(dttm_ts=datetime.utcnow(), value=df.to_json())
         )
+
+        db.session.commit()
 
     def get_observations(self, observation_num: int) -> List[Any]:
         return (
@@ -191,7 +196,9 @@ class Observation(Model):  # pylint: disable=too-few-public-methods
     dttm_ts = Column(DateTime, default=datetime.utcnow)
     observer_id = Column(Integer, ForeignKey("alert_observers.id"), nullable=False)
     observer = relationship(
-        "Observer", foreign_keys=[observer_id], backref="observations",
+        "Observer",
+        foreign_keys=[observer_id],
+        backref=backref("observations", cascade="all, delete-orphan"),
     )
     value = Column(Text)
 
@@ -201,7 +208,7 @@ class Validator(Model):
     __tablename__ = "alert_validators"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(150))
+    name = Column(String(150), nullable=False)
     validator_type = Column(Enum(AlertValidatorType))
     validation_type = Column(Enum(AlertValidationType))
 
@@ -212,7 +219,9 @@ class Validator(Model):
     @declared_attr
     def alert(self) -> RelationshipProperty:
         return relationship(
-            "Alert", foreign_keys=[self.alert_id], backref="alert_validators"
+            "Alert",
+            foreign_keys=[self.alert_id],
+            backref=backref("alert_validators", cascade="all, delete-orphan"),
         )
 
     __mapper_args__ = {
@@ -225,8 +234,16 @@ class NotNullValidator(Validator):
 
     __tablename__ = "alert_validators"
 
-    def validate(self, observation: Observation) -> None:
-        pass
+    @staticmethod
+    def validate(values: List[str]) -> bool:
+        if values:
+            df = pd.read_json(values[0])
+            if not df.empty:
+                for row in df.to_records():
+                    if any(row):
+                        return True
+
+        return False
 
     __mapper_args__ = {
         "polymorphic_identity": AlertValidatorType.not_null,
@@ -237,13 +254,51 @@ class DeviationValidator(Validator):
 
     __tablename__ = "alert_validators"
 
+    deviation_type = Column(Enum(DeviationValidatorType))
     deviation_difference = Column(Float)
     deviation_threshold = Column(Integer)
     range_min = Column(Integer)
     range_max = Column(Integer)
 
-    def validate(self, observations: List[Observation]) -> None:
-        pass
+    def validate(self, values: List[str]) -> bool:
+        # Creates a list of values from the first row and first column in a SQL result
+        # Filters out empty results
+        value_list = [
+            pd.read_json(value).to_records()[0][1]
+            for value in values
+            if not pd.read_json(value).empty
+        ]
+
+        if len(values) == 0 or len(value_list) != len(values):
+            return False
+
+        if self.deviation_type == DeviationValidatorType.threshold:
+            if value_list[0] >= self.deviation_threshold:
+                return True
+
+        elif self.deviation_type == DeviationValidatorType.range:
+            if value_list[0] > self.range_max or value_list[0] < self.range_min:
+                return True
+
+        elif len(value_list) > 1:
+            if self.deviation_type == DeviationValidatorType.integer_difference:
+                difference = value_list[0] - value_list[1]
+            elif self.deviation_type == DeviationValidatorType.percent_difference:
+                if value_list[1] == 0.0:
+                    difference = float("inf")
+                else:
+                    difference = float(value_list[0]) / value_list[1]
+                    difference = round(difference - 1.0, 4)
+            else:
+                return False
+
+            if (
+                0.0 >= self.deviation_difference >= difference
+                or 0.0 <= self.deviation_difference <= difference
+            ):
+                return True
+
+        return False
 
     __mapper_args__ = {
         "polymorphic_identity": AlertValidatorType.deviation,

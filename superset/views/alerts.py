@@ -23,15 +23,61 @@ from flask_babel import lazy_gettext as _
 from wtforms import BooleanField, Form, StringField
 
 from superset.constants import RouteMethod
-from superset.models.alerts import Alert, AlertLog, SQLObserver
+from superset.models.alerts import (
+    Alert,
+    AlertLog,
+    DeviationValidator,
+    DeviationValidatorType,
+    NotNullValidator,
+    SQLObserver,
+)
 from superset.models.schedules import ScheduleType
 from superset.tasks.schedules import schedule_alert_query
 from superset.utils.core import get_email_address_str, markdown
 
 from ..exceptions import SupersetException
+# TODO: access control rules for this module
+from ..sql_parse import ParsedQuery
 from .base import ListWidgetWithCheckboxes, SupersetModelView
 
-# TODO: access control rules for this module
+
+def test_observer_sql(item: "SQLObserverInlineView") -> None:
+    try:
+        parsed_query = ParsedQuery(item.sql)
+        sql = parsed_query.stripped()
+        item.database.get_df(sql)
+    except Exception as ex:  # pylint: disable=broad-except
+        raise SupersetException(f"Observer raised exception: {ex}")
+
+
+def check_deviation_values(item: "DeviationValidatorInlineView") -> None:
+    if item.deviation_type == DeviationValidatorType.range and (
+        item.range_min is None or item.range_max is None
+    ):
+        raise SupersetException(
+            "Error: Range Deviation Validator needs a specified range"
+        )
+    if (
+        item.deviation_type == DeviationValidatorType.percent_difference
+        and item.deviation_difference is None
+    ):
+        raise SupersetException(
+            "Error: Percent Difference Deviation Validator needs a specified percent"
+        )
+    if (
+        item.deviation_type == DeviationValidatorType.integer_difference
+        and item.deviation_difference is None
+    ):
+        raise SupersetException(
+            "Error: Number Difference Deviation Validator needs a specified difference"
+        )
+    if (
+        item.deviation_type == DeviationValidatorType.threshold
+        and item.deviation_threshold is None
+    ):
+        raise SupersetException(
+            "Error: Threshold Deviation Validator needs a specified threshold"
+        )
 
 
 class AlertLogModelView(
@@ -85,6 +131,99 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
         "alert": _("Alert Label"),
         "database": _("Database"),
     }
+
+    def pre_add(self, item: "SQLObserverInlineView") -> None:
+        if item.alert.alert_observers and item.alert.alert_observers[0].id != item.id:
+            raise SupersetException("Error: An alert should only have one observer.")
+
+        test_observer_sql(item)
+
+    def pre_update(self, item: "SQLObserverInlineView") -> None:
+        test_observer_sql(item)
+
+
+class NotNullValidatorInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin, SupersetModelView
+):
+    datamodel = SQLAInterface(NotNullValidator)
+    include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
+    list_title = _("Not Null Validators")
+    show_title = _("Show Not Null Validator")
+    add_title = _("Add Not Null Validator")
+    edit_title = _("Edit Not Null Validator")
+
+    list_widget = ListWidgetWithCheckboxes
+
+    edit_columns = [
+        "name",
+        "validation_type",
+        "validator_type",
+        "alert",
+    ]
+
+    add_columns = edit_columns
+
+    list_columns = [
+        "name",
+        "validation_type",
+        "validator_type",
+        "alert.label",
+    ]
+
+    label_columns = {
+        "name": _("Name"),
+        "validator_type": _("Validator Type"),
+        "validation_type": _("Validation Type"),
+        "alert": _("Alert Label"),
+    }
+
+
+class DeviationValidatorInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin, SupersetModelView
+):
+    datamodel = SQLAInterface(DeviationValidator)
+    include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
+    list_title = _("Deviation Validators")
+    show_title = _("Show Deviation Validator")
+    add_title = _("Add Deviation Validator")
+    edit_title = _("Edit Deviation Validator")
+
+    list_widget = ListWidgetWithCheckboxes
+
+    edit_columns = [
+        "name",
+        "validation_type",
+        "validator_type",
+        "deviation_type",
+        "deviation_difference",
+        "deviation_threshold",
+        "range_min",
+        "range_max",
+        "alert",
+    ]
+
+    add_columns = edit_columns
+
+    list_columns = [
+        "name",
+        "validation_type",
+        "validator_type",
+        "deviation_type",
+        "alert.label",
+    ]
+
+    label_columns = {
+        "name": _("Name"),
+        "validator_type": _("Validator Type"),
+        "validation_type": _("Validation Type"),
+        "alert": _("Alert Label"),
+    }
+
+    def pre_add(self, item: "DeviationValidatorInlineView") -> None:
+        check_deviation_values(item)
+
+    def pre_update(self, item: "DeviationValidatorInlineView") -> None:
+        check_deviation_values(item)
 
 
 class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
@@ -162,7 +301,12 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     }
     edit_form_extra_fields = add_form_extra_fields
     edit_columns = add_columns
-    related_views = [AlertLogModelView, SQLObserverInlineView]
+    related_views = [
+        AlertLogModelView,
+        NotNullValidatorInlineView,
+        SQLObserverInlineView,
+        DeviationValidatorInlineView,
+    ]
 
     def process_form(self, form: Form, is_created: bool) -> None:
         email_recipients = None

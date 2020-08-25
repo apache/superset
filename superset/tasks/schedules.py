@@ -37,7 +37,6 @@ from typing import (
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
-import pandas as pd
 import simplejson as json
 from celery.app.task import Task
 from dateutil.tz import tzlocal
@@ -51,8 +50,7 @@ from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
 
 from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app, machine_auth_provider_factory
-from superset.models.alerts import Alert, AlertLog
-from superset.models.core import Database
+from superset.models.alerts import Alert, AlertLog, Observer
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     EmailDeliveryType,
@@ -61,7 +59,6 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery
 from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
 from superset.utils.screenshots import ChartScreenshot, WebDriverProxy
@@ -540,14 +537,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
 
         if report_type == ScheduleType.alert:
             if recipients or slack_channel:
-                deliver_alert(schedule.id, recipients, slack_channel)
+                deliver_alert(schedule.id, schedule.sql, recipients, slack_channel)
                 return
 
-            if run_alert_query(
-                schedule.id, schedule.database_id, schedule.sql, schedule.label
-            ):
-                # deliver_dashboard OR deliver_slice
-                return
+            run_alert_query(schedule.id, schedule.label)
         else:
             raise RuntimeError("Unknown report type")
     except NoSuchColumnError as column_error:
@@ -565,7 +558,10 @@ class AlertState:
 
 
 def deliver_alert(
-    alert_id: int, recipients: Optional[str] = None, slack_channel: Optional[str] = None
+    alert_id: int,
+    sql: str,
+    recipients: Optional[str] = None,
+    slack_channel: Optional[str] = None,
 ) -> None:
     alert = db.session.query(Alert).get(alert_id)
 
@@ -576,7 +572,7 @@ def deliver_alert(
     if alert.slice:
         alert_content = AlertContent(
             alert.label,
-            alert.sql,
+            sql,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             _get_slice_screenshot(alert.slice.id),
         )
@@ -584,7 +580,7 @@ def deliver_alert(
         # TODO: dashboard delivery!
         alert_content = AlertContent(
             alert.label,
-            alert.sql,
+            sql,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             None,
         )
@@ -645,55 +641,37 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
     )
 
 
-def run_alert_query(
-    alert_id: int, database_id: int, sql: str, label: str
-) -> Optional[bool]:
-    """
-    Execute alert.sql and return value if any rows are returned
-    """
+def run_alert_query(alert_id: int, label: str) -> None:
     logger.info("Processing alert ID: %i", alert_id)
-    database = db.session.query(Database).get(database_id)
-    if not database:
-        logger.error("Alert database not preset")
-        return None
+    alert_observer = db.session.query(Observer).filter_by(alert_id=alert_id).one()
 
-    if not sql:
-        logger.error("Alert SQL not preset")
-        return None
-
-    parsed_query = ParsedQuery(sql)
-    sql = parsed_query.stripped()
+    if not alert_observer:
+        logger.error("No observers present for alert <%s:%s>", alert_id, label)
 
     state = None
     dttm_start = datetime.utcnow()
 
-    df = pd.DataFrame()
     try:
-        logger.info("Evaluating SQL for alert <%s:%s>", alert_id, label)
-        df = database.get_df(sql)
+        logger.info("Querying observers for alert <%s:%s>", alert_id, label)
+        alert_observer.query()
     except Exception as exc:  # pylint: disable=broad-except
         state = AlertState.ERROR
         logging.exception(exc)
-        logging.error("Failed at evaluating alert: %s (%s)", label, alert_id)
+        logging.error("Failed at query observers for alert: %s (%s)", label, alert_id)
 
     dttm_end = datetime.utcnow()
-    last_eval_dttm = datetime.utcnow()
 
     if state != AlertState.ERROR:
-        if not df.empty:
-            # Looking for truthy cells
-            for row in df.to_records():
-                if any(row):
-                    state = AlertState.TRIGGER
-                    deliver_alert(alert_id)
-                    break
-        if not state:
+        if validate_alert(alert_id, label):
+            deliver_alert(alert_id, alert_observer.sql)
+            state = AlertState.TRIGGER
+        else:
             state = AlertState.PASS
 
     db.session.commit()
     alert = db.session.query(Alert).get(alert_id)
     if state != AlertState.ERROR:
-        alert.last_eval_dttm = last_eval_dttm
+        alert.last_eval_dttm = dttm_end
     alert.last_state = state
     alert.logs.append(
         AlertLog(
@@ -705,7 +683,17 @@ def run_alert_query(
     )
     db.session.commit()
 
-    return None
+
+def validate_alert(alert_id: int, label: str) -> bool:
+    logger.info("Validating observation for for alert <%s:%s>", alert_id, label)
+
+    alert = db.session.query(Alert).get(alert_id)
+    observations = alert.alert_observers[0].get_observations(2)
+    observation_values = [observation.value for observation in observations]
+    for validator in alert.alert_validators:
+        if validator.validate(observation_values):
+            return True
+    return False
 
 
 def next_schedules(
