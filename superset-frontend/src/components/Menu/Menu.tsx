@@ -70,6 +70,10 @@ const StyledHeader = styled.header`
   }
 
   .navbar-nav > li > a {
+    /* &.dropdown-toggle {
+      padding-right: ${({ theme }) => theme.gridUnit * 6}px;
+    } */
+
     border-bottom: none;
     &:focus {
       border-bottom: none;
@@ -84,7 +88,7 @@ const StyledHeader = styled.header`
       background-color: ${({ theme }) => theme.colors.primary.base};
       opacity: 0;
       transform: translateX(-50%);
-      transition: all ${({ theme }) => theme.transitionTiming}s !important;
+      transition: all ${({ theme }) => theme.transitionTiming}s;
     }
 
     &:hover {

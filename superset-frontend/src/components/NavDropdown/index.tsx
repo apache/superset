@@ -21,14 +21,14 @@ import styled from '@superset-ui/style';
 import { NavDropdown as ReactBootstrapNavDropdown } from 'react-bootstrap';
 
 const NavDropdown = styled(ReactBootstrapNavDropdown)`
-  & > a.dropdown-toggle {
-    padding-right: ${({ theme }) => theme.gridUnit * 6}px !important;
+  &.dropdown > a.dropdown-toggle {
+    padding-right: ${({ theme }) => theme.gridUnit * 6}px;
   }
   & > a {
-    transition: background ${({ theme }) => theme.transitionTiming}s;
+    transition: background-color ${({ theme }) => theme.transitionTiming}s;
   }
-  &.open > a {
-    background: ${({ theme }) => theme.colors.primary.light4} !important;
+  &.dropdown.open > a.dropdown-toggle {
+    background: ${({ theme }) => theme.colors.primary.light4};
   }
   .caret {
     display: none;
