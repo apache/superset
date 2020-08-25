@@ -22,7 +22,8 @@ import { t } from '@superset-ui/translation';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
-import { Tabs } from 'src/common/components';
+import Tabs from 'src/common/components/Tabs';
+import { Tabs as BaseTabs } from 'src/common/components';
 
 export type DatabaseObject = {
   id: number;
@@ -40,43 +41,10 @@ interface DatabaseModalProps {
   database?: DatabaseObject | null; // If included, will go into edit mode
 }
 
-const { TabPane } = Tabs;
+const { TabPane } = BaseTabs;
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
-`;
-
-const StyledTabs = styled(Tabs)`
-  margin-top: -18px;
-
-  .ant-tabs-nav-list {
-    width: 100%;
-  }
-
-  .ant-tabs-tab {
-    flex: 1 1 auto;
-    width: 0;
-
-    &.ant-tabs-tab-active .ant-tabs-tab-btn {
-      color: inherit;
-    }
-  }
-
-  .ant-tabs-tab-btn {
-    flex: 1 1 auto;
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    text-align: center;
-    text-transform: uppercase;
-
-    .required {
-      margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-      color: ${({ theme }) => theme.colors.error.base};
-    }
-  }
-
-  .ant-tabs-ink-bar {
-    background: ${({ theme }) => theme.colors.secondary.base};
-  }
 `;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
@@ -115,7 +83,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </h4>
       }
     >
-      <StyledTabs defaultActiveKey="1">
+      <Tabs defaultActiveKey="1">
         <TabPane
           tab={
             <span>
@@ -139,7 +107,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <TabPane tab={<span>{t('Extra')}</span>} key="5">
           Extra Form Data
         </TabPane>
-      </StyledTabs>
+      </Tabs>
     </Modal>
   );
 };
