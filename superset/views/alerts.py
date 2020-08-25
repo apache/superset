@@ -26,9 +26,7 @@ from superset.constants import RouteMethod
 from superset.models.alerts import (
     Alert,
     AlertLog,
-    DeviationValidator,
-    DeviationValidatorType,
-    NotNullValidator,
+    Validator,
     SQLObserver,
 )
 from superset.models.schedules import ScheduleType
@@ -48,36 +46,6 @@ def test_observer_sql(item: "SQLObserverInlineView") -> None:
         item.database.get_df(sql)
     except Exception as ex:  # pylint: disable=broad-except
         raise SupersetException(f"Observer raised exception: {ex}")
-
-
-def check_deviation_values(item: "DeviationValidatorInlineView") -> None:
-    if item.deviation_type == DeviationValidatorType.range and (
-        item.range_min is None or item.range_max is None
-    ):
-        raise SupersetException(
-            "Error: Range Deviation Validator needs a specified range"
-        )
-    if (
-        item.deviation_type == DeviationValidatorType.percent_difference
-        and item.deviation_difference is None
-    ):
-        raise SupersetException(
-            "Error: Percent Difference Deviation Validator needs a specified percent"
-        )
-    if (
-        item.deviation_type == DeviationValidatorType.integer_difference
-        and item.deviation_difference is None
-    ):
-        raise SupersetException(
-            "Error: Number Difference Deviation Validator needs a specified difference"
-        )
-    if (
-        item.deviation_type == DeviationValidatorType.threshold
-        and item.deviation_threshold is None
-    ):
-        raise SupersetException(
-            "Error: Threshold Deviation Validator needs a specified threshold"
-        )
 
 
 class AlertLogModelView(
@@ -107,10 +75,9 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
 
     edit_columns = [
         "name",
-        "observer_type",
-        "validation_type",
         "alert",
         "database",
+        "observation_value_type",
         "sql",
     ]
 
@@ -118,18 +85,15 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
 
     list_columns = [
         "name",
-        "observer_type",
-        "validation_type",
         "alert.label",
         "database",
     ]
 
     label_columns = {
         "name": _("Name"),
-        "observer_type": _("Observer Type"),
-        "validation_type": _("Validation Type"),
         "alert": _("Alert Label"),
         "database": _("Database"),
+        "observation_value_type": _("Observation Value")
     }
 
     def pre_add(self, item: "SQLObserverInlineView") -> None:
@@ -142,30 +106,29 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
         test_observer_sql(item)
 
 
-class NotNullValidatorInlineView(  # pylint: disable=too-many-ancestors
+class ValidatorInlineView(  # pylint: disable=too-many-ancestors
     CompactCRUDMixin, SupersetModelView
 ):
-    datamodel = SQLAInterface(NotNullValidator)
+    datamodel = SQLAInterface(Validator)
     include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
-    list_title = _("Not Null Validators")
-    show_title = _("Show Not Null Validator")
-    add_title = _("Add Not Null Validator")
-    edit_title = _("Edit Not Null Validator")
+    list_title = _("Validators")
+    show_title = _("Show Validator")
+    add_title = _("Add Validator")
+    edit_title = _("Edit Validator")
 
     list_widget = ListWidgetWithCheckboxes
 
     edit_columns = [
         "name",
-        "validation_type",
         "validator_type",
         "alert",
+        "config",
     ]
 
     add_columns = edit_columns
 
     list_columns = [
         "name",
-        "validation_type",
         "validator_type",
         "alert.label",
     ]
@@ -173,57 +136,8 @@ class NotNullValidatorInlineView(  # pylint: disable=too-many-ancestors
     label_columns = {
         "name": _("Name"),
         "validator_type": _("Validator Type"),
-        "validation_type": _("Validation Type"),
         "alert": _("Alert Label"),
     }
-
-
-class DeviationValidatorInlineView(  # pylint: disable=too-many-ancestors
-    CompactCRUDMixin, SupersetModelView
-):
-    datamodel = SQLAInterface(DeviationValidator)
-    include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
-    list_title = _("Deviation Validators")
-    show_title = _("Show Deviation Validator")
-    add_title = _("Add Deviation Validator")
-    edit_title = _("Edit Deviation Validator")
-
-    list_widget = ListWidgetWithCheckboxes
-
-    edit_columns = [
-        "name",
-        "validation_type",
-        "validator_type",
-        "deviation_type",
-        "deviation_difference",
-        "deviation_threshold",
-        "range_min",
-        "range_max",
-        "alert",
-    ]
-
-    add_columns = edit_columns
-
-    list_columns = [
-        "name",
-        "validation_type",
-        "validator_type",
-        "deviation_type",
-        "alert.label",
-    ]
-
-    label_columns = {
-        "name": _("Name"),
-        "validator_type": _("Validator Type"),
-        "validation_type": _("Validation Type"),
-        "alert": _("Alert Label"),
-    }
-
-    def pre_add(self, item: "DeviationValidatorInlineView") -> None:
-        check_deviation_values(item)
-
-    def pre_update(self, item: "DeviationValidatorInlineView") -> None:
-        check_deviation_values(item)
 
 
 class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
@@ -303,9 +217,8 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     edit_columns = add_columns
     related_views = [
         AlertLogModelView,
-        NotNullValidatorInlineView,
+        ValidatorInlineView,
         SQLObserverInlineView,
-        DeviationValidatorInlineView,
     ]
 
     def process_form(self, form: Form, is_created: bool) -> None:

@@ -16,8 +16,11 @@
 # under the License.
 """Models for scheduled execution of jobs"""
 import enum
+import json
+import textwrap
+from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, List
+from typing import Any, List, Optional, Dict
 
 import pandas as pd
 from flask_appbuilder import Model
@@ -33,6 +36,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
+import numpy as np
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import backref, relationship, RelationshipProperty
 
@@ -51,22 +55,16 @@ alert_owner = Table(
 )
 
 
-class AlertObserverType(str, enum.Enum):
-    sql = "sql"
+class SQLObservationValueType(str, enum.Enum):
+    sql_result = "SQL Result"
+    numerical = "Numerical"
 
 
 class AlertValidatorType(str, enum.Enum):
     not_null = "Not Null"
-    deviation = "Deviation"
-
-
-class AlertValidationType(str, enum.Enum):
-    numerical = "Numerical"
-
-
-class DeviationValidatorType(str, enum.Enum):
     range = "Range"
-    threshold = "Threshold"
+    threshold_increase = "Threshold Increase"
+    threshold_decrease = "Threshold Decrease"
     percent_difference = "Percent Difference"
     integer_difference = "Integer Difference"
 
@@ -121,14 +119,14 @@ class AlertLog(Model):
         return (self.dttm_end - self.dttm_start).total_seconds()
 
 
-class Observer(Model):
+class SQLObserver(Model):
 
-    __tablename__ = "alert_observers"
+    __tablename__ = "sql_observers"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(150), nullable=False)
-    observer_type = Column(Enum(AlertObserverType))
-    validation_type = Column(Enum(AlertValidationType))
+    observation_value_type = Column(Enum(SQLObservationValueType))
+    sql = Column(Text, nullable=False)
 
     @declared_attr
     def alert_id(self) -> int:
@@ -154,53 +152,31 @@ class Observer(Model):
             backref=backref("alert_observers", cascade="all, delete-orphan"),
         )
 
-    __mapper_args__ = {
-        "polymorphic_identity": "base_observer",
-        "polymorphic_on": observer_type,
-    }
-
-
-class SQLObserver(Observer):
-
-    __tablename__ = "alert_observers"
-
-    sql = Column(Text, nullable=False)
-
-    def query(self) -> None:
-        parsed_query = ParsedQuery(self.sql)
-        sql = parsed_query.stripped()
-        df = self.database.get_df(sql)
-
-        self.observations.append(  # pylint: disable=no-member
-            Observation(dttm_ts=datetime.utcnow(), value=df.to_json())
-        )
-
-        db.session.commit()
-
-    def get_observations(self, observation_num: int) -> List[Any]:
+    # TODO: Abstract observations from the sqlamodls
+    # e.g. https://github.com/apache/incubator-superset/blob/master/superset/utils/log.py#L32
+    def get_observations(self, observation_num: Optional[int] = 2) -> List[Any]:
         return (
-            db.session.query(Observation)
+            db.session.query(SQLObservation)
             .filter_by(observer_id=self.id)
-            .order_by(Observation.dttm_ts.desc())
+            .order_by(SQLObservation.dttm.desc())
             .limit(observation_num)
         )
 
-    __mapper_args__ = {"polymorphic_identity": AlertObserverType.sql}
 
+class SQLObservation(Model):  # pylint: disable=too-few-public-methods
 
-class Observation(Model):  # pylint: disable=too-few-public-methods
-
-    __tablename__ = "alert_observations"
+    __tablename__ = "sql_observations"
 
     id = Column(Integer, primary_key=True)
-    dttm_ts = Column(DateTime, default=datetime.utcnow)
-    observer_id = Column(Integer, ForeignKey("alert_observers.id"), nullable=False)
+    dttm = Column(DateTime, default=datetime.utcnow, index=True)
+    observer_id = Column(Integer, ForeignKey("sql_observers.id"), nullable=False)
     observer = relationship(
-        "Observer",
+        "SQLObserver",
         foreign_keys=[observer_id],
         backref=backref("observations", cascade="all, delete-orphan"),
     )
-    value = Column(Text)
+    sql_result = Column(Text, default="")
+    value = Column(Float, default=np.nan)
 
 
 class Validator(Model):
@@ -210,7 +186,21 @@ class Validator(Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(150), nullable=False)
     validator_type = Column(Enum(AlertValidatorType))
-    validation_type = Column(Enum(AlertValidationType))
+    config = Column(
+        Text,
+        default=textwrap.dedent(
+            """
+            {
+                "threshold_increase": 0,
+                "threshold_decrease": 0,
+                "percent_difference": 0,
+                "integer_difference": 0,
+                "range_min": 0,
+                "range_max": 0
+            }
+            """
+        ),
+    )
 
     @declared_attr
     def alert_id(self) -> int:
@@ -224,82 +214,101 @@ class Validator(Model):
             backref=backref("alert_validators", cascade="all, delete-orphan"),
         )
 
-    __mapper_args__ = {
-        "polymorphic_identity": "base_observation",
-        "polymorphic_on": validator_type,
-    }
+
+class ValidatorExecutor(ABC):
+    @abstractmethod
+    def validate(self, observer: SQLObserver, validator: Validator):
+        raise NotImplemented
 
 
-class NotNullValidator(Validator):
+class NotNullExecutor(ValidatorExecutor):
+    def validate(self, observer: SQLObserver, validator: Validator):
+        observation = observer.get_observations(1)[0]
+        df = pd.read_json(observation.sql_result)
+        if not df.empty:
+            for row in df.to_records():
+                if any(row):
+                    return True
+        return False
 
-    __tablename__ = "alert_validators"
 
-    @staticmethod
-    def validate(values: List[str]) -> bool:
-        if values:
-            df = pd.read_json(values[0])
-            if not df.empty:
-                for row in df.to_records():
-                    if any(row):
-                        return True
+class ThresholdIncreaseExecutor(ValidatorExecutor):
+    def validate(self, observer: SQLObserver, validator: Validator):
+        observation = observer.get_observations(1)[0]
+        threshold = json.loads(validator.config)["threshold_increase"]
+        if observation.value >= threshold:
+            return True
 
         return False
 
-    __mapper_args__ = {
-        "polymorphic_identity": AlertValidatorType.not_null,
-    }
+
+class ThresholdDecreaseExecutor(ValidatorExecutor):
+    def validate(self, observer: SQLObserver, validator: Validator):
+        observation = observer.get_observations(1)[0]
+        threshold = json.loads(validator.config)["threshold_decrease"]
+        if observation.value <= threshold:
+            return True
+
+        return False
 
 
-class DeviationValidator(Validator):
+class RangeExecutor(ValidatorExecutor):
+    def validate(self, observer: SQLObserver, validator: Validator):
+        observation = observer.get_observations(1)[0]
+        config = json.loads(validator.config)
+        if (
+            observation.value < config["range_min"]
+            or observation.value > config["range_max"]
+        ):
+            return True
 
-    __tablename__ = "alert_validators"
+        return False
 
-    deviation_type = Column(Enum(DeviationValidatorType))
-    deviation_difference = Column(Float)
-    deviation_threshold = Column(Integer)
-    range_min = Column(Integer)
-    range_max = Column(Integer)
 
-    def validate(self, values: List[str]) -> bool:
-        # Creates a list of values from the first row and first column in a SQL result
-        # Filters out empty results
-        value_list = [
-            pd.read_json(value).to_records()[0][1]
-            for value in values
-            if not pd.read_json(value).empty
-        ]
+class PercentDifferenceExecutor(ValidatorExecutor):
+    def validate(self, observer: SQLObserver, validator: Validator):
+        value_list = [observation.value for observation in observer.get_observations(2)]
+        percent_threshold = json.loads(validator.config)["percent_difference"]
 
-        if len(values) == 0 or len(value_list) != len(values):
-            return False
-
-        if self.deviation_type == DeviationValidatorType.threshold:
-            if value_list[0] >= self.deviation_threshold:
-                return True
-
-        elif self.deviation_type == DeviationValidatorType.range:
-            if value_list[0] > self.range_max or value_list[0] < self.range_min:
-                return True
-
-        elif len(value_list) > 1:
-            if self.deviation_type == DeviationValidatorType.integer_difference:
-                difference = value_list[0] - value_list[1]
-            elif self.deviation_type == DeviationValidatorType.percent_difference:
-                if value_list[1] == 0.0:
-                    difference = float("inf")
-                else:
-                    difference = float(value_list[0]) / value_list[1]
-                    difference = round(difference - 1.0, 4)
+        if len(value_list) > 1:
+            if value_list[1] == 0.0:
+                difference = float("inf")
             else:
-                return False
+                difference = float(value_list[0]) / value_list[1]
+                difference = round(difference - 1.0, 4)
 
             if (
-                0.0 >= self.deviation_difference >= difference
-                or 0.0 <= self.deviation_difference <= difference
+                0.0 >= percent_threshold >= difference
+                or 0.0 <= percent_threshold <= difference
             ):
                 return True
 
         return False
 
-    __mapper_args__ = {
-        "polymorphic_identity": AlertValidatorType.deviation,
+
+class IntegerDifferenceExecutor(ValidatorExecutor):
+    def validate(self, observer: SQLObserver, validator: Validator):
+        value_list = [observation.value for observation in observer.get_observations(2)]
+        integer_threshold = json.loads(validator.config)["integer_difference"]
+
+        difference = value_list[0] - value_list[1]
+        if (
+            0.0 >= integer_threshold >= difference
+            or 0.0 <= integer_threshold <= difference
+        ):
+            return True
+
+        return False
+
+
+def get_validator_executor(validator_type: AlertValidatorType) -> Any:
+    validator_executors = {
+        AlertValidatorType.not_null: NotNullExecutor(),
+        AlertValidatorType.range: RangeExecutor(),
+        AlertValidatorType.threshold_increase: ThresholdIncreaseExecutor(),
+        AlertValidatorType.threshold_decrease: ThresholdDecreaseExecutor(),
+        AlertValidatorType.percent_difference: PercentDifferenceExecutor(),
+        AlertValidatorType.integer_difference: IntegerDifferenceExecutor(),
     }
+
+    return validator_executors[validator_type]

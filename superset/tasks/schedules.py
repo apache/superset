@@ -37,6 +37,7 @@ from typing import (
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
+import numpy as np
 import simplejson as json
 from celery.app.task import Task
 from dateutil.tz import tzlocal
@@ -50,7 +51,14 @@ from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
 
 from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app, machine_auth_provider_factory
-from superset.models.alerts import Alert, AlertLog, Observer
+from superset.models.alerts import (
+    Alert,
+    AlertLog,
+    SQLObserver,
+    SQLObservationValueType,
+    SQLObservation,
+    get_validator_executor,
+)
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     EmailDeliveryType,
@@ -59,6 +67,7 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.models.slice import Slice
+from superset.sql_parse import ParsedQuery
 from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
 from superset.utils.screenshots import ChartScreenshot, WebDriverProxy
@@ -540,7 +549,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
                 deliver_alert(schedule.id, schedule.sql, recipients, slack_channel)
                 return
 
-            run_alert_query(schedule.id, schedule.label)
+            check_alert(schedule.id, schedule.label)
         else:
             raise RuntimeError("Unknown report type")
     except NoSuchColumnError as column_error:
@@ -641,19 +650,44 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
     )
 
 
-def run_alert_query(alert_id: int, label: str) -> None:
-    logger.info("Processing alert ID: %i", alert_id)
-    alert_observer = db.session.query(Observer).filter_by(alert_id=alert_id).one()
-
-    if not alert_observer:
+def query_alert_observer(alert_id: int, label: str) -> str:
+    sql_observer = db.session.query(SQLObserver).filter_by(alert_id=alert_id).one()
+    if not sql_observer:
         logger.error("No observers present for alert <%s:%s>", alert_id, label)
 
+    parsed_query = ParsedQuery(sql_observer.sql)
+    sql = parsed_query.stripped()
+    df = sql_observer.database.get_df(sql)
+
+    if sql_observer.observation_value_type == SQLObservationValueType.sql_result:
+        sql_observer.observations.append(  # pylint: disable=no-member
+            SQLObservation(dttm=datetime.utcnow(), sql_result=df.to_json())
+        )
+    elif sql_observer.observation_value_type == SQLObservationValueType.numerical:
+        if not df.empty:
+            value = df.to_records()[0][1]
+        else:
+            value = np.nan
+
+        sql_observer.observations.append(  # pylint: disable=no-member
+            SQLObservation(dttm=datetime.utcnow(), value=value)
+        )
+
+    db.session.commit()
+
+    return sql_observer.sql
+
+
+def check_alert(alert_id: int, label: str) -> None:
+    logger.info("Processing alert ID: %i", alert_id)
+
     state = None
+    sql = ""
     dttm_start = datetime.utcnow()
 
     try:
         logger.info("Querying observers for alert <%s:%s>", alert_id, label)
-        alert_observer.query()
+        sql = query_alert_observer(alert_id, label)
     except Exception as exc:  # pylint: disable=broad-except
         state = AlertState.ERROR
         logging.exception(exc)
@@ -663,7 +697,7 @@ def run_alert_query(alert_id: int, label: str) -> None:
 
     if state != AlertState.ERROR:
         if validate_alert(alert_id, label):
-            deliver_alert(alert_id, alert_observer.sql)
+            deliver_alert(alert_id, sql)
             state = AlertState.TRIGGER
         else:
             state = AlertState.PASS
@@ -688,11 +722,11 @@ def validate_alert(alert_id: int, label: str) -> bool:
     logger.info("Validating observation for for alert <%s:%s>", alert_id, label)
 
     alert = db.session.query(Alert).get(alert_id)
-    observations = alert.alert_observers[0].get_observations(2)
-    observation_values = [observation.value for observation in observations]
     for validator in alert.alert_validators:
-        if validator.validate(observation_values):
+        executor = get_validator_executor(validator.validator_type)
+        if executor.validate(alert.sql_observers[0], validator):
             return True
+
     return False
 
 

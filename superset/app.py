@@ -147,8 +147,7 @@ class SupersetAppInitializer:
         from superset.views.alerts import (
             AlertLogModelView,
             AlertModelView,
-            DeviationValidatorInlineView,
-            NotNullValidatorInlineView,
+            ValidatorInlineView,
             SQLObserverInlineView,
         )
         from superset.views.annotations import (
@@ -406,8 +405,7 @@ class SupersetAppInitializer:
                 icon="fa-exclamation-triangle",
             )
             appbuilder.add_view_no_menu(SQLObserverInlineView)
-            appbuilder.add_view_no_menu(NotNullValidatorInlineView)
-            appbuilder.add_view_no_menu(DeviationValidatorInlineView)
+            appbuilder.add_view_no_menu(ValidatorInlineView)
             appbuilder.add_view_no_menu(AlertLogModelView)
 
         #
