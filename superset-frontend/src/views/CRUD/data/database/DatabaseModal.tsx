@@ -118,23 +118,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <TabPane
           tab={
             <span>
-              Connection<span className="required">*</span>
+              {t('Connection')}
+              <span className="required">*</span>
             </span>
           }
           key="1"
         >
           Connection Form Data
         </TabPane>
-        <TabPane tab="Performance" key="2">
+        <TabPane tab={<span>{t('Performance')}</span>} key="2">
           Performance Form Data
         </TabPane>
-        <TabPane tab="SQL Lab Settings" key="3">
+        <TabPane tab={<span>{t('SQL Lab Settings')}</span>} key="3">
           SQL Lab Settings Form Data
         </TabPane>
-        <TabPane tab="Security" key="4">
+        <TabPane tab={<span>{t('Security')}</span>} key="4">
           Security Form Data
         </TabPane>
-        <TabPane tab="Extra" key="5">
+        <TabPane tab={<span>{t('Extra')}</span>} key="5">
           Extra Form Data
         </TabPane>
       </StyledTabs>
