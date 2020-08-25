@@ -942,6 +942,28 @@ To fix it:
    superset db upgrade
    ```
 
+###  working with Pycharm
+
+ setup the following Run/Debug configurations:
+
+1. [create virtual env](https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html)
+
+
+1. Create python configuration for each cli command
+
+   ```
+   Script path: superset/bin/run_superset_cli.py
+   Parameters: init/ db upgrade and etc'
+   Environment variables: set the relevant like the SUPERSET_CONFIG_PATH=superset/app/superset_config.py
+   ```
+
+1. Create Flask server configuration ( Professional feature )
+
+   ```bash
+   Flask env: development superset run  --reload --debugger --without-threads
+   ```
+1. you can run/debug the configurations independently
+
 ### SQL Lab Async
 
 It's possible to configure a local database to operate in `async` mode,
