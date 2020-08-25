@@ -158,7 +158,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         # available options:
         # https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
         # TODO(bkyryliuk): figure out what to do with the skip rows field.
-        params: Dict[str, str] = {superset/tasks/slack_util.py
+        params: Dict[str, str] = {
             "delim": delim,
             "location": location,
         }

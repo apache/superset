@@ -133,17 +133,37 @@ class TestDatabaseModel(SupersetTestCase):
         # TODO(bkyryliuk): unify sql generation
         if db.backend == "presto":
             assert (
-                'SELECT "source" AS "source",\n       "target" AS "target",\n       "value" AS "value"\nFROM "energy_usage"\nLIMIT 100'
+                textwrap.dedent(
+                    """\
+                SELECT "source" AS "source",
+                       "target" AS "target",
+                       "value" AS "value"
+                FROM "energy_usage"\nLIMIT 100"""
+                )
                 == sql
             )
         elif db.backend == "hive":
             assert (
-                "SELECT `source`,\n       `target`,\n       `value`\nFROM `energy_usage`\nLIMIT 100"
+                textwrap.dedent(
+                    """\
+                SELECT `source`,
+                        `target`,
+                        `value`
+                FROM `energy_usage`
+                LIMIT 100"""
+                )
                 == sql
             )
         else:
             assert (
-                "SELECT source,\n       target,\n       value\nFROM energy_usage\nLIMIT 100"
+                textwrap.dedent(
+                    """\
+                SELECT source,
+                        target,
+                        value
+                FROM energy_usage
+                LIMIT 100"""
+                )
                 in sql
             )
 

@@ -16,8 +16,7 @@
 # under the License.
 """Unit tests for Superset"""
 import json
-import time
-from typing import Any, Dict, List, Tuple, Union
+from typing import List
 from unittest.mock import patch
 
 import prison

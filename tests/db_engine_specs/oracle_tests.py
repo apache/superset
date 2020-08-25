@@ -18,7 +18,6 @@ from sqlalchemy import column
 from sqlalchemy.dialects import oracle
 from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
 
-from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 

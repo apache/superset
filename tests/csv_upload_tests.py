@@ -280,8 +280,9 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     engine = get_upload_db().get_sqla_engine()
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
     if utils.backend() == "hive":
-        # Be aware that hive only uses first value from the null values list
-        # it can be fixes if we will process csv file on the superset webserver.
+        # Be aware that hive only uses first value from the null values list.
+        # It is hive database engine limitation.
+        # TODO(bkyryliuk): preprocess csv file for hive upload to match default engine capabilities.
         assert data == [("john", 1, "x"), ("paul", 2, None)]
     else:
         assert data == [(None, 1, "x"), ("paul", 2, None)]
