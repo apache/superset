@@ -66,7 +66,7 @@ const StyledHeader = styled.header`
   }
 
   .navbar-inverse {
-    border-bottom: 2px solid @gray-bg;
+    border-bottom: none;
   }
 
   .version-info {
