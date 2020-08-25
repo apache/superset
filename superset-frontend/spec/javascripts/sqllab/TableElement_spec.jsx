@@ -18,13 +18,18 @@
  */
 import React from 'react';
 import { mount, shallow } from 'enzyme';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
 
 import Link from 'src/components/Link';
 import TableElement from 'src/SqlLab/components/TableElement';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
+
 import { mockedActions, table } from './fixtures';
 
 describe('TableElement', () => {
+  const mockStore = configureStore([]);
+  const store = mockStore({});
   const mockedProps = {
     actions: mockedActions,
     table,
@@ -45,7 +50,11 @@ describe('TableElement', () => {
     expect(wrapper.find(ColumnElement)).toHaveLength(14);
   });
   it('mounts', () => {
-    mount(<TableElement {...mockedProps} />);
+    mount(
+      <Provider store={store}>
+        <TableElement {...mockedProps} />
+      </Provider>,
+    );
   });
   it('sorts columns', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);
@@ -58,7 +67,11 @@ describe('TableElement', () => {
     );
   });
   it('calls the collapseTable action', () => {
-    const wrapper = mount(<TableElement {...mockedProps} />);
+    const wrapper = mount(
+      <Provider store={store}>
+        <TableElement {...mockedProps} />
+      </Provider>,
+    );
     expect(mockedActions.collapseTable.called).toBe(false);
     wrapper.find('.table-name').simulate('click');
     expect(mockedActions.collapseTable.called).toBe(true);

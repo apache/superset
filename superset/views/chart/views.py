@@ -26,7 +26,12 @@ from superset.constants import RouteMethod
 from superset.models.slice import Slice
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
-from superset.views.base import check_ownership, DeleteMixin, SupersetModelView
+from superset.views.base import (
+    check_ownership,
+    common_bootstrap_payload,
+    DeleteMixin,
+    SupersetModelView,
+)
 from superset.views.chart.mixin import SliceMixin
 
 
@@ -58,11 +63,12 @@ class SliceModelView(
             {"value": str(d.id) + "__" + d.type, "label": repr(d)}
             for d in ConnectorRegistry.get_all_datasources(db.session)
         ]
+        payload = {
+            "datasources": sorted(datasources, key=lambda d: d["label"]),
+            "common": common_bootstrap_payload(),
+        }
         return self.render_template(
-            "superset/add_slice.html",
-            bootstrap_data=json.dumps(
-                {"datasources": sorted(datasources, key=lambda d: d["label"])}
-            ),
+            "superset/add_slice.html", bootstrap_data=json.dumps(payload)
         )
 
     @expose("/list/")

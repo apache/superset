@@ -28,7 +28,7 @@ from urllib import parse
 import pandas as pd
 import simplejson as json
 from flask_babel import lazy_gettext as _
-from sqlalchemy import Column, literal_column
+from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
@@ -40,7 +40,13 @@ from superset import app, cache, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
-from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
+from superset.models.sql_types.presto_sql_types import (
+    Array,
+    Interval,
+    Map,
+    Row,
+    TinyInteger,
+)
 from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
@@ -260,13 +266,16 @@ class PrestoEngineSpec(BaseEngineSpec):
                         field_info = cls._split_data_type(single_field, r"\s")
                         # check if there is a structural data type within
                         # overall structural data type
+                        column_type = cls.get_sqla_column_type(field_info[1])
+                        if column_type is None:
+                            raise NotImplementedError(
+                                _("Unknown column type: %(col)s", col=field_info[1])
+                            )
                         if field_info[1] == "array" or field_info[1] == "row":
                             stack.append((field_info[0], field_info[1]))
                             full_parent_path = cls._get_full_name(stack)
                             result.append(
-                                cls._create_column_info(
-                                    full_parent_path, presto_type_map[field_info[1]]()
-                                )
+                                cls._create_column_info(full_parent_path, column_type)
                             )
                         else:  # otherwise this field is a basic data type
                             full_parent_path = cls._get_full_name(stack)
@@ -274,9 +283,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                                 full_parent_path, field_info[0]
                             )
                             result.append(
-                                cls._create_column_info(
-                                    column_name, presto_type_map[field_info[1]]()
-                                )
+                                cls._create_column_info(column_name, column_type)
                             )
                     # If the component type ends with a structural data type, do not pop
                     # the stack. We have run across a structural data type within the
@@ -318,6 +325,34 @@ class PrestoEngineSpec(BaseEngineSpec):
         columns = inspector.bind.execute("SHOW COLUMNS FROM {}".format(full_table))
         return columns
 
+    column_type_mappings = (
+        (re.compile(r"^boolean.*", re.IGNORECASE), types.Boolean()),
+        (re.compile(r"^tinyint.*", re.IGNORECASE), TinyInteger()),
+        (re.compile(r"^smallint.*", re.IGNORECASE), types.SmallInteger()),
+        (re.compile(r"^integer.*", re.IGNORECASE), types.Integer()),
+        (re.compile(r"^bigint.*", re.IGNORECASE), types.BigInteger()),
+        (re.compile(r"^real.*", re.IGNORECASE), types.Float()),
+        (re.compile(r"^double.*", re.IGNORECASE), types.Float()),
+        (re.compile(r"^decimal.*", re.IGNORECASE), types.DECIMAL()),
+        (
+            re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
+        ),
+        (
+            re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.CHAR(int(match[2])) if match[2] else types.CHAR(),
+        ),
+        (re.compile(r"^varbinary.*", re.IGNORECASE), types.VARBINARY()),
+        (re.compile(r"^json.*", re.IGNORECASE), types.JSON()),
+        (re.compile(r"^date.*", re.IGNORECASE), types.DATE()),
+        (re.compile(r"^time.*", re.IGNORECASE), types.Time()),
+        (re.compile(r"^timestamp.*", re.IGNORECASE), types.TIMESTAMP()),
+        (re.compile(r"^interval.*", re.IGNORECASE), Interval()),
+        (re.compile(r"^array.*", re.IGNORECASE), Array()),
+        (re.compile(r"^map.*", re.IGNORECASE), Map()),
+        (re.compile(r"^row.*", re.IGNORECASE), Row()),
+    )
+
     @classmethod
     def get_columns(
         cls, inspector: Inspector, table_name: str, schema: Optional[str]
@@ -334,28 +369,24 @@ class PrestoEngineSpec(BaseEngineSpec):
         columns = cls._show_columns(inspector, table_name, schema)
         result: List[Dict[str, Any]] = []
         for column in columns:
-            try:
-                # parse column if it is a row or array
-                if is_feature_enabled("PRESTO_EXPAND_DATA") and (
-                    "array" in column.Type or "row" in column.Type
-                ):
-                    structural_column_index = len(result)
-                    cls._parse_structural_column(column.Column, column.Type, result)
-                    result[structural_column_index]["nullable"] = getattr(
-                        column, "Null", True
-                    )
-                    result[structural_column_index]["default"] = None
-                    continue
-
-                # otherwise column is a basic data type
-                column_type = presto_type_map[column.Type]()
-            except KeyError:
-                logger.info(
-                    "Did not recognize type {} of column {}".format(  # pylint: disable=logging-format-interpolation
-                        column.Type, column.Column
-                    )
+            # parse column if it is a row or array
+            if is_feature_enabled("PRESTO_EXPAND_DATA") and (
+                "array" in column.Type or "row" in column.Type
+            ):
+                structural_column_index = len(result)
+                cls._parse_structural_column(column.Column, column.Type, result)
+                result[structural_column_index]["nullable"] = getattr(
+                    column, "Null", True
                 )
-                column_type = "OTHER"
+                result[structural_column_index]["default"] = None
+                continue
+
+            # otherwise column is a basic data type
+            column_type = cls.get_sqla_column_type(column.Type)
+            if column_type is None:
+                raise NotImplementedError(
+                    _("Unknown column type: %(col)s", col=column_type)
+                )
             column_info = cls._create_column_info(column.Column, column_type)
             column_info["nullable"] = getattr(column, "Null", True)
             column_info["default"] = None

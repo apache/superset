@@ -47,6 +47,7 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   url: 'url',
   viz_type: 'bar',
   datasource_name: `ds${i}`,
+  thumbnail_url: '/thumbnail',
 }));
 
 fetchMock.get(chartsInfoEndpoint, {
@@ -69,6 +70,9 @@ fetchMock.get(chartsDtasourcesEndpoint, {
   result: [],
   count: 0,
 });
+
+global.URL.createObjectURL = jest.fn();
+fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
 describe('ChartList', () => {
   const mockedProps = {};

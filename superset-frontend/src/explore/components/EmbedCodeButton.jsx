@@ -24,6 +24,7 @@ import { t } from '@superset-ui/translation';
 import FormLabel from 'src/components/FormLabel';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getExploreLongUrl } from '../exploreUtils';
+import { getShortUrl } from '../../utils/common';
 
 const propTypes = {
   latestQueryFormData: PropTypes.object.isRequired,
@@ -35,8 +36,28 @@ export default class EmbedCodeButton extends React.Component {
     this.state = {
       height: '400',
       width: '600',
+      shortUrl: '',
     };
     this.handleInputChange = this.handleInputChange.bind(this);
+    this.getCopyUrl = this.getCopyUrl.bind(this);
+    this.onShortUrlSuccess = this.onShortUrlSuccess.bind(this);
+  }
+
+  onShortUrlSuccess(shortUrl) {
+    this.setState(() => ({
+      shortUrl,
+    }));
+  }
+
+  getCopyUrl() {
+    const srcLink = `${
+      window.location.origin +
+      getExploreLongUrl(this.props.latestQueryFormData, 'standalone')
+    }&height=${this.state.height}`;
+
+    return getShortUrl(srcLink)
+      .then(this.onShortUrlSuccess)
+      .catch(this.props.addDangerToast);
   }
 
   handleInputChange(e) {
@@ -48,10 +69,6 @@ export default class EmbedCodeButton extends React.Component {
   }
 
   generateEmbedHTML() {
-    const srcLink = `${
-      window.location.origin +
-      getExploreLongUrl(this.props.latestQueryFormData, 'standalone')
-    }&height=${this.state.height}`;
     return (
       '<iframe\n' +
       `  width="${this.state.width}"\n` +
@@ -59,7 +76,7 @@ export default class EmbedCodeButton extends React.Component {
       '  seamless\n' +
       '  frameBorder="0"\n' +
       '  scrolling="no"\n' +
-      `  src="${srcLink}"\n` +
+      `  src="${this.state.shortUrl}"\n` +
       '>\n' +
       '</iframe>'
     );
@@ -135,6 +152,7 @@ export default class EmbedCodeButton extends React.Component {
         trigger="click"
         rootClose
         placement="left"
+        onEnter={this.getCopyUrl}
         overlay={this.renderPopover()}
       >
         <span className="btn btn-default btn-sm" data-test="embed-code-button">

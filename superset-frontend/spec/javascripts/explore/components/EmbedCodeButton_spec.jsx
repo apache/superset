@@ -20,11 +20,17 @@ import React from 'react';
 import { shallow, mount } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 import sinon from 'sinon';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
 
 import EmbedCodeButton from 'src/explore/components/EmbedCodeButton';
 import * as exploreUtils from 'src/explore/exploreUtils';
+import * as common from 'src/utils/common';
 
 describe('EmbedCodeButton', () => {
+  const mockStore = configureStore([]);
+  const store = mockStore({});
+
   const defaultProps = {
     latestQueryFormData: { datasource: '107__table' },
   };
@@ -40,14 +46,37 @@ describe('EmbedCodeButton', () => {
     expect(wrapper.find(OverlayTrigger)).toExist();
   });
 
+  it('should create a short, standalone, explore url', () => {
+    const spy1 = sinon.spy(exploreUtils, 'getExploreLongUrl');
+    const spy2 = sinon.spy(common, 'getShortUrl');
+
+    const wrapper = mount(<EmbedCodeButton {...defaultProps} />, {
+      wrappingComponent: Provider,
+      wrappingComponentProps: {
+        store,
+      },
+    });
+    wrapper.setState({
+      height: '1000',
+      width: '2000',
+      shortUrl: 'http://localhostendpoint_url&height=1000',
+    });
+
+    const trigger = wrapper.find(OverlayTrigger);
+    trigger.simulate('click');
+    expect(spy1.args[0][1]).toBe('standalone');
+    expect(spy2.callCount).toBe(1);
+
+    spy1.restore();
+    spy2.restore();
+  });
+
   it('returns correct embed code', () => {
-    const stub = sinon
-      .stub(exploreUtils, 'getExploreLongUrl')
-      .callsFake(() => 'endpoint_url');
     const wrapper = mount(<EmbedCodeButton {...defaultProps} />);
     wrapper.setState({
       height: '1000',
       width: '2000',
+      shortUrl: 'http://localhostendpoint_url&height=1000',
     });
     const embedHTML =
       '<iframe\n' +
@@ -60,6 +89,5 @@ describe('EmbedCodeButton', () => {
       '>\n' +
       '</iframe>';
     expect(wrapper.instance().generateEmbedHTML()).toBe(embedHTML);
-    stub.restore();
   });
 });

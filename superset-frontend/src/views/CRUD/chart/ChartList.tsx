@@ -482,7 +482,7 @@ class ChartList extends React.PureComponent<Props, State> {
       });
   };
 
-  renderCard = (props: Chart) => {
+  renderCard = (props: Chart & { loading: boolean }) => {
     const menu = (
       <Menu>
         {this.canDelete && (
@@ -524,6 +524,7 @@ class ChartList extends React.PureComponent<Props, State> {
 
     return (
       <ListViewCard
+        loading={props.loading}
         title={props.slice_name}
         url={this.state.bulkSelectEnabled ? undefined : props.url}
         imgURL={props.thumbnail_url ?? ''}

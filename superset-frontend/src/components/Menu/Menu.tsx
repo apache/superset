@@ -24,7 +24,6 @@ import MenuObject, { MenuObjectProps } from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
 import LanguagePicker, { Languages } from './LanguagePicker';
-import './Menu.less';
 
 interface BrandProps {
   path: string;
@@ -56,31 +55,64 @@ export interface MenuProps {
 }
 
 const StyledHeader = styled.header`
+  .caret {
+    display: none;
+  }
+
+  .navbar-inverse {
+    border: none;
+  }
+
+  .version-info {
+    padding: 5px 20px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+
+    div {
+      white-space: nowrap;
+    }
+  }
+
   .navbar-brand {
     display: flex;
     flex-direction: column;
     justify-content: center;
   }
 
+  .nav > li > a {
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
   .navbar-nav > li > a {
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    border-bottom: none;
+    &:focus {
+      border-bottom: none;
+    }
     &:after {
       content: '';
       position: absolute;
       bottom: -3px;
-      left: 0;
-      width: 100%;
+      left: 50%;
+      width: 0;
       height: 3px;
       background-color: ${({ theme }) => theme.colors.primary.base};
       opacity: 0;
-      transition: opacity ${({ theme }) => theme.transitionTiming * 2}s;
+      transform: translateX(-50%);
+      transition: all ${({ theme }) => theme.transitionTiming}s;
     }
 
     &:hover {
+      color: ${({ theme }) => theme.colors.grayscale.dark1};
       border-bottom: none;
-
       &:after {
         opacity: 1;
+        width: 100%;
       }
+    }
+    &:hover,
+    &:focus {
+      margin: 0;
     }
   }
 `;

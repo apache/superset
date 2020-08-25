@@ -19,7 +19,8 @@
 import React from 'react';
 import styled from '@superset-ui/style';
 import Icon from 'src/components/Icon';
-import { Card } from 'src/common/components';
+import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
+import ImageLoader from './ImageLoader';
 
 const MenuIcon = styled(Icon)`
   width: ${({ theme }) => theme.gridUnit * 4}px;
@@ -82,7 +83,7 @@ const GradientContainer = styled.div`
     );
   }
 `;
-const CardCoverImg = styled.img`
+const CardCoverImg = styled(ImageLoader)`
   display: block;
   object-fit: cover;
   width: 459px;
@@ -132,12 +133,22 @@ const CoverFooterRight = styled.div`
   text-overflow: ellipsis;
 `;
 
+const SkeletonTitle = styled(Skeleton.Input)`
+  width: ${({ theme }) => Math.trunc(theme.gridUnit * 62.5)}px;
+`;
+
+const SkeletonActions = styled(Skeleton.Button)`
+  width: ${({ theme }) => theme.gridUnit * 10}px;
+`;
+
+const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
   title: React.ReactNode;
-  url: string | undefined;
+  url?: string;
   imgURL: string;
   imgFallbackURL: string;
   description: string;
+  loading: boolean;
   titleRight?: React.ReactNode;
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
@@ -154,6 +165,7 @@ function ListViewCard({
   coverLeft,
   coverRight,
   actions,
+  loading,
 }: CardProps) {
   return (
     <StyledCard
@@ -163,31 +175,59 @@ function ListViewCard({
             <GradientContainer>
               <CardCoverImg
                 src={imgURL}
-                onError={e => {
-                  e.currentTarget.src = imgFallbackURL;
-                }}
+                fallback={imgFallbackURL}
+                isLoading={loading}
               />
             </GradientContainer>
           </a>
           <CoverFooter className="cover-footer">
-            {coverLeft && <CoverFooterLeft>{coverLeft}</CoverFooterLeft>}
-            {coverRight && <CoverFooterRight>{coverRight}</CoverFooterRight>}
+            {!loading && coverLeft && (
+              <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
+            )}
+            {!loading && coverRight && (
+              <CoverFooterRight>{coverRight}</CoverFooterRight>
+            )}
           </CoverFooter>
         </Cover>
       }
     >
-      <Card.Meta
-        title={
-          <>
-            <TitleContainer>
-              <TitleLink href={url}>{title}</TitleLink>
-              {titleRight && <div className="title-right"> {titleRight}</div>}
-              <div className="card-actions">{actions}</div>
-            </TitleContainer>
-          </>
-        }
-        description={description}
-      />
+      {loading && (
+        <Card.Meta
+          title={
+            <>
+              <TitleContainer>
+                <SkeletonTitle active size="small" />
+                <div className="card-actions">
+                  <Skeleton.Button active shape="circle" />{' '}
+                  <SkeletonActions active />
+                </div>
+              </TitleContainer>
+            </>
+          }
+          description={
+            <ThinSkeleton
+              round
+              active
+              title={false}
+              paragraph={paragraphConfig}
+            />
+          }
+        />
+      )}
+      {!loading && (
+        <Card.Meta
+          title={
+            <>
+              <TitleContainer>
+                <TitleLink href={url}>{title}</TitleLink>
+                {titleRight && <div className="title-right"> {titleRight}</div>}
+                <div className="card-actions">{actions}</div>
+              </TitleContainer>
+            </>
+          }
+          description={description}
+        />
+      )}
     </StyledCard>
   );
 }

@@ -16,30 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../stylesheets/less/variables.less';
+import styled from '@superset-ui/style';
+import { Skeleton } from 'antd';
 
-#main-menu {
-  .navbar .caret {
-    width: 1rem;
-    padding: 0 0 18px 0;
+/*
+  Antd is exported from here so we can override components with Emotion as needed.
 
-    &:before {
-      position: relative;
-      top: -2px;
-    }
+  For documentation, see https://ant.design/components/overview/
+ */
+/* eslint no-restricted-imports: 0 */
+
+export * from 'antd';
+
+export const ThinSkeleton = styled(Skeleton)`
+  h3 {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
   }
 
-  .navbar-inverse {
-    border-bottom: 2px solid @gray-bg;
+  ul {
+    margin-bottom: 0;
   }
-
-  .version-info {
-    padding: 5px 20px;
-    color: @gray-heading;
-    font-size: @font-size-xs;
-
-    div {
-      white-space: nowrap;
-    }
-  }
-}
+`;

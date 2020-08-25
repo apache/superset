@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean } from '@storybook/addon-knobs';
+import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
 import DashboardImg from 'images/dashboard-card-fallback.png';
 import ChartImg from 'images/chart-card-fallback.png';
 import { Dropdown, Menu } from 'src/common/components';
@@ -32,13 +32,27 @@ export default {
   decorators: [withKnobs],
 };
 
+const imgFallbackKnob = {
+  label: 'Fallback/Loading Image',
+  options: {
+    Dashboard: DashboardImg,
+    Chart: ChartImg,
+  },
+  defaultValue: DashboardImg,
+};
+
 export const SupersetListViewCard = () => {
   return (
     <ListViewCard
       title="Superset Card Title"
+      loading={boolean('loading', false)}
       url="/superset/dashboard/births/"
-      imgURL={DashboardImg}
-      imgFallbackURL={ChartImg}
+      imgURL={text('imgURL', 'https://picsum.photos/800/600')}
+      imgFallbackURL={select(
+        imgFallbackKnob.label,
+        imgFallbackKnob.options,
+        imgFallbackKnob.defaultValue,
+      )}
       description="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
       coverLeft="Left Section"
       coverRight="Right Section"

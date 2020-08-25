@@ -48,6 +48,7 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
   changed_on_utc: new Date().toISOString(),
   changed_on_delta_humanized: '5 minutes ago',
   owners: [{ first_name: 'admin', last_name: 'admin_user' }],
+  thumbnail_url: '/thumbnail',
 }));
 
 fetchMock.get(dashboardsInfoEndpoint, {
@@ -60,6 +61,9 @@ fetchMock.get(dashboardsEndpoint, {
   result: mockDashboards,
   dashboard_count: 3,
 });
+
+global.URL.createObjectURL = jest.fn();
+fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
 describe('DashboardList', () => {
   const mockedProps = {};

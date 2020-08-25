@@ -16,11 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import Menu from 'src/components/Menu/Menu';
 
-/*
-  Antd is exported from here so we can override components with Emotion as needed.
-
-  For documentation, see https://ant.design/components/overview/
- */
-/* eslint no-restricted-imports: 0 */
-export * from 'antd';
+const container = document.getElementById('app');
+const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
+const bootstrap = JSON.parse(bootstrapJson);
+const menu = { ...bootstrap.common.menu_data };
+const app = (
+  <ThemeProvider theme={supersetTheme}>
+    <Menu data={menu} />
+  </ThemeProvider>
+);
+ReactDOM.render(app, document.getElementById('app-menu'));
