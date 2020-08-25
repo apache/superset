@@ -113,10 +113,6 @@ const StyledHeader = styled.header`
       margin: 0;
     }
   }
-
-  .nav > li > a {
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
-  }
 `;
 
 export default function Menu({
