@@ -84,6 +84,7 @@ const StyledHeader = styled.header`
   }
 
   .navbar-nav > li > a {
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-bottom: none;
     &:focus {
       border-bottom: none;
@@ -102,6 +103,7 @@ const StyledHeader = styled.header`
     }
 
     &:hover {
+      color: ${({ theme }) => theme.colors.grayscale.dark1};
       border-bottom: none;
       &:after {
         opacity: 1;
