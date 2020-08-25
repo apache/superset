@@ -342,16 +342,16 @@ class TestCore(SupersetTestCase):
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
 
-    # def test_tablemodelview_list(self):
-    #     self.login(username="admin")
+    def test_tablemodelview_list(self):
+        self.login(username="admin")
 
-    #     url = "/tablemodelview/list/"
-    #     resp = self.get_resp(url)
+        url = "/tablemodelview/list/"
+        resp = self.get_resp(url)
 
-    #     # assert that a table is listed
-    #     table = db.session.query(SqlaTable).first()
-    #     assert table.name in resp
-    #     assert "/superset/explore/table/{}".format(table.id) in resp
+        # assert that a table is listed
+        table = db.session.query(SqlaTable).first()
+        assert table.name in resp
+        assert "/superset/explore/table/{}".format(table.id) in resp
 
     def test_add_slice(self):
         self.login(username="admin")
