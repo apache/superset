@@ -128,7 +128,6 @@ class TestDatabaseModel(SupersetTestCase):
             )
         )
         assert expected in sql
-
         sql = db.select_star(table_name, show_cols=True, latest_partition=False)
         # TODO(bkyryliuk): unify sql generation
         if db.backend == "presto":
@@ -138,7 +137,8 @@ class TestDatabaseModel(SupersetTestCase):
                 SELECT "source" AS "source",
                        "target" AS "target",
                        "value" AS "value"
-                FROM "energy_usage"\nLIMIT 100"""
+                FROM "energy_usage"
+                LIMIT 100"""
                 )
                 == sql
             )
@@ -147,8 +147,8 @@ class TestDatabaseModel(SupersetTestCase):
                 textwrap.dedent(
                     """\
                 SELECT `source`,
-                        `target`,
-                        `value`
+                       `target`,
+                       `value`
                 FROM `energy_usage`
                 LIMIT 100"""
                 )
@@ -159,8 +159,8 @@ class TestDatabaseModel(SupersetTestCase):
                 textwrap.dedent(
                     """\
                 SELECT source,
-                        target,
-                        value
+                       target,
+                       value
                 FROM energy_usage
                 LIMIT 100"""
                 )
