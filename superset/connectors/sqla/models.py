@@ -585,7 +585,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return security_manager.get_schema_perm(self.database, self.schema)
 
     def get_perm(self) -> str:
-        return ("[{obj.database}].[{obj.table_name}]" "(id:{obj.id})").format(obj=self)
+        return f"[{self.database}].[{self.table_name}](id:{self.id})"
 
     @property
     def name(self) -> str:
