@@ -156,13 +156,14 @@ const babelLoader = {
     // disable gzip compression for cache files
     // faster when there are millions of small files
     cacheCompression: false,
-    plugins: ['emotion'],
+    plugins: [['emotion', { sourceMap: true }]],
     presets: [
       [
         '@emotion/babel-preset-css-prop',
         {
           autoLabel: true,
           labelFormat: '[local]',
+          sourceMap: true,
         },
       ],
     ],

@@ -40,6 +40,7 @@ module.exports = {
     ],
   ],
   plugins: [
+    ['emotion', { sourceMap: true }],
     'lodash',
     '@babel/plugin-syntax-dynamic-import',
     '@babel/plugin-proposal-class-properties',

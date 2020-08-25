@@ -60,7 +60,7 @@
   "dependencies": {
     "@babel/runtime-corejs3": "^7.8.4",
     "@data-ui/sparkline": "^0.0.54",
-    "@emotion/core": "^10.0.28",
+    "@emotion/core": "^10.0.35",
     "@superset-ui/chart": "^0.14.9",
     "@superset-ui/chart-composition": "^0.14.9",
     "@superset-ui/chart-controls": "^0.14.22",
@@ -233,7 +233,7 @@
     "babel-jest": "^26.1.0",
     "babel-loader": "^8.0.6",
     "babel-plugin-dynamic-import-node": "^2.3.0",
-    "babel-plugin-emotion": "^10.0.29",
+    "babel-plugin-emotion": "^10.0.33",
     "babel-plugin-lodash": "^3.3.4",
     "cache-loader": "^1.2.2",
     "clean-webpack-plugin": "^3.0.0",
