@@ -576,6 +576,17 @@ class TestCore(SupersetTestCase):
         )
         assert len(data) > 0
 
+        dashboard = self.get_dash_by_slug("births")
+
+        assert self.get_json_resp(
+            f"/superset/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}"
+        ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+
+        assert self.get_json_resp(
+            f"/superset/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}&extra_filters="
+            + quote(json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}]))
+        ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+
     def test_shortner(self):
         self.login(username="admin")
         data = (
