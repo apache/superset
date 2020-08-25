@@ -30,7 +30,7 @@ const NavDropdown = styled(ReactBootstrapNavDropdown)`
   &.dropdown.open > a.dropdown-toggle {
     background: ${({ theme }) => theme.colors.primary.light4};
   }
-  
+
   :after {
     content: '';
     height: ${({ theme }) => theme.gridUnit}px;
