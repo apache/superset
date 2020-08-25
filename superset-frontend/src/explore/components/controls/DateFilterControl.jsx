@@ -365,7 +365,7 @@ class DateFilterControl extends React.Component {
             onClick={() => {}}
           />
           <InputGroup.Button onClick={() => this.toggleCalendar(key)}>
-            <Button>
+            <Button theme={this.props.theme}>
               <i className="fa fa-calendar" />
             </Button>
           </InputGroup.Button>
@@ -567,6 +567,7 @@ class DateFilterControl extends React.Component {
               className="float-right ok"
               buttonStyle="primary"
               onClick={this.close}
+              theme={this.props.theme}
             >
               Ok
             </Button>
