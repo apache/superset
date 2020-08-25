@@ -55,14 +55,8 @@ export interface MenuProps {
 }
 
 const StyledHeader = styled.header`
-  .navbar .caret {
-    width: 1rem;
-    padding: 0 0 18px 0;
-
-    &:before {
-      position: relative;
-      top: -2px;
-    }
+  .caret {
+    display: none;
   }
 
   .navbar-inverse {
