@@ -109,6 +109,7 @@ export const iconsRegistry: Record<
   trash: TrashIcon,
   warning: WarningIcon,
 };
+
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
 }
@@ -120,6 +121,7 @@ const Icon = ({
   ...rest
 }: IconProps) => {
   const Component = iconsRegistry[name];
+
   return (
     <Component color={color} viewBox={viewBox} data-test={name} {...rest} />
   );

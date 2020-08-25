@@ -43,7 +43,7 @@ interface DatabaseModalProps {
 const { TabPane } = Tabs;
 
 const StyledIcon = styled(Icon)`
-  margin: auto 10px auto 0;
+  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
 const StyledTabs = styled(Tabs)`
@@ -54,7 +54,8 @@ const StyledTabs = styled(Tabs)`
   }
 
   .ant-tabs-tab {
-    width: 20%;
+    flex: 1 1 auto;
+    width: 0;
 
     &.ant-tabs-tab-active .ant-tabs-tab-btn {
       color: inherit;
@@ -63,13 +64,13 @@ const StyledTabs = styled(Tabs)`
 
   .ant-tabs-tab-btn {
     flex: 1 1 auto;
-    font-size: 12px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     text-align: center;
     text-transform: uppercase;
 
     .required {
-      margin-left: 2px;
-      color: #e04355;
+      margin-left: ${({ theme }) => theme.gridUnit / 2}px;
+      color: ${({ theme }) => theme.colors.error.base};
     }
   }
 
