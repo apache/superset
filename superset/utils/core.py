@@ -631,8 +631,9 @@ class timeout:  # pylint: disable=invalid-name
 
     def __enter__(self) -> None:
         try:
-            signal.signal(signal.SIGALRM, self.handle_timeout)
-            signal.alarm(self.seconds)
+            if threading.current_thread() == threading.main_thread():
+                signal.signal(signal.SIGALRM, self.handle_timeout)
+                signal.alarm(self.seconds)
         except ValueError as ex:
             logger.warning("timeout can't be used in the current context")
             logger.exception(ex)
