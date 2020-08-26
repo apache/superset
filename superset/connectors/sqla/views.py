@@ -274,6 +274,9 @@ class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
         "creator": _("Creator"),
         "modified": _("Modified"),
     }
+    if app.config["RLS_FORM_QUERY_REL_FIELDS"]:
+        add_form_query_rel_fields = app.config["RLS_FORM_QUERY_REL_FIELDS"]
+        edit_form_query_rel_fields = add_form_query_rel_fields
 
 
 class TableModelView(  # pylint: disable=too-many-ancestors
