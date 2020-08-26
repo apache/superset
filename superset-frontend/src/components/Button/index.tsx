@@ -79,9 +79,9 @@ const SupersetButton = styled(BootstrapButton)`
 
   /* SIP 34 colors! */
   &.btn {
+    border: 1px solid transparent; /* this just makes sure the height is the same as tertiary/dashed buttons */
     &-default,
     &-secondary {
-      // same as "secondary"
       background-color: ${({ theme }) => theme.colors.primary.light4};
       color: ${({ theme }) => theme.colors.primary.dark1};
       &:hover {
@@ -94,6 +94,33 @@ const SupersetButton = styled(BootstrapButton)`
           mix(0.25, theme.colors.primary.base, theme.colors.primary.light4)};
         color: ${({ theme }) => theme.colors.primary.dark1};
       }
+    }
+    &-tertiary,
+    &-dashed {
+      border-width: 1px;
+      border-style: solid;
+      background-color: ${({ theme }) => theme.colors.grayscale.light5};
+      color: ${({ theme }) => theme.colors.primary.dark1};
+      border-color: ${({ theme }) => theme.colors.primary.dark1};
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.grayscale.light5};
+        color: ${({ theme }) => theme.colors.primary.dark1};
+        border-color: ${({ theme }) => theme.colors.primary.light1};
+      }
+      &:active {
+        background-color: ${({ theme }) => theme.colors.grayscale.light5};
+        color: ${({ theme }) => theme.colors.primary.dark1};
+        border-color: ${({ theme }) => theme.colors.primary.dark1};
+      }
+      &[disabled],
+      &[disabled]:hover {
+        background-color: ${({ theme }) => theme.colors.grayscale.light5};
+        color: ${({ theme }) => theme.colors.grayscale.base};
+        border-color: ${({ theme }) => theme.colors.grayscale.light2};
+      }
+    }
+    &-dashed {
+      border-style: dashed;
     }
     &-primary {
       background-color: ${({ theme }) => theme.colors.primary.dark1};
@@ -214,7 +241,7 @@ export default function Button(props: ButtonProps) {
       : 'default',
     className: cx({
       cta: !!buttonProps.cta,
-      [`btn-${props.buttonStyle}`]: officialBootstrapStyles.includes(
+      [`btn-${props.buttonStyle}`]: !officialBootstrapStyles.includes(
         props.buttonStyle || '',
       ),
     }),

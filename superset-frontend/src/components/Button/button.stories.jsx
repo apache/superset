@@ -32,6 +32,8 @@ const buttonStyleKnob = {
   options: {
     Primary: 'primary',
     Secondary: 'secondary',
+    Tertiary: 'tertiary',
+    Dashed: 'dashed',
     Danger: 'danger',
     Warning: 'warning',
     Success: 'success',
