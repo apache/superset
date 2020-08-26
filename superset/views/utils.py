@@ -116,7 +116,12 @@ def get_form_data(
     slice_id: Optional[int] = None, use_slice_data: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
     form_data = {}
-    request_json_data = request.json["queries"][0] if request.is_json else {}
+    # chart data API requests are JSON
+    request_json_data = (
+        request.json["queries"][0]
+        if request.is_json and "queries" in request.json
+        else None
+    )
     request_form_data = request.form.get("form_data")
     request_args_data = request.args.get("form_data")
     if request_json_data:
