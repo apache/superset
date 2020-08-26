@@ -43,9 +43,10 @@ import {
 import { legacyValidateInteger, validateNonEmpty } from '@superset-ui/validator';
 
 import { formatSelectOptions } from '../utils/selectOptions';
-import { mainMetric, Metric } from '../utils/mainMetric';
+import mainMetric from '../utils/mainMetric';
 import { TIME_FILTER_LABELS } from '../constants';
 import {
+  Metric,
   SharedControlConfig,
   ColumnMeta,
   DatasourceMeta,

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ChartProps, DataRecord } from '@superset-ui/chart';
+import { QueryObjectMetric } from '@superset-ui/query';
 
 interface FormData {
   groupby: string[];
@@ -38,7 +39,7 @@ export type TableChartProps = ChartProps & {
 };
 
 interface ColumnData {
-  timeLag?: string;
+  timeLag?: string | number;
 }
 export default function transformProps(chartProps: TableChartProps) {
   const { height, datasource, formData, queryData } = chartProps;
@@ -56,20 +57,18 @@ export default function transformProps(chartProps: TableChartProps) {
   } else {
     const metricMap = datasource.metrics.reduce((acc, current) => {
       const map = acc;
-      // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      map[current.metric_name] = current;
+      if (current.metric_name) {
+        map[current.metric_name] = current;
+      }
       return map;
-    }, {});
+    }, {} as Record<string, QueryObjectMetric>);
     rows = metrics.map(metric => (typeof metric === 'object' ? metric : metricMap[metric]));
   }
 
   // TODO: Better parse this from controls instead of mutative value here.
   columnCollection.forEach(column => {
     const c: ColumnData = column;
-    if (c.timeLag !== undefined && c.timeLag !== null && c.timeLag !== '') {
-      // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    if (typeof c.timeLag === 'string' && c.timeLag) {
       c.timeLag = parseInt(c.timeLag, 10);
     }
   });
