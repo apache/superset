@@ -31,7 +31,7 @@ describe('Dashboard card view', () => {
     cy.get('.ant-card').should('have.length', 4);
   });
 
-  it('should allow favor/unfavor chart card', () => {
+  it('should allow to favorite/unfavorite dashboard card', () => {
     cy.get('.ant-card .card-actions')
       .first()
       .find("[data-test='favorite-selected']")
