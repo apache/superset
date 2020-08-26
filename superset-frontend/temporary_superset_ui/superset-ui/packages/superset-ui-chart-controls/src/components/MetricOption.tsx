@@ -22,6 +22,7 @@ import styled from '@superset-ui/style';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
+import { Metric } from '../types';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -33,21 +34,11 @@ const FlexRowContainer = styled.div`
 `;
 
 export interface MetricOptionProps {
-  metric: {
-    verbose_name?: string;
-    metric_name: string;
-    label?: string;
-    description: string;
-    warning_text: string;
-    expression: string;
-    is_certified?: boolean;
-    certified_by?: string | null;
-    certification_details?: string | null;
-  };
+  metric: Metric;
   openInNewWindow?: boolean;
   showFormula?: boolean;
   showType?: boolean;
-  url?: string;
+  url: string;
 }
 
 export function MetricOption({

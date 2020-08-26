@@ -24,7 +24,7 @@ import { formatNumber } from '@superset-ui/number-format';
 import { formatTime } from '@superset-ui/time-format';
 import styled from '@superset-ui/style';
 import moment from 'moment';
-import { InfoTooltipWithTrigger, MetricOption } from '@superset-ui/chart-controls';
+import { InfoTooltipWithTrigger, MetricOption, Metric } from '@superset-ui/chart-controls';
 
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
@@ -51,11 +51,12 @@ function colorFromBounds(
 
       // @ts-ignore
       return colorScale(value);
-      // eslint-disable-next-line no-else-return
-    } else if (min !== null) {
+    }
+    if (min !== null) {
       // @ts-ignore
       return value >= min ? maxColor : minColor;
-    } else if (max !== null) {
+    }
+    if (max !== null) {
       // @ts-ignore
       return value < max ? maxColor : minColor;
     }
@@ -104,7 +105,6 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
   renderLeftCell(row: RowData) {
     const { rowType, url } = this.props;
     const context = { metric: row };
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
     const fullUrl = url ? Mustache.render(url, context) : null;
 
     if (rowType === 'column') {
@@ -119,10 +119,9 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
       return column.label;
     }
 
-    const metric = row;
-
-    // @ts-ignore
-    return <MetricOption openInNewWindow metric={metric} url={fullUrl} showFormula={false} />;
+    return (
+      <MetricOption openInNewWindow metric={row as Metric} url={fullUrl} showFormula={false} />
+    );
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -141,7 +140,6 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
         }
       }
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       sparkData = entries.map(d => d[valueField]);
     }
 

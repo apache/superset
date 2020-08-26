@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable camelcase */
+import { Metric } from '../types';
 
-export type Metric = {
-  metric_name: string;
-};
-
-export function mainMetric(savedMetrics?: Metric[] | null) {
+export default function mainMetric(savedMetrics?: Metric[] | null) {
   // Using 'count' as default metric if it exists, otherwise using whatever one shows up first
   let metric;
   if (savedMetrics && savedMetrics.length > 0) {
