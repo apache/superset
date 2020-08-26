@@ -126,10 +126,8 @@ function DashboardList(props: DashboardListProps) {
 
   const fetchFaveStarMethods = createFaveStarHandlers(
     FAVESTAR_BASE_URL,
-    {
-      state,
-      setState: updateState,
-    },
+    state.favoriteStatus,
+    favoriteStatus => updateState({ favoriteStatus }),
     (message: string) => {
       props.addDangerToast(message);
     },

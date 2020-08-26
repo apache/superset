@@ -62,14 +62,10 @@ export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
   };
 }
 
-interface FaveStarContext {
-  state: { favoriteStatus: object };
-  setState: (update: any) => void;
-}
-
 export function createFaveStarHandlers(
   baseURL: string,
-  context: FaveStarContext,
+  favoriteStatus: object,
+  setFavoriteStatus: (update: any) => void,
   handleErrorFunc: (message: string) => void,
 ) {
   const fetchFaveStar = (id: number) => {
@@ -78,14 +74,12 @@ export function createFaveStarHandlers(
     })
       .then(({ json }) => {
         const faves = {
-          ...context.state.favoriteStatus,
+          ...favoriteStatus,
         };
 
         faves[id] = json.count > 0;
 
-        context.setState({
-          favoriteStatus: faves,
-        });
+        setFavoriteStatus(faves);
       })
       .catch(() =>
         handleErrorFunc(t('There was an error fetching the favorite status')),
@@ -100,14 +94,12 @@ export function createFaveStarHandlers(
     })
       .then(() => {
         const faves = {
-          ...context.state.favoriteStatus,
+          ...favoriteStatus,
         };
 
         faves[id] = !isStarred;
 
-        context.setState({
-          favoriteStatus: faves,
-        });
+        setFavoriteStatus(faves);
       })
       .catch(() =>
         handleErrorFunc(t('There was an error saving the favorite status')),

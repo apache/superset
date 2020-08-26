@@ -19,7 +19,7 @@
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import {
@@ -27,6 +27,7 @@ import {
   createErrorHandler,
   createFaveStarHandlers,
 } from 'src/views/CRUD/utils';
+import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
@@ -34,7 +35,6 @@ import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
   ListViewProps,
-  FetchDataConfig,
   Filters,
   SelectOption,
 } from 'src/components/ListView';
@@ -48,23 +48,6 @@ import { Dropdown, Menu } from 'src/common/components';
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
-interface ChartListProps {
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
-}
-
-interface State {
-  bulkSelectEnabled: boolean;
-  chartCount: number;
-  charts: Chart[];
-  favoriteStatus: object;
-  lastFetchDataConfig: FetchDataConfig | null;
-  loading: boolean;
-  permissions: string[];
-  // for now we need to use the Slice type defined in PropertiesModal.
-  // In future it would be better to have a unified Chart entity.
-  sliceCurrentlyEditing: Slice | null;
-}
 const createFetchDatasets = (handleError: (err: Response) => void) => async (
   filterValue = '',
   pageIndex?: number,
@@ -101,46 +84,31 @@ const createFetchDatasets = (handleError: (err: Response) => void) => async (
   }
   return [];
 };
+
+interface ChartListProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+}
+
 function ChartList(props: ChartListProps) {
-  const [state, setState] = useState<State>({
-    bulkSelectEnabled: false,
-    chartCount: 0,
-    charts: [],
-    favoriteStatus: {}, // Hash mapping dashboard id to 'isStarred' status
-    lastFetchDataConfig: null,
-    loading: true,
-    permissions: [],
-    sliceCurrentlyEditing: null,
-  });
-
-  function updateState(update: Partial<State>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
-
-  useEffect(() => {
-    SupersetClient.get({
-      endpoint: `/api/v1/chart/_info`,
-    }).then(
-      ({ json: infoJson = {} }) => {
-        updateState({
-          permissions: infoJson.permissions,
-        });
-      },
-      createErrorHandler(errMsg =>
-        props.addDangerToast(
-          t('An error occurred while fetching chart info: %s', errMsg),
-        ),
-      ),
-    );
-  }, []);
-
-  function hasPerm(perm: string) {
-    if (!state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(state.permissions.find(p => p === perm));
-  }
+  const {
+    state: {
+      loading,
+      resourceCount: chartCount,
+      resourceCollection: charts,
+      bulkSelectEnabled,
+    },
+    setResourceCollection: setCharts,
+    hasPerm,
+    fetchData,
+    toggleBulkSelect,
+    refreshData,
+  } = useListViewResource<Chart>('chart', t('chart'), props.addDangerToast);
+  const [favoriteStatus, setFavoriteStatus] = useState<object>({});
+  const [
+    sliceCurrentlyEditing,
+    setSliceCurrentlyEditing,
+  ] = useState<Slice | null>(null);
 
   const canEdit = hasPerm('can_edit');
 
@@ -150,99 +118,32 @@ function ChartList(props: ChartListProps) {
 
   const fetchFaveStarMethods = createFaveStarHandlers(
     FAVESTAR_BASE_URL,
-    {
-      state,
-      setState: updateState,
-    },
+    favoriteStatus,
+    setFavoriteStatus,
     (message: string) => {
       props.addDangerToast(message);
     },
   );
 
-  const fetchData = useCallback(
-    ({
-      pageIndex,
-      pageSize,
-      sortBy,
-      filters: filterValues,
-    }: FetchDataConfig) => {
-      // set loading state, cache the last config for fetching data in this component.
-      updateState({
-        lastFetchDataConfig: {
-          filters: filterValues,
-          pageIndex,
-          pageSize,
-          sortBy,
-        },
-        loading: true,
-      });
-
-      const filterExps = filterValues.map(
-        ({ id: col, operator: opr, value }) => ({
-          col,
-          opr,
-          value,
-        }),
-      );
-
-      const queryParams = rison.encode({
-        order_column: sortBy[0].id,
-        order_direction: sortBy[0].desc ? 'desc' : 'asc',
-        page: pageIndex,
-        page_size: pageSize,
-        ...(filterExps.length ? { filters: filterExps } : {}),
-      });
-
-      return SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${queryParams}`,
-      })
-        .then(
-          ({ json = {} }) => {
-            updateState({
-              charts: json.result,
-              chartCount: json.count,
-            });
-          },
-          createErrorHandler(errMsg =>
-            props.addDangerToast(
-              t('An error occurred while fetching charts: %s', errMsg),
-            ),
-          ),
-        )
-        .finally(() => {
-          updateState({ loading: false });
-        });
-    },
-    [],
-  );
-
-  function toggleBulkSelect() {
-    updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
-  }
-
   function openChartEditModal(chart: Chart) {
-    updateState({
-      sliceCurrentlyEditing: {
-        slice_id: chart.id,
-        slice_name: chart.slice_name,
-        description: chart.description,
-        cache_timeout: chart.cache_timeout,
-      },
+    setSliceCurrentlyEditing({
+      slice_id: chart.id,
+      slice_name: chart.slice_name,
+      description: chart.description,
+      cache_timeout: chart.cache_timeout,
     });
   }
 
   function closeChartEditModal() {
-    updateState({ sliceCurrentlyEditing: null });
+    setSliceCurrentlyEditing(null);
   }
 
   function handleChartUpdated(edits: Chart) {
     // update the chart in our state with the edited info
-    const newCharts = state.charts.map(chart =>
+    const newCharts = charts.map(chart =>
       chart.id === edits.id ? { ...chart, ...edits } : chart,
     );
-    updateState({
-      charts: newCharts,
-    });
+    setCharts(newCharts);
   }
 
   function handleChartDelete({ id, slice_name: sliceName }: Chart) {
@@ -250,10 +151,7 @@ function ChartList(props: ChartListProps) {
       endpoint: `/api/v1/chart/${id}`,
     }).then(
       () => {
-        const { lastFetchDataConfig } = state;
-        if (lastFetchDataConfig) {
-          fetchData(lastFetchDataConfig);
-        }
+        refreshData();
         props.addSuccessToast(t('Deleted: %s', sliceName));
       },
       () => {
@@ -262,15 +160,14 @@ function ChartList(props: ChartListProps) {
     );
   }
 
-  function handleBulkChartDelete(charts: Chart[]) {
+  function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
-      endpoint: `/api/v1/chart/?q=${rison.encode(charts.map(({ id }) => id))}`,
+      endpoint: `/api/v1/chart/?q=${rison.encode(
+        chartsToDelete.map(({ id }) => id),
+      )}`,
     }).then(
       ({ json = {} }) => {
-        const { lastFetchDataConfig } = state;
-        if (lastFetchDataConfig) {
-          fetchData(lastFetchDataConfig);
-        }
+        refreshData();
         props.addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
@@ -281,194 +178,203 @@ function ChartList(props: ChartListProps) {
     );
   }
 
-  const columns = [
-    {
-      Cell: ({ row: { original } }: any) => {
-        return (
-          <FaveStar
-            itemId={original.id}
-            fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
-            saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-            isStarred={state.favoriteStatus[original.id]}
-            height={20}
-          />
-        );
+  const columns = useMemo(
+    () => [
+      {
+        Cell: ({ row: { original } }: any) => {
+          return (
+            <FaveStar
+              itemId={original.id}
+              fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
+              saveFaveStar={fetchFaveStarMethods.saveFaveStar}
+              isStarred={favoriteStatus[original.id]}
+              height={20}
+            />
+          );
+        },
+        Header: '',
+        id: 'favorite',
+        disableSortBy: true,
       },
-      Header: '',
-      id: 'favorite',
-      disableSortBy: true,
-    },
-    {
-      Cell: ({
-        row: {
-          original: { url, slice_name: sliceName },
-        },
-      }: any) => <a href={url}>{sliceName}</a>,
-      Header: t('Chart'),
-      accessor: 'slice_name',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { viz_type: vizType },
-        },
-      }: any) => vizType,
-      Header: t('Visualization Type'),
-      accessor: 'viz_type',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { datasource_name_text: dsNameTxt, datasource_url: dsUrl },
-        },
-      }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
-      Header: t('Datasource'),
-      accessor: 'datasource_name',
-    },
-    {
-      Cell: ({
-        row: {
-          original: {
-            changed_by_name: changedByName,
-            changed_by_url: changedByUrl,
+      {
+        Cell: ({
+          row: {
+            original: { url, slice_name: sliceName },
           },
-        },
-      }: any) => <a href={changedByUrl}>{changedByName}</a>,
-      Header: t('Modified By'),
-      accessor: 'changed_by.first_name',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { changed_on_delta_humanized: changedOn },
-        },
-      }: any) => <span className="no-wrap">{changedOn}</span>,
-      Header: t('Last Modified'),
-      accessor: 'changed_on_delta_humanized',
-    },
-    {
-      accessor: 'description',
-      hidden: true,
-      disableSortBy: true,
-    },
-    {
-      accessor: 'owners',
-      hidden: true,
-      disableSortBy: true,
-    },
-    {
-      accessor: 'datasource_id',
-      hidden: true,
-      disableSortBy: true,
-    },
-    {
-      Cell: ({ row: { original } }: any) => {
-        const handleDelete = () => handleChartDelete(original);
-        const openEditModal = () => openChartEditModal(original);
-        if (!canEdit && !canDelete) {
-          return null;
-        }
-
-        return (
-          <span className="actions">
-            {canDelete && (
-              <ConfirmStatusChange
-                title={t('Please Confirm')}
-                description={
-                  <>
-                    {t('Are you sure you want to delete')}{' '}
-                    <b>{original.slice_name}</b>?
-                  </>
-                }
-                onConfirm={handleDelete}
-              >
-                {confirmDelete => (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={confirmDelete}
-                  >
-                    <Icon name="trash" />
-                  </span>
-                )}
-              </ConfirmStatusChange>
-            )}
-            {canEdit && (
-              <span
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={openEditModal}
-              >
-                <Icon name="pencil" />
-              </span>
-            )}
-          </span>
-        );
+        }: any) => <a href={url}>{sliceName}</a>,
+        Header: t('Chart'),
+        accessor: 'slice_name',
       },
-      Header: t('Actions'),
-      id: 'actions',
-      disableSortBy: true,
-    },
-  ];
+      {
+        Cell: ({
+          row: {
+            original: { viz_type: vizType },
+          },
+        }: any) => vizType,
+        Header: t('Visualization Type'),
+        accessor: 'viz_type',
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              datasource_name_text: dsNameTxt,
+              datasource_url: dsUrl,
+            },
+          },
+        }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
+        Header: t('Datasource'),
+        accessor: 'datasource_name',
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              changed_by_name: changedByName,
+              changed_by_url: changedByUrl,
+            },
+          },
+        }: any) => <a href={changedByUrl}>{changedByName}</a>,
+        Header: t('Modified By'),
+        accessor: 'changed_by.first_name',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Last Modified'),
+        accessor: 'changed_on_delta_humanized',
+      },
+      {
+        accessor: 'description',
+        hidden: true,
+        disableSortBy: true,
+      },
+      {
+        accessor: 'owners',
+        hidden: true,
+        disableSortBy: true,
+      },
+      {
+        accessor: 'datasource_id',
+        hidden: true,
+        disableSortBy: true,
+      },
+      {
+        Cell: ({ row: { original } }: any) => {
+          const handleDelete = () => handleChartDelete(original);
+          const openEditModal = () => openChartEditModal(original);
+          if (!canEdit && !canDelete) {
+            return null;
+          }
 
-  const filters: Filters = [
-    {
-      Header: t('Owner'),
-      id: 'owners',
-      input: 'select',
-      operator: 'rel_m_m',
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchRelated(
-        'chart',
-        'owners',
-        createErrorHandler(errMsg =>
-          props.addDangerToast(
-            t(
-              'An error occurred while fetching chart dataset values: %s',
-              errMsg,
+          return (
+            <span className="actions">
+              {canDelete && (
+                <ConfirmStatusChange
+                  title={t('Please Confirm')}
+                  description={
+                    <>
+                      {t('Are you sure you want to delete')}{' '}
+                      <b>{original.slice_name}</b>?
+                    </>
+                  }
+                  onConfirm={handleDelete}
+                >
+                  {confirmDelete => (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={confirmDelete}
+                    >
+                      <Icon name="trash" />
+                    </span>
+                  )}
+                </ConfirmStatusChange>
+              )}
+              {canEdit && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={openEditModal}
+                >
+                  <Icon name="pencil" />
+                </span>
+              )}
+            </span>
+          );
+        },
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
+      },
+    ],
+    [],
+  );
+
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Owner'),
+        id: 'owners',
+        input: 'select',
+        operator: 'rel_m_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'chart',
+          'owners',
+          createErrorHandler(errMsg =>
+            props.addDangerToast(
+              t(
+                'An error occurred while fetching chart dataset values: %s',
+                errMsg,
+              ),
             ),
           ),
         ),
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Viz Type'),
-      id: 'viz_type',
-      input: 'select',
-      operator: 'eq',
-      unfilteredLabel: 'All',
-      selects: getChartMetadataRegistry()
-        .keys()
-        .map(k => ({ label: k, value: k })),
-    },
-    {
-      Header: t('Datasource'),
-      id: 'datasource_id',
-      input: 'select',
-      operator: 'eq',
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchDatasets(
-        createErrorHandler(errMsg =>
-          props.addDangerToast(
-            t(
-              'An error occurred while fetching chart dataset values: %s',
-              errMsg,
+        paginate: true,
+      },
+      {
+        Header: t('Viz Type'),
+        id: 'viz_type',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'All',
+        selects: getChartMetadataRegistry()
+          .keys()
+          .map(k => ({ label: k, value: k })),
+      },
+      {
+        Header: t('Datasource'),
+        id: 'datasource_id',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchDatasets(
+          createErrorHandler(errMsg =>
+            props.addDangerToast(
+              t(
+                'An error occurred while fetching chart dataset values: %s',
+                errMsg,
+              ),
             ),
           ),
         ),
-      ),
-      paginate: false,
-    },
-    {
-      Header: t('Search'),
-      id: 'slice_name',
-      input: 'search',
-      operator: 'name_or_description',
-    },
-  ];
+        paginate: false,
+      },
+      {
+        Header: t('Search'),
+        id: 'slice_name',
+        input: 'search',
+        operator: 'name_or_description',
+      },
+    ],
+    [],
+  );
 
   const sortTypes = [
     {
@@ -535,7 +441,7 @@ function ChartList(props: ChartListProps) {
       <ListViewCard
         loading={chart.loading}
         title={chart.slice_name}
-        url={state.bulkSelectEnabled ? undefined : chart.url}
+        url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url ?? ''}
         imgFallbackURL={'/static/assets/images/chart-card-fallback.png'}
         description={t('Last modified %s', chart.changed_on_delta_humanized)}
@@ -558,7 +464,7 @@ function ChartList(props: ChartListProps) {
               itemId={chart.id}
               fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
               saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-              isStarred={state.favoriteStatus[chart.id]}
+              isStarred={favoriteStatus[chart.id]}
               width={20}
               height={20}
             />
@@ -570,14 +476,6 @@ function ChartList(props: ChartListProps) {
       />
     );
   }
-
-  const {
-    bulkSelectEnabled,
-    charts,
-    chartCount,
-    loading,
-    sliceCurrentlyEditing,
-  } = state;
 
   return (
     <>
