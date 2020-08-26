@@ -17,18 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { styledMount as mount } from 'spec/helpers/theming';
 
 import ChartList from 'src/views/CRUD/chart/ChartList';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ListViewCard from 'src/components/ListViewCard';
-
 // store needed for withToasts(ChartTable)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -78,8 +78,10 @@ describe('ChartList', () => {
   const mockedProps = {};
   const wrapper = mount(<ChartList {...mockedProps} />, {
     context: { store },
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
+  });
+
+  beforeAll(async () => {
+    await waitForComponentToPaint(wrapper);
   });
 
   it('renders', () => {
