@@ -122,6 +122,11 @@ const SupersetButton = styled(BootstrapButton)`
     &-dashed {
       border-style: dashed;
     }
+    &-link{
+      &&, &:hover, &:active, &[disabled], &[disabled]:hover{
+        background: none;
+      }
+    }
     &-primary {
       background-color: ${({ theme }) => theme.colors.primary.dark1};
       color: ${({ theme }) => theme.colors.grayscale.light5};
