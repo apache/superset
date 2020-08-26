@@ -22,6 +22,18 @@ import { QueryFormData } from '@superset-ui/query';
 import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
+export type Metric = {
+  metric_name: string;
+  verbose_name?: string;
+  label?: string;
+  description?: string;
+  warning_text?: string;
+  expression?: string;
+  is_certified?: boolean;
+  certified_by?: string | null;
+  certification_details?: string | null;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDict = Record<string, any>;
 interface Action {
