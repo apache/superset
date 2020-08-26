@@ -397,7 +397,7 @@ class TestDashboard(SupersetTestCase):
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn("/superset/dashboard/empty_dashboard/", resp)
 
-    def test_users_can_not_view_published_dashboard_witout_dashboard_permissions(self):
+    def test_users_can_not_view_published_dashboard_without_dashboard_permissions(self):
         table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
         # get a slice from the allowed table
         slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
@@ -431,7 +431,7 @@ class TestDashboard(SupersetTestCase):
         finally:
             self.revoke_public_access_to_table(table)
 
-    def test_users_can_view_published_dashboard(self):
+    def test_users_can_view_published_dashboard_with_all_dashboard_access(self):
         table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
         # get a slice from the allowed table
         slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
@@ -464,6 +464,80 @@ class TestDashboard(SupersetTestCase):
         finally:
             self.revoke_public_access_to_table(table)
             self.revoke_access_to_all_dashboards()
+
+    def test_users_can_view_permitted_dashboard(self):
+        table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
+        # get a slice from the allowed table
+        slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        self.grant_public_access_to_table(table)
+        first_dash_slug = f"first_dash_{random()}"
+        second_dash_slug = f"second_dash_{random()}"
+
+        # Create a published and hidden dashboard and add them to the database
+        first_dash = Dashboard()
+        first_dash.dashboard_title = "Published Dashboard"
+        first_dash.slug = first_dash_slug
+        first_dash.slices = [slice]
+        first_dash.published = True
+
+        second_dash = Dashboard()
+        second_dash.dashboard_title = "Hidden Dashboard"
+        second_dash.slug = second_dash_slug
+        second_dash.slices = [slice]
+        second_dash.published = True
+        self.grant_access_to_dashboard(first_dash)
+        self.grant_access_to_dashboard(second_dash)
+
+        try:
+            db.session.merge(first_dash)
+            db.session.merge(second_dash)
+            db.session.commit()
+
+            resp = self.get_resp("/api/v1/dashboard/")
+            self.assertIn(f"/superset/dashboard/{second_dash_slug}/", resp)
+            self.assertIn(f"/superset/dashboard/{first_dash_slug}/", resp)
+        finally:
+            db.session.delete(first_dash)
+            db.session.delete(second_dash)
+            db.session.commit()
+            self.revoke_access_to_dashboard(first_dash)
+            self.revoke_access_to_dashboard(second_dash)
+            self.revoke_public_access_to_table(table)
+
+    def test_users_can_not_view_not_permitted_dashboard(self):
+        table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
+        # get a slice from the allowed table
+        slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        self.grant_public_access_to_table(table)
+        first_dash_slug = f"first_dash_{random()}"
+        second_dash_slug = f"second_dash_{random()}"
+
+        # Create a published and hidden dashboard and add them to the database
+        first_dash = Dashboard()
+        first_dash.dashboard_title = "Published Dashboard"
+        first_dash.slug = first_dash_slug
+        first_dash.slices = [slice]
+        first_dash.published = True
+
+        second_dash = Dashboard()
+        second_dash.dashboard_title = "Hidden Dashboard"
+        second_dash.slug = second_dash_slug
+        second_dash.slices = [slice]
+        second_dash.published = True
+
+        try:
+            db.session.merge(first_dash)
+            db.session.merge(second_dash)
+            db.session.commit()
+
+            resp = self.get_resp("/api/v1/dashboard/")
+            self.assertNotIn(f"/superset/dashboard/{second_dash_slug}/", resp)
+            self.assertNotIn(f"/superset/dashboard/{first_dash_slug}/", resp)
+        finally:
+            db.session.delete(first_dash)
+            db.session.delete(second_dash)
+            db.session.commit()
+            self.revoke_public_access_to_table(table)
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")

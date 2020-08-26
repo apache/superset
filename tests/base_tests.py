@@ -250,18 +250,20 @@ class SupersetTestCase(TestCase):
                 security_manager.add_permission_role(public_role, perm)
 
     @staticmethod
-    def get_dashboards_access_permission_views(edit_too=False):
+    def get_dashboards_access_permission_views(dashboard=None, edit_too=False):
+        used_consts = SecurityConsts.Dashboard if dashboard else SecurityConsts.AllDashboard
+        view_name = dashboard.view_name if dashboard else used_consts.VIEW_NAME
         pvm_pairs = [
             (
-                SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
-                SecurityConsts.AllDashboard.VIEW_NAME,
+                used_consts.ACCESS_PERMISSION_NAME,
+                view_name
             )
         ]
-        if edit_too:
+        if edit_too and not dashboard:
             pvm_pairs.append(
                 (
-                    SecurityConsts.AllDashboard.EDIT_PERMISSION_NAME,
-                    SecurityConsts.AllDashboard.VIEW_NAME,
+                    used_consts.EDIT_PERMISSION_NAME,
+                    view_name,
                 )
             )
         return map(
@@ -270,14 +272,20 @@ class SupersetTestCase(TestCase):
         )
 
     def grant_access_to_all_dashboards(self, role_name="Public"):
+        self.grant_access_to_dashboard(None, role_name)
+
+    def revoke_access_to_all_dashboards(self, role_name="Public"):
+        self.revoke_access_to_dashboard(None, role_name)
+
+    def grant_access_to_dashboard(self, dashboard, role_name="Public"):
         role = security_manager.find_role(role_name)
-        pvs = self.get_dashboards_access_permission_views()
+        pvs = self.get_dashboards_access_permission_views(dashboard)
         for pv in pvs:
             security_manager.add_permission_role(role, pv)
 
-    def revoke_access_to_all_dashboards(self, role_name="Public"):
+    def revoke_access_to_dashboard(self, dashboard, role_name="Public"):
         role = security_manager.find_role(role_name)
-        pvs = self.get_dashboards_access_permission_views()
+        pvs = self.get_dashboards_access_permission_views(dashboard)
         for pv in pvs:
             security_manager.del_permission_role(role, pv)
 

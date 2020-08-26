@@ -22,7 +22,7 @@ from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 
 from superset import security_manager
 from superset.constants import Security as SecurityConsts
-
+import re
 logger = logging.getLogger(__name__)
 
 
@@ -38,6 +38,10 @@ class SecuredMixin:
         return [(SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME, self.view_name)]
 
 
+ID_REGEX_PATTERN = r'\(id:(?P<id>\d+)\)$'
+id_finder = re.compile(ID_REGEX_PATTERN)
+
+
 class DashboardSecurityManager:
     @staticmethod
     def can_access_all() -> bool:
@@ -45,6 +49,17 @@ class DashboardSecurityManager:
             SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
             SecurityConsts.AllDashboard.VIEW_NAME,
         )
+
+    @classmethod
+    def get_access_list(cls):
+        view_names = security_manager.user_view_menu_names(SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME)
+        return set(map(cls.parse_id_from_view_name, view_names))
+
+    @staticmethod
+    def parse_id_from_view_name(view_name):
+        matched = id_finder.search(view_name)
+        if matched:
+            return matched.group('id')
 
 
 class DashboardSecurityOrientedDBEventsHandler:
