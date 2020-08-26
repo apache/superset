@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import React, { FunctionComponent, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 import cx from 'classnames';
