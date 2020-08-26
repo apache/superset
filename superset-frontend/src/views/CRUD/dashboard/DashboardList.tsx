@@ -18,21 +18,18 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import rison from 'rison';
 import {
   createFetchRelated,
   createErrorHandler,
   createFaveStarHandlers,
 } from 'src/views/CRUD/utils';
+import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
-import ListView, {
-  ListViewProps,
-  FetchDataConfig,
-  Filters,
-} from 'src/components/ListView';
+import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import ExpandableList from 'src/components/ExpandableList';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -51,17 +48,6 @@ interface DashboardListProps {
   addSuccessToast: (msg: string) => void;
 }
 
-interface State {
-  bulkSelectEnabled: boolean;
-  dashboardCount: number;
-  dashboards: Dashboard[];
-  favoriteStatus: object;
-  dashboardToEdit: Dashboard | null;
-  lastFetchDataConfig: FetchDataConfig | null;
-  loading: boolean;
-  permissions: string[];
-}
-
 interface Dashboard {
   changed_by_name: string;
   changed_by_url: string;
@@ -76,45 +62,28 @@ interface Dashboard {
 }
 
 function DashboardList(props: DashboardListProps) {
-  const [state, setState] = useState<State>({
-    bulkSelectEnabled: false,
-    dashboardCount: 0,
-    dashboards: [],
-    favoriteStatus: {}, // Hash mapping dashboard id to 'isStarred' status
-    dashboardToEdit: null,
-    lastFetchDataConfig: null,
-    loading: true,
-    permissions: [],
-  });
+  const {
+    state: {
+      loading,
+      resourceCount: dashboardCount,
+      resourceCollection: dashboards,
+      bulkSelectEnabled,
+    },
+    setResourceCollection: setDashboards,
+    hasPerm,
+    fetchData,
+    toggleBulkSelect,
+    refreshData,
+  } = useListViewResource<Dashboard>(
+    'dashboard',
+    t('dashboard'),
+    props.addDangerToast,
+  );
+  const [favoriteStatus, setFavoriteStatus] = useState<object>({});
 
-  function updateState(update: Partial<State>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
-
-  useEffect(() => {
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/_info`,
-    }).then(
-      ({ json: infoJson = {} }) => {
-        updateState({
-          permissions: infoJson.permissions,
-        });
-      },
-      createErrorHandler(errMsg =>
-        props.addDangerToast(
-          t('An error occurred while fetching Dashboards: %s, %s', errMsg),
-        ),
-      ),
-    );
-  }, []);
-
-  function hasPerm(perm: string) {
-    if (!state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(state.permissions.find(p => p === perm));
-  }
+  const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
+    null,
+  );
 
   const canEdit = hasPerm('can_edit');
 
@@ -126,94 +95,30 @@ function DashboardList(props: DashboardListProps) {
 
   const fetchFaveStarMethods = createFaveStarHandlers(
     FAVESTAR_BASE_URL,
-    state.favoriteStatus,
-    favoriteStatus => updateState({ favoriteStatus }),
+    favoriteStatus,
+    setFavoriteStatus,
     (message: string) => {
       props.addDangerToast(message);
     },
   );
 
-  const fetchData = useCallback(
-    ({
-      pageIndex,
-      pageSize,
-      sortBy,
-      filters: filterValues,
-    }: FetchDataConfig) => {
-      // set loading state, cache the last config for fetching data in this component.
-      updateState({
-        lastFetchDataConfig: {
-          filters: filterValues,
-          pageIndex,
-          pageSize,
-          sortBy,
-        },
-        loading: true,
-      });
-      const filterExps = filterValues.map(
-        ({ id: col, operator: opr, value }) => ({
-          col,
-          opr,
-          value,
-        }),
-      );
-
-      const queryParams = rison.encode({
-        order_column: sortBy[0].id,
-        order_direction: sortBy[0].desc ? 'desc' : 'asc',
-        page: pageIndex,
-        page_size: pageSize,
-        ...(filterExps.length ? { filters: filterExps } : {}),
-      });
-
-      return SupersetClient.get({
-        endpoint: `/api/v1/dashboard/?q=${queryParams}`,
-      })
-        .then(
-          ({ json = {} }) => {
-            updateState({
-              dashboards: json.result,
-              dashboardCount: json.count,
-              loading: false,
-            });
-          },
-          createErrorHandler(errMsg =>
-            props.addDangerToast(
-              t('An error occurred while fetching dashboards: %s', errMsg),
-            ),
-          ),
-        )
-        .finally(() => {
-          updateState({ loading: false });
-        });
-    },
-    [],
-  );
-
-  function toggleBulkSelect() {
-    updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
-  }
-
   function openDashboardEditModal(dashboard: Dashboard) {
-    updateState({
-      dashboardToEdit: dashboard,
-    });
+    setDashboardToEdit(dashboard);
   }
 
-  function handleDashboardEdit(edits: any) {
-    updateState({ loading: true });
+  function handleDashboardEdit(edits: Dashboard) {
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
-        updateState({
-          dashboards: state.dashboards.map(dashboard => {
+        setDashboards(
+          dashboards.map(dashboard => {
             if (dashboard.id === json.id) {
               return json.result;
             }
             return dashboard;
           }),
-        });
+        );
       },
       createErrorHandler(errMsg =>
         props.addDangerToast(
@@ -231,10 +136,7 @@ function DashboardList(props: DashboardListProps) {
       endpoint: `/api/v1/dashboard/${id}`,
     }).then(
       () => {
-        const { lastFetchDataConfig } = state;
-        if (lastFetchDataConfig) {
-          fetchData(lastFetchDataConfig);
-        }
+        refreshData();
         props.addSuccessToast(t('Deleted: %s', dashboardTitle));
       },
       createErrorHandler(errMsg =>
@@ -245,17 +147,13 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  function handleBulkDashboardDelete(dashboards: Dashboard[]) {
+  function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
       endpoint: `/api/v1/dashboard/?q=${rison.encode(
-        dashboards.map(({ id }) => id),
+        dashboardsToDelete.map(({ id }) => id),
       )}`,
     }).then(
       ({ json = {} }) => {
-        const { lastFetchDataConfig } = state;
-        if (lastFetchDataConfig) {
-          fetchData(lastFetchDataConfig);
-        }
         props.addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
@@ -266,10 +164,10 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  function handleBulkDashboardExport(dashboards: Dashboard[]) {
+  function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
     return window.location.assign(
       `/api/v1/dashboard/export/?q=${rison.encode(
-        dashboards.map(({ id }) => id),
+        dashboardsToExport.map(({ id }) => id),
       )}`,
     );
   }
@@ -282,7 +180,7 @@ function DashboardList(props: DashboardListProps) {
             itemId={original.id}
             fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
             saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-            isStarred={!!state.favoriteStatus[original.id]}
+            isStarred={!!favoriteStatus[original.id]}
             height={20}
           />
         );
@@ -536,7 +434,7 @@ function DashboardList(props: DashboardListProps) {
         titleRight={
           <Label>{dashboard.published ? 'published' : 'draft'}</Label>
         }
-        url={state.bulkSelectEnabled ? undefined : dashboard.url}
+        url={bulkSelectEnabled ? undefined : dashboard.url}
         imgURL={dashboard.thumbnail_url}
         imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
         description={t(
@@ -559,7 +457,7 @@ function DashboardList(props: DashboardListProps) {
               itemId={dashboard.id}
               fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
               saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-              isStarred={!!state.favoriteStatus[dashboard.id]}
+              isStarred={!!favoriteStatus[dashboard.id]}
               width={20}
               height={20}
             />
@@ -571,14 +469,6 @@ function DashboardList(props: DashboardListProps) {
       />
     );
   }
-
-  const {
-    bulkSelectEnabled,
-    dashboards,
-    dashboardCount,
-    loading,
-    dashboardToEdit,
-  } = state;
 
   return (
     <>
@@ -624,7 +514,7 @@ function DashboardList(props: DashboardListProps) {
                 <PropertiesModal
                   dashboardId={dashboardToEdit.id}
                   show
-                  onHide={() => updateState({ dashboardToEdit: null })}
+                  onHide={() => setDashboardToEdit(null)}
                   onSubmit={handleDashboardEdit}
                 />
               )}

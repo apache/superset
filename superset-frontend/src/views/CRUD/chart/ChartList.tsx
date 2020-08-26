@@ -111,9 +111,7 @@ function ChartList(props: ChartListProps) {
   ] = useState<Slice | null>(null);
 
   const canEdit = hasPerm('can_edit');
-
   const canDelete = hasPerm('can_delete');
-
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   const fetchFaveStarMethods = createFaveStarHandlers(

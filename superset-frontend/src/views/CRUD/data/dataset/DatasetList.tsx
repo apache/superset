@@ -18,22 +18,14 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
-import React, {
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import rison from 'rison';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DeleteModal from 'src/components/DeleteModal';
-import ListView, {
-  ListViewProps,
-  FetchDataConfig,
-  Filters,
-} from 'src/components/ListView';
+import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import AvatarIcon from 'src/components/AvatarIcon';
@@ -54,6 +46,7 @@ type Dataset = {
     id: string;
     database_name: string;
   };
+  kind: string;
   explore_url: string;
   id: number;
   owners: Array<Owner>;
@@ -64,20 +57,6 @@ type Dataset = {
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-}
-
-interface DatasetListState {
-  bulkSelectEnabled: boolean;
-  datasetCount: number;
-  datasets: Dataset[];
-  lastFetchDataConfig: FetchDataConfig | null;
-  loading: boolean;
-  permissions: string[];
-  datasetAddModalOpen: boolean;
-  datasetCurrentlyDeleting:
-    | (Dataset & { chart_count: number; dashboard_count: number })
-    | null;
-  datasetCurrentlyEditing: Dataset | null;
 }
 
 export const createFetchSchemas = (
@@ -118,21 +97,31 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
-  const [state, setState] = useState<DatasetListState>({
-    bulkSelectEnabled: false,
-    datasetCount: 0,
-    datasets: [],
-    lastFetchDataConfig: null,
-    loading: true,
-    permissions: [],
-    datasetCurrentlyDeleting: null,
-    datasetCurrentlyEditing: null,
-    datasetAddModalOpen: false,
-  });
+  const {
+    state: {
+      loading,
+      resourceCount: datasetCount,
+      resourceCollection: datasets,
+      bulkSelectEnabled,
+    },
+    hasPerm,
+    fetchData,
+    toggleBulkSelect,
+    refreshData,
+  } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
-  function updateState(update: Partial<DatasetListState>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
+  const [datasetAddModalOpen, setDatasetAddModalOpen] = useState<boolean>(
+    false,
+  );
+
+  const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
+    (Dataset & { chart_count: number; dashboard_count: number }) | null
+  >(null);
+
+  const [
+    datasetCurrentlyEditing,
+    setDatasetCurrentlyEditing,
+  ] = useState<Dataset | null>(null);
 
   const filterTypes: Filters = [
     {
@@ -201,33 +190,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     },
   ];
 
-  const fetchDatasetInfo = () => {
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/_info`,
-    }).then(
-      ({ json: infoJson = {} }) => {
-        updateState({
-          permissions: infoJson.permissions,
-        });
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(t('An error occurred while fetching datasets', errMsg)),
-      ),
-    );
-  };
-
-  useEffect(() => {
-    fetchDatasetInfo();
-  }, []);
-
-  const hasPerm = (perm: string) => {
-    if (!state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(state.permissions.find(p => p === perm));
-  };
-
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canCreate = hasPerm('can_add');
@@ -240,7 +202,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     })
       .then(({ json = {} }) => {
         const owners = json.result.owners.map((owner: any) => owner.id);
-        updateState({ datasetCurrentlyEditing: { ...json.result, owners } });
+        setDatasetCurrentlyEditing({ ...json.result, owners });
       })
       .catch(() => {
         addDangerToast(
@@ -254,12 +216,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       endpoint: `/api/v1/dataset/${dataset.id}/related_objects`,
     })
       .then(({ json = {} }) => {
-        updateState({
-          datasetCurrentlyDeleting: {
-            ...dataset,
-            chart_count: json.charts.count,
-            dashboard_count: json.dashboards.count,
-          },
+        setDatasetCurrentlyDeleting({
+          ...dataset,
+          chart_count: json.charts.count,
+          dashboard_count: json.dashboards.count,
         });
       })
       .catch(
@@ -466,84 +426,32 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           <i className="fa fa-plus" /> {t('Dataset')}{' '}
         </>
       ),
-      onClick: () => updateState({ datasetAddModalOpen: true }),
+      onClick: () => setDatasetAddModalOpen(true),
     };
   }
 
   if (canDelete) {
     menuData.secondaryButton = {
       name: t('Bulk Select'),
-      onClick: () =>
-        updateState({ bulkSelectEnabled: !state.bulkSelectEnabled }),
+      onClick: toggleBulkSelect,
     };
   }
 
   const closeDatasetDeleteModal = () => {
-    updateState({ datasetCurrentlyDeleting: null });
+    setDatasetCurrentlyDeleting(null);
   };
 
-  const closeDatasetEditModal = () =>
-    updateState({ datasetCurrentlyEditing: null });
-
-  const fetchData = useCallback(
-    ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
-      // set loading state, cache the last config for fetching data in this component.
-      updateState({
-        lastFetchDataConfig: {
-          filters,
-          pageIndex,
-          pageSize,
-          sortBy,
-        },
-        loading: true,
-      });
-
-      const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
-        col,
-        opr,
-        value,
-      }));
-
-      const queryParams = rison.encode({
-        order_column: sortBy[0].id,
-        order_direction: sortBy[0].desc ? 'desc' : 'asc',
-        page: pageIndex,
-        page_size: pageSize,
-        ...(filterExps.length ? { filters: filterExps } : {}),
-      });
-
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset/?q=${queryParams}`,
-      })
-        .then(
-          ({ json }) => {
-            updateState({
-              datasets: json.result,
-              datasetCount: json.count,
-            });
-          },
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t('An error occurred while fetching datasets: %s', errMsg),
-            ),
-          ),
-        )
-        .finally(() => {
-          updateState({ loading: false });
-        });
-    },
-    [],
-  );
+  const closeDatasetEditModal = () => {
+    setDatasetCurrentlyEditing(null);
+  };
 
   const handleDatasetDelete = ({ id, table_name: tableName }: Dataset) => {
     SupersetClient.delete({
       endpoint: `/api/v1/dataset/${id}`,
     }).then(
       () => {
-        if (state.lastFetchDataConfig) {
-          fetchData(state.lastFetchDataConfig);
-        }
-        updateState({ datasetCurrentlyDeleting: null });
+        refreshData();
+        setDatasetCurrentlyDeleting(null);
         addSuccessToast(t('Deleted: %s', tableName));
       },
       createErrorHandler(errMsg =>
@@ -554,16 +462,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
-  const handleBulkDatasetDelete = () => {
+  const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
     SupersetClient.delete({
       endpoint: `/api/v1/dataset/?q=${rison.encode(
-        state.datasets.map(({ id }) => id),
+        datasetsToDelete.map(({ id }) => id),
       )}`,
     }).then(
       ({ json = {} }) => {
-        if (state.lastFetchDataConfig) {
-          fetchData(state.lastFetchDataConfig);
-        }
         addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
@@ -574,33 +479,25 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
-  const handleUpdateDataset = () => {
-    if (state.lastFetchDataConfig) {
-      fetchData(state.lastFetchDataConfig);
-    }
-  };
-
   return (
     <>
       <SubMenu {...menuData} />
       <AddDatasetModal
-        show={state.datasetAddModalOpen}
-        onHide={() => updateState({ datasetAddModalOpen: false })}
-        onDatasetAdd={() => {
-          if (state.lastFetchDataConfig) fetchData(state.lastFetchDataConfig);
-        }}
+        show={datasetAddModalOpen}
+        onHide={() => setDatasetAddModalOpen(false)}
+        onDatasetAdd={refreshData}
       />
-      {state.datasetCurrentlyDeleting && (
+      {datasetCurrentlyDeleting && (
         <DeleteModal
           description={t(
             'The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
-            state.datasetCurrentlyDeleting.table_name,
-            state.datasetCurrentlyDeleting.chart_count,
-            state.datasetCurrentlyDeleting.dashboard_count,
+            datasetCurrentlyDeleting.table_name,
+            datasetCurrentlyDeleting.chart_count,
+            datasetCurrentlyDeleting.dashboard_count,
           )}
           onConfirm={() => {
-            if (state.datasetCurrentlyDeleting) {
-              handleDatasetDelete(state.datasetCurrentlyDeleting);
+            if (datasetCurrentlyDeleting) {
+              handleDatasetDelete(datasetCurrentlyDeleting);
             }
           }}
           onHide={closeDatasetDeleteModal}
@@ -608,10 +505,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           title={t('Delete Dataset?')}
         />
       )}
-      {state.datasetCurrentlyEditing && (
+      {datasetCurrentlyEditing && (
         <DatasourceModal
-          datasource={state.datasetCurrentlyEditing}
-          onDatasourceSave={handleUpdateDataset}
+          datasource={datasetCurrentlyEditing}
+          onDatasourceSave={refreshData}
           onHide={closeDatasetEditModal}
           show
         />
@@ -639,18 +536,16 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             <ListView
               className="dataset-list-view"
               columns={columns}
-              data={state.datasets}
-              count={state.datasetCount}
+              data={datasets}
+              count={datasetCount}
               pageSize={PAGE_SIZE}
               fetchData={fetchData}
               filters={filterTypes}
-              loading={state.loading}
+              loading={loading}
               initialSort={initialSort}
               bulkActions={bulkActions}
-              bulkSelectEnabled={state.bulkSelectEnabled}
-              disableBulkSelect={() =>
-                updateState({ bulkSelectEnabled: false })
-              }
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={toggleBulkSelect}
               renderBulkSelectCopy={selected => {
                 const { virtualCount, physicalCount } = selected.reduce(
                   (acc, e) => {

@@ -119,7 +119,7 @@ export function useListViewResource<D extends object = any>(
       });
 
       return SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${queryParams}`,
+        endpoint: `/api/v1/${resource}/?q=${queryParams}`,
       })
         .then(
           ({ json = {} }) => {
