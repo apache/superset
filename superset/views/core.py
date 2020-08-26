@@ -18,7 +18,6 @@
 import logging
 import re
 from collections import defaultdict
-from contextlib import closing
 from datetime import datetime
 from typing import Any, cast, Dict, List, Optional, Union
 from urllib import parse
@@ -33,7 +32,7 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import (
     ArgumentError,
@@ -83,10 +82,7 @@ from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
-from superset.security.analytics_db_safety import (
-    check_sqlalchemy_uri,
-    DBSecurityException,
-)
+from superset.security.analytics_db_safety import DBSecurityException
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.typing import FlaskResponse
@@ -1095,43 +1091,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self,
     ) -> FlaskResponse:
         """Tests a sqla connection"""
-        db_name = request.json.get("name")
         uri = request.json.get("uri")
         try:
-            if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-                check_sqlalchemy_uri(uri)
-            # if the database already exists in the database, only its safe
-            # (password-masked) URI would be shown in the UI and would be passed in the
-            # form data so if the database already exists and the form was submitted
-            # with the safe URI, we assume we should retrieve the decrypted URI to test
-            # the connection.
-            if db_name:
-                existing_database = (
-                    db.session.query(models.Database)
-                    .filter_by(database_name=db_name)
-                    .one_or_none()
-                )
-                if existing_database and uri == existing_database.safe_sqlalchemy_uri():
-                    uri = existing_database.sqlalchemy_uri_decrypted
-
-            # this is the database instance that will be tested
-            database = models.Database(
-                # extras is sent as json, but required to be a string in the Database
-                # model
+            DatabaseDAO.test_connection(
+                db_name=request.json.get("name"),
+                uri=uri,
                 server_cert=request.json.get("server_cert"),
                 extra=json.dumps(request.json.get("extras", {})),
                 impersonate_user=request.json.get("impersonate_user"),
                 encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
             )
-            database.set_sqlalchemy_uri(uri)
-            database.db_engine_spec.mutate_db_for_connection_test(database)
-
-            username = g.user.username if g.user is not None else None
-            engine = database.get_sqla_engine(user_name=username)
-
-            with closing(engine.connect()) as conn:
-                conn.scalar(select([1]))
-                return json_success('"OK"')
+            return json_success('"OK"')
         except CertificateException as ex:
             logger.info("Certificate exception")
             return json_error_response(ex.message)

@@ -49,6 +49,7 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.extensions import security_manager
 from superset.models.core import Database
+from superset.security.analytics_db_safety import DBSecurityException
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
@@ -501,3 +502,52 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(404, message="Table not found on the database")
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
+
+    @expose("/test_connection", methods=["POST"])
+    @protect()
+    @safe
+    @event_logger.log_this
+    @statsd_metrics
+    def testconn(self) -> FlaskResponse:  # pylint: disable=too-many-return-statements
+        """Tests a sqla connection"""
+        uri = request.json.get("uri")
+        try:
+            DatabaseDAO.test_connection(
+                db_name=request.json.get("name"),
+                uri=uri,
+                server_cert=request.json.get("server_cert"),
+                extra=json.dumps(request.json.get("extras", {})),
+                impersonate_user=request.json.get("impersonate_user"),
+                encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
+            )
+            return self.response(200, message="OK")
+        except CertificateException as ex:
+            logger.info("Certificate exception")
+            return self.response(500, message=ex.message)
+        except (NoSuchModuleError, ModuleNotFoundError):
+            logger.info("Invalid driver")
+            driver_name = make_url(uri).drivername
+            return self.response(
+                400,
+                message="Could not load database driver: %(driver_name)s",
+                driver_name=driver_name,
+            )
+        except ArgumentError:
+            logger.info("Invalid URI")
+            return self.response_422(
+                message="Invalid connection string, a valid string usually follows:\n"
+                "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
+            )
+        except OperationalError:
+            logger.warning("Connection failed")
+            return self.response(
+                500, message="Connection failed, please check your connection settings"
+            )
+        except DBSecurityException as ex:
+            logger.warning("Stopped an unsafe database connection")
+            return self.response_400(message=str(ex))
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error("Unexpected error %s", type(ex).__name__)
+            return self.response_400(
+                message="Unexpected error occurred, please check your logs for details"
+            )
