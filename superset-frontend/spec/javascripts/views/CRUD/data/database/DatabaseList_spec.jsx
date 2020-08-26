@@ -22,6 +22,7 @@ import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
+import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import SubMenu from 'src/components/Menu/SubMenu';
 
 // store needed for withToasts(DatabaseList)
@@ -37,5 +38,9 @@ describe('DatabaseList', () => {
 
   it('renders a SubMenu', () => {
     expect(wrapper.find(SubMenu)).toExist();
+  });
+
+  it('renders a DatabaseModal', () => {
+    expect(wrapper.find(DatabaseModal)).toExist();
   });
 });
