@@ -26,13 +26,13 @@ from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.orm import Session
-
 from tests.test_app import app
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import Security as SecurityConsts
 from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
@@ -248,6 +248,38 @@ class SupersetTestCase(TestCase):
                 and table.perm in perm.view_menu.name
             ):
                 security_manager.add_permission_role(public_role, perm)
+
+    @staticmethod
+    def get_dashboards_access_permission_views(edit_too=False):
+        pvm_pairs = [
+            (
+                SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
+                SecurityConsts.AllDashboard.VIEW_NAME,
+            )
+        ]
+        if edit_too:
+            pvm_pairs.append(
+                (
+                    SecurityConsts.AllDashboard.EDIT_PERMISSION_NAME,
+                    SecurityConsts.AllDashboard.VIEW_NAME,
+                )
+            )
+        return map(
+            lambda pvm: security_manager.find_permission_view_menu(pvm[0], pvm[1]),
+            pvm_pairs,
+        )
+
+    def grant_access_to_all_dashboards(self, role_name="Public"):
+        role = security_manager.find_role(role_name)
+        pvs = self.get_dashboards_access_permission_views()
+        for pv in pvs:
+            security_manager.add_permission_role(role, pv)
+
+    def revoke_access_to_all_dashboards(self, role_name="Public"):
+        role = security_manager.find_role(role_name)
+        pvs = self.get_dashboards_access_permission_views()
+        for pv in pvs:
+            security_manager.del_permission_role(role, pv)
 
     def revoke_public_access_to_table(self, table):
         public_role = security_manager.find_role("Public")

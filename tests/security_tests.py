@@ -510,10 +510,14 @@ class TestRolePermission(SupersetTestCase):
         delete_schema_perm("[examples].[2]")
 
     def test_gamma_user_schema_access_to_dashboards(self):
-        self.login(username="gamma")
-        data = str(self.client.get("api/v1/dashboard/").data)
-        self.assertIn("/superset/dashboard/world_health/", data)
-        self.assertNotIn("/superset/dashboard/births/", data)
+        self.grant_access_to_all_dashboards("Gamma")
+        try:
+            self.login(username="gamma")
+            data = str(self.client.get("api/v1/dashboard/").data)
+            self.assertIn("/superset/dashboard/world_health/", data)
+            self.assertNotIn("/superset/dashboard/births/", data)
+        finally:
+            self.revoke_access_to_all_dashboards("Gamma")
 
     def test_gamma_user_schema_access_to_tables(self):
         self.login(username="gamma")
@@ -716,23 +720,8 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
-        self.assertTrue(
-            security_manager._is_alpha_only(
-                security_manager.find_permission_view_menu(
-                    SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
-                    SecurityConsts.AllDashboard.VIEW_NAME,
-                )
-            )
-        )
-
-        self.assertTrue(
-            security_manager._is_alpha_only(
-                security_manager.find_permission_view_menu(
-                    SecurityConsts.AllDashboard.EDIT_PERMISSION_NAME,
-                    SecurityConsts.AllDashboard.VIEW_NAME,
-                )
-            )
-        )
+        for pv in self.get_dashboards_access_permission_views(edit_too=True):
+            self.assertTrue(security_manager._is_alpha_only(pv))
 
     def test_is_gamma_pvm(self):
         self.assertTrue(

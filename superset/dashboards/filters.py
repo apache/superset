@@ -21,6 +21,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
+from superset.dashboards.security import DashboardSecurityManager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -67,6 +68,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(Dashboard.slices)
             .filter(
                 and_(
+                    DashboardSecurityManager.can_access_all(),
                     Dashboard.published == True,  # pylint: disable=singleton-comparison
                     or_(
                         Slice.perm.in_(datasource_perms),
