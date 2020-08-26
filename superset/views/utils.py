@@ -116,8 +116,11 @@ def get_form_data(
     slice_id: Optional[int] = None, use_slice_data: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
     form_data = {}
+    request_json_data = request.json["queries"][0] if request.is_json else {}
     request_form_data = request.form.get("form_data")
     request_args_data = request.args.get("form_data")
+    if request_json_data:
+        form_data.update(request_json_data)
     if request_form_data:
         form_data.update(json.loads(request_form_data))
     # request params can overwrite the body
