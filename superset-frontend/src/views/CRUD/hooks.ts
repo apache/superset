@@ -168,7 +168,15 @@ export function useListViewResource<D extends object = any>(
   };
 }
 
-export function useFavoriteStatus(initialState: FavoriteStatus) {
+// there hooks api has some known limitations around stale state in closures.
+// See https://github.com/reactjs/rfcs/blob/master/text/0068-react-hooks.md#drawbacks
+// the useRef hook is a way of getting around these limitations by having a consistent ref
+// that points to the latest value.
+export function useFavoriteStatus(
+  initialState: FavoriteStatus,
+  baseURL: string,
+  handleErrorFunc: (message: string) => void,
+) {
   const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>(
     initialState,
   );
@@ -177,9 +185,34 @@ export function useFavoriteStatus(initialState: FavoriteStatus) {
     favoriteStatusRef.current = favoriteStatus;
   });
 
-  return [
-    favoriteStatusRef,
-    (update: FavoriteStatus) =>
-      setFavoriteStatus(currentState => ({ ...currentState, ...update })),
-  ] as const;
+  const updateFavoriteStatus = (update: FavoriteStatus) =>
+    setFavoriteStatus(currentState => ({ ...currentState, ...update }));
+
+  const fetchFaveStar = (id: number) => {
+    SupersetClient.get({
+      endpoint: `${baseURL}/${id}/count/`,
+    })
+      .then(({ json }) => {
+        updateFavoriteStatus({ [id]: json.count > 0 });
+      })
+      .catch(() =>
+        handleErrorFunc(t('There was an error fetching the favorite status')),
+      );
+  };
+
+  const saveFaveStar = (id: number, isStarred: boolean) => {
+    const urlSuffix = isStarred ? 'unselect' : 'select';
+
+    SupersetClient.get({
+      endpoint: `${baseURL}/${id}/${urlSuffix}/`,
+    })
+      .then(() => {
+        updateFavoriteStatus({ [id]: !isStarred });
+      })
+      .catch(() =>
+        handleErrorFunc(t('There was an error saving the favorite status')),
+      );
+  };
+
+  return [favoriteStatusRef, fetchFaveStar, saveFaveStar] as const;
 }

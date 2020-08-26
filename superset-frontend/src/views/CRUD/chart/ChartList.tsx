@@ -22,11 +22,7 @@ import { getChartMetadataRegistry } from '@superset-ui/chart';
 import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
-import {
-  createFetchRelated,
-  createErrorHandler,
-  createFaveStarHandlers,
-} from 'src/views/CRUD/utils';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -104,7 +100,13 @@ function ChartList(props: ChartListProps) {
     toggleBulkSelect,
     refreshData,
   } = useListViewResource<Chart>('chart', t('chart'), props.addDangerToast);
-  const [favoriteStatusRef, setFavoriteStatus] = useFavoriteStatus({});
+  const [favoriteStatusRef, fetchFaveStar, saveFaveStar] = useFavoriteStatus(
+    {},
+    FAVESTAR_BASE_URL,
+    (message: string) => {
+      props.addDangerToast(message);
+    },
+  );
   const [
     sliceCurrentlyEditing,
     setSliceCurrentlyEditing,
@@ -113,15 +115,6 @@ function ChartList(props: ChartListProps) {
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-
-  const fetchFaveStarMethods = createFaveStarHandlers(
-    FAVESTAR_BASE_URL,
-    favoriteStatusRef.current,
-    setFavoriteStatus,
-    (message: string) => {
-      props.addDangerToast(message);
-    },
-  );
 
   function openChartEditModal(chart: Chart) {
     setSliceCurrentlyEditing({
@@ -180,8 +173,8 @@ function ChartList(props: ChartListProps) {
     return (
       <FaveStar
         itemId={id}
-        fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
-        saveFaveStar={fetchFaveStarMethods.saveFaveStar}
+        fetchFaveStar={fetchFaveStar}
+        saveFaveStar={saveFaveStar}
         isStarred={!!favoriteStatusRef.current[id]}
         height={20}
         width={20}
