@@ -69,6 +69,12 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     ...commonMenuData,
   };
 
+  const testDB = {
+    id: 10,
+    name: 'test',
+    uri: 'test/test/',
+  };
+
   if (canCreate) {
     menuData.primaryButton = {
       name: (
@@ -79,7 +85,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       ),
       onClick: () => {
         // Ensure modal will be opened in add mode
-        setCurrentDatabase(null);
+        setCurrentDatabase(testDB);
         setDatabaseModalOpen(true);
       },
     };

@@ -26,7 +26,7 @@ import Tabs from 'src/common/components/Tabs';
 import { Tabs as BaseTabs } from 'src/common/components';
 
 export type DatabaseObject = {
-  id: number;
+  id?: number;
   name: string;
   uri: string;
   // TODO: add more props
@@ -47,32 +47,95 @@ const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
+const StyledInputContainer = styled.div`
+  .label {
+    display: block;
+    padding: ${({ theme }) => theme.gridUnit}px 0;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    text-align: left;
+  }
+
+  input[type='text'] {
+    padding: ${({ theme }) => theme.gridUnit * 1.5}px
+      ${({ theme }) => theme.gridUnit * 2}px;
+    border-style: none;
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-radius: ${({ theme }) => theme.gridUnit}px;
+
+    &[name='name'] {
+      width: 40%;
+    }
+  }
+`;
+
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
   addSuccessToast,
   onDatabaseAdd,
   onHide,
   show,
-  database,
+  database = null,
 }) => {
   // const [disableSave, setDisableSave] = useState(true);
-  const [disableSave] = useState(true);
+  const [disableSave] = useState<boolean>(true);
+  const [db, setDB] = useState<DatabaseObject | null>(null);
+  const [isHidden, setIsHidden] = useState<boolean>(true);
+
+  console.log('db', db);
+
+  // Functions
+  const hide = () => {
+    setIsHidden(true);
+    onHide();
+  };
+
   const onSave = () => {
     if (onDatabaseAdd) {
       onDatabaseAdd();
     }
 
-    onHide();
+    hide();
+  };
+
+  const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const target = event.target;
+    const data = {
+      name: db ? db.name : '',
+      uri: db ? db.uri : '',
+      ...db,
+    };
+
+    data[target.name] = target.value;
+
+    setDB(data);
   };
 
   const isEditMode = database !== null;
+
+  // Initialize
+  if (
+    isEditMode &&
+    (!db || !db.id || (database && database.id !== db.id) || (isHidden && show))
+  ) {
+    setDB(database);
+  } else if (!isEditMode && (!db || db.id)) {
+    setDB({
+      name: '',
+      uri: '',
+    });
+  }
+
+  // Show/hide
+  if (isHidden && show) {
+    setIsHidden(false);
+  }
 
   return (
     <Modal
       className="database-modal"
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={onSave}
-      onHide={onHide}
+      onHide={hide}
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       width="750px"
       show={show}
@@ -93,7 +156,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           }
           key="1"
         >
-          Connection Form Data
+          <StyledInputContainer>
+            <div className="label">
+              {t('Datasource Name')}
+              <span className="required">*</span>
+            </div>
+            <input
+              type="text"
+              name="name"
+              value={db ? db.name : ''}
+              placeholder={t('Name your datasource')}
+              onChange={onInputChange}
+            />
+          </StyledInputContainer>
         </TabPane>
         <TabPane tab={<span>{t('Performance')}</span>} key="2">
           Performance Form Data

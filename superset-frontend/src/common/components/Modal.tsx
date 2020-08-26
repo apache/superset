@@ -92,6 +92,7 @@ export default function Modal({
   title,
   width,
   centered,
+  ...rest
 }: ModalProps) {
   return (
     <StyledModal
@@ -118,6 +119,7 @@ export default function Modal({
           {primaryButtonName}
         </Button>,
       ]}
+      {...rest}
     >
       {children}
     </StyledModal>
