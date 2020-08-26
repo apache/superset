@@ -103,9 +103,7 @@ function ChartList(props: ChartListProps) {
   const [favoriteStatusRef, fetchFaveStar, saveFaveStar] = useFavoriteStatus(
     {},
     FAVESTAR_BASE_URL,
-    (message: string) => {
-      props.addDangerToast(message);
-    },
+    props.addDangerToast,
   );
   const [
     sliceCurrentlyEditing,

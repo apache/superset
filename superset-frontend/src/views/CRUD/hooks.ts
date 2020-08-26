@@ -175,7 +175,7 @@ export function useListViewResource<D extends object = any>(
 export function useFavoriteStatus(
   initialState: FavoriteStatus,
   baseURL: string,
-  handleErrorFunc: (message: string) => void,
+  handleErrorMsg: (message: string) => void,
 ) {
   const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>(
     initialState,
@@ -191,13 +191,16 @@ export function useFavoriteStatus(
   const fetchFaveStar = (id: number) => {
     SupersetClient.get({
       endpoint: `${baseURL}/${id}/count/`,
-    })
-      .then(({ json }) => {
+    }).then(
+      ({ json }) => {
         updateFavoriteStatus({ [id]: json.count > 0 });
-      })
-      .catch(() =>
-        handleErrorFunc(t('There was an error fetching the favorite status')),
-      );
+      },
+      createErrorHandler(errMsg =>
+        handleErrorMsg(
+          t('There was an error fetching the favorite status: %s', errMsg),
+        ),
+      ),
+    );
   };
 
   const saveFaveStar = (id: number, isStarred: boolean) => {
@@ -205,13 +208,16 @@ export function useFavoriteStatus(
 
     SupersetClient.get({
       endpoint: `${baseURL}/${id}/${urlSuffix}/`,
-    })
-      .then(() => {
+    }).then(
+      () => {
         updateFavoriteStatus({ [id]: !isStarred });
-      })
-      .catch(() =>
-        handleErrorFunc(t('There was an error saving the favorite status')),
-      );
+      },
+      createErrorHandler(errMsg =>
+        handleErrorMsg(
+          t('There was an error saving the favorite status: %s', errMsg),
+        ),
+      ),
+    );
   };
 
   return [favoriteStatusRef, fetchFaveStar, saveFaveStar] as const;

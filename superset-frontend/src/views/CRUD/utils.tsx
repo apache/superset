@@ -20,11 +20,9 @@ import {
   SupersetClient,
   SupersetClientResponse,
 } from '@superset-ui/connection';
-import { t } from '@superset-ui/translation';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import { logging } from '@superset-ui/core';
-import { FavoriteStatus } from './types';
 
 export const createFetchRelated = (
   resource: string,
@@ -59,6 +57,6 @@ export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
     logging.error(e);
-    handleErrorFunc(parsedError.message);
+    handleErrorFunc(parsedError.error);
   };
 }
