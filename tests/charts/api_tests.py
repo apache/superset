@@ -902,9 +902,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, payload, "data")
         self.assertEqual(rv.status_code, 401)
 
-    @mock.patch(
-        "superset.common.query_context.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
-    )
     def test_chart_data_jinja_filter_request(self):
         """
         Chart data API: Ensure request referencing filters via jinja renders a correct query
@@ -922,4 +919,5 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]["query"]
-        assert "('boy' = 'boy')" in result
+        if get_example_database().backend != "presto":
+            assert "('boy' = 'boy')" in result
