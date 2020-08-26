@@ -570,7 +570,8 @@ class TestRolePermission(SupersetTestCase):
             [permission.view_menu.name, permission.permission.name]
             for permission in public_role.permissions
         ]
-        assert current_app.config["FAB_ROLES"]["TestRole"] == public_role_resource_names
+        for pvm in current_app.config["FAB_ROLES"]["TestRole"]:
+            assert pvm in public_role_resource_names
 
         # Cleanup
         current_app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
