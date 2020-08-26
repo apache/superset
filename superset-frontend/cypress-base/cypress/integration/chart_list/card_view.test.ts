@@ -31,7 +31,7 @@ describe('chart card view', () => {
     cy.get('.ant-card').should('have.length', 25);
   });
 
-  it('should allow favor/unfavor chart card', () => {
+  it('should allow to favorite/unfavorite chart card', () => {
     cy.get('.ant-card .card-actions')
       .first()
       .find("[data-test='favorite-selected']")
@@ -82,7 +82,7 @@ describe('chart card view', () => {
     cy.get('.ant-card').last().contains('Life Expectancy VS Rural %');
   });
 
-  it('should able to delete', () => {
+  it('should delete correctly', () => {
     // show delete modal
     cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
     cy.get('.ant-dropdown-menu-item').contains('Delete').should('exist');
@@ -94,7 +94,7 @@ describe('chart card view', () => {
     cy.get('.modal-dialog .btn-default').contains('Cancel').click();
   });
 
-  it('should able to edit', () => {
+  it('should edit correctly', () => {
     // show edit modal
     cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
     cy.get('.ant-dropdown-menu-item').contains('Edit').should('exist');

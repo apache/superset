@@ -83,7 +83,7 @@ describe('Dashboard card view', () => {
     cy.get('.ant-card').last().contains("World Bank's Data");
   });
 
-  it('should able to delete', () => {
+  it('should delete correctly', () => {
     // show delete modal
     cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
     cy.get('.ant-dropdown-menu-item').contains('Delete').should('exist');
@@ -95,7 +95,7 @@ describe('Dashboard card view', () => {
     cy.get('.modal-dialog .btn-default').contains('Cancel').click();
   });
 
-  it('should able to edit', () => {
+  it('should edit correctly', () => {
     // show edit modal
     cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
     cy.get('.ant-dropdown-menu-item').contains('Edit').should('exist');
