@@ -19,7 +19,7 @@
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import {

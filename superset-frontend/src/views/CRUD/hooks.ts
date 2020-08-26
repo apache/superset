@@ -67,7 +67,7 @@ export function useListViewResource<D extends object = any>(
       createErrorHandler(errMsg =>
         handleErrorMsg(
           t(
-            'An error occurred while fetching %s info: %s',
+            'An error occurred while fetching %ss info: %s',
             resourceLabel,
             errMsg,
           ),
@@ -131,7 +131,7 @@ export function useListViewResource<D extends object = any>(
           createErrorHandler(errMsg =>
             handleErrorMsg(
               t(
-                'An error occurred while fetching %s: %s',
+                'An error occurred while fetching %ss: %s',
                 resourceLabel,
                 errMsg,
               ),
