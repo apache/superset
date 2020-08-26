@@ -37,7 +37,7 @@ import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
-import Welcome from './Welcome';
+import Welcome from './CRUD/welcome/Welcome';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 import {
   MenuObjectProps,
