@@ -40,7 +40,6 @@ export default class Translator {
 
   constructor(config: TranslatorConfig = {}) {
     const { languagePack = DEFAULT_LANGUAGE_PACK } = config;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     this.i18n = new UntypedJed(languagePack) as Jed;
     this.locale = this.i18n.options.locale_data.superset[''].lang as Locale;
   }
