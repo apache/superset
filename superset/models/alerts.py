@@ -18,11 +18,9 @@
 import enum
 import json
 import textwrap
-from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, List, Optional, Dict
+from typing import Any, Callable, List, Optional
 
-import pandas as pd
 from flask_appbuilder import Model
 from sqlalchemy import (
     Boolean,
@@ -36,12 +34,10 @@ from sqlalchemy import (
     Table,
     Text,
 )
-import numpy as np
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import backref, relationship, RelationshipProperty
 
 from superset import db, security_manager
-from superset.sql_parse import ParsedQuery
 
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -55,18 +51,10 @@ alert_owner = Table(
 )
 
 
-class SQLObservationValueType(str, enum.Enum):
-    sql_result = "SQL Result"
-    numerical = "Numerical"
-
-
 class AlertValidatorType(str, enum.Enum):
     not_null = "Not Null"
-    range = "Range"
-    threshold_increase = "Threshold Increase"
-    threshold_decrease = "Threshold Decrease"
-    percent_difference = "Percent Difference"
-    integer_difference = "Integer Difference"
+    gte_threshold = "Greater Than or Equal To"
+    lte_threshold = "Less Than or Equal To"
 
 
 class Alert(Model):
@@ -125,7 +113,6 @@ class SQLObserver(Model):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(150), nullable=False)
-    observation_value_type = Column(Enum(SQLObservationValueType))
     sql = Column(Text, nullable=False)
 
     @declared_attr
@@ -137,7 +124,7 @@ class SQLObserver(Model):
         return relationship(
             "Alert",
             foreign_keys=[self.alert_id],
-            backref=backref("alert_observers", cascade="all, delete-orphan"),
+            backref=backref("sql_observers", cascade="all, delete-orphan"),
         )
 
     @declared_attr
@@ -149,11 +136,11 @@ class SQLObserver(Model):
         return relationship(
             "Database",
             foreign_keys=[self.database_id],
-            backref=backref("alert_observers", cascade="all, delete-orphan"),
+            backref=backref("sql_observers", cascade="all, delete-orphan"),
         )
 
-    # TODO: Abstract observations from the sqlamodls
-    # e.g. https://github.com/apache/incubator-superset/blob/master/superset/utils/log.py#L32
+    # TODO: Abstract observations from the sqlamodls e.g.
+    # https://github.com/apache/incubator-superset/blob/master/superset/utils/log.py#L32
     def get_observations(self, observation_num: Optional[int] = 2) -> List[Any]:
         return (
             db.session.query(SQLObservation)
@@ -175,8 +162,7 @@ class SQLObservation(Model):  # pylint: disable=too-few-public-methods
         foreign_keys=[observer_id],
         backref=backref("observations", cascade="all, delete-orphan"),
     )
-    sql_result = Column(Text, default="")
-    value = Column(Float, default=np.nan)
+    value = Column(Float)
 
 
 class Validator(Model):
@@ -191,12 +177,7 @@ class Validator(Model):
         default=textwrap.dedent(
             """
             {
-                "threshold_increase": 0,
-                "threshold_decrease": 0,
-                "percent_difference": 0,
-                "integer_difference": 0,
-                "range_min": 0,
-                "range_max": 0
+                "example_threshold": 50
             }
             """
         ),
@@ -215,100 +196,40 @@ class Validator(Model):
         )
 
 
-class ValidatorExecutor(ABC):
-    @abstractmethod
-    def validate(self, observer: SQLObserver, validator: Validator):
-        raise NotImplemented
+def not_null_executor(
+    observer: SQLObserver, validator: Validator  # pylint: disable=unused-argument
+) -> bool:
+    observation = observer.get_observations(1)[0]
+    if observation.value:
+        return True
+    return False
 
 
-class NotNullExecutor(ValidatorExecutor):
-    def validate(self, observer: SQLObserver, validator: Validator):
-        observation = observer.get_observations(1)[0]
-        df = pd.read_json(observation.sql_result)
-        if not df.empty:
-            for row in df.to_records():
-                if any(row):
-                    return True
-        return False
+def greater_than_executor(observer: SQLObserver, validator: Validator) -> bool:
+    observation = observer.get_observations(1)[0]
+    threshold = json.loads(validator.config)["gte_threshold"]
+    if observation.value and observation.value >= threshold:
+        return True
+
+    return False
 
 
-class ThresholdIncreaseExecutor(ValidatorExecutor):
-    def validate(self, observer: SQLObserver, validator: Validator):
-        observation = observer.get_observations(1)[0]
-        threshold = json.loads(validator.config)["threshold_increase"]
-        if observation.value >= threshold:
-            return True
+def less_than_executor(observer: SQLObserver, validator: Validator) -> bool:
+    observation = observer.get_observations(1)[0]
+    threshold = json.loads(validator.config)["lte_threshold"]
+    if observation.value and observation.value <= threshold:
+        return True
 
-        return False
-
-
-class ThresholdDecreaseExecutor(ValidatorExecutor):
-    def validate(self, observer: SQLObserver, validator: Validator):
-        observation = observer.get_observations(1)[0]
-        threshold = json.loads(validator.config)["threshold_decrease"]
-        if observation.value <= threshold:
-            return True
-
-        return False
+    return False
 
 
-class RangeExecutor(ValidatorExecutor):
-    def validate(self, observer: SQLObserver, validator: Validator):
-        observation = observer.get_observations(1)[0]
-        config = json.loads(validator.config)
-        if (
-            observation.value < config["range_min"]
-            or observation.value > config["range_max"]
-        ):
-            return True
-
-        return False
-
-
-class PercentDifferenceExecutor(ValidatorExecutor):
-    def validate(self, observer: SQLObserver, validator: Validator):
-        value_list = [observation.value for observation in observer.get_observations(2)]
-        percent_threshold = json.loads(validator.config)["percent_difference"]
-
-        if len(value_list) > 1:
-            if value_list[1] == 0.0:
-                difference = float("inf")
-            else:
-                difference = float(value_list[0]) / value_list[1]
-                difference = round(difference - 1.0, 4)
-
-            if (
-                0.0 >= percent_threshold >= difference
-                or 0.0 <= percent_threshold <= difference
-            ):
-                return True
-
-        return False
-
-
-class IntegerDifferenceExecutor(ValidatorExecutor):
-    def validate(self, observer: SQLObserver, validator: Validator):
-        value_list = [observation.value for observation in observer.get_observations(2)]
-        integer_threshold = json.loads(validator.config)["integer_difference"]
-
-        difference = value_list[0] - value_list[1]
-        if (
-            0.0 >= integer_threshold >= difference
-            or 0.0 <= integer_threshold <= difference
-        ):
-            return True
-
-        return False
-
-
-def get_validator_executor(validator_type: AlertValidatorType) -> Any:
+def get_validator_executor(
+    validator_type: AlertValidatorType,
+) -> Callable[[SQLObserver, Validator], bool]:
     validator_executors = {
-        AlertValidatorType.not_null: NotNullExecutor(),
-        AlertValidatorType.range: RangeExecutor(),
-        AlertValidatorType.threshold_increase: ThresholdIncreaseExecutor(),
-        AlertValidatorType.threshold_decrease: ThresholdDecreaseExecutor(),
-        AlertValidatorType.percent_difference: PercentDifferenceExecutor(),
-        AlertValidatorType.integer_difference: IntegerDifferenceExecutor(),
+        AlertValidatorType.not_null: not_null_executor,
+        AlertValidatorType.gte_threshold: greater_than_executor,
+        AlertValidatorType.lte_threshold: less_than_executor,
     }
 
     return validator_executors[validator_type]

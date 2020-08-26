@@ -37,7 +37,6 @@ from typing import (
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
-import numpy as np
 import simplejson as json
 from celery.app.task import Task
 from dateutil.tz import tzlocal
@@ -54,10 +53,9 @@ from superset.extensions import celery_app, machine_auth_provider_factory
 from superset.models.alerts import (
     Alert,
     AlertLog,
-    SQLObserver,
-    SQLObservationValueType,
-    SQLObservation,
     get_validator_executor,
+    SQLObservation,
+    SQLObserver,
 )
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
@@ -535,6 +533,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     slack_channel: Optional[str] = None,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
+    sql = ""
 
     try:
         schedule = db.session.query(model_cls).get(schedule_id)
@@ -544,9 +543,12 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             logger.info("Ignoring deactivated alert")
             return
 
+        if schedule.sql_observers:
+            sql = schedule.sql_observers[0].sql
+
         if report_type == ScheduleType.alert:
             if recipients or slack_channel:
-                deliver_alert(schedule.id, schedule.sql, recipients, slack_channel)
+                deliver_alert(schedule.id, sql, recipients, slack_channel)
                 return
 
             check_alert(schedule.id, schedule.label)
@@ -650,28 +652,20 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
     )
 
 
-def query_alert_observer(alert_id: int, label: str) -> str:
+def observe(alert_id: int) -> str:
     sql_observer = db.session.query(SQLObserver).filter_by(alert_id=alert_id).one()
-    if not sql_observer:
-        logger.error("No observers present for alert <%s:%s>", alert_id, label)
+    value = None
 
     parsed_query = ParsedQuery(sql_observer.sql)
     sql = parsed_query.stripped()
     df = sql_observer.database.get_df(sql)
 
-    if sql_observer.observation_value_type == SQLObservationValueType.sql_result:
-        sql_observer.observations.append(  # pylint: disable=no-member
-            SQLObservation(dttm=datetime.utcnow(), sql_result=df.to_json())
-        )
-    elif sql_observer.observation_value_type == SQLObservationValueType.numerical:
-        if not df.empty:
-            value = df.to_records()[0][1]
-        else:
-            value = np.nan
+    if not df.empty:
+        value = float(df.to_records()[0][1])
 
-        sql_observer.observations.append(  # pylint: disable=no-member
-            SQLObservation(dttm=datetime.utcnow(), value=value)
-        )
+    sql_observer.observations.append(  # pylint: disable=no-member
+        SQLObservation(dttm=datetime.utcnow(), value=value)
+    )
 
     db.session.commit()
 
@@ -687,7 +681,7 @@ def check_alert(alert_id: int, label: str) -> None:
 
     try:
         logger.info("Querying observers for alert <%s:%s>", alert_id, label)
-        sql = query_alert_observer(alert_id, label)
+        sql = observe(alert_id)
     except Exception as exc:  # pylint: disable=broad-except
         state = AlertState.ERROR
         logging.exception(exc)
@@ -719,12 +713,12 @@ def check_alert(alert_id: int, label: str) -> None:
 
 
 def validate_alert(alert_id: int, label: str) -> bool:
-    logger.info("Validating observation for for alert <%s:%s>", alert_id, label)
+    logger.info("Validating observations for alert <%s:%s>", alert_id, label)
 
     alert = db.session.query(Alert).get(alert_id)
     for validator in alert.alert_validators:
         executor = get_validator_executor(validator.validator_type)
-        if executor.validate(alert.sql_observers[0], validator):
+        if executor(alert.sql_observers[0], validator):
             return True
 
     return False
