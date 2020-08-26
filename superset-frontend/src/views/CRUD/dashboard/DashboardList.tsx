@@ -86,9 +86,7 @@ function DashboardList(props: DashboardListProps) {
   );
 
   const canEdit = hasPerm('can_edit');
-
   const canDelete = hasPerm('can_delete');
-
   const canExport = hasPerm('can_mulexport');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];

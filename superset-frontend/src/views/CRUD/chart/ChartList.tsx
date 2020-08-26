@@ -176,203 +176,194 @@ function ChartList(props: ChartListProps) {
     );
   }
 
-  const columns = useMemo(
-    () => [
-      {
-        Cell: ({ row: { original } }: any) => {
-          return (
-            <FaveStar
-              itemId={original.id}
-              fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
-              saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-              isStarred={favoriteStatus[original.id]}
-              height={20}
-            />
-          );
+  const columns = [
+    {
+      Cell: ({ row: { original } }: any) => {
+        return (
+          <FaveStar
+            itemId={original.id}
+            fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
+            saveFaveStar={fetchFaveStarMethods.saveFaveStar}
+            isStarred={favoriteStatus[original.id]}
+            height={20}
+          />
+        );
+      },
+      Header: '',
+      id: 'favorite',
+      disableSortBy: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { url, slice_name: sliceName },
         },
-        Header: '',
-        id: 'favorite',
-        disableSortBy: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { url, slice_name: sliceName },
-          },
-        }: any) => <a href={url}>{sliceName}</a>,
-        Header: t('Chart'),
-        accessor: 'slice_name',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { viz_type: vizType },
-          },
-        }: any) => vizType,
-        Header: t('Visualization Type'),
-        accessor: 'viz_type',
-      },
-      {
-        Cell: ({
-          row: {
-            original: {
-              datasource_name_text: dsNameTxt,
-              datasource_url: dsUrl,
-            },
-          },
-        }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
-        Header: t('Datasource'),
-        accessor: 'datasource_name',
-      },
-      {
-        Cell: ({
-          row: {
-            original: {
-              changed_by_name: changedByName,
-              changed_by_url: changedByUrl,
-            },
-          },
-        }: any) => <a href={changedByUrl}>{changedByName}</a>,
-        Header: t('Modified By'),
-        accessor: 'changed_by.first_name',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
-        Header: t('Last Modified'),
-        accessor: 'changed_on_delta_humanized',
-      },
-      {
-        accessor: 'description',
-        hidden: true,
-        disableSortBy: true,
-      },
-      {
-        accessor: 'owners',
-        hidden: true,
-        disableSortBy: true,
-      },
-      {
-        accessor: 'datasource_id',
-        hidden: true,
-        disableSortBy: true,
-      },
-      {
-        Cell: ({ row: { original } }: any) => {
-          const handleDelete = () => handleChartDelete(original);
-          const openEditModal = () => openChartEditModal(original);
-          if (!canEdit && !canDelete) {
-            return null;
-          }
-
-          return (
-            <span className="actions">
-              {canDelete && (
-                <ConfirmStatusChange
-                  title={t('Please Confirm')}
-                  description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{original.slice_name}</b>?
-                    </>
-                  }
-                  onConfirm={handleDelete}
-                >
-                  {confirmDelete => (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={confirmDelete}
-                    >
-                      <Icon name="trash" />
-                    </span>
-                  )}
-                </ConfirmStatusChange>
-              )}
-              {canEdit && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={openEditModal}
-                >
-                  <Icon name="pencil" />
-                </span>
-              )}
-            </span>
-          );
+      }: any) => <a href={url}>{sliceName}</a>,
+      Header: t('Chart'),
+      accessor: 'slice_name',
+    },
+    {
+      Cell: ({
+        row: {
+          original: { viz_type: vizType },
         },
-        Header: t('Actions'),
-        id: 'actions',
-        disableSortBy: true,
-      },
-    ],
-    [],
-  );
+      }: any) => vizType,
+      Header: t('Visualization Type'),
+      accessor: 'viz_type',
+    },
+    {
+      Cell: ({
+        row: {
+          original: { datasource_name_text: dsNameTxt, datasource_url: dsUrl },
+        },
+      }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
+      Header: t('Datasource'),
+      accessor: 'datasource_name',
+    },
+    {
+      Cell: ({
+        row: {
+          original: {
+            changed_by_name: changedByName,
+            changed_by_url: changedByUrl,
+          },
+        },
+      }: any) => <a href={changedByUrl}>{changedByName}</a>,
+      Header: t('Modified By'),
+      accessor: 'changed_by.first_name',
+    },
+    {
+      Cell: ({
+        row: {
+          original: { changed_on_delta_humanized: changedOn },
+        },
+      }: any) => <span className="no-wrap">{changedOn}</span>,
+      Header: t('Last Modified'),
+      accessor: 'changed_on_delta_humanized',
+    },
+    {
+      accessor: 'description',
+      hidden: true,
+      disableSortBy: true,
+    },
+    {
+      accessor: 'owners',
+      hidden: true,
+      disableSortBy: true,
+    },
+    {
+      accessor: 'datasource_id',
+      hidden: true,
+      disableSortBy: true,
+    },
+    {
+      Cell: ({ row: { original } }: any) => {
+        const handleDelete = () => handleChartDelete(original);
+        const openEditModal = () => openChartEditModal(original);
+        if (!canEdit && !canDelete) {
+          return null;
+        }
 
-  const filters: Filters = useMemo(
-    () => [
-      {
-        Header: t('Owner'),
-        id: 'owners',
-        input: 'select',
-        operator: 'rel_m_m',
-        unfilteredLabel: 'All',
-        fetchSelects: createFetchRelated(
-          'chart',
-          'owners',
-          createErrorHandler(errMsg =>
-            props.addDangerToast(
-              t(
-                'An error occurred while fetching chart dataset values: %s',
-                errMsg,
-              ),
+        return (
+          <span className="actions">
+            {canDelete && (
+              <ConfirmStatusChange
+                title={t('Please Confirm')}
+                description={
+                  <>
+                    {t('Are you sure you want to delete')}{' '}
+                    <b>{original.slice_name}</b>?
+                  </>
+                }
+                onConfirm={handleDelete}
+              >
+                {confirmDelete => (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={confirmDelete}
+                  >
+                    <Icon name="trash" />
+                  </span>
+                )}
+              </ConfirmStatusChange>
+            )}
+            {canEdit && (
+              <span
+                role="button"
+                tabIndex={0}
+                className="action-button"
+                onClick={openEditModal}
+              >
+                <Icon name="pencil" />
+              </span>
+            )}
+          </span>
+        );
+      },
+      Header: t('Actions'),
+      id: 'actions',
+      disableSortBy: true,
+    },
+  ];
+
+  const filters: Filters = [
+    {
+      Header: t('Owner'),
+      id: 'owners',
+      input: 'select',
+      operator: 'rel_m_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchRelated(
+        'chart',
+        'owners',
+        createErrorHandler(errMsg =>
+          props.addDangerToast(
+            t(
+              'An error occurred while fetching chart dataset values: %s',
+              errMsg,
             ),
           ),
         ),
-        paginate: true,
-      },
-      {
-        Header: t('Viz Type'),
-        id: 'viz_type',
-        input: 'select',
-        operator: 'eq',
-        unfilteredLabel: 'All',
-        selects: getChartMetadataRegistry()
-          .keys()
-          .map(k => ({ label: k, value: k })),
-      },
-      {
-        Header: t('Datasource'),
-        id: 'datasource_id',
-        input: 'select',
-        operator: 'eq',
-        unfilteredLabel: 'All',
-        fetchSelects: createFetchDatasets(
-          createErrorHandler(errMsg =>
-            props.addDangerToast(
-              t(
-                'An error occurred while fetching chart dataset values: %s',
-                errMsg,
-              ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Viz Type'),
+      id: 'viz_type',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      selects: getChartMetadataRegistry()
+        .keys()
+        .map(k => ({ label: k, value: k })),
+    },
+    {
+      Header: t('Datasource'),
+      id: 'datasource_id',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchDatasets(
+        createErrorHandler(errMsg =>
+          props.addDangerToast(
+            t(
+              'An error occurred while fetching chart dataset values: %s',
+              errMsg,
             ),
           ),
         ),
-        paginate: false,
-      },
-      {
-        Header: t('Search'),
-        id: 'slice_name',
-        input: 'search',
-        operator: 'name_or_description',
-      },
-    ],
-    [],
-  );
+      ),
+      paginate: false,
+    },
+    {
+      Header: t('Search'),
+      id: 'slice_name',
+      input: 'search',
+      operator: 'name_or_description',
+    },
+  ];
 
   const sortTypes = [
     {

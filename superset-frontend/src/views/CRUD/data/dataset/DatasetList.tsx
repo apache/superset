@@ -123,73 +123,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setDatasetCurrentlyEditing,
   ] = useState<Dataset | null>(null);
 
-  const filterTypes: Filters = [
-    {
-      Header: t('Owner'),
-      id: 'owners',
-      input: 'select',
-      operator: 'rel_m_m',
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchRelated(
-        'dataset',
-        'owners',
-        createErrorHandler(errMsg =>
-          t(
-            'An error occurred while fetching dataset owner values: %s',
-            errMsg,
-          ),
-        ),
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Datasource'),
-      id: 'database',
-      input: 'select',
-      operator: 'rel_o_m',
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchRelated(
-        'dataset',
-        'database',
-        createErrorHandler(errMsg =>
-          t(
-            'An error occurred while fetching dataset datasource values: %s',
-            errMsg,
-          ),
-        ),
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Schema'),
-      id: 'schema',
-      input: 'select',
-      operator: 'eq',
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchSchemas(errMsg =>
-        t('An error occurred while fetching schema values: %s', errMsg),
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Type'),
-      id: 'is_sqllab_view',
-      input: 'select',
-      operator: 'eq',
-      unfilteredLabel: 'All',
-      selects: [
-        { label: 'Virtual', value: true },
-        { label: 'Physical', value: false },
-      ],
-    },
-    {
-      Header: t('Search'),
-      id: 'table_name',
-      input: 'search',
-      operator: 'ct',
-    },
-  ];
-
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canCreate = hasPerm('can_add');
@@ -413,6 +346,73 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     },
   ];
 
+  const filterTypes: Filters = [
+    {
+      Header: t('Owner'),
+      id: 'owners',
+      input: 'select',
+      operator: 'rel_m_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchRelated(
+        'dataset',
+        'owners',
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching dataset owner values: %s',
+            errMsg,
+          ),
+        ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Datasource'),
+      id: 'database',
+      input: 'select',
+      operator: 'rel_o_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchRelated(
+        'dataset',
+        'database',
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching dataset datasource values: %s',
+            errMsg,
+          ),
+        ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Schema'),
+      id: 'schema',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchSchemas(errMsg =>
+        t('An error occurred while fetching schema values: %s', errMsg),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Type'),
+      id: 'is_sqllab_view',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      selects: [
+        { label: 'Virtual', value: true },
+        { label: 'Physical', value: false },
+      ],
+    },
+    {
+      Header: t('Search'),
+      id: 'table_name',
+      input: 'search',
+      operator: 'ct',
+    },
+  ];
+
   const menuData: SubMenuProps = {
     activeChild: 'Datasets',
     ...commonMenuData,
@@ -469,6 +469,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       )}`,
     }).then(
       ({ json = {} }) => {
+        refreshData();
         addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
