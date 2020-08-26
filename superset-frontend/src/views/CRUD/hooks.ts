@@ -17,12 +17,13 @@
  * under the License.
  */
 import rison from 'rison';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
+import { FavoriteStatus } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -165,4 +166,20 @@ export function useListViewResource<D extends object = any>(
       }
     },
   };
+}
+
+export function useFavoriteStatus(initialState: FavoriteStatus) {
+  const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>(
+    initialState,
+  );
+  const favoriteStatusRef = useRef<FavoriteStatus>(favoriteStatus);
+  useEffect(() => {
+    favoriteStatusRef.current = favoriteStatus;
+  });
+
+  return [
+    favoriteStatusRef,
+    (update: FavoriteStatus) =>
+      setFavoriteStatus(currentState => ({ ...currentState, ...update })),
+  ] as const;
 }

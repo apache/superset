@@ -18,7 +18,7 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useMemo } from 'react';
 import rison from 'rison';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -164,254 +164,260 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
       );
 
-  const columns = [
-    {
-      Cell: ({
-        row: {
-          original: { kind },
-        },
-      }: any) => {
-        if (kind === 'physical')
+  const columns = useMemo(
+    () => [
+      {
+        Cell: ({
+          row: {
+            original: { kind },
+          },
+        }: any) => {
+          if (kind === 'physical')
+            return (
+              <TooltipWrapper
+                label="physical-dataset"
+                tooltip={t('Physical Dataset')}
+              >
+                <Icon name="dataset-physical" />
+              </TooltipWrapper>
+            );
+
           return (
             <TooltipWrapper
-              label="physical-dataset"
-              tooltip={t('Physical Dataset')}
+              label="virtual-dataset"
+              tooltip={t('Virtual Dataset')}
             >
-              <Icon name="dataset-physical" />
+              <Icon name="dataset-virtual" />
             </TooltipWrapper>
           );
-
-        return (
-          <TooltipWrapper
-            label="virtual-dataset"
-            tooltip={t('Virtual Dataset')}
-          >
-            <Icon name="dataset-virtual" />
-          </TooltipWrapper>
-        );
+        },
+        accessor: 'kind_icon',
+        disableSortBy: true,
+        size: 'xs',
       },
-      accessor: 'kind_icon',
-      disableSortBy: true,
-      size: 'xs',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { table_name: datasetTitle },
-        },
-      }: any) => datasetTitle,
-      Header: t('Name'),
-      accessor: 'table_name',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { kind },
-        },
-      }: any) => kind[0]?.toUpperCase() + kind.slice(1),
-      Header: t('Type'),
-      accessor: 'kind',
-      disableSortBy: true,
-      size: 'md',
-    },
-    {
-      Header: t('Source'),
-      accessor: 'database.database_name',
-      size: 'lg',
-    },
-    {
-      Header: t('Schema'),
-      accessor: 'schema',
-      size: 'lg',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { changed_on_delta_humanized: changedOn },
-        },
-      }: any) => <span className="no-wrap">{changedOn}</span>,
-      Header: t('Modified'),
-      accessor: 'changed_on_delta_humanized',
-      size: 'xl',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { changed_by_name: changedByName },
-        },
-      }: any) => changedByName,
-      Header: t('Modified By'),
-      accessor: 'changed_by.first_name',
-      size: 'xl',
-    },
-    {
-      accessor: 'database',
-      disableSortBy: true,
-      hidden: true,
-    },
-    {
-      Cell: ({
-        row: {
-          original: { owners, table_name: tableName },
-        },
-      }: any) => {
-        if (!owners) {
-          return null;
-        }
-        return owners
-          .slice(0, 5)
-          .map((owner: Owner) => (
-            <AvatarIcon
-              key={owner.id}
-              uniqueKey={`${tableName}-${owner.username}`}
-              firstName={owner.first_name}
-              lastName={owner.last_name}
-              iconSize={24}
-              textSize={9}
-            />
-          ));
+      {
+        Cell: ({
+          row: {
+            original: { table_name: datasetTitle },
+          },
+        }: any) => datasetTitle,
+        Header: t('Name'),
+        accessor: 'table_name',
       },
-      Header: t('Owners'),
-      id: 'owners',
-      disableSortBy: true,
-      size: 'lg',
-    },
-    {
-      accessor: 'is_sqllab_view',
-      hidden: true,
-      disableSortBy: true,
-    },
-    {
-      Cell: ({ row: { original } }: any) => {
-        const handleEdit = () => openDatasetEditModal(original);
-        const handleDelete = () => openDatasetDeleteModal(original);
-        if (!canEdit && !canDelete) {
-          return null;
-        }
-        return (
-          <span className="actions">
-            <TooltipWrapper
-              label="explore-action"
-              tooltip={t('Explore')}
-              placement="bottom"
-            >
-              <a
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                href={original.explore_url}
-              >
-                <Icon name="compass" />
-              </a>
-            </TooltipWrapper>
-            {canDelete && (
+      {
+        Cell: ({
+          row: {
+            original: { kind },
+          },
+        }: any) => kind[0]?.toUpperCase() + kind.slice(1),
+        Header: t('Type'),
+        accessor: 'kind',
+        disableSortBy: true,
+        size: 'md',
+      },
+      {
+        Header: t('Source'),
+        accessor: 'database.database_name',
+        size: 'lg',
+      },
+      {
+        Header: t('Schema'),
+        accessor: 'schema',
+        size: 'lg',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_by_name: changedByName },
+          },
+        }: any) => changedByName,
+        Header: t('Modified By'),
+        accessor: 'changed_by.first_name',
+        size: 'xl',
+      },
+      {
+        accessor: 'database',
+        disableSortBy: true,
+        hidden: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { owners, table_name: tableName },
+          },
+        }: any) => {
+          if (!owners) {
+            return null;
+          }
+          return owners
+            .slice(0, 5)
+            .map((owner: Owner) => (
+              <AvatarIcon
+                key={owner.id}
+                uniqueKey={`${tableName}-${owner.username}`}
+                firstName={owner.first_name}
+                lastName={owner.last_name}
+                iconSize={24}
+                textSize={9}
+              />
+            ));
+        },
+        Header: t('Owners'),
+        id: 'owners',
+        disableSortBy: true,
+        size: 'lg',
+      },
+      {
+        accessor: 'is_sqllab_view',
+        hidden: true,
+        disableSortBy: true,
+      },
+      {
+        Cell: ({ row: { original } }: any) => {
+          const handleEdit = () => openDatasetEditModal(original);
+          const handleDelete = () => openDatasetDeleteModal(original);
+          if (!canEdit && !canDelete) {
+            return null;
+          }
+          return (
+            <span className="actions">
               <TooltipWrapper
-                label="delete-action"
-                tooltip={t('Delete')}
+                label="explore-action"
+                tooltip={t('Explore')}
                 placement="bottom"
               >
-                <span
+                <a
                   role="button"
                   tabIndex={0}
                   className="action-button"
-                  onClick={handleDelete}
+                  href={original.explore_url}
                 >
-                  <Icon name="trash" />
-                </span>
+                  <Icon name="compass" />
+                </a>
               </TooltipWrapper>
-            )}
+              {canDelete && (
+                <TooltipWrapper
+                  label="delete-action"
+                  tooltip={t('Delete')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleDelete}
+                  >
+                    <Icon name="trash" />
+                  </span>
+                </TooltipWrapper>
+              )}
 
-            {canEdit && (
-              <TooltipWrapper
-                label="edit-action"
-                tooltip={t('Edit')}
-                placement="bottom"
-              >
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={handleEdit}
+              {canEdit && (
+                <TooltipWrapper
+                  label="edit-action"
+                  tooltip={t('Edit')}
+                  placement="bottom"
                 >
-                  <Icon name="pencil" />
-                </span>
-              </TooltipWrapper>
-            )}
-          </span>
-        );
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icon name="pencil" />
+                  </span>
+                </TooltipWrapper>
+              )}
+            </span>
+          );
+        },
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
       },
-      Header: t('Actions'),
-      id: 'actions',
-      disableSortBy: true,
-    },
-  ];
+    ],
+    [canCreate, canEdit, canDelete],
+  );
 
-  const filterTypes: Filters = [
-    {
-      Header: t('Owner'),
-      id: 'owners',
-      input: 'select',
-      operator: 'rel_m_m',
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchRelated(
-        'dataset',
-        'owners',
-        createErrorHandler(errMsg =>
-          t(
-            'An error occurred while fetching dataset owner values: %s',
-            errMsg,
+  const filterTypes: Filters = useMemo(
+    () => [
+      {
+        Header: t('Owner'),
+        id: 'owners',
+        input: 'select',
+        operator: 'rel_m_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'dataset',
+          'owners',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset owner values: %s',
+              errMsg,
+            ),
           ),
         ),
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Datasource'),
-      id: 'database',
-      input: 'select',
-      operator: 'rel_o_m',
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchRelated(
-        'dataset',
-        'database',
-        createErrorHandler(errMsg =>
-          t(
-            'An error occurred while fetching dataset datasource values: %s',
-            errMsg,
+        paginate: true,
+      },
+      {
+        Header: t('Datasource'),
+        id: 'database',
+        input: 'select',
+        operator: 'rel_o_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'dataset',
+          'database',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
           ),
         ),
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Schema'),
-      id: 'schema',
-      input: 'select',
-      operator: 'eq',
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchSchemas(errMsg =>
-        t('An error occurred while fetching schema values: %s', errMsg),
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Type'),
-      id: 'is_sqllab_view',
-      input: 'select',
-      operator: 'eq',
-      unfilteredLabel: 'All',
-      selects: [
-        { label: 'Virtual', value: true },
-        { label: 'Physical', value: false },
-      ],
-    },
-    {
-      Header: t('Search'),
-      id: 'table_name',
-      input: 'search',
-      operator: 'ct',
-    },
-  ];
+        paginate: true,
+      },
+      {
+        Header: t('Schema'),
+        id: 'schema',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchSchemas(errMsg =>
+          t('An error occurred while fetching schema values: %s', errMsg),
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Type'),
+        id: 'is_sqllab_view',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'All',
+        selects: [
+          { label: 'Virtual', value: true },
+          { label: 'Physical', value: false },
+        ],
+      },
+      {
+        Header: t('Search'),
+        id: 'table_name',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [],
+  );
 
   const menuData: SubMenuProps = {
     activeChild: 'Datasets',

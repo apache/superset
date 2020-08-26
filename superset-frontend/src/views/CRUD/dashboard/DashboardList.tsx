@@ -18,14 +18,14 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import {
   createFetchRelated,
   createErrorHandler,
   createFaveStarHandlers,
 } from 'src/views/CRUD/utils';
-import { useListViewResource } from 'src/views/CRUD/hooks';
+import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
@@ -79,7 +79,7 @@ function DashboardList(props: DashboardListProps) {
     t('dashboard'),
     props.addDangerToast,
   );
-  const [favoriteStatus, setFavoriteStatus] = useState<object>({});
+  const [favoriteStatusRef, setFavoriteStatus] = useFavoriteStatus({});
 
   const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
     null,
@@ -93,7 +93,7 @@ function DashboardList(props: DashboardListProps) {
 
   const fetchFaveStarMethods = createFaveStarHandlers(
     FAVESTAR_BASE_URL,
-    favoriteStatus,
+    favoriteStatusRef.current,
     setFavoriteStatus,
     (message: string) => {
       props.addDangerToast(message);
@@ -170,150 +170,160 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const columns = [
-    {
-      Cell: ({ row: { original } }: any) => {
-        return (
-          <FaveStar
-            itemId={original.id}
-            fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
-            saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-            isStarred={!!favoriteStatus[original.id]}
-            height={20}
-          />
-        );
-      },
-      Header: '',
-      id: 'favorite',
-      disableSortBy: true,
-    },
-    {
-      Cell: ({
-        row: {
-          original: { url, dashboard_title: dashboardTitle },
-        },
-      }: any) => <a href={url}>{dashboardTitle}</a>,
-      Header: t('Title'),
-      accessor: 'dashboard_title',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { owners },
-        },
-      }: any) => (
-        <ExpandableList
-          items={owners.map(
-            ({ first_name: firstName, last_name: lastName }: any) =>
-              `${firstName} ${lastName}`,
-          )}
-          display={2}
-        />
-      ),
-      Header: t('Owners'),
-      accessor: 'owners',
-      disableSortBy: true,
-    },
-    {
-      Cell: ({
-        row: {
-          original: {
-            changed_by_name: changedByName,
-            changed_by_url: changedByUrl,
+  function renderFaveStar(id: number) {
+    return (
+      <FaveStar
+        itemId={id}
+        fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
+        saveFaveStar={fetchFaveStarMethods.saveFaveStar}
+        isStarred={!!favoriteStatusRef.current[id]}
+        height={20}
+        width={20}
+      />
+    );
+  }
+
+  const columns = useMemo(
+    () => [
+      {
+        Cell: ({
+          row: {
+            original: { id },
           },
-        },
-      }: any) => <a href={changedByUrl}>{changedByName}</a>,
-      Header: t('Modified By'),
-      accessor: 'changed_by.first_name',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { published },
-        },
-      }: any) => (
-        <span className="no-wrap">
-          {published ? <Icon name="check" /> : ''}
-        </span>
-      ),
-      Header: t('Published'),
-      accessor: 'published',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { changed_on_delta_humanized: changedOn },
-        },
-      }: any) => <span className="no-wrap">{changedOn}</span>,
-      Header: t('Modified'),
-      accessor: 'changed_on_delta_humanized',
-    },
-    {
-      accessor: 'slug',
-      hidden: true,
-      disableSortBy: true,
-    },
-    {
-      Cell: ({ row: { original } }: any) => {
-        const handleDelete = () => handleDashboardDelete(original);
-        const handleEdit = () => openDashboardEditModal(original);
-        const handleExport = () => handleBulkDashboardExport([original]);
-        if (!canEdit && !canDelete && !canExport) {
-          return null;
-        }
-        return (
-          <span className="actions">
-            {canDelete && (
-              <ConfirmStatusChange
-                title={t('Please Confirm')}
-                description={
-                  <>
-                    {t('Are you sure you want to delete')}{' '}
-                    <b>{original.dashboard_title}</b>?
-                  </>
-                }
-                onConfirm={handleDelete}
-              >
-                {confirmDelete => (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={confirmDelete}
-                  >
-                    <Icon name="trash" />
-                  </span>
-                )}
-              </ConfirmStatusChange>
-            )}
-            {canExport && (
-              <span
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={handleExport}
-              >
-                <Icon name="share" />
-              </span>
-            )}
-            {canEdit && (
-              <span
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={handleEdit}
-              >
-                <Icon name="pencil" />
-              </span>
-            )}
-          </span>
-        );
+        }: any) => renderFaveStar(id),
+        Header: '',
+        id: 'favorite',
+        disableSortBy: true,
       },
-      Header: t('Actions'),
-      id: 'actions',
-      disableSortBy: true,
-    },
-  ];
+      {
+        Cell: ({
+          row: {
+            original: { url, dashboard_title: dashboardTitle },
+          },
+        }: any) => <a href={url}>{dashboardTitle}</a>,
+        Header: t('Title'),
+        accessor: 'dashboard_title',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { owners },
+          },
+        }: any) => (
+          <ExpandableList
+            items={owners.map(
+              ({ first_name: firstName, last_name: lastName }: any) =>
+                `${firstName} ${lastName}`,
+            )}
+            display={2}
+          />
+        ),
+        Header: t('Owners'),
+        accessor: 'owners',
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              changed_by_name: changedByName,
+              changed_by_url: changedByUrl,
+            },
+          },
+        }: any) => <a href={changedByUrl}>{changedByName}</a>,
+        Header: t('Modified By'),
+        accessor: 'changed_by.first_name',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { published },
+          },
+        }: any) => (
+          <span className="no-wrap">
+            {published ? <Icon name="check" /> : ''}
+          </span>
+        ),
+        Header: t('Published'),
+        accessor: 'published',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Modified'),
+        accessor: 'changed_on_delta_humanized',
+      },
+      {
+        accessor: 'slug',
+        hidden: true,
+        disableSortBy: true,
+      },
+      {
+        Cell: ({ row: { original } }: any) => {
+          const handleDelete = () => handleDashboardDelete(original);
+          const handleEdit = () => openDashboardEditModal(original);
+          const handleExport = () => handleBulkDashboardExport([original]);
+          if (!canEdit && !canDelete && !canExport) {
+            return null;
+          }
+          return (
+            <span className="actions">
+              {canDelete && (
+                <ConfirmStatusChange
+                  title={t('Please Confirm')}
+                  description={
+                    <>
+                      {t('Are you sure you want to delete')}{' '}
+                      <b>{original.dashboard_title}</b>?
+                    </>
+                  }
+                  onConfirm={handleDelete}
+                >
+                  {confirmDelete => (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={confirmDelete}
+                    >
+                      <Icon name="trash" />
+                    </span>
+                  )}
+                </ConfirmStatusChange>
+              )}
+              {canExport && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={handleExport}
+                >
+                  <Icon name="share" />
+                </span>
+              )}
+              {canEdit && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={handleEdit}
+                >
+                  <Icon name="pencil" />
+                </span>
+              )}
+            </span>
+          );
+        },
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
+      },
+    ],
+    [canEdit, canDelete, canExport],
+  );
 
   const filters: Filters = [
     {
@@ -451,14 +461,7 @@ function DashboardList(props: DashboardListProps) {
         ))}
         actions={
           <ListViewCard.Actions>
-            <FaveStar
-              itemId={dashboard.id}
-              fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
-              saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-              isStarred={!!favoriteStatus[dashboard.id]}
-              width={20}
-              height={20}
-            />
+            {renderFaveStar(dashboard.id)}
             <Dropdown overlay={menu}>
               <Icon name="more" />
             </Dropdown>

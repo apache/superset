@@ -19,7 +19,7 @@
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import {
@@ -27,7 +27,7 @@ import {
   createErrorHandler,
   createFaveStarHandlers,
 } from 'src/views/CRUD/utils';
-import { useListViewResource } from 'src/views/CRUD/hooks';
+import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
@@ -104,7 +104,7 @@ function ChartList(props: ChartListProps) {
     toggleBulkSelect,
     refreshData,
   } = useListViewResource<Chart>('chart', t('chart'), props.addDangerToast);
-  const [favoriteStatus, setFavoriteStatus] = useState<object>({});
+  const [favoriteStatusRef, setFavoriteStatus] = useFavoriteStatus({});
   const [
     sliceCurrentlyEditing,
     setSliceCurrentlyEditing,
@@ -116,7 +116,7 @@ function ChartList(props: ChartListProps) {
 
   const fetchFaveStarMethods = createFaveStarHandlers(
     FAVESTAR_BASE_URL,
-    favoriteStatus,
+    favoriteStatusRef.current,
     setFavoriteStatus,
     (message: string) => {
       props.addDangerToast(message);
@@ -176,137 +176,150 @@ function ChartList(props: ChartListProps) {
     );
   }
 
-  const columns = [
-    {
-      Cell: ({ row: { original } }: any) => {
-        return (
-          <FaveStar
-            itemId={original.id}
-            fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
-            saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-            isStarred={favoriteStatus[original.id]}
-            height={20}
-          />
-        );
-      },
-      Header: '',
-      id: 'favorite',
-      disableSortBy: true,
-    },
-    {
-      Cell: ({
-        row: {
-          original: { url, slice_name: sliceName },
-        },
-      }: any) => <a href={url}>{sliceName}</a>,
-      Header: t('Chart'),
-      accessor: 'slice_name',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { viz_type: vizType },
-        },
-      }: any) => vizType,
-      Header: t('Visualization Type'),
-      accessor: 'viz_type',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { datasource_name_text: dsNameTxt, datasource_url: dsUrl },
-        },
-      }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
-      Header: t('Datasource'),
-      accessor: 'datasource_name',
-    },
-    {
-      Cell: ({
-        row: {
-          original: {
-            changed_by_name: changedByName,
-            changed_by_url: changedByUrl,
-          },
-        },
-      }: any) => <a href={changedByUrl}>{changedByName}</a>,
-      Header: t('Modified By'),
-      accessor: 'changed_by.first_name',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { changed_on_delta_humanized: changedOn },
-        },
-      }: any) => <span className="no-wrap">{changedOn}</span>,
-      Header: t('Last Modified'),
-      accessor: 'changed_on_delta_humanized',
-    },
-    {
-      accessor: 'description',
-      hidden: true,
-      disableSortBy: true,
-    },
-    {
-      accessor: 'owners',
-      hidden: true,
-      disableSortBy: true,
-    },
-    {
-      accessor: 'datasource_id',
-      hidden: true,
-      disableSortBy: true,
-    },
-    {
-      Cell: ({ row: { original } }: any) => {
-        const handleDelete = () => handleChartDelete(original);
-        const openEditModal = () => openChartEditModal(original);
-        if (!canEdit && !canDelete) {
-          return null;
-        }
+  function renderFaveStar(id: number) {
+    return (
+      <FaveStar
+        itemId={id}
+        fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
+        saveFaveStar={fetchFaveStarMethods.saveFaveStar}
+        isStarred={!!favoriteStatusRef.current[id]}
+        height={20}
+        width={20}
+      />
+    );
+  }
 
-        return (
-          <span className="actions">
-            {canDelete && (
-              <ConfirmStatusChange
-                title={t('Please Confirm')}
-                description={
-                  <>
-                    {t('Are you sure you want to delete')}{' '}
-                    <b>{original.slice_name}</b>?
-                  </>
-                }
-                onConfirm={handleDelete}
-              >
-                {confirmDelete => (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={confirmDelete}
-                  >
-                    <Icon name="trash" />
-                  </span>
-                )}
-              </ConfirmStatusChange>
-            )}
-            {canEdit && (
-              <span
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={openEditModal}
-              >
-                <Icon name="pencil" />
-              </span>
-            )}
-          </span>
-        );
+  const columns = useMemo(
+    () => [
+      {
+        Cell: ({
+          row: {
+            original: { id },
+          },
+        }: any) => renderFaveStar(id),
+        Header: '',
+        id: 'favorite',
+        disableSortBy: true,
       },
-      Header: t('Actions'),
-      id: 'actions',
-      disableSortBy: true,
-    },
-  ];
+      {
+        Cell: ({
+          row: {
+            original: { url, slice_name: sliceName },
+          },
+        }: any) => <a href={url}>{sliceName}</a>,
+        Header: t('Chart'),
+        accessor: 'slice_name',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { viz_type: vizType },
+          },
+        }: any) => vizType,
+        Header: t('Visualization Type'),
+        accessor: 'viz_type',
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              datasource_name_text: dsNameTxt,
+              datasource_url: dsUrl,
+            },
+          },
+        }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
+        Header: t('Datasource'),
+        accessor: 'datasource_name',
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              changed_by_name: changedByName,
+              changed_by_url: changedByUrl,
+            },
+          },
+        }: any) => <a href={changedByUrl}>{changedByName}</a>,
+        Header: t('Modified By'),
+        accessor: 'changed_by.first_name',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Last Modified'),
+        accessor: 'changed_on_delta_humanized',
+      },
+      {
+        accessor: 'description',
+        hidden: true,
+        disableSortBy: true,
+      },
+      {
+        accessor: 'owners',
+        hidden: true,
+        disableSortBy: true,
+      },
+      {
+        accessor: 'datasource_id',
+        hidden: true,
+        disableSortBy: true,
+      },
+      {
+        Cell: ({ row: { original } }: any) => {
+          const handleDelete = () => handleChartDelete(original);
+          const openEditModal = () => openChartEditModal(original);
+          if (!canEdit && !canDelete) {
+            return null;
+          }
+
+          return (
+            <span className="actions">
+              {canDelete && (
+                <ConfirmStatusChange
+                  title={t('Please Confirm')}
+                  description={
+                    <>
+                      {t('Are you sure you want to delete')}{' '}
+                      <b>{original.slice_name}</b>?
+                    </>
+                  }
+                  onConfirm={handleDelete}
+                >
+                  {confirmDelete => (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={confirmDelete}
+                    >
+                      <Icon name="trash" />
+                    </span>
+                  )}
+                </ConfirmStatusChange>
+              )}
+              {canEdit && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={openEditModal}
+                >
+                  <Icon name="pencil" />
+                </span>
+              )}
+            </span>
+          );
+        },
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
+      },
+    ],
+    [canEdit, canDelete, favoriteStatusRef],
+  );
 
   const filters: Filters = [
     {
@@ -449,14 +462,7 @@ function ChartList(props: ChartListProps) {
         }
         actions={
           <ListViewCard.Actions>
-            <FaveStar
-              itemId={chart.id}
-              fetchFaveStar={fetchFaveStarMethods.fetchFaveStar}
-              saveFaveStar={fetchFaveStarMethods.saveFaveStar}
-              isStarred={favoriteStatus[chart.id]}
-              width={20}
-              height={20}
-            />
+            {renderFaveStar(chart.id)}
             <Dropdown overlay={menu}>
               <Icon name="more" />
             </Dropdown>

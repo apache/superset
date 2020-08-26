@@ -25,7 +25,7 @@ interface FaveStarProps {
   itemId: number;
   fetchFaveStar(id: number): any;
   saveFaveStar(id: number, isStarred: boolean): any;
-  isStarred?: boolean;
+  isStarred: boolean;
   width?: number;
   height?: number;
   showTooltip?: boolean;
@@ -33,17 +33,12 @@ interface FaveStarProps {
 
 export default class FaveStar extends React.PureComponent<FaveStarProps> {
   componentDidMount() {
-    // only fetch if we don't know the current status
-    if (typeof this.props.isStarred === 'undefined') {
-      this.props.fetchFaveStar(this.props.itemId);
-    }
+    this.props.fetchFaveStar(this.props.itemId);
   }
 
   onClick(e: React.MouseEvent) {
     e.preventDefault();
-    if (typeof this.props.isStarred !== 'undefined') {
-      this.props.saveFaveStar(this.props.itemId, this.props.isStarred);
-    }
+    this.props.saveFaveStar(this.props.itemId, this.props.isStarred);
   }
 
   render() {

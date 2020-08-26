@@ -24,6 +24,7 @@ import { t } from '@superset-ui/translation';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import { logging } from '@superset-ui/core';
+import { FavoriteStatus } from './types';
 
 export const createFetchRelated = (
   resource: string,
@@ -64,8 +65,8 @@ export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
 
 export function createFaveStarHandlers(
   baseURL: string,
-  favoriteStatus: object,
-  setFavoriteStatus: (update: any) => void,
+  favoriteStatus: FavoriteStatus,
+  setFavoriteStatus: (update: Partial<FavoriteStatus>) => void,
   handleErrorFunc: (message: string) => void,
 ) {
   const fetchFaveStar = (id: number) => {
@@ -73,13 +74,7 @@ export function createFaveStarHandlers(
       endpoint: `${baseURL}/${id}/count/`,
     })
       .then(({ json }) => {
-        const faves = {
-          ...favoriteStatus,
-        };
-
-        faves[id] = json.count > 0;
-
-        setFavoriteStatus(faves);
+        setFavoriteStatus({ [id]: json.count > 0 });
       })
       .catch(() =>
         handleErrorFunc(t('There was an error fetching the favorite status')),
@@ -93,13 +88,7 @@ export function createFaveStarHandlers(
       endpoint: `${baseURL}/${id}/${urlSuffix}/`,
     })
       .then(() => {
-        const faves = {
-          ...favoriteStatus,
-        };
-
-        faves[id] = !isStarred;
-
-        setFavoriteStatus(faves);
+        setFavoriteStatus({ [id]: !isStarred });
       })
       .catch(() =>
         handleErrorFunc(t('There was an error saving the favorite status')),
