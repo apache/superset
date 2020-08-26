@@ -279,7 +279,7 @@ class QueryContext:
                     query,
                     cached_dttm,
                     self.cache_timeout,
-                    datasource=self.datasource,
+                    self.datasource,
                 )
         return {
             "cache_key": cache_key,

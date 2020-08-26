@@ -101,7 +101,7 @@ def set_and_log_cache(
     query: str,
     cached_dttm: str,
     cache_timeout: int,
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional["BaseDatasource"],
 ) -> None:
     try:
         cache_value = dict(dttm=cached_dttm, df=df, query=query)
@@ -109,20 +109,20 @@ def set_and_log_cache(
         cache.set(cache_key, cache_value, timeout=cache_timeout)
 
         user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
-        kwargs = {}
+        record = {
+            "cache_key": cache_key,
+            "cache_timeout": cache_timeout,
+        }
         if datasource:
-            kwargs["datasource_id"] = datasource.uid
-            kwargs["datasource_name"] = datasource.name
-            kwargs["database_id"] = datasource.database.id
-            kwargs["database_name"] = datasource.database.name
-
-        event_logger.log(
-            user_id,
-            "cache_set",
-            cache_key=cache_key,
-            cache_timeout=cache_timeout,
-            **kwargs,
-        )
+            record.update(
+                {
+                    "datasource_id": datasource.uid,
+                    "datasource_name": datasource.name,
+                    "database_id": datasource.database.id,
+                    "database_name": datasource.database.name,
+                }
+            )
+        event_logger.log(user_id, "cache", records=[record])
     except Exception as ex:
         # cache.set call can fail if the backend is down or if
         # the key is too large or whatever other reasons
@@ -578,7 +578,7 @@ class BaseViz:
                     self.query,
                     cached_dttm,
                     self.cache_timeout,
-                    datasource=self.datasource,
+                    self.datasource,
                 )
         return {
             "cache_key": self._any_cache_key,

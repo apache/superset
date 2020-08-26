@@ -527,7 +527,7 @@ class BaseViz:
                     self.query,
                     cached_dttm,
                     self.cache_timeout,
-                    datasource=self.datasource,
+                    self.datasource,
                 )
 
         return {
