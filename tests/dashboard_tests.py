@@ -320,6 +320,9 @@ class TestDashboard(SupersetTestCase):
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn("/superset/dashboard/world_health/", resp)
 
+        # Cleanup
+        self.revoke_public_access_to_table(table)
+
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
         self.logout()
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
@@ -332,6 +335,8 @@ class TestDashboard(SupersetTestCase):
         db.session.commit()
 
         assert "Births" in self.get_resp("/superset/dashboard/births/")
+        # Cleanup
+        self.revoke_public_access_to_table(table)
 
     def test_only_owners_can_save(self):
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -399,6 +404,9 @@ class TestDashboard(SupersetTestCase):
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn(f"/superset/dashboard/{hidden_dash_slug}/", resp)
         self.assertIn(f"/superset/dashboard/{published_dash_slug}/", resp)
+
+        # Cleanup
+        self.revoke_public_access_to_table(table)
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")
