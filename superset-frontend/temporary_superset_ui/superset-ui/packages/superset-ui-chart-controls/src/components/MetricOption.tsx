@@ -34,9 +34,9 @@ const FlexRowContainer = styled.div`
 
 export interface MetricOptionProps {
   metric: {
-    verbose_name: string;
+    verbose_name?: string;
     metric_name: string;
-    label: string;
+    label?: string;
     description: string;
     warning_text: string;
     expression: string;
@@ -44,10 +44,10 @@ export interface MetricOptionProps {
     certified_by?: string | null;
     certification_details?: string | null;
   };
-  openInNewWindow: boolean;
-  showFormula: boolean;
-  showType: boolean;
-  url: string;
+  openInNewWindow?: boolean;
+  showFormula?: boolean;
+  showType?: boolean;
+  url?: string;
 }
 
 export function MetricOption({
