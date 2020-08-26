@@ -53,6 +53,11 @@ const StyledInputContainer = styled.div`
     padding: ${({ theme }) => theme.gridUnit}px 0;
     color: ${({ theme }) => theme.colors.grayscale.light1};
     text-align: left;
+
+    .required {
+      margin-left: ${({ theme }) => theme.gridUnit / 2}px;
+      color: ${({ theme }) => theme.colors.error.base};
+    }
   }
 
   input[type='text'] {

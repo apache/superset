@@ -40,5 +40,4 @@ describe('DatabaseModal', () => {
   it('renders a Modal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
-
 });
