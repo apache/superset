@@ -25,9 +25,10 @@ export default {
   title: 'Button',
   component: Button,
   decorators: [withKnobs],
+  excludeStories: /.*Knob$/,
 };
 
-const buttonStyleKnob = {
+export const buttonStyleKnob = {
   label: 'Types',
   options: {
     Primary: 'primary',
@@ -44,7 +45,8 @@ const buttonStyleKnob = {
   defaultValue: null,
   // groupId: 'ButtonType',
 };
-const buttonSizeKnob = {
+
+export const buttonSizeKnob = {
   label: 'Sizes',
   options: {
     XS: 'xsmall',
@@ -54,6 +56,7 @@ const buttonSizeKnob = {
   },
   defaultValue: null,
 };
+
 // TODO remove the use of these in the codebase where they're not necessary
 // const classKnob = {
 //   label: 'Known Classes',
