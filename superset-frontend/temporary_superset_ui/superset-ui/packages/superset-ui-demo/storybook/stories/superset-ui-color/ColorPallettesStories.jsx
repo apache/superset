@@ -2,6 +2,7 @@ import React from 'react';
 
 import AirbnbPalettes from '@superset-ui/color/src/colorSchemes/categorical/airbnb';
 import D3Palettes from '@superset-ui/color/src/colorSchemes/categorical/d3';
+import EchartsPalettes from '@superset-ui/color/src/colorSchemes/categorical/echarts';
 import GooglePalettes from '@superset-ui/color/src/colorSchemes/categorical/google';
 import LyftPalettes from '@superset-ui/color/src/colorSchemes/categorical/lyft';
 import PresetPalettes from '@superset-ui/color/src/colorSchemes/categorical/preset';
@@ -21,6 +22,7 @@ export const categoricalPalettes = () =>
     { palettes: SupersetPalettes, storyName: 'Superset' },
     { palettes: AirbnbPalettes, storyName: 'Airbnb' },
     { palettes: D3Palettes, storyName: 'd3' },
+    { palettes: EchartsPalettes, storyName: 'ECharts' },
     { palettes: GooglePalettes, storyName: 'Google' },
     { palettes: LyftPalettes, storyName: 'Lyft' },
     { palettes: PresetPalettes, storyName: 'Preset' },
