@@ -129,28 +129,30 @@ export default function Menu({
   // Flatten settings
   const flatSettings: any[] = [];
 
-  settings.forEach((section: object, index: number) => {
-    const newSection: MenuObjectProps = {
-      ...section,
-      index,
-      isHeader: true,
-    };
+  if (settings) {
+    settings.forEach((section: object, index: number) => {
+      const newSection: MenuObjectProps = {
+        ...section,
+        index,
+        isHeader: true,
+      };
 
-    flatSettings.push(newSection);
+      flatSettings.push(newSection);
 
-    // Filter out '-'
-    if (newSection.childs) {
-      newSection.childs.forEach((child: any) => {
-        if (child !== '-') {
-          flatSettings.push(child);
-        }
-      });
-    }
+      // Filter out '-'
+      if (newSection.childs) {
+        newSection.childs.forEach((child: any) => {
+          if (child !== '-') {
+            flatSettings.push(child);
+          }
+        });
+      }
 
-    if (index !== settings.length - 1) {
-      flatSettings.push('-');
-    }
-  });
+      if (index !== settings.length - 1) {
+        flatSettings.push('-');
+      }
+    });
+  }
 
   return (
     <StyledHeader className="top" id="main-menu">
