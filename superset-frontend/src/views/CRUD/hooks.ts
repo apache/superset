@@ -168,10 +168,10 @@ export function useListViewResource<D extends object = any>(
   };
 }
 
-// there hooks api has some known limitations around stale state in closures.
+// the hooks api has some known limitations around stale state in closures.
 // See https://github.com/reactjs/rfcs/blob/master/text/0068-react-hooks.md#drawbacks
 // the useRef hook is a way of getting around these limitations by having a consistent ref
-// that points to the latest value.
+// that points to the most recent value.
 export function useFavoriteStatus(
   initialState: FavoriteStatus,
   baseURL: string,
