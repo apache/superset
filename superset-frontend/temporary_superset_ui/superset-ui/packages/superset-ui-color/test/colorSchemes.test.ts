@@ -1,4 +1,5 @@
 import categoricalAirbnb from '../src/colorSchemes/categorical/airbnb';
+import categoricalEcharts from '../src/colorSchemes/categorical/echarts';
 import categoricalSuperset from '../src/colorSchemes/categorical/superset';
 import categoricalPreset from '../src/colorSchemes/categorical/preset';
 import categoricalD3 from '../src/colorSchemes/categorical/d3';
@@ -14,6 +15,7 @@ describe('Color Schemes', () => {
     it('returns an array of CategoricalScheme', () => {
       [
         categoricalAirbnb,
+        categoricalEcharts,
         categoricalD3,
         categoricalGoogle,
         categoricalLyft,

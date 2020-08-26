@@ -193,6 +193,12 @@ const schemes = [
       '#3AA3B2',
     ],
   },
+  {
+    id: 'echarts_gradient',
+    label: 'ECharts gradient',
+    isDiverging: false,
+    colors: ['#f6EFA6', '#D88273', '#BF444C'],
+  },
 ].map(s => new SequentialScheme(s));
 
 export default schemes;
