@@ -20,7 +20,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import prison
-from flask import g
+from flask import current_app, g
 
 import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
@@ -557,6 +557,24 @@ class TestRolePermission(SupersetTestCase):
 
         # Cleanup
         self.revoke_public_access_to_table(table)
+
+    def test_public_sync_role_builtin_perms(self):
+        """
+        Security: Tests public role creation based on a builtin role
+        """
+        current_app.config["PUBLIC_ROLE_LIKE"] = "TestRole"
+
+        security_manager.sync_role_definitions()
+        public_role = security_manager.get_public_role()
+        public_role_resource_names = [
+            [permission.view_menu.name, permission.permission.name]
+            for permission in public_role.permissions
+        ]
+        assert current_app.config["FAB_ROLES"]["TestRole"] == public_role_resource_names
+
+        # Cleanup
+        current_app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
+        security_manager.sync_role_definitions()
 
     def test_sqllab_gamma_user_schema_access_to_sqllab(self):
         session = db.session

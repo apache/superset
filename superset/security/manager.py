@@ -619,8 +619,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("granter", self._is_granter_pvm)
         self.set_role("sql_lab", self._is_sql_lab_pvm)
 
+        # Configure public role
         if conf["PUBLIC_ROLE_LIKE"]:
             self.copy_role(conf["PUBLIC_ROLE_LIKE"], self.auth_role_public, merge=True)
+        if conf.get("PUBLIC_ROLE_LIKE_GAMMA", False):
+            logger.warning(
+                "The config `PUBLIC_ROLE_LIKE_GAMMA` is deprecated and will be removed "
+                "in Superset 1.0. Please use `PUBLIC_ROLE_LIKE ` instead."
+            )
+            self.copy_role("Gamma", self.auth_role_public, merge=True)
 
         self.create_missing_perms()
 
