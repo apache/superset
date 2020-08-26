@@ -174,6 +174,8 @@ const ViewModeToggle = ({
     </ViewModeContainer>
   );
 };
+
+type ViewModeType = 'card' | 'table';
 export interface ListViewProps<T = any> {
   columns: any[];
   data: T[];
@@ -195,6 +197,7 @@ export interface ListViewProps<T = any> {
   renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
   renderCard?: (row: T) => React.ReactNode;
   cardSortSelectOptions?: Array<CardSortSelectOption>;
+  defaultViewMode?: ViewModeType;
 }
 
 const ListView: FunctionComponent<ListViewProps> = ({
@@ -213,6 +216,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   cardSortSelectOptions,
+  defaultViewMode = 'card',
 }) => {
   const {
     getTableProps,
@@ -253,8 +257,8 @@ const ListView: FunctionComponent<ListViewProps> = ({
   }
 
   const cardViewEnabled = Boolean(renderCard);
-  const [viewingMode, setViewingMode] = useState<'table' | 'card'>(
-    cardViewEnabled ? 'card' : 'table',
+  const [viewingMode, setViewingMode] = useState<ViewModeType>(
+    cardViewEnabled ? defaultViewMode : 'table',
   );
 
   return (
