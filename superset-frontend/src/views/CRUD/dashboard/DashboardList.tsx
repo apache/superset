@@ -511,7 +511,7 @@ function DashboardList(props: DashboardListProps) {
                   onSubmit={handleDashboardEdit}
                 />
               )}
-              <ListView
+              <ListView<Dashboard>
                 bulkActions={bulkActions}
                 bulkSelectEnabled={bulkSelectEnabled}
                 cardSortSelectOptions={sortTypes}

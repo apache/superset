@@ -503,7 +503,7 @@ function ChartList(props: ChartListProps) {
             : [];
 
           return (
-            <ListView
+            <ListView<Chart>
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               cardSortSelectOptions={sortTypes}

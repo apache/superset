@@ -540,7 +540,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             : [];
 
           return (
-            <ListView
+            <ListView<Dataset>
               className="dataset-list-view"
               columns={columns}
               data={datasets}
