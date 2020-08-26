@@ -23,6 +23,11 @@ import Button, { OnClickHandler } from 'src/components/Button';
 
 const StyledHeader = styled.header`
   margin-top: -20px;
+  display: flex;
+  justify-content: space-between;
+  & > * {
+    flex-grow: 1;
+  }
   .navbar-header .navbar-brand {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
