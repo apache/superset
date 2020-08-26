@@ -19,7 +19,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ButtonGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import classnames from 'classnames';
 import { t } from '@superset-ui/translation';
 import styled from '@superset-ui/style';
 
@@ -61,7 +60,8 @@ const Styles = styled.div`
   align-items: center;
   padding-bottom: ${({ theme }) => 2 * theme.gridUnit}px;
 
-  .save-btn {
+  .btn {
+    /* just to make sure buttons don't jiggle */
     width: 100px;
   }
 `;
@@ -75,12 +75,7 @@ export default function QueryAndSaveBtns({
   chartIsStale,
   errorMessage,
 }) {
-  const saveClasses = classnames({
-    'disabled disabledButton': !canAdd,
-    'save-btn': true,
-  });
-
-  let qryButtonStyle = 'default';
+  let qryButtonStyle = 'secondary';
   if (errorMessage) {
     qryButtonStyle = 'danger';
   } else if (chartIsStale) {
@@ -89,12 +84,19 @@ export default function QueryAndSaveBtns({
 
   const saveButtonDisabled = errorMessage ? true : loading;
   const qryOrStopButton = loading ? (
-    <Button onClick={onStop} buttonStyle="warning" className="save-btn">
+    <Button
+      onClick={onStop}
+      buttonStyle="warning"
+      className="save-btn"
+      buttonSize="small"
+      disabled={!canAdd}
+    >
       <i className="fa fa-stop-circle-o" /> Stop
     </Button>
   ) : (
     <Button
       className="query save-btn"
+      buttonSize="small"
       onClick={onQuery}
       buttonStyle={qryButtonStyle}
       disabled={!!errorMessage}
@@ -109,7 +111,9 @@ export default function QueryAndSaveBtns({
         <ButtonGroup className="query-and-save">
           {qryOrStopButton}
           <Button
-            className={saveClasses}
+            className="save-btn"
+            buttonStyle="secondary"
+            buttonSize="small"
             data-target="#save_modal"
             data-toggle="modal"
             disabled={saveButtonDisabled}
