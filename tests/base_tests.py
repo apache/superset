@@ -334,22 +334,22 @@ class SupersetTestCase(TestCase):
         if database:
             db.session.delete(database)
 
-    def create_fake_presto_db(self):
+    def create_fake_db_for_macros(self):
         self.login(username="admin")
-        database_name = "presto"
+        database_name = "db_for_macros_testing"
         db_id = 200
         return self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
             session=db.session,
-            sqlalchemy_uri="presto://user@host:8080/hive",
+            sqlalchemy_uri="db_for_macros_testing://user@host:8080/hive",
             id=db_id,
         )
 
-    def delete_fake_presto_db(self):
+    def delete_fake_db_for_macros(self):
         database = (
             db.session.query(Database)
-            .filter(Database.database_name == "presto")
+            .filter(Database.database_name == "db_for_macros_testing")
             .scalar()
         )
         if database:
