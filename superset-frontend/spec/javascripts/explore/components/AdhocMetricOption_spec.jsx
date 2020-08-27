@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { styledMount as mount, styledShallow as shallow } from 'spec/helpers/theming';
+import { styledShallow as shallow } from 'spec/helpers/theming';
 import { OverlayTrigger } from 'react-bootstrap';
 
 import Label from 'src/components/Label';
@@ -46,7 +46,9 @@ function setup(overrides) {
     columns,
     ...overrides,
   };
-  const wrapper = shallow(<AdhocMetricOption {...props} />).dive().dive();
+  const wrapper = shallow(<AdhocMetricOption {...props} />)
+    .dive()
+    .dive();
   return { wrapper, onMetricEdit };
 }
 
