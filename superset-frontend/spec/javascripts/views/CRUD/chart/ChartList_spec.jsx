@@ -20,6 +20,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import * as featureFlags from 'src/featureFlags';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
@@ -75,6 +76,13 @@ global.URL.createObjectURL = jest.fn();
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
 describe('ChartList', () => {
+  const isFeatureEnabledMock = jest
+    .spyOn(featureFlags, 'isFeatureEnabled')
+    .mockImplementation(feature => feature === 'THUMBNAILS');
+
+  afterAll(() => {
+    isFeatureEnabledMock.restore();
+  });
   const mockedProps = {};
   const wrapper = mount(<ChartList {...mockedProps} />, {
     context: { store },

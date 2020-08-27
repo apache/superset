@@ -20,6 +20,7 @@ import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import React, { useState, useMemo } from 'react';
 import rison from 'rison';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -510,7 +511,7 @@ function DashboardList(props: DashboardListProps) {
                   onSubmit={handleDashboardEdit}
                 />
               )}
-              <ListView
+              <ListView<Dashboard>
                 bulkActions={bulkActions}
                 bulkSelectEnabled={bulkSelectEnabled}
                 cardSortSelectOptions={sortTypes}
@@ -525,6 +526,9 @@ function DashboardList(props: DashboardListProps) {
                 loading={loading}
                 pageSize={PAGE_SIZE}
                 renderCard={renderCard}
+                defaultViewMode={
+                  isFeatureEnabled(FeatureFlag.THUMBNAILS) ? 'card' : 'table'
+                }
               />
             </>
           );
