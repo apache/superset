@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { shallow, mount } from 'enzyme';
-import { Nav } from 'react-bootstrap';
+import { Nav, NavDropdown, MenuItem } from 'react-bootstrap';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import Menu from 'src/components/Menu/Menu';
@@ -26,19 +26,6 @@ import Menu from 'src/components/Menu/Menu';
 const defaultProps = {
   data: {
     menu: [
-      {
-        name: 'Security',
-        icon: 'fa-cogs',
-        label: 'Security',
-        childs: [
-          {
-            name: 'List Users',
-            icon: 'fa-user',
-            label: 'List Users',
-            url: '/users/list/',
-          },
-        ],
-      },
       {
         name: 'Sources',
         icon: 'fa-table',
@@ -100,6 +87,21 @@ const defaultProps = {
       user_login_url: '/login/',
       locale: 'en',
     },
+    settings: [
+      {
+        name: 'Security',
+        icon: 'fa-cogs',
+        label: 'Security',
+        childs: [
+          {
+            name: 'List Users',
+            icon: 'fa-user',
+            label: 'List Users',
+            url: '/users/list/',
+          },
+        ],
+      },
+    ],
   },
 };
 
@@ -163,5 +165,13 @@ describe('Menu', () => {
     });
 
     expect(versionedWrapper.find('.version-info div')).toHaveLength(2);
+  });
+
+  it('renders a NavDropdown (settings)', () => {
+    expect(wrapper.find(NavDropdown)).toHaveLength(1);
+  });
+
+  it('renders MenuItems in NavDropdown (settings)', () => {
+    expect(wrapper.find(NavDropdown).find(MenuItem)).toHaveLength(2);
   });
 });
