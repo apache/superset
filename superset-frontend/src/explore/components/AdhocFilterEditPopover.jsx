@@ -20,7 +20,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, Tab, Tabs } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import { withTheme } from '@superset-ui/style';
 
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
