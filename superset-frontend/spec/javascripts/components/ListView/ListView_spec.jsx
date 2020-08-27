@@ -292,13 +292,13 @@ describe('ListView', () => {
     );
   });
 
-  it('disable card view based on prop', async () => {
+  it('disables card view based on prop', async () => {
     expect(wrapper.find(CardCollection).exists()).toBe(false);
     expect(wrapper.find(CardSortSelect).exists()).toBe(false);
     expect(wrapper.find(TableCollection).exists()).toBe(true);
   });
 
-  it('enable card view based on prop', async () => {
+  it('enables card view based on prop', async () => {
     const wrapper2 = factory({
       ...mockedProps,
       renderCard: jest.fn(),
@@ -308,6 +308,26 @@ describe('ListView', () => {
     expect(wrapper2.find(CardCollection).exists()).toBe(true);
     expect(wrapper2.find(CardSortSelect).exists()).toBe(true);
     expect(wrapper2.find(TableCollection).exists()).toBe(false);
+  });
+
+  it('allows setting the default view mode', async () => {
+    const wrapper2 = factory({
+      ...mockedProps,
+      renderCard: jest.fn(),
+      defaultViewMode: 'card',
+      initialSort: [{ id: 'something' }],
+    });
+    await waitForComponentToPaint(wrapper2);
+    expect(wrapper2.find(CardCollection).exists()).toBe(true);
+
+    const wrapper3 = factory({
+      ...mockedProps,
+      renderCard: jest.fn(),
+      defaultViewMode: 'table',
+      initialSort: [{ id: 'something' }],
+    });
+    await waitForComponentToPaint(wrapper3);
+    expect(wrapper3.find(TableCollection).exists()).toBe(true);
   });
 
   it('Throws an exception if filter missing in columns', () => {

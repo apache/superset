@@ -22,6 +22,7 @@ import { getChartMetadataRegistry } from '@superset-ui/chart';
 import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -502,7 +503,7 @@ function ChartList(props: ChartListProps) {
             : [];
 
           return (
-            <ListView
+            <ListView<Chart>
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               cardSortSelectOptions={sortTypes}
@@ -517,6 +518,9 @@ function ChartList(props: ChartListProps) {
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
+              defaultViewMode={
+                isFeatureEnabled(FeatureFlag.THUMBNAILS) ? 'card' : 'table'
+              }
             />
           );
         }}
