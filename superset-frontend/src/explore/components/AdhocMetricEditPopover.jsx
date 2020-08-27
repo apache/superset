@@ -46,6 +46,7 @@ const propTypes = {
   onResize: PropTypes.func.isRequired,
   columns: PropTypes.arrayOf(columnType),
   datasourceType: PropTypes.string,
+  theme: PropTypes.object,
 };
 
 const defaultProps = {

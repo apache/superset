@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, Tab, Tabs } from 'react-bootstrap';
 import Button from 'src/components/Button';
+import { withTheme } from '@superset-ui/style';
 
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
@@ -41,6 +42,7 @@ const propTypes = {
   ).isRequired,
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
+  theme: PropTypes.object,
 };
 
 const startingWidth = 300;
@@ -120,6 +122,7 @@ export default class AdhocFilterEditPopover extends React.Component {
       onResize,
       datasource,
       partitionColumn,
+      theme,
       ...popoverProps
     } = this.props;
 
@@ -179,10 +182,11 @@ export default class AdhocFilterEditPopover extends React.Component {
             buttonSize="small"
             className="m-r-5"
             onClick={this.onSave}
+            theme={theme}
           >
             Save
           </Button>
-          <Button buttonSize="small" onClick={this.props.onClose}>
+          <Button buttonSize="small" onClick={this.props.onClose} theme={theme}>
             Close
           </Button>
           <i
@@ -196,4 +200,5 @@ export default class AdhocFilterEditPopover extends React.Component {
     );
   }
 }
+
 AdhocFilterEditPopover.propTypes = propTypes;

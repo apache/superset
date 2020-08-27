@@ -47,7 +47,6 @@ function setup(overrides) {
     ...overrides,
   };
   const wrapper = shallow(<AdhocMetricOption {...props} />)
-    .dive()
     .dive();
   return { wrapper, onMetricEdit };
 }
