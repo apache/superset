@@ -341,7 +341,7 @@ class FilterBox extends React.Component {
           ? selectedValues[key]
           : [selectedValues[key]];
         selectedValuesForKey
-          .filter(value => !choiceIds.has(value))
+          .filter(value => value !== null && !choiceIds.has(value))
           .forEach(value => {
             choices.unshift({
               filter: key,
