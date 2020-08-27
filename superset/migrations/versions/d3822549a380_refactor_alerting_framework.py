@@ -14,16 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""refractor_alerting_framework
+"""refactor_alerting_framework
 
-Revision ID: 0e404596f7bc
+Revision ID: d3822549a380
 Revises: f80a3b88324b
-Create Date: 2020-08-26 23:01:16.459513
+Create Date: 2020-08-27 14:20:24.477024
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "0e404596f7bc"
+revision = "d3822549a380"
 down_revision = "f80a3b88324b"
 
 import sqlalchemy as sa
@@ -67,6 +67,7 @@ def upgrade():
         sa.Column("observer_id", sa.Integer(), nullable=False),
         sa.Column("alert_id", sa.Integer(), nullable=True),
         sa.Column("value", sa.Float(), nullable=True),
+        sa.Column("valid_result", sa.Boolean(), nullable=True),
         sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
         sa.ForeignKeyConstraint(["observer_id"], ["sql_observers.id"],),
         sa.PrimaryKeyConstraint("id"),

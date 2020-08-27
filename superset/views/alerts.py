@@ -39,26 +39,23 @@ from superset.utils.core import get_email_address_str, markdown
 
 from ..exceptions import SupersetException
 from ..sql_parse import ParsedQuery
+from ..tasks.alerts.oberver import check_observer_result
 from .base import SupersetModelView
 
 # TODO: access control rules for this module
 
 
-def test_observer_sql(item: "SQLObserverInlineView") -> None:
+def check_observer_sql(item: "SQLObserverInlineView") -> None:
     try:
         parsed_query = ParsedQuery(item.sql)
         sql = parsed_query.stripped()
         df = item.database.get_df(sql)
 
-        if not df.empty:
-            value = df.to_records()[0][1]
+        error_msg = check_observer_result(df, item.id, item.name)
 
-            # Check that the SQL result can be read as a float
-            if value:
-                float(value)
+        if error_msg:
+            raise SupersetException(f"Error: {error_msg}")
 
-    except ValueError:
-        raise SupersetException("Error: SQL query returned non-number result")
     except Exception as ex:  # pylint: disable=broad-except
         raise SupersetException(f"Observer raised exception: {ex}")
 
@@ -70,13 +67,15 @@ def check_validator_config(item: "ValidatorInlineView") -> None:
         "gte_threshold"
     ):
         raise SupersetException(
-            "Error: Greater Than or Equal To Validator needs a specified threshold"
+            "Error: Greater Than or Equal To Validator needs a specified threshold. "
+            'Add "gte_threshold": value to config.'
         )
     if item.validator_type == AlertValidatorType.lte_threshold and not config.get(
         "lte_threshold"
     ):
         raise SupersetException(
-            "Error: Less Than or Equal To Validator needs a specified threshold"
+            "Error: Less Than or Equal To Validator needs a specified threshold. "
+            'Add "lte_threshold": value to config.'
         )
 
 
@@ -103,6 +102,7 @@ class AlertObservationModelView(
     list_columns = (
         "dttm",
         "value",
+        "valid_result",
     )
 
 
@@ -146,13 +146,13 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
     }
 
     def pre_add(self, item: "SQLObserverInlineView") -> None:
-        if item.alert.sql_observers and item.alert.sql_observers[0].id != item.id:
+        if item.alert.sql_observer and item.alert.sql_observer[0].id != item.id:
             raise SupersetException("Error: An alert should only have one observer.")
 
-        test_observer_sql(item)
+        check_observer_sql(item)
 
     def pre_update(self, item: "SQLObserverInlineView") -> None:
-        test_observer_sql(item)
+        check_observer_sql(item)
 
 
 class ValidatorInlineView(  # pylint: disable=too-many-ancestors

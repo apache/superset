@@ -16,10 +16,9 @@
 # under the License.
 """Models for scheduled execution of jobs"""
 import enum
-import json
 import textwrap
 from datetime import datetime
-from typing import Any, Callable, List, Optional
+from typing import Any, List, Optional
 
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -73,6 +72,7 @@ class Alert(Model):
     recipients = Column(Text)
     slack_channel = Column(Text)
 
+    # TODO: implement log_retention
     log_retention = Column(Integer, default=90)
     grace_period = Column(Integer, default=60 * 60 * 24)
 
@@ -107,6 +107,9 @@ class AlertLog(Model):
         return (self.dttm_end - self.dttm_start).total_seconds()
 
 
+# TODO: Currently SQLObservation table will constantly grow with no limit,
+# add some retention restriction or more to a more scalable db e.g.
+# https://github.com/apache/incubator-superset/blob/master/superset/utils/log.py#L32
 class SQLObserver(Model):
     """Runs SQL-based queries for alerts"""
 
@@ -125,7 +128,7 @@ class SQLObserver(Model):
         return relationship(
             "Alert",
             foreign_keys=[self.alert_id],
-            backref=backref("sql_observers", cascade="all, delete-orphan"),
+            backref=backref("sql_observer", cascade="all, delete-orphan"),
         )
 
     @declared_attr
@@ -140,8 +143,6 @@ class SQLObserver(Model):
             backref=backref("sql_observers", cascade="all, delete-orphan"),
         )
 
-    # TODO: Abstract observations from the sqlamodls e.g.
-    # https://github.com/apache/incubator-superset/blob/master/superset/utils/log.py#L32
     def get_observations(self, observation_num: Optional[int] = 2) -> List[Any]:
         return (
             db.session.query(SQLObservation)
@@ -171,6 +172,7 @@ class SQLObservation(Model):  # pylint: disable=too-few-public-methods
         backref=backref("observations", cascade="all, delete-orphan"),
     )
     value = Column(Float)
+    valid_result = Column(Boolean, default=True)
 
 
 class Validator(Model):
@@ -186,7 +188,7 @@ class Validator(Model):
         default=textwrap.dedent(
             """
             {
-                "example_threshold": 50
+
             }
             """
         ),
@@ -203,56 +205,3 @@ class Validator(Model):
             foreign_keys=[self.alert_id],
             backref=backref("alert_validators", cascade="all, delete-orphan"),
         )
-
-
-def not_null_executor(
-    observer: SQLObserver, validator: Validator  # pylint: disable=unused-argument
-) -> bool:
-    """Returns True if a SQLObserver's recent observation is not NULL"""
-
-    observation = observer.get_observations(1)[0]
-    if observation.value:
-        return True
-    return False
-
-
-def greater_than_executor(observer: SQLObserver, validator: Validator) -> bool:
-    """
-    Returns True if a SQLObserver's recent observation is greater than or equal to
-    the value given in the validator config
-    """
-
-    observation = observer.get_observations(1)[0]
-    threshold = json.loads(validator.config)["gte_threshold"]
-    if observation.value and observation.value >= threshold:
-        return True
-
-    return False
-
-
-def less_than_executor(observer: SQLObserver, validator: Validator) -> bool:
-    """
-    Returns True if a SQLObserver's recent observation is less than or equal to
-    the value given in the validator config
-    """
-
-    observation = observer.get_observations(1)[0]
-    threshold = json.loads(validator.config)["lte_threshold"]
-    if observation.value and observation.value <= threshold:
-        return True
-
-    return False
-
-
-def get_validator_executor(
-    validator_type: AlertValidatorType,
-) -> Callable[[SQLObserver, Validator], bool]:
-    """Returns a validation function based on validator_type"""
-
-    validator_executors = {
-        AlertValidatorType.not_null: not_null_executor,
-        AlertValidatorType.gte_threshold: greater_than_executor,
-        AlertValidatorType.lte_threshold: less_than_executor,
-    }
-
-    return validator_executors[validator_type]

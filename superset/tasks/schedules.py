@@ -50,13 +50,7 @@ from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
 
 from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app, machine_auth_provider_factory
-from superset.models.alerts import (
-    Alert,
-    AlertLog,
-    get_validator_executor,
-    SQLObservation,
-    SQLObserver,
-)
+from superset.models.alerts import Alert, AlertLog
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     EmailDeliveryType,
@@ -65,7 +59,8 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery
+from superset.tasks.alerts.oberver import observe
+from superset.tasks.alerts.validator import get_validator_function
 from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
 from superset.utils.screenshots import ChartScreenshot, WebDriverProxy
@@ -543,15 +538,17 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             logger.info("Ignoring deactivated alert")
             return
 
-        if schedule.sql_observers:
-            sql = schedule.sql_observers[0].sql
+        if schedule.sql_observer:
+            sql = schedule.sql_observer[0].sql
 
         if report_type == ScheduleType.alert:
+            # Immediately deliver alert if recipients or slack_channel arguments
+            # are given. These are given when a test alert is sent
             if recipients or slack_channel:
                 deliver_alert(schedule.id, sql, recipients, slack_channel)
                 return
 
-            check_alert(schedule.id, schedule.label)
+            check_and_validate_alert(schedule.id, schedule.label)
         else:
             raise RuntimeError("Unknown report type")
     except NoSuchColumnError as column_error:
@@ -660,57 +657,32 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
     )
 
 
-def observe(alert_id: int) -> str:
-    """
-    Runs the SQL query in an alert's SQLObserver and then
-    stores the result in a SQLObservation
-    """
-
-    sql_observer = db.session.query(SQLObserver).filter_by(alert_id=alert_id).one()
-    value = None
-
-    parsed_query = ParsedQuery(sql_observer.sql)
-    sql = parsed_query.stripped()
-    df = sql_observer.database.get_df(sql)
-
-    if not df.empty:
-        value = float(df.to_records()[0][1])
-
-    observation = SQLObservation(
-        observer_id=sql_observer.id,
-        alert_id=alert_id,
-        dttm=datetime.utcnow(),
-        value=value,
-    )
-
-    db.session.add(observation)
-    db.session.commit()
-
-    return sql_observer.sql
-
-
-def check_alert(alert_id: int, label: str) -> None:
-    """Processes an alert and delivers the alert if triggered"""
+def check_and_validate_alert(alert_id: int, label: str) -> None:
+    """Processes an alert to see if it should be triggered"""
 
     logger.info("Processing alert ID: %i", alert_id)
 
     state = None
-    sql = ""
     dttm_start = datetime.utcnow()
+    observer_result = dict()
 
     try:
         logger.info("Querying observers for alert <%s:%s>", alert_id, label)
-        sql = observe(alert_id)
+        observer_result = observe(alert_id)
     except Exception as exc:  # pylint: disable=broad-except
         state = AlertState.ERROR
         logging.exception(exc)
         logging.error("Failed at query observers for alert: %s (%s)", label, alert_id)
 
+    if observer_result.get("error_msg"):
+        state = AlertState.ERROR
+        logging.error(observer_result["error_msg"])
+
     dttm_end = datetime.utcnow()
 
     if state != AlertState.ERROR:
-        if validate_alert(alert_id, label):
-            deliver_alert(alert_id, sql)
+        if validate_observations(alert_id, label):
+            deliver_alert(alert_id, observer_result["sql"])
             state = AlertState.TRIGGER
         else:
             state = AlertState.PASS
@@ -731,15 +703,15 @@ def check_alert(alert_id: int, label: str) -> None:
     db.session.commit()
 
 
-def validate_alert(alert_id: int, label: str) -> bool:
+def validate_observations(alert_id: int, label: str) -> bool:
     """Runs an alert's validators to check if it should be triggered or not"""
 
     logger.info("Validating observations for alert <%s:%s>", alert_id, label)
 
     alert = db.session.query(Alert).get(alert_id)
     for validator in alert.alert_validators:
-        executor = get_validator_executor(validator.validator_type)
-        if executor(alert.sql_observers[0], validator):
+        validate = get_validator_function(validator.validator_type)
+        if validate(alert.sql_observer[0], validator.config):
             return True
 
     return False
