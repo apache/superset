@@ -23,8 +23,6 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import Modal from 'src/common/components/Modal';
-// import Tabs from 'src/common/components/Tabs';
-// import BaseTabs from 'src/common/components';
 
 // store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
