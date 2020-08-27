@@ -105,7 +105,7 @@ export default class LimitControl extends React.PureComponent<
               type="text"
               value={textValue}
               placeholder={t(`Max: ${this.props.maxRow}`)}
-              buttonSize="small"
+              bsSize="small"
               // @ts-ignore
               onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                 this.setState({ textValue: event.target.value })
