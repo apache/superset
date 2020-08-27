@@ -48,10 +48,14 @@ const StyledIcon = styled(Icon)`
 `;
 
 const StyledInputContainer = styled.div`
-  .label {
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+
+  .label,
+  .helper {
     display: block;
     padding: ${({ theme }) => theme.gridUnit}px 0;
     color: ${({ theme }) => theme.colors.grayscale.light1};
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     text-align: left;
 
     .required {
@@ -60,7 +64,12 @@ const StyledInputContainer = styled.div`
     }
   }
 
+  .input-container {
+    display: flex;
+  }
+
   input[type='text'] {
+    flex: 1 1 auto;
     padding: ${({ theme }) => theme.gridUnit * 1.5}px
       ${({ theme }) => theme.gridUnit * 2}px;
     border-style: none;
@@ -68,6 +77,7 @@ const StyledInputContainer = styled.div`
     border-radius: ${({ theme }) => theme.gridUnit}px;
 
     &[name='name'] {
+      flex: 0 1 auto;
       width: 40%;
     }
   }
@@ -121,7 +131,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     (!db || !db.id || (database && database.id !== db.id) || (isHidden && show))
   ) {
     setDB(database);
-  } else if (!isEditMode && (!db || db.id)) {
+  } else if (!isEditMode && (!db || db.id || (isHidden && show))) {
     setDB({
       name: '',
       uri: '',
@@ -164,13 +174,41 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               {t('Datasource Name')}
               <span className="required">*</span>
             </div>
-            <input
-              type="text"
-              name="name"
-              value={db ? db.name : ''}
-              placeholder={t('Name your datasource')}
-              onChange={onInputChange}
-            />
+            <div className="input-container">
+              <input
+                type="text"
+                name="name"
+                value={db ? db.name : ''}
+                placeholder={t('Name your datasource')}
+                onChange={onInputChange}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="label">
+              {t('SQLAlchemy URI')}
+              <span className="required">*</span>
+            </div>
+            <div className="input-container">
+              <input
+                type="text"
+                name="uri"
+                value={db ? db.uri : ''}
+                placeholder={t('SQLAlchemy URI')}
+                onChange={onInputChange}
+              />
+            </div>
+            <div className="helper">
+              {t('Refer to the ')}
+              <a
+                href="https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('SQLAlchemy docs')}
+              </a>
+              {t(' for more information on how to structure your URI.')}
+            </div>
           </StyledInputContainer>
         </TabPane>
         <TabPane tab={<span>{t('Performance')}</span>} key="2">
