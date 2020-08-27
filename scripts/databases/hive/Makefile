@@ -14,20 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
--r base.in
--r integration.in
-flask-testing
-docker
-ipdb
-# pinning ipython as pip-compile-multi was bringing higher version
-# of the ipython that was not found in CI
-ipython==7.16.1
-openapi-spec-validator
-openpyxl
-parameterized
-pyhive[presto]>=0.6.3
-pylint
-pytest
-pytest-cov
-redis
-statsd
+current_branch := $(shell git rev-parse --abbrev-ref HEAD)
+build:
+	docker build -t bde2020/hive:$(current_branch) ./

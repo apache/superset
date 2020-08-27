@@ -76,6 +76,7 @@ class SupersetTestCase(TestCase):
         "mysql": "superset",
         "postgresql": "public",
         "presto": "default",
+        "hive": "default",
     }
 
     maxDiff = -1

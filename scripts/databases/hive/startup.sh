@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -14,20 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
--r base.in
--r integration.in
-flask-testing
-docker
-ipdb
-# pinning ipython as pip-compile-multi was bringing higher version
-# of the ipython that was not found in CI
-ipython==7.16.1
-openapi-spec-validator
-openpyxl
-parameterized
-pyhive[presto]>=0.6.3
-pylint
-pytest
-pytest-cov
-redis
-statsd
+
+hadoop fs -mkdir       /tmp
+hadoop fs -mkdir -p    /user/hive/warehouse
+hadoop fs -chmod g+w   /tmp
+hadoop fs -chmod g+w   /user/hive/warehouse
+
+cd $HIVE_HOME/bin
+./hiveserver2 --hiveconf hive.server2.enable.doAs=false
