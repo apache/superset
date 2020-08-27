@@ -311,6 +311,7 @@ class Header extends React.PureComponent {
       }
 
       this.props.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+      window.location.reload();
     }
   }
 
