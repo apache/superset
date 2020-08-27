@@ -18,7 +18,7 @@ from flask import Markup
 from flask_babel import lazy_gettext as _
 
 from superset.views.chart.filters import SliceFilter
-from superset.views.dashboard.filters import DashboardFilter
+from superset.dashboards.filters import DashboardFilter
 
 
 class SliceMixin:  # pylint: disable=too-few-public-methods
