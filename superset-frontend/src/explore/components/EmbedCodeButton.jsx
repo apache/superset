@@ -23,7 +23,7 @@ import { t } from '@superset-ui/translation';
 
 import FormLabel from 'src/components/FormLabel';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { getExploreLongUrl } from '../exploreUtils';
+import { getExploreLongUrl, getURIDirectory } from '../exploreUtils';
 import { getShortUrl } from '../../utils/common';
 
 const propTypes = {
@@ -36,7 +36,7 @@ export default class EmbedCodeButton extends React.Component {
     this.state = {
       height: '400',
       width: '600',
-      shortUrl: '',
+      shortUrlId: 0,
     };
     this.handleInputChange = this.handleInputChange.bind(this);
     this.getCopyUrl = this.getCopyUrl.bind(this);
@@ -44,18 +44,14 @@ export default class EmbedCodeButton extends React.Component {
   }
 
   onShortUrlSuccess(shortUrl) {
+    const shortUrlId = shortUrl.substring(shortUrl.indexOf('/r/') + 3);
     this.setState(() => ({
-      shortUrl,
+      shortUrlId,
     }));
   }
 
   getCopyUrl() {
-    const srcLink = `${
-      window.location.origin +
-      getExploreLongUrl(this.props.latestQueryFormData, 'standalone')
-    }&height=${this.state.height}`;
-
-    return getShortUrl(srcLink)
+    return getShortUrl(getExploreLongUrl(this.props.latestQueryFormData))
       .then(this.onShortUrlSuccess)
       .catch(this.props.addDangerToast);
   }
@@ -69,6 +65,9 @@ export default class EmbedCodeButton extends React.Component {
   }
 
   generateEmbedHTML() {
+    const srcLink = `${window.location.origin + getURIDirectory()}?r=${
+      this.state.shortUrlId
+    }&standalone=true&height=${this.state.height}`;
     return (
       '<iframe\n' +
       `  width="${this.state.width}"\n` +
@@ -76,7 +75,7 @@ export default class EmbedCodeButton extends React.Component {
       '  seamless\n' +
       '  frameBorder="0"\n' +
       '  scrolling="no"\n' +
-      `  src="${this.state.shortUrl}"\n` +
+      `  src="${srcLink}"\n` +
       '>\n' +
       '</iframe>'
     );
