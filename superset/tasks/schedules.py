@@ -574,6 +574,11 @@ def deliver_alert(
     recipients: Optional[str] = None,
     slack_channel: Optional[str] = None,
 ) -> None:
+    """
+    Gathers alert information and sends out the alert
+    to its respective email and slack recipients
+    """
+
     alert = db.session.query(Alert).get(alert_id)
 
     logging.info("Triggering alert: %s", alert)
@@ -603,6 +608,7 @@ def deliver_alert(
 
 
 def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
+    """Delivers an email alert to the given email recipients"""
     # TODO add sql query results to email
     subject = f"[Superset] Triggered alert: {alert_content.label}"
     deliver_as_group = False
@@ -627,6 +633,8 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
 
 
 def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None:
+    """Delivers a slack alert to the given slack channel"""
+
     subject = __("[Alert] %(label)s", label=alert_content.label)
 
     image = None
@@ -653,6 +661,11 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
 
 
 def observe(alert_id: int) -> str:
+    """
+    Runs the SQL query in an alert's SQLObserver and then
+    stores the result in a SQLObservation
+    """
+
     sql_observer = db.session.query(SQLObserver).filter_by(alert_id=alert_id).one()
     value = None
 
@@ -677,6 +690,8 @@ def observe(alert_id: int) -> str:
 
 
 def check_alert(alert_id: int, label: str) -> None:
+    """Processes an alert and delivers the alert if triggered"""
+
     logger.info("Processing alert ID: %i", alert_id)
 
     state = None
@@ -717,6 +732,8 @@ def check_alert(alert_id: int, label: str) -> None:
 
 
 def validate_alert(alert_id: int, label: str) -> bool:
+    """Runs an alert's validators to check if it should be triggered or not"""
+
     logger.info("Validating observations for alert <%s:%s>", alert_id, label)
 
     alert = db.session.query(Alert).get(alert_id)

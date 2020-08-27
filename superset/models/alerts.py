@@ -108,6 +108,7 @@ class AlertLog(Model):
 
 
 class SQLObserver(Model):
+    """Runs SQL-based queries for alerts"""
 
     __tablename__ = "sql_observers"
 
@@ -151,6 +152,7 @@ class SQLObserver(Model):
 
 
 class SQLObservation(Model):  # pylint: disable=too-few-public-methods
+    """Keeps track of values retrieved from SQLObservers"""
 
     __tablename__ = "sql_observations"
 
@@ -172,6 +174,7 @@ class SQLObservation(Model):  # pylint: disable=too-few-public-methods
 
 
 class Validator(Model):
+    """Used to determine how an alert and its observations should be validated"""
 
     __tablename__ = "alert_validators"
 
@@ -205,6 +208,8 @@ class Validator(Model):
 def not_null_executor(
     observer: SQLObserver, validator: Validator  # pylint: disable=unused-argument
 ) -> bool:
+    """Returns True if a SQLObserver's recent observation is not NULL"""
+
     observation = observer.get_observations(1)[0]
     if observation.value:
         return True
@@ -212,6 +217,11 @@ def not_null_executor(
 
 
 def greater_than_executor(observer: SQLObserver, validator: Validator) -> bool:
+    """
+    Returns True if a SQLObserver's recent observation is greater than or equal to
+    the value given in the validator config
+    """
+
     observation = observer.get_observations(1)[0]
     threshold = json.loads(validator.config)["gte_threshold"]
     if observation.value and observation.value >= threshold:
@@ -221,6 +231,11 @@ def greater_than_executor(observer: SQLObserver, validator: Validator) -> bool:
 
 
 def less_than_executor(observer: SQLObserver, validator: Validator) -> bool:
+    """
+    Returns True if a SQLObserver's recent observation is less than or equal to
+    the value given in the validator config
+    """
+
     observation = observer.get_observations(1)[0]
     threshold = json.loads(validator.config)["lte_threshold"]
     if observation.value and observation.value <= threshold:
@@ -232,6 +247,8 @@ def less_than_executor(observer: SQLObserver, validator: Validator) -> bool:
 def get_validator_executor(
     validator_type: AlertValidatorType,
 ) -> Callable[[SQLObserver, Validator], bool]:
+    """Returns a validation function based on validator_type"""
+
     validator_executors = {
         AlertValidatorType.not_null: not_null_executor,
         AlertValidatorType.gte_threshold: greater_than_executor,
