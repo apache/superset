@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
-import { Nav, Navbar, NavDropdown, NavItem, MenuItem } from 'react-bootstrap';
+import { Nav, Navbar, NavItem, MenuItem } from 'react-bootstrap';
+import NavDropdown from 'src/components/NavDropdown';
 import styled from '@superset-ui/style';
 import MenuObject, { MenuObjectProps } from './MenuObject';
 import NewMenu from './NewMenu';
@@ -56,6 +57,10 @@ export interface MenuProps {
 }
 
 const StyledHeader = styled.header`
+  &:nth-last-of-type(2) nav {
+    margin-bottom: 2px;
+  }
+
   .caret {
     display: none;
   }
