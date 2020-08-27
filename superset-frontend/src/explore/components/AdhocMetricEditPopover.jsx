@@ -193,6 +193,7 @@ export default class AdhocMetricEditPopover extends React.Component {
       onClose,
       onResize,
       datasourceType,
+      theme,
       ...popoverProps
     } = this.props;
 
@@ -310,6 +311,8 @@ export default class AdhocMetricEditPopover extends React.Component {
             className="m-r-5"
             data-test="AdhocMetricEdit#save"
             onClick={this.onSave}
+            theme={theme}
+            cta
           >
             Save
           </Button>
@@ -317,6 +320,8 @@ export default class AdhocMetricEditPopover extends React.Component {
             buttonSize="small"
             onClick={this.props.onClose}
             data-test="AdhocMetricEdit#cancel"
+            theme={theme}
+            cta
           >
             Close
           </Button>
