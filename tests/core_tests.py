@@ -23,21 +23,18 @@ import html
 import io
 import json
 import logging
-import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 from urllib.parse import quote
 
 import pytz
 import random
 import re
-import string
 import unittest
 from unittest import mock, skipUnless
 
 import pandas as pd
 import sqlalchemy as sqla
 
-from superset.utils.core import get_example_database
 from tests.test_app import app  # isort:skip
 import superset.views.utils
 from superset import (
@@ -49,7 +46,6 @@ from superset import (
     is_feature_enabled,
 )
 from superset.connectors.sqla.models import SqlaTable
-from superset.datasets.dao import DatasetDAO
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
@@ -702,7 +698,7 @@ class TestCore(SupersetTestCase):
         """Test macro defined in custom template processor works."""
         mock_dt.utcnow = mock.Mock(return_value=datetime.datetime(1970, 1, 1))
         db = mock.Mock()
-        db.backend = "presto"
+        db.backend = "db_for_macros_testing"
         tp = jinja_context.get_template_processor(database=db)
 
         sql = "SELECT '$DATE()'"
@@ -717,7 +713,7 @@ class TestCore(SupersetTestCase):
         """Test macro passed as kwargs when getting template processor
         works in custom template processor."""
         db = mock.Mock()
-        db.backend = "presto"
+        db.backend = "db_for_macros_testing"
         s = "$foo()"
         tp = jinja_context.get_template_processor(database=db, foo=lambda: "bar")
         rendered = tp.process_template(s)
@@ -727,7 +723,7 @@ class TestCore(SupersetTestCase):
         """Test macro passed as kwargs when processing template
         works in custom template processor."""
         db = mock.Mock()
-        db.backend = "presto"
+        db.backend = "db_for_macros_testing"
         s = "$foo()"
         tp = jinja_context.get_template_processor(database=db)
         rendered = tp.process_template(s, foo=lambda: "bar")
@@ -736,7 +732,7 @@ class TestCore(SupersetTestCase):
     def test_custom_template_processors_overwrite(self) -> None:
         """Test template processor for presto gets overwritten by custom one."""
         db = mock.Mock()
-        db.backend = "presto"
+        db.backend = "db_for_macros_testing"
         tp = jinja_context.get_template_processor(database=db)
 
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
@@ -751,11 +747,7 @@ class TestCore(SupersetTestCase):
         """Test custom template processor is ignored for a difference backend
         database."""
         maindb = utils.get_example_database()
-        sql = (
-            "SELECT '$DATE()'"
-            if maindb.backend != "presto"
-            else f"SELECT '{datetime.date.today().isoformat()}'"
-        )
+        sql = "SELECT '$DATE()'"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
         assert sql == rendered
@@ -774,7 +766,7 @@ class TestCore(SupersetTestCase):
         }
         sql_lab_mock.return_value = resp
 
-        dbobj = self.create_fake_presto_db()
+        dbobj = self.create_fake_db_for_macros()
         json_payload = dict(database_id=dbobj.id, sql=sql)
         self.get_json_resp(
             "/superset/sql_json/", raise_on_error=False, json_=json_payload
@@ -782,7 +774,7 @@ class TestCore(SupersetTestCase):
         assert sql_lab_mock.called
         self.assertEqual(sql_lab_mock.call_args[0][1], "SELECT '1970-01-01' as test")
 
-        self.delete_fake_presto_db()
+        self.delete_fake_db_for_macros()
 
     def test_fetch_datasource_metadata(self):
         self.login(username="admin")
