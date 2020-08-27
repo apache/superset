@@ -711,6 +711,10 @@ TRACKING_URL_TRANSFORMER = lambda x: x
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = 5
 
+# Interval between consecutive polls when using Presto Engine
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long
+PRESTO_POLL_INTERVAL = 1
+
 # Allow for javascript controls components
 # this enables programmers to customize certain charts (like the
 # geospatial ones) by inputing javascript in controls. This exposes
