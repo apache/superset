@@ -23,6 +23,7 @@ describe('chart card view', () => {
     cy.login();
     cy.server();
     cy.visit(CHART_LIST);
+    cy.get('[data-test="card-view"]').click();
   });
 
   it('should load cards', () => {
