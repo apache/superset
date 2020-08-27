@@ -23,6 +23,7 @@ describe('Dashboard card view', () => {
     cy.login();
     cy.server();
     cy.visit(DASHBOARD_LIST);
+    cy.get('[data-test="card-view"]').click();
   });
 
   it('should load cards', () => {
