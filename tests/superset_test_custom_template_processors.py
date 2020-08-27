@@ -35,7 +35,7 @@ def DATE(
 class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
     """A custom presto template processor for test."""
 
-    engine = "presto"
+    engine = "db_for_macros_testing"
 
     def process_template(self, sql: str, **kwargs) -> str:
         """Processes a sql template with $ style macro using regex."""
