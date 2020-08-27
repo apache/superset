@@ -23,7 +23,7 @@ import Button, { OnClickHandler } from 'src/components/Button';
 
 const StyledHeader = styled.header`
   position: relative;
-  top: -20px;
+  top: -18px;
   .navbar-header .navbar-brand {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
