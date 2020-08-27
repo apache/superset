@@ -18,7 +18,6 @@
 """Unit tests for Superset Celery worker"""
 import datetime
 import json
-from typing import Optional
 
 from parameterized import parameterized
 import time
@@ -28,6 +27,7 @@ import unittest.mock as mock
 import flask
 from flask import current_app
 
+from tests.conftest import CTAS_SCHEMA_NAME
 from tests.test_app import app
 from superset import db, sql_lab
 from superset.result_set import SupersetResultSet
@@ -40,14 +40,10 @@ from superset.sql_parse import ParsedQuery, CtasMethod
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
-from .sqllab_test_util import (
-    setup_presto_if_needed,
-    CTAS_SCHEMA_NAME,
-)  # noqa autoused fixture
 
 CELERY_SHORT_SLEEP_TIME = 2
-CELERY_SLEEP_TIME = 10
-DROP_TABLE_SLEEP_TIME = 10
+CELERY_SLEEP_TIME = 6
+DROP_TABLE_SLEEP_TIME = 2
 
 
 class TestUtilityFunction(SupersetTestCase):
@@ -290,13 +286,17 @@ class TestCelery(SupersetTestCase):
                 "WHERE name='James'",
                 query.executed_sql,
             )
-            self.assertEqual(
-                "SELECT *\n" f"FROM {CTAS_SCHEMA_NAME}.{tmp_table_name}"
-                if backend != "presto"
-                else "SELECT *\n"
-                f"FROM {quote(CTAS_SCHEMA_NAME)}.{quote(tmp_table_name)}",
-                query.select_sql,
-            )
+
+            # TODO(bkyryliuk): quote table and schema names for all databases
+            if backend in {"presto", "hive"}:
+                assert query.select_sql == (
+                    f"SELECT *\nFROM {quote(CTAS_SCHEMA_NAME)}.{quote(tmp_table_name)}"
+                )
+            else:
+                assert (
+                    query.select_sql == "SELECT *\n"
+                    f"FROM {CTAS_SCHEMA_NAME}.{tmp_table_name}"
+                )
             time.sleep(CELERY_SHORT_SLEEP_TIME)
             results = self.run_sql(db_id, query.select_sql)
             self.assertEqual(QueryStatus.SUCCESS, results["status"], msg=result)
@@ -323,7 +323,7 @@ class TestCelery(SupersetTestCase):
 
             schema_name = (
                 quote(CTAS_SCHEMA_NAME)
-                if example_db.backend == "presto"
+                if example_db.backend in {"presto", "hive"}
                 else CTAS_SCHEMA_NAME
             )
             expected_full_table_name = f"{schema_name}.{quote(tmp_table_name)}"

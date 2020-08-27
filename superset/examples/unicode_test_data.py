@@ -66,6 +66,7 @@ def load_unicode_test_data(
                 "value": Float(),
             },
             index=False,
+            method="multi",
         )
         print("Done loading table!")
         print("-" * 80)
