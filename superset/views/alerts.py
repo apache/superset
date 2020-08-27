@@ -39,7 +39,7 @@ from superset.utils.core import get_email_address_str, markdown
 
 from ..exceptions import SupersetException
 from ..sql_parse import ParsedQuery
-from .base import ListWidgetWithCheckboxes, SupersetModelView
+from .base import SupersetModelView
 
 # TODO: access control rules for this module
 
@@ -98,6 +98,8 @@ class AlertObservationModelView(
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SQLObservation)
     include_route_methods = {RouteMethod.LIST} | {"show"}
+    list_title = _("List Observations")
+    show_title = _("Show Observation")
     list_columns = (
         "dttm",
         "value",
@@ -113,8 +115,6 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
     show_title = _("Show SQL Observer")
     add_title = _("Add SQL Observer")
     edit_title = _("Edit SQL Observer")
-
-    list_widget = ListWidgetWithCheckboxes
 
     edit_columns = [
         "name",
@@ -164,8 +164,6 @@ class ValidatorInlineView(  # pylint: disable=too-many-ancestors
     show_title = _("Show Validator")
     add_title = _("Add Validator")
     edit_title = _("Edit Validator")
-
-    list_widget = ListWidgetWithCheckboxes
 
     edit_columns = [
         "name",

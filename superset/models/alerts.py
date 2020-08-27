@@ -162,6 +162,12 @@ class SQLObservation(Model):  # pylint: disable=too-few-public-methods
         foreign_keys=[observer_id],
         backref=backref("observations", cascade="all, delete-orphan"),
     )
+    alert_id = Column(Integer, ForeignKey("alerts.id"))
+    alert = relationship(
+        "Alert",
+        foreign_keys=[alert_id],
+        backref=backref("observations", cascade="all, delete-orphan"),
+    )
     value = Column(Float)
 
 

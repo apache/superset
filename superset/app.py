@@ -147,6 +147,7 @@ class SupersetAppInitializer:
         from superset.views.alerts import (
             AlertLogModelView,
             AlertModelView,
+            AlertObservationModelView,
             ValidatorInlineView,
             SQLObserverInlineView,
         )
@@ -406,6 +407,7 @@ class SupersetAppInitializer:
             )
             appbuilder.add_view_no_menu(SQLObserverInlineView)
             appbuilder.add_view_no_menu(ValidatorInlineView)
+            appbuilder.add_view_no_menu(AlertObservationModelView)
             appbuilder.add_view_no_menu(AlertLogModelView)
 
         #

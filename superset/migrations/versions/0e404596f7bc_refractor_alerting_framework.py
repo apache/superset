@@ -16,14 +16,14 @@
 # under the License.
 """refractor_alerting_framework
 
-Revision ID: d76d46c16995
+Revision ID: 0e404596f7bc
 Revises: f80a3b88324b
-Create Date: 2020-08-26 16:52:20.187096
+Create Date: 2020-08-26 23:01:16.459513
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "d76d46c16995"
+revision = "0e404596f7bc"
 down_revision = "f80a3b88324b"
 
 import sqlalchemy as sa
@@ -65,7 +65,9 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("dttm", sa.DateTime(), nullable=True),
         sa.Column("observer_id", sa.Integer(), nullable=False),
+        sa.Column("alert_id", sa.Integer(), nullable=True),
         sa.Column("value", sa.Float(), nullable=True),
+        sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
         sa.ForeignKeyConstraint(["observer_id"], ["sql_observers.id"],),
         sa.PrimaryKeyConstraint("id"),
     )

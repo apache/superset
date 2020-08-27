@@ -663,10 +663,14 @@ def observe(alert_id: int) -> str:
     if not df.empty:
         value = float(df.to_records()[0][1])
 
-    sql_observer.observations.append(  # pylint: disable=no-member
-        SQLObservation(dttm=datetime.utcnow(), value=value)
+    observation = SQLObservation(
+        observer_id=sql_observer.id,
+        alert_id=alert_id,
+        dttm=datetime.utcnow(),
+        value=value,
     )
 
+    db.session.add(observation)
     db.session.commit()
 
     return sql_observer.sql
