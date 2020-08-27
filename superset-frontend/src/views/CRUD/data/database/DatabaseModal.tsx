@@ -86,8 +86,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
-  console.log('db', db);
-
   // Functions
   const hide = () => {
     setIsHidden(true);
