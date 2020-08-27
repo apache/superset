@@ -28,6 +28,7 @@ import { ReactComponent as CircleCheckIcon } from 'images/icons/circle-check.svg
 import { ReactComponent as CircleCheckSolidIcon } from 'images/icons/circle-check-solid.svg';
 import { ReactComponent as CloseIcon } from 'images/icons/close.svg';
 import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
+import { ReactComponent as DatabasesIcon } from 'images/icons/databases.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
 import { ReactComponent as DropdownArrowIcon } from 'images/icons/dropdown-arrow.svg';
@@ -57,6 +58,7 @@ type IconName =
   | 'circle-check'
   | 'close'
   | 'compass'
+  | 'databases'
   | 'dataset-physical'
   | 'dataset-virtual'
   | 'dropdown-arrow'
@@ -85,6 +87,7 @@ export const iconsRegistry: Record<
   'checkbox-on': CheckboxOnIcon,
   'circle-check-solid': CircleCheckSolidIcon,
   'circle-check': CircleCheckIcon,
+  databases: DatabasesIcon,
   'dataset-physical': DatasetPhysicalIcon,
   'dataset-virtual': DatasetVirtualIcon,
   'favorite-selected': FavoriteSelectedIcon,
@@ -106,6 +109,7 @@ export const iconsRegistry: Record<
   trash: TrashIcon,
   warning: WarningIcon,
 };
+
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
 }
@@ -117,6 +121,7 @@ const Icon = ({
   ...rest
 }: IconProps) => {
   const Component = iconsRegistry[name];
+
   return (
     <Component color={color} viewBox={viewBox} data-test={name} {...rest} />
   );

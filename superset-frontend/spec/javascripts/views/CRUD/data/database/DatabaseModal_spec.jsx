@@ -21,26 +21,21 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 
-import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
-import SubMenu from 'src/components/Menu/SubMenu';
+import Modal from 'src/common/components/Modal';
 
-// store needed for withToasts(DatabaseList)
+// store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-describe('DatabaseList', () => {
-  const wrapper = mount(<DatabaseList />, { context: { store } });
+describe('DatabaseModal', () => {
+  const wrapper = mount(<DatabaseModal />, { context: { store } });
 
   it('renders', () => {
-    expect(wrapper.find(DatabaseList)).toExist();
-  });
-
-  it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
-  });
-
-  it('renders a DatabaseModal', () => {
     expect(wrapper.find(DatabaseModal)).toExist();
+  });
+
+  it('renders a Modal', () => {
+    expect(wrapper.find(Modal)).toExist();
   });
 });
