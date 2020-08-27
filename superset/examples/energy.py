@@ -48,6 +48,7 @@ def load_energy(
             chunksize=500,
             dtype={"source": String(255), "target": String(255), "value": Float()},
             index=False,
+            method="multi",
         )
 
     print("Creating table [wb_health_population] reference")

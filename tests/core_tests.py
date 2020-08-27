@@ -147,7 +147,7 @@ class TestCore(SupersetTestCase):
 
     def test_get_superset_tables_substr(self):
         example_db = utils.get_example_database()
-        if example_db.backend == "presto":
+        if example_db.backend in {"presto", "hive"}:
             # TODO: change table to the real table that is in examples.
             return
         self.login(username="admin")
@@ -653,7 +653,7 @@ class TestCore(SupersetTestCase):
     def test_extra_table_metadata(self):
         self.login("admin")
         example_db = utils.get_example_database()
-        schema = "default" if example_db.backend == "presto" else "superset"
+        schema = "default" if example_db.backend in {"presto", "hive"} else "superset"
         self.get_json_resp(
             f"/superset/extra_table_metadata/{example_db.id}/birth_names/{schema}/"
         )

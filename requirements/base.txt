@@ -11,19 +11,19 @@ alembic==1.4.2            # via flask-migrate
 amqp==2.6.1               # via kombu
 apispec[yaml]==3.3.1      # via flask-appbuilder
 async-timeout==3.0.1      # via aiohttp
-attrs==19.3.0             # via aiohttp, jsonschema
+attrs==20.1.0             # via aiohttp, jsonschema
 babel==2.8.0              # via flask-babel
 backoff==1.10.0           # via apache-superset
 billiard==3.6.3.0         # via celery
 bleach==3.1.5             # via apache-superset
-boto3==1.14.36            # via tabulator
-botocore==1.17.36         # via boto3, s3transfer
+boto3==1.14.48            # via tabulator
+botocore==1.17.48         # via boto3, s3transfer
 brotli==1.0.7             # via flask-compress
 cached-property==1.5.1    # via tableschema
 cachelib==0.1.1           # via apache-superset
 celery==4.4.7             # via apache-superset
 certifi==2020.6.20        # via requests
-cffi==1.14.1              # via cryptography
+cffi==1.14.2              # via cryptography
 chardet==3.0.4            # via aiohttp, requests, tabulator
 click==7.1.2              # via apache-superset, flask, flask-appbuilder, tableschema, tabulator
 colorama==0.4.3           # via apache-superset, flask-appbuilder
@@ -54,7 +54,7 @@ future==0.18.2            # via pyhive
 geographiclib==1.50       # via geopy
 geopy==2.0.0              # via apache-superset
 gunicorn==20.0.4          # via apache-superset
-humanize==2.5.0           # via apache-superset
+humanize==2.6.0           # via apache-superset
 idna==2.10                # via email-validator, requests, yarl
 ijson==3.1.1              # via tabulator
 importlib-metadata==1.7.0  # via jsonschema, kombu, markdown
@@ -78,7 +78,7 @@ multidict==4.7.6          # via aiohttp, yarl
 mysqlclient==1.4.2.post1  # via apache-superset
 natsort==7.0.1            # via croniter
 numpy==1.19.1             # via pandas, pyarrow
-openpyxl==3.0.4           # via tabulator
+openpyxl==3.0.5           # via tabulator
 packaging==20.4           # via bleach
 pandas==1.0.5             # via apache-superset
 parsedatetime==2.6        # via apache-superset
@@ -112,13 +112,13 @@ simplejson==3.17.2        # via apache-superset
 six==1.15.0               # via bleach, cryptography, flask-cors, flask-jwt-extended, flask-talisman, isodate, jsonlines, jsonschema, linear-tsv, packaging, pathlib2, polyline, prison, pyrsistent, python-dateutil, sasl, sqlalchemy-utils, tableschema, tabulator, thrift, thrift-sasl, wtforms-json
 slackclient==2.5.0        # via apache-superset
 sqlalchemy-utils==0.36.8  # via apache-superset, flask-appbuilder
-sqlalchemy==1.3.18        # via alembic, apache-superset, flask-sqlalchemy, marshmallow-sqlalchemy, sqlalchemy-utils, tabulator
+sqlalchemy==1.3.19        # via alembic, apache-superset, flask-sqlalchemy, marshmallow-sqlalchemy, sqlalchemy-utils, tabulator
 sqlparse==0.3.0           # via apache-superset
-tableschema==1.19.2       # via apache-superset
+tableschema==1.19.3       # via apache-superset
 tabulator==1.52.3         # via tableschema
 thrift-sasl==0.4.2        # via pyhive
 thrift==0.13.0            # via apache-superset, pyhive, thrift-sasl
-typing-extensions==3.7.4.2  # via yarl
+typing-extensions==3.7.4.3  # via yarl
 unicodecsv==0.14.1        # via tableschema, tabulator
 urllib3==1.25.10          # via botocore, requests, selenium
 vine==1.3.0               # via amqp, celery
