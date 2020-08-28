@@ -24,6 +24,7 @@ import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
 import { DatabaseObject } from './types';
 import Button from 'src/components/Button';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -46,7 +47,7 @@ const StyledInputContainer = styled.div`
     display: block;
     padding: ${({ theme }) => theme.gridUnit}px 0;
     color: ${({ theme }) => theme.colors.grayscale.light1};
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
     text-align: left;
 
     .required {
@@ -57,10 +58,20 @@ const StyledInputContainer = styled.div`
 
   .input-container {
     display: flex;
+    align-items: center;
+
+    label {
+      display: flex;
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    }
   }
 
-  input[type='text'] {
+  input {
     flex: 1 1 auto;
+  }
+
+  input[type='text'],
+  input[type='number'] {
     padding: ${({ theme }) => theme.gridUnit * 1.5}px
       ${({ theme }) => theme.gridUnit * 2}px;
     border-style: none;
@@ -90,6 +101,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
+  console.log('db', db);
+
   // Functions
   const hide = () => {
     setIsHidden(true);
@@ -112,7 +125,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       ...db,
     };
 
-    data[target.name] = target.value;
+    if (target.type === 'checkbox') {
+      data[target.name] = target.checked;
+    } else {
+      data[target.name] = target.value;
+    }
 
     setDB(data);
   };
@@ -222,7 +239,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           </StyledInputContainer>
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Performance')}</span>} key="2">
-          Performance Form Data
+          <StyledInputContainer>
+            <div className="label">{t('Chart Cache Timeout')}</div>
+            <div className="input-container">
+              <input
+                type="number"
+                name="chartCacheTimeout"
+                value={db ? db.chartCacheTimeout || '' : ''}
+                placeholder={t('Chart Cache Timeout')}
+                onChange={onInputChange}
+              />
+            </div>
+            <div className="helper">
+              {t(
+                'Duration (in seconds) of the caching timeout for charts of this database.',
+              )}
+              {t(' A timeout of 0 indicates that the cache never expires.')}
+              {t(' Note this defaults to the global timeout if undefined.')}
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="asynchronousQueryExecution"
+                indeterminate={false}
+                checked={db ? !!db.asynchronousQueryExecution : false}
+                onChange={onInputChange}
+              />
+              <div>{t('Asynchronous Query Execution')}</div>
+            </div>
+          </StyledInputContainer>
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('SQL Lab Settings')}</span>} key="3">
           SQL Lab Settings Form Data
