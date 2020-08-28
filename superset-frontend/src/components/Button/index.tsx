@@ -257,7 +257,7 @@ export default function Button(props: ButtonProps) {
     bsStyle: officialBootstrapStyles.includes(props.buttonStyle || '')
       ? props.buttonStyle
       : 'default',
-    className: cx({
+    className: cx(props.className, {
       cta: !!buttonProps.cta,
       [`btn-${props.buttonStyle}`]: !officialBootstrapStyles.includes(
         props.buttonStyle || '',
