@@ -105,6 +105,8 @@ class ScreenshotData(NamedTuple):
 class AlertContent(NamedTuple):
     label: str  # alert name
     sql: str  # sql statement for alert
+    observation_value: str  # value from observation that triggered the alert
+    validator: str  # name of validator that triggered alert
     alert_url: str  # url to alert details
     image_data: Optional[ScreenshotData]  # data for the alert screenshot
 
@@ -528,7 +530,6 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     slack_channel: Optional[str] = None,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
-    sql = ""
 
     try:
         schedule = db.session.query(model_cls).get(schedule_id)
@@ -538,14 +539,15 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             logger.info("Ignoring deactivated alert")
             return
 
-        if schedule.sql_observer:
-            sql = schedule.sql_observer[0].sql
-
         if report_type == ScheduleType.alert:
             # Immediately deliver alert if recipients or slack_channel arguments
             # are given. These are given when a test alert is sent
             if recipients or slack_channel:
-                deliver_alert(schedule.id, sql, recipients, slack_channel)
+                deliver_alert(
+                    alert_id=schedule.id,
+                    recipients=recipients,
+                    slack_channel=slack_channel,
+                )
                 return
 
             check_and_validate_alert(schedule.id, schedule.label)
@@ -567,7 +569,7 @@ class AlertState:
 
 def deliver_alert(
     alert_id: int,
-    sql: str,
+    validator_name: Optional[str] = "Validator",
     recipients: Optional[str] = None,
     slack_channel: Optional[str] = None,
 ) -> None:
@@ -579,13 +581,23 @@ def deliver_alert(
     alert = db.session.query(Alert).get(alert_id)
 
     logging.info("Triggering alert: %s", alert)
+
+    # Set all the values for the alert report
+    # Alternate values are used in the case of a test alert
+    # where an alert has no observations yet
     recipients = recipients or alert.recipients
     slack_channel = slack_channel or alert.slack_channel
+    sql = alert.sql_observer[0].sql if alert.sql_observer else ""
+    observation_value = (
+        str(alert.observations[-1].value) if alert.observations else "Value"
+    )
 
     if alert.slice:
         alert_content = AlertContent(
             alert.label,
             sql,
+            observation_value,
+            validator_name,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             _get_slice_screenshot(alert.slice.id),
         )
@@ -594,6 +606,8 @@ def deliver_alert(
         alert_content = AlertContent(
             alert.label,
             sql,
+            observation_value,
+            validator_name,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             None,
         )
@@ -623,6 +637,8 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
         alert_url=alert_content.alert_url,
         label=alert_content.label,
         sql=alert_content.sql,
+        observation_value=alert_content.observation_value,
+        validator=alert_content.validator,
         image_url=image_url,
     )
 
@@ -640,6 +656,8 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
             "slack/alert.txt",
             label=alert_content.label,
             sql=alert_content.sql,
+            observation_value=alert_content.observation_value,
+            validator=alert_content.validator,
             url=alert_content.image_data.url,
             alert_url=alert_content.alert_url,
         )
@@ -649,6 +667,8 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
             "slack/alert_no_screenshot.txt",
             label=alert_content.label,
             sql=alert_content.sql,
+            observation_value=alert_content.observation_value,
+            validator=alert_content.validator,
             alert_url=alert_content.alert_url,
         )
 
@@ -664,25 +684,24 @@ def check_and_validate_alert(alert_id: int, label: str) -> None:
 
     state = None
     dttm_start = datetime.utcnow()
-    observer_result = dict()
 
     try:
         logger.info("Querying observers for alert <%s:%s>", alert_id, label)
-        observer_result = observe(alert_id)
+        error_msg = observe(alert_id)
+        if error_msg:
+            state = AlertState.ERROR
+            logging.error(error_msg)
     except Exception as exc:  # pylint: disable=broad-except
         state = AlertState.ERROR
         logging.exception(exc)
         logging.error("Failed at query observers for alert: %s (%s)", label, alert_id)
 
-    if observer_result.get("error_msg"):
-        state = AlertState.ERROR
-        logging.error(observer_result["error_msg"])
-
     dttm_end = datetime.utcnow()
 
     if state != AlertState.ERROR:
-        if validate_observations(alert_id, label):
-            deliver_alert(alert_id, observer_result["sql"])
+        validator_name = validate_observations(alert_id, label)
+        if validator_name:
+            deliver_alert(alert_id, validator_name)
             state = AlertState.TRIGGER
         else:
             state = AlertState.PASS
@@ -703,8 +722,11 @@ def check_and_validate_alert(alert_id: int, label: str) -> None:
     db.session.commit()
 
 
-def validate_observations(alert_id: int, label: str) -> bool:
-    """Runs an alert's validators to check if it should be triggered or not"""
+def validate_observations(alert_id: int, label: str) -> Optional[str]:
+    """
+    Runs an alert's validators to check if it should be triggered or not
+    If so, return the name of the validator that returned true
+    """
 
     logger.info("Validating observations for alert <%s:%s>", alert_id, label)
 
@@ -712,9 +734,9 @@ def validate_observations(alert_id: int, label: str) -> bool:
     for validator in alert.alert_validators:
         validate = get_validator_function(validator.validator_type)
         if validate(alert.sql_observer[0], validator.config):
-            return True
+            return validator.name
 
-    return False
+    return None
 
 
 def next_schedules(

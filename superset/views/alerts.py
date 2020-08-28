@@ -191,9 +191,9 @@ class ValidatorInlineView(  # pylint: disable=too-many-ancestors
             "Determines when to trigger alert based off value from SQLObserver query. "
             "Alert will be triggered:"
             "<ul><li>Not Null - When the return value is Not NULL, Empty, or 0</li>"
-            "<li>Greater Than or Equal To - When `return_value >= gte_threshold`"
+            "<li>>= - When `return_value >= gte_threshold`"
             " is True</li>"
-            "<li>Less Than or Equal To - When `return_value <= lte_threshold`"
+            "<li><= - When `return_value <= lte_threshold`"
             " is True</li></ul>",
             True,
         ),
@@ -201,8 +201,8 @@ class ValidatorInlineView(  # pylint: disable=too-many-ancestors
             "JSON string containing values the validator will compare against. "
             "Each validator needs the following values:"
             "<ul><li>Not Null - Nothing. You can leave the config as it is.</li>"
-            "<li>Greater Than or Equal To - `gte_threshold`</li>"
-            "<li>Less Than or Equal To - `lte_threshold`</li></ul>",
+            '<li>>= - `"gte_threshold": value`</li>'
+            '<li><= - `"lte_threshold": value`</li></ul>',
             True,
         ),
     }

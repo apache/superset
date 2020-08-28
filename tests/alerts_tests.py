@@ -325,7 +325,7 @@ def test_deliver_alert_screenshot(
     screenshot_mock, url_mock, email_mock, file_upload_mock, setup_database
 ):
     dbsession = setup_database
-    alert = dbsession.query(Alert).filter_by(label="alert_2").one()
+    alert = dbsession.query(Alert).filter_by(label="alert_4").one()
 
     screenshot = read_fixture("sample.png")
     screenshot_mock.return_value = screenshot
@@ -336,13 +336,14 @@ def test_deliver_alert_screenshot(
         f"http://0.0.0.0:8080/superset/slice/{alert.slice_id}/",
     ]
 
-    deliver_alert(alert_id=alert.id, sql=alert.sql_observer[0].sql)
+    deliver_alert(alert_id=alert.id)
     assert email_mock.call_args[1]["images"]["screenshot"] == screenshot
     assert file_upload_mock.call_args[1] == {
         "channels": alert.slack_channel,
         "file": screenshot,
         "initial_comment": f"\n*Triggered Alert: {alert.label} :redalert:*\n"
-        f"SQL Statement:```{alert.sql_observer[0].sql}```"
+        f"*SQL* *Statement*:```{alert.sql_observer[0].sql}```\n"
+        f"*SQL* *Result*: {alert.observations[-1].value} *Validator*: Validator"
         f"\n<http://0.0.0.0:8080/alert/show/{alert.id}"
         f"|View Alert Details>\n<http://0.0.0.0:8080/superset/slice/{alert.slice_id}/"
         "|*Explore in Superset*>",

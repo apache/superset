@@ -52,8 +52,8 @@ alert_owner = Table(
 
 class AlertValidatorType(str, enum.Enum):
     not_null = "Not Null"
-    gte_threshold = "Greater Than or Equal To"
-    lte_threshold = "Less Than or Equal To"
+    gte_threshold = ">="
+    lte_threshold = "<="
 
 
 class Alert(Model):

@@ -17,7 +17,7 @@
 
 import logging
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -29,16 +29,15 @@ from superset.sql_parse import ParsedQuery
 logger = logging.getLogger("tasks.email_reports")
 
 
-def observe(alert_id: int) -> Dict[str, str]:
+def observe(alert_id: int) -> Optional[str]:
     """
     Runs the SQL query in an alert's SQLObserver and then
     stores the result in a SQLObservation.
-    Returns the observer sql statement and an error message if there was any
+    Returns an error message if the observer value was not valid
     """
 
     sql_observer = db.session.query(SQLObserver).filter_by(alert_id=alert_id).one()
 
-    result = {"sql": sql_observer.sql}
     value = None
     valid_result = True
 
@@ -46,9 +45,9 @@ def observe(alert_id: int) -> Dict[str, str]:
     sql = parsed_query.stripped()
     df = sql_observer.database.get_df(sql)
 
-    result["error_msg"] = check_observer_result(df, sql_observer.id, sql_observer.name)
+    error_msg = check_observer_result(df, sql_observer.id, sql_observer.name)
 
-    if result["error_msg"]:
+    if error_msg:
         valid_result = False
     else:
         value = float(df.to_records()[0][1])
@@ -64,7 +63,7 @@ def observe(alert_id: int) -> Dict[str, str]:
     db.session.add(observation)
     db.session.commit()
 
-    return result
+    return error_msg
 
 
 def check_observer_result(
