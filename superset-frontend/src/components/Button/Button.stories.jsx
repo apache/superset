@@ -66,7 +66,6 @@ export const buttonSizeKnob = {
 //     Reset: 'reset',
 //     Fetch: 'fetch',
 //     Query: 'query',
-//     saveBtn: 'save-btn',
 //     MR3: 'm-r-3',
 //     cancelQuery: 'cancelQuery',
 //     toggleSave: 'toggleSave',

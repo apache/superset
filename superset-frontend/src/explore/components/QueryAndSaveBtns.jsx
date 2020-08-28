@@ -87,7 +87,6 @@ export default function QueryAndSaveBtns({
     <Button
       onClick={onStop}
       buttonStyle="warning"
-      className="save-btn"
       buttonSize="small"
       disabled={!canAdd}
     >
@@ -95,11 +94,11 @@ export default function QueryAndSaveBtns({
     </Button>
   ) : (
     <Button
-      className="query save-btn"
       buttonSize="small"
       onClick={onQuery}
       buttonStyle={qryButtonStyle}
       disabled={!!errorMessage}
+      data-test="run-query-button"
     >
       <i className="fa fa-bolt" /> {t('Run')}
     </Button>
@@ -111,7 +110,6 @@ export default function QueryAndSaveBtns({
         <ButtonGroup className="query-and-save">
           {qryOrStopButton}
           <Button
-            className="save-btn"
             buttonStyle="secondary"
             buttonSize="small"
             data-target="#save_modal"
