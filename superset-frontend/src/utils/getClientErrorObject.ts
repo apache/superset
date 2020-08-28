@@ -127,11 +127,12 @@ export default function getClientErrorObject(
         });
       } else {
         // fall back to Response.statusText or generic error of we cannot read the response
-        console.error('non-standard error:', response);
-        const error =
-          (response as any).statusText ||
-          (response as any).message ||
-          t('An error occurred');
+        let error = (response as any).statusText || (response as any).message;
+        if (!error) {
+          // eslint-disable-next-line no-console
+          console.error('non-standard error:', response);
+          error = t('An error occurred');
+        }
         resolve({
           ...responseObject,
           error,
