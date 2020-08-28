@@ -63,6 +63,7 @@ const propTypes = {
   timeColumn: PropTypes.string,
   intervalEndColumn: PropTypes.string,
   vizType: PropTypes.string,
+  theme: PropTypes.object,
 
   error: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -115,6 +116,7 @@ export default class AnnotationLayer extends React.PureComponent {
       descriptionColumns,
       timeColumn,
       intervalEndColumn,
+      theme,
     } = props;
 
     const overridesKeys = Object.keys(overrides);
@@ -566,6 +568,7 @@ export default class AnnotationLayer extends React.PureComponent {
       hideLine,
       annotationType,
     } = this.state;
+    const {theme} = this.props;
     const colorScheme = getCategoricalSchemeRegistry()
       .get(this.props.colorScheme)
       .colors.concat();
@@ -622,6 +625,7 @@ export default class AnnotationLayer extends React.PureComponent {
               buttonStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
               buttonSize="xsmall"
               onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
+              theme={theme}
             >
               Automatic Color
             </Button>
@@ -661,7 +665,7 @@ export default class AnnotationLayer extends React.PureComponent {
   render() {
     const { isNew, name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
-
+    const {theme} = this.props;
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
       ? metadata.supportedAnnotationTypes.map(
@@ -724,7 +728,7 @@ export default class AnnotationLayer extends React.PureComponent {
           {this.renderDisplayConfiguration()}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button buttonSize="sm" onClick={this.deleteAnnotation}>
+          <Button buttonSize="sm" onClick={this.deleteAnnotation} theme={theme}>
             {!isNew ? t('Remove') : t('Cancel')}
           </Button>
           <div>
@@ -732,6 +736,7 @@ export default class AnnotationLayer extends React.PureComponent {
               buttonSize="sm"
               disabled={!isValid}
               onClick={this.applyAnnotation}
+              theme={theme}
             >
               {t('Apply')}
             </Button>
@@ -740,6 +745,7 @@ export default class AnnotationLayer extends React.PureComponent {
               buttonSize="sm"
               disabled={!isValid}
               onClick={this.submitAnnotation}
+              theme={theme}
             >
               {t('OK')}
             </Button>
