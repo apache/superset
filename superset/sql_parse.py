@@ -20,7 +20,7 @@ from typing import List, Optional, Set
 from urllib import parse
 
 import sqlparse
-from dataclasses import dataclass
+from dataclasses import dataclass  # pylint: disable=wrong-import-order
 from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
 from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
