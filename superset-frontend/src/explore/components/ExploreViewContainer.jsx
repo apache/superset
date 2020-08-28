@@ -310,10 +310,6 @@ function ExploreViewContainer(props) {
     );
   }
 
-  if (dynamicPluginContext.loading) {
-    return 'loading...';
-  }
-
   if (props.standalone) {
     return renderChartContainer();
   }
