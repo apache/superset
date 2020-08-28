@@ -45,9 +45,7 @@ logger = logging.getLogger(__name__)
 def json_to_dict(json_str: str) -> Dict[Any, Any]:
     if json_str:
         val = re.sub(",[ \t\r\n]+}", "}", json_str)
-        val = re.sub(
-            ",[ \t\r\n]+\\]", "]", val
-        )
+        val = re.sub(",[ \t\r\n]+\\]", "]", val)
         return json.loads(val)
 
     return {}
