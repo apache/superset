@@ -116,7 +116,6 @@ export default class AnnotationLayer extends React.PureComponent {
       descriptionColumns,
       timeColumn,
       intervalEndColumn,
-      theme,
     } = props;
 
     const overridesKeys = Object.keys(overrides);
@@ -568,7 +567,7 @@ export default class AnnotationLayer extends React.PureComponent {
       hideLine,
       annotationType,
     } = this.state;
-    const {theme} = this.props;
+    const { theme } = this.props;
     const colorScheme = getCategoricalSchemeRegistry()
       .get(this.props.colorScheme)
       .colors.concat();
@@ -665,7 +664,7 @@ export default class AnnotationLayer extends React.PureComponent {
   render() {
     const { isNew, name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
-    const {theme} = this.props;
+    const { theme } = this.props;
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
       ? metadata.supportedAnnotationTypes.map(

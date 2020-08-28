@@ -26,12 +26,12 @@ import {
 } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { t } from '@superset-ui/translation';
+import { withTheme } from '@superset-ui/style';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { getChartKey } from '../../exploreUtils';
 import { runAnnotationQuery } from '../../../chart/chartAction';
 
 import AnnotationLayer from './AnnotationLayer';
-import { withTheme } from '@superset-ui/style';
 
 const propTypes = {
   colorScheme: PropTypes.string.isRequired,
