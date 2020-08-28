@@ -173,6 +173,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             buttonSize="sm"
             buttonStyle="primary"
             className="m-r-5"
+            data-test="datasource-modal-save"
             onClick={onClickSave}
             disabled={errors.length > 0}
           >
