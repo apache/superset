@@ -60,7 +60,10 @@ def GET_FEATURE_FLAGS_FUNC(ff):
 
 TESTING = True
 WTF_CSRF_ENABLED = False
-PUBLIC_ROLE_LIKE_GAMMA = True
+
+FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}
+
+PUBLIC_ROLE_LIKE = "Gamma"
 AUTH_ROLE_PUBLIC = "Public"
 EMAIL_NOTIFICATIONS = False
 ENABLE_ROW_LEVEL_SECURITY = True
