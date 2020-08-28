@@ -48,7 +48,6 @@ export const LabelGallery = () => (
       <Label
         key={opt}
         bsStyle={opt}
-        style={{ marginRight: '10px' }}
         onClick={action('clicked')}
       >
         {`style: "${opt}"`}
