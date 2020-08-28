@@ -134,6 +134,7 @@ A complete list of supported databases can be found
 * [Join our community's Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ)
   and please read our [Slack Community Guidelines](CODE_OF_CONDUCT.md#slack-community-guidelines)
 * [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
+* [Add this public community calendar](https://calendar.google.com/calendar/b/9?cid=c3VwZXJzZXQuY29tbXVuaXR5QGdtYWlsLmNvbQ) to your own calendar, so you stay updated on all community events, e.g. meetups, conference talks, office hours, etc. 
 
 
 ## Contributor Guide
@@ -152,8 +153,9 @@ how to set up a development environment.
   * [Connect Superset To Google Sheets](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/)
   * [Create Your First Chart](https://preset.io/blog/2020-06-08-first-chart/)
   * [Create Time Series Charts](https://preset.io/blog/2020-06-26-timeseries-chart/)
-* [Docker image](https://hub.docker.com/r/preset/superset/)
+* [Docker Image](https://hub.docker.com/r/preset/superset/)
 * [Youtube Channel](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
   * [May 15, 2020: Virtual Meetup Recording. Topics: 0.36 Overview, Committers Self-Intro, Roadmap](https://www.youtube.com/watch?v=tXGDmqjmcTs&t=20s)
   * [July 16, 2020: Virtual Meetup Recording. Topics: Visualization Plugins, 0.37 Preview, Demo](https://www.youtube.com/watch?v=f6up5x_iRbI)
+  * [August 27, 2020: Virtual Meetup Recording. Topics: 0.37 Release, Website revamp & demo, Superset Champoins program announcement](https://www.youtube.com/watch?v=N_UxTpOm6Mg)
 * [So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/)
