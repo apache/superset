@@ -19,6 +19,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from pyhive.exc import DatabaseError
 
 import tests.test_app
@@ -29,6 +30,7 @@ from superset.sql_validators.presto_db import (
     PrestoDBSQLValidator,
     PrestoSQLValidationError,
 )
+from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
 
@@ -70,6 +72,8 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
     def test_validate_sql_endpoint_mocked(self, get_validator_by_name):
         """Assert that, with a mocked validator, annotations make it back out
         from the validate_sql_json endpoint as a list of json dictionaries"""
+        if get_example_database().backend == "hive":
+            pytest.skip("Hive validator is not implemented")
         self.login("admin")
 
         validator = MagicMock()
@@ -110,8 +114,12 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
         resp = self.validate_sql(
             "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
-        self.assertIn("error", resp)
-        self.assertIn("Kaboom!", resp["error"])
+        # TODO(bkyryliuk): properly handle hive error
+        if get_example_database().backend == "hive":
+            assert resp["error"] == "no SQL validator is configured for hive"
+        else:
+            self.assertIn("error", resp)
+            self.assertIn("Kaboom!", resp["error"])
 
 
 class TestBaseValidator(SupersetTestCase):

@@ -42,7 +42,7 @@ interface DatasetModalProps {
 }
 
 const StyledIcon = styled(Icon)`
-  margin: auto 10px auto 0;
+  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
 const TableSelectorContainer = styled.div`

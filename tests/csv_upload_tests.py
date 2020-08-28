@@ -21,13 +21,13 @@ import logging
 import os
 from typing import Dict, Optional
 
-import random
-import string
 from unittest import mock
 
 import pandas as pd
 import pytest
 
+from superset.sql_parse import Table
+from tests.conftest import ADMIN_SCHEMA_NAME
 from tests.test_app import app  # isort:skip
 from superset import db
 from superset.models.core import Database
@@ -134,10 +134,35 @@ def upload_excel(
     return get_resp(test_client, "/exceltodatabaseview/form", data=form_data)
 
 
+def mock_upload_to_s3(f: str, p: str, t: Table) -> str:
+    """ HDFS is used instead of S3 for the unit tests.
+
+    :param f: filepath
+    :param p: unused parameter
+    :param t: table that will be created
+    :return: hdfs path to the directory with external table files
+    """
+    # only needed for the hive tests
+    import docker
+
+    client = docker.from_env()
+    container = client.containers.get("namenode")
+    # docker mounted volume that contains csv uploads
+    src = os.path.join("/tmp/superset_uploads", os.path.basename(f))
+    # hdfs destination for the external tables
+    dest_dir = os.path.join("/tmp/external/superset_uploads/", str(t))
+    container.exec_run(f"hdfs dfs -mkdir -p {dest_dir}")
+    dest = os.path.join(dest_dir, os.path.basename(f))
+    container.exec_run(f"hdfs dfs -put {src} {dest}")
+    # hive external table expectes a directory for the location
+    return dest_dir
+
+
 @mock.patch(
     "superset.models.core.config",
     {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": lambda d, u: ["admin_database"]},
 )
+@mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
     if utils.backend() == "sqlite":
         pytest.skip("Sqlite doesn't support schema / database creation")
@@ -151,20 +176,19 @@ def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
         in resp
     )
 
-    # user specified schema matches the expected schema, append
     success_msg = f'CSV file "{CSV_FILENAME1}" uploaded to table "{full_table_name}"'
-    resp = upload_csv(
-        CSV_FILENAME1,
-        CSV_UPLOAD_TABLE_W_SCHEMA,
-        extra={"schema": "admin_database", "if_exists": "append"},
-    )
-    assert success_msg in resp
     resp = upload_csv(
         CSV_FILENAME1,
         CSV_UPLOAD_TABLE_W_SCHEMA,
         extra={"schema": "admin_database", "if_exists": "replace"},
     )
     assert success_msg in resp
+
+    engine = get_upload_db().get_sqla_engine()
+    data = engine.execute(
+        f"SELECT * from {ADMIN_SCHEMA_NAME}.{CSV_UPLOAD_TABLE_W_SCHEMA}"
+    ).fetchall()
+    assert data == [("john", 1), ("paul", 2)]
 
     # user specified schema doesn't match, fail
     resp = upload_csv(
@@ -175,12 +199,22 @@ def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
         in resp
     )
 
+    # user specified schema matches the expected schema, append
+    if utils.backend() == "hive":
+        pytest.skip("Hive database doesn't support append csv uploads.")
+    resp = upload_csv(
+        CSV_FILENAME1,
+        CSV_UPLOAD_TABLE_W_SCHEMA,
+        extra={"schema": "admin_database", "if_exists": "append"},
+    )
+    assert success_msg in resp
 
+
+@mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
     if utils.backend() == "sqlite":
         pytest.skip("Sqlite doesn't support schema / database creation")
 
-    # initial upload with fail mode
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_EXPLORE)
     assert (
         f'CSV file "{CSV_FILENAME1}" uploaded to table "{CSV_UPLOAD_TABLE_W_EXPLORE}"'
@@ -190,6 +224,7 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
     assert table.database_id == utils.get_example_database().id
 
 
+@mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_csv(setup_csv_upload, create_csv_files):
     success_msg_f1 = (
         f'CSV file "{CSV_FILENAME1}" uploaded to table "{CSV_UPLOAD_TABLE}"'
@@ -206,9 +241,12 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE)
     assert fail_msg in resp
 
-    # upload again with append mode
-    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE, extra={"if_exists": "append"})
-    assert success_msg_f1 in resp
+    if utils.backend() != "hive":
+        # upload again with append mode
+        resp = upload_csv(
+            CSV_FILENAME1, CSV_UPLOAD_TABLE, extra={"if_exists": "append"}
+        )
+        assert success_msg_f1 in resp
 
     # upload again with replace mode
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
@@ -241,16 +279,30 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     # make sure that john and empty string are replaced with None
     engine = get_upload_db().get_sqla_engine()
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
-    assert data == [(None, 1, "x"), ("paul", 2, None)]
+    if utils.backend() == "hive":
+        # Be aware that hive only uses first value from the null values list.
+        # It is hive database engine limitation.
+        # TODO(bkyryliuk): preprocess csv file for hive upload to match default engine capabilities.
+        assert data == [("john", 1, "x"), ("paul", 2, None)]
+    else:
+        assert data == [(None, 1, "x"), ("paul", 2, None)]
 
     # default null values
     upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
     # make sure that john and empty string are replaced with None
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
-    assert data == [("john", 1, "x"), ("paul", 2, None)]
+    if utils.backend() == "hive":
+        # By default hive does not convert values to null vs other databases.
+        assert data == [("john", 1, "x"), ("paul", 2, "")]
+    else:
+        assert data == [("john", 1, "x"), ("paul", 2, None)]
 
 
+@mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_excel(setup_csv_upload, create_excel_files):
+    if utils.backend() == "hive":
+        pytest.skip("Hive doesn't excel upload.")
+
     success_msg = (
         f'Excel file "{EXCEL_FILENAME}" uploaded to table "{EXCEL_UPLOAD_TABLE}"'
     )
@@ -264,11 +316,12 @@ def test_import_excel(setup_csv_upload, create_excel_files):
     resp = upload_excel(EXCEL_FILENAME, EXCEL_UPLOAD_TABLE)
     assert fail_msg in resp
 
-    # upload again with append mode
-    resp = upload_excel(
-        EXCEL_FILENAME, EXCEL_UPLOAD_TABLE, extra={"if_exists": "append"}
-    )
-    assert success_msg in resp
+    if utils.backend() != "hive":
+        # upload again with append mode
+        resp = upload_excel(
+            EXCEL_FILENAME, EXCEL_UPLOAD_TABLE, extra={"if_exists": "append"}
+        )
+        assert success_msg in resp
 
     # upload again with replace mode
     resp = upload_excel(
