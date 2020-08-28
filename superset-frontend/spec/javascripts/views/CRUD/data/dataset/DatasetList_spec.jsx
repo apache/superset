@@ -43,7 +43,7 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
   changed_by_url: 'changed_by_url',
   changed_by: 'user',
-  changed_on: new Date().toISOString(),
+  changed_at: new Date().toISOString(),
   database_name: `db ${i}`,
   explore_url: `/explore/table/${i}`,
   id: i,
@@ -99,7 +99,7 @@ describe('DatasetList', () => {
     const callsD = fetchMock.calls(/dataset\/\?q/);
     expect(callsD).toHaveLength(2);
     expect(callsD[1][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/dataset/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/dataset/?q=(order_column:changed_at_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 

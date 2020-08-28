@@ -3717,8 +3717,8 @@ msgstr "неделя"
 #~ msgid "Roles to grant"
 #~ msgstr "Роли для предоставления"
 
-#~ msgid "Created On"
-#~ msgstr "Дата создания"
+#~ msgid "Created At"
+#~ msgstr "Создано на"
 
 #~ msgid "Access requests"
 #~ msgstr "Запросы доступа"
@@ -3949,8 +3949,8 @@ msgstr "неделя"
 #~ msgid "Pop Tab Link"
 #~ msgstr "Открыть"
 
-#~ msgid "Changed on"
-#~ msgstr "Изменено"
+#~ msgid "Changed at"
+#~ msgstr "Изменено в"
 
 #~ msgid "Saved Queries"
 #~ msgstr "Сохраненные запросы"

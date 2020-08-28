@@ -920,7 +920,7 @@
       "User Roles": ["Roles de Usuario"],
       "Database URL": ["URL de la Base de datos"],
       "Roles to grant": [""],
-      "Created On": ["Creado el"],
+      "Created At": ["Creado en"],
       "Access requests": ["Solicitudes de Acceso"],
       "Security": ["Seguridad"],
       "List Slices": ["Mostrar Segmentos"],
@@ -992,7 +992,7 @@
       "Add Saved Query": ["Añadir Consulta Guardada"],
       "Edit Saved Query": ["Editar Consulta Guardada"],
       "Pop Tab Link": [""],
-      "Changed on": ["Cambiado el"],
+      "Changed at": ["Cambiado en"],
       "Saved Queries": [" Consultas Guardadas"]
     }
   }

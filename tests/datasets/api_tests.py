@@ -99,8 +99,8 @@ class TestDatasetApi(SupersetTestCase):
             "changed_by",
             "changed_by_name",
             "changed_by_url",
-            "changed_on_delta_humanized",
-            "changed_on_utc",
+            "changed_at_delta_humanized",
+            "changed_at_utc",
             "database",
             "default_endpoint",
             "explore_url",
@@ -469,8 +469,8 @@ class TestDatasetApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
 
         for column in data["result"]["columns"]:
-            column.pop("changed_on", None)
-            column.pop("created_on", None)
+            column.pop("changed_at", None)
+            column.pop("created_at", None)
 
         data["result"]["columns"].append(new_column_data)
         rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
@@ -506,8 +506,8 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "get")
         resp_columns = json.loads(rv.data.decode("utf-8"))["result"]["columns"]
         for column in resp_columns:
-            column.pop("changed_on", None)
-            column.pop("created_on", None)
+            column.pop("changed_at", None)
+            column.pop("created_at", None)
 
         resp_columns[0]["groupby"] = False
         resp_columns[0]["filterable"] = False

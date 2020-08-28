@@ -48,7 +48,7 @@ interface DashboardListProps {
 interface Dashboard {
   changed_by_name: string;
   changed_by_url: string;
-  changed_on_delta_humanized: string;
+  changed_at_delta_humanized: string;
   changed_by: string;
   dashboard_title: string;
   id: number;
@@ -90,7 +90,7 @@ function DashboardList(props: DashboardListProps) {
   const canDelete = hasPerm('can_delete');
   const canExport = hasPerm('can_mulexport');
 
-  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+  const initialSort = [{ id: 'changed_at_delta_humanized', desc: true }];
 
   function openDashboardEditModal(dashboard: Dashboard) {
     setDashboardToEdit(dashboard);
@@ -242,11 +242,11 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { changed_on_delta_humanized: changedOn },
+            original: { changed_at_delta_humanized: changedOn },
           },
         }: any) => <span className="no-wrap">{changedOn}</span>,
         Header: t('Modified'),
-        accessor: 'changed_on_delta_humanized',
+        accessor: 'changed_at_delta_humanized',
       },
       {
         accessor: 'slug',
@@ -366,13 +366,13 @@ function DashboardList(props: DashboardListProps) {
     },
     {
       desc: true,
-      id: 'changed_on_delta_humanized',
+      id: 'changed_at_delta_humanized',
       label: 'Recently Modified',
       value: 'recently_modified',
     },
     {
       desc: false,
-      id: 'changed_on_delta_humanized',
+      id: 'changed_at_delta_humanized',
       label: 'Least Recently Modified',
       value: 'least_recently_modified',
     },
@@ -439,7 +439,7 @@ function DashboardList(props: DashboardListProps) {
         imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
         description={t(
           'Last modified %s',
-          dashboard.changed_on_delta_humanized,
+          dashboard.changed_at_delta_humanized,
         )}
         coverLeft={(dashboard.owners || []).slice(0, 5).map(owner => (
           <AvatarIcon

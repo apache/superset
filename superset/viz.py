@@ -434,7 +434,7 @@ class BaseViz:
             if config["ENABLE_ROW_LEVEL_SECURITY"] and self.datasource.is_rls_supported
             else []
         )
-        cache_dict["changed_on"] = self.datasource.changed_on
+        cache_dict["changed_at"] = self.datasource.changed_at
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return md5_sha_from_str(json_data)
 

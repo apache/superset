@@ -128,7 +128,7 @@ class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-a
         "creator",
         "modified",
         "dashboard_title",
-        "changed_on",
+        "changed_at",
         "url",
         "changed_by_name",
     ]

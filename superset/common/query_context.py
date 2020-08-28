@@ -195,7 +195,7 @@ class QueryContext:
                 if config["ENABLE_ROW_LEVEL_SECURITY"]
                 and self.datasource.is_rls_supported
                 else [],
-                changed_on=self.datasource.changed_on,
+                changed_at=self.datasource.changed_at,
                 **kwargs
             )
             if query_obj

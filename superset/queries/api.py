@@ -66,10 +66,10 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "end_time",
         "end_result_backend_time",
         "tracking_url",
-        "changed_on",
+        "changed_at",
     ]
     base_filters = [["id", QueryFilter, lambda: []]]
-    base_order = ("changed_on", "desc")
+    base_order = ("changed_at", "desc")
 
     openapi_spec_tag = "Queries"
     openapi_spec_methods = openapi_spec_methods_override

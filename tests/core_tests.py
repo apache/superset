@@ -319,7 +319,7 @@ class TestCore(SupersetTestCase):
             slice_name="Girls", session=db.session, expunge_from_session=False
         )
         slc_data_attributes = slc.data.keys()
-        assert "changed_on" in slc_data_attributes
+        assert "changed_at" in slc_data_attributes
         assert "modified" in slc_data_attributes
         assert "owners" in slc_data_attributes
 

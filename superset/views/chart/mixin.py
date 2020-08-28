@@ -42,7 +42,7 @@ class SliceMixin:  # pylint: disable=too-few-public-methods
         "viz_type",
         "datasource_link",
         "modified",
-        "changed_on",
+        "changed_at",
     ]
     edit_columns = [
         "slice_name",
@@ -53,7 +53,7 @@ class SliceMixin:  # pylint: disable=too-few-public-methods
         "params",
         "cache_timeout",
     ]
-    base_order = ("changed_on", "desc")
+    base_order = ("changed_at", "desc")
     description_columns = {
         "description": Markup(
             "The content here can be displayed as widget headers in the "

@@ -115,11 +115,11 @@ class TestQueryApi(SupersetTestCase):
             "tracking_url": None,
         }
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertIn("changed_on", data["result"])
+        self.assertIn("changed_at", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp
             if key not in (
-                "changed_on",
+                "changed_at",
                 "end_time",
                 "start_running_time",
                 "start_time",

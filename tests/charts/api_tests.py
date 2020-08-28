@@ -548,18 +548,18 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 33)
 
-    def test_get_charts_changed_on(self):
+    def test_get_charts_changed_at(self):
         """
         Dashboard API: Test get charts changed on
         """
         admin = self.get_user("admin")
-        start_changed_on = datetime.now()
+        start_changed_at = datetime.now()
         chart = self.insert_chart("foo_a", [admin.id], 1, description="ZY_bar")
 
         self.login(username="admin")
 
         arguments = {
-            "order_column": "changed_on_delta_humanized",
+            "order_column": "changed_at_delta_humanized",
             "order_direction": "desc",
         }
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
@@ -568,8 +568,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            data["result"][0]["changed_on_delta_humanized"],
-            humanize.naturaltime(datetime.now() - start_changed_on),
+            data["result"][0]["changed_at_delta_humanized"],
+            humanize.naturaltime(datetime.now() - start_changed_at),
         )
 
         # rollback changes

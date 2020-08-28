@@ -41,7 +41,7 @@ type Dataset = {
   changed_by_name: string;
   changed_by_url: string;
   changed_by: string;
-  changed_on_delta_humanized: string;
+  changed_at_delta_humanized: string;
   database: {
     id: string;
     database_name: string;
@@ -127,7 +127,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canDelete = hasPerm('can_delete');
   const canCreate = hasPerm('can_add');
 
-  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+  const initialSort = [{ id: 'changed_at_delta_humanized', desc: true }];
 
   const openDatasetEditModal = ({ id }: Dataset) => {
     SupersetClient.get({
@@ -228,11 +228,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { changed_on_delta_humanized: changedOn },
+            original: { changed_at_delta_humanized: changedOn },
           },
         }: any) => <span className="no-wrap">{changedOn}</span>,
         Header: t('Modified'),
-        accessor: 'changed_on_delta_humanized',
+        accessor: 'changed_at_delta_humanized',
         size: 'xl',
       },
       {

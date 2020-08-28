@@ -51,7 +51,7 @@ export const sliceEntitiesForChart = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332615,
+      changed_at: 1529453332615,
     },
   },
   isLoading: false,
@@ -84,7 +84,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332615,
+      changed_at: 1529453332615,
     },
     128: {
       slice_id: 128,
@@ -97,7 +97,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332628,
+      changed_at: 1529453332628,
     },
     129: {
       slice_id: 129,
@@ -110,7 +110,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332637,
+      changed_at: 1529453332637,
     },
     130: {
       slice_id: 130,
@@ -123,7 +123,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332645,
+      changed_at: 1529453332645,
     },
     131: {
       slice_id: 131,
@@ -136,7 +136,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332654,
+      changed_at: 1529453332654,
     },
     132: {
       slice_id: 132,
@@ -149,7 +149,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332663,
+      changed_at: 1529453332663,
     },
     133: {
       slice_id: 133,
@@ -162,7 +162,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332673,
+      changed_at: 1529453332673,
     },
     134: {
       slice_id: 134,
@@ -175,7 +175,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332680,
+      changed_at: 1529453332680,
     },
     135: {
       slice_id: 135,
@@ -188,7 +188,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332688,
+      changed_at: 1529453332688,
     },
     136: {
       slice_id: 136,
@@ -201,7 +201,7 @@ export const sliceEntitiesForDashboard = {
       description: null,
       description_markeddown: '',
       modified: '23 hours ago',
-      changed_on: 1529453332700,
+      changed_at: 1529453332700,
     },
   },
   isLoading: false,

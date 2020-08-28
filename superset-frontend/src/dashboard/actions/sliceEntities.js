@@ -72,12 +72,12 @@ export function fetchAllSlices(userId) {
                 form_data,
                 datasource_name: slice.datasource_name_text,
                 datasource_link: slice.datasource_link,
-                changed_on: new Date(slice.changed_on).getTime(),
+                changed_at: new Date(slice.changed_at).getTime(),
                 description: slice.description,
                 description_markdown: slice.description_markeddown,
                 viz_type: slice.viz_type,
                 modified: slice.modified,
-                changed_on_humanized: slice.changed_on_humanized,
+                changed_at_humanized: slice.changed_at_humanized,
               };
             }
           });

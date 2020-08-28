@@ -3906,7 +3906,7 @@ msgid "Roles to grant"
 msgstr "Cargos a permitir ao utilizador"
 
 #: superset/views/core.py:328
-msgid "Created On"
+msgid "Created At"
 msgstr "Criado em"
 
 #: superset/views/core.py:334
@@ -4172,7 +4172,7 @@ msgid "Pop Tab Link"
 msgstr "Ligação Abrir Aba"
 
 #: superset/views/sql_lab.py:60
-msgid "Changed on"
+msgid "Changed at"
 msgstr "Alterado em"
 
 #: superset/views/sql_lab.py:79

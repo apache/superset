@@ -1215,7 +1215,7 @@
       "User Roles": ["Cargo do Utilizador"],
       "Database URL": ["URL da Base de Dados"],
       "Roles to grant": ["Cargos a permitir ao utilizador"],
-      "Created On": ["Criado em"],
+      "Created At": ["Criado em"],
       "Access requests": ["Solicitações de acesso"],
       "Security": ["Segurança"],
       "List Slices": ["Lista de Visualizações"],
@@ -1300,7 +1300,7 @@
       "Add Saved Query": ["Adicionar Query"],
       "Edit Saved Query": ["Editar Query"],
       "Pop Tab Link": ["Ligação Abrir Aba"],
-      "Changed on": ["Alterado em"],
+      "Changed at": ["Alterado em"],
       "Saved Queries": ["Queries Gravadas"]
     }
   }

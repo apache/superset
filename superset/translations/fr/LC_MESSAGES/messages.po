@@ -4328,8 +4328,8 @@ msgstr "semaine"
 #~ msgid "Roles to grant"
 #~ msgstr "Rôles à donner"
 
-#~ msgid "Created On"
-#~ msgstr "Créé le"
+#~ msgid "Created At"
+#~ msgstr "Créé à"
 
 #~ msgid "Access requests"
 #~ msgstr "Requêtes d'accès"
@@ -4576,8 +4576,8 @@ msgstr "semaine"
 #~ msgid "Pop Tab Link"
 #~ msgstr "Retirer le lien de l'onglet "
 
-#~ msgid "Changed on"
-#~ msgstr "Modifié le"
+#~ msgid "Changed at"
+#~ msgstr "Modifié à"
 
 #~ msgid "Saved Queries"
 #~ msgstr "Requêtes sauvegardées"

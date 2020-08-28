@@ -149,13 +149,13 @@ export const table = {
       indexed: false,
       longType: 'DATETIME',
       type: 'DATETIME',
-      name: 'created_on',
+      name: 'created_at',
     },
     {
       indexed: false,
       longType: 'DATETIME',
       type: 'DATETIME',
-      name: 'changed_on',
+      name: 'changed_at',
     },
     {
       indexed: true,
@@ -205,7 +205,7 @@ export const queries = [
     tempTable: null,
     userId: 1,
     executedSql: null,
-    changed_on: '2016-10-19T20:56:06',
+    changed_at: '2016-10-19T20:56:06',
     rows: 42,
     endDttm: 1476910566798,
     limit_reached: false,
@@ -263,11 +263,11 @@ export const queries = [
     tempTable: null,
     userId: 1,
     executedSql:
-      'SELECT * \nFROM (SELECT created_on, changed_on, id, slice_name, ' +
+      'SELECT * \nFROM (SELECT created_at, changed_at, id, slice_name, ' +
       'druid_datasource_id, table_id, datasource_type, datasource_name, ' +
       'viz_type, params, created_by_fk, changed_by_fk, description, ' +
       'cache_timeout, perm\nFROM superset.slices) AS inner_qry \n LIMIT 1000',
-    changed_on: '2016-10-19T20:56:12',
+    changed_at: '2016-10-19T20:56:12',
     rows: 42,
     endDttm: 1476910579693,
     limit_reached: false,

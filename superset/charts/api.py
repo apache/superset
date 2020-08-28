@@ -105,8 +105,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_by.last_name",
         "changed_by_name",
         "changed_by_url",
-        "changed_on_delta_humanized",
-        "changed_on_utc",
+        "changed_at_delta_humanized",
+        "changed_at_utc",
         "datasource_id",
         "datasource_name_text",
         "datasource_type",
@@ -125,10 +125,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners.last_name",
         "viz_type",
     ]
-    list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
+    list_select_columns = list_columns + ["changed_by_fk", "changed_at"]
     order_columns = [
         "changed_by.first_name",
-        "changed_on_delta_humanized",
+        "changed_at_delta_humanized",
         "datasource_id",
         "datasource_name",
         "slice_name",
@@ -143,7 +143,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name",
         "viz_type",
     ]
-    base_order = ("changed_on", "desc")
+    base_order = ("changed_at", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {"slice_name": [ChartNameOrDescriptionFilter]}
 

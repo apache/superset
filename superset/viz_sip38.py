@@ -447,7 +447,7 @@ class BaseViz:
             if config["ENABLE_ROW_LEVEL_SECURITY"]
             else []
         )
-        cache_dict["changed_on"] = self.datasource.changed_on
+        cache_dict["changed_at"] = self.datasource.changed_at
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 

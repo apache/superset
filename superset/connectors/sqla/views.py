@@ -257,7 +257,7 @@ class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
     show_columns = edit_columns
     search_columns = ("tables", "roles", "clause")
     add_columns = edit_columns
-    base_order = ("changed_on", "desc")
+    base_order = ("changed_at", "desc")
     description_columns = {
         "tables": _("These are the tables this filter will be applied to."),
         "roles": _("These are the roles this filter will be applied to."),
@@ -316,7 +316,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         SqlMetricInlineView,
         RowLevelSecurityFiltersModelView,
     ]
-    base_order = ("changed_on", "desc")
+    base_order = ("changed_at", "desc")
     search_columns = ("database", "schema", "table_name", "owners", "is_sqllab_view")
     description_columns = {
         "slices": _(
@@ -375,7 +375,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "changed_by_": _("Changed By"),
         "database": _("Database"),
         "database_name": _("Database"),
-        "changed_on_": _("Last Changed"),
+        "changed_at_": _("Last Changed"),
         "filter_select_enabled": _("Enable Filter Select"),
         "schema": _("Schema"),
         "default_endpoint": _("Default Endpoint"),

@@ -134,7 +134,7 @@ export default function (bootstrapData) {
       description_markeddown: slice.description_markeddown,
       owners: slice.owners,
       modified: slice.modified,
-      changed_on: new Date(slice.changed_on).getTime(),
+      changed_at: new Date(slice.changed_at).getTime(),
     };
 
     sliceIds.add(key);

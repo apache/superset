@@ -3572,7 +3572,7 @@ msgstr "주"
 #~ msgid "Roles to grant"
 #~ msgstr "권한 부여"
 
-#~ msgid "Created On"
+#~ msgid "Created At"
 #~ msgstr ""
 
 #~ msgid "Access requests"
@@ -3782,7 +3782,7 @@ msgstr "주"
 #~ msgid "Pop Tab Link"
 #~ msgstr ""
 
-#~ msgid "Changed on"
+#~ msgid "Changed at"
 #~ msgstr ""
 
 #~ msgid "Saved Queries"

@@ -86,11 +86,11 @@ class DatabaseMixin:
         "sqlalchemy_uri",
         "perm",
         "created_by",
-        "created_on",
+        "created_at",
         "changed_by",
-        "changed_on",
+        "changed_at",
     ]
-    base_order = ("changed_on", "desc")
+    base_order = ("changed_at", "desc")
     description_columns = {
         "sqlalchemy_uri": utils.markdown(
             "Refer to the "
@@ -189,7 +189,7 @@ class DatabaseMixin:
         "force_ctas_schema": _("CTAS Schema"),
         "database_name": _("Database"),
         "creator": _("Creator"),
-        "changed_on_": _("Last Changed"),
+        "changed_at_": _("Last Changed"),
         "sqlalchemy_uri": _("SQLAlchemy URI"),
         "cache_timeout": _("Chart Cache Timeout"),
         "extra": _("Extra"),

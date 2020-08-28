@@ -219,10 +219,10 @@ class TestDashboard(SupersetTestCase):
         self.assertEqual(resp["position_json"], orig_json_data["position_json"])
         self.assertEqual(resp["metadata"], orig_json_data["metadata"])
         # check every attribute in each dashboard's slices list,
-        # exclude modified and changed_on attribute
+        # exclude modified and changed_at attribute
         for index, slc in enumerate(orig_json_data["slices"]):
             for key in slc:
-                if key not in ["modified", "changed_on", "changed_on_humanized"]:
+                if key not in ["modified", "changed_at", "changed_at_humanized"]:
                     self.assertEqual(slc[key], resp["slices"][index][key])
 
     def test_add_slices(self, username="admin"):

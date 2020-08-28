@@ -3797,8 +3797,8 @@ msgstr "周"
 #~ msgid "Roles to grant"
 #~ msgstr "角色授权"
 
-#~ msgid "Created On"
-#~ msgstr "创建日期"
+#~ msgid "Created At"
+#~ msgstr "创建于"
 
 #~ msgid "Access requests"
 #~ msgstr "访问请求"
@@ -4010,8 +4010,8 @@ msgstr "周"
 #~ msgid "Pop Tab Link"
 #~ msgstr "流行标签链接"
 
-#~ msgid "Changed on"
-#~ msgstr "改变为"
+#~ msgid "Changed at"
+#~ msgstr "更改时间"
 
 #~ msgid "Saved Queries"
 #~ msgstr "已保存查询"

@@ -85,8 +85,8 @@ class SliceAsync(SliceModelView):  # pylint: disable=too-many-ancestors
     include_route_methods = {RouteMethod.API_READ}
 
     list_columns = [
-        "changed_on",
-        "changed_on_humanized",
+        "changed_at",
+        "changed_at_humanized",
         "creator",
         "datasource_id",
         "datasource_link",

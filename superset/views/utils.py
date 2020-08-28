@@ -65,7 +65,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
         "lastName": user.last_name,
         "userId": user.id,
         "isActive": user.is_active,
-        "createdOn": user.created_on.isoformat(),
+        "createdAt": user.created_on.isoformat(),
         "email": user.email,
     }
 

@@ -62,8 +62,8 @@ class EmailScheduleView(
 
     add_exclude_columns = [
         "user",
-        "created_on",
-        "changed_on",
+        "created_at",
+        "changed_at",
         "created_by",
         "changed_by",
     ]
@@ -185,7 +185,7 @@ class DashboardEmailScheduleView(
     list_title = _("Manage Email Reports for Dashboards")
 
     datamodel = SQLAInterface(DashboardEmailSchedule)
-    order_columns = ["user", "dashboard", "created_on"]
+    order_columns = ["user", "dashboard", "created_at"]
 
     list_columns = [
         "dashboard",
@@ -221,8 +221,8 @@ class DashboardEmailScheduleView(
 
     label_columns = {
         "dashboard": _("Dashboard"),
-        "created_on": _("Created On"),
-        "changed_on": _("Changed On"),
+        "created_at": _("Created At"),
+        "changed_at": _("Changed At"),
         "user": _("User"),
         "active": _("Active"),
         "crontab": _("Crontab"),
@@ -246,7 +246,7 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
     list_title = _("Manage Email Reports for Charts")
 
     datamodel = SQLAInterface(SliceEmailSchedule)
-    order_columns = ["user", "slice", "created_on"]
+    order_columns = ["user", "slice", "created_at"]
     list_columns = [
         "slice",
         "active",
@@ -284,8 +284,8 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
 
     label_columns = {
         "slice": _("Chart"),
-        "created_on": _("Created On"),
-        "changed_on": _("Changed On"),
+        "created_ar": _("Created At"),
+        "changed_at": _("Changed At"),
         "user": _("User"),
         "active": _("Active"),
         "crontab": _("Crontab"),

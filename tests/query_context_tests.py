@@ -80,7 +80,7 @@ class TestQueryContext(SupersetTestCase):
         query_object = query_context.queries[0]
         cache_key_original = query_context.cache_key(query_object)
 
-        # make temporary change and revert it to refresh the changed_on property
+        # make temporary change and revert it to refresh the changed_at property
         datasource = ConnectorRegistry.get_datasource(
             datasource_type=payload["datasource"]["type"],
             datasource_id=payload["datasource"]["id"],

@@ -33,7 +33,7 @@ const getDashboards = query =>
   // todo: Build a dedicated endpoint for dashboard searching
   // i.e. superset/v1/api/dashboards?q=${query}
   SupersetClient.get({
-    endpoint: `/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc&_flt_2_dashboard_title=${query}`,
+    endpoint: `/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_at&_od_DashboardModelViewAsync=desc&_flt_2_dashboard_title=${query}`,
   })
     .then(({ json }) =>
       json.result.map(item => ({

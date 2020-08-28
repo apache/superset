@@ -63,7 +63,7 @@ export const slicePropShape = PropTypes.shape({
   datasource: PropTypes.string,
   datasource_name: PropTypes.string,
   datasource_link: PropTypes.string,
-  changed_on: PropTypes.number.isRequired,
+  changed_at: PropTypes.number.isRequired,
   modified: PropTypes.string.isRequired,
   viz_type: PropTypes.string.isRequired,
   description: PropTypes.string,

@@ -30,11 +30,10 @@ import sqlalchemy as sa
 import yaml
 from flask import escape, g, Markup
 from flask_appbuilder.models.decorators import renders
-from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import relationship, RelationshipProperty, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 from superset.utils.core import QueryStatus
@@ -333,17 +332,32 @@ def _user_link(user: User) -> Union[Markup, str]:  # pylint: disable=no-self-use
     return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ""))
 
 
-class AuditMixinNullable(AuditMixin):
+class AuditMixinNullable:
 
-    """Altering the AuditMixin to use nullable fields
-
-    Allows creating objects programmatically outside of CRUD
+    """
+    Allows creating objects programmatically outside of CRUD.
     """
 
-    created_on = sa.Column(sa.DateTime, default=datetime.now, nullable=True)
-    changed_on = sa.Column(
+    created_at = sa.Column(sa.DateTime, default=datetime.now, nullable=True)
+    changed_at = sa.Column(
         sa.DateTime, default=datetime.now, onupdate=datetime.now, nullable=True
     )
+
+    @classmethod
+    def get_user_id(cls) -> Optional[int]:
+        try:
+            return g.user.id
+        except Exception:  # pylint: disable=broad-except
+            return None
+
+    @declared_attr
+    def created_by(cls) -> RelationshipProperty:  # pylint: disable=no-self-argument
+        return relationship(
+            "User",
+            primaryjoin="%s.created_by_fk == User.id"
+            % cls.__name__,  # pylint: disable=no-member
+            enable_typechecks=False,
+        )
 
     @declared_attr
     def created_by_fk(self) -> sa.Column:
@@ -352,6 +366,15 @@ class AuditMixinNullable(AuditMixin):
             sa.ForeignKey("ab_user.id"),
             default=self.get_user_id,
             nullable=True,
+        )
+
+    @declared_attr
+    def changed_by(cls) -> RelationshipProperty:  # pylint: disable=no-self-argument
+        return relationship(
+            "User",
+            primaryjoin="%s.changed_by_fk == User.id"
+            % cls.__name__,  # pylint: disable=no-member
+            enable_typechecks=False,
         )
 
     @declared_attr
@@ -378,26 +401,26 @@ class AuditMixinNullable(AuditMixin):
     def changed_by_(self) -> Union[Markup, str]:
         return _user_link(self.changed_by)
 
-    @renders("changed_on")
-    def changed_on_(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
+    @renders("changed_at")
+    def changed_at_(self) -> Markup:
+        return Markup(f'<span class="no-wrap">{self.changed_at}</span>')
 
-    @renders("changed_on")
-    def changed_on_delta_humanized(self) -> str:
-        return self.changed_on_humanized
+    @renders("changed_at")
+    def changed_at_delta_humanized(self) -> str:
+        return self.changed_at_humanized
 
-    @renders("changed_on")
-    def changed_on_utc(self) -> str:
+    @renders("changed_at")
+    def changed_at_utc(self) -> str:
         # Convert naive datetime to UTC
-        return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        return self.changed_at.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     @property
-    def changed_on_humanized(self) -> str:
-        return humanize.naturaltime(datetime.now() - self.changed_on)
+    def changed_at_humanized(self) -> str:
+        return humanize.naturaltime(datetime.now() - self.changed_at)
 
-    @renders("changed_on")
+    @renders("changed_at")
     def modified(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')
+        return Markup(f'<span class="no-wrap">{self.changed_at_humanized}</span>')
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods

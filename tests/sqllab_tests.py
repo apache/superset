@@ -222,7 +222,7 @@ class TestSqlLab(SupersetTestCase):
             .filter_by(sql="SELECT * FROM birth_names LIMIT 1")
             .first()
         )
-        query.changed_on = now
+        query.changed_at = now
         db.session.commit()
 
         data = self.get_json_resp(

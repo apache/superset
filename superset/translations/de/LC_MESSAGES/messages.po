@@ -2570,7 +2570,7 @@ msgstr "Woche"
 #~ msgid "Roles to grant"
 #~ msgstr ""
 
-#~ msgid "Created On"
+#~ msgid "Created At"
 #~ msgstr ""
 
 #~ msgid "Access requests"
@@ -2765,8 +2765,8 @@ msgstr "Woche"
 #~ msgid "Pop Tab Link"
 #~ msgstr ""
 
-#~ msgid "Changed on"
-#~ msgstr "Bearbeitet am"
+#~ msgid "Changed at"
+#~ msgstr "Bearbeitet bei"
 
 #~ msgid "Saved Queries"
 #~ msgstr "Gespeicherte Abfragen"

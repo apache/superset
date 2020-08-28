@@ -41,7 +41,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
     show_columns = edit_columns + ["table_names", "charts"]
     search_columns = ("dashboard_title", "slug", "owners", "published")
     add_columns = edit_columns
-    base_order = ("changed_on", "desc")
+    base_order = ("changed_at", "desc")
     description_columns = {
         "position_json": _(
             "This json object describes the positioning of the widgets in "

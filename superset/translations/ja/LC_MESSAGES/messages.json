@@ -918,7 +918,7 @@
       "User Roles": [""],
       "Database URL": [""],
       "Roles to grant": [""],
-      "Created On": ["作成日"],
+      "Created At": ["作成"],
       "Access requests": [""],
       "Security": ["セキュリティー"],
       "List Slices": [""],
@@ -992,7 +992,7 @@
       "Add Saved Query": ["保存されたクエリを追加"],
       "Edit Saved Query": ["保存されたクエリの編集"],
       "Pop Tab Link": ["新しいタブでクエリ"],
-      "Changed on": ["変更日"],
+      "Changed at": ["に変更されました"],
       "Saved Queries": ["保存されたクエリ"]
     }
   }

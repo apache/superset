@@ -72,7 +72,7 @@ function AddSliceDragPreview({ dragItem, slices, isDragging, currentOffset }) {
         transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`,
       }}
       sliceName={slice.slice_name}
-      lastModified={slice.changed_on_humanized}
+      lastModified={slice.changed_at_humanized}
       visType={slice.viz_type}
       datasourceUrl={slice.datasource_url}
       datasourceName={slice.datasource_name}

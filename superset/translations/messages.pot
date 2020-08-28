@@ -1438,7 +1438,7 @@ msgstr ""
 
 #: superset/views/access_requests.py:45 superset/views/schedules.py:224
 #: superset/views/schedules.py:287
-msgid "Created On"
+msgid "Created At"
 msgstr ""
 
 #: superset/views/annotations.py:36
@@ -1722,7 +1722,7 @@ msgid "Manage Email Reports for Dashboards"
 msgstr ""
 
 #: superset/views/schedules.py:225 superset/views/schedules.py:288
-msgid "Changed On"
+msgid "Changed At"
 msgstr ""
 
 #: superset/views/schedules.py:227 superset/views/schedules.py:290
@@ -1810,7 +1810,7 @@ msgid "Pop Tab Link"
 msgstr ""
 
 #: superset/views/sql_lab.py:119
-msgid "Changed on"
+msgid "Changed at"
 msgstr ""
 
 #: superset/views/chart/mixin.py:27

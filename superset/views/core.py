@@ -467,8 +467,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Set all_columns to ensure the TableViz returns the necessary columns to the
         # frontend.
         form_data["all_columns"] = [
-            "created_on",
-            "changed_on",
+            "created_at",
+            "changed_at",
             "id",
             "start_dttm",
             "end_dttm",
@@ -1290,7 +1290,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id
                 )
             )
-            .order_by(Dash.changed_on.desc())
+            .order_by(Dash.changed_at.desc())
         )
         payload = [
             {
@@ -1298,7 +1298,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "dashboard": o.dashboard_link(),
                 "title": o.dashboard_title,
                 "url": o.url,
-                "dttm": o.changed_on,
+                "dttm": o.changed_at,
             }
             for o in qry.all()
         ]
@@ -1349,7 +1349,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "title": o.Slice.slice_name,
                 "url": o.Slice.slice_url,
                 "data": o.Slice.form_data,
-                "dttm": o.dttm if o.dttm else o.Slice.changed_on,
+                "dttm": o.dttm if o.dttm else o.Slice.changed_at,
                 "viz_type": o.Slice.viz_type,
             }
             for o in qry.all()
@@ -1369,14 +1369,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         qry = (
             db.session.query(Slice)
             .filter(or_(Slice.created_by_fk == user_id, Slice.changed_by_fk == user_id))
-            .order_by(Slice.changed_on.desc())
+            .order_by(Slice.changed_at.desc())
         )
         payload = [
             {
                 "id": o.id,
                 "title": o.slice_name,
                 "url": o.slice_url,
-                "dttm": o.changed_on,
+                "dttm": o.changed_at,
                 "viz_type": o.viz_type,
             }
             for o in qry.all()
@@ -2448,7 +2448,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         sql_queries = (
             db.session.query(Query)
             .filter(
-                Query.user_id == g.user.get_id(), Query.changed_on >= last_updated_dt
+                Query.user_id == g.user.get_id(), Query.changed_at >= last_updated_dt
             )
             .all()
         )

@@ -32,15 +32,15 @@ class AccessRequestsModelView(  # pylint: disable=too-many-ancestors
         "user_roles",
         "datasource_link",
         "roles_with_datasource",
-        "created_on",
+        "created_at",
     ]
-    order_columns = ["created_on"]
-    base_order = ("changed_on", "desc")
+    order_columns = ["created_at"]
+    base_order = ("changed_at", "desc")
     label_columns = {
         "username": _("User"),
         "user_roles": _("User Roles"),
         "database": _("Database URL"),
         "datasource_link": _("Datasource"),
         "roles_with_datasource": _("Roles to grant"),
-        "created_on": _("Created On"),
+        "created_at": _("Created At"),
     }

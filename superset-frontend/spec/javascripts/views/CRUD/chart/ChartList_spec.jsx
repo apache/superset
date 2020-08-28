@@ -41,7 +41,7 @@ const chartsVizTypesEndpoint = 'glob:*/api/v1/chart/viz_types';
 const chartsDtasourcesEndpoint = 'glob:*/api/v1/chart/datasources';
 
 const mockCharts = [...new Array(3)].map((_, i) => ({
-  changed_on: new Date().toISOString(),
+  changed_at: new Date().toISOString(),
   creator: 'super user',
   id: i,
   slice_name: `cool chart ${i}`,
@@ -110,7 +110,7 @@ describe('ChartList', () => {
     const callsD = fetchMock.calls(/chart\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/chart/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/chart/?q=(order_column:changed_at_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 

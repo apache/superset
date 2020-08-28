@@ -113,7 +113,7 @@ function ChartList(props: ChartListProps) {
 
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
-  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+  const initialSort = [{ id: 'changed_at_delta_humanized', desc: true }];
 
   function openChartEditModal(chart: Chart) {
     setSliceCurrentlyEditing({
@@ -238,11 +238,11 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: { changed_on_delta_humanized: changedOn },
+            original: { changed_at_delta_humanized: changedOn },
           },
         }: any) => <span className="no-wrap">{changedOn}</span>,
         Header: t('Last Modified'),
-        accessor: 'changed_on_delta_humanized',
+        accessor: 'changed_at_delta_humanized',
       },
       {
         accessor: 'description',
@@ -379,13 +379,13 @@ function ChartList(props: ChartListProps) {
     },
     {
       desc: true,
-      id: 'changed_on_delta_humanized',
+      id: 'changed_at_delta_humanized',
       label: 'Recently Modified',
       value: 'recently_modified',
     },
     {
       desc: false,
-      id: 'changed_on_delta_humanized',
+      id: 'changed_at_delta_humanized',
       label: 'Least Recently Modified',
       value: 'least_recently_modified',
     },
@@ -438,7 +438,7 @@ function ChartList(props: ChartListProps) {
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url ?? ''}
         imgFallbackURL={'/static/assets/images/chart-card-fallback.png'}
-        description={t('Last modified %s', chart.changed_on_delta_humanized)}
+        description={t('Last modified %s', chart.changed_at_delta_humanized)}
         coverLeft={(chart.owners || []).slice(0, 5).map(owner => (
           <AvatarIcon
             key={owner.id}

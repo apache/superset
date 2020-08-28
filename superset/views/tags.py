@@ -166,7 +166,7 @@ class TagView(BaseSupersetView):
                     "type": ObjectTypes.dashboard.name,
                     "name": obj.dashboard_title,
                     "url": obj.url,
-                    "changed_on": obj.changed_on,
+                    "changed_at": obj.changed_at,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
                 }
@@ -193,7 +193,7 @@ class TagView(BaseSupersetView):
                     "type": ObjectTypes.chart.name,
                     "name": obj.slice_name,
                     "url": obj.url,
-                    "changed_on": obj.changed_on,
+                    "changed_at": obj.changed_at,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
                 }
@@ -220,7 +220,7 @@ class TagView(BaseSupersetView):
                     "type": ObjectTypes.query.name,
                     "name": obj.label,
                     "url": obj.url(),
-                    "changed_on": obj.changed_on,
+                    "changed_at": obj.changed_at,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
                 }

@@ -111,10 +111,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "thumbnail_url": dashboard.thumbnail_url,
         }
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertIn("changed_on", data["result"])
+        self.assertIn("changed_at", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp values
-            if key != "changed_on":
+            if key != "changed_at":
                 self.assertEqual(value, expected_result[key])
         # rollback changes
         db.session.delete(dashboard)
@@ -154,7 +154,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(dashboard)
         db.session.commit()
 
-    def test_get_dashboards_changed_on(self):
+    def test_get_dashboards_changed_at(self):
         """
         Dashboard API: Test get dashboards changed on
         """
@@ -162,13 +162,13 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         import humanize
 
         admin = self.get_user("admin")
-        start_changed_on = datetime.now()
+        start_changed_at = datetime.now()
         dashboard = self.insert_dashboard("title", "slug1", [admin.id])
 
         self.login(username="admin")
 
         arguments = {
-            "order_column": "changed_on_delta_humanized",
+            "order_column": "changed_at_delta_humanized",
             "order_direction": "desc",
         }
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
@@ -177,8 +177,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            data["result"][0]["changed_on_delta_humanized"],
-            humanize.naturaltime(datetime.now() - start_changed_on),
+            data["result"][0]["changed_at_delta_humanized"],
+            humanize.naturaltime(datetime.now() - start_changed_at),
         )
 
         # rollback changes

@@ -23,6 +23,9 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [10719](https://github.com/apache/incubator-superset/pull/10719): a change which renames the changed_on and created_on columns to changed_at and created_at respectively. This change alters a number of tables including the heavily leveraged `query` table (which additionally requires dropping and recreating an index) and thus scheduled downtime is advised. This also impacts the cache key and thus as a consequence all
+previously cached results will be invalidated.
+
 * [10674](https://github.com/apache/incubator-superset/pull/10674): Breaking change: PUBLIC_ROLE_LIKE_GAMMA was removed is favour of the new PUBLIC_ROLE_LIKE so it can be set it whatever role you want.
 
 * [10590](https://github.com/apache/incubator-superset/pull/10590): Breaking change: this PR will convert iframe chart into dashboard markdown component, and remove all `iframe`, `separator`, and `markup` slices (and support) from Superset. If you have important data in those slices, please backup manually.

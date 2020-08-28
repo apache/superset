@@ -1238,7 +1238,7 @@
       "User Roles": ["Ruoli Utente"],
       "Database URL": ["URL del Database"],
       "Roles to grant": ["Ruoli per l'accesso"],
-      "Created On": ["Creato il"],
+      "Created At": ["Creato a"],
       "Access requests": [""],
       "Security": ["Sicurezza"],
       "List Charts": ["Visualizza grafici"],
@@ -1320,7 +1320,7 @@
       "Add Saved Query": ["Aggiungi query salvata"],
       "Edit Saved Query": ["Modifica query salvata"],
       "Pop Tab Link": [""],
-      "Changed on": ["Cambiato il"],
+      "Changed at": ["Cambiato a"],
       "Saved Queries": ["Query salvate"]
     }
   }

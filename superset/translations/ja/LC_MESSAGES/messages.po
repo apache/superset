@@ -2584,8 +2584,8 @@ msgstr "週"
 #~ msgid "Roles to grant"
 #~ msgstr ""
 
-#~ msgid "Created On"
-#~ msgstr "作成日"
+#~ msgid "Created At"
+#~ msgstr "作成"
 
 #~ msgid "Access requests"
 #~ msgstr ""
@@ -2779,8 +2779,8 @@ msgstr "週"
 #~ msgid "Pop Tab Link"
 #~ msgstr "新しいタブでクエリ"
 
-#~ msgid "Changed on"
-#~ msgstr "変更日"
+#~ msgid "Changed at"
+#~ msgstr "に変更されました"
 
 #~ msgid "Saved Queries"
 #~ msgstr "保存されたクエリ"

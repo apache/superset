@@ -56,7 +56,7 @@ const KEYS_TO_SORT = [
   { key: 'slice_name', label: 'Name' },
   { key: 'viz_type', label: 'Vis type' },
   { key: 'datasource_name', label: 'Datasource' },
-  { key: 'changed_on', label: 'Recent' },
+  { key: 'changed_at', label: 'Recent' },
 ];
 
 const MARGIN_BOTTOM = 16;
@@ -66,7 +66,7 @@ const DEFAULT_CELL_HEIGHT = 112;
 
 class SliceAdder extends React.Component {
   static sortByComparator(attr) {
-    const desc = attr === 'changed_on' ? -1 : 1;
+    const desc = attr === 'changed_at' ? -1 : 1;
 
     return (a, b) => {
       if (a[attr] < b[attr]) {
@@ -83,7 +83,7 @@ class SliceAdder extends React.Component {
     this.state = {
       filteredSlices: [],
       searchTerm: '',
-      sortBy: KEYS_TO_SORT.findIndex(item => item.key === 'changed_on'),
+      sortBy: KEYS_TO_SORT.findIndex(item => item.key === 'changed_at'),
       selectedSliceIdsSet: new Set(props.selectedSliceIds),
     };
     this.rowRenderer = this.rowRenderer.bind(this);
@@ -188,7 +188,7 @@ class SliceAdder extends React.Component {
             innerRef={dragSourceRef}
             style={style}
             sliceName={cellData.slice_name}
-            lastModified={cellData.changed_on_humanized}
+            lastModified={cellData.changed_at_humanized}
             visType={cellData.viz_type}
             datasourceUrl={cellData.datasource_url}
             datasourceName={cellData.datasource_name}

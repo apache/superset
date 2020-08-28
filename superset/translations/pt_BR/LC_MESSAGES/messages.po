@@ -3107,7 +3107,7 @@ msgstr "semana"
 #~ msgid "Roles to grant"
 #~ msgstr ""
 
-#~ msgid "Created On"
+#~ msgid "Created At"
 #~ msgstr "Criado em"
 
 #~ msgid "Access requests"
@@ -3323,7 +3323,7 @@ msgstr "semana"
 #~ msgid "Pop Tab Link"
 #~ msgstr "Link Tab Tab"
 
-#~ msgid "Changed on"
+#~ msgid "Changed at"
 #~ msgstr "Alterado em"
 
 #~ msgid "Saved Queries"

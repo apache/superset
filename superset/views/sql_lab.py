@@ -60,10 +60,10 @@ class SavedQueryView(
         "sql",
         "pop_tab_link",
     ]
-    search_columns = ("label", "user", "database", "schema", "changed_on")
+    search_columns = ("label", "user", "database", "schema", "changed_at")
     add_columns = ["label", "database", "description", "sql"]
     edit_columns = add_columns
-    base_order = ("changed_on", "desc")
+    base_order = ("changed_at", "desc")
     label_columns = {
         "label": _("Label"),
         "user": _("User"),
@@ -72,7 +72,7 @@ class SavedQueryView(
         "modified": _("Modified"),
         "end_time": _("End Time"),
         "pop_tab_link": _("Pop Tab Link"),
-        "changed_on": _("Changed on"),
+        "changed_at": _("Changed at"),
     }
 
     show_template = "superset/models/savedquery/show.html"

@@ -180,8 +180,8 @@ class Slice(
             data["error"] = str(ex)
         return {
             "cache_timeout": self.cache_timeout,
-            "changed_on": self.changed_on.isoformat(),
-            "changed_on_humanized": self.changed_on_humanized,
+            "changed_at": self.changed_at.isoformat(),
+            "changed_at_humanized": self.changed_at_humanized,
             "datasource": self.datasource_name,
             "description": self.description,
             "description_markeddown": self.description_markeddown,

@@ -89,7 +89,7 @@ class Query(Model, ExtraJSONMixin):
     end_result_backend_time = Column(Numeric(precision=20, scale=6))
     tracking_url = Column(Text)
 
-    changed_on = Column(
+    changed_at = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
     )
 
@@ -100,12 +100,12 @@ class Query(Model, ExtraJSONMixin):
     )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
-    __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
+    __table_args__ = (sqla.Index("ti_user_id_changed_at", user_id, changed_at),)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "changedOn": self.changed_on,
-            "changed_on": self.changed_on.isoformat(),
+            "changedAt": self.changed_at,
+            "changed_at": self.changed_at.isoformat(),
             "dbId": self.database_id,
             "db": self.database.database_name,
             "endDttm": self.end_time,

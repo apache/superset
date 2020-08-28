@@ -922,7 +922,7 @@
       "User Roles": ["Benutzer Rollen"],
       "Database URL": ["Datenbank URL"],
       "Roles to grant": [""],
-      "Created On": [""],
+      "Created At": [""],
       "Access requests": ["Zugriffsanforderungen"],
       "Security": ["Sicherheit"],
       "List Slices": ["Schieben auflisten"],
@@ -992,7 +992,7 @@
       "Add Saved Query": ["Gespeicherte Abfrage einfügen"],
       "Edit Saved Query": ["Gespeicherte Abfrage bearbeiten"],
       "Pop Tab Link": [""],
-      "Changed on": ["Bearbeitet am"],
+      "Changed at": ["Bearbeitet bei"],
       "Saved Queries": ["Gespeicherte Abfragen"]
     }
   }

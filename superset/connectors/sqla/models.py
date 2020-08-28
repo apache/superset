@@ -97,11 +97,11 @@ class AnnotationDatasource(BaseDatasource):
     """
 
     cache_timeout = 0
-    changed_on = None
+    changed_at = None
     type = "annotation"
     column_names = [
-        "created_on",
-        "changed_on",
+        "created_at",
+        "changed_at",
         "id",
         "start_dttm",
         "end_dttm",
