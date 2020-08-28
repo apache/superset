@@ -115,8 +115,10 @@ export default function Label(props: LabelProps) {
       ? props.bsStyle
       : 'default',
     className: cx({
-      [`${props.className}`]:props.className,
-      [`label-${props.bsStyle}`]: !officialBootstrapStyles.includes(props.bsStyle || ''),
+      [`${props.className}`]: props.className,
+      [`label-${props.bsStyle}`]: !officialBootstrapStyles.includes(
+        props.bsStyle || '',
+      ),
     }),
   };
   return <SupersetLabel {...labelProps}>{props.children}</SupersetLabel>;
