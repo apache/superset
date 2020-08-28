@@ -132,7 +132,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         return BaseEngineSpec.get_all_datasource_names(database, datasource_type)
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
+    def fetch_data(
+        cls, cursor: Any, limit: Optional[int] = None
+    ) -> List[Tuple[Any, ...]]:
         import pyhive
         from TCLIService import ttypes
 
@@ -140,7 +142,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         if state.operationState == ttypes.TOperationState.ERROR_STATE:
             raise Exception("Query error", state.errorMessage)
         try:
-            return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+            return super().fetch_data(cursor, limit)
         except pyhive.exc.ProgrammingError:
             return []
 
