@@ -29,6 +29,16 @@ import readResponseBlob from '../../../utils/readResponseBlob';
 describe('Visualization > Table', () => {
   const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'table' };
 
+  const PERCENT_METRIC = {
+    expressionType: 'SQL',
+    sqlExpression: 'CAST(SUM(sum_girls)+AS+FLOAT)/SUM(num)',
+    column: null,
+    aggregate: null,
+    hasCustomLabel: true,
+    label: 'Girls',
+    optionName: 'metric_6qwzgc8bh2v_zox7hil1mzs',
+  };
+
   beforeEach(() => {
     cy.login();
     cy.server();
@@ -119,7 +129,7 @@ describe('Visualization > Table', () => {
   it('Test table with percent metrics and groupby', () => {
     const formData = {
       ...VIZ_DEFAULTS,
-      percent_metrics: NUM_METRIC,
+      percent_metrics: PERCENT_METRIC,
       metrics: [],
       groupby: ['name'],
     };
@@ -214,15 +224,6 @@ describe('Visualization > Table', () => {
   });
 
   it('Tests table number formatting with % in metric name', () => {
-    const PERCENT_METRIC = {
-      expressionType: 'SQL',
-      sqlExpression: 'CAST(SUM(sum_girls)+AS+FLOAT)/SUM(num)',
-      column: null,
-      aggregate: null,
-      hasCustomLabel: true,
-      label: 'Girls',
-      optionName: 'metric_6qwzgc8bh2v_zox7hil1mzs',
-    };
     const formData = {
       ...VIZ_DEFAULTS,
       percent_metrics: PERCENT_METRIC,
