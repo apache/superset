@@ -46,7 +46,7 @@ def json_to_dict(json_str: str) -> Dict[Any, Any]:
     if json_str:
         val = re.sub(",[ \t\r\n]+}", "}", json_str)
         val = re.sub(
-            ",[ \t\r\n]+\]", "]", val  # pylint: disable=anomalous-backslash-in-string
+            ",[ \t\r\n]+\\]", "]", val
         )
         return json.loads(val)
 
