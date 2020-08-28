@@ -20,7 +20,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import prison
-from flask import g
+from flask import current_app, g
 
 import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
@@ -531,6 +531,52 @@ class TestRolePermission(SupersetTestCase):
         )  # wb_health_population slice, has access
         self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
 
+    def test_public_sync_role_data_perms(self):
+        """
+        Security: Tests if the sync role method preserves data access permissions
+        if they already exist on a public role.
+        Also check that non data access permissions are removed
+        """
+        table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+        self.grant_public_access_to_table(table)
+        public_role = security_manager.get_public_role()
+        unwanted_pvm = security_manager.find_permission_view_menu(
+            "menu_access", "Security"
+        )
+        public_role.permissions.append(unwanted_pvm)
+        db.session.commit()
+
+        security_manager.sync_role_definitions()
+        public_role = security_manager.get_public_role()
+        public_role_resource_names = [
+            permission.view_menu.name for permission in public_role.permissions
+        ]
+
+        assert table.get_perm() in public_role_resource_names
+        assert "Security" not in public_role_resource_names
+
+        # Cleanup
+        self.revoke_public_access_to_table(table)
+
+    def test_public_sync_role_builtin_perms(self):
+        """
+        Security: Tests public role creation based on a builtin role
+        """
+        current_app.config["PUBLIC_ROLE_LIKE"] = "TestRole"
+
+        security_manager.sync_role_definitions()
+        public_role = security_manager.get_public_role()
+        public_role_resource_names = [
+            [permission.view_menu.name, permission.permission.name]
+            for permission in public_role.permissions
+        ]
+        for pvm in current_app.config["FAB_ROLES"]["TestRole"]:
+            assert pvm in public_role_resource_names
+
+        # Cleanup
+        current_app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
+        security_manager.sync_role_definitions()
+
     def test_sqllab_gamma_user_schema_access_to_sqllab(self):
         session = db.session
 
@@ -724,7 +770,10 @@ class TestRolePermission(SupersetTestCase):
 
     def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
-        self.assert_cannot_alpha(get_perm_tuples("Alpha"))
+        self.assert_cannot_alpha(get_perm_tuples("Gamma"))
+
+    def test_public_permissions_basic(self):
+        self.assert_can_gamma(get_perm_tuples("Public"))
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
@@ -787,6 +836,9 @@ class TestRolePermission(SupersetTestCase):
         # make sure that user can create slices and dashboards
         assert_can_all("SliceModelView")
         assert_can_all("DashboardModelView")
+
+        assert_cannot_write("UserDBModelView")
+        assert_cannot_write("RoleModelView")
 
         self.assertIn(("can_add_slices", "Superset"), gamma_perm_set)
         self.assertIn(("can_copy_dash", "Superset"), gamma_perm_set)
