@@ -18,8 +18,6 @@
 import json
 from copy import deepcopy
 
-from superset.utils.core import get_or_create_db
-
 from .base_tests import SupersetTestCase
 from .fixtures.datasource import datasource_post
 
