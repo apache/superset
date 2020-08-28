@@ -21,7 +21,10 @@ import { t } from '@superset-ui/translation';
 import { Nav, Navbar, NavItem, MenuItem } from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
 import styled from '@superset-ui/style';
-import MenuObject, { MenuObjectProps } from './MenuObject';
+import MenuObject, {
+  MenuObjectProps,
+  MenuObjectChildProps,
+} from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
 import LanguagePicker, { Languages } from './LanguagePicker';
@@ -128,7 +131,7 @@ const StyledHeader = styled.header`
   }
 `;
 
-export default function Menu({
+export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
 }: MenuProps) {
   // Flatten settings
@@ -253,4 +256,63 @@ export default function Menu({
       </Navbar>
     </StyledHeader>
   );
+}
+
+// transform the menu data to reorganize components
+export default function MenuWrapper({ data }: MenuProps) {
+  const newMenuData = {
+    ...data,
+  };
+  // Menu items that should go into settings dropdown
+  const settingsMenus = {
+    Security: true,
+    Manage: true,
+  };
+
+  // Menu items that should be ignored
+  const ignore = {
+    'Import Dashboards': true,
+  };
+
+  // Cycle through menu.menu to build out cleanedMenu and settings
+  const cleanedMenu: MenuObjectProps[] = [];
+  const settings: MenuObjectProps[] = [];
+
+  newMenuData.menu.forEach((item: any) => {
+    if (!item) {
+      return;
+    }
+
+    const children: (MenuObjectProps | string)[] = [];
+    const newItem = {
+      ...item,
+    };
+
+    // Filter childs
+    if (item.childs) {
+      item.childs.forEach((child: MenuObjectChildProps | string) => {
+        if (typeof child === 'string') {
+          children.push(child);
+        } else if (
+          (child as MenuObjectChildProps).label &&
+          !ignore.hasOwnProperty(child.label)
+        ) {
+          children.push(child);
+        }
+      });
+
+      newItem.childs = children;
+    }
+
+    if (!settingsMenus.hasOwnProperty(item.name)) {
+      cleanedMenu.push(newItem);
+    } else {
+      settings.push(newItem);
+    }
+  });
+
+  newMenuData.menu = cleanedMenu;
+  newMenuData.settings = settings;
+
+  return <Menu data={newMenuData} />;
 }
