@@ -305,7 +305,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return select_exprs
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
+    def fetch_data(
+        cls, cursor: Any, limit: Optional[int] = None
+    ) -> List[Tuple[Any, ...]]:
         """
 
         :param cursor: Cursor instance
@@ -314,7 +316,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        if cls.limit_method == LimitMethod.FETCH_MANY:
+        if cls.limit_method == LimitMethod.FETCH_MANY and limit:
             return cursor.fetchmany(limit)
         return cursor.fetchall()
 
