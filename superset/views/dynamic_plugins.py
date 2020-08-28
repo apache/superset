@@ -36,5 +36,6 @@ class DynamicPluginsView(ModelView):
     description_columns = {
         "name": "A human-friendly name",
         "key": "Should be set to the package name from the pluginʼs package.json",
-        "bundle_url": "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)",
+        "bundle_url": "A full URL pointing to the location "
+        "of the built plugin (could be hosted on a CDN for example)",
     }
