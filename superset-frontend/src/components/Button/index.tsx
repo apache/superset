@@ -80,6 +80,10 @@ const SupersetButton = styled(BootstrapButton)`
   /* SIP 34 colors! */
   &.btn {
     border: 1px solid transparent; /* this just makes sure the height is the same as tertiary/dashed buttons */
+    &:hover,
+    &:active {
+      border: 1px solid transparent;
+    }
     &-default,
     &-secondary {
       background-color: ${({ theme }) => theme.colors.primary.light4};
@@ -121,6 +125,10 @@ const SupersetButton = styled(BootstrapButton)`
     }
     &-dashed {
       border-style: dashed;
+      &:hover,
+      &:active {
+        border-style: dashed;
+      }
     }
     &-link {
       background: none;
