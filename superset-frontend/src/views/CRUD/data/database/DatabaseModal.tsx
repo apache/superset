@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
 import { DatabaseObject } from './types';
+import Button from 'src/components/Button';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -70,6 +71,10 @@ const StyledInputContainer = styled.div`
       flex: 0 1 auto;
       width: 40%;
     }
+
+    &[name='uri'] {
+      margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    }
   }
 `;
 
@@ -81,9 +86,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   show,
   database = null,
 }) => {
-  // const [disableSave, setDisableSave] = useState(true);
-  const [disableSave] = useState<boolean>(true);
-  const [db, setDB] = useState<Partial<DatabaseObject> | null>(null);
+  const [disableSave, setDisableSave] = useState<boolean>(true);
+  const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
   // Functions
@@ -113,6 +117,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setDB(data);
   };
 
+  const validate = () => {
+    if (db && db.name.length && db.uri.length) {
+      setDisableSave(false);
+    } else {
+      setDisableSave(true);
+    }
+  };
+
   const isEditMode = database !== null;
 
   // Initialize
@@ -127,6 +139,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       uri: '',
     });
   }
+
+  // Validation
+  useEffect(() => {
+    validate();
+  });
 
   // Show/hide
   if (isHidden && show) {
@@ -187,6 +204,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 placeholder={t('SQLAlchemy URI')}
                 onChange={onInputChange}
               />
+              <Button className="supersetButton primary">
+                {t('Test Connection')}
+              </Button>
             </div>
             <div className="helper">
               {t('Refer to the ')}
