@@ -569,7 +569,7 @@ class AlertState:
 
 def deliver_alert(
     alert_id: int,
-    validator_name: Optional[str] = "Validator",
+    validator_name: Optional[str] = None,
     recipients: Optional[str] = None,
     slack_channel: Optional[str] = None,
 ) -> None:
@@ -591,6 +591,7 @@ def deliver_alert(
     observation_value = (
         str(alert.observations[-1].value) if alert.observations else "Value"
     )
+    validator_name = validator_name or "Validator"
 
     if alert.slice:
         alert_content = AlertContent(
