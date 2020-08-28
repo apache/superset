@@ -25,6 +25,7 @@ import Tabs from 'src/common/components/Tabs';
 import { DatabaseObject } from './types';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -64,12 +65,23 @@ const StyledInputContainer = styled.div`
       display: flex;
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     }
+
+    i {
+      margin: 0 ${({ theme }) => theme.gridUnit}px;
+    }
   }
 
-  input {
+  input,
+  textarea {
     flex: 1 1 auto;
   }
 
+  textarea {
+    height: 160px;
+    resize: none;
+  }
+
+  textarea,
   input[type='text'],
   input[type='number'] {
     padding: ${({ theme }) => theme.gridUnit * 1.5}px
@@ -131,6 +143,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       data[target.name] = target.value;
     }
 
+    setDB(data);
+  };
+
+  const onTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const target = event.target;
+    const data = {
+      name: db ? db.name : '',
+      uri: db ? db.uri : '',
+      ...db,
+    };
+
+    data[target.name] = target.value;
     setDB(data);
   };
 
@@ -267,17 +291,271 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 onChange={onInputChange}
               />
               <div>{t('Asynchronous Query Execution')}</div>
+              <InfoTooltipWithTrigger
+                label="aqe"
+                tooltip={
+                  t(
+                    'Operate the database in asynchronous mode, meaning that the queries ',
+                  ) +
+                  t(
+                    'are executed on remote workers as opposed to on the web server itself. ',
+                  ) +
+                  t(
+                    'This assumes that you have a Celery worker setup as well as a results ',
+                  ) +
+                  t(
+                    'backend. Refer to the installation docs for more information.',
+                  )
+                }
+              />
             </div>
           </StyledInputContainer>
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('SQL Lab Settings')}</span>} key="3">
-          SQL Lab Settings Form Data
+          <StyledInputContainer>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="sqlExpose"
+                indeterminate={false}
+                checked={db ? !!db.sqlExpose : false}
+                onChange={onInputChange}
+              />
+              <div>{t('Expose in SQL Lab')}</div>
+              <InfoTooltipWithTrigger
+                label="sql-expose"
+                tooltip={t('Expose this DB in SQL Lab')}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="allowCTA"
+                indeterminate={false}
+                checked={db ? !!db.allowCTA : false}
+                onChange={onInputChange}
+              />
+              <div>{t('Allow CREATE TABLE AS')}</div>
+              <InfoTooltipWithTrigger
+                label="allow-cta"
+                tooltip={t('Allow CREATE TABLE AS option in SQL Lab')}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="allowCVA"
+                indeterminate={false}
+                checked={db ? !!db.allowCVA : false}
+                onChange={onInputChange}
+              />
+              <div>{t('Allow CREATE VIEW AS')}</div>
+              <InfoTooltipWithTrigger
+                label="allow-cva"
+                tooltip={t('Allow CREATE VIEW AS option in SQL Lab')}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="allowDML"
+                indeterminate={false}
+                checked={db ? !!db.allowDML : false}
+                onChange={onInputChange}
+              />
+              <div>{t('Allow DML')}</div>
+              <InfoTooltipWithTrigger
+                label="allow-dml"
+                tooltip={t(
+                  'Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)',
+                )}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="allowMSMF"
+                indeterminate={false}
+                checked={db ? !!db.allowMSMF : false}
+                onChange={onInputChange}
+              />
+              <div>{t('Allow Multi Schema Metadata Fetch')}</div>
+              <InfoTooltipWithTrigger
+                label="allow-msmf"
+                tooltip={
+                  t(
+                    'Allow SQL Lab to fetch a list of all tables and all views across all database ',
+                  ) +
+                  t(
+                    'schemas. For large data warehouse with thousands of tables, this can be ',
+                  ) +
+                  t('expensive and put strain on the system.')
+                }
+              />
+            </div>
+          </StyledInputContainer>
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Security')}</span>} key="4">
-          Security Form Data
+          <StyledInputContainer>
+            <div className="label">{t('Secure Extra')}</div>
+            <div className="input-container">
+              <textarea
+                name="secureExtra"
+                value={db ? db.secureExtra || '' : ''}
+                placeholder={t('Secure Extra')}
+                onChange={onTextChange}
+              />
+            </div>
+            <div className="helper">
+              <div>
+                {t(
+                  'JSON string containing additional connection configuration.',
+                )}
+              </div>
+              <div>
+                {t(
+                  'This is used to provide connection information for systems like Hive, ',
+                ) +
+                  t(
+                    'Presto, and BigQuery, which do not conform to the username:password syntax ',
+                  ) +
+                  t('normally used by SQLAlchemy.')}
+              </div>
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="label">{t('Root Certificate')}</div>
+            <div className="input-container">
+              <textarea
+                name="rootCertificate"
+                value={db ? db.rootCertificate || '' : ''}
+                placeholder={t('Root Certificate')}
+                onChange={onTextChange}
+              />
+            </div>
+            <div className="helper">
+              {t(
+                'Optional CA_BUNDLE contents to validate HTTPS requests. Only available on ',
+              ) + t('certain database engines.')}
+            </div>
+          </StyledInputContainer>
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Extra')}</span>} key="5">
-          Extra Form Data
+          <StyledInputContainer>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="impersonateUser"
+                indeterminate={false}
+                checked={db ? !!db.impersonateUser : false}
+                onChange={onInputChange}
+              />
+              <div>{t('Impersonate Logged In User (Presto & Hive')}</div>
+              <InfoTooltipWithTrigger
+                label="impersonate"
+                tooltip={
+                  t(
+                    'If Presto, all the queries in SQL Lab are going to be executed as the ',
+                  ) +
+                  t(
+                    'currently logged on user who must have permission to run them. If Hive ',
+                  ) +
+                  t(
+                    'and hive.server2.enable.doAs is enabled, will run the queries as ',
+                  ) +
+                  t(
+                    'service account, but impersonate the currently logged on user via ',
+                  ) +
+                  t('hive.server2.proxy.user property.')
+                }
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="allowCSV"
+                indeterminate={false}
+                checked={db ? !!db.allowCSV : false}
+                onChange={onInputChange}
+              />
+              <div>{t('Allow CSV Upload')}</div>
+              <InfoTooltipWithTrigger
+                label="allow-csv"
+                tooltip={t(
+                  'If selected, please set the schemas allowed for csv upload in Extra.',
+                )}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="label">{t('Extra')}</div>
+            <div className="input-container">
+              <textarea
+                name="extra"
+                value={db ? db.extra || '' : ''}
+                placeholder={
+                  '{\n  "metadata_params": {},\n  "engine_params": {},' +
+                  '\n  "metadata_cache_timeout": {},\n  "schemas_allowed_for_csv_upload": [] \n}'
+                }
+                onChange={onTextChange}
+              />
+            </div>
+            <div className="helper">
+              <div>
+                {t('JSON string containing extra configuration elements.')}
+              </div>
+              <div>
+                {t(
+                  '1. The engine_params object gets unpacked into the sqlalchemy.create_engine ',
+                ) +
+                  t(
+                    'call, while the metadata_params gets unpacked into the sqlalchemy.MetaData ',
+                  ) +
+                  t('call.')}
+              </div>
+              <div>
+                {t(
+                  '2. The metadata_cache_timeout is a cache timeout setting in seconds for ',
+                ) +
+                  t(
+                    'metadata fetch of this database. Specify it as "metadata_cache_timeout": ',
+                  ) +
+                  t(
+                    '{"schema_cache_timeout": 600, "table_cache_timeout": 600}. If unset, cache ',
+                  ) +
+                  t(
+                    'will not be enabled for the functionality. A timeout of 0 indicates that ',
+                  ) +
+                  t('the cache never expires.')}
+              </div>
+              <div>
+                {t(
+                  '3. The schemas_allowed_for_csv_upload is a comma separated list of schemas ',
+                ) +
+                  t('that CSVs are allowed to upload to. Specify it as ') +
+                  t(
+                    '{"schemas_allowed_for_csv_upload": ["public", "csv_upload"]. If database ',
+                  ) +
+                  t(
+                    'flavor does not support schema or any schema is allowed to be accessed, ',
+                  ) +
+                  t('just leave the list empty.')}
+              </div>
+              <div>
+                {t(
+                  "4. The version field is a string specifying this db's version. This ",
+                ) + t('be used with Presto DBs so that the syntax is correct.')}
+              </div>
+              <div>
+                {t(
+                  '5. The allows_virtual_table_explore field is a boolean specifying whether ',
+                ) + t('or not the Explore button in SQL Lab results is shown.')}
+              </div>
+            </div>
+          </StyledInputContainer>
         </Tabs.TabPane>
       </Tabs>
     </Modal>
