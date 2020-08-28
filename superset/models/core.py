@@ -57,6 +57,7 @@ from superset.db_engine_specs.base import TimeGrain
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import DashboardUpdater, FavStarUpdater
+from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
 
 config = app.config
@@ -392,21 +393,18 @@ class Database(
                 _log_query(sqls[-1])
                 self.db_engine_spec.execute(cursor, sqls[-1])
 
-                if cursor.description is not None:
-                    columns = [col_desc[0] for col_desc in cursor.description]
-                else:
-                    columns = []
-
-                df = pd.DataFrame.from_records(
-                    data=list(cursor.fetchall()), columns=columns, coerce_float=True
+                data = self.db_engine_spec.fetch_data(cursor)
+                result_set = SupersetResultSet(
+                    data, cursor.description, self.db_engine_spec
                 )
-
+                df = result_set.to_pandas_df()
                 if mutator:
                     mutator(df)
 
                 for k, v in df.dtypes.items():
                     if v.type == numpy.object_ and needs_conversion(df[k]):
                         df[k] = df[k].apply(utils.json_dumps_w_dates)
+
                 return df
 
     def compile_sqla_query(self, qry: Select, schema: Optional[str] = None) -> str:
