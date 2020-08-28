@@ -39,10 +39,6 @@ import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import Welcome from './CRUD/welcome/Welcome';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
-import {
-  MenuObjectProps,
-  MenuObjectChildProps,
-} from '../components/Menu/MenuObject';
 
 setupApp();
 setupPlugins();
@@ -61,57 +57,6 @@ const store = createStore(
   {},
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
-
-// Menu items that should go into settings dropdown
-const settingsMenus = {
-  Security: true,
-  Manage: true,
-};
-
-// Menu items that should be ignored
-const ignore = {
-  'Import Dashboards': true,
-};
-
-// Cycle through menu.menu to build out cleanedMenu and settings
-const cleanedMenu: object[] = [];
-const settings: object[] = [];
-
-menu.menu.forEach((item: any) => {
-  if (!item) {
-    return;
-  }
-
-  const children: (MenuObjectProps | string)[] = [];
-  const newItem = {
-    ...item,
-  };
-
-  // Filter childs
-  if (item.childs) {
-    item.childs.forEach((child: MenuObjectChildProps | string) => {
-      if (typeof child === 'string') {
-        children.push(child);
-      } else if (
-        (child as MenuObjectChildProps).label &&
-        !ignore.hasOwnProperty(child.label)
-      ) {
-        children.push(child);
-      }
-    });
-
-    newItem.childs = children;
-  }
-
-  if (!settingsMenus.hasOwnProperty(item.name)) {
-    cleanedMenu.push(newItem);
-  } else {
-    settings.push(newItem);
-  }
-});
-
-menu.menu = cleanedMenu;
-menu.settings = settings;
 
 const App = () => (
   <Provider store={store}>

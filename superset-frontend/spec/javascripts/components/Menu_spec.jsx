@@ -22,7 +22,7 @@ import { Nav, MenuItem } from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-import Menu from 'src/components/Menu/Menu';
+import { Menu } from 'src/components/Menu/Menu';
 
 const defaultProps = {
   data: {
