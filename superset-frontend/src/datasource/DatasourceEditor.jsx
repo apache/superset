@@ -548,8 +548,8 @@ export class DatasourceEditor extends React.PureComponent {
             label={t('SQL')}
             description={t(
               'When specifying SQL, the dataset acts as a view. ' +
-              'Superset will use this statement as a subquery while grouping and filtering ' +
-              'on the generated parent queries.',
+                'Superset will use this statement as a subquery while grouping and filtering ' +
+                'on the generated parent queries.',
             )}
             control={
               <TextAreaControl language="sql" offerEditInModal={false} />
