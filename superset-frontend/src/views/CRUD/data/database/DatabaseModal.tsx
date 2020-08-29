@@ -23,7 +23,6 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
-import { Tabs as BaseTabs } from 'src/common/components';
 
 export type DatabaseObject = {
   id?: number;
@@ -40,8 +39,6 @@ interface DatabaseModalProps {
   show: boolean;
   database?: DatabaseObject | null; // If included, will go into edit mode
 }
-
-const { TabPane } = BaseTabs;
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -160,7 +157,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     >
       <Tabs defaultActiveKey="1">
-        <TabPane
+        <Tabs.TabPane
           tab={
             <span>
               {t('Connection')}
@@ -210,19 +207,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               {t(' for more information on how to structure your URI.')}
             </div>
           </StyledInputContainer>
-        </TabPane>
-        <TabPane tab={<span>{t('Performance')}</span>} key="2">
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('Performance')}</span>} key="2">
           Performance Form Data
-        </TabPane>
-        <TabPane tab={<span>{t('SQL Lab Settings')}</span>} key="3">
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('SQL Lab Settings')}</span>} key="3">
           SQL Lab Settings Form Data
-        </TabPane>
-        <TabPane tab={<span>{t('Security')}</span>} key="4">
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('Security')}</span>} key="4">
           Security Form Data
-        </TabPane>
-        <TabPane tab={<span>{t('Extra')}</span>} key="5">
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('Extra')}</span>} key="5">
           Extra Form Data
-        </TabPane>
+        </Tabs.TabPane>
       </Tabs>
     </Modal>
   );
