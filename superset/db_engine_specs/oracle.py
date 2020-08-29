@@ -73,8 +73,4 @@ class OracleEngineSpec(BaseEngineSpec):
         """
         if not cursor.description:
             return []
-        if cls.arraysize:
-            cursor.arraysize = cls.arraysize
-        if cls.limit_method == LimitMethod.FETCH_MANY:
-            return cursor.fetchmany(limit)
-        return cursor.fetchall()
+        super().fetch_data(cursor, limit)
