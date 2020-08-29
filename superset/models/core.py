@@ -88,6 +88,18 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
     value = Column(Text, nullable=False)
 
 
+class CacheKey(Model):  # pylint: disable=too-few-public-methods
+
+    """Used for any type of key-value store"""
+
+    __tablename__ = "cache_keys"
+    id = Column(Integer, primary_key=True)
+    cache_key = Column(Text, nullable=False)
+    cache_timeout = Column(Integer, nullable=True)
+    datasource_uid = Column(Text, nullable=False, index=True)
+    created_on = Column(DateTime, default=datetime.now, nullable=True)
+
+
 class CssTemplate(Model, AuditMixinNullable):
 
     """CSS templates for dashboards"""

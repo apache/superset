@@ -48,12 +48,12 @@ import pandas as pd
 import polyline
 import simplejson as json
 from dateutil import relativedelta as rdelta
-from flask import g, request
+from flask import request
 from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, cache, event_logger, security_manager
+from superset import app, cache, db, security_manager
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -61,6 +61,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SpatialException,
 )
+from superset.models.core import CacheKey
 from superset.models.helpers import QueryResult
 from superset.typing import QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils
@@ -101,28 +102,20 @@ def set_and_log_cache(
     query: str,
     cached_dttm: str,
     cache_timeout: int,
-    datasource: Optional["BaseDatasource"],
+    datasource_uid: Optional[str],
 ) -> None:
     try:
         cache_value = dict(dttm=cached_dttm, df=df, query=query)
         stats_logger.incr("set_cache_key")
         cache.set(cache_key, cache_value, timeout=cache_timeout)
 
-        user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
-        record = {
-            "cache_key": cache_key,
-            "cache_timeout": cache_timeout,
-        }
-        if datasource:
-            record.update(
-                {
-                    "datasource_id": datasource.uid,
-                    "datasource_name": datasource.name,
-                    "database_id": datasource.database.id,
-                    "database_name": datasource.database.name,
-                }
+        if datasource_uid:
+            ck = CacheKey(
+                cache_key=cache_key,
+                cache_timeout=cache_timeout,
+                datasource_uid=datasource_uid,
             )
-        event_logger.log(user_id, "cache", records=[record])
+            db.session.add(ck)
     except Exception as ex:
         # cache.set call can fail if the backend is down or if
         # the key is too large or whatever other reasons
