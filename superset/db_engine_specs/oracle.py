@@ -74,5 +74,5 @@ class OracleEngineSpec(BaseEngineSpec):
         :return: Result of query
         """
         if not cursor.description:
-            return [()]
-        super().fetch_data(cursor, limit)
+            return []
+        return super().fetch_data(cursor, limit)
