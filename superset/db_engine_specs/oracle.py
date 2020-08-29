@@ -65,12 +65,14 @@ class OracleEngineSpec(BaseEngineSpec):
         return "TO_DATE('1970-01-01','YYYY-MM-DD')+(1/24/60/60/1000)*{col}"
     
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: Optional[int] = None) -> List[Tuple[Any, ...]]:
+    def fetch_data(
+        cls, cursor: Any, limit: Optional[int] = None
+    ) -> List[Tuple[Any, ...]]:
         """
         :param cursor: Cursor instance
         :param limit: Maximum number of rows to be returned by the cursor
         :return: Result of query
         """
         if not cursor.description:
-            return []
+            return [()]
         super().fetch_data(cursor, limit)
