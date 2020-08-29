@@ -61,7 +61,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SpatialException,
 )
-from superset.models.core import CacheKey
+from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
 from superset.typing import QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils
@@ -571,7 +571,7 @@ class BaseViz:
                     self.query,
                     cached_dttm,
                     self.cache_timeout,
-                    self.datasource,
+                    self.datasource.uid,
                 )
         return {
             "cache_key": self._any_cache_key,

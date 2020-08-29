@@ -35,6 +35,7 @@ from unittest import mock, skipUnless
 import pandas as pd
 import sqlalchemy as sqla
 
+from superset.models.cache import CacheKey
 from tests.test_app import app  # isort:skip
 import superset.views.utils
 from superset import (
@@ -50,14 +51,12 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
-from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.utils import core as utils
-from superset.utils.core import get_example_database
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
 
@@ -588,21 +587,8 @@ class TestCore(SupersetTestCase):
     def test_cache_logging(self):
         slc = self.get_slice("Girls", db.session)
         self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
-        log_entry = (
-            db.session.query(Log)
-            .filter(Log.action == "cache")
-            .order_by(Log.id.desc())
-            .first()
-        )
-        expected_dict = json.loads(log_entry.json)
-        del expected_dict["cache_key"]
-        assert expected_dict == {
-            "cache_timeout": 86400,
-            "datasource_id": "3__table",
-            "datasource_name": "birth_names",
-            "database_id": 1,
-            "database_name": "examples",
-        }
+        ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
+        assert ck.datasource_uid == "3__table"
 
     def test_shortner(self):
         self.login(username="admin")

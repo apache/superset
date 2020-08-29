@@ -14,13 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-
 import tests.test_app
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.models.core import Log
+from superset.models.cache import CacheKey
 from superset.utils.core import (
     AdhocMetricExpressionType,
     ChartDataResultFormat,
@@ -182,21 +180,8 @@ class TestQueryContext(SupersetTestCase):
         self.assertIn("name,sum__num\n", data)
         self.assertEqual(len(data.split("\n")), 12)
 
-        log_entry = (
-            db.session.query(Log)
-            .filter(Log.action == "cache")
-            .order_by(Log.id.desc())
-            .first()
-        )
-        expected_dict = json.loads(log_entry.json)
-        del expected_dict["cache_key"]
-        assert expected_dict == {
-            "cache_timeout": 55,
-            "datasource_id": "3__table",
-            "datasource_name": "birth_names",
-            "database_id": 1,
-            "database_name": "examples",
-        }
+        ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
+        assert ck.datasource_uid == "3__table"
 
     def test_sql_injection_via_groupby(self):
         """
