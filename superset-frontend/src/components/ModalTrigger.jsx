@@ -19,9 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Modal, MenuItem } from 'react-bootstrap';
-import cx from 'classnames';
 
-import Button from './Button';
+import Button from 'src/components/Button';
 
 const propTypes = {
   dialogClassName: PropTypes.string,
@@ -96,9 +95,6 @@ export default class ModalTrigger extends React.Component {
   }
 
   render() {
-    const classNames = cx({
-      'btn btn-default btn-sm': this.props.isButton,
-    });
     if (this.props.isButton) {
       return (
         <>
@@ -123,7 +119,7 @@ export default class ModalTrigger extends React.Component {
     /* eslint-disable jsx-a11y/interactive-supports-focus */
     return (
       <>
-        <span className={classNames} onClick={this.open} role="button">
+        <span onClick={this.open} role="button">
           {this.props.triggerNode}
         </span>
         {this.renderModal()}

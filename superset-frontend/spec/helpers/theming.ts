@@ -51,5 +51,5 @@ export function styledShallow(
       theme: supersetTheme,
       ...options?.wrappingComponentProps,
     },
-  });
+  }).dive();
 }

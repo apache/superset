@@ -25,13 +25,16 @@ export default {
   title: 'Button',
   component: Button,
   decorators: [withKnobs],
+  excludeStories: /.*Knob$/,
 };
 
-const bsStyleKnob = {
+export const buttonStyleKnob = {
   label: 'Types',
   options: {
     Primary: 'primary',
     Secondary: 'secondary',
+    Tertiary: 'tertiary',
+    Dashed: 'dashed',
     Danger: 'danger',
     Warning: 'warning',
     Success: 'success',
@@ -42,17 +45,18 @@ const bsStyleKnob = {
   defaultValue: null,
   // groupId: 'ButtonType',
 };
-const bsSizeKnob = {
+
+export const buttonSizeKnob = {
   label: 'Sizes',
   options: {
     XS: 'xsmall',
     S: 'small',
-    M: 'medium',
+    Default: null,
     L: 'large',
-    None: null,
   },
   defaultValue: null,
 };
+
 // TODO remove the use of these in the codebase where they're not necessary
 // const classKnob = {
 //   label: 'Known Classes',
@@ -62,7 +66,6 @@ const bsSizeKnob = {
 //     Reset: 'reset',
 //     Fetch: 'fetch',
 //     Query: 'query',
-//     saveBtn: 'save-btn',
 //     MR3: 'm-r-3',
 //     cancelQuery: 'cancelQuery',
 //     toggleSave: 'toggleSave',
@@ -101,43 +104,43 @@ const hrefKnob = {
 
 export const ButtonGallery = () => (
   <>
-    {Object.values(bsSizeKnob.options)
-      .filter(a => a)
-      .map(size => (
-        <div>
-          <h4>{size}</h4>
-          {Object.values(bsStyleKnob.options)
-            .filter(o => o)
-            .map(style => (
-              <Button
-                disabled={boolean('Disabled', false)}
-                bsStyle={style}
-                bsSize={size}
-                onClick={action('clicked')}
-                style={{ marginRight: 5 }}
-              >
-                {style}
-              </Button>
-            ))}
-        </div>
-      ))}
+    {Object.entries(buttonSizeKnob.options).map(([name, size]) => (
+      <div key={size}>
+        <h4>{name}</h4>
+        {Object.values(buttonStyleKnob.options)
+          .filter(o => o)
+          .map(style => (
+            <Button
+              disabled={boolean('Disabled', false)}
+              cta={boolean('CTA', false)}
+              buttonStyle={style}
+              buttonSize={size}
+              onClick={action('clicked')}
+              key={`${style}_${size}`}
+            >
+              {style}
+            </Button>
+          ))}
+      </div>
+    ))}
   </>
 );
 
 export const InteractiveButton = () => (
   <Button
     disabled={boolean('Disabled', false)}
-    bsStyle={select(
-      bsStyleKnob.label,
-      bsStyleKnob.options,
-      bsStyleKnob.defaultValue,
-      bsStyleKnob.groupId,
+    cta={boolean('CTA', false)}
+    buttonStyle={select(
+      buttonStyleKnob.label,
+      buttonStyleKnob.options,
+      buttonStyleKnob.defaultValue,
+      buttonStyleKnob.groupId,
     )}
-    bsSize={select(
-      bsSizeKnob.label,
-      bsSizeKnob.options,
-      bsSizeKnob.defaultValue,
-      bsSizeKnob.groupId,
+    size={select(
+      buttonSizeKnob.label,
+      buttonSizeKnob.options,
+      buttonSizeKnob.defaultValue,
+      buttonSizeKnob.groupId,
     )}
     onClick={action('clicked')}
     type={select(
