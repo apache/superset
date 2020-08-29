@@ -43,7 +43,7 @@ describe('Advanced analytics', () => {
       .find('.Select__multi-value__label')
       .contains('364 days');
 
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
     cy.wait('@postJson');
     cy.reload();
     cy.verifySliceSuccess({
@@ -90,7 +90,7 @@ describe('Annotations', () => {
       cy.get('button').contains('OK').click();
     });
 
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
       chartSelector: 'svg',

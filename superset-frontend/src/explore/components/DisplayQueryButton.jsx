@@ -38,13 +38,13 @@ import {
 import { Table } from 'reactable-arc';
 import { t } from '@superset-ui/translation';
 
+import Button from 'src/components/Button';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getChartDataRequest } from '../../chart/chartAction';
 import downloadAsImage from '../../utils/downloadAsImage';
 import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
-import Button from '../../components/Button';
 import RowCountLabel from './RowCountLabel';
 import {
   applyFormattingToTabularData,

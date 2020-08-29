@@ -26,10 +26,10 @@ import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
 import Icon from 'src/components/Icon';
+import Button from 'src/components/Button';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
-import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
@@ -390,36 +390,40 @@ class Header extends React.PureComponent {
                 <>
                   <ButtonGroup className="m-r-5">
                     <Button
-                      bsSize="small"
+                      buttonSize="small"
                       onClick={onUndo}
                       disabled={undoLength < 1}
-                      bsStyle={this.state.emphasizeUndo ? 'primary' : undefined}
+                      buttonStyle={
+                        this.state.emphasizeUndo ? 'primary' : undefined
+                      }
                     >
                       <i title="Undo" className="undo-action fa fa-reply" />
                       &nbsp;
                     </Button>
                     <Button
-                      bsSize="small"
+                      buttonSize="small"
                       onClick={onRedo}
                       disabled={redoLength < 1}
-                      bsStyle={this.state.emphasizeRedo ? 'primary' : undefined}
+                      buttonStyle={
+                        this.state.emphasizeRedo ? 'primary' : undefined
+                      }
                     >
                       &nbsp;
                       <i title="Redo" className="redo-action fa fa-share" />
                     </Button>
                   </ButtonGroup>
                   <Button
-                    bsSize="small"
+                    buttonSize="small"
                     className="m-r-5"
                     onClick={this.constructor.discardChanges}
-                    bsStyle="default"
+                    buttonStyle="default"
                   >
                     {t('Discard Changes')}
                   </Button>
                   <Button
-                    bsSize="small"
+                    buttonSize="small"
                     disabled={!hasUnsavedChanges}
-                    bsStyle="primary"
+                    buttonStyle="primary"
                     onClick={this.overwriteDashboard}
                   >
                     {t('Save')}

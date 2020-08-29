@@ -48,7 +48,7 @@ describe('AdhocMetrics', () => {
 
     cy.get('.metrics-select .metric-option').contains(metricName);
 
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
       querySubstring: `${metric} AS "${metricName}"`, // SQL statement
@@ -77,7 +77,7 @@ describe('AdhocMetrics', () => {
       .type('/COUNT(DISTINCT name)', { force: true });
     cy.get('#metrics-edit-popover').find('button').contains('Save').click();
 
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
 
     const metric = 'SUM(num)/COUNT(DISTINCT name)';
     cy.verifySliceSuccess({
@@ -103,7 +103,7 @@ describe('AdhocMetrics', () => {
       cy.get('button').contains('Save').click();
     });
 
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
 
     const metric = 'SUM(num)';
     cy.verifySliceSuccess({
@@ -124,7 +124,7 @@ describe('AdhocMetrics', () => {
     });
 
     const metric = 'AVG(sum_boys)';
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
       querySubstring: `${metric} AS "${metric}"`,
