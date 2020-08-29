@@ -20,7 +20,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
-import { Alert, Button } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
+import Button from 'src/components/Button';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import FormLabel from 'src/components/FormLabel';
@@ -116,10 +117,10 @@ class RefreshIntervalModal extends React.PureComponent {
         }
         modalFooter={
           <>
-            <Button bsStyle="primary" bsSize="sm" onClick={this.onSave}>
+            <Button buttonStyle="primary" buttonSize="sm" onClick={this.onSave}>
               {editMode ? t('Save') : t('Save for this session')}
             </Button>
-            <Button onClick={this.onCancel} bsSize="sm">
+            <Button onClick={this.onCancel} buttonSize="sm">
               {t('Cancel')}
             </Button>
           </>

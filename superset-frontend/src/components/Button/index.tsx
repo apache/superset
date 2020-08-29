@@ -18,6 +18,8 @@
  */
 import React from 'react';
 import { kebabCase } from 'lodash';
+import { mix } from 'polished';
+import cx from 'classnames';
 import {
   Button as BootstrapButton,
   Tooltip,
@@ -40,52 +42,201 @@ export interface ButtonProps {
   placement?: string;
   onClick?: OnClickHandler;
   disabled?: boolean;
-  bsStyle?: string;
+  buttonStyle?: string;
   btnStyles?: string;
-  bsSize?: BootstrapButton.ButtonProps['bsSize'];
+  buttonSize?: BootstrapButton.ButtonProps['bsSize'];
   style?: BootstrapButton.ButtonProps['style'];
   children?: React.ReactNode;
   dropdownItems?: DropdownItemProps[];
+  href?: string; // React-Bootstrap creates a link when this is passed in.
+  target?: string; // React-Bootstrap creates a link when this is passed in.
+  type?: string; // React-Bootstrap supports this when rendering an HTML button element
+  cta?: boolean;
 }
 
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
 
 const SupersetButton = styled(BootstrapButton)`
-  &.supersetButton {
-    border-radius: ${({ theme }) => theme.borderRadius}px;
-    border: none;
-    color: ${({ theme }) => theme.colors.secondary.light5};
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
+  &:focus,
+  &:active,
+  &:focus:active {
+    outline: none;
+    box-shadow: none;
+  }
+  transition: all ${({ theme }) => theme.transitionTiming}s;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  border: none;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+  &:first-of-type {
+    margin-left: 0;
+  }
+
+  i {
+    padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
+  }
+
+  /* SIP 34 colors! */
+  &.btn {
+    border: 1px solid transparent; /* this just makes sure the height is the same as tertiary/dashed buttons */
+    &:hover,
+    &:active {
+      border: 1px solid transparent;
+    }
+    &-default,
+    &-secondary {
+      background-color: ${({ theme }) => theme.colors.primary.light4};
+      color: ${({ theme }) => theme.colors.primary.dark1};
+      &:hover {
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.primary.light4)};
+        color: ${({ theme }) => theme.colors.primary.dark1};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.25, theme.colors.primary.base, theme.colors.primary.light4)};
+        color: ${({ theme }) => theme.colors.primary.dark1};
+      }
+    }
+    &-tertiary,
+    &-dashed {
+      border-width: 1px;
+      border-style: solid;
+      background-color: ${({ theme }) => theme.colors.grayscale.light5};
+      color: ${({ theme }) => theme.colors.primary.dark1};
+      border-color: ${({ theme }) => theme.colors.primary.dark1};
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.grayscale.light5};
+        color: ${({ theme }) => theme.colors.primary.dark1};
+        border-color: ${({ theme }) => theme.colors.primary.light1};
+      }
+      &:active {
+        background-color: ${({ theme }) => theme.colors.grayscale.light5};
+        color: ${({ theme }) => theme.colors.primary.dark1};
+        border-color: ${({ theme }) => theme.colors.primary.dark1};
+      }
+      &[disabled],
+      &[disabled]:hover {
+        background-color: ${({ theme }) => theme.colors.grayscale.light5};
+        color: ${({ theme }) => theme.colors.grayscale.base};
+        border-color: ${({ theme }) => theme.colors.grayscale.light2};
+      }
+    }
+    &-dashed {
+      border-style: dashed;
+      &:hover,
+      &:active {
+        border-style: dashed;
+      }
+    }
+    &-link {
+      background: none;
+      text-decoration: none;
+      color: ${({ theme }) => theme.colors.primary.dark1};
+      &:hover {
+        background: none;
+        color: ${({ theme }) => theme.colors.primary.base};
+      }
+      &:active {
+        background: none;
+        color: ${({ theme }) => theme.colors.primary.dark1};
+      }
+      &[disabled],
+      &[disabled]:hover {
+        background: none;
+        color: ${({ theme }) => theme.colors.grayscale.base};
+      }
+    }
+    &-primary {
+      background-color: ${({ theme }) => theme.colors.primary.dark1};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      &:hover {
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.primary.dark1)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.primary.dark1)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+    }
+    &-danger {
+      background-color: ${({ theme }) => theme.colors.error.base};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      &:hover {
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.error.base)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.error.base)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+    }
+    &-success {
+      background-color: ${({ theme }) => theme.colors.success.base};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      &:hover {
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.success.base)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.success.base)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+    }
+    &-warning {
+      background-color: ${({ theme }) => theme.colors.warning.base};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      &:hover {
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.warning.base)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.warning.base)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+    }
+    &-info {
+      background-color: ${({ theme }) => theme.colors.info.dark1};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      &:hover {
+        background-color: ${({ theme }) =>
+          mix(0.1, theme.colors.grayscale.light5, theme.colors.info.dark1)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      &:active {
+        background-color: ${({ theme }) =>
+          mix(0.2, theme.colors.grayscale.dark2, theme.colors.info.dark1)};
+        color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+    }
+    &[disabled],
+    &[disabled]:hover {
+      background-color: ${({ theme }) => theme.colors.grayscale.light2};
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+    }
+  }
+
+  /* big Call to Action buttons */
+  &.cta {
     min-width: ${({ theme }) => theme.gridUnit * 36}px;
     min-height: ${({ theme }) => theme.gridUnit * 8}px;
     text-transform: uppercase;
-    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
-    &:first-of-type {
-      margin-left: 0;
-    }
-
-    i {
-      padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
-    }
-
-    &.primary {
-      background-color: ${({ theme }) => theme.colors.primary.base};
-    }
-    &.secondary {
-      color: ${({ theme }) => theme.colors.primary.base};
-      background-color: ${({ theme }) => theme.colors.primary.light4};
-    }
-    &.danger {
-      background-color: ${({ theme }) => theme.colors.error.base};
-    }
   }
 `;
 
 export default function Button(props: ButtonProps) {
   const buttonProps = {
     ...props,
-    bsSize: props.bsSize || 'sm',
+    bsSize: props.buttonSize,
     placement: props.placement || 'top',
   };
   const tooltip = props.tooltip;
@@ -100,17 +251,40 @@ export default function Button(props: ButtonProps) {
     buttonProps.style = { pointerEvents: 'none' };
   }
 
-  let button = (
-    <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
-  );
+  const officialBootstrapStyles = [
+    'success',
+    'warning',
+    'danger',
+    'info',
+    'default',
+    'primary',
+  ];
 
-  const whittledProps = { ...buttonProps };
-  delete whittledProps.dropdownItems;
+  const transformedProps = {
+    ...buttonProps,
+    bsStyle: officialBootstrapStyles.includes(props.buttonStyle || '')
+      ? props.buttonStyle
+      : 'default',
+    className: cx(props.className, {
+      cta: !!buttonProps.cta,
+      [`btn-${props.buttonStyle}`]: !officialBootstrapStyles.includes(
+        props.buttonStyle || '',
+      ),
+    }),
+  };
+  delete transformedProps.dropdownItems;
+  delete transformedProps.buttonSize;
+  delete transformedProps.buttonStyle;
+  delete transformedProps.cta;
+
+  let button = (
+    <SupersetButton {...transformedProps}>{props.children}</SupersetButton>
+  );
 
   if (dropdownItems) {
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
-        <SupersetButton {...whittledProps} data-toggle="dropdown">
+        <SupersetButton {...transformedProps} data-toggle="dropdown">
           {props.children}
         </SupersetButton>
         <ul className="dropdown-menu">

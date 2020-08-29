@@ -19,7 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
-import TooltipWrapper from '../../components/TooltipWrapper';
+import TooltipWrapper from 'src/components/TooltipWrapper';
+import Label from 'src/components/Label';
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
@@ -43,14 +44,6 @@ const publishedTooltip = t(
   'This dashboard is published. Click to make it a draft.',
 );
 
-const divStyle = {
-  border: '1px dotted black',
-  backgroundColor: '#F9F9F9',
-  padding: '3px 7px 3px 7px',
-  fontFamily: 'Monospace',
-  fontSize: '16px',
-};
-
 export default class PublishedStatus extends React.Component {
   componentDidMount() {
     this.togglePublished = this.togglePublished.bind(this);
@@ -71,14 +64,13 @@ export default class PublishedStatus extends React.Component {
             placement="bottom"
             tooltip={draftButtonTooltip}
           >
-            <button
-              style={divStyle}
+            <Label
               onClick={() => {
                 this.togglePublished();
               }}
             >
               Draft
-            </button>
+            </Label>
           </TooltipWrapper>
         );
       }
@@ -88,7 +80,7 @@ export default class PublishedStatus extends React.Component {
           placement="bottom"
           tooltip={draftDivTooltip}
         >
-          <div style={divStyle}>Draft</div>
+          <Label>Draft</Label>
         </TooltipWrapper>
       );
     }
@@ -101,14 +93,13 @@ export default class PublishedStatus extends React.Component {
           placement="bottom"
           tooltip={publishedTooltip}
         >
-          <button
-            style={divStyle}
+          <Label
             onClick={() => {
               this.togglePublished();
             }}
           >
             Published
-          </button>
+          </Label>
         </TooltipWrapper>
       );
     }

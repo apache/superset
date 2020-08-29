@@ -20,7 +20,8 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { Button, FormGroup, Popover } from 'react-bootstrap';
+import { FormGroup, Popover } from 'react-bootstrap';
+import Button from 'src/components/Button';
 
 import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
 import AdhocMetricEditPopover from 'src/explore/components/AdhocMetricEditPopover';
@@ -117,9 +118,9 @@ describe('AdhocMetricEditPopover', () => {
 
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).not.toExist();
+    expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).not.toExist();
     wrapper.instance().onColumnChange({ column: columns[1] });
-    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).toExist();
+    expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).toExist();
   });
 
   it('will initiate a drag when clicked', () => {

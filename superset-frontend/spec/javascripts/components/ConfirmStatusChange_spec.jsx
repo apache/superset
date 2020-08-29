@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Modal from 'src/components/Modal';
@@ -33,7 +33,7 @@ describe('ConfirmStatusChange', () => {
     <ConfirmStatusChange {...mockedProps}>
       {confirm => (
         <>
-          <button id="btn1" onClick={confirm} />
+          <Button id="btn1" onClick={confirm} />
         </>
       )}
     </ConfirmStatusChange>,
@@ -44,7 +44,7 @@ describe('ConfirmStatusChange', () => {
   );
 
   it('opens a confirm modal', () => {
-    wrapper.find('#btn1').props().onClick('foo');
+    wrapper.find('#btn1').first().props().onClick('foo');
 
     wrapper.update();
 

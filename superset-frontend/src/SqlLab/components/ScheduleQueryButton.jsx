@@ -192,7 +192,7 @@ class ScheduleQueryButton extends React.PureComponent {
           modalBody={this.renderModalBody()}
           triggerNode={
             <Button
-              bsSize="small"
+              buttonSize="small"
               className="toggleSchedule"
               onClick={this.toggleSchedule}
               disabled={this.props.disabled}

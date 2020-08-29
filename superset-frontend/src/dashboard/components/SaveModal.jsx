@@ -19,7 +19,8 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Button, FormControl, FormGroup, Radio } from 'react-bootstrap';
+import { FormControl, FormGroup, Radio } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
@@ -191,7 +192,7 @@ class SaveModal extends React.PureComponent {
         }
         modalFooter={
           <div>
-            <Button bsStyle="primary" onClick={this.saveDashboard}>
+            <Button buttonStyle="primary" onClick={this.saveDashboard}>
               {t('Save')}
             </Button>
           </div>

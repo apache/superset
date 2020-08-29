@@ -19,13 +19,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import mathjs from 'mathjs';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
 import { validateNonEmpty } from '@superset-ui/validator';
+import { ThemeProvider } from '@superset-ui/style';
 
 import SelectControl from './SelectControl';
 import TextControl from './TextControl';
@@ -63,6 +64,7 @@ const propTypes = {
   timeColumn: PropTypes.string,
   intervalEndColumn: PropTypes.string,
   vizType: PropTypes.string,
+  theme: PropTypes.object,
 
   error: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -619,8 +621,8 @@ export default class AnnotationLayer extends React.PureComponent {
             />
             <Button
               style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
-              bsStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
-              bsSize="xsmall"
+              buttonStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
+              buttonSize="xsmall"
               onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
             >
               Automatic Color
@@ -661,7 +663,7 @@ export default class AnnotationLayer extends React.PureComponent {
   render() {
     const { isNew, name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
-
+    const { theme } = this.props;
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
       ? metadata.supportedAnnotationTypes.map(
@@ -671,7 +673,7 @@ export default class AnnotationLayer extends React.PureComponent {
     const supportedSourceTypes = this.getSupportedSourceTypes(annotationType);
 
     return (
-      <div>
+      <ThemeProvider theme={theme}>
         {this.props.error && (
           <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>
         )}
@@ -724,12 +726,12 @@ export default class AnnotationLayer extends React.PureComponent {
           {this.renderDisplayConfiguration()}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button bsSize="sm" onClick={this.deleteAnnotation}>
+          <Button buttonSize="sm" onClick={this.deleteAnnotation}>
             {!isNew ? t('Remove') : t('Cancel')}
           </Button>
           <div>
             <Button
-              bsSize="sm"
+              buttonSize="sm"
               disabled={!isValid}
               onClick={this.applyAnnotation}
             >
@@ -737,7 +739,7 @@ export default class AnnotationLayer extends React.PureComponent {
             </Button>
 
             <Button
-              bsSize="sm"
+              buttonSize="sm"
               disabled={!isValid}
               onClick={this.submitAnnotation}
             >
@@ -745,7 +747,7 @@ export default class AnnotationLayer extends React.PureComponent {
             </Button>
           </div>
         </div>
-      </div>
+      </ThemeProvider>
     );
   }
 }
