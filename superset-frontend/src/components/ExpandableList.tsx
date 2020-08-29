@@ -39,12 +39,12 @@ export default function ExpandableList({ items, display = 3 }: Props) {
   const showMoreAction = items.length > display;
 
   const lessAction = (
-    <Button bsStyle="link" bsSize="xsmall" onClick={toggleShowingAll}>
+    <Button buttonStyle="link" buttonSize="xsmall" onClick={toggleShowingAll}>
       less
     </Button>
   );
   const moreAction = (
-    <Button bsStyle="link" bsSize="xsmall" onClick={toggleShowingAll}>
+    <Button buttonStyle="link" buttonSize="xsmall" onClick={toggleShowingAll}>
       {items.length - itemsToDisplay.length} more
     </Button>
   );

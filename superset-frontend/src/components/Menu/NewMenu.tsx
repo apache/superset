@@ -17,14 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
 import { t } from '@superset-ui/translation';
 import Button, { DropdownItemProps } from '../Button';
-
-const StyledButton = styled(Button)`
-  margin-top: 12px;
-  margin-right: 30px;
-`;
 
 const dropdownItems: DropdownItemProps[] = [
   {
@@ -47,12 +41,9 @@ const dropdownItems: DropdownItemProps[] = [
 export default function NewMenu() {
   return (
     <li className="dropdown">
-      <StyledButton
-        className="dropdown-toggle btn btn-sm btn-primary"
-        dropdownItems={dropdownItems}
-      >
+      <Button buttonStyle="primary" dropdownItems={dropdownItems}>
         <i className="fa fa-plus" /> New
-      </StyledButton>
+      </Button>
     </li>
   );
 }

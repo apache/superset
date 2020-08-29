@@ -311,11 +311,12 @@ function ListView<T extends object = any>({
                     <Button
                       data-test="bulk-select-action"
                       key={action.key}
-                      className={cx('supersetButton', {
+                      className={cx({
                         danger: action.type === 'danger',
                         primary: action.type === 'primary',
                         secondary: action.type === 'secondary',
                       })}
+                      cta
                       onClick={() =>
                         action.onSelect(selectedFlatRows.map(r => r.original))
                       }

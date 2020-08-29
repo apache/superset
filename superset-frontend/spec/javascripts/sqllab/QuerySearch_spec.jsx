@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
