@@ -142,7 +142,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         <Modal.Title>
           <div>
             <span className="float-left">
-              {t('Datasource Editor for ')}
+              {t('Edit Dataset ')}
               <strong>{currentDatasource.table_name}</strong>
             </span>
           </div>
