@@ -33,9 +33,9 @@ const defaultProps = {
         label: 'Sources',
         childs: [
           {
-            name: 'Tables',
+            name: 'Datasets',
             icon: 'fa-table',
-            label: 'Tables',
+            label: 'Datasets',
             url: '/tablemodelview/list/?_flt_1_is_sqllab_view=y',
           },
           '-',

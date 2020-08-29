@@ -214,8 +214,8 @@ class SupersetAppInitializer:
             category_icon="fa-database",
         )
         appbuilder.add_link(
-            "Tables",
-            label=__("Tables"),
+            "Datasets",
+            label=__("Datasets"),
             href="/tablemodelview/list/?_flt_1_is_sqllab_view=y",
             icon="fa-table",
             category="Data",
