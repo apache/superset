@@ -765,10 +765,15 @@ class TestRolePermission(SupersetTestCase):
                 )
             )
         )
-        is_dashboard_level_access_enabled = is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE)
+        is_dashboard_level_access_enabled = is_feature_enabled(
+            SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE
+        )
         if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
             for pv in self.get_dashboards_access_permission_views(edit_too=True):
-                self.assertEqual(is_dashboard_level_access_enabled, security_manager._is_alpha_only(pv))
+                self.assertEqual(
+                    is_dashboard_level_access_enabled,
+                    security_manager._is_alpha_only(pv),
+                )
 
     def test_is_gamma_pvm(self):
         self.assertTrue(
