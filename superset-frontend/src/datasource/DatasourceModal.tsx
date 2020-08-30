@@ -116,8 +116,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       >
         <div>
           <i className="fa fa-exclamation-triangle" />{' '}
-          {t(`The data source configuration exposed here
-                affects all the charts using this datasource.
+          {t(`The dataset configuration exposed here
+                affects all the charts using this dataset.
                 Be mindful that changing settings
                 here may affect other charts
                 in undesirable ways.`)}
@@ -142,7 +142,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         <Modal.Title>
           <div>
             <span className="float-left">
-              {t('Datasource Editor for ')}
+              {t('Edit Dataset ')}
               <strong>{currentDatasource.table_name}</strong>
             </span>
           </div>

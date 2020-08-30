@@ -37,17 +37,41 @@ jobs:
       uses: actions/setup-python@v2.1.1
       with:
         python-version: '3.7'
-    - name: Install dependencies
+    - name: OS dependencies
       uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
           apt-get-install
+    - name: Install python dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           pip-upgrade
           pip install -r requirements/testing.txt
+    - name: Setup postgres
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           setup-postgres
+    - name: Import test data
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           testdata
+    - name: Install npm dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           npm-install
+    - name: Build javascript packages
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           build-instrumented-assets
+    - name: Install cypress
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           cypress-install
     - name: Run Cypress
       uses: apache-superset/cached-dependencies@b90713b
