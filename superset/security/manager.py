@@ -906,7 +906,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ) -> None:
         permission_view = self.find_permission_view_menu(permission_name, view_name)
         connection.execute(
-            assoc_permissionview_role.delete().where(
+            assoc_permissionview_role.delete().where(  # pylint: disable=no-value-for-parameter
                 assoc_permissionview_role.c.permission_view_id == permission_view.id
             )
         )
