@@ -67,7 +67,7 @@ class DashboardSecurityManager:
 class DashboardSecurityOrientedDBEventsHandler:
     @staticmethod
     def after_insert(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
+            mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
     ) -> None:
         try:
             logger.info("in after insert on %s %d", target, target.id)
@@ -79,13 +79,14 @@ class DashboardSecurityOrientedDBEventsHandler:
 
     @staticmethod
     def on_set(  # pylint: disable=unused-argument
-        dashboard: "Dashboard", new_title: str, old_title: str, event: Any  # type: ignore
+            dashboard: "Dashboard"  # type: ignore
+            , new_title: str, old_title: str, event: Any
     ) -> None:
         dashboard.previous_title = old_title
 
     @staticmethod
     def after_update(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
+            mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
     ) -> None:
         previous_title = target.previous_title
         new_title = target.dashboard_title
@@ -103,7 +104,7 @@ class DashboardSecurityOrientedDBEventsHandler:
 
     @staticmethod
     def after_delete(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
+            mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
     ) -> None:
         try:
             logger.info("in after delete on %s %d", target, target.id)
