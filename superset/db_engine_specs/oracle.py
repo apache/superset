@@ -63,7 +63,7 @@ class OracleEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_ms_to_dttm(cls) -> str:
         return "TO_DATE('1970-01-01','YYYY-MM-DD')+(1/24/60/60/1000)*{col}"
-    
+
     @classmethod
     def fetch_data(
         cls, cursor: Any, limit: Optional[int] = None
