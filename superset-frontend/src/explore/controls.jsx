@@ -197,7 +197,7 @@ export const controls = {
 
   datasource: {
     type: 'DatasourceControl',
-    label: t('Datasource'),
+    label: t('Dataset'),
     default: null,
     description: null,
     mapStateToProps: ({ datasource }) => ({
