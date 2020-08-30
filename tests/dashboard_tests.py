@@ -61,7 +61,7 @@ class TestDashboard(SupersetTestCase):
             positions[id] = d
         return positions
 
-    def test_get_dashboard(self):
+    def test_dashboard_access__admin_can_access_all(self):
         # arrange
         self.login(username="admin")
         dashboard_title_by_url = {dash.url: dash.dashboard_title for dash in db.session.query(Dashboard).all()}
@@ -75,6 +75,49 @@ class TestDashboard(SupersetTestCase):
         # assert
         for dashboard_url, get_dashboard_response in responses_by_url.items():
             assert escape(dashboard_title_by_url[dashboard_url]) in get_dashboard_response
+
+    def test_dashboard_access_with_created_by_can_be_accessed_by_public_users(self):
+        # arrange
+        self.logout()
+        the_accessed_table_name = "birth_names"
+        the_accessed_dashboard_slug = "births"
+        table_to_access = db.session.query(SqlaTable).filter_by(table_name=the_accessed_table_name).one()
+        dashboard_to_access = db.session.query(Dashboard).filter_by(slug=the_accessed_dashboard_slug).one()
+        original_owners = dashboard_to_access.owners
+        original_created_by = dashboard_to_access.created_by
+        dashboard_to_access = db.session.query(Dashboard).filter_by(slug="births").first()
+        dashboard_to_access.owners = [security_manager.find_user("admin")]
+        dashboard_to_access.created_by = security_manager.find_user("admin")
+        db.session.merge(dashboard_to_access)
+        db.session.commit()
+        self.grant_public_access_to_table(table_to_access)
+
+        # call
+        get_dashboard_response = self.get_resp(dashboard_to_access.url)
+
+        # assert
+        assert dashboard_to_access.dashboard_title in get_dashboard_response
+
+        # post test - bring back owner and created_by
+        self.login(username='admin')
+        dashboard_to_access.owners = original_owners
+        dashboard_to_access.created_by = original_created_by
+        db.session.merge(dashboard_to_access)
+        db.session.commit()
+
+    def test_dashboard_access_in_edit_and_standalone_modes(self):
+        # arrange
+        self.login(username="admin")
+        dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        dashboard_url_with_modes = self.__add_dashboard_mode_parmas(dash.url)
+
+        # call
+        resp = self.get_resp(dashboard_url_with_modes)
+
+        # assert
+        self.assertIn("editMode&#34;: true", resp)
+        self.assertIn("standalone_mode&#34;: true", resp)
+        self.assertIn('<body class="standalone">', resp)
 
     def test_dashboard_url_generation_by_id(self):
         # arrange
@@ -116,7 +159,6 @@ class TestDashboard(SupersetTestCase):
 
         # post test - delete the new dashboard
 
-
     def test_delete_dashboard(self):
         # arrange
         self.login(username="admin")
@@ -145,20 +187,6 @@ class TestDashboard(SupersetTestCase):
         else:
             full_url += "&"
         return full_url + "edit=true&standalone=true"
-
-    def test_dashboard_in_edit_and_standalone_modes(self):
-        # arrange
-        self.login(username="admin")
-        dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        dashboard_url_with_modes = self.__add_dashboard_mode_parmas(dash.url)
-
-        # call
-        resp = self.get_resp(dashboard_url_with_modes)
-
-        # assert
-        self.assertIn("editMode&#34;: true", resp)
-        self.assertIn("standalone_mode&#34;: true", resp)
-        self.assertIn('<body class="standalone">', resp)
 
     def test_save_dash(self, username="admin"):
         # arrange
@@ -309,6 +337,27 @@ class TestDashboard(SupersetTestCase):
         del data["label_colors"]
         self.get_resp(save_dash_url, data=dict(data=json.dumps(data)))
 
+    def test_save_dash__only_owners_can_save(self):
+        # arrange #1
+        dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        dash.owners = []
+        db.session.merge(dash)
+        db.session.commit()
+        self.logout()
+
+        # call + assert #1
+        self.assertRaises(Exception, self.test_save_dash, "alpha")
+
+        # arrange #2
+        alpha = security_manager.find_user("alpha")
+        dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        dash.owners = [alpha]
+        db.session.merge(dash)
+        db.session.commit()
+
+        # call + assert #2
+        self.test_save_dash("alpha")
+
     def test_copy_dash(self, username="admin"):
         # arrange
         self.login(username=username)
@@ -434,7 +483,7 @@ class TestDashboard(SupersetTestCase):
         # post test - delete the copied dashboard
         self.__delete_dashboard(copied_dash_id)
 
-    def test_public_user_dashboard_access(self):
+    def test_get_dashboards__public_user_get_published(self):
         # arrange #1
 
         the_accessed_table_name = "birth_names"
@@ -480,80 +529,7 @@ class TestDashboard(SupersetTestCase):
         finally:
             self.revoke_access_to_all_dashboards()
 
-    def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
-        # arrange
-        self.logout()
-        the_accessed_table_name = "birth_names"
-        the_accessed_dashboard_slug = "births"
-        table_to_access = db.session.query(SqlaTable).filter_by(table_name=the_accessed_table_name).one()
-        dashboard_to_access = db.session.query(Dashboard).filter_by(slug=the_accessed_dashboard_slug).one()
-        original_owners = dashboard_to_access.owners
-        original_created_by = dashboard_to_access.created_by
-        dashboard_to_access = db.session.query(Dashboard).filter_by(slug="births").first()
-        dashboard_to_access.owners = [security_manager.find_user("admin")]
-        dashboard_to_access.created_by = security_manager.find_user("admin")
-        db.session.merge(dashboard_to_access)
-        db.session.commit()
-        self.grant_public_access_to_table(table_to_access)
-
-        # call
-        get_dashboard_response = self.get_resp(dashboard_to_access.url)
-
-        # assert
-        assert dashboard_to_access.dashboard_title in get_dashboard_response
-
-        # post test - bring back owner and created_by
-        self.login(username='admin')
-        dashboard_to_access.owners = original_owners
-        dashboard_to_access.created_by = original_created_by
-        db.session.merge(dashboard_to_access)
-        db.session.commit()
-
-    def test_only_owners_can_save(self):
-        # arrange #1
-        dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        dash.owners = []
-        db.session.merge(dash)
-        db.session.commit()
-        self.logout()
-
-        # call + assert #1
-        self.assertRaises(Exception, self.test_save_dash, "alpha")
-
-        # arrange #2
-        alpha = security_manager.find_user("alpha")
-        dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        dash.owners = [alpha]
-        db.session.merge(dash)
-        db.session.commit()
-
-        # call + assert #2
-        self.test_save_dash("alpha")
-
-    def test_owners_can_view_empty_dashboard(self):
-        # arrange
-        dash = db.session.query(Dashboard).filter_by(slug="empty_dashboard").first()
-        is_not_exists_dash = not dash
-        if is_not_exists_dash:
-            dash = Dashboard()
-            dash.dashboard_title = "Empty Dashboard"
-            dash.slug = "empty_dashboard"
-        else:
-            dash.slices = []
-            dash.owners = []
-        dashboard_url = dash.url
-        db.session.merge(dash)
-        db.session.commit()
-        gamma_user = security_manager.find_user("gamma")
-        self.login(gamma_user.username)
-
-        # call
-        get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
-
-        # assert
-        self.assertNotIn(dashboard_url, get_dashboards_response)
-
-    def test_users_can_not_view_published_dashboard_without_dashboard_permissions(self):
+    def test_get_dashboards__users_without_dashboard_permissions_can_not_view_published_dashboards(self):
         # arrange
         accessed_table_name = "energy_usage"
         accessed_table = db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
@@ -593,7 +569,7 @@ class TestDashboard(SupersetTestCase):
         finally:
             self.revoke_public_access_to_table(accessed_table)
 
-    def test_users_can_view_published_dashboard_with_all_dashboard_access(self):
+    def test_get_dashboards__users_with_all_dashboard_access_can_view_published_dashboard(self):
         # arrange
         accessed_table_name = "energy_usage"
         accessed_table = db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
@@ -635,7 +611,7 @@ class TestDashboard(SupersetTestCase):
             self.revoke_public_access_to_table(accessed_table)
             self.revoke_access_to_all_dashboards()
 
-    def test_users_can_view_permitted_dashboard(self):
+    def test_get_dashboards__users_can_view_permitted_dashboard(self):
         # arrange
         accessed_table_name = "energy_usage"
         accessed_table = db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
@@ -683,7 +659,7 @@ class TestDashboard(SupersetTestCase):
             self.revoke_access_to_dashboard(second_dash)
             self.revoke_public_access_to_table(accessed_table)
 
-    def test_users_can_not_view_not_permitted_dashboard(self):
+    def test_get_dashboards__users_without_dashboard_permission(self):
         # arrange
         accessed_table_name = "energy_usage"
         accessed_table = db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
@@ -726,7 +702,7 @@ class TestDashboard(SupersetTestCase):
             db.session.commit()
             self.revoke_public_access_to_table(accessed_table)
 
-    def test_users_can_view_own_dashboard(self):
+    def test_get_dashboards__users_are_dsahboards_owners(self):
         # arrange
         user = security_manager.find_user("gamma")
         my_dash_slug = f"my_dash_{random()}"
@@ -759,7 +735,30 @@ class TestDashboard(SupersetTestCase):
         self.assertIn(my_owned_dashboard_url, get_dashboards_response)
         self.assertNotIn(not_my_owned_dashboard_url, get_dashboards_response)
 
-    def test_users_can_view_favorited_dashboards(self):
+    def test_get_dashboards__owners_can_view_empty_dashboard(self):
+        # arrange
+        dash = db.session.query(Dashboard).filter_by(slug="empty_dashboard").first()
+        is_not_exists_dash = not dash
+        if is_not_exists_dash:
+            dash = Dashboard()
+            dash.dashboard_title = "Empty Dashboard"
+            dash.slug = "empty_dashboard"
+        else:
+            dash.slices = []
+            dash.owners = []
+        dashboard_url = dash.url
+        db.session.merge(dash)
+        db.session.commit()
+        gamma_user = security_manager.find_user("gamma")
+        self.login(gamma_user.username)
+
+        # call
+        get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
+
+        # assert
+        self.assertNotIn(dashboard_url, get_dashboards_response)
+
+    def test_get_dashboards__users_can_view_favorited_dashboards(self):
         # arrange
         user = security_manager.find_user("gamma")
         fav_dash_slug = f"my_favorite_dash_{random()}"
@@ -795,7 +794,7 @@ class TestDashboard(SupersetTestCase):
         # assert
         self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", get_dashboards_response)
 
-    def test_user_can_not_view_unpublished_dash(self):
+    def test_get_dashboards__user_can_not_view_unpublished_dash(self):
         # arrange
         admin_user = security_manager.find_user("admin")
         gamma_user = security_manager.find_user("gamma")
