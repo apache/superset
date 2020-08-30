@@ -252,21 +252,13 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def get_dashboards_access_permission_views(dashboard=None, edit_too=False):
-        used_consts = SecurityConsts.Dashboard if dashboard else SecurityConsts.AllDashboard
+        used_consts = (
+            SecurityConsts.Dashboard if dashboard else SecurityConsts.AllDashboard
+        )
         view_name = dashboard.view_name if dashboard else used_consts.VIEW_NAME
-        pvm_pairs = [
-            (
-                used_consts.ACCESS_PERMISSION_NAME,
-                view_name
-            )
-        ]
+        pvm_pairs = [(used_consts.ACCESS_PERMISSION_NAME, view_name)]
         if edit_too and not dashboard:
-            pvm_pairs.append(
-                (
-                    used_consts.EDIT_PERMISSION_NAME,
-                    view_name,
-                )
-            )
+            pvm_pairs.append((used_consts.EDIT_PERMISSION_NAME, view_name,))
         return map(
             lambda pvm: security_manager.find_permission_view_menu(pvm[0], pvm[1]),
             pvm_pairs,

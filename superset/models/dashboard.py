@@ -37,8 +37,8 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 from sqlalchemy.orm import relationship, sessionmaker, subqueryload
+from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager

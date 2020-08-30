@@ -21,6 +21,7 @@ import unittest
 from random import random
 
 from flask import escape, url_for
+from pytest import mark
 from sqlalchemy import func
 
 import tests.test_app
@@ -55,7 +56,6 @@ DEFAULT_DASHBOARD_SLUG_TO_TEST = "births"
 
 
 class TestDashboard(SupersetTestCase):
-
     def tearDown(self) -> None:
         self.logout()
 
@@ -75,22 +75,37 @@ class TestDashboard(SupersetTestCase):
     def test_dashboard_access__admin_can_access_all(self):
         # arrange
         self.login(username=ADMIN_USERNAME)
-        dashboard_title_by_url = {dash.url: dash.dashboard_title for dash in db.session.query(Dashboard).all()}
+        dashboard_title_by_url = {
+            dash.url: dash.dashboard_title for dash in db.session.query(Dashboard).all()
+        }
 
         # call
-        responses_by_url = {url: self.client.get(url).data.decode("utf-8") for url in dashboard_title_by_url.keys()}
+        responses_by_url = {
+            url: self.client.get(url).data.decode("utf-8")
+            for url in dashboard_title_by_url.keys()
+        }
 
         # assert
         for dashboard_url, get_dashboard_response in responses_by_url.items():
-            assert escape(dashboard_title_by_url[dashboard_url]) in get_dashboard_response
+            assert (
+                escape(dashboard_title_by_url[dashboard_url]) in get_dashboard_response
+            )
 
     def test_dashboard_access_with_created_by_can_be_accessed_by_public_users(self):
         # arrange
         self.logout()
         the_accessed_table_name = DEFAULT_ACCESSIABLE_TABLE
         the_accessed_dashboard_slug = DASHBOARD_SLUG_OF_ACCESSABLE_TABLE
-        table_to_access = db.session.query(SqlaTable).filter_by(table_name=the_accessed_table_name).one()
-        dashboard_to_access = db.session.query(Dashboard).filter_by(slug=the_accessed_dashboard_slug).one()
+        table_to_access = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name=the_accessed_table_name)
+            .one()
+        )
+        dashboard_to_access = (
+            db.session.query(Dashboard)
+            .filter_by(slug=the_accessed_dashboard_slug)
+            .one()
+        )
         original_owners = dashboard_to_access.owners
         original_created_by = dashboard_to_access.created_by
         admin_user = security_manager.find_user(ADMIN_USERNAME)
@@ -117,7 +132,11 @@ class TestDashboard(SupersetTestCase):
     def test_dashboard_access_in_edit_and_standalone_modes(self):
         # arrange
         self.login(username=ADMIN_USERNAME)
-        dash = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
+        dash = (
+            db.session.query(Dashboard)
+            .filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST)
+            .first()
+        )
         dashboard_url_with_modes = self.__add_dashboard_mode_parmas(dash.url)
 
         # call
@@ -141,7 +160,7 @@ class TestDashboard(SupersetTestCase):
 
     def test_dashboard_url_generation_by_slug(self):
         # arrange
-        slug = 'some_slug'
+        slug = "some_slug"
         excepted_url = GET_DASHBOARD_URL_FORMAT.format(slug)
 
         # call
@@ -154,7 +173,7 @@ class TestDashboard(SupersetTestCase):
         # arrange
         self.login(username=ADMIN_USERNAME)
         dash_count_before_new = db.session.query(func.count(Dashboard.id)).first()[0]
-        excepted_dashboard_title_in_response = '[ untitled dashboard ]'
+        excepted_dashboard_title_in_response = "[ untitled dashboard ]"
 
         # call
         post_new_dashboard_response = self.get_resp(NEW_DASHBOARD_URL)
@@ -172,7 +191,7 @@ class TestDashboard(SupersetTestCase):
         # arrange
         self.login(username=ADMIN_USERNAME)
         dash_count_before_new = db.session.query(func.count(Dashboard.id)).first()[0]
-        excepted_dashboard_title_in_response = '[ untitled dashboard ]'
+        excepted_dashboard_title_in_response = "[ untitled dashboard ]"
         post_new_dashboard_response = self.get_resp(NEW_DASHBOARD_URL)
         self.assertIn(excepted_dashboard_title_in_response, post_new_dashboard_response)
         dash_count_after_new = db.session.query(func.count(Dashboard.id)).first()[0]
@@ -200,8 +219,15 @@ class TestDashboard(SupersetTestCase):
     def test_save_dash(self, username=ADMIN_USERNAME):
         # arrange
         self.login(username=username)
-        dashboard_to_edit = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
-        data_before_change = {"positions": dashboard_to_edit.position, "dashboard_title": dashboard_to_edit.dashboard_title}
+        dashboard_to_edit = (
+            db.session.query(Dashboard)
+            .filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST)
+            .first()
+        )
+        data_before_change = {
+            "positions": dashboard_to_edit.position,
+            "dashboard_title": dashboard_to_edit.dashboard_title,
+        }
         positions = self.get_mock_positions(dashboard_to_edit)
         data = {
             "css": "",
@@ -212,7 +238,9 @@ class TestDashboard(SupersetTestCase):
         save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(dashboard_to_edit.id)
 
         # call
-        save_dash_response = self.get_resp(save_dash_url, data=dict(data=json.dumps(data)))
+        save_dash_response = self.get_resp(
+            save_dash_url, data=dict(data=json.dumps(data))
+        )
 
         # assert
         self.assertIn("SUCCESS", save_dash_response)
@@ -225,9 +253,19 @@ class TestDashboard(SupersetTestCase):
         self.login(username=username)
         dashboard_slug_to_test_with = DEFAULT_DASHBOARD_SLUG_TO_TEST
         # dashboard_to_edit = db.session.query(Dashboard).filter_by(slug="world_health").first()
-        dashboard_to_edit = db.session.query(Dashboard).filter_by(slug=dashboard_slug_to_test_with).first()
-        default_filters_before_change = dashboard_to_edit.params_dict.get('default_filters', '{}')
-        data_before_change = {"positions": dashboard_to_edit.position, "dashboard_title": dashboard_to_edit.dashboard_title, 'default_filters': default_filters_before_change}
+        dashboard_to_edit = (
+            db.session.query(Dashboard)
+            .filter_by(slug=dashboard_slug_to_test_with)
+            .first()
+        )
+        default_filters_before_change = dashboard_to_edit.params_dict.get(
+            "default_filters", "{}"
+        )
+        data_before_change = {
+            "positions": dashboard_to_edit.position,
+            "dashboard_title": dashboard_to_edit.dashboard_title,
+            "default_filters": default_filters_before_change,
+        }
         positions = self.get_mock_positions(dashboard_to_edit)
         filters = {str(dashboard_to_edit.slices[0].id): {"region": ["North America"]}}
         default_filters = json.dumps(filters)
@@ -242,11 +280,17 @@ class TestDashboard(SupersetTestCase):
         save_dash_url = "/superset/save_dash/{}/".format(dashboard_to_edit.id)
 
         # call
-        save_dash_response = self.get_resp(save_dash_url, data=dict(data=json.dumps(data)))
+        save_dash_response = self.get_resp(
+            save_dash_url, data=dict(data=json.dumps(data))
+        )
 
         # assert
         self.assertIn("SUCCESS", save_dash_response)
-        updatedDash = db.session.query(Dashboard).filter_by(slug=dashboard_slug_to_test_with).first()
+        updatedDash = (
+            db.session.query(Dashboard)
+            .filter_by(slug=dashboard_slug_to_test_with)
+            .first()
+        )
         new_url = updatedDash.url
         self.assertIn("region", new_url)
         get_dash_response = self.get_resp(new_url)
@@ -259,8 +303,12 @@ class TestDashboard(SupersetTestCase):
         # arrange
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
-        default_filters_before_change = dash.params_dict.get('default_filters', '{}')
-        data_before_change = {"positions": dash.position, "dashboard_title": dash.dashboard_title, 'default_filters': default_filters_before_change}
+        default_filters_before_change = dash.params_dict.get("default_filters", "{}")
+        data_before_change = {
+            "positions": dash.position,
+            "dashboard_title": dash.dashboard_title,
+            "default_filters": default_filters_before_change,
+        }
         positions = self.get_mock_positions(dash)
         invalid_filter_slice = {str(99999): {"region": ["North America"]}}
         default_filters = json.dumps(invalid_filter_slice)
@@ -275,7 +323,9 @@ class TestDashboard(SupersetTestCase):
         save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(dash.id)
 
         # call
-        save_dash_response = self.get_resp(save_dash_url, data=dict(data=json.dumps(data)))
+        save_dash_response = self.get_resp(
+            save_dash_url, data=dict(data=json.dumps(data))
+        )
 
         # assert
         self.assertIn("SUCCESS", save_dash_response)
@@ -291,9 +341,15 @@ class TestDashboard(SupersetTestCase):
         # arrange
         self.login(username=username)
         new_title = "new title"
-        dashboard_to_be_changed = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
+        dashboard_to_be_changed = (
+            db.session.query(Dashboard)
+            .filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST)
+            .first()
+        )
         original_title = dashboard_to_be_changed.dashboard_title
-        view_menu_id = security_manager.find_view_menu(dashboard_to_be_changed.view_name).id
+        view_menu_id = security_manager.find_view_menu(
+            dashboard_to_be_changed.view_name
+        ).id
         positions = self.get_mock_positions(dashboard_to_be_changed)
         data = {
             "css": "",
@@ -307,7 +363,11 @@ class TestDashboard(SupersetTestCase):
         self.get_resp(save_dash_url, data=dict(data=json.dumps(data)))
 
         # assert
-        updatedDash = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
+        updatedDash = (
+            db.session.query(Dashboard)
+            .filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST)
+            .first()
+        )
         self.assertEqual(updatedDash.dashboard_title, new_title)
         dashboard_utils.assert_permission_kept_and_changed(
             self, updatedDash, view_menu_id
@@ -320,7 +380,11 @@ class TestDashboard(SupersetTestCase):
     def test_save_dash_with_colors(self, username=ADMIN_USERNAME):
         # arrange
         self.login(username=username)
-        dash = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
+        dash = (
+            db.session.query(Dashboard)
+            .filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST)
+            .first()
+        )
         positions = self.get_mock_positions(dash)
         new_label_colors = {"data value": "random color"}
         data = {
@@ -338,7 +402,11 @@ class TestDashboard(SupersetTestCase):
         self.get_resp(save_dash_url, data=dict(data=json.dumps(data)))
 
         # assert
-        updatedDash = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
+        updatedDash = (
+            db.session.query(Dashboard)
+            .filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST)
+            .first()
+        )
         self.assertIn("color_namespace", updatedDash.json_metadata)
         self.assertIn("color_scheme", updatedDash.json_metadata)
         self.assertIn("label_colors", updatedDash.json_metadata)
@@ -351,7 +419,11 @@ class TestDashboard(SupersetTestCase):
 
     def test_save_dash__only_owners_can_save(self):
         # arrange
-        dashboard_to_be_saved = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
+        dashboard_to_be_saved = (
+            db.session.query(Dashboard)
+            .filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST)
+            .first()
+        )
         alpha_user = security_manager.find_user(ALPHA_USERNAME)
 
         # arrange before #1
@@ -374,7 +446,11 @@ class TestDashboard(SupersetTestCase):
     def test_copy_dash(self, username=ADMIN_USERNAME):
         # arrange
         self.login(username=username)
-        dashboard_to_copy = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
+        dashboard_to_copy = (
+            db.session.query(Dashboard)
+            .filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST)
+            .first()
+        )
         original_data = {
             "positions": dashboard_to_copy.position,
             "dashboard_title": dashboard_to_copy.dashboard_title,
@@ -402,11 +478,15 @@ class TestDashboard(SupersetTestCase):
         copy_dash_url = COPY_DASHBOARD_URL_FORMAT.format(dash_id)
 
         # call
-        copied_response = self.get_json_resp(copy_dash_url, data=dict(data=json.dumps(data)))
+        copied_response = self.get_json_resp(
+            copy_dash_url, data=dict(data=json.dumps(data))
+        )
 
         # assert - Verify that copy matches original
         self.assertEqual(copied_response["dashboard_title"], "Copy Of Births")
-        self.assertEqual(copied_response["position_json"], orig_json_data["position_json"])
+        self.assertEqual(
+            copied_response["position_json"], orig_json_data["position_json"]
+        )
         self.assertEqual(copied_response["metadata"], orig_json_data["metadata"])
         # check every attribute in each dashboard's slices list,
         # exclude modified and changed_on attribute
@@ -415,10 +495,9 @@ class TestDashboard(SupersetTestCase):
                 if key not in ["modified", "changed_on", "changed_on_humanized"]:
                     self.assertEqual(slc[key], copied_response["slices"][index][key])
 
-
         # post test - bring the original dash and delete the copied one
         self.client.post(save_dash_url, data=dict(data=json.dumps(original_data)))
-        copy_dashboard_id = copied_response.get('id')
+        copy_dashboard_id = copied_response.get("id")
         self.__delete_dashboard(copy_dashboard_id)
 
     def __delete_dashboard(self, copy_dashboard_id):
@@ -441,7 +520,9 @@ class TestDashboard(SupersetTestCase):
         add_slices_url = ADD_SLICES_URL_FORMAT.format(dash.id)
 
         # call
-        add_slices_response = self.client.post(add_slices_url, data=dict(data=json.dumps(data)))
+        add_slices_response = self.client.post(
+            add_slices_url, data=dict(data=json.dumps(data))
+        )
 
         # assert
         assert "SLICES ADDED" in add_slices_response.data.decode("utf-8")
@@ -458,17 +539,28 @@ class TestDashboard(SupersetTestCase):
         dash.slices = [o for o in dash.slices if o.slice_name != "Energy Force Layout"]
         db.session.commit()
 
-
     def test_remove_slices(self, username=ADMIN_USERNAME):
         # arrange
         self.login(username=username)
 
-        dash_to_copy = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
+        dash_to_copy = (
+            db.session.query(Dashboard)
+            .filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST)
+            .first()
+        )
         copy_dash_url = COPY_DASHBOARD_URL_FORMAT.format(dash_to_copy.id)
-        data_for_copy = {"dashboard_title": 'copy of ' + dash_to_copy.dashboard_title, 'duplicate_slices': False, 'positions': dash_to_copy.position}
-        copied_dash_id = self.get_json_resp(copy_dash_url, data=dict(data=json.dumps(data_for_copy))).get('id')
+        data_for_copy = {
+            "dashboard_title": "copy of " + dash_to_copy.dashboard_title,
+            "duplicate_slices": False,
+            "positions": dash_to_copy.position,
+        }
+        copied_dash_id = self.get_json_resp(
+            copy_dash_url, data=dict(data=json.dumps(data_for_copy))
+        ).get("id")
 
-        copied_dash_before_removing = db.session.query(Dashboard).filter_by(id=copied_dash_id).first()
+        copied_dash_before_removing = (
+            db.session.query(Dashboard).filter_by(id=copied_dash_id).first()
+        )
         origin_slices_length = len(copied_dash_before_removing.slices)
 
         positions = self.get_mock_positions(copied_dash_before_removing)
@@ -488,7 +580,9 @@ class TestDashboard(SupersetTestCase):
 
         save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(copied_dash_id)
         self.client.post(save_dash_url, data=dict(data=json.dumps(data)))
-        copied_dash_after_removing = db.session.query(Dashboard).filter_by(id=copied_dash_id).first()
+        copied_dash_after_removing = (
+            db.session.query(Dashboard).filter_by(id=copied_dash_id).first()
+        )
 
         # verify slices data
         data = copied_dash_after_removing.data
@@ -502,10 +596,20 @@ class TestDashboard(SupersetTestCase):
 
         the_accessed_table_name = "birth_names"
         not_accessed_table_name = "wb_health_population"
-        url_of_the_not_accessed_dashboard = GET_DASHBOARD_URL_FORMAT.format("world_health")
+        url_of_the_not_accessed_dashboard = GET_DASHBOARD_URL_FORMAT.format(
+            "world_health"
+        )
         the_accessed_dashboard_slug = "births"
-        table_to_access = db.session.query(SqlaTable).filter_by(table_name=the_accessed_table_name).one()
-        dashboard_to_access = db.session.query(Dashboard).filter_by(slug=the_accessed_dashboard_slug).one()
+        table_to_access = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name=the_accessed_table_name)
+            .one()
+        )
+        dashboard_to_access = (
+            db.session.query(Dashboard)
+            .filter_by(slug=the_accessed_dashboard_slug)
+            .one()
+        )
         # Make the births dash published so it can be seen
         dashboard_to_access.published = True
         url_of_the_accessed_dashboard = dashboard_to_access.url
@@ -536,7 +640,10 @@ class TestDashboard(SupersetTestCase):
             # assert #2
             self.assertIn(the_accessed_table_name, get_charts_response)
             self.assertIn(url_of_the_accessed_dashboard, get_dashboards_response)
-            self.assertIn(title_of_the_access_dashboard, self.get_resp(url_of_the_accessed_dashboard))
+            self.assertIn(
+                title_of_the_access_dashboard,
+                self.get_resp(url_of_the_accessed_dashboard),
+            )
             self.assertNotIn(not_accessed_table_name, get_charts_response)
             self.assertNotIn(url_of_the_not_accessed_dashboard, get_dashboards_response)
 
@@ -544,13 +651,19 @@ class TestDashboard(SupersetTestCase):
             self.revoke_public_access_to_table(table_to_access)
             self.revoke_access_to_all_dashboards()
 
-    def test_get_dashboards__users_without_dashboard_permissions_can_not_view_published_dashboards(self):
+    def test_get_dashboards__users_without_dashboard_permissions_can_not_view_published_dashboards(
+        self,
+    ):
         # arrange
         accessed_table_name = "energy_usage"
-        accessed_table = db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
+        accessed_table = (
+            db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
+        )
         # get a slice from the allowed accessed_table
         slice_name_to_add = "Energy Sankey"
-        slice_to_add_to_dashboards = db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
+        slice_to_add_to_dashboards = (
+            db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
+        )
         self.grant_public_access_to_table(accessed_table)
         try:
             hidden_dash_slug = f"hidden_dash_{random()}"
@@ -584,13 +697,19 @@ class TestDashboard(SupersetTestCase):
         finally:
             self.revoke_public_access_to_table(accessed_table)
 
-    def test_get_dashboards__users_with_all_dashboard_access_can_view_published_dashboard(self):
+    def test_get_dashboards__users_with_all_dashboard_access_can_view_published_dashboard(
+        self,
+    ):
         # arrange
         accessed_table_name = "energy_usage"
-        accessed_table = db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
+        accessed_table = (
+            db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
+        )
         # get a slice from the allowed table
         slice_name_to_add = "Energy Sankey"
-        slice_to_add_to_dashboards = db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
+        slice_to_add_to_dashboards = (
+            db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
+        )
         self.grant_access_to_all_dashboards()
         self.grant_public_access_to_table(accessed_table)
         try:
@@ -629,11 +748,15 @@ class TestDashboard(SupersetTestCase):
     def test_get_dashboards__users_can_view_permitted_dashboard(self):
         # arrange
         accessed_table_name = "energy_usage"
-        accessed_table = db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
+        accessed_table = (
+            db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
+        )
         self.grant_public_access_to_table(accessed_table)
         # get a slice from the allowed table
         slice_name_to_add = "Energy Sankey"
-        slice_to_add_to_dashboards = db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
+        slice_to_add_to_dashboards = (
+            db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
+        )
         first_dash_slug = f"first_dash_{random()}"
         second_dash_slug = f"second_dash_{random()}"
 
@@ -677,10 +800,14 @@ class TestDashboard(SupersetTestCase):
     def test_get_dashboards__users_without_dashboard_permission(self):
         # arrange
         accessed_table_name = "energy_usage"
-        accessed_table = db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
+        accessed_table = (
+            db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
+        )
         # get a slice from the allowed table
         slice_name_to_add = "Energy Sankey"
-        slice_to_add_to_dashboards = db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
+        slice_to_add_to_dashboards = (
+            db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
+        )
         self.grant_public_access_to_table(accessed_table)
         first_dash_slug = f"first_dash_{random()}"
         second_dash_slug = f"second_dash_{random()}"
@@ -832,7 +959,9 @@ class TestDashboard(SupersetTestCase):
         get_dashboards_response_as_gamma = self.get_resp(GET_DASHBOARDS_URL)
 
         # assert
-        self.assertNotIn(url_of_admin_and_not_published_dashboard, get_dashboards_response_as_gamma)
+        self.assertNotIn(
+            url_of_admin_and_not_published_dashboard, get_dashboards_response_as_gamma
+        )
 
 
 if __name__ == "__main__":

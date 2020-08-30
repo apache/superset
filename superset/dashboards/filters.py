@@ -62,7 +62,11 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             return query
 
         dashboards_can_access_all = DashboardSecurityManager.can_access_all()
-        dashboards_perms = DashboardSecurityManager.get_access_list() if not dashboards_can_access_all else {}
+        dashboards_perms = (
+            DashboardSecurityManager.get_access_list()
+            if not dashboards_can_access_all
+            else {}
+        )
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         published_dash_query = (
@@ -70,10 +74,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(Dashboard.slices)
             .filter(
                 and_(
-                    or_(
-                        dashboards_can_access_all,
-                        Dashboard.id.in_(dashboards_perms)
-                    ),
+                    or_(dashboards_can_access_all, Dashboard.id.in_(dashboards_perms)),
                     Dashboard.published == True,  # pylint: disable=singleton-comparison
                     or_(
                         Slice.perm.in_(datasource_perms),
