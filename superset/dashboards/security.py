@@ -61,8 +61,7 @@ class DashboardSecurityManager:
     @staticmethod
     def parse_id_from_view_name(view_name):  # type: ignore
         matched = id_finder.search(view_name)
-        if matched:
-            return matched.group("id")
+        return matched and matched.group("id")
 
 
 class DashboardSecurityOrientedDBEventsHandler:
