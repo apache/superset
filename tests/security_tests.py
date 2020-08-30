@@ -642,8 +642,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
         self.assert_can_menu("Databases", perm_set)
-        self.assert_can_menu("Tables", perm_set)
-        self.assert_can_menu("Sources", perm_set)
+        self.assert_can_menu("Datasets", perm_set)
+        self.assert_can_menu("Data", perm_set)
         self.assert_can_menu("Charts", perm_set)
         self.assert_can_menu("Dashboards", perm_set)
 

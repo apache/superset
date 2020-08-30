@@ -220,7 +220,7 @@ function ChartList(props: ChartListProps) {
             },
           },
         }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
-        Header: t('Datasource'),
+        Header: t('Dataset'),
         accessor: 'datasource_name',
       },
       {
@@ -345,7 +345,7 @@ function ChartList(props: ChartListProps) {
         .map(k => ({ label: k, value: k })),
     },
     {
-      Header: t('Datasource'),
+      Header: t('Dataset'),
       id: 'datasource_id',
       input: 'select',
       operator: 'eq',

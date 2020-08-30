@@ -370,7 +370,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         paginate: true,
       },
       {
-        Header: t('Datasource'),
+        Header: t('Database'),
         id: 'database',
         input: 'select',
         operator: 'rel_o_m',

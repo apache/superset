@@ -27,7 +27,7 @@ import DatasourceControl from 'src/explore/components/controls/DatasourceControl
 
 const defaultProps = {
   name: 'datasource',
-  label: 'Datasource',
+  label: 'Dataset',
   value: '1__table',
   datasource: {
     name: 'birth_names',

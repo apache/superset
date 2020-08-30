@@ -488,7 +488,7 @@ export class DatasourceEditor extends React.PureComponent {
           fieldKey="default_endpoint"
           label={t('Default URL')}
           description={t(
-            'Default URL to redirect to when accessing from the datasource list page',
+            'Default URL to redirect to when accessing from the dataset list page',
           )}
           control={<TextControl />}
         />
@@ -547,7 +547,7 @@ export class DatasourceEditor extends React.PureComponent {
             fieldKey="sql"
             label={t('SQL')}
             description={t(
-              'When specifying SQL, the datasource acts as a view. ' +
+              'When specifying SQL, the dataset acts as a view. ' +
                 'Superset will use this statement as a subquery while grouping and filtering ' +
                 'on the generated parent queries.',
             )}
@@ -836,7 +836,7 @@ export class DatasourceEditor extends React.PureComponent {
                   <Alert bsStyle="warning">
                     <strong>{t('Be careful.')} </strong>
                     {t(
-                      'Changing these settings will affect all charts using this datasource, including charts owned by other people.',
+                      'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
                     )}
                   </Alert>
                 </div>
