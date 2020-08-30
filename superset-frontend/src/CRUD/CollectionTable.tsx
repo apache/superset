@@ -19,7 +19,7 @@
 import React, { ReactNode } from 'react';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
-import Button from '../components/Button';
+import Button from 'src/components/Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 import './crud.less';
@@ -33,7 +33,12 @@ interface CRUDCollectionProps {
   expandFieldset: ReactNode;
   extraButtons: ReactNode;
   itemGenerator?: () => any;
-  itemRenderers?: any;
+  itemRenderers?: ((
+    val: unknown,
+    onChange: () => void,
+    label: string,
+    record: any,
+  ) => ReactNode)[];
   onChange?: (arg0: any) => void;
   tableColumns: Array<any>;
 }
@@ -162,7 +167,7 @@ export default class CRUDCollection extends React.PureComponent<
           {allowDeletes && !allowAddItem && <th className="tiny-cell" />}
           {allowAddItem && (
             <th>
-              <Button bsStyle="primary" onClick={this.onAddItem}>
+              <Button buttonStyle="primary" onClick={this.onAddItem}>
                 <i className="fa fa-plus" /> {t('Add Item')}
               </Button>
             </th>
@@ -183,7 +188,7 @@ export default class CRUDCollection extends React.PureComponent<
     const renderer = this.props.itemRenderers && this.props.itemRenderers[col];
     const val = record[col];
     const onChange = this.onCellChange.bind(this, record.id, col);
-    return renderer ? renderer(val, onChange, this.getLabel(col)) : val;
+    return renderer ? renderer(val, onChange, this.getLabel(col), record) : val;
   }
   renderItem(record: any) {
     const {

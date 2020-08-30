@@ -17,10 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { NavItem, NavDropdown, MenuItem } from 'react-bootstrap';
+import { NavItem, MenuItem } from 'react-bootstrap';
+import NavDropdown from '../NavDropdown';
 
-interface MenuObjectChildProps {
+export interface MenuObjectChildProps {
   label: string;
+  name?: string;
   icon: string;
   index: number;
   url?: string;
@@ -32,6 +34,7 @@ export interface MenuObjectProps {
   index: number;
   url?: string;
   childs?: (MenuObjectChildProps | string)[];
+  isHeader?: boolean;
 }
 
 export default function MenuObject({
@@ -44,23 +47,13 @@ export default function MenuObject({
   if (url) {
     return (
       <NavItem eventKey={index} href={url}>
-        <i className={`fa ${icon}`} /> &nbsp; {label}
+        {label}
       </NavItem>
     );
   }
 
-  const navTitle = (
-    <>
-      <i className={`fa ${icon}`} />
-      &nbsp; {label}
-    </>
-  );
   return (
-    <NavDropdown
-      id={`menu-dropdown-${label}`}
-      eventKey={index}
-      title={navTitle}
-    >
+    <NavDropdown id={`menu-dropdown-${label}`} eventKey={index} title={label}>
       {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
         if (typeof child === 'string' && child === '-') {
           return <MenuItem key={`$${index1}`} divider />;
@@ -71,7 +64,6 @@ export default function MenuObject({
               href={child.url}
               eventKey={parseFloat(`${index}.${index1}`)}
             >
-              <i className={`fa ${child.icon}`} />
               &nbsp; {child.label}
             </MenuItem>
           );

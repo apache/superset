@@ -19,8 +19,9 @@ import tempfile
 from typing import TYPE_CHECKING
 
 from flask import flash, g, redirect
-from flask_appbuilder import SimpleFormView
+from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 from werkzeug.wrappers import Response
 from wtforms.fields import StringField
@@ -31,7 +32,9 @@ from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.exceptions import CertificateException
+from superset.extensions import feature_flag_manager
 from superset.sql_parse import Table
+from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
@@ -92,6 +95,17 @@ class DatabaseView(
 
     def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        if not (
+            app.config["ENABLE_REACT_CRUD_VIEWS"]
+            and feature_flag_manager.is_feature_enabled("SIP_34_DATABASE_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
 
 
 class CsvToDatabaseView(SimpleFormView):

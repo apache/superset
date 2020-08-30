@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import React, { FunctionComponent, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 import cx from 'classnames';
@@ -174,7 +174,9 @@ const ViewModeToggle = ({
     </ViewModeContainer>
   );
 };
-export interface ListViewProps<T = any> {
+
+type ViewModeType = 'card' | 'table';
+export interface ListViewProps<T extends object = any> {
   columns: any[];
   data: T[];
   count: number;
@@ -193,11 +195,12 @@ export interface ListViewProps<T = any> {
   bulkSelectEnabled?: boolean;
   disableBulkSelect?: () => void;
   renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
-  renderCard?: (row: T) => React.ReactNode;
+  renderCard?: (row: T & { loading: boolean }) => React.ReactNode;
   cardSortSelectOptions?: Array<CardSortSelectOption>;
+  defaultViewMode?: ViewModeType;
 }
 
-const ListView: FunctionComponent<ListViewProps> = ({
+function ListView<T extends object = any>({
   columns,
   data,
   count,
@@ -213,7 +216,8 @@ const ListView: FunctionComponent<ListViewProps> = ({
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   cardSortSelectOptions,
-}) => {
+  defaultViewMode = 'card',
+}: ListViewProps<T>) {
   const {
     getTableProps,
     getTableBodyProps,
@@ -253,8 +257,8 @@ const ListView: FunctionComponent<ListViewProps> = ({
   }
 
   const cardViewEnabled = Boolean(renderCard);
-  const [viewingMode, setViewingMode] = useState<'table' | 'card'>(
-    cardViewEnabled ? 'card' : 'table',
+  const [viewingMode, setViewingMode] = useState<ViewModeType>(
+    cardViewEnabled ? defaultViewMode : 'table',
   );
 
   return (
@@ -307,11 +311,12 @@ const ListView: FunctionComponent<ListViewProps> = ({
                     <Button
                       data-test="bulk-select-action"
                       key={action.key}
-                      className={cx('supersetButton', {
+                      className={cx({
                         danger: action.type === 'danger',
                         primary: action.type === 'primary',
                         secondary: action.type === 'secondary',
                       })}
+                      cta
                       onClick={() =>
                         action.onSelect(selectedFlatRows.map(r => r.original))
                       }
@@ -339,11 +344,13 @@ const ListView: FunctionComponent<ListViewProps> = ({
               prepareRow={prepareRow}
               headerGroups={headerGroups}
               rows={rows}
+              columns={columns}
               loading={loading}
             />
           )}
         </div>
       </div>
+
       <div className="pagination-container">
         <Pagination
           totalPages={pageCount || 0}
@@ -352,16 +359,17 @@ const ListView: FunctionComponent<ListViewProps> = ({
           hideFirstAndLastPageLinks
         />
         <div className="row-count-container">
-          {t(
-            '%s-%s of %s',
-            pageSize * pageIndex + (rows.length && 1),
-            pageSize * pageIndex + rows.length,
-            count,
-          )}
+          {!loading &&
+            t(
+              '%s-%s of %s',
+              pageSize * pageIndex + (rows.length && 1),
+              pageSize * pageIndex + rows.length,
+              count,
+            )}
         </div>
       </div>
     </ListViewStyles>
   );
-};
+}
 
 export default ListView;

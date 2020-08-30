@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import { styledShallow as shallow } from 'spec/helpers/theming';
 import { OverlayTrigger } from 'react-bootstrap';
 
 import Label from 'src/components/Label';
@@ -46,7 +46,7 @@ function setup(overrides) {
     datasource: {},
     ...overrides,
   };
-  const wrapper = shallow(<AdhocFilterOption {...props} />);
+  const wrapper = shallow(<AdhocFilterOption {...props} />).dive();
   return { wrapper };
 }
 

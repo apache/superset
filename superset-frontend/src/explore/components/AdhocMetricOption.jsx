@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { OverlayTrigger } from 'react-bootstrap';
+import { withTheme } from '@superset-ui/style';
 
 import Label from 'src/components/Label';
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
@@ -33,7 +34,7 @@ const propTypes = {
   datasourceType: PropTypes.string,
 };
 
-export default class AdhocMetricOption extends React.PureComponent {
+class AdhocMetricOption extends React.PureComponent {
   constructor(props) {
     super(props);
     this.closeMetricEditOverlay = this.closeMetricEditOverlay.bind(this);
@@ -65,7 +66,7 @@ export default class AdhocMetricOption extends React.PureComponent {
   }
 
   render() {
-    const { adhocMetric } = this.props;
+    const { adhocMetric, theme } = this.props;
     const overlayContent = (
       <AdhocMetricEditPopover
         onResize={this.onPopoverResize}
@@ -74,6 +75,7 @@ export default class AdhocMetricOption extends React.PureComponent {
         onClose={this.closeMetricEditOverlay}
         columns={this.props.columns}
         datasourceType={this.props.datasourceType}
+        theme={theme}
       />
     );
 
@@ -109,4 +111,7 @@ export default class AdhocMetricOption extends React.PureComponent {
     );
   }
 }
+
+export default withTheme(AdhocMetricOption);
+
 AdhocMetricOption.propTypes = propTypes;

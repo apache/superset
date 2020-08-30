@@ -32,7 +32,7 @@ import './crud.less';
 const propTypes = {
   value: PropTypes.any.isRequired,
   label: PropTypes.string.isRequired,
-  descr: PropTypes.node,
+  description: PropTypes.node,
   fieldKey: PropTypes.string.isRequired,
   control: PropTypes.node.isRequired,
   onChange: PropTypes.func,
@@ -54,7 +54,14 @@ export default class Field extends React.PureComponent {
     this.props.onChange(this.props.fieldKey, newValue);
   }
   render() {
-    const { compact, value, label, control, descr, fieldKey } = this.props;
+    const {
+      compact,
+      value,
+      label,
+      control,
+      description,
+      fieldKey,
+    } = this.props;
     const hookedControl = React.cloneElement(control, {
       value,
       onChange: this.onChange,
@@ -63,12 +70,12 @@ export default class Field extends React.PureComponent {
       <FormGroup controlId={fieldKey}>
         <FormLabel className="m-r-5">
           {label || fieldKey}
-          {compact && descr && (
+          {compact && description && (
             <OverlayTrigger
               placement="right"
               overlay={
                 <Tooltip id="field-descr" bsSize="lg">
-                  {descr}
+                  {description}
                 </Tooltip>
               }
             >
@@ -78,7 +85,7 @@ export default class Field extends React.PureComponent {
         </FormLabel>
         {hookedControl}
         <FormControl.Feedback />
-        {!compact && descr && <HelpBlock>{descr}</HelpBlock>}
+        {!compact && description && <HelpBlock>{description}</HelpBlock>}
       </FormGroup>
     );
   }

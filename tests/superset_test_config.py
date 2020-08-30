@@ -34,11 +34,18 @@ SQLALCHEMY_EXAMPLES_URI = SQLALCHEMY_DATABASE_URI
 if "SUPERSET__SQLALCHEMY_EXAMPLES_URI" in os.environ:
     SQLALCHEMY_EXAMPLES_URI = os.environ["SUPERSET__SQLALCHEMY_EXAMPLES_URI"]
 
+if "UPLOAD_FOLDER" in os.environ:
+    UPLOAD_FOLDER = os.environ["UPLOAD_FOLDER"]
+
 if "sqlite" in SQLALCHEMY_DATABASE_URI:
     logger.warning(
         "SQLite Database support for metadata databases will be "
         "removed in a future version of Superset."
     )
+
+# Speeding up the tests.
+PRESTO_POLL_INTERVAL = 0.1
+HIVE_POLL_INTERVAL = 0.1
 
 SQL_MAX_ROW = 666
 SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take affect for the CTA queries
@@ -53,10 +60,14 @@ def GET_FEATURE_FLAGS_FUNC(ff):
 
 TESTING = True
 WTF_CSRF_ENABLED = False
-PUBLIC_ROLE_LIKE_GAMMA = True
+
+FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}
+
+PUBLIC_ROLE_LIKE = "Gamma"
 AUTH_ROLE_PUBLIC = "Public"
 EMAIL_NOTIFICATIONS = False
 ENABLE_ROW_LEVEL_SECURITY = True
+ENABLE_REACT_CRUD_VIEWS = os.environ.get("ENABLE_REACT_CRUD_VIEWS", False)
 
 CACHE_CONFIG = {"CACHE_TYPE": "simple"}
 

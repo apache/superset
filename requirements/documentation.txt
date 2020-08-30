@@ -12,7 +12,7 @@ imagesize==1.2.0          # via sphinx
 pygments==2.6.1           # via sphinx
 snowballstemmer==2.0.0    # via sphinx
 sphinx-rtd-theme==0.5.0   # via -r requirements/documentation.in
-sphinx==3.1.2             # via -r requirements/documentation.in, sphinx-rtd-theme
+sphinx==3.2.1             # via -r requirements/documentation.in, sphinx-rtd-theme
 sphinxcontrib-applehelp==1.0.2  # via sphinx
 sphinxcontrib-devhelp==1.0.2  # via sphinx
 sphinxcontrib-htmlhelp==1.0.3  # via sphinx

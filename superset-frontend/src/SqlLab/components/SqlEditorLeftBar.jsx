@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import { t } from '@superset-ui/translation';
 import TableElement from './TableElement';
 import TableSelector from '../../components/TableSelector';
@@ -140,7 +140,11 @@ export default class SqlEditorLeftBar extends React.PureComponent {
           </div>
         </div>
         {shouldShowReset && (
-          <Button bsSize="small" bsStyle="danger" onClick={this.resetState}>
+          <Button
+            buttonSize="small"
+            buttonStyle="danger"
+            onClick={this.resetState}
+          >
             <i className="fa fa-bomb" /> {t('Reset State')}
           </Button>
         )}

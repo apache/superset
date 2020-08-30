@@ -398,7 +398,7 @@ class SqlEditor extends React.PureComponent {
             <InputGroup.Button>
               {this.props.database.allow_ctas && (
                 <Button
-                  bsSize="small"
+                  buttonSize="small"
                   disabled={this.state.ctas.length === 0}
                   onClick={this.createTableAs.bind(this)}
                   tooltip={ctasToolTip}
@@ -408,7 +408,7 @@ class SqlEditor extends React.PureComponent {
               )}
               {this.props.database.allow_cvas && (
                 <Button
-                  bsSize="small"
+                  buttonSize="small"
                   disabled={this.state.ctas.length === 0}
                   onClick={this.createViewAs.bind(this)}
                   tooltip={cvasToolTip}

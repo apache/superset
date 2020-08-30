@@ -17,11 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import * as featureFlags from 'src/featureFlags';
+
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { styledMount as mount } from 'spec/helpers/theming';
 
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
@@ -48,6 +50,7 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
   changed_on_utc: new Date().toISOString(),
   changed_on_delta_humanized: '5 minutes ago',
   owners: [{ first_name: 'admin', last_name: 'admin_user' }],
+  thumbnail_url: '/thumbnail',
 }));
 
 fetchMock.get(dashboardsInfoEndpoint, {
@@ -61,12 +64,25 @@ fetchMock.get(dashboardsEndpoint, {
   dashboard_count: 3,
 });
 
+global.URL.createObjectURL = jest.fn();
+fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
+
 describe('DashboardList', () => {
+  const isFeatureEnabledMock = jest
+    .spyOn(featureFlags, 'isFeatureEnabled')
+    .mockImplementation(feature => feature === 'THUMBNAILS');
+
+  afterAll(() => {
+    isFeatureEnabledMock.restore();
+  });
+
   const mockedProps = {};
   const wrapper = mount(<DashboardList {...mockedProps} />, {
     context: { store },
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
+  });
+
+  beforeAll(async () => {
+    await waitForComponentToPaint(wrapper);
   });
 
   it('renders', () => {

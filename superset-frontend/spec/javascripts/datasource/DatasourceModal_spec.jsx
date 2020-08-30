@@ -83,7 +83,10 @@ describe('DatasourceModal', () => {
 
   it('saves on confirm', async () => {
     act(() => {
-      wrapper.find('[className="m-r-5"]').props().onClick();
+      wrapper
+        .find('button[data-test="datasource-modal-save"]')
+        .props()
+        .onClick();
     });
     await waitForComponentToPaint(wrapper);
     act(() => {

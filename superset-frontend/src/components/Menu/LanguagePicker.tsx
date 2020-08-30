@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { NavDropdown, MenuItem } from 'react-bootstrap';
+import { MenuItem } from 'react-bootstrap';
+import NavDropdown from 'src/components/NavDropdown';
 
 export interface Languages {
   [key: string]: {

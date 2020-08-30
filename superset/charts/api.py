@@ -119,12 +119,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "table.table_name",
         "thumbnail_url",
         "url",
-        "params",
-        "cache_timeout",
         "owners.id",
         "owners.username",
         "owners.first_name",
         "owners.last_name",
+        "viz_type",
     ]
     list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
     order_columns = [
@@ -566,7 +565,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             }
             cache_chart_thumbnail.delay(**kwargs)
             return self.response(
-                202, cache_key=cache_key, chart_url=chart_url, image_url=image_url,
+                202, cache_key=cache_key, chart_url=chart_url, image_url=image_url
             )
 
         return trigger_celery()
@@ -614,8 +613,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # Making sure the chart still exists
         if not chart:
             return self.response_404()
-
-        # TODO make sure the user has access to the chart
 
         # fetch the chart screenshot using the current user and cache if set
         img = ChartScreenshot.get_from_cache_key(thumbnail_cache, digest)

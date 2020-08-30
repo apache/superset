@@ -90,7 +90,7 @@ describe('Test explore links', () => {
 
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    cy.url().then(url => {
+    cy.url().then(() => {
       cy.get('button[data-target="#save_modal"]').click();
       cy.get('.modal-content').within(() => {
         cy.get('#saveas-radio').check();
