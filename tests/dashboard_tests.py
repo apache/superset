@@ -102,16 +102,17 @@ class TestDashboard(SupersetTestCase):
 
         # call
         get_dashboard_response = self.get_resp(dashboard_to_access.url)
-
-        # assert
-        assert dashboard_to_access.dashboard_title in get_dashboard_response
-
-        # post test - bring back owner and created_by
-        self.login(username=ADMIN_USERNAME)
-        dashboard_to_access.owners = original_owners
-        dashboard_to_access.created_by = original_created_by
-        db.session.merge(dashboard_to_access)
-        db.session.commit()
+        try:
+            # assert
+            assert dashboard_to_access.dashboard_title in get_dashboard_response
+        finally:
+            # post test - bring back owner and created_by
+            self.revoke_public_access_to_table(table_to_access)
+            self.login(username=ADMIN_USERNAME)
+            dashboard_to_access.owners = original_owners
+            dashboard_to_access.created_by = original_created_by
+            db.session.merge(dashboard_to_access)
+            db.session.commit()
 
     def test_dashboard_access_in_edit_and_standalone_modes(self):
         # arrange
@@ -457,13 +458,14 @@ class TestDashboard(SupersetTestCase):
         dash.slices = [o for o in dash.slices if o.slice_name != "Energy Force Layout"]
         db.session.commit()
 
+
     def test_remove_slices(self, username=ADMIN_USERNAME):
         # arrange
         self.login(username=username)
 
-        dash_to_copy = db.session.query(Dashboard).filter_by(slug="births").first()
+        dash_to_copy = db.session.query(Dashboard).filter_by(slug=DEFAULT_DASHBOARD_SLUG_TO_TEST).first()
         copy_dash_url = COPY_DASHBOARD_URL_FORMAT.format(dash_to_copy.id)
-        data_for_copy = {"dashboard_title": 'copy of ' + dash_to_copy.dashboard_title, 'duplicate_slices': True, 'positions': dash_to_copy.position}
+        data_for_copy = {"dashboard_title": 'copy of ' + dash_to_copy.dashboard_title, 'duplicate_slices': False, 'positions': dash_to_copy.position}
         copied_dash_id = self.get_json_resp(copy_dash_url, data=dict(data=json.dumps(data_for_copy))).get('id')
 
         copied_dash_before_removing = db.session.query(Dashboard).filter_by(id=copied_dash_id).first()
@@ -539,6 +541,7 @@ class TestDashboard(SupersetTestCase):
             self.assertNotIn(url_of_the_not_accessed_dashboard, get_dashboards_response)
 
         finally:
+            self.revoke_public_access_to_table(table_to_access)
             self.revoke_access_to_all_dashboards()
 
     def test_get_dashboards__users_without_dashboard_permissions_can_not_view_published_dashboards(self):
