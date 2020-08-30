@@ -35,7 +35,7 @@ describe('chart list view', () => {
     cy.get('th[role="columnheader"]:nth-child(3)').contains(
       'Visualization Type',
     );
-    cy.get('th[role="columnheader"]:nth-child(4)').contains('Datasource');
+    cy.get('th[role="columnheader"]:nth-child(4)').contains('Dataset');
     cy.get('th[role="columnheader"]:nth-child(5)').contains('Modified By');
     cy.get('th[role="columnheader"]:nth-child(6)').contains('Last Modified');
     cy.get('th[role="columnheader"]:nth-child(7)').contains('Actions');
