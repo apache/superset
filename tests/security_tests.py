@@ -23,7 +23,7 @@ import prison
 from flask import current_app, g
 
 import tests.test_app
-from superset import app, appbuilder, db, security_manager, viz
+from superset import app, appbuilder, db, security_manager, viz, is_feature_enabled
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.constants import Security as SecurityConsts
@@ -765,9 +765,10 @@ class TestRolePermission(SupersetTestCase):
                 )
             )
         )
-
-        for pv in self.get_dashboards_access_permission_views(edit_too=True):
-            self.assertTrue(security_manager._is_alpha_only(pv))
+        is_dashboard_level_access_enabled = is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE)
+        if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
+            for pv in self.get_dashboards_access_permission_views(edit_too=True):
+                self.assertEqual(is_dashboard_level_access_enabled, security_manager._is_alpha_only(pv))
 
     def test_is_gamma_pvm(self):
         self.assertTrue(

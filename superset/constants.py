@@ -65,6 +65,8 @@ class RouteMethod:  # pylint: disable=too-few-public-methods
 
 
 class Security:  # pylint: disable=too-few-public-methods
+    DASHBOARD_LEVEL_ACCESS_FEATURE = "DashboardLevelAccess"
+
     class AllDashboard:
         VIEW_NAME = "all_dashboards"
         ACCESS_PERMISSION_NAME = "can_access_dashboard"

@@ -16,19 +16,20 @@
 # under the License.
 import logging
 import re
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Set, Tuple
 
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 
 from superset import security_manager
 from superset.constants import Security as SecurityConsts
+from superset.models.dashboard import Dashboard
 
 logger = logging.getLogger(__name__)
 
 
 class SecuredMixin:
-    previous_title = None
+    previous_title: Optional[str] = None
 
     @property
     def view_name(self) -> str:
@@ -52,17 +53,18 @@ class DashboardSecurityManager:
         )
 
     @classmethod
-    def get_access_list(cls):
+    def get_access_list(cls) -> Set[str]:
         view_names = security_manager.user_view_menu_names(
             SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME
         )
         return set(map(cls.parse_id_from_view_name, view_names))
 
     @staticmethod
-    def parse_id_from_view_name(view_name):
+    def parse_id_from_view_name(view_name: str) -> str:
         matched = id_finder.search(view_name)
         if matched:
             return matched.group("id")
+        raise ValueError(f"the view name {view_name} does not contains an id segment")
 
 
 class DashboardSecurityOrientedDBEventsHandler:
