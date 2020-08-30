@@ -63,7 +63,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
         dashboards_can_access_all = DashboardSecurityManager.can_access_all()
         dashboards_perms = (
-            DashboardSecurityManager.get_access_list()
+            DashboardSecurityManager.get_access_list()  # type: ignore
             if not dashboards_can_access_all
             else {}
         )

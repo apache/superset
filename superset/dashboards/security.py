@@ -16,12 +16,12 @@
 # under the License.
 import logging
 import re
-from typing import Any, List, Tuple
+from typing import Any, AnyStr, List, Set, Tuple
 
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 
-from superset import security_manager
+from superset import security_manager, typing
 from superset.constants import Security as SecurityConsts
 
 logger = logging.getLogger(__name__)
@@ -52,14 +52,14 @@ class DashboardSecurityManager:
         )
 
     @classmethod
-    def get_access_list(cls):
+    def get_access_list(cls):  # type: ignore
         view_names = security_manager.user_view_menu_names(
             SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME
         )
         return set(map(cls.parse_id_from_view_name, view_names))
 
     @staticmethod
-    def parse_id_from_view_name(view_name):
+    def parse_id_from_view_name(view_name):  # type: ignore
         matched = id_finder.search(view_name)
         if matched:
             return matched.group("id")
@@ -68,7 +68,7 @@ class DashboardSecurityManager:
 class DashboardSecurityOrientedDBEventsHandler:
     @staticmethod
     def after_insert(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"
+        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
     ) -> None:
         try:
             logger.info("in after insert on %s %d", target, target.id)
@@ -80,13 +80,13 @@ class DashboardSecurityOrientedDBEventsHandler:
 
     @staticmethod
     def on_set(  # pylint: disable=unused-argument
-        dashboard: "Dashboard", new_title: str, old_title: str, event: Any
+        dashboard: "Dashboard", new_title: str, old_title: str, event: Any  # type: ignore
     ) -> None:
         dashboard.previous_title = old_title
 
     @staticmethod
     def after_update(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"
+        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
     ) -> None:
         previous_title = target.previous_title
         new_title = target.dashboard_title
@@ -104,7 +104,7 @@ class DashboardSecurityOrientedDBEventsHandler:
 
     @staticmethod
     def after_delete(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"
+        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
     ) -> None:
         try:
             logger.info("in after delete on %s %d", target, target.id)
