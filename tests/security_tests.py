@@ -20,13 +20,14 @@ import unittest
 from unittest.mock import Mock, patch
 
 import prison
+import pytest
 from flask import current_app, g
 
 import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
-from superset.constants import Security as SecurityConsts
+from tests.dashboards.utils import is_dashboard_level_access_enabled
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -509,6 +510,10 @@ class TestRolePermission(SupersetTestCase):
         self.assertIsNotNone(vm)
         delete_schema_perm("[examples].[2]")
 
+    @pytest.mark.skipif(
+        is_dashboard_level_access_enabled(),
+        reason="with dashboard level access access to dashboard does not directly dependent on schema access",
+    )
     def test_gamma_user_schema_access_to_dashboards(self):
         self.grant_access_to_all_dashboards("Gamma")
         try:

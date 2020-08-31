@@ -243,6 +243,11 @@ def get_user_roles() -> List[Role]:
     return g.user.roles
 
 
+def is_user_admin() -> bool:
+    user_roles = [role.name.lower() for role in list(get_user_roles())]
+    return "admin" in user_roles
+
+
 class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(

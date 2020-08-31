@@ -42,9 +42,9 @@ from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
-from superset.constants import Security as SecurityConsts
 from superset.dashboards.security import (
     DashboardSecurityOrientedDBEventsHandler,
+    is_dashboard_level_access_enabled,
     SecuredMixin,
 )
 from superset.models.helpers import AuditMixinNullable, ImportMixin
@@ -504,7 +504,7 @@ if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Dashboard, "after_update", event_after_dashboard_changed)
 
 
-if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
+if is_dashboard_level_access_enabled():
     sqla.event.listen(
         Dashboard, "after_insert", DashboardSecurityOrientedDBEventsHandler.after_insert
     )

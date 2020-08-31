@@ -21,11 +21,14 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
-from superset.dashboards.security import getDashboardSecurityManager
+from superset.dashboards.security import (
+    DashboardSecurityManager,
+    is_dashboard_level_access_enabled,
+)
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.views.base import BaseFilter, get_user_roles
+from superset.views.base import BaseFilter, is_user_admin
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -56,19 +59,46 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     if they wish to see those dashboards which are published first
     """
 
-    DashboardSecurityManager = getDashboardSecurityManager()
-
-    def apply(self, query: Query, value: Any) -> Query:
-        user_roles = [role.name.lower() for role in list(get_user_roles())]
-        if "admin" in user_roles:
-            return query
-
-        dashboards_can_access_all = self.DashboardSecurityManager.can_access_all()
+    @staticmethod
+    def apply_permission_filter() -> Query:
+        dashboards_can_access_all = DashboardSecurityManager.can_access_all()
         dashboards_perms = (
-            self.DashboardSecurityManager.get_access_list()
+            DashboardSecurityManager.get_access_list()
             if not dashboards_can_access_all
             else {}
         )
+        permitted_dashboards = db.session.query(Dashboard.id).filter(
+            or_(dashboards_can_access_all, Dashboard.id.in_(dashboards_perms))
+        )
+        return permitted_dashboards
+
+    @staticmethod
+    def apply_owner_id_query() -> Query:
+        return (
+            db.session.query(Dashboard.id)
+            .join(Dashboard.owners)
+            .filter(
+                security_manager.user_model.id
+                == security_manager.user_model.get_user_id()
+            )
+        )
+
+    def apply_dashboard_level_access_filter(self, query: Query, value: Any) -> Query:
+        owner_ids_query = self.apply_owner_id_query()
+        permitted_dashboards = self.apply_permission_filter()
+        query = query.filter(
+            or_(
+                and_(
+                    Dashboard.id.in_(permitted_dashboards), Dashboard.published == True
+                ),
+                Dashboard.id.in_(owner_ids_query),
+            )
+        )
+        return query
+
+    def apply_dashboard_filter_based_on_datasources_permissions(
+        self, query: Query, value: Any
+    ) -> Query:
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         published_dash_query = (
@@ -76,7 +106,6 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(Dashboard.slices)
             .filter(
                 and_(
-                    or_(dashboards_can_access_all, Dashboard.id.in_(dashboards_perms)),
                     Dashboard.published == True,  # pylint: disable=singleton-comparison
                     or_(
                         Slice.perm.in_(datasource_perms),
@@ -111,3 +140,12 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         )
 
         return query
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if is_user_admin():
+            return query
+        if is_dashboard_level_access_enabled():
+            return self.apply_dashboard_level_access_filter(query, value)
+        return self.apply_dashboard_filter_based_on_datasources_permissions(
+            query, value
+        )

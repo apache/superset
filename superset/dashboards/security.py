@@ -21,10 +21,24 @@ from typing import Any, List, Optional, Set, Tuple, Type
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.constants import Security as SecurityConsts
 
 logger = logging.getLogger(__name__)
+
+
+dashboard_level_access_enabled = None
+
+
+def is_dashboard_level_access_enabled() -> bool:
+    global dashboard_level_access_enabled
+    if dashboard_level_access_enabled is None:
+        from superset import is_feature_enabled
+
+        dashboard_level_access_enabled = is_feature_enabled(
+            SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE
+        )
+    return dashboard_level_access_enabled
 
 
 class SecuredMixin:
@@ -64,18 +78,6 @@ class DashboardSecurityManager:
         if matched:
             return matched.group("id")
         raise ValueError(f"the view name {view_name} does not contains an id segment")
-
-
-class FakedDashboardSecurityManager:
-    @staticmethod
-    def can_access_all() -> bool:
-        return True
-
-
-def getDashboardSecurityManager() -> Type[Any]:
-    if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
-        return DashboardSecurityManager
-    return FakedDashboardSecurityManager
 
 
 class DashboardSecurityOrientedDBEventsHandler:

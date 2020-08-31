@@ -56,6 +56,7 @@ DEFAULT_DASHBOARD_SLUG_TO_TEST = "births"
 import pytest
 
 
+@pytest.mark.dashboard
 class TestDashboard(SupersetTestCase):
     def tearDown(self) -> None:
         self.logout()
@@ -172,6 +173,9 @@ class TestDashboard(SupersetTestCase):
 
     def test_new_dashboard(self):
         # arrange
+        dashboard_level_access_enabled = (
+            dashboard_utils.is_dashboard_level_access_enabled()
+        )
         self.login(username=ADMIN_USERNAME)
         dash_count_before_new = db.session.query(func.count(Dashboard.id)).first()[0]
         excepted_dashboard_title_in_response = "[ untitled dashboard ]"
@@ -184,7 +188,8 @@ class TestDashboard(SupersetTestCase):
         dash_count_after_new = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before_new + 1, dash_count_after_new)
         dash = db.session.query(Dashboard).filter_by(id=dash_count_after_new)[0]
-        dashboard_utils.assert_permission_was_created(self, dash)
+        if dashboard_level_access_enabled:
+            dashboard_utils.assert_permission_was_created(self, dash)
 
         # post test - delete the new dashboard
 
@@ -609,10 +614,8 @@ class TestDashboard(SupersetTestCase):
         )
         the_accessed_table_name = "birth_names"
         not_accessed_table_name = "wb_health_population"
-        url_of_the_not_accessed_dashboard = GET_DASHBOARD_URL_FORMAT.format(
-            "world_health"
-        )
         the_accessed_dashboard_slug = "births"
+        the_not_accessed_dashboard_slug = "world_health"
         table_to_access = (
             db.session.query(SqlaTable)
             .filter_by(table_name=the_accessed_table_name)
@@ -627,6 +630,16 @@ class TestDashboard(SupersetTestCase):
         dashboard_to_access.published = True
         url_of_the_accessed_dashboard = dashboard_to_access.url
         title_of_the_access_dashboard = dashboard_to_access.dashboard_title
+        db.session.merge(dashboard_to_access)
+
+        dashboard_not_to_access = (
+            db.session.query(Dashboard)
+            .filter_by(slug=the_not_accessed_dashboard_slug)
+            .one()
+        )
+
+        dashboard_not_to_access.published = False
+        url_of_not_accessed_dashboard = dashboard_not_to_access.url
         db.session.merge(dashboard_to_access)
         db.session.commit()
 
@@ -658,9 +671,12 @@ class TestDashboard(SupersetTestCase):
                 self.get_resp(url_of_the_accessed_dashboard),
             )
             self.assertNotIn(not_accessed_table_name, get_charts_response)
-            self.assertNotIn(url_of_the_not_accessed_dashboard, get_dashboards_response)
+            self.assertNotIn(url_of_not_accessed_dashboard, get_dashboards_response)
 
         finally:
+            dashboard_not_to_access.published = False
+            db.session.merge(dashboard_not_to_access)
+            db.session.commit()
             self.revoke_public_access_to_table(table_to_access)
             self.revoke_access_to_all_dashboards(dashboard_level_access_enabled)
 
@@ -766,10 +782,11 @@ class TestDashboard(SupersetTestCase):
             self.revoke_public_access_to_table(accessed_table)
             self.revoke_access_to_all_dashboards()
 
-    def test_get_dashboards__users_can_view_permitted_dashboard(
-        self, is_dashboard_level_access_enabled
-    ):
+    def test_get_dashboards__users_can_view_permitted_dashboard(self):
         # arrange
+        dashboard_level_access_enabled = (
+            dashboard_utils.is_dashboard_level_access_enabled()
+        )
         accessed_table_name = "energy_usage"
         accessed_table = (
             db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
@@ -798,8 +815,8 @@ class TestDashboard(SupersetTestCase):
         second_dash.published = True
         second_dash_url = second_dash.url
 
-        self.grant_access_to_dashboard(first_dash, is_dashboard_level_access_enabled)
-        self.grant_access_to_dashboard(second_dash, is_dashboard_level_access_enabled)
+        self.grant_access_to_dashboard(first_dash, dashboard_level_access_enabled)
+        self.grant_access_to_dashboard(second_dash, dashboard_level_access_enabled)
 
         try:
             db.session.merge(first_dash)
@@ -816,12 +833,8 @@ class TestDashboard(SupersetTestCase):
             db.session.delete(first_dash)
             db.session.delete(second_dash)
             db.session.commit()
-            self.revoke_access_to_dashboard(
-                first_dash, is_dashboard_level_access_enabled
-            )
-            self.revoke_access_to_dashboard(
-                second_dash, is_dashboard_level_access_enabled
-            )
+            self.revoke_access_to_dashboard(first_dash, dashboard_level_access_enabled)
+            self.revoke_access_to_dashboard(second_dash, dashboard_level_access_enabled)
             self.revoke_public_access_to_table(accessed_table)
 
     @mark.skipif(
@@ -931,6 +944,10 @@ class TestDashboard(SupersetTestCase):
         # assert
         self.assertNotIn(dashboard_url, get_dashboards_response)
 
+    @mark.skipif(
+        dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="with dashboard level access require favorites were omited",
+    )
     def test_get_dashboards__users_can_view_favorited_dashboards(self):
         # arrange
         user = security_manager.find_user("gamma")
