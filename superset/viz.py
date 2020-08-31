@@ -2881,14 +2881,13 @@ class PartitionViz(NVD3TimeSeriesViz):
         query_obj["is_timeseries"] = time_op != "not_time"
         return query_obj
 
-    @staticmethod
     def levels_for(
-        time_op: str, groups: List[str], df: pd.DataFrame
-    ) -> Dict[int, Union[pd.DataFrame, pd.Series]]:
+        self, time_op: str, groups: List[str], df: pd.DataFrame
+    ) -> Dict[int, pd.Series]:
         """
         Compute the partition at each `level` from the dataframe.
         """
-        levels: Dict[int, Union[pd.DataFrame, pd.Series]] = {}
+        levels = {}
         for i in range(0, len(groups) + 1):
             agg_df = df.groupby(groups[:i]) if i else df
             levels[i] = (
@@ -2898,10 +2897,9 @@ class PartitionViz(NVD3TimeSeriesViz):
             )
         return levels
 
-    @staticmethod
     def levels_for_diff(
-        time_op: str, groups: List[str], df: pd.DataFrame
-    ) -> Dict[int, Union[pd.DataFrame, pd.Series]]:
+        self, time_op: str, groups: List[str], df: pd.DataFrame
+    ) -> Dict[int, pd.DataFrame]:
         # Obtain a unique list of the time grains
         times = list(set(df[DTTM_ALIAS]))
         times.sort()
@@ -2948,7 +2946,7 @@ class PartitionViz(NVD3TimeSeriesViz):
 
     def nest_values(
         self,
-        levels: Dict[int, Union[pd.DataFrame, pd.Series]],
+        levels: Dict[int, pd.DataFrame],
         level: int = 0,
         metric: Optional[str] = None,
         dims: Optional[List[str]] = None,

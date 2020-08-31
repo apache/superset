@@ -41,7 +41,7 @@ flask-appbuilder==3.0.1   # via apache-superset
 flask-babel==1.0.0        # via flask-appbuilder
 flask-caching==1.9.0      # via apache-superset
 flask-compress==1.5.0     # via apache-superset
-flask-cors==3.0.8         # via apache-superset
+flask-cors==3.0.9         # via apache-superset
 flask-jwt-extended==3.24.1  # via flask-appbuilder
 flask-login==0.4.1        # via flask-appbuilder
 flask-migrate==2.5.3      # via apache-superset
@@ -80,7 +80,7 @@ natsort==7.0.1            # via croniter
 numpy==1.19.1             # via pandas, pyarrow
 openpyxl==3.0.5           # via tabulator
 packaging==20.4           # via bleach
-pandas==1.1.1             # via apache-superset
+pandas==1.0.5             # via apache-superset
 parsedatetime==2.6        # via apache-superset
 pathlib2==2.3.5           # via apache-superset
 pillow==7.2.0             # via apache-superset
