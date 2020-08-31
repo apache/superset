@@ -260,10 +260,10 @@ AUTH_TYPE = AUTH_DB
 # ---------------------------------------------------
 # Roles config
 # ---------------------------------------------------
-# Grant public role the same set of permissions as for the GAMMA role.
+# Grant public role the same set of permissions as for a selected builtin role.
 # This is useful if one wants to enable anonymous users to view
 # dashboards. Explicit grant on specific datasets is still required.
-PUBLIC_ROLE_LIKE_GAMMA = False
+PUBLIC_ROLE_LIKE: Optional[str] = None
 
 # ---------------------------------------------------
 # Babel config for translations
@@ -892,7 +892,7 @@ RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 #
 SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
-SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'Lax', 'Strict']
+SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'None', 'Lax', 'Strict']
 
 # Flask configuration variables
 SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 365  # Cache static resources

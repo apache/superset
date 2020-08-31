@@ -40,7 +40,7 @@ describe('AdhocFilters', () => {
       cy.get('button').contains('Save').click();
     });
 
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
       chartSelector: 'svg',
@@ -63,7 +63,7 @@ describe('AdhocFilters', () => {
       cy.get('button').contains('Save').click();
     });
 
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
       chartSelector: 'svg',

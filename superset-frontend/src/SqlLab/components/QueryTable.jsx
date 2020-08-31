@@ -24,6 +24,7 @@ import { ProgressBar, Well } from 'react-bootstrap';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/translation';
 
+import Button from 'src/components/Button';
 import Link from '../../components/Link';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
@@ -99,31 +100,34 @@ class QueryTable extends React.PureComponent {
           </div>
         );
         q.user = (
-          <button
-            className="btn btn-link btn-xs"
+          <Button
+            buttonSize="small"
+            buttonStyle="link"
             onClick={this.props.onUserClicked.bind(this, q.userId)}
           >
             {q.user}
-          </button>
+          </Button>
         );
         q.db = (
-          <button
-            className="btn btn-link btn-xs"
+          <Button
+            buttonSize="small"
+            buttonStyle="link"
             onClick={this.props.onDbClicked.bind(this, q.dbId)}
           >
             {q.db}
-          </button>
+          </Button>
         );
         q.started = moment(q.startDttm).format('HH:mm:ss');
         q.querylink = (
           <div style={{ width: '100px' }}>
-            <button
-              className="btn btn-link btn-xs"
+            <Button
+              buttonSize="small"
+              buttonStyle="link"
               onClick={this.openQuery.bind(this, q.queryId)}
             >
               <i className="fa fa-external-link m-r-3" />
               {t('Edit')}
-            </button>
+            </Button>
           </div>
         );
         q.sql = (

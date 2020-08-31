@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Button, FormGroup, FormControl } from 'react-bootstrap';
+import { FormGroup, FormControl } from 'react-bootstrap';
+import Button from 'src/components/Button';
 
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
@@ -121,7 +122,7 @@ export default class TextAreaControl extends React.Component {
             bsSize="large"
             modalTitle={controlHeader}
             triggerNode={
-              <Button bsSize="small" className="m-t-5">
+              <Button buttonSize="small" className="m-t-5">
                 {t('Edit')} <strong>{this.props.language}</strong>{' '}
                 {t('in modal')}
               </Button>

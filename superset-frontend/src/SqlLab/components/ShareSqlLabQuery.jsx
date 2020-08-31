@@ -22,7 +22,7 @@ import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
-import Button from '../../components/Button';
+import Button from 'src/components/Button';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { storeQuery } from '../../utils/common';
 import getClientErrorObject from '../../utils/getClientErrorObject';
@@ -110,7 +110,7 @@ class ShareSqlLabQuery extends React.Component {
         shouldUpdatePosition
         overlay={this.renderPopover()}
       >
-        <Button bsSize="small" className="toggleSave">
+        <Button buttonSize="small" className="toggleSave">
           <i className="fa fa-share" /> {t('Share')}
         </Button>
       </OverlayTrigger>

@@ -78,7 +78,7 @@ describe('Groupby control', () => {
       cy.get('.Select__control').click();
       cy.get('input[type=text]').type('state{enter}');
     });
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({ waitAlias: '@postJson', chartSelector: 'svg' });
   });
 });

@@ -20,7 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 
 import Label from 'src/components/Label';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';

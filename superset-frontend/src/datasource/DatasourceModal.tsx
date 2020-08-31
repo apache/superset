@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useRef } from 'react';
-import { Alert, Button, Modal } from 'react-bootstrap';
+import { Alert, Modal } from 'react-bootstrap';
+import Button from 'src/components/Button';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/translation';
@@ -115,8 +116,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       >
         <div>
           <i className="fa fa-exclamation-triangle" />{' '}
-          {t(`The data source configuration exposed here
-                affects all the charts using this datasource.
+          {t(`The dataset configuration exposed here
+                affects all the charts using this dataset.
                 Be mindful that changing settings
                 here may affect other charts
                 in undesirable ways.`)}
@@ -141,7 +142,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         <Modal.Title>
           <div>
             <span className="float-left">
-              {t('Datasource Editor for ')}
+              {t('Edit Dataset ')}
               <strong>{currentDatasource.table_name}</strong>
             </span>
           </div>
@@ -158,8 +159,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       <Modal.Footer>
         <span className="float-left">
           <Button
-            bsSize="sm"
-            bsStyle="default"
+            buttonSize="sm"
+            buttonStyle="default"
             target="_blank"
             href={currentDatasource.edit_url || currentDatasource.url}
           >
@@ -169,15 +170,16 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 
         <span className="float-right">
           <Button
-            bsSize="sm"
-            bsStyle="primary"
+            buttonSize="sm"
+            buttonStyle="primary"
             className="m-r-5"
+            data-test="datasource-modal-save"
             onClick={onClickSave}
             disabled={errors.length > 0}
           >
             {t('Save')}
           </Button>
-          <Button bsSize="sm" onClick={onHide}>
+          <Button buttonSize="sm" onClick={onHide}>
             {t('Cancel')}
           </Button>
           <Dialog ref={dialog} />

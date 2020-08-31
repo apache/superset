@@ -22,7 +22,7 @@ import { Nav, MenuItem } from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-import Menu from 'src/components/Menu/Menu';
+import { Menu } from 'src/components/Menu/Menu';
 
 const defaultProps = {
   data: {
@@ -33,9 +33,9 @@ const defaultProps = {
         label: 'Sources',
         childs: [
           {
-            name: 'Tables',
+            name: 'Datasets',
             icon: 'fa-table',
-            label: 'Tables',
+            label: 'Datasets',
             url: '/tablemodelview/list/?_flt_1_is_sqllab_view=y',
           },
           '-',

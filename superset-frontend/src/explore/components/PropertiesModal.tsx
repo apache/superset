@@ -18,7 +18,6 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Button,
   Modal,
   Row,
   Col,
@@ -26,6 +25,7 @@ import {
   FormGroup,
   // @ts-ignore
 } from 'react-bootstrap';
+import Button from 'src/components/Button';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';
@@ -263,15 +263,15 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
         </Row>
       </Modal.Body>
       <Modal.Footer>
-        <Button type="button" bsSize="sm" onClick={onHide}>
+        <Button type="button" buttonSize="sm" onClick={onHide} cta>
           {t('Cancel')}
         </Button>
         <Button
           type="submit"
-          bsSize="sm"
-          bsStyle="primary"
-          className="m-r-5"
+          buttonSize="sm"
+          buttonStyle="primary"
           disabled={!owners || submitting || !name}
+          cta
         >
           {t('Save')}
         </Button>

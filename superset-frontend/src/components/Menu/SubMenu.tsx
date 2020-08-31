@@ -26,12 +26,8 @@ const StyledHeader = styled.header`
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
   .navbar-right {
-    .supersetButton {
-      margin: ${({ theme }) =>
-        `${theme.gridUnit * 2}px ${theme.gridUnit * 4}px ${
-          theme.gridUnit * 2
-        }px 0`};
-    }
+    padding: 8px 0;
+    margin-right: 0;
   }
   .navbar-nav {
     li {
@@ -94,16 +90,18 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
         <Nav className="navbar-right">
           {props.secondaryButton && (
             <Button
-              className="supersetButton secondary"
+              buttonStyle="secondary"
               onClick={props.secondaryButton.onClick}
+              cta
             >
               {props.secondaryButton.name}
             </Button>
           )}
           {props.primaryButton && (
             <Button
-              className="supersetButton primary"
+              buttonStyle="primary"
               onClick={props.primaryButton.onClick}
+              cta
             >
               {props.primaryButton.name}
             </Button>
