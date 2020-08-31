@@ -17,9 +17,9 @@
  * under the License.
  */
 import styled from '@superset-ui/style';
-import { Tabs as BaseTabs } from 'src/common/components';
+import { Tabs as AntdTabs } from 'src/common/components';
 
-const Tabs = styled(BaseTabs)`
+const StyledTabs = styled(AntdTabs)`
   margin-top: -18px;
 
   .ant-tabs-nav-list {
@@ -51,5 +51,11 @@ const Tabs = styled(BaseTabs)`
     background: ${({ theme }) => theme.colors.secondary.base};
   }
 `;
+
+const StyledTabPane = styled(AntdTabs.TabPane)``;
+
+const Tabs = Object.assign(StyledTabs, {
+  TabPane: StyledTabPane,
+});
 
 export default Tabs;
