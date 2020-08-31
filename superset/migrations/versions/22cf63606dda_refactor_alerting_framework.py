@@ -16,14 +16,14 @@
 # under the License.
 """refactor_alerting_framework
 
-Revision ID: d3822549a380
+Revision ID: 22cf63606dda
 Revises: f80a3b88324b
-Create Date: 2020-08-27 14:20:24.477024
+Create Date: 2020-08-28 17:51:59.767013
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "d3822549a380"
+revision = "22cf63606dda"
 down_revision = "f80a3b88324b"
 
 import sqlalchemy as sa
@@ -37,13 +37,7 @@ def upgrade():
         "alert_validators",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=150), nullable=False),
-        sa.Column(
-            "validator_type",
-            sa.Enum(
-                "not_null", "gte_threshold", "lte_threshold", name="alertvalidatortype"
-            ),
-            nullable=True,
-        ),
+        sa.Column("validator_type", sa.String(length=100), nullable=False),
         sa.Column("config", sa.Text(), nullable=True),
         sa.Column("alert_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
@@ -67,7 +61,7 @@ def upgrade():
         sa.Column("observer_id", sa.Integer(), nullable=False),
         sa.Column("alert_id", sa.Integer(), nullable=True),
         sa.Column("value", sa.Float(), nullable=True),
-        sa.Column("valid_result", sa.Boolean(), nullable=True),
+        sa.Column("error_msg", sa.String(length=500), nullable=True),
         sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
         sa.ForeignKeyConstraint(["observer_id"], ["sql_observers.id"],),
         sa.PrimaryKeyConstraint("id"),

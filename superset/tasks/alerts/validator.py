@@ -14,11 +14,52 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
+import enum
 import json
 from typing import Callable
 
-from superset.models.alerts import AlertValidatorType, SQLObserver
+import numpy as np
+
+from superset.exceptions import SupersetException
+from superset.models.alerts import SQLObserver
+
+
+class AlertValidatorType(enum.Enum):
+    not_null = "not null"
+    operator = "operator"
+
+    @classmethod
+    def valid_type(cls, validator_type: str) -> bool:
+        return any(val_type.value == validator_type for val_type in cls)
+
+
+def check_validator(validator_type: str, config: str) -> None:
+    if not AlertValidatorType.valid_type(validator_type):
+        raise SupersetException(
+            f"Error: {validator_type} is not a valid validator type."
+        )
+
+    config_dict = json.loads(config)
+
+    if validator_type == AlertValidatorType.operator.value:
+        valid_operators = ["<", "<=", ">", ">=", "==", "!="]
+
+        if not (config_dict.get("op") and config_dict.get("threshold")):
+            raise SupersetException(
+                "Error: Operator Validator needs specified operator and threshold "
+                'values. Add "op" and "threshold" to config.'
+            )
+
+        if not config_dict["op"] in valid_operators:
+            raise SupersetException(
+                'Error: Invalid operator type. Recheck "op" value in the config.'
+            )
+
+        if not isinstance(config_dict["threshold"], (int, float)):
+            raise SupersetException(
+                'Error: Invalid threshold value. Recheck "threshold" value '
+                "in the config."
+            )
 
 
 def not_null_validator(
@@ -27,48 +68,35 @@ def not_null_validator(
     """Returns True if a SQLObserver's recent observation is not NULL"""
 
     observation = observer.get_observations(1)[0]
-    if not observation.valid_result or observation.value == 0:
+    if observation.error_msg or observation.value in (0, None, np.nan):
         return False
     return True
 
 
-def greater_than_validator(observer: SQLObserver, validator_config: str) -> bool:
+def operator_validator(observer: SQLObserver, validator_config: str) -> bool:
     """
     Returns True if a SQLObserver's recent observation is greater than or equal to
     the value given in the validator config
     """
 
     observation = observer.get_observations(1)[0]
-    threshold = json.loads(validator_config)["gte_threshold"]
-    if observation.valid_result and observation.value >= threshold:
-        return True
+    if observation.value is not None:
+        operator = json.loads(validator_config)["op"]
+        threshold = json.loads(validator_config)["threshold"]
+        if eval(  # pylint: disable=eval-used
+            str(observation.value) + operator + str(threshold)
+        ):
+            return True
 
     return False
 
 
-def less_than_validator(observer: SQLObserver, validator_config: str) -> bool:
-    """
-    Returns True if a SQLObserver's recent observation is less than or equal to
-    the value given in the validator config
-    """
-
-    observation = observer.get_observations(1)[0]
-    threshold = json.loads(validator_config)["lte_threshold"]
-    if observation.valid_result and observation.value <= threshold:
-        return True
-
-    return False
-
-
-def get_validator_function(
-    validator_type: AlertValidatorType,
-) -> Callable[[SQLObserver, str], bool]:
+def get_validator_function(validator_type: str) -> Callable[[SQLObserver, str], bool]:
     """Returns a validation function based on validator_type"""
 
-    validator_validators = {
-        AlertValidatorType.not_null: not_null_validator,
-        AlertValidatorType.gte_threshold: greater_than_validator,
-        AlertValidatorType.lte_threshold: less_than_validator,
+    alert_validators = {
+        AlertValidatorType.not_null.value: not_null_validator,
+        AlertValidatorType.operator.value: operator_validator,
     }
 
-    return validator_validators[validator_type]
+    return alert_validators[validator_type.lower()]

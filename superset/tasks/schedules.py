@@ -59,7 +59,7 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.models.slice import Slice
-from superset.tasks.alerts.oberver import observe
+from superset.tasks.alerts.observer import observe
 from superset.tasks.alerts.validator import get_validator_function
 from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
@@ -540,17 +540,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             return
 
         if report_type == ScheduleType.alert:
-            # Immediately deliver alert if recipients or slack_channel arguments
-            # are given. These are given when a test alert is sent
-            if recipients or slack_channel:
-                deliver_alert(
-                    alert_id=schedule.id,
-                    recipients=recipients,
-                    slack_channel=slack_channel,
-                )
-                return
-
-            check_and_validate_alert(schedule.id, schedule.label)
+            evaluate_alert(schedule.id, schedule.label, recipients, slack_channel)
         else:
             raise RuntimeError("Unknown report type")
     except NoSuchColumnError as column_error:
@@ -678,7 +668,12 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
     )
 
 
-def check_and_validate_alert(alert_id: int, label: str) -> None:
+def evaluate_alert(
+    alert_id: int,
+    label: str,
+    recipients: Optional[str] = None,
+    slack_channel: Optional[str] = None,
+) -> None:
     """Processes an alert to see if it should be triggered"""
 
     logger.info("Processing alert ID: %i", alert_id)
@@ -702,7 +697,7 @@ def check_and_validate_alert(alert_id: int, label: str) -> None:
     if state != AlertState.ERROR:
         validator_name = validate_observations(alert_id, label)
         if validator_name:
-            deliver_alert(alert_id, validator_name)
+            deliver_alert(alert_id, validator_name, recipients, slack_channel)
             state = AlertState.TRIGGER
         else:
             state = AlertState.PASS

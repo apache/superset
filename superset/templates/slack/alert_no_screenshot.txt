@@ -18,5 +18,5 @@
 #}
 *Triggered Alert: {{label}} :redalert:*
 *SQL* *Statement*:```{{sql}}```
-*SQL* *Result*: {{observation_value}} *Validator*: {{validator}}
+*SQL* *Result*: {{observation_value}}  *Validator* *Name*: {{validator}}
 <{{alert_url}}|View Alert Details>

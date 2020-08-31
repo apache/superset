@@ -19,7 +19,6 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-import numpy as np
 import pandas as pd
 
 from superset import db
@@ -39,7 +38,6 @@ def observe(alert_id: int) -> Optional[str]:
     sql_observer = db.session.query(SQLObserver).filter_by(alert_id=alert_id).one()
 
     value = None
-    valid_result = True
 
     parsed_query = ParsedQuery(sql_observer.sql)
     sql = parsed_query.stripped()
@@ -47,9 +45,7 @@ def observe(alert_id: int) -> Optional[str]:
 
     error_msg = check_observer_result(df, sql_observer.id, sql_observer.name)
 
-    if error_msg:
-        valid_result = False
-    else:
+    if not error_msg and df.to_records()[0][1] is not None:
         value = float(df.to_records()[0][1])
 
     observation = SQLObservation(
@@ -57,7 +53,7 @@ def observe(alert_id: int) -> Optional[str]:
         alert_id=alert_id,
         dttm=datetime.utcnow(),
         value=value,
-        valid_result=valid_result,
+        error_msg=error_msg,
     )
 
     db.session.add(observation)
@@ -74,12 +70,11 @@ def check_observer_result(
     it contains a valid value for a SQLObservation.
     Returns an error message if the result is invalid.
     """
-    error_msg = None
-
-    if sql_result.empty:
-        return f"Observer <{observer_id}:{observer_name}> returned no rows"
-
     try:
+        assert (
+            not sql_result.empty
+        ), f"Observer <{observer_id}:{observer_name}> returned no rows"
+
         rows = sql_result.to_records()
 
         assert (
@@ -90,15 +85,14 @@ def check_observer_result(
             len(rows[0]) == 2
         ), f"Observer <{observer_id}:{observer_name}> returned more than 1 column"
 
-        assert (
-            float(rows[0][1]) != np.nan
-        ), f"Observer <{observer_id}:{observer_name}> returned a NULL value"
+        if rows[0][1] is None:
+            return None
+
+        float(rows[0][1])
 
     except AssertionError as error:
-        error_msg = str(error)
+        return str(error)
     except (TypeError, ValueError):
-        error_msg = (
-            f"Observer <{observer_id}:{observer_name}> returned a non-number value"
-        )
+        return f"Observer <{observer_id}:{observer_name}> returned a non-number value"
 
-    return error_msg
+    return None

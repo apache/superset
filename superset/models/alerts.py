@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """Models for scheduled execution of jobs"""
-import enum
 import textwrap
 from datetime import datetime
 from typing import Any, List, Optional
@@ -25,7 +24,6 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum,
     Float,
     ForeignKey,
     Integer,
@@ -48,12 +46,6 @@ alert_owner = Table(
     Column("user_id", Integer, ForeignKey("ab_user.id")),
     Column("alert_id", Integer, ForeignKey("alerts.id")),
 )
-
-
-class AlertValidatorType(str, enum.Enum):
-    not_null = "Not Null"
-    gte_threshold = ">="
-    lte_threshold = "<="
 
 
 class Alert(Model):
@@ -172,7 +164,7 @@ class SQLObservation(Model):  # pylint: disable=too-few-public-methods
         backref=backref("observations", cascade="all, delete-orphan"),
     )
     value = Column(Float)
-    valid_result = Column(Boolean, default=True)
+    error_msg = Column(String(500))
 
 
 class Validator(Model):
@@ -182,7 +174,7 @@ class Validator(Model):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(150), nullable=False)
-    validator_type = Column(Enum(AlertValidatorType))
+    validator_type = Column(String(100), nullable=False)
     config = Column(
         Text,
         default=textwrap.dedent(

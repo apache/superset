@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from typing import Dict, Optional, Union
 
 from croniter import croniter
@@ -27,56 +26,20 @@ from superset.constants import RouteMethod
 from superset.models.alerts import (
     Alert,
     AlertLog,
-    AlertValidatorType,
     SQLObservation,
     SQLObserver,
     Validator,
 )
 from superset.models.schedules import ScheduleType
+from superset.tasks.alerts.validator import check_validator
 from superset.tasks.schedules import schedule_alert_query
 from superset.utils import core as utils
 from superset.utils.core import get_email_address_str, markdown
 
 from ..exceptions import SupersetException
-from ..sql_parse import ParsedQuery
-from ..tasks.alerts.oberver import check_observer_result
 from .base import SupersetModelView
 
 # TODO: access control rules for this module
-
-
-def check_observer_sql(item: "SQLObserverInlineView") -> None:
-    try:
-        parsed_query = ParsedQuery(item.sql)
-        sql = parsed_query.stripped()
-        df = item.database.get_df(sql)
-
-        error_msg = check_observer_result(df, item.id, item.name)
-
-        if error_msg:
-            raise SupersetException(f"Error: {error_msg}")
-
-    except Exception as ex:  # pylint: disable=broad-except
-        raise SupersetException(f"Observer raised exception: {ex}")
-
-
-def check_validator_config(item: "ValidatorInlineView") -> None:
-    config = json.loads(item.config)
-
-    if item.validator_type == AlertValidatorType.gte_threshold and not config.get(
-        "gte_threshold"
-    ):
-        raise SupersetException(
-            "Error: Greater Than or Equal To Validator needs a specified threshold. "
-            'Add "gte_threshold": value to config.'
-        )
-    if item.validator_type == AlertValidatorType.lte_threshold and not config.get(
-        "lte_threshold"
-    ):
-        raise SupersetException(
-            "Error: Less Than or Equal To Validator needs a specified threshold. "
-            'Add "lte_threshold": value to config.'
-        )
 
 
 class AlertLogModelView(
@@ -102,10 +65,14 @@ class AlertObservationModelView(
     list_columns = (
         "dttm",
         "value",
-        "valid_result",
+        "error_msg",
     )
+    label_columns = {
+        "error_msg": _("Error Message"),
+    }
 
 
+# TODO: add a button to the form to test if the SQL statment can run with no errors
 class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
     CompactCRUDMixin, SupersetModelView
 ):
@@ -133,7 +100,7 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
 
     label_columns = {
         "name": _("Name"),
-        "alert": _("Alert Label"),
+        "alert": _("Alert"),
         "database": _("Database"),
         "sql": _("SQL"),
     }
@@ -148,11 +115,6 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
     def pre_add(self, item: "SQLObserverInlineView") -> None:
         if item.alert.sql_observer and item.alert.sql_observer[0].id != item.id:
             raise SupersetException("Error: An alert should only have one observer.")
-
-        check_observer_sql(item)
-
-    def pre_update(self, item: "SQLObserverInlineView") -> None:
-        check_observer_sql(item)
 
 
 class ValidatorInlineView(  # pylint: disable=too-many-ancestors
@@ -189,29 +151,32 @@ class ValidatorInlineView(  # pylint: disable=too-many-ancestors
     description_columns = {
         "validator_type": utils.markdown(
             "Determines when to trigger alert based off value from SQLObserver query. "
-            "Alert will be triggered:"
+            "Alerts will be triggered with these validator types:"
             "<ul><li>Not Null - When the return value is Not NULL, Empty, or 0</li>"
-            "<li>>= - When `return_value >= gte_threshold`"
-            " is True</li>"
-            "<li><= - When `return_value <= lte_threshold`"
-            " is True</li></ul>",
+            "<li>Operator - When `sql_return_value comparison_operator threshold`"
+            " is True e.g. `50 <= 75`<br>Supports the comparison operators <, <=, "
+            ">, >=, ==, and !=</li></ul>",
             True,
         ),
         "config": utils.markdown(
             "JSON string containing values the validator will compare against. "
             "Each validator needs the following values:"
             "<ul><li>Not Null - Nothing. You can leave the config as it is.</li>"
-            '<li>>= - `"gte_threshold": value`</li>'
-            '<li><= - `"lte_threshold": value`</li></ul>',
+            '<li>Operator<ul><li>`"op": "operator"` with an operator from ["<", '
+            '"<=", ">", ">=", "==", "!="] e.g. `"op": ">="`</li>'
+            '<li>`"threshold": threshold_value` e.g. `"threshold": 50`'
+            "</li></ul></li></ul>",
             True,
         ),
     }
 
     def pre_add(self, item: "ValidatorInlineView") -> None:
-        check_validator_config(item)
+        item.validator_type = item.validator_type.lower()
+        check_validator(item.validator_type, item.config)
 
     def pre_update(self, item: "ValidatorInlineView") -> None:
-        check_validator_config(item)
+        item.validator_type = item.validator_type.lower()
+        check_validator(item.validator_type, item.config)
 
 
 class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
