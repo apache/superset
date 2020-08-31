@@ -27,11 +27,29 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database, get_main_database
-
-from .base_tests import SupersetTestCase
+from tests.base_tests import SupersetTestCase
 
 
 class TestDatabaseApi(SupersetTestCase):
+    def insert_database(
+        self,
+        database_name: str,
+        sqlalchemy_uri: str,
+        extra: str = "",
+        encrypted_extra: str = "",
+        server_cert: str = "",
+    ) -> Database:
+        database = Database(
+            database_name=database_name,
+            sqlalchemy_uri=sqlalchemy_uri,
+            extra=extra,
+            encrypted_extra=encrypted_extra,
+            server_cert=server_cert,
+        )
+        db.session.add(database)
+        db.session.commit()
+        return database
+
     def test_get_items(self):
         """
         Database API: Test get items
@@ -103,6 +121,58 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["count"], 0)
+
+    def test_create_database(self):
+        """
+        Database API: Test create
+        """
+        self.login(username="admin")
+        database_data = {
+            "database_name": "test-database",
+            "sqlalchemy_uri": "sqlite:////some.db",
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        self.assertEqual(rv.status_code, 201)
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(Database).get(data.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_delete_database(self):
+        """
+        Database API: Test delete
+        """
+        database_id = self.insert_database("test-database", "test_uri").id
+        self.login(username="admin")
+        uri = f"api/v1/database/{database_id}"
+        rv = self.delete_assert_metric(uri, "delete")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Database).get(database_id)
+        self.assertEqual(model, None)
+
+    def test_delete_database_not_found(self):
+        """
+        Database API: Test delete not found
+        """
+        max_id = db.session.query(func.max(Database.id)).scalar()
+        self.login(username="admin")
+        uri = f"api/v1/database/{max_id + 1}"
+        rv = self.delete_assert_metric(uri, "delete")
+        self.assertEqual(rv.status_code, 404)
+
+    def test_delete_database_with_datasets(self):
+        """
+        Database API: Test delete fails because it has depending datasets
+        """
+        database_id = (
+            db.session.query(Database).filter_by(database_name="examples").one()
+        ).id
+        self.login(username="admin")
+        uri = f"api/v1/database/{database_id}"
+        rv = self.delete_assert_metric(uri, "delete")
+        self.assertEqual(rv.status_code, 422)
 
     def test_get_table_metadata(self):
         """

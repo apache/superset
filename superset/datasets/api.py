@@ -51,7 +51,7 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.database.filters import DatabaseFilter
+from superset.databases.filters import DatabaseFilter
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)

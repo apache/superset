@@ -25,7 +25,7 @@ from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import core as utils
-from superset.views.database.filters import DatabaseFilter
+from superset.databases.filters import DatabaseFilter
 
 
 class DatabaseMixin:
