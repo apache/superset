@@ -71,10 +71,10 @@ class DatabaseDAO(BaseDAO):
         database = Database(
             # extras is sent as json, but required to be a string in the Database
             # model
-            server_cert,
-            extra,
-            impersonate_user,
-            encrypted_extra,
+            server_cert=server_cert,
+            extra=extra,
+            impersonate_user=impersonate_user,
+            encrypted_extra=encrypted_extra,
         )
         database.set_sqlalchemy_uri(uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)

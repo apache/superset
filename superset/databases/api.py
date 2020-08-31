@@ -64,6 +64,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "table_metadata",
         "select_star",
         "schemas",
+        "test_connection",
     }
     class_permission_name = "DatabaseView"
     resource_name = "database"
@@ -508,7 +509,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @event_logger.log_this
     @statsd_metrics
-    def testconn(self) -> FlaskResponse:  # pylint: disable=too-many-return-statements
+    def test_connection(  # pylint: disable=too-many-return-statements
+        self,
+    ) -> FlaskResponse:
         """Tests a sqla connection"""
         uri = request.json.get("uri")
         try:
