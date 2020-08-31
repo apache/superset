@@ -55,7 +55,6 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     This means they do not get curation but can still sort by "published"
     if they wish to see those dashboards which are published first
     """
-
     def apply(self, query: Query, value: Any) -> Query:
         user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:

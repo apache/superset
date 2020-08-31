@@ -310,6 +310,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "SIP_34_DATABASE_UI": False,
+    "DASHBOARD_LEVEL_ACCESS": False,
 }
 
 # This is merely a default.

@@ -42,6 +42,7 @@ from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset.constants import Security as SecurityConsts
 from superset.dashboards.security import (
     DashboardSecurityOrientedDBEventsHandler,
     SecuredMixin,
@@ -503,18 +504,19 @@ if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Dashboard, "after_update", event_after_dashboard_changed)
 
 
-sqla.event.listen(
-    Dashboard, "after_insert", DashboardSecurityOrientedDBEventsHandler.after_insert
-)
-sqla.event.listen(
-    Dashboard, "after_update", DashboardSecurityOrientedDBEventsHandler.after_update
-)
-sqla.event.listen(
-    Dashboard, "after_delete", DashboardSecurityOrientedDBEventsHandler.after_delete
-)
-sqla.event.listen(
-    Dashboard.dashboard_title,
-    "set",
-    DashboardSecurityOrientedDBEventsHandler.on_set,
-    active_history=True,
-)
+if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
+    sqla.event.listen(
+        Dashboard, "after_insert", DashboardSecurityOrientedDBEventsHandler.after_insert
+    )
+    sqla.event.listen(
+        Dashboard, "after_update", DashboardSecurityOrientedDBEventsHandler.after_update
+    )
+    sqla.event.listen(
+        Dashboard, "after_delete", DashboardSecurityOrientedDBEventsHandler.after_delete
+    )
+    sqla.event.listen(
+        Dashboard.dashboard_title,
+        "set",
+        DashboardSecurityOrientedDBEventsHandler.on_set,
+        active_history=True,
+    )

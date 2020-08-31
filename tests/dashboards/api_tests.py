@@ -21,6 +21,7 @@ from typing import List, Optional
 from datetime import datetime
 
 import prison
+from pytest import mark
 import humanize
 from sqlalchemy.sql import func
 
@@ -294,7 +295,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(dashboard)
         db.session.commit()
 
-    def test_delete_dashboard(self):
+    @mark.skipif(not dashboard_utils.is_dashboard_level_access_enabled(), reason="DashboardLevelAccess flag is not disable")
+    def test_delete_dashboard_with_dashboard_level_access(self):
         """
         Dashboard API: Test delete
         """
@@ -310,6 +312,20 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model, None)
         dashboard_utils.assert_permissions_were_deleted(self, dashboard)
         dashboard_utils.clean_after_delete_dashboard_test()
+
+    @mark.skipif(dashboard_utils.is_dashboard_level_access_enabled(), reason="deprecated test, when DashboardLevelAccess flag is enabled")
+    def test_delete_dashboard(self):
+        """
+        Dashboard API: Test delete
+        """
+        admin_id = self.get_user("admin").id
+        dashboard_id = self.insert_dashboard("title", "slug1", [admin_id]).id
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.delete_assert_metric(uri, "delete")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.assertEqual(model, None)
 
     def test_delete_bulk_dashboards(self):
         """
@@ -520,7 +536,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Dashboard).get(data.get("id"))
-        dashboard_utils.assert_permission_was_created(self, model)
+        if dashboard_utils.is_dashboard_level_access_enabled():
+            dashboard_utils.assert_permission_was_created(self, model)
         db.session.delete(model)
         db.session.commit()
 
@@ -648,9 +665,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Dashboard API: Test update
         """
+        dashboard_level_access_enabled = dashboard_utils.is_dashboard_level_access_enabled()
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard("title1", "slug1", [admin.id])
-        view_menu_id = security_manager.find_view_menu(dashboard.view_name).id
+        if dashboard_level_access_enabled:
+            view_menu_id = security_manager.find_view_menu(dashboard.view_name).id
         dashboard_id = dashboard.id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -664,7 +683,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
         self.assertEqual(model.published, self.dashboard_data["published"])
         self.assertEqual(model.owners, [admin])
-        dashboard_utils.assert_permission_kept_and_changed(self, model, view_menu_id)
+        if dashboard_level_access_enabled:
+            dashboard_utils.assert_permission_kept_and_changed(self, model, view_menu_id)
 
         db.session.delete(model)
         db.session.commit()

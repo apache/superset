@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
+from superset.constants import Security
+
 
 
 def assert_permission_was_created(case, dashboard):
@@ -51,3 +53,7 @@ def arrange_to_delete_dashboard_test(dashboard):
 def clean_after_delete_dashboard_test():
     for i in range(3):
         security_manager.del_role("dashboard_permission_role" + str(i))
+
+
+def is_dashboard_level_access_enabled():
+    return is_feature_enabled(Security.DASHBOARD_LEVEL_ACCESS_FEATURE)
