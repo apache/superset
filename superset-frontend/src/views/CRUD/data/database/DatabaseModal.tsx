@@ -83,7 +83,7 @@ const StyledInputContainer = styled.div`
 
   input::placeholder,
   textarea::placeholder {
-      color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colors.grayscale.light1};
   }
 
   textarea,
@@ -250,9 +250,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 placeholder={t('SQLAlchemy URI')}
                 onChange={onInputChange}
               />
-              <Button className="supersetButton primary">
-                {t('Test Connection')}
-              </Button>
+              <Button buttonStyle="primary">{t('Test Connection')}</Button>
             </div>
             <div className="helper">
               {t('Refer to the ')}
