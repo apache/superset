@@ -81,6 +81,11 @@ const StyledInputContainer = styled.div`
     resize: none;
   }
 
+  input::placeholder,
+  textarea::placeholder {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
+
   textarea,
   input[type='text'],
   input[type='number'] {
