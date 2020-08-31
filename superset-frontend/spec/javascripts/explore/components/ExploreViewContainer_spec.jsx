@@ -20,7 +20,6 @@ import React from 'react';
 import * as ReactAll from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import sinon from 'sinon';
 import { Subscription } from 'react-redux';
 import { shallow } from 'enzyme';
 
@@ -87,34 +86,5 @@ describe('ExploreViewContainer', () => {
 
   it('renders ChartContainer', () => {
     expect(wrapper.find(ChartContainer)).toExist();
-  });
-
-  describe('UNSAFE_componentWillReceiveProps()', () => {
-    it('when controls change, should call resetControls', () => {
-      expect(wrapper.instance().props.controls.viz_type.value).toBe('table');
-      const resetControls = sinon.stub(
-        wrapper.instance().props.actions,
-        'resetControls',
-      );
-      const triggerQuery = sinon.stub(
-        wrapper.instance().props.actions,
-        'triggerQuery',
-      );
-
-      // triggers UNSAFE_componentWillReceiveProps
-      wrapper.setProps({
-        controls: {
-          viz_type: {
-            value: 'bar',
-          },
-        },
-      });
-      expect(resetControls.callCount).toBe(1);
-      // exploreview container should not force chart run query
-      // it should be controlled by redux state.
-      expect(triggerQuery.callCount).toBe(0);
-      resetControls.reset();
-      triggerQuery.reset();
-    });
   });
 });

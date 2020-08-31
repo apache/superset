@@ -44,6 +44,7 @@ import {
 } from '../../logger/LogUtils';
 
 const propTypes = {
+  ...ExploreChartPanel.propTypes,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
@@ -231,6 +232,9 @@ function ExploreViewContainer(props) {
     }
 
     if (previousControls) {
+      if (props.controls.viz_type.value !== previousControls.viz_type.value) {
+        props.actions.resetControls();
+      }
       if (
         props.controls.datasource &&
         (previousControls.datasource == null ||
