@@ -73,7 +73,9 @@ def not_null_validator(
     return True
 
 
-def operator_validator(observer: SQLObserver, validator_config: str) -> bool:
+def operator_validator(  # pylint: disable=too-many-return-statements
+    observer: SQLObserver, validator_config: str
+) -> bool:
     """
     Returns True if a SQLObserver's recent observation is greater than or equal to
     the value given in the validator config
@@ -83,9 +85,17 @@ def operator_validator(observer: SQLObserver, validator_config: str) -> bool:
     if observation.value is not None:
         operator = json.loads(validator_config)["op"]
         threshold = json.loads(validator_config)["threshold"]
-        if eval(  # pylint: disable=eval-used
-            str(observation.value) + operator + str(threshold)
-        ):
+        if operator == ">=" and observation.value >= threshold:
+            return True
+        if operator == ">" and observation.value > threshold:
+            return True
+        if operator == "<=" and observation.value <= threshold:
+            return True
+        if operator == "<" and observation.value < threshold:
+            return True
+        if operator == "==" and observation.value == threshold:
+            return True
+        if operator == "!=" and observation.value != threshold:
             return True
 
     return False
