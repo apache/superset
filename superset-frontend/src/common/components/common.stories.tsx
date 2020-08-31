@@ -18,13 +18,13 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-// import { withKnobs, select, boolean, text } from '@storybook/addon-knobs';
+import { withKnobs, boolean } from '@storybook/addon-knobs';
 import Modal from './Modal';
 import Tabs from './Tabs';
 
 export default {
   title: 'Common Components',
-  // decorators: [withKnobs],
+  decorators: [withKnobs],
 };
 
 export const StyledModal = () => (
@@ -42,11 +42,19 @@ export const StyledModal = () => (
 );
 
 export const StyledTabs = () => (
-  <Tabs defaultActiveKey="1">
-    <Tabs.TabPane tab="Tab 1" key="1">
+  <Tabs defaultActiveKey="1" centered={boolean('Center tabs', false)}>
+    <Tabs.TabPane
+      tab="Tab 1"
+      key="1"
+      disabled={boolean('Tab 1 Disabled', false)}
+    >
       Tab 1 Content!
     </Tabs.TabPane>
-    <Tabs.TabPane tab="Tab 2" key="2">
+    <Tabs.TabPane
+      tab="Tab 2"
+      key="2"
+      disabled={boolean('Tab 2 Disabled', false)}
+    >
       Tab 2 Content!
     </Tabs.TabPane>
   </Tabs>
