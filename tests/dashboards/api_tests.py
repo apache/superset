@@ -295,7 +295,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(dashboard)
         db.session.commit()
 
-    @mark.skipif(not dashboard_utils.is_dashboard_level_access_enabled(), reason="DashboardLevelAccess flag is not disable")
+    @mark.skipif(
+        not dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="DashboardLevelAccess flag is not disable",
+    )
     def test_delete_dashboard_with_dashboard_level_access(self):
         """
         Dashboard API: Test delete
@@ -313,7 +316,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_utils.assert_permissions_were_deleted(self, dashboard)
         dashboard_utils.clean_after_delete_dashboard_test()
 
-    @mark.skipif(dashboard_utils.is_dashboard_level_access_enabled(), reason="deprecated test, when DashboardLevelAccess flag is enabled")
+    @mark.skipif(
+        dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="deprecated test, when DashboardLevelAccess flag is enabled",
+    )
     def test_delete_dashboard(self):
         """
         Dashboard API: Test delete
@@ -665,7 +671,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Dashboard API: Test update
         """
-        dashboard_level_access_enabled = dashboard_utils.is_dashboard_level_access_enabled()
+        dashboard_level_access_enabled = (
+            dashboard_utils.is_dashboard_level_access_enabled()
+        )
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard("title1", "slug1", [admin.id])
         if dashboard_level_access_enabled:
@@ -684,7 +692,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model.published, self.dashboard_data["published"])
         self.assertEqual(model.owners, [admin])
         if dashboard_level_access_enabled:
-            dashboard_utils.assert_permission_kept_and_changed(self, model, view_menu_id)
+            dashboard_utils.assert_permission_kept_and_changed(
+                self, model, view_menu_id
+            )
 
         db.session.delete(model)
         db.session.commit()

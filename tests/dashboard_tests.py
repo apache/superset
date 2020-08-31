@@ -190,7 +190,9 @@ class TestDashboard(SupersetTestCase):
 
     def test_delete_dashboard(self):
         # arrange
-        dashboard_level_access_enabled = dashboard_utils.is_dashboard_level_access_enabled()
+        dashboard_level_access_enabled = (
+            dashboard_utils.is_dashboard_level_access_enabled()
+        )
         self.login(username=ADMIN_USERNAME)
         dash_count_before_new = db.session.query(func.count(Dashboard.id)).first()[0]
         excepted_dashboard_title_in_response = "[ untitled dashboard ]"
@@ -343,7 +345,9 @@ class TestDashboard(SupersetTestCase):
 
     def test_save_dash_with_dashboard_title(self, username=ADMIN_USERNAME):
         # arrange
-        dashboard_level_access_enabled = dashboard_utils.is_dashboard_level_access_enabled()
+        dashboard_level_access_enabled = (
+            dashboard_utils.is_dashboard_level_access_enabled()
+        )
         self.login(username=username)
         new_title = "new title"
         dashboard_to_be_changed = (
@@ -600,7 +604,9 @@ class TestDashboard(SupersetTestCase):
 
     def test_get_dashboards__public_user_get_published(self):
         # arrange #1
-        dashboard_level_access_enabled = dashboard_utils.is_dashboard_level_access_enabled()
+        dashboard_level_access_enabled = (
+            dashboard_utils.is_dashboard_level_access_enabled()
+        )
         the_accessed_table_name = "birth_names"
         not_accessed_table_name = "wb_health_population"
         url_of_the_not_accessed_dashboard = GET_DASHBOARD_URL_FORMAT.format(
@@ -658,7 +664,10 @@ class TestDashboard(SupersetTestCase):
             self.revoke_public_access_to_table(table_to_access)
             self.revoke_access_to_all_dashboards(dashboard_level_access_enabled)
 
-    @mark.skipif(not dashboard_utils.is_dashboard_level_access_enabled(), reason="DashboardLevelAccess flag is not disable")
+    @mark.skipif(
+        not dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="DashboardLevelAccess flag is not disable",
+    )
     def test_get_dashboards__users_without_dashboard_permissions_can_not_view_published_dashboards(
         self,
     ):
@@ -705,7 +714,10 @@ class TestDashboard(SupersetTestCase):
         finally:
             self.revoke_public_access_to_table(accessed_table)
 
-    @mark.skipif(not dashboard_utils.is_dashboard_level_access_enabled(), reason="DashboardLevelAccess flag is not disable")
+    @mark.skipif(
+        not dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="DashboardLevelAccess flag is not disable",
+    )
     def test_get_dashboards__users_with_all_dashboard_access_can_view_published_dashboard(
         self,
     ):
@@ -754,7 +766,9 @@ class TestDashboard(SupersetTestCase):
             self.revoke_public_access_to_table(accessed_table)
             self.revoke_access_to_all_dashboards()
 
-    def test_get_dashboards__users_can_view_permitted_dashboard(self, is_dashboard_level_access_enabled):
+    def test_get_dashboards__users_can_view_permitted_dashboard(
+        self, is_dashboard_level_access_enabled
+    ):
         # arrange
         accessed_table_name = "energy_usage"
         accessed_table = (
@@ -802,11 +816,18 @@ class TestDashboard(SupersetTestCase):
             db.session.delete(first_dash)
             db.session.delete(second_dash)
             db.session.commit()
-            self.revoke_access_to_dashboard(first_dash, is_dashboard_level_access_enabled)
-            self.revoke_access_to_dashboard(second_dash, is_dashboard_level_access_enabled)
+            self.revoke_access_to_dashboard(
+                first_dash, is_dashboard_level_access_enabled
+            )
+            self.revoke_access_to_dashboard(
+                second_dash, is_dashboard_level_access_enabled
+            )
             self.revoke_public_access_to_table(accessed_table)
 
-    @mark.skipif(not dashboard_utils.is_dashboard_level_access_enabled(), reason="DashboardLevelAccess flag is not disable")
+    @mark.skipif(
+        not dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="DashboardLevelAccess flag is not disable",
+    )
     def test_get_dashboards__users_without_dashboard_permission(self):
         # arrange
         accessed_table_name = "energy_usage"

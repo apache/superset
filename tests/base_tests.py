@@ -264,20 +264,32 @@ class SupersetTestCase(TestCase):
             pvm_pairs,
         )
 
-    def grant_access_to_all_dashboards(self, is_dashboard_level_access_enabled=True, role_name="Public"):
-        self.grant_access_to_dashboard(None, is_dashboard_level_access_enabled, role_name)
+    def grant_access_to_all_dashboards(
+        self, is_dashboard_level_access_enabled=True, role_name="Public"
+    ):
+        self.grant_access_to_dashboard(
+            None, is_dashboard_level_access_enabled, role_name
+        )
 
-    def revoke_access_to_all_dashboards(self, is_dashboard_level_access_enabled=True,  role_name="Public"):
-        self.revoke_access_to_dashboard(None, is_dashboard_level_access_enabled, role_name)
+    def revoke_access_to_all_dashboards(
+        self, is_dashboard_level_access_enabled=True, role_name="Public"
+    ):
+        self.revoke_access_to_dashboard(
+            None, is_dashboard_level_access_enabled, role_name
+        )
 
-    def grant_access_to_dashboard(self, dashboard, is_dashboard_level_access_enabled=True, role_name="Public"):
+    def grant_access_to_dashboard(
+        self, dashboard, is_dashboard_level_access_enabled=True, role_name="Public"
+    ):
         if is_dashboard_level_access_enabled:
             role = security_manager.find_role(role_name)
             pvs = self.get_dashboards_access_permission_views(dashboard)
             for pv in pvs:
                 security_manager.add_permission_role(role, pv)
 
-    def revoke_access_to_dashboard(self, dashboard, is_dashboard_level_access_enabled=True, role_name="Public"):
+    def revoke_access_to_dashboard(
+        self, dashboard, is_dashboard_level_access_enabled=True, role_name="Public"
+    ):
         if is_dashboard_level_access_enabled:
             role = security_manager.find_role(role_name)
             pvs = self.get_dashboards_access_permission_views(dashboard)

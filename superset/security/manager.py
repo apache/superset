@@ -550,6 +550,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("all_query_access", "all_query_access")
 
         from superset import is_feature_enabled
+
         if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
             self.add_permission_view_menu(
                 SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,

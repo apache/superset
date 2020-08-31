@@ -16,14 +16,13 @@
 # under the License.
 import logging
 import re
-from typing import Any, List, Optional, Set, Tuple
+from typing import Any, List, Optional, Set, Tuple, Type
 
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 
 from superset import is_feature_enabled, security_manager
 from superset.constants import Security as SecurityConsts
-
 
 logger = logging.getLogger(__name__)
 
@@ -43,39 +42,46 @@ class SecuredMixin:
 ID_REGEX_PATTERN = r"\(id:(?P<id>\d+)\)$"
 id_finder = re.compile(ID_REGEX_PATTERN)
 
-if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
-    class DashboardSecurityManager:
-        @staticmethod
-        def can_access_all() -> bool:
-            return security_manager.can_access(
-                SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
-                SecurityConsts.AllDashboard.VIEW_NAME,
-            )
 
-        @classmethod
-        def get_access_list(cls) -> Set[str]:
-            view_names = security_manager.user_view_menu_names(
-                SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME
-            )
-            return set(map(cls.parse_id_from_view_name, view_names))
+class DashboardSecurityManager:
+    @staticmethod
+    def can_access_all() -> bool:
+        return security_manager.can_access(
+            SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
+            SecurityConsts.AllDashboard.VIEW_NAME,
+        )
 
-        @staticmethod
-        def parse_id_from_view_name(view_name: str) -> str:
-            matched = id_finder.search(view_name)
-            if matched:
-                return matched.group("id")
-            raise ValueError(f"the view name {view_name} does not contains an id segment")
-else:
-    class DashboardSecurityManager:
-        @staticmethod
-        def can_access_all() -> bool:
-            return True
+    @classmethod
+    def get_access_list(cls) -> Set[str]:
+        view_names = security_manager.user_view_menu_names(
+            SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME
+        )
+        return set(map(cls.parse_id_from_view_name, view_names))
+
+    @staticmethod
+    def parse_id_from_view_name(view_name: str) -> str:
+        matched = id_finder.search(view_name)
+        if matched:
+            return matched.group("id")
+        raise ValueError(f"the view name {view_name} does not contains an id segment")
+
+
+class FakedDashboardSecurityManager:
+    @staticmethod
+    def can_access_all() -> bool:
+        return True
+
+
+def getDashboardSecurityManager() -> Type[Any]:
+    if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
+        return DashboardSecurityManager
+    return FakedDashboardSecurityManager
 
 
 class DashboardSecurityOrientedDBEventsHandler:
     @staticmethod
     def after_insert(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"
+        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
     ) -> None:
         try:
             logger.info("in after insert on %s %d", target, target.id)
@@ -87,13 +93,13 @@ class DashboardSecurityOrientedDBEventsHandler:
 
     @staticmethod
     def on_set(  # pylint: disable=unused-argument
-        dashboard: "Dashboard", new_title: str, old_title: str, event: Any
+        dashboard: "Dashboard", new_title: str, old_title: str, event: Any  # type: ignore
     ) -> None:
         dashboard.previous_title = old_title
 
     @staticmethod
     def after_update(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"
+        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
     ) -> None:
         previous_title = target.previous_title
         new_title = target.dashboard_title
@@ -111,7 +117,7 @@ class DashboardSecurityOrientedDBEventsHandler:
 
     @staticmethod
     def after_delete(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"
+        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
     ) -> None:
         try:
             logger.info("in after delete on %s %d", target, target.id)

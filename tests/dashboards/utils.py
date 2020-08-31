@@ -18,7 +18,6 @@ from superset import is_feature_enabled, security_manager
 from superset.constants import Security
 
 
-
 def assert_permission_was_created(case, dashboard):
     view_menu = security_manager.find_view_menu(dashboard.view_name)
     case.assertIsNotNone(view_menu)
