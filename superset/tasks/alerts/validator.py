@@ -16,12 +16,15 @@
 # under the License.
 import enum
 import json
+from operator import eq, ge, gt, le, lt, ne
 from typing import Callable
 
 import numpy as np
 
 from superset.exceptions import SupersetException
 from superset.models.alerts import SQLObserver
+
+VALID_ALERT_OPERATORS = {"<", "<=", ">", ">=", "==", "!="}
 
 
 class AlertValidatorType(enum.Enum):
@@ -42,7 +45,6 @@ def check_validator(validator_type: str, config: str) -> None:
     config_dict = json.loads(config)
 
     if validator_type == AlertValidatorType.operator.value:
-        valid_operators = ["<", "<=", ">", ">=", "==", "!="]
 
         if not (config_dict.get("op") and config_dict.get("threshold")):
             raise SupersetException(
@@ -50,15 +52,17 @@ def check_validator(validator_type: str, config: str) -> None:
                 'values. Add "op" and "threshold" to config.'
             )
 
-        if not config_dict["op"] in valid_operators:
+        if not config_dict["op"] in VALID_ALERT_OPERATORS:
             raise SupersetException(
-                'Error: Invalid operator type. Recheck "op" value in the config.'
+                f'Error: {config_dict["op"]} is an invalid operator type. Change '
+                f'the "op" value in the config to one of '
+                f'["<", "<=", ">", ">=", "==", "!="]'
             )
 
         if not isinstance(config_dict["threshold"], (int, float)):
             raise SupersetException(
-                'Error: Invalid threshold value. Recheck "threshold" value '
-                "in the config."
+                f'Error: {config_dict["threshold"]} is an invalid threshold value.'
+                f' Change the "threshold" value in the config.'
             )
 
 
@@ -67,35 +71,29 @@ def not_null_validator(
 ) -> bool:
     """Returns True if a SQLObserver's recent observation is not NULL"""
 
-    observation = observer.get_observations(1)[0]
-    if observation.error_msg or observation.value in (0, None, np.nan):
+    observation = observer.get_last_observation()
+    # TODO: Validate malformed observations/observations with errors separately
+    if (
+        not observation
+        or observation.error_msg
+        or observation.value in (0, None, np.nan)
+    ):
         return False
     return True
 
 
-def operator_validator(  # pylint: disable=too-many-return-statements
-    observer: SQLObserver, validator_config: str
-) -> bool:
+def operator_validator(observer: SQLObserver, validator_config: str) -> bool:
     """
     Returns True if a SQLObserver's recent observation is greater than or equal to
     the value given in the validator config
     """
+    operator_functions = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 
-    observation = observer.get_observations(1)[0]
-    if observation.value is not None:
+    observation = observer.get_last_observation()
+    if observation and observation.value not in (None, np.nan):
         operator = json.loads(validator_config)["op"]
         threshold = json.loads(validator_config)["threshold"]
-        if operator == ">=" and observation.value >= threshold:
-            return True
-        if operator == ">" and observation.value > threshold:
-            return True
-        if operator == "<=" and observation.value <= threshold:
-            return True
-        if operator == "<" and observation.value < threshold:
-            return True
-        if operator == "==" and observation.value == threshold:
-            return True
-        if operator == "!=" and observation.value != threshold:
+        if operator_functions[operator](observation.value, threshold):
             return True
 
     return False

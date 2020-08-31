@@ -84,7 +84,6 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
     edit_title = _("Edit SQL Observer")
 
     edit_columns = [
-        "name",
         "alert",
         "database",
         "sql",
@@ -92,14 +91,9 @@ class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
 
     add_columns = edit_columns
 
-    list_columns = [
-        "name",
-        "alert.label",
-        "database",
-    ]
+    list_columns = ["alert.label", "database", "sql"]
 
     label_columns = {
-        "name": _("Name"),
         "alert": _("Alert"),
         "database": _("Database"),
         "sql": _("SQL"),
@@ -128,7 +122,6 @@ class ValidatorInlineView(  # pylint: disable=too-many-ancestors
     edit_title = _("Edit Validator")
 
     edit_columns = [
-        "name",
         "alert",
         "validator_type",
         "config",
@@ -137,13 +130,11 @@ class ValidatorInlineView(  # pylint: disable=too-many-ancestors
     add_columns = edit_columns
 
     list_columns = [
-        "name",
         "validator_type",
         "alert.label",
     ]
 
     label_columns = {
-        "name": _("Name"),
         "validator_type": _("Validator Type"),
         "alert": _("Alert"),
     }
@@ -165,12 +156,18 @@ class ValidatorInlineView(  # pylint: disable=too-many-ancestors
             '<li>Operator<ul><li>`"op": "operator"` with an operator from ["<", '
             '"<=", ">", ">=", "==", "!="] e.g. `"op": ">="`</li>'
             '<li>`"threshold": threshold_value` e.g. `"threshold": 50`'
-            "</li></ul></li></ul>",
+            '</li></ul>Example config:<br>{<br> "op":">=",<br>"threshold": 60<br>}'
+            "</li></ul>",
             True,
         ),
     }
 
     def pre_add(self, item: "ValidatorInlineView") -> None:
+        if item.alert.validators and item.alert.validators[0].id != item.id:
+            raise SupersetException(
+                "Error: Alerts currently only support 1 validator per alert."
+            )
+
         item.validator_type = item.validator_type.lower()
         check_validator(item.validator_type, item.config)
 

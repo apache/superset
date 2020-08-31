@@ -82,55 +82,46 @@ def setup_database():
 
         observers = [
             SQLObserver(
-                name="observer_1",
                 sql="SELECT 0",
                 alert_id=db.session.query(Alert).filter_by(label="alert_1").one().id,
                 database_id=example_database_id,
             ),
             SQLObserver(
-                name="observer_2",
                 sql="SELECT first FROM test_table WHERE first = -1",
                 alert_id=db.session.query(Alert).filter_by(label="alert_2").one().id,
                 database_id=example_database_id,
             ),
             SQLObserver(
-                name="observer_3",
                 sql="$%^&",
                 alert_id=db.session.query(Alert).filter_by(label="alert_3").one().id,
                 database_id=example_database_id,
             ),
             SQLObserver(
-                name="observer_4",
                 sql="SELECT 55",
                 alert_id=db.session.query(Alert).filter_by(label="alert_4").one().id,
                 database_id=example_database_id,
             ),
             SQLObserver(
-                name="observer_5",
                 sql="SELECT 'test_string' as string_value",
                 alert_id=db.session.query(Alert).filter_by(label="alert_5").one().id,
                 database_id=example_database_id,
             ),
             SQLObserver(
-                name="observer_6",
                 sql="SELECT null as null_result",
                 alert_id=db.session.query(Alert).filter_by(label="alert_6").one().id,
                 database_id=example_database_id,
             ),
             SQLObserver(
-                name="observer_7",
                 sql="SELECT 30.0 as wage",
                 alert_id=db.session.query(Alert).filter_by(label="alert_7").one().id,
                 database_id=example_database_id,
             ),
             SQLObserver(
-                name="observer_8",
                 sql="SELECT first FROM test_table",
                 alert_id=db.session.query(Alert).filter_by(label="alert_8").one().id,
                 database_id=example_database_id,
             ),
             SQLObserver(
-                name="observer_9",
                 sql="SELECT first, second FROM test_table WHERE first = 1",
                 alert_id=db.session.query(Alert).filter_by(label="alert_9").one().id,
                 database_id=example_database_id,
@@ -213,7 +204,7 @@ def test_evaluate_alert(mock_deliver_alert, setup_database):
     assert alert4.logs[-1].state == AlertState.PASS
 
     # Test triggering successful alert
-    null_val1 = Validator(name="Null Validator", validator_type="not null", alert_id=4)
+    null_val1 = Validator(validator_type="not null", alert_id=4)
     dbsession.bulk_save_objects([null_val1])
 
     alert4 = dbsession.query(Alert).filter_by(label="alert_4").one()
@@ -347,7 +338,7 @@ def test_deliver_alert_screenshot(
         "file": screenshot,
         "initial_comment": f"\n*Triggered Alert: {alert.label} :redalert:*\n"
         f"*SQL* *Statement*:```{alert.sql_observer[0].sql}```\n"
-        f"*SQL* *Result*: {alert.observations[-1].value}  *Validator* *Name*: Validator"
+        f"*SQL* *Result*: {alert.observations[-1].value}"
         f"\n<http://0.0.0.0:8080/alert/show/{alert.id}"
         f"|View Alert Details>\n<http://0.0.0.0:8080/superset/slice/{alert.slice_id}/"
         "|*Explore in Superset*>",

@@ -17,7 +17,7 @@
 """Models for scheduled execution of jobs"""
 import textwrap
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -35,6 +35,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import backref, relationship, RelationshipProperty
 
 from superset import db, security_manager
+from superset.models.helpers import AuditMixinNullable
 
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -48,7 +49,7 @@ alert_owner = Table(
 )
 
 
-class Alert(Model):
+class Alert(Model, AuditMixinNullable):
 
     """Schedules for emailing slices / dashboards"""
 
@@ -108,7 +109,6 @@ class SQLObserver(Model):
     __tablename__ = "sql_observers"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(150), nullable=False)
     sql = Column(Text, nullable=False)
 
     @declared_attr
@@ -135,13 +135,17 @@ class SQLObserver(Model):
             backref=backref("sql_observers", cascade="all, delete-orphan"),
         )
 
-    def get_observations(self, observation_num: Optional[int] = 2) -> List[Any]:
-        return (
+    def get_last_observation(self) -> Optional[Any]:
+        observations = (
             db.session.query(SQLObservation)
             .filter_by(observer_id=self.id)
             .order_by(SQLObservation.dttm.desc())
-            .limit(observation_num)
+            .limit(1)
         )
+        if observations:
+            return observations[0]
+
+        return None
 
 
 class SQLObservation(Model):  # pylint: disable=too-few-public-methods
@@ -173,7 +177,6 @@ class Validator(Model):
     __tablename__ = "alert_validators"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(150), nullable=False)
     validator_type = Column(String(100), nullable=False)
     config = Column(
         Text,
@@ -195,5 +198,5 @@ class Validator(Model):
         return relationship(
             "Alert",
             foreign_keys=[self.alert_id],
-            backref=backref("alert_validators", cascade="all, delete-orphan"),
+            backref=backref("validators", cascade="all, delete-orphan"),
         )

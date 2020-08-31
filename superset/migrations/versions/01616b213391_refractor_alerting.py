@@ -14,16 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""refactor_alerting_framework
+"""refractor_alerting
 
-Revision ID: 22cf63606dda
+Revision ID: 01616b213391
 Revises: f80a3b88324b
-Create Date: 2020-08-28 17:51:59.767013
+Create Date: 2020-08-31 14:09:40.231391
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "22cf63606dda"
+revision = "01616b213391"
 down_revision = "f80a3b88324b"
 
 import sqlalchemy as sa
@@ -36,7 +36,6 @@ def upgrade():
     op.create_table(
         "alert_validators",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(length=150), nullable=False),
         sa.Column("validator_type", sa.String(length=100), nullable=False),
         sa.Column("config", sa.Text(), nullable=True),
         sa.Column("alert_id", sa.Integer(), nullable=False),
@@ -46,7 +45,6 @@ def upgrade():
     op.create_table(
         "sql_observers",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(length=150), nullable=False),
         sa.Column("sql", sa.Text(), nullable=False),
         sa.Column("alert_id", sa.Integer(), nullable=False),
         sa.Column("database_id", sa.Integer(), nullable=False),
@@ -71,8 +69,18 @@ def upgrade():
     )
 
     with op.batch_alter_table("alerts") as batch_op:
+        batch_op.add_column(sa.Column("changed_by_fk", sa.Integer(), nullable=True))
+        batch_op.add_column(sa.Column("changed_on", sa.DateTime(), nullable=True))
+        batch_op.add_column(sa.Column("created_by_fk", sa.Integer(), nullable=True))
+        batch_op.add_column(sa.Column("created_on", sa.DateTime(), nullable=True))
         batch_op.alter_column(
             "crontab", existing_type=mysql.VARCHAR(length=50), nullable=False
+        )
+        batch_op.create_foreign_key(
+            "alerts_ibfk_3", "ab_user", ["changed_by_fk"], ["id"]
+        )
+        batch_op.create_foreign_key(
+            "alerts_ibfk_4", "ab_user", ["created_by_fk"], ["id"]
         )
         batch_op.drop_column("sql")
         batch_op.drop_column("database_id")
@@ -85,12 +93,19 @@ def downgrade():
         batch_op.add_column(
             sa.Column(
                 "database_id", mysql.INTEGER(), autoincrement=False, nullable=False
-            ),
+            )
         )
         batch_op.add_column(sa.Column("sql", mysql.TEXT(), nullable=True))
+        batch_op.drop_constraint("alerts_ibfk_3", type_="foreignkey")
+        batch_op.drop_constraint("alerts_ibfk_4", type_="foreignkey")
         batch_op.alter_column(
             "crontab", existing_type=mysql.VARCHAR(length=50), nullable=True
         )
+        batch_op.drop_column("created_on")
+        batch_op.drop_column("created_by_fk")
+        batch_op.drop_column("changed_on")
+        batch_op.drop_column("changed_by_fk")
+
     op.drop_index(op.f("ix_sql_observations_dttm"), table_name="sql_observations")
     op.drop_table("sql_observations")
     op.drop_table("sql_observers")

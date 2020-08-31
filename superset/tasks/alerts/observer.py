@@ -22,7 +22,7 @@ from typing import Optional
 import pandas as pd
 
 from superset import db
-from superset.models.alerts import SQLObservation, SQLObserver
+from superset.models.alerts import Alert, SQLObservation
 from superset.sql_parse import ParsedQuery
 
 logger = logging.getLogger("tasks.email_reports")
@@ -35,7 +35,8 @@ def observe(alert_id: int) -> Optional[str]:
     Returns an error message if the observer value was not valid
     """
 
-    sql_observer = db.session.query(SQLObserver).filter_by(alert_id=alert_id).one()
+    alert = db.session.query(Alert).filter_by(id=alert_id).one()
+    sql_observer = alert.sql_observer[0]
 
     value = None
 
@@ -43,7 +44,7 @@ def observe(alert_id: int) -> Optional[str]:
     sql = parsed_query.stripped()
     df = sql_observer.database.get_df(sql)
 
-    error_msg = check_observer_result(df, sql_observer.id, sql_observer.name)
+    error_msg = validate_observer_result(df, alert.id, alert.label)
 
     if not error_msg and df.to_records()[0][1] is not None:
         value = float(df.to_records()[0][1])
@@ -62,8 +63,8 @@ def observe(alert_id: int) -> Optional[str]:
     return error_msg
 
 
-def check_observer_result(
-    sql_result: pd.DataFrame, observer_id: int, observer_name: str
+def validate_observer_result(
+    sql_result: pd.DataFrame, alert_id: int, alert_label: str
 ) -> Optional[str]:
     """
     Verifies if a DataFrame SQL query result to see if
@@ -73,17 +74,17 @@ def check_observer_result(
     try:
         assert (
             not sql_result.empty
-        ), f"Observer <{observer_id}:{observer_name}> returned no rows"
+        ), f"Observer for alert <{alert_id}:{alert_label}> returned no rows"
 
         rows = sql_result.to_records()
 
         assert (
             len(rows) == 1
-        ), f"Observer <{observer_id}:{observer_name}> returned more than 1 row"
+        ), f"Observer for alert <{alert_id}:{alert_label}> returned more than 1 row"
 
         assert (
             len(rows[0]) == 2
-        ), f"Observer <{observer_id}:{observer_name}> returned more than 1 column"
+        ), f"Observer for alert <{alert_id}:{alert_label}> returned more than 1 column"
 
         if rows[0][1] is None:
             return None
@@ -93,6 +94,8 @@ def check_observer_result(
     except AssertionError as error:
         return str(error)
     except (TypeError, ValueError):
-        return f"Observer <{observer_id}:{observer_name}> returned a non-number value"
+        return (
+            f"Observer for alert <{alert_id}:{alert_label}> returned a non-number value"
+        )
 
     return None

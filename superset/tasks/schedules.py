@@ -73,7 +73,6 @@ if TYPE_CHECKING:
     from werkzeug.datastructures import TypeConversionDict
     from flask_appbuilder.security.sqla.models import User
 
-
 # Globals
 config = app.config
 logger = logging.getLogger("tasks.email_reports")
@@ -106,7 +105,6 @@ class AlertContent(NamedTuple):
     label: str  # alert name
     sql: str  # sql statement for alert
     observation_value: str  # value from observation that triggered the alert
-    validator: str  # name of validator that triggered alert
     alert_url: str  # url to alert details
     image_data: Optional[ScreenshotData]  # data for the alert screenshot
 
@@ -559,7 +557,6 @@ class AlertState:
 
 def deliver_alert(
     alert_id: int,
-    validator_name: Optional[str] = None,
     recipients: Optional[str] = None,
     slack_channel: Optional[str] = None,
 ) -> None:
@@ -581,14 +578,13 @@ def deliver_alert(
     observation_value = (
         str(alert.observations[-1].value) if alert.observations else "Value"
     )
-    validator_name = validator_name or "Validator"
 
+    # TODO: add sql query results and validator information to alert content
     if alert.slice:
         alert_content = AlertContent(
             alert.label,
             sql,
             observation_value,
-            validator_name,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             _get_slice_screenshot(alert.slice.id),
         )
@@ -598,7 +594,6 @@ def deliver_alert(
             alert.label,
             sql,
             observation_value,
-            validator_name,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             None,
         )
@@ -611,7 +606,6 @@ def deliver_alert(
 
 def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
     """Delivers an email alert to the given email recipients"""
-    # TODO add sql query results to email
     subject = f"[Superset] Triggered alert: {alert_content.label}"
     deliver_as_group = False
     data = None
@@ -629,7 +623,6 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
         label=alert_content.label,
         sql=alert_content.sql,
         observation_value=alert_content.observation_value,
-        validator=alert_content.validator,
         image_url=image_url,
     )
 
@@ -648,7 +641,6 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
             label=alert_content.label,
             sql=alert_content.sql,
             observation_value=alert_content.observation_value,
-            validator=alert_content.validator,
             url=alert_content.image_data.url,
             alert_url=alert_content.alert_url,
         )
@@ -659,7 +651,6 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
             label=alert_content.label,
             sql=alert_content.sql,
             observation_value=alert_content.observation_value,
-            validator=alert_content.validator,
             alert_url=alert_content.alert_url,
         )
 
@@ -695,9 +686,8 @@ def evaluate_alert(
     dttm_end = datetime.utcnow()
 
     if state != AlertState.ERROR:
-        validator_name = validate_observations(alert_id, label)
-        if validator_name:
-            deliver_alert(alert_id, validator_name, recipients, slack_channel)
+        if validate_observations(alert_id, label):
+            deliver_alert(alert_id, recipients, slack_channel)
             state = AlertState.TRIGGER
         else:
             state = AlertState.PASS
@@ -718,7 +708,7 @@ def evaluate_alert(
     db.session.commit()
 
 
-def validate_observations(alert_id: int, label: str) -> Optional[str]:
+def validate_observations(alert_id: int, label: str) -> bool:
     """
     Runs an alert's validators to check if it should be triggered or not
     If so, return the name of the validator that returned true
@@ -727,12 +717,13 @@ def validate_observations(alert_id: int, label: str) -> Optional[str]:
     logger.info("Validating observations for alert <%s:%s>", alert_id, label)
 
     alert = db.session.query(Alert).get(alert_id)
-    for validator in alert.alert_validators:
+    if alert.validators:
+        validator = alert.validators[0]
         validate = get_validator_function(validator.validator_type)
         if validate(alert.sql_observer[0], validator.config):
-            return validator.name
+            return True
 
-    return None
+    return False
 
 
 def next_schedules(
