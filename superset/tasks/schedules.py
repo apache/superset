@@ -686,7 +686,12 @@ def evaluate_alert(
     dttm_end = datetime.utcnow()
 
     if state != AlertState.ERROR:
-        if validate_observations(alert_id, label):
+        # Don't validate alert on test runs since it may not be triggered
+        if recipients or slack_channel:
+            deliver_alert(alert_id, recipients, slack_channel)
+            state = AlertState.TRIGGER
+        # Validate during regular workflow and deliver only if triggered
+        elif validate_observations(alert_id, label):
             deliver_alert(alert_id, recipients, slack_channel)
             state = AlertState.TRIGGER
         else:
