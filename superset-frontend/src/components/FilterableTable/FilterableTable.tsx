@@ -174,7 +174,7 @@ export default class FilterableTable extends PureComponent<
   }
 
   componentDidMount() {
-    this.fitTableToWidthIfNeeded();
+    this.container.current && this.fitTableToWidthIfNeeded();
   }
 
   getDatum(list: List<Datum>, index: number) {
