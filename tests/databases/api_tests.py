@@ -38,6 +38,7 @@ class TestDatabaseApi(SupersetTestCase):
         extra: str = "",
         encrypted_extra: str = "",
         server_cert: str = "",
+        expose_in_sqllab: bool = False,
     ) -> Database:
         database = Database(
             database_name=database_name,
@@ -45,6 +46,7 @@ class TestDatabaseApi(SupersetTestCase):
             extra=extra,
             encrypted_extra=encrypted_extra,
             server_cert=server_cert,
+            expose_in_sqllab=expose_in_sqllab,
         )
         db.session.add(database)
         db.session.commit()
@@ -84,12 +86,12 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get items with filter
         """
-        fake_db = (
-            db.session.query(Database).filter_by(database_name="fake_db_100").one()
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted, expose_in_sqllab=True
         )
-        old_expose_in_sqllab = fake_db.expose_in_sqllab
-        fake_db.expose_in_sqllab = False
-        db.session.commit()
+        dbs = db.session.query(Database).filter_by(expose_in_sqllab=True).all()
+
         self.login(username="admin")
         arguments = {
             "keys": ["none"],
@@ -103,12 +105,10 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
-        self.assertEqual(response["count"], 1)
+        self.assertEqual(response["count"], len(dbs))
 
-        fake_db = (
-            db.session.query(Database).filter_by(database_name="fake_db_100").one()
-        )
-        fake_db.expose_in_sqllab = old_expose_in_sqllab
+        # Cleanup
+        db.session.delete(test_database)
         db.session.commit()
 
     def test_get_items_not_allowed(self):
@@ -135,7 +135,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         self.login(username="admin")
         example_db = get_example_database()
-        if example_db.backend == "sqllite":
+        if example_db.backend == "sqlite":
             assert True
         database_data = {
             "database_name": "test-database",
