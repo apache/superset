@@ -75,3 +75,6 @@ class Security:  # pylint: disable=too-few-public-methods
     class Dashboard:
         VIEW_NAME_FORMAT = "dashboard.[{obj.dashboard_title}](id:{obj.id})"
         ACCESS_PERMISSION_NAME = "can_access_dashboard"
+
+    class AllDatasources:
+        VIEW_NAME = "all_datasource_access"

@@ -32,6 +32,7 @@ from pathlib2 import Path
 
 from superset import app, appbuilder, security_manager
 from superset.app import create_app
+from superset.constants import Security as SecurityConsts
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
 from superset.utils.urls import get_url_path
@@ -72,6 +73,12 @@ def init() -> None:
     """Inits the Superset application"""
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
+    from superset import is_feature_enabled
+    from superset.dashbaord_level_access_initializer import InitDashboardLevelAccessCommand
+    if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
+        InitDashboardLevelAccessCommand().run()
+
+
 
 
 @superset.command()
