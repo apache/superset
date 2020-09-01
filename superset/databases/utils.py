@@ -22,28 +22,6 @@ from superset.models.core import Database
 custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
 
 
-# def get_sqlalchemy_uri_decrypted(sqlalchemy_uri: str, password: str) -> str:
-#     conn = sqlalchemy.engine.url.make_url(sqlalchemy_uri)
-#     if custom_password_store:
-#         conn.password = custom_password_store(conn)
-#     else:
-#         conn.password = password
-#     return str(conn)
-#
-#
-# def get_backend_from_uri(sqlalchemy_uri: str) -> str:
-#     sqlalchemy_url = sqlalchemy.engine.url(
-#     get_sqlalchemy_uri_decrypted(sqlalchemy_uri)
-#     )
-#     return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
-#
-#
-# def get_db_engine_spec(sqlalchemy_uri) -> Type[db_engine_specs.BaseEngineSpec]:
-#     return db_engine_specs.engines.get(
-#         get_backend_from_uri(sqlalchemy_uri), db_engine_specs.BaseEngineSpec
-#     )
-
-
 def get_foreign_keys_metadata(
     database: Database, table_name: str, schema_name: Optional[str]
 ) -> List[Dict[str, Any]]:
