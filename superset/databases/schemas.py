@@ -14,14 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import inspect
+import json
+
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Length, ValidationError
+from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
-from superset.utils.core import markdown
 from superset import app
+from superset.exceptions import CertificateException
+from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
     "type": "object",
@@ -58,7 +63,7 @@ allow_multi_schema_metadata_fetch_description = (
     "Allow SQL Lab to fetch a list of all tables and all views across "
     "all database schemas. For large data warehouse with thousands of "
     "tables, this can be expensive and put strain on the system."
-)
+)  # pylint: disable=invalid-name
 impersonate_user_description = (
     "If Presto, all the queries in SQL Lab are going to be executed as the "
     "currently logged on user who must have permission to run them.<br/>"
@@ -121,7 +126,7 @@ server_cert_description = markdown(
 
 def sqlalchemy_uri_validator(value: str) -> str:
     """
-    Check if it's a valid SQLAlchemy URI
+    Validate if it's a valid SQLAlchemy URI and refuse SQLLite by default
     """
     try:
         make_url(value.strip())
@@ -131,7 +136,9 @@ def sqlalchemy_uri_validator(value: str) -> str:
                 _(
                     "Invalid connection string, a valid string usually follows:"
                     "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
-                    "<p>Example:'postgresql://user:password@your-postgres-db/database'</p>"
+                    "<p>"
+                    "Example:'postgresql://user:password@your-postgres-db/database'"
+                    "</p>"
                 )
             ]
         )
@@ -146,6 +153,61 @@ def sqlalchemy_uri_validator(value: str) -> str:
                 ]
             )
 
+    return value
+
+
+def server_cert_validator(value: str) -> str:
+    """
+    Validate the server certificate
+    """
+    if value:
+        try:
+            parse_ssl_cert(value)
+        except CertificateException:
+            raise ValidationError([_("Invalid certificate")])
+    return value
+
+
+def encrypted_extra_validator(value: str) -> str:
+    """
+    Validate that encrypted extra is a valid JSON string
+    """
+    if value:
+        try:
+            json.loads(value)
+        except json.JSONDecodeError as ex:
+            raise ValidationError(
+                [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
+            )
+    return value
+
+
+def extra_validator(value: str) -> str:
+    """
+    Validate that extra is a valid JSON string, and that metadata_params
+    keys are on the call signature for SQLAlchemy Metadata
+    """
+    if value:
+        try:
+            extra_ = json.loads(value)
+        except json.JSONDecodeError as ex:
+            raise ValidationError(
+                [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
+            )
+        else:
+            metadata_signature = inspect.signature(MetaData)
+            for key in extra_.get("metadata_params", {}):
+                if key not in metadata_signature.parameters:
+                    raise ValidationError(
+                        [
+                            _(
+                                "The metadata_params in Extra field "
+                                "is not configured correctly. The key "
+                                "%(key)s is invalid.",
+                                key=key,
+                            )
+                        ]
+                    )
     return value
 
 
@@ -167,9 +229,13 @@ class DatabasePostSchema(Schema):
         description=allow_multi_schema_metadata_fetch_description,
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
-    encrypted_extra = fields.String(description=encrypted_extra_description)
-    extra = fields.String(description=extra_description)
-    server_cert = fields.String(description=server_cert_description)
+    encrypted_extra = fields.String(
+        description=encrypted_extra_description, validate=encrypted_extra_validator
+    )
+    extra = fields.String(description=extra_description, validate=extra_validator)
+    server_cert = fields.String(
+        description=server_cert_description, validate=server_cert_validator
+    )
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
         required=True,
@@ -195,9 +261,13 @@ class DatabasePutSchema(Schema):
         description=allow_multi_schema_metadata_fetch_description
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
-    encrypted_extra = fields.String(description=encrypted_extra_description)
-    extra = fields.String(description=extra_description)
-    server_cert = fields.String(description=server_cert_description)
+    encrypted_extra = fields.String(
+        description=encrypted_extra_description, validate=encrypted_extra_validator
+    )
+    extra = fields.String(description=extra_description, validate=extra_validator)
+    server_cert = fields.String(
+        description=server_cert_description, validate=server_cert_validator
+    )
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
         allow_none=True,

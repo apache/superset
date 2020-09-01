@@ -49,8 +49,12 @@ class DatabaseRequiredFieldValidationError(ValidationError):
         )
 
 
-class BaseDatabaseFieldJSONValidationError(ValidationError):
-    def __init__(self, field_name: str, json_error: str = "") -> None:
+class DatabaseExtraJSONValidationError(ValidationError):
+    """
+    Marshmallow validation error for database encrypted extra must be a valid JSON
+    """
+
+    def __init__(self, json_error: str = "") -> None:
         super().__init__(
             [
                 _(
@@ -58,26 +62,8 @@ class BaseDatabaseFieldJSONValidationError(ValidationError):
                     json_error=json_error,
                 )
             ],
-            field_name=field_name,
+            field_name="extra",
         )
-
-
-class DatabaseEncryptedExtraValidationError(BaseDatabaseFieldJSONValidationError):
-    """
-    Marshmallow validation error for database encrypted extra must be a valid JSON
-    """
-
-    def __init__(self, json_error: str = "") -> None:
-        super().__init__("encrypted_extra", json_error=json_error)
-
-
-class DatabaseExtraJSONValidationError(BaseDatabaseFieldJSONValidationError):
-    """
-    Marshmallow validation error for database encrypted extra must be a valid JSON
-    """
-
-    def __init__(self, json_error: str = "") -> None:
-        super().__init__("extra", json_error=json_error)
 
 
 class DatabaseExtraValidationError(ValidationError):
@@ -96,13 +82,6 @@ class DatabaseExtraValidationError(ValidationError):
                 )
             ],
             field_name="extra",
-        )
-
-
-class DatabaseCertificateValidationError(ValidationError):
-    def __init__(self) -> None:
-        super().__init__(
-            [_("Invalid certificate")], field_name="server_cert",
         )
 
 

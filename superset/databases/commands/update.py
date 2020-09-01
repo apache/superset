@@ -21,9 +21,10 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
+from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOUpdateFailedError
-from superset.databases.commands.base import BaseDatabaseCommand
 from superset.databases.commands.exceptions import (
+    DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
@@ -35,7 +36,7 @@ from superset.models.core import Database
 logger = logging.getLogger(__name__)
 
 
-class UpdateDatabaseCommand(BaseDatabaseCommand):
+class UpdateDatabaseCommand(BaseCommand):
     def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
         self._actor = user
         self._properties = data.copy()
@@ -61,23 +62,18 @@ class UpdateDatabaseCommand(BaseDatabaseCommand):
         return database
 
     def validate(self) -> None:
+        exceptions: List[ValidationError] = list()
         # Validate/populate model exists
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:
             raise DatabaseNotFoundError()
-
-        exceptions: List[ValidationError] = list()
-        encrypted_extra: Optional[str] = self._properties.get("encrypted_extra")
-        extra: Optional[str] = self._properties.get("extra")
-        server_cert: Optional[str] = self._properties.get("server_cert")
-
-        # Check that encrypted extra is valid JSON
-        self._validate_encrypted_extra(exceptions, encrypted_extra)
-        # check if extra is valid JSON
-        self._validate_extra(exceptions, extra)
-        # Validate server certificate
-        self._validate_server_cert(exceptions, server_cert)
-
+        database_name: Optional[str] = self._properties.get("database_name")
+        if database_name:
+            # Check database_name uniqueness
+            if not DatabaseDAO.validate_update_uniqueness(
+                self._model_id, database_name
+            ):
+                exceptions.append(DatabaseExistsValidationError())
         if exceptions:
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)

@@ -21,8 +21,8 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
+from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.databases.commands.base import BaseDatabaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseCreateFailedError,
     DatabaseExistsValidationError,
@@ -35,7 +35,7 @@ from superset.extensions import db, security_manager
 logger = logging.getLogger(__name__)
 
 
-class CreateDatabaseCommand(BaseDatabaseCommand):
+class CreateDatabaseCommand(BaseCommand):
     def __init__(self, user: User, data: Dict[str, Any]):
         self._actor = user
         self._properties = data.copy()
@@ -61,9 +61,6 @@ class CreateDatabaseCommand(BaseDatabaseCommand):
         exceptions: List[ValidationError] = list()
         sqlalchemy_uri: Optional[str] = self._properties.get("sqlalchemy_uri")
         database_name: Optional[str] = self._properties.get("database_name")
-        encrypted_extra: Optional[str] = self._properties.get("encrypted_extra")
-        extra: Optional[str] = self._properties.get("extra")
-        server_cert: Optional[str] = self._properties.get("server_cert")
 
         if not sqlalchemy_uri:
             exceptions.append(DatabaseRequiredFieldValidationError("sqlalchemy_uri"))
@@ -75,13 +72,6 @@ class CreateDatabaseCommand(BaseDatabaseCommand):
 
         # TODO: extra needs an extra validation, but needs Database for it
         # engine_extra = get_db_engine_spec(sqlalchemy_uri).get_extra_params()
-
-        # Check that encrypted extra is valid JSON
-        self._validate_encrypted_extra(exceptions, encrypted_extra)
-        # check if extra is valid JSON
-        self._validate_extra(exceptions, extra)
-        # Validate server certificate
-        self._validate_server_cert(exceptions, server_cert)
 
         if exceptions:
             exception = DatabaseInvalidError()

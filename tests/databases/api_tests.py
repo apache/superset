@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-from unittest import mock
 
 import prison
 from sqlalchemy.sql import func
@@ -28,6 +27,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.certificates import ssl_certificate
 
 
 class TestDatabaseApi(SupersetTestCase):
@@ -126,20 +126,113 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create
         """
+        extra = {
+            "metadata_params": {},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
+
         self.login(username="admin")
         example_db = get_example_database()
         database_data = {
             "database_name": "test-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "server_cert": ssl_certificate,
+            "extra": json.dumps(extra),
         }
 
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 201)
+        # Cleanup
         model = db.session.query(Database).get(response.get("id"))
         db.session.delete(model)
         db.session.commit()
+
+    def test_create_database_server_cert_validate(self):
+        """
+        Database API: Test create server cert validation
+        """
+        self.login(username="admin")
+        example_db = get_example_database()
+        database_data = {
+            "database_name": "test-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "server_cert": "INVALID CERT",
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": {"server_cert": ["Invalid certificate"]}}
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(response, expected_response)
+
+    def test_create_database_json_validate(self):
+        """
+        Database API: Test create encrypted extra and extra validation
+        """
+        self.maxDiff = None
+        self.login(username="admin")
+        example_db = get_example_database()
+        database_data = {
+            "database_name": "test-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "encrypted_extra": '{"A": "a", "B", "C"}',
+            "extra": '["A": "a", "B", "C"]',
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "message": {
+                "encrypted_extra": [
+                    "Field cannot be decoded by JSON. Expecting ':' "
+                    "delimiter: line 1 column 15 (char 14)"
+                ],
+                "extra": [
+                    "Field cannot be decoded by JSON. Expecting ','"
+                    " delimiter: line 1 column 5 (char 4)"
+                ],
+            }
+        }
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(response, expected_response)
+
+    def test_create_database_extra_metadata_validate(self):
+        """
+        Database API: Test create extra metadata_params validation
+        """
+        extra = {
+            "metadata_params": {"wrong_param": "some_value"},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
+        self.login(username="admin")
+        example_db = get_example_database()
+        database_data = {
+            "database_name": "test-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "extra": json.dumps(extra),
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "message": {
+                "extra": [
+                    "The metadata_params in Extra field is not configured correctly."
+                    " The key wrong_param is invalid."
+                ]
+            }
+        }
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(response, expected_response)
 
     def test_create_database_unique_validate(self):
         """
@@ -155,7 +248,11 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "message": {"database_name": "A database with the same name already exists"}
+        }
         self.assertEqual(rv.status_code, 422)
+        self.assertEqual(response, expected_response)
 
     def test_create_database_uri_validate(self):
         """
@@ -206,6 +303,92 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response_data, expected_response)
+
+    def test_update_database(self):
+        """
+        Database API: Test update
+        """
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+
+        self.login(username="admin")
+        database_data = {"database_name": "test-database-updated"}
+        uri = f"api/v1/database/{test_database.id}"
+        rv = self.client.put(uri, json=database_data)
+        self.assertEqual(rv.status_code, 200)
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_database_uniqueness(self):
+        """
+        Database API: Test update uniqueness
+        """
+        example_db = get_example_database()
+        test_database1 = self.insert_database(
+            "test-database1", example_db.sqlalchemy_uri_decrypted
+        )
+        test_database2 = self.insert_database(
+            "test-database2", example_db.sqlalchemy_uri_decrypted
+        )
+
+        self.login(username="admin")
+        database_data = {"database_name": "test-database2"}
+        uri = f"api/v1/database/{test_database1.id}"
+        rv = self.client.put(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "message": {"database_name": "A database with the same name already exists"}
+        }
+        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(response, expected_response)
+        # Cleanup
+        db.session.delete(test_database1)
+        db.session.delete(test_database2)
+        db.session.commit()
+
+    def test_update_database_invalid(self):
+        """
+        Database API: Test update invalid request
+        """
+        self.login(username="admin")
+        database_data = {"database_name": "test-database-updated"}
+        uri = f"api/v1/database/invalid"
+        rv = self.client.put(uri, json=database_data)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_update_database_uri_validate(self):
+        """
+        Database API: Test update sqlalchemy_uri validate
+        """
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+
+        self.login(username="admin")
+        database_data = {
+            "database_name": "test-database-updated",
+            "sqlalchemy_uri": "wrong_uri",
+        }
+        uri = f"api/v1/database/{test_database.id}"
+        rv = self.client.put(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        expected_response = {
+            "message": {
+                "sqlalchemy_uri": [
+                    "Invalid connection string, a valid string usually "
+                    "follows:'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
+                    "<p>Example:'postgresql://user:password@your-postgres-db/database'"
+                    "</p>"
+                ]
+            }
+        }
+        self.assertEqual(response, expected_response)
 
     def test_delete_database(self):
         """

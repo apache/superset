@@ -52,7 +52,6 @@ from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
-from superset.views.database.validators import sqlalchemy_uri_validator
 
 logger = logging.getLogger(__name__)
 
@@ -129,8 +128,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     max_page_size = -1
     add_model_schema = DatabasePostSchema()
     edit_model_schema = DatabasePutSchema()
-
-    validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
 
     apispec_parameter_schemas = {
         "database_schemas_query_schema": database_schemas_query_schema,

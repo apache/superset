@@ -240,7 +240,7 @@ class DatabaseMixin:
             extra = database.get_extra()
         except Exception as ex:
             raise Exception(
-                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(ex))
+                _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             )
 
         # this will check whether 'metadata_params' is configured correctly
@@ -264,5 +264,5 @@ class DatabaseMixin:
             database.get_encrypted_extra()
         except Exception as ex:
             raise Exception(
-                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(ex))
+                _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             )
