@@ -22,10 +22,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
+from dataclasses import dataclass, field  # isort:skip
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
-from dataclasses import dataclass, field  # isort:skip
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
