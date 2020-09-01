@@ -17,9 +17,21 @@
  * under the License.
  */
 import emotionStyled, { CreateStyled } from '@emotion/styled';
+import { useTheme as useThemeBasic } from 'emotion-theming';
 
-export { useTheme, ThemeProvider, withTheme } from 'emotion-theming';
+export { ThemeProvider, withTheme } from 'emotion-theming';
 export { css } from '@emotion/core';
+
+export function useTheme() {
+  const theme = useThemeBasic<SupersetTheme>();
+  // in the case there is no theme, useTheme returns an empty object
+  if (Object.keys(theme).length === 0 && theme.constructor === Object) {
+    throw new Error(
+      'useTheme() could not find a ThemeContext. The <ThemeProvider/> component is likely missing from the app.',
+    );
+  }
+  return theme;
+}
 
 const defaultTheme = {
   borderRadius: 4,
@@ -127,11 +139,13 @@ const defaultTheme = {
   gridUnit: 4,
 };
 
+export type SupersetTheme = typeof defaultTheme;
+
 export interface SupersetThemeProps {
-  theme: typeof defaultTheme;
+  theme: SupersetTheme;
 }
 
-export const styled: CreateStyled<typeof defaultTheme> = emotionStyled;
+export const styled: CreateStyled<SupersetTheme> = emotionStyled;
 export const supersetTheme = defaultTheme;
 
 export default styled;
