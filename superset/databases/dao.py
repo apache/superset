@@ -18,6 +18,7 @@ import logging
 
 from superset.dao.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
+from superset.extensions import db
 from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
@@ -26,3 +27,10 @@ logger = logging.getLogger(__name__)
 class DatabaseDAO(BaseDAO):
     model_cls = Database
     base_filter = DatabaseFilter
+
+    @staticmethod
+    def validate_uniqueness(database_name: str) -> bool:
+        database_query = db.session.query(Database).filter(
+            Database.database_name == database_name
+        )
+        return not db.session.query(database_query.exists()).scalar()

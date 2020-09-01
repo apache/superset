@@ -30,6 +30,18 @@ class DatabaseInvalidError(CommandInvalidError):
     message = _("Dashboard parameters are invalid.")
 
 
+class DatabaseExistsValidationError(ValidationError):
+    """
+    Marshmallow validation error for dataset already exists
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("A database with the same name already exists"),
+            field_name="database_name",
+        )
+
+
 class DatabaseRequiredFieldValidationError(ValidationError):
     def __init__(self, field_name: str) -> None:
         super().__init__(
@@ -84,23 +96,6 @@ class DatabaseExtraValidationError(ValidationError):
                 )
             ],
             field_name="extra",
-        )
-
-
-class DatabaseSecurityValidationError(ValidationError):
-    """
-    Marshmallow validation error for database that is considered not secured
-    """
-
-    def __init__(self) -> None:
-        super().__init__(
-            [
-                _(
-                    "SQLite database cannot be used as a data source for "
-                    "security reasons."
-                )
-            ],
-            field_name="sqlalchemy_uri",
         )
 
 

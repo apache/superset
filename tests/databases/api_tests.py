@@ -127,18 +127,85 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test create
         """
         self.login(username="admin")
+        example_db = get_example_database()
+        database_data = {
+            "database_name": "test-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 201)
+        model = db.session.query(Database).get(response.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_create_database_unique_validate(self):
+        """
+        Database API: Test create database_name already exists
+        """
+        self.login(username="admin")
+        example_db = get_example_database()
+        database_data = {
+            "database_name": "examples",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+
+    def test_create_database_uri_validate(self):
+        """
+        Database API: Test create fail validate sqlalchemy uri
+        """
+        self.login(username="admin")
+        database_data = {
+            "database_name": "test-database",
+            "sqlalchemy_uri": "wrong_uri",
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        expected_response = {
+            "message": {
+                "sqlalchemy_uri": [
+                    "Invalid connection string, a valid string usually "
+                    "follows:'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
+                    "<p>Example:'postgresql://user:password@your-postgres-db/database'"
+                    "</p>"
+                ]
+            }
+        }
+        self.assertEqual(response, expected_response)
+
+    def test_create_database_fail_sqllite(self):
+        """
+        Database API: Test create fail with sqllite
+        """
+        self.login(username="admin")
         database_data = {
             "database_name": "test-database",
             "sqlalchemy_uri": "sqlite:////some.db",
         }
 
         uri = "api/v1/database/"
-        rv = self.client.post(uri, json=database_data)
-        self.assertEqual(rv.status_code, 201)
-        data = json.loads(rv.data.decode("utf-8"))
-        model = db.session.query(Database).get(data.get("id"))
-        db.session.delete(model)
-        db.session.commit()
+        response = self.client.post(uri, json=database_data)
+        response_data = json.loads(response.data.decode("utf-8"))
+        expected_response = {
+            "message": {
+                "sqlalchemy_uri": [
+                    "SQLite database cannot be used as a data source "
+                    "for security reasons."
+                ]
+            }
+        }
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response_data, expected_response)
 
     def test_delete_database(self):
         """

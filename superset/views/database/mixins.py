@@ -21,11 +21,11 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import MetaData
 
 from superset import app, security_manager
+from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import core as utils
-from superset.databases.filters import DatabaseFilter
 
 
 class DatabaseMixin:

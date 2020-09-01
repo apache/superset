@@ -25,10 +25,10 @@ from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.commands.base import BaseDatabaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseCreateFailedError,
+    DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseRequiredFieldValidationError,
 )
-
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import db, security_manager
 
@@ -69,6 +69,9 @@ class CreateDatabaseCommand(BaseDatabaseCommand):
             exceptions.append(DatabaseRequiredFieldValidationError("sqlalchemy_uri"))
         if not database_name:
             exceptions.append(DatabaseRequiredFieldValidationError("database_name"))
+        # Check database_name uniqueness
+        if not DatabaseDAO.validate_uniqueness(database_name):
+            exceptions.append(DatabaseExistsValidationError())
 
         # TODO: extra needs an extra validation, but needs Database for it
         # engine_extra = get_db_engine_spec(sqlalchemy_uri).get_extra_params()
@@ -77,8 +80,6 @@ class CreateDatabaseCommand(BaseDatabaseCommand):
         self._validate_encrypted_extra(exceptions, encrypted_extra)
         # check if extra is valid JSON
         self._validate_extra(exceptions, extra)
-        # Check unsafe SQLAlchemy URI
-        self._validate_sqlalchemy_uri(exceptions, sqlalchemy_uri)
         # Validate server certificate
         self._validate_server_cert(exceptions, server_cert)
 

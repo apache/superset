@@ -29,21 +29,22 @@ from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseCreateFailedError,
+    DatabaseDeleteDatasetsExistFailedError,
     DatabaseDeleteFailedError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
-    DatabaseDeleteDatasetsExistFailedError,
 )
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.decorators import check_datasource_access
+from superset.databases.filters import DatabaseFilter
 from superset.databases.schemas import (
     database_schemas_query_schema,
+    DatabasePostSchema,
+    DatabasePutSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
-    DatabasePostSchema,
-    DatabasePutSchema,
 )
 from superset.databases.utils import get_table_metadata
 from superset.extensions import security_manager
@@ -51,7 +52,6 @@ from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
-from superset.databases.filters import DatabaseFilter
 from superset.views.database.validators import sqlalchemy_uri_validator
 
 logger = logging.getLogger(__name__)

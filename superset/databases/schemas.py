@@ -14,10 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Length, ValidationError
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import ArgumentError
 
 from superset.utils.core import markdown
+from superset import app
 
 database_schemas_query_schema = {
     "type": "object",
@@ -115,6 +119,36 @@ server_cert_description = markdown(
 )
 
 
+def sqlalchemy_uri_validator(value: str) -> str:
+    """
+    Check if it's a valid SQLAlchemy URI
+    """
+    try:
+        make_url(value.strip())
+    except (ArgumentError, AttributeError):
+        raise ValidationError(
+            [
+                _(
+                    "Invalid connection string, a valid string usually follows:"
+                    "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
+                    "<p>Example:'postgresql://user:password@your-postgres-db/database'</p>"
+                )
+            ]
+        )
+    if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] and value:
+        if value.startswith("sqlite"):
+            raise ValidationError(
+                [
+                    _(
+                        "SQLite database cannot be used as a data source for "
+                        "security reasons."
+                    )
+                ]
+            )
+
+    return value
+
+
 class DatabasePostSchema(Schema):
     database_name = fields.String(
         description=database_name_description, required=True, validate=Length(1, 250),
@@ -126,16 +160,20 @@ class DatabasePostSchema(Schema):
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
-    force_ctas_schema = fields.Boolean(description=force_ctas_schema_description)
+    force_ctas_schema = fields.String(
+        description=force_ctas_schema_description, validate=Length(0, 250)
+    )
     allow_multi_schema_metadata_fetch = fields.Boolean(
-        description=allow_multi_schema_metadata_fetch_description
+        description=allow_multi_schema_metadata_fetch_description,
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     encrypted_extra = fields.String(description=encrypted_extra_description)
     extra = fields.String(description=extra_description)
     server_cert = fields.String(description=server_cert_description)
     sqlalchemy_uri = fields.String(
-        description=sqlalchemy_uri_description, required=True, validate=Length(1, 1024),
+        description=sqlalchemy_uri_description,
+        required=True,
+        validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
 
 
@@ -150,7 +188,9 @@ class DatabasePutSchema(Schema):
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
-    force_ctas_schema = fields.Boolean()
+    force_ctas_schema = fields.String(
+        description=force_ctas_schema_description, validate=Length(0, 250)
+    )
     allow_multi_schema_metadata_fetch = fields.Boolean(
         description=allow_multi_schema_metadata_fetch_description
     )
@@ -161,7 +201,7 @@ class DatabasePutSchema(Schema):
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
         allow_none=True,
-        validate=Length(0, 1024),
+        validate=[Length(0, 1024), sqlalchemy_uri_validator],
     )
 
 

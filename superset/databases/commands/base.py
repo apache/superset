@@ -29,7 +29,6 @@ from superset.databases.commands.exceptions import (
     DatabaseEncryptedExtraValidationError,
     DatabaseExtraJSONValidationError,
     DatabaseExtraValidationError,
-    DatabaseSecurityValidationError,
 )
 from superset.exceptions import CertificateException
 from superset.utils.core import parse_ssl_cert

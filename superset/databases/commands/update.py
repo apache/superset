@@ -21,12 +21,12 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.databases.commands.base import BaseDatabaseCommand
 from superset.dao.exceptions import DAOUpdateFailedError
+from superset.databases.commands.base import BaseDatabaseCommand
 from superset.databases.commands.exceptions import (
-    DatabaseUpdateFailedError,
-    DatabaseNotFoundError,
     DatabaseInvalidError,
+    DatabaseNotFoundError,
+    DatabaseUpdateFailedError,
 )
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import db, security_manager
@@ -67,7 +67,6 @@ class UpdateDatabaseCommand(BaseDatabaseCommand):
             raise DatabaseNotFoundError()
 
         exceptions: List[ValidationError] = list()
-        sqlalchemy_uri: Optional[str] = self._properties.get("sqlalchemy_uri")
         encrypted_extra: Optional[str] = self._properties.get("encrypted_extra")
         extra: Optional[str] = self._properties.get("extra")
         server_cert: Optional[str] = self._properties.get("server_cert")
@@ -76,8 +75,6 @@ class UpdateDatabaseCommand(BaseDatabaseCommand):
         self._validate_encrypted_extra(exceptions, encrypted_extra)
         # check if extra is valid JSON
         self._validate_extra(exceptions, extra)
-        # Check unsafe SQLAlchemy URI
-        self._validate_sqlalchemy_uri(exceptions, sqlalchemy_uri)
         # Validate server certificate
         self._validate_server_cert(exceptions, server_cert)
 
