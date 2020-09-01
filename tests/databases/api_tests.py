@@ -135,6 +135,8 @@ class TestDatabaseApi(SupersetTestCase):
 
         self.login(username="admin")
         example_db = get_example_database()
+        if example_db.backend == "sqllite":
+            assert True
         database_data = {
             "database_name": "test-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
@@ -145,7 +147,6 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
-        raise Exception(response)
         self.assertEqual(rv.status_code, 201)
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))

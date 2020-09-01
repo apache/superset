@@ -188,6 +188,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateDatabaseCommand(g.user, item).run()
+            # Return censored version for sqlalchemy URI
+            item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -255,6 +257,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             changed_model = UpdateDatabaseCommand(g.user, pk, item).run()
+            # Return censored version for sqlalchemy URI
+            item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()
