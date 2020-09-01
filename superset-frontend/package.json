@@ -102,7 +102,7 @@
     "@superset-ui/time-format": "^0.14.9",
     "@superset-ui/translation": "^0.14.20",
     "@superset-ui/validator": "^0.14.9",
-    "@types/classnames": "^2.2.9",
+    "@types/classnames": "^2.2.10",
     "@types/enzyme": "^3.10.5",
     "@types/fetch-mock": "^7.3.2",
     "@types/react-bootstrap": "^0.32.21",
@@ -132,6 +132,7 @@
     "d3-scale": "^2.1.2",
     "dnd-core": "^2.6.0",
     "dom-to-image": "^2.6.0",
+    "fsevents": "^2.1.3",
     "geolib": "^2.0.24",
     "immutable": "^3.8.2",
     "interweave": "^11.2.0",
@@ -194,7 +195,7 @@
     "use-query-params": "^0.4.5"
   },
   "devDependencies": {
-    "@babel/cli": "^7.8.4",
+    "@babel/cli": "^7.11.5",
     "@babel/compat-data": "^7.9.6",
     "@babel/core": "^7.8.7",
     "@babel/node": "^7.8.7",
@@ -216,14 +217,12 @@
     "@storybook/preset-typescript": "^3.0.0",
     "@storybook/react": "^6.0.13",
     "@svgr/webpack": "^5.4.0",
-    "@types/classnames": "^2.2.9",
     "@types/dom-to-image": "^2.6.0",
     "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/jest": "^26.0.3",
     "@types/jquery": "^3.3.32",
     "@types/react": "^16.9.43",
     "@types/react-dom": "^16.9.8",
-    "@types/react-json-tree": "^0.6.11",
     "@types/react-redux": "^5.0.2",
     "@types/react-table": "^7.0.19",
     "@types/react-ultimate-pagination": "^1.2.0",
@@ -290,13 +289,10 @@
     "webpack": "^4.42.0",
     "webpack-bundle-analyzer": "^3.6.1",
     "webpack-cli": "^3.3.11",
-    "webpack-dev-server": "^3.10.3",
+    "webpack-dev-server": "^3.11.0",
     "webpack-manifest-plugin": "^2.2.0",
     "webpack-sources": "^1.4.3",
     "yargs": "^15.4.1"
-  },
-  "optionalDependencies": {
-    "fsevents": "^2.0.7"
   },
   "stylelint": {
     "rules": {
