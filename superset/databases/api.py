@@ -512,7 +512,44 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def test_connection(  # pylint: disable=too-many-return-statements
         self,
     ) -> FlaskResponse:
-        """Tests a sqla connection"""
+        """Tests a database connection
+        ---
+        post:
+          description: >-
+            Tests a database connection
+          requestBody:
+            description: Database schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    encrypted_extra:
+                      type: object
+                    extras:
+                      type: object
+                    name:
+                      type: string
+                    server_cert:
+                      type: string
+          responses:
+            200:
+              description: Database Test Connection
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         uri = request.json.get("uri")
         try:
             DatabaseDAO.test_connection(
@@ -530,11 +567,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except (NoSuchModuleError, ModuleNotFoundError):
             logger.info("Invalid driver")
             driver_name = make_url(uri).drivername
-            return self.response(
-                400,
-                message="Could not load database driver: %(driver_name)s",
-                driver_name=driver_name,
-            )
+            message = "Could not load database driver: %s" % (driver_name)
+            return self.response(400, message=message, driver_name=driver_name)
         except ArgumentError:
             logger.info("Invalid URI")
             return self.response_422(

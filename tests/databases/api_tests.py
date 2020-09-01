@@ -66,6 +66,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get items with filter
         """
+        self.create_fake_db()
         fake_db = (
             db.session.query(Database).filter_by(database_name="fake_db_100").one()
         )
@@ -308,7 +309,10 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 400)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"error": "Could not load database driver: broken"}
+        expected_response = {
+            "driver_name": "broken",
+            "message": "Could not load database driver: broken",
+        }
         self.assertEqual(response, expected_response)
 
         data = {
@@ -319,8 +323,11 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 400)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
-        response = json.loads(response.data.decode("utf-8"))
-        expected_response = {"error": "Could not load database driver: mssql+pymssql"}
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "driver_name": "mssql+pymssql",
+            "message": "Could not load database driver: mssql+pymssql",
+        }
         self.assertEqual(response, expected_response)
 
     def test_test_connection_unsafe_uri(self):
@@ -340,6 +347,6 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "error": "SQLite database cannot be used as a data source for security reasons."
+            "message": "SQLite database cannot be used as a data source for security reasons."
         }
         self.assertEqual(response, expected_response)
