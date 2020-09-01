@@ -43,8 +43,12 @@ const dbProps = {
 };
 
 describe('DatabaseModal', () => {
-  const wrapper = mount(<DatabaseModal {...mockedProps} />, { context: { store } });
-  const editWrapper = mount(<DatabaseModal {...dbProps} />, { context: { store } });
+  const wrapper = mount(<DatabaseModal {...mockedProps} />, {
+    context: { store },
+  });
+  const editWrapper = mount(<DatabaseModal {...dbProps} />, {
+    context: { store },
+  });
 
   it('renders', () => {
     expect(wrapper.find(DatabaseModal)).toExist();
