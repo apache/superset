@@ -74,11 +74,12 @@ def init() -> None:
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
     from superset import is_feature_enabled
-    from superset.dashbaord_level_access_initializer import InitDashboardLevelAccessCommand
+    from superset.dashbaord_level_access_initializer import (
+        InitDashboardLevelAccessCommand,
+    )
+
     if is_feature_enabled(SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE):
         InitDashboardLevelAccessCommand().run()
-
-
 
 
 @superset.command()
