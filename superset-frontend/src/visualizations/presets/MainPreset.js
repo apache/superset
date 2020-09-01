@@ -56,10 +56,7 @@ import {
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { LegacyBoxPlotChartPlugin } from '@superset-ui/preset-chart-xy';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
-import {
-  EchartsTimeseriesChartPlugin,
-  EchartsPieChartPlugin,
-} from '@superset-ui/plugin-chart-echarts';
+import { EchartsTimeseriesChartPlugin } from '@superset-ui/plugin-chart-echarts';
 
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
@@ -109,7 +106,6 @@ export default class MainPreset extends Preset {
         new EchartsTimeseriesChartPlugin().configure({
           key: 'echarts_timeseries',
         }),
-        new EchartsPieChartPlugin().configure({ key: 'echarts_pie' }),
       ],
     });
   }
