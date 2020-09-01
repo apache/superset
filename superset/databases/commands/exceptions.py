@@ -97,8 +97,8 @@ class DatabaseUpdateFailedError(UpdateFailedError):
     message = _("Database could not be updated.")
 
 
-class DatabaseConnectionFailedError(
-    DatabaseCreateFailedError, DatabaseUpdateFailedError
+class DatabaseConnectionFailedError(  # pylint: disable=too-many-ancestors
+    DatabaseCreateFailedError, DatabaseUpdateFailedError,
 ):
     message = _("Could not connect to database.")
 
