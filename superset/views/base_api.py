@@ -415,5 +415,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
         # Apply pagination
         result = self.datamodel.apply_pagination(query, page, page_size).all()
         # produce response
-        result = [{"text": item[0]} for item in result if item[0] is not None]
+        result = [
+            {"text": item[0], "value": item[0]}
+            for item in result
+            if item[0] is not None
+        ]
         return self.response(200, count=count, result=result)

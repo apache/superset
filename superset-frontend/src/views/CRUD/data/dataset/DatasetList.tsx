@@ -20,7 +20,11 @@ import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import React, { FunctionComponent, useState, useMemo } from 'react';
 import rison from 'rison';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createFetchRelated,
+  createFetchDistinct,
+  createErrorHandler,
+} from 'src/views/CRUD/utils';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DatasourceModal from 'src/datasource/DatasourceModal';
@@ -58,40 +62,6 @@ interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
-
-export const createFetchSchemas = (
-  handleError: (error: Response) => void,
-) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
-  // add filters if filterValue
-  const filters = filterValue
-    ? { filters: [{ col: 'schema', opr: 'sw', value: filterValue }] }
-    : {};
-  try {
-    const queryParams = rison.encode({
-      columns: ['schema'],
-      keys: ['none'],
-      order_by: 'schema',
-      ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_size: pageSize } : {}),
-      ...filters,
-    });
-    const { json = {} } = await SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=${queryParams}`,
-    });
-
-    const schemas: string[] = json?.result?.map(
-      ({ schema }: { schema: string }) => schema,
-    );
-
-    // uniqueify schema values and create options
-    return [...new Set(schemas)]
-      .filter(schema => Boolean(schema))
-      .map(schema => ({ label: schema, value: schema }));
-  } catch (e) {
-    handleError(e);
-  }
-  return [];
-};
 
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
@@ -393,8 +363,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         input: 'select',
         operator: 'eq',
         unfilteredLabel: 'All',
-        fetchSelects: createFetchSchemas(errMsg =>
-          t('An error occurred while fetching schema values: %s', errMsg),
+        fetchSelects: createFetchDistinct(
+          'dataset',
+          'schema',
+          createErrorHandler(errMsg =>
+            t('An error occurred while fetching schema values: %s', errMsg),
+          ),
         ),
         paginate: true,
       },
