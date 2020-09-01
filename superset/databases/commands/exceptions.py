@@ -97,6 +97,12 @@ class DatabaseUpdateFailedError(UpdateFailedError):
     message = _("Database could not be updated.")
 
 
+class DatabaseConnectionFailedError(
+    DatabaseCreateFailedError, DatabaseUpdateFailedError
+):
+    message = _("Could not connect to database.")
+
+
 class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
     message = _("Cannot delete a database that has tables attached")
 

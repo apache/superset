@@ -297,13 +297,13 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create fail with sqllite
         """
-        self.login(username="admin")
         database_data = {
             "database_name": "test-database",
             "sqlalchemy_uri": "sqlite:////some.db",
         }
 
         uri = "api/v1/database/"
+        self.login(username="admin")
         response = self.client.post(uri, json=database_data)
         response_data = json.loads(response.data.decode("utf-8"))
         expected_response = {
@@ -315,6 +315,27 @@ class TestDatabaseApi(SupersetTestCase):
             }
         }
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response_data, expected_response)
+
+    def test_create_database_conn_fail(self):
+        """
+        Database API: Test create fails connection
+        """
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        example_db.password = "wrong_password"
+        database_data = {
+            "database_name": "test-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+        }
+
+        uri = "api/v1/database/"
+        self.login(username="admin")
+        response = self.client.post(uri, json=database_data)
+        response_data = json.loads(response.data.decode("utf-8"))
+        expected_response = {"message": "Could not connect to database."}
+        self.assertEqual(response.status_code, 422)
         self.assertEqual(response_data, expected_response)
 
     def test_update_database(self):
@@ -331,6 +352,34 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
         self.assertEqual(rv.status_code, 200)
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_database_conn_fail(self):
+        """
+        Database API: Test update fails connection
+        """
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        test_database = self.insert_database(
+            "test-database1", example_db.sqlalchemy_uri_decrypted
+        )
+        example_db.password = "wrong_password"
+        database_data = {
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+        }
+
+        uri = f"api/v1/database/{test_database.id}"
+        self.login(username="admin")
+        rv = self.client.put(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": "Could not connect to database."}
+        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(response, expected_response)
         # Cleanup
         model = db.session.query(Database).get(test_database.id)
         db.session.delete(model)

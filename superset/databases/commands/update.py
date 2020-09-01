@@ -24,6 +24,7 @@ from marshmallow import ValidationError
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.commands.exceptions import (
+    DatabaseConnectionFailedError,
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
@@ -50,7 +51,13 @@ class UpdateDatabaseCommand(BaseCommand):
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
             security_manager.add_permission_view_menu("database_access", database.perm)
             # adding a new database we always want to force refresh schema list
-            for schema in database.get_all_schema_names():
+            # TODO Improve this simplistic implementation for catching DB conn fails
+            try:
+                schemas = database.get_all_schema_names()
+            except Exception:
+                db.session.rollback()
+                raise DatabaseConnectionFailedError()
+            for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
