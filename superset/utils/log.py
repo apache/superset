@@ -169,7 +169,6 @@ class DBEventLogger(AbstractEventLogger):
                 user_id=user_id,
             )
             logs.append(log)
-
         try:
             sesh = current_app.appbuilder.get_session
             sesh.bulk_save_objects(logs)
