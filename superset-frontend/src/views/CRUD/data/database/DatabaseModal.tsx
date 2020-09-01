@@ -100,7 +100,7 @@ const StyledInputContainer = styled.div`
       width: 40%;
     }
 
-    &[name='uri'] {
+    &[name='sqlalchemy_uri'] {
       margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     }
   }
@@ -136,7 +136,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const target = event.target;
     const data = {
       database_name: db ? db.database_name : '',
-      uri: db ? db.uri : '',
+      sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
       ...db,
     };
 
@@ -152,8 +152,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const target = event.target;
     const data = {
-      name: db ? db.name : '',
-      uri: db ? db.uri : '',
+      database_name: db ? db.database_name : '',
+      sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
       ...db,
     };
 
@@ -162,7 +162,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const validate = () => {
-    if (db && db.name.length && db.uri.length) {
+    if (db && db.database_name.length && db.sqlalchemy_uri.length) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
@@ -180,7 +180,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   } else if (!isEditMode && (!db || db.id || (isHidden && show))) {
     setDB({
       database_name: '',
-      uri: '',
+      sqlalchemy_uri: '',
     });
   }
 
@@ -228,7 +228,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="input-container">
               <input
                 type="text"
-                name="name"
+                name="database_name"
                 value={db ? db.database_name : ''}
                 placeholder={t('Name your datasource')}
                 onChange={onInputChange}
@@ -243,8 +243,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="input-container">
               <input
                 type="text"
-                name="uri"
-                value={db ? db.uri : ''}
+                name="sqlalchemy_uri"
+                value={db ? db.sqlalchemy_uri : ''}
                 placeholder={t('SQLAlchemy URI')}
                 onChange={onInputChange}
               />
@@ -269,8 +269,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="input-container">
               <input
                 type="number"
-                name="chartCacheTimeout"
-                value={db ? db.chartCacheTimeout || '' : ''}
+                name="cache_timeout"
+                value={db ? db.cache_timeout || '' : ''}
                 placeholder={t('Chart Cache Timeout')}
                 onChange={onInputChange}
               />
@@ -286,9 +286,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <StyledInputContainer>
             <div className="input-container">
               <IndeterminateCheckbox
-                id="asynchronousQueryExecution"
+                id="allow_run_async"
                 indeterminate={false}
-                checked={db ? !!db.asynchronousQueryExecution : false}
+                checked={db ? !!db.allow_run_async : false}
                 onChange={onInputChange}
               />
               <div>{t('Asynchronous Query Execution')}</div>
@@ -317,9 +317,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <StyledInputContainer>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="sqlExpose"
+                  id="expose_in_sqllab"
                   indeterminate={false}
-                  checked={db ? !!db.sqlExpose : false}
+                  checked={db ? !!db.expose_in_sqllab : false}
                   onChange={onInputChange}
                 />
                 <div>{t('Expose in SQL Lab')}</div>
@@ -332,9 +332,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <StyledInputContainer>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="allowCTA"
+                  id="allow_ctas"
                   indeterminate={false}
-                  checked={db ? !!db.allowCTA : false}
+                  checked={db ? !!db.allow_ctas : false}
                   onChange={onInputChange}
                 />
                 <div>{t('Allow CREATE TABLE AS')}</div>
@@ -347,9 +347,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <StyledInputContainer>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="allowCVA"
+                  id="allow_cvas"
                   indeterminate={false}
-                  checked={db ? !!db.allowCVA : false}
+                  checked={db ? !!db.allow_cvas : false}
                   onChange={onInputChange}
                 />
                 <div>{t('Allow CREATE VIEW AS')}</div>
@@ -362,9 +362,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <StyledInputContainer>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="allowDML"
+                  id="allow_dml"
                   indeterminate={false}
-                  checked={db ? !!db.allowDML : false}
+                  checked={db ? !!db.allow_dml : false}
                   onChange={onInputChange}
                 />
                 <div>{t('Allow DML')}</div>
@@ -379,9 +379,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <StyledInputContainer>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="allowMSMF"
+                  id="allow_multi_schema_metadata_fetch"
                   indeterminate={false}
-                  checked={db ? !!db.allowMSMF : false}
+                  checked={db ? !!db.allow_multi_schema_metadata_fetch : false}
                   onChange={onInputChange}
                 />
                 <div>{t('Allow Multi Schema Metadata Fetch')}</div>
@@ -404,9 +404,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="label">{t('CTAS Schema')}</div>
             <div className="input-container">
               <input
-                type="number"
-                name="forceCTASSchema"
-                value={db ? db.forceCTASSchema || '' : ''}
+                type="name"
+                name="force_ctas_schema"
+                value={db ? db.force_ctas_schema || '' : ''}
                 placeholder={t('CTAS Schema')}
                 onChange={onInputChange}
               />
@@ -424,8 +424,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="label">{t('Secure Extra')}</div>
             <div className="input-container">
               <textarea
-                name="secureExtra"
-                value={db ? db.secureExtra || '' : ''}
+                name="encrypted_extra"
+                value={db ? db.encrypted_extra || '' : ''}
                 placeholder={t('Secure Extra')}
                 onChange={onTextChange}
               />
@@ -451,8 +451,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="label">{t('Root Certificate')}</div>
             <div className="input-container">
               <textarea
-                name="rootCertificate"
-                value={db ? db.rootCertificate || '' : ''}
+                name="server_cert"
+                value={db ? db.server_cert || '' : ''}
                 placeholder={t('Root Certificate')}
                 onChange={onTextChange}
               />
@@ -468,9 +468,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <StyledInputContainer>
             <div className="input-container">
               <IndeterminateCheckbox
-                id="impersonateUser"
+                id="impersonate_user"
                 indeterminate={false}
-                checked={db ? !!db.impersonateUser : false}
+                checked={db ? !!db.impersonate_user : false}
                 onChange={onInputChange}
               />
               <div>{t('Impersonate Logged In User (Presto & Hive')}</div>
@@ -497,9 +497,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <StyledInputContainer>
             <div className="input-container">
               <IndeterminateCheckbox
-                id="allowCSV"
+                id="allow_csv_upload"
                 indeterminate={false}
-                checked={db ? !!db.allowCSV : false}
+                checked={db ? !!db.allow_csv_upload : false}
                 onChange={onInputChange}
               />
               <div>{t('Allow CSV Upload')}</div>
