@@ -35,6 +35,7 @@ from unittest import mock, skipUnless
 import pandas as pd
 import sqlalchemy as sqla
 
+from superset.models.cache import CacheKey
 from tests.test_app import app  # isort:skip
 import superset.views.utils
 from superset import (
@@ -582,6 +583,12 @@ class TestCore(SupersetTestCase):
             f"/superset/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}&extra_filters="
             + quote(json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}]))
         ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+
+    def test_cache_logging(self):
+        slc = self.get_slice("Girls", db.session)
+        self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
+        ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
+        assert ck.datasource_uid == "3__table"
 
     def test_shortner(self):
         self.login(username="admin")
