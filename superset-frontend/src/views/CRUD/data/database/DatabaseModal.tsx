@@ -314,88 +314,108 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('SQL Lab Settings')}</span>} key="3">
           <StyledInputContainer>
-            <div className="input-container">
-              <IndeterminateCheckbox
-                id="sqlExpose"
-                indeterminate={false}
-                checked={db ? !!db.sqlExpose : false}
-                onChange={onInputChange}
-              />
-              <div>{t('Expose in SQL Lab')}</div>
-              <InfoTooltipWithTrigger
-                label="sql-expose"
-                tooltip={t('Expose this DB in SQL Lab')}
-              />
-            </div>
+            <StyledInputContainer>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="sqlExpose"
+                  indeterminate={false}
+                  checked={db ? !!db.sqlExpose : false}
+                  onChange={onInputChange}
+                />
+                <div>{t('Expose in SQL Lab')}</div>
+                <InfoTooltipWithTrigger
+                  label="sql-expose"
+                  tooltip={t('Expose this DB in SQL Lab')}
+                />
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="allowCTA"
+                  indeterminate={false}
+                  checked={db ? !!db.allowCTA : false}
+                  onChange={onInputChange}
+                />
+                <div>{t('Allow CREATE TABLE AS')}</div>
+                <InfoTooltipWithTrigger
+                  label="allow-cta"
+                  tooltip={t('Allow CREATE TABLE AS option in SQL Lab')}
+                />
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="allowCVA"
+                  indeterminate={false}
+                  checked={db ? !!db.allowCVA : false}
+                  onChange={onInputChange}
+                />
+                <div>{t('Allow CREATE VIEW AS')}</div>
+                <InfoTooltipWithTrigger
+                  label="allow-cva"
+                  tooltip={t('Allow CREATE VIEW AS option in SQL Lab')}
+                />
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="allowDML"
+                  indeterminate={false}
+                  checked={db ? !!db.allowDML : false}
+                  onChange={onInputChange}
+                />
+                <div>{t('Allow DML')}</div>
+                <InfoTooltipWithTrigger
+                  label="allow-dml"
+                  tooltip={t(
+                    'Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)',
+                  )}
+                />
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="allowMSMF"
+                  indeterminate={false}
+                  checked={db ? !!db.allowMSMF : false}
+                  onChange={onInputChange}
+                />
+                <div>{t('Allow Multi Schema Metadata Fetch')}</div>
+                <InfoTooltipWithTrigger
+                  label="allow-msmf"
+                  tooltip={
+                    t(
+                      'Allow SQL Lab to fetch a list of all tables and all views across all database ',
+                    ) +
+                    t(
+                      'schemas. For large data warehouse with thousands of tables, this can be ',
+                    ) +
+                    t('expensive and put strain on the system.')
+                  }
+                />
+              </div>
+            </StyledInputContainer>
           </StyledInputContainer>
           <StyledInputContainer>
+            <div className="label">{t('CTAS Schema')}</div>
             <div className="input-container">
-              <IndeterminateCheckbox
-                id="allowCTA"
-                indeterminate={false}
-                checked={db ? !!db.allowCTA : false}
+              <input
+                type="number"
+                name="forceCTASSchema"
+                value={db ? db.forceCTASSchema || '' : ''}
+                placeholder={t('CTAS Schema')}
                 onChange={onInputChange}
-              />
-              <div>{t('Allow CREATE TABLE AS')}</div>
-              <InfoTooltipWithTrigger
-                label="allow-cta"
-                tooltip={t('Allow CREATE TABLE AS option in SQL Lab')}
               />
             </div>
-          </StyledInputContainer>
-          <StyledInputContainer>
-            <div className="input-container">
-              <IndeterminateCheckbox
-                id="allowCVA"
-                indeterminate={false}
-                checked={db ? !!db.allowCVA : false}
-                onChange={onInputChange}
-              />
-              <div>{t('Allow CREATE VIEW AS')}</div>
-              <InfoTooltipWithTrigger
-                label="allow-cva"
-                tooltip={t('Allow CREATE VIEW AS option in SQL Lab')}
-              />
-            </div>
-          </StyledInputContainer>
-          <StyledInputContainer>
-            <div className="input-container">
-              <IndeterminateCheckbox
-                id="allowDML"
-                indeterminate={false}
-                checked={db ? !!db.allowDML : false}
-                onChange={onInputChange}
-              />
-              <div>{t('Allow DML')}</div>
-              <InfoTooltipWithTrigger
-                label="allow-dml"
-                tooltip={t(
-                  'Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)',
-                )}
-              />
-            </div>
-          </StyledInputContainer>
-          <StyledInputContainer>
-            <div className="input-container">
-              <IndeterminateCheckbox
-                id="allowMSMF"
-                indeterminate={false}
-                checked={db ? !!db.allowMSMF : false}
-                onChange={onInputChange}
-              />
-              <div>{t('Allow Multi Schema Metadata Fetch')}</div>
-              <InfoTooltipWithTrigger
-                label="allow-msmf"
-                tooltip={
-                  t(
-                    'Allow SQL Lab to fetch a list of all tables and all views across all database ',
-                  ) +
-                  t(
-                    'schemas. For large data warehouse with thousands of tables, this can be ',
-                  ) +
-                  t('expensive and put strain on the system.')
-                }
-              />
+            <div className="helper">
+              {t(
+                'When allowing CREATE TABLE AS option in SQL Lab, this option ',
+              )}{' '}
+              +{t('forces the table to be created in this schema')}
             </div>
           </StyledInputContainer>
         </Tabs.TabPane>
@@ -538,7 +558,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 ) +
                   t('that CSVs are allowed to upload to. Specify it as ') +
                   t(
-                    '{"schemas_allowed_for_csv_upload": ["public", "csv_upload"]. If database ',
+                    '"schemas_allowed_for_csv_upload": ["public", "csv_upload"]. If database ',
                   ) +
                   t(
                     'flavor does not support schema or any schema is allowed to be accessed, ',
@@ -548,7 +568,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <div>
                 {t(
                   "4. The version field is a string specifying this db's version. This ",
-                ) + t('be used with Presto DBs so that the syntax is correct.')}
+                ) +
+                  t(
+                    'should be used with Presto DBs so that the syntax is correct.',
+                  )}
               </div>
               <div>
                 {t(
