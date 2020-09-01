@@ -208,6 +208,10 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create extra metadata_params validation
         """
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
         extra = {
             "metadata_params": {"wrong_param": "some_value"},
             "engine_params": {},
@@ -215,7 +219,6 @@ class TestDatabaseApi(SupersetTestCase):
             "schemas_allowed_for_csv_upload": [],
         }
         self.login(username="admin")
-        example_db = get_example_database()
         database_data = {
             "database_name": "test-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
