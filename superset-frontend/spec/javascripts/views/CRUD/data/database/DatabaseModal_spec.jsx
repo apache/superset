@@ -52,7 +52,6 @@ describe('DatabaseModal', () => {
 
   it('renders a Modal', () => {
     expect(wrapper.find(Modal)).toExist();
-    console.log( 'header text', wrapper.find('h4').text() );
   });
 
   it('renders "Add Database" header when no database is included', () => {
@@ -70,5 +69,10 @@ describe('DatabaseModal', () => {
   it('renders five TabPanes', () => {
     expect(wrapper.find(Tabs.TabPane)).toExist();
     expect(wrapper.find(Tabs.TabPane)).toHaveLength(5);
+  });
+
+  it('renders input elements for Connection section', () => {
+    expect(wrapper.find('input[name="database_name"]')).toExist();
+    expect(wrapper.find('input[name="sqlalchemy_uri"]')).toExist();
   });
 });
