@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-echarts",
-  "version": "0.0.0",
+  "version": "0.14.23",
   "description": "Superset Chart - Echarts",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -41,7 +41,7 @@
     "jest": "^26.0.1"
   },
   "dependencies": {
-    "@superset-ui/time-format": "^0.14.9",
+    "@superset-ui/time-format": "0.14.23",
     "@types/echarts": "^4.6.3",
     "echarts": "^4.9.0"
   }
