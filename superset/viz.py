@@ -41,7 +41,7 @@ from typing import (
     Union,
 )
 
-import dataclasses
+import dataclasses  # isort:skip
 import geohash
 import numpy as np
 import pandas as pd

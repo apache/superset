@@ -18,7 +18,7 @@
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from dataclasses import dataclass
+from dataclasses import dataclass  # isort:skip
 from flask_babel import gettext as _
 
 

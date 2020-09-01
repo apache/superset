@@ -33,7 +33,7 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
-import dataclasses
+import dataclasses  # isort:skip
 import geohash
 import numpy as np
 import pandas as pd
