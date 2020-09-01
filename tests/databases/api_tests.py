@@ -157,8 +157,11 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create server cert validation
         """
-        self.login(username="admin")
         example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        self.login(username="admin")
         database_data = {
             "database_name": "test-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
