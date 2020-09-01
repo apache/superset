@@ -176,9 +176,11 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create encrypted extra and extra validation
         """
-        self.maxDiff = None
-        self.login(username="admin")
         example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        self.login(username="admin")
         database_data = {
             "database_name": "test-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
@@ -243,8 +245,11 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create database_name already exists
         """
-        self.login(username="admin")
         example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        self.login(username="admin")
         database_data = {
             "database_name": "examples",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
