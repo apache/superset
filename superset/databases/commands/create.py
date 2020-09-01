@@ -66,6 +66,7 @@ class CreateDatabaseCommand(BaseCommand):
             exceptions.append(DatabaseRequiredFieldValidationError("sqlalchemy_uri"))
         if not database_name:
             exceptions.append(DatabaseRequiredFieldValidationError("database_name"))
+        else:
             # Check database_name uniqueness
             if not DatabaseDAO.validate_uniqueness(database_name):
                 exceptions.append(DatabaseExistsValidationError())
