@@ -16,7 +16,7 @@
 # under the License.
 """Unit tests for alerting in Superset"""
 import logging
-from typing import Dict, Optional
+from typing import Optional
 from unittest.mock import patch
 
 import pytest
@@ -74,8 +74,13 @@ def setup_database():
         db.session.query(Alert).delete()
 
 
-def create_alert(dbsession, sql: str, validator_args: Optional[Dict[str, str]] = None):
-    common_data = dict(
+def create_alert(
+    dbsession,
+    sql: str,
+    validator_type: Optional[str] = None,
+    validator_config: Optional[str] = None,
+) -> Alert:
+    alert = Alert(
         label="test_alert",
         active=True,
         crontab="* * * * *",
@@ -83,7 +88,6 @@ def create_alert(dbsession, sql: str, validator_args: Optional[Dict[str, str]] =
         recipients="recipient1@superset.com",
         slack_channel="#test_channel",
     )
-    alert = Alert(**common_data)
     dbsession.add(alert)
     dbsession.commit()
 
@@ -91,11 +95,9 @@ def create_alert(dbsession, sql: str, validator_args: Optional[Dict[str, str]] =
         sql=sql, alert_id=alert.id, database_id=utils.get_example_database().id,
     )
 
-    if validator_args:
+    if validator_type and validator_config:
         validator = Validator(
-            validator_type=validator_args["validator_type"],
-            config=validator_args["validator_config"],
-            alert_id=alert.id,
+            validator_type=validator_type, config=validator_config, alert_id=alert.id,
         )
 
         dbsession.add(validator)
@@ -173,9 +175,7 @@ def test_evaluate_alert(mock_deliver_alert, setup_database):
     assert alert3.logs[-1].state == AlertState.PASS
 
     # Test triggering successful alert
-    alert4 = create_alert(
-        dbsession, "SELECT 55", {"validator_type": "not null", "validator_config": "{}"}
-    )
+    alert4 = create_alert(dbsession, "SELECT 55", "not null", "{}")
     evaluate_alert(alert4.id, alert4.label)
     assert mock_deliver_alert.call_count == 1
     assert alert4.logs[-1].state == AlertState.TRIGGER
@@ -281,29 +281,22 @@ def test_operator_validator(setup_database):
 def test_validate_observations(setup_database):
     dbsession = setup_database
 
-    not_null_validator_args = {"validator_type": "not null", "validator_config": "{}"}
-
     # Test False on alert with no validator
     alert1 = create_alert(dbsession, "SELECT 55")
     assert validate_observations(alert1.id, alert1.label) is False
 
     # Test False on alert with no observations
-    alert2 = create_alert(dbsession, "SELECT 55", not_null_validator_args)
+    alert2 = create_alert(dbsession, "SELECT 55", "not null", "{}")
     assert validate_observations(alert2.id, alert2.label) is False
 
     # Test False on alert that shouldnt be triggered
-    alert3 = create_alert(dbsession, "SELECT 0", not_null_validator_args)
+    alert3 = create_alert(dbsession, "SELECT 0", "not null", "{}")
     observe(alert3.id)
     assert validate_observations(alert3.id, alert3.label) is False
 
     # Test True on alert that should be triggered
     alert4 = create_alert(
-        dbsession,
-        "SELECT 55",
-        {
-            "validator_type": "operator",
-            "validator_config": '{"op": "<=", "threshold": 60}',
-        },
+        dbsession, "SELECT 55", "operator", '{"op": "<=", "threshold": 60}'
     )
     observe(alert4.id)
     assert validate_observations(alert4.id, alert4.label) is True
