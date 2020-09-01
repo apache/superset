@@ -720,7 +720,7 @@ def validate_observations(alert_id: int, label: str) -> bool:
     if alert.validators:
         validator = alert.validators[0]
         validate = get_validator_function(validator.validator_type)
-        if validate(alert.sql_observer[0], validator.config):
+        if validate and validate(alert.sql_observer[0], validator.config):
             return True
 
     return False

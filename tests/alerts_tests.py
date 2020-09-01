@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for alerting in Superset"""
 import logging
+from typing import Dict, Optional
 from unittest.mock import patch
 
 import pytest
@@ -36,7 +37,12 @@ from superset.tasks.alerts.validator import (
     not_null_validator,
     operator_validator,
 )
-from superset.tasks.schedules import AlertState, deliver_alert, evaluate_alert
+from superset.tasks.schedules import (
+    AlertState,
+    deliver_alert,
+    evaluate_alert,
+    validate_observations,
+)
 from superset.utils import core as utils
 from tests.test_app import app
 from tests.utils import read_fixture
@@ -48,9 +54,7 @@ logger = logging.getLogger(__name__)
 @pytest.yield_fixture(scope="module")
 def setup_database():
     with app.app_context():
-        slice_id = db.session.query(Slice).all()[0].id
         example_database = utils.get_example_database()
-        example_database_id = example_database.id
         example_database.get_sqla_engine().execute(
             "CREATE TABLE test_table AS SELECT 1 as first, 2 as second"
         )
@@ -58,77 +62,9 @@ def setup_database():
             "INSERT INTO test_table (first, second) VALUES (3, 4)"
         )
 
-        common_data = dict(
-            active=True,
-            crontab="* * * * *",
-            slice_id=slice_id,
-            recipients="recipient1@superset.com",
-            slack_channel="#test_channel",
-        )
-        alerts = [
-            Alert(**common_data, label="alert_1"),
-            Alert(**common_data, label="alert_2"),
-            Alert(**common_data, label="alert_3"),
-            Alert(**common_data, label="alert_4"),
-            Alert(crontab="* * * * *", active=False, label="alert_5"),
-            Alert(**common_data, label="alert_6"),
-            Alert(**common_data, label="alert_7"),
-            Alert(**common_data, label="alert_8"),
-            Alert(**common_data, label="alert_9"),
-            Alert(**common_data, label="alert_10"),
-        ]
-
-        db.session.bulk_save_objects(alerts)
-
-        observers = [
-            SQLObserver(
-                sql="SELECT 0",
-                alert_id=db.session.query(Alert).filter_by(label="alert_1").one().id,
-                database_id=example_database_id,
-            ),
-            SQLObserver(
-                sql="SELECT first FROM test_table WHERE first = -1",
-                alert_id=db.session.query(Alert).filter_by(label="alert_2").one().id,
-                database_id=example_database_id,
-            ),
-            SQLObserver(
-                sql="$%^&",
-                alert_id=db.session.query(Alert).filter_by(label="alert_3").one().id,
-                database_id=example_database_id,
-            ),
-            SQLObserver(
-                sql="SELECT 55",
-                alert_id=db.session.query(Alert).filter_by(label="alert_4").one().id,
-                database_id=example_database_id,
-            ),
-            SQLObserver(
-                sql="SELECT 'test_string' as string_value",
-                alert_id=db.session.query(Alert).filter_by(label="alert_5").one().id,
-                database_id=example_database_id,
-            ),
-            SQLObserver(
-                sql="SELECT null as null_result",
-                alert_id=db.session.query(Alert).filter_by(label="alert_6").one().id,
-                database_id=example_database_id,
-            ),
-            SQLObserver(
-                sql="SELECT 30.0 as wage",
-                alert_id=db.session.query(Alert).filter_by(label="alert_7").one().id,
-                database_id=example_database_id,
-            ),
-            SQLObserver(
-                sql="SELECT first FROM test_table",
-                alert_id=db.session.query(Alert).filter_by(label="alert_8").one().id,
-                database_id=example_database_id,
-            ),
-            SQLObserver(
-                sql="SELECT first, second FROM test_table WHERE first = 1",
-                alert_id=db.session.query(Alert).filter_by(label="alert_9").one().id,
-                database_id=example_database_id,
-            ),
-        ]
-
-        db.session.bulk_save_objects(observers)
+        no_observer_alert = Alert(crontab="* * * * *", label="No Observer")
+        db.session.add(no_observer_alert)
+        db.session.commit()
         yield db.session
 
         db.session.query(SQLObservation).delete()
@@ -138,50 +74,83 @@ def setup_database():
         db.session.query(Alert).delete()
 
 
+def create_alert(dbsession, sql: str, validator_args: Optional[Dict[str, str]] = None):
+    common_data = dict(
+        label="test_alert",
+        active=True,
+        crontab="* * * * *",
+        slice_id=dbsession.query(Slice).all()[0].id,
+        recipients="recipient1@superset.com",
+        slack_channel="#test_channel",
+    )
+    alert = Alert(**common_data)
+    dbsession.add(alert)
+    dbsession.commit()
+
+    sql_observer = SQLObserver(
+        sql=sql, alert_id=alert.id, database_id=utils.get_example_database().id,
+    )
+
+    if validator_args:
+        validator = Validator(
+            validator_type=validator_args["validator_type"],
+            config=validator_args["validator_config"],
+            alert_id=alert.id,
+        )
+
+        dbsession.add(validator)
+
+    dbsession.add(sql_observer)
+    dbsession.commit()
+    return alert
+
+
 def test_alert_observer(setup_database):
     dbsession = setup_database
 
     # Test SQLObserver with int SQL return
-    alert4 = dbsession.query(Alert).filter_by(label="alert_4").one()
-    observe(alert4.id)
-    assert alert4.sql_observer[0].observations[-1].value == 55.0
-    assert alert4.sql_observer[0].observations[-1].error_msg is None
+    alert1 = create_alert(dbsession, "SELECT 55")
+    observe(alert1.id)
+    assert alert1.sql_observer[0].observations[-1].value == 55.0
+    assert alert1.sql_observer[0].observations[-1].error_msg is None
 
     # Test SQLObserver with double SQL return
-    alert7 = dbsession.query(Alert).filter_by(label="alert_7").one()
-    observe(alert7.id)
-    assert alert7.sql_observer[0].observations[-1].value == 30.0
-    assert alert7.sql_observer[0].observations[-1].error_msg is None
+    alert2 = create_alert(dbsession, "SELECT 30.0 as wage")
+    observe(alert2.id)
+    assert alert2.sql_observer[0].observations[-1].value == 30.0
+    assert alert2.sql_observer[0].observations[-1].error_msg is None
 
     # Test SQLObserver with NULL result
-    alert6 = dbsession.query(Alert).filter_by(label="alert_6").one()
-    observe(alert6.id)
-    assert alert6.sql_observer[0].observations[-1].value is None
-    assert alert6.sql_observer[0].observations[-1].error_msg is None
+    alert3 = create_alert(dbsession, "SELECT null as null_result")
+    observe(alert3.id)
+    assert alert3.sql_observer[0].observations[-1].value is None
+    assert alert3.sql_observer[0].observations[-1].error_msg is None
 
     # Test SQLObserver with empty SQL return
-    alert2 = dbsession.query(Alert).filter_by(label="alert_2").one()
-    observe(alert2.id)
-    assert alert2.sql_observer[0].observations[-1].value is None
-    assert alert2.sql_observer[0].observations[-1].error_msg is not None
+    alert4 = create_alert(dbsession, "SELECT first FROM test_table WHERE first = -1")
+    observe(alert4.id)
+    assert alert4.sql_observer[0].observations[-1].value is None
+    assert alert4.sql_observer[0].observations[-1].error_msg is not None
 
     # Test SQLObserver with str result
-    alert5 = dbsession.query(Alert).filter_by(label="alert_5").one()
+    alert5 = create_alert(dbsession, "SELECT 'test_string' as string_value")
     observe(alert5.id)
     assert alert5.sql_observer[0].observations[-1].value is None
     assert alert5.sql_observer[0].observations[-1].error_msg is not None
 
     # Test SQLObserver with two row result
-    alert8 = dbsession.query(Alert).filter_by(label="alert_8").one()
-    observe(alert8.id)
-    assert alert8.sql_observer[0].observations[-1].value is None
-    assert alert8.sql_observer[0].observations[-1].error_msg is not None
+    alert6 = create_alert(dbsession, "SELECT first FROM test_table")
+    observe(alert6.id)
+    assert alert6.sql_observer[0].observations[-1].value is None
+    assert alert6.sql_observer[0].observations[-1].error_msg is not None
 
     # Test SQLObserver with two column result
-    alert9 = dbsession.query(Alert).filter_by(label="alert_9").one()
-    observe(alert9.id)
-    assert alert9.sql_observer[0].observations[-1].value is None
-    assert alert9.sql_observer[0].observations[-1].error_msg is not None
+    alert7 = create_alert(
+        dbsession, "SELECT first, second FROM test_table WHERE first = 1"
+    )
+    observe(alert7.id)
+    assert alert7.sql_observer[0].observations[-1].value is None
+    assert alert7.sql_observer[0].observations[-1].error_msg is not None
 
 
 @patch("superset.tasks.schedules.deliver_alert")
@@ -189,30 +158,27 @@ def test_evaluate_alert(mock_deliver_alert, setup_database):
     dbsession = setup_database
 
     # Test error with Observer SQL statement
-    alert3 = dbsession.query(Alert).filter_by(label="alert_3").one()
-    evaluate_alert(alert3.id, alert3.label)
-    assert alert3.logs[-1].state == AlertState.ERROR
+    alert1 = create_alert(dbsession, "$%^&")
+    evaluate_alert(alert1.id, alert1.label)
+    assert alert1.logs[-1].state == AlertState.ERROR
 
     # Test error with alert lacking observer
-    alert10 = dbsession.query(Alert).filter_by(label="alert_10").one()
-    evaluate_alert(alert10.id, alert10.label)
-    assert alert10.logs[-1].state == AlertState.ERROR
+    alert2 = dbsession.query(Alert).filter_by(label="No Observer").one()
+    evaluate_alert(alert2.id, alert2.label)
+    assert alert2.logs[-1].state == AlertState.ERROR
 
     # Test pass on alert lacking validator
-    alert4 = dbsession.query(Alert).filter_by(label="alert_4").one()
-    evaluate_alert(alert4.id, alert4.label)
-    assert alert4.logs[-1].state == AlertState.PASS
+    alert3 = create_alert(dbsession, "SELECT 55")
+    evaluate_alert(alert3.id, alert3.label)
+    assert alert3.logs[-1].state == AlertState.PASS
 
     # Test triggering successful alert
-    null_val1 = Validator(validator_type="not null", alert_id=4)
-    dbsession.bulk_save_objects([null_val1])
-
-    alert4 = dbsession.query(Alert).filter_by(label="alert_4").one()
+    alert4 = create_alert(
+        dbsession, "SELECT 55", {"validator_type": "not null", "validator_config": "{}"}
+    )
     evaluate_alert(alert4.id, alert4.label)
     assert mock_deliver_alert.call_count == 1
     assert alert4.logs[-1].state == AlertState.TRIGGER
-
-    dbsession.query(Validator).delete()
 
 
 def test_check_validator():
@@ -246,27 +212,27 @@ def test_check_validator():
 def test_not_null_validator(setup_database):
     dbsession = setup_database
 
-    # Test passing SQLObserver with null SQL result
-    alert1 = dbsession.query(Alert).filter_by(label="alert_1").one()
+    # Test passing SQLObserver with 'null' SQL result
+    alert1 = create_alert(dbsession, "SELECT 0")
     observe(alert1.id)
     assert not_null_validator(alert1.sql_observer[0], "{}") is False
 
     # Test passing SQLObserver with empty SQL result
-    alert2 = dbsession.query(Alert).filter_by(label="alert_2").one()
+    alert2 = create_alert(dbsession, "SELECT first FROM test_table WHERE first = -1")
     observe(alert2.id)
     assert not_null_validator(alert2.sql_observer[0], "{}") is False
 
     # Test triggering alert with non-null SQL result
-    alert4 = dbsession.query(Alert).filter_by(label="alert_4").one()
-    observe(alert4.id)
-    assert not_null_validator(alert4.sql_observer[0], "{}") is True
+    alert3 = create_alert(dbsession, "SELECT 55")
+    observe(alert3.id)
+    assert not_null_validator(alert3.sql_observer[0], "{}") is True
 
 
 def test_operator_validator(setup_database):
     dbsession = setup_database
 
     # Test passing SQLObserver with empty SQL result
-    alert1 = dbsession.query(Alert).filter_by(label="alert_2").one()
+    alert1 = create_alert(dbsession, "SELECT first FROM test_table WHERE first = -1")
     observe(alert1.id)
     assert (
         operator_validator(alert1.sql_observer[0], '{"op": ">=", "threshold": 60}')
@@ -274,7 +240,7 @@ def test_operator_validator(setup_database):
     )
 
     # Test passing SQLObserver with result that doesn't pass a greater than threshold
-    alert2 = dbsession.query(Alert).filter_by(label="alert_4").one()
+    alert2 = create_alert(dbsession, "SELECT 55")
     observe(alert2.id)
     assert (
         operator_validator(alert2.sql_observer[0], '{"op": ">=", "threshold": 60}')
@@ -312,6 +278,37 @@ def test_operator_validator(setup_database):
     )
 
 
+def test_validate_observations(setup_database):
+    dbsession = setup_database
+
+    not_null_validator_args = {"validator_type": "not null", "validator_config": "{}"}
+
+    # Test False on alert with no validator
+    alert1 = create_alert(dbsession, "SELECT 55")
+    assert validate_observations(alert1.id, alert1.label) is False
+
+    # Test False on alert with no observations
+    alert2 = create_alert(dbsession, "SELECT 55", not_null_validator_args)
+    assert validate_observations(alert2.id, alert2.label) is False
+
+    # Test False on alert that shouldnt be triggered
+    alert3 = create_alert(dbsession, "SELECT 0", not_null_validator_args)
+    observe(alert3.id)
+    assert validate_observations(alert3.id, alert3.label) is False
+
+    # Test True on alert that should be triggered
+    alert4 = create_alert(
+        dbsession,
+        "SELECT 55",
+        {
+            "validator_type": "operator",
+            "validator_config": '{"op": "<=", "threshold": 60}',
+        },
+    )
+    observe(alert4.id)
+    assert validate_observations(alert4.id, alert4.label) is True
+
+
 @patch("superset.tasks.slack_util.WebClient.files_upload")
 @patch("superset.tasks.schedules.send_email_smtp")
 @patch("superset.tasks.schedules._get_url_path")
@@ -320,7 +317,8 @@ def test_deliver_alert_screenshot(
     screenshot_mock, url_mock, email_mock, file_upload_mock, setup_database
 ):
     dbsession = setup_database
-    alert = dbsession.query(Alert).filter_by(label="alert_4").one()
+    alert = create_alert(dbsession, "SELECT 55")
+    observe(alert.id)
 
     screenshot = read_fixture("sample.png")
     screenshot_mock.return_value = screenshot

@@ -17,14 +17,14 @@
 import enum
 import json
 from operator import eq, ge, gt, le, lt, ne
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 
 from superset.exceptions import SupersetException
 from superset.models.alerts import SQLObserver
 
-VALID_ALERT_OPERATORS = {"<", "<=", ">", ">=", "==", "!="}
+OPERATOR_FUNCTIONS = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 
 
 class AlertValidatorType(enum.Enum):
@@ -52,7 +52,7 @@ def check_validator(validator_type: str, config: str) -> None:
                 'values. Add "op" and "threshold" to config.'
             )
 
-        if not config_dict["op"] in VALID_ALERT_OPERATORS:
+        if not config_dict["op"] in OPERATOR_FUNCTIONS.keys():
             raise SupersetException(
                 f'Error: {config_dict["op"]} is an invalid operator type. Change '
                 f'the "op" value in the config to one of '
@@ -87,24 +87,27 @@ def operator_validator(observer: SQLObserver, validator_config: str) -> bool:
     Returns True if a SQLObserver's recent observation is greater than or equal to
     the value given in the validator config
     """
-    operator_functions = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 
     observation = observer.get_last_observation()
     if observation and observation.value not in (None, np.nan):
         operator = json.loads(validator_config)["op"]
         threshold = json.loads(validator_config)["threshold"]
-        if operator_functions[operator](observation.value, threshold):
+        if OPERATOR_FUNCTIONS[operator](observation.value, threshold):
             return True
 
     return False
 
 
-def get_validator_function(validator_type: str) -> Callable[[SQLObserver, str], bool]:
+def get_validator_function(
+    validator_type: str,
+) -> Optional[Callable[[SQLObserver, str], bool]]:
     """Returns a validation function based on validator_type"""
 
     alert_validators = {
         AlertValidatorType.not_null.value: not_null_validator,
         AlertValidatorType.operator.value: operator_validator,
     }
+    if alert_validators.get(validator_type.lower()):
+        return alert_validators[validator_type.lower()]
 
-    return alert_validators[validator_type.lower()]
+    return None

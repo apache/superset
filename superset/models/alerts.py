@@ -103,7 +103,7 @@ class AlertLog(Model):
 # TODO: Currently SQLObservation table will constantly grow with no limit,
 # add some retention restriction or more to a more scalable db e.g.
 # https://github.com/apache/incubator-superset/blob/master/superset/utils/log.py#L32
-class SQLObserver(Model):
+class SQLObserver(Model, AuditMixinNullable):
     """Runs SQL-based queries for alerts"""
 
     __tablename__ = "sql_observers"
@@ -136,12 +136,13 @@ class SQLObserver(Model):
         )
 
     def get_last_observation(self) -> Optional[Any]:
-        observations = (
+        observations = list(
             db.session.query(SQLObservation)
             .filter_by(observer_id=self.id)
             .order_by(SQLObservation.dttm.desc())
             .limit(1)
         )
+
         if observations:
             return observations[0]
 
@@ -171,7 +172,7 @@ class SQLObservation(Model):  # pylint: disable=too-few-public-methods
     error_msg = Column(String(500))
 
 
-class Validator(Model):
+class Validator(Model, AuditMixinNullable):
     """Used to determine how an alert and its observations should be validated"""
 
     __tablename__ = "alert_validators"
