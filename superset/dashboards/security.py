@@ -38,6 +38,7 @@ def is_dashboard_level_access_enabled() -> bool:
         dashboard_level_access_enabled = is_feature_enabled(
             SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE
         )
+        logger.info("dashboard level access is: " + dashboard_level_access_enabled? "on": "off")
     return dashboard_level_access_enabled
 
 
