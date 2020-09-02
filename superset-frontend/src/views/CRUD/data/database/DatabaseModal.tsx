@@ -18,14 +18,15 @@
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
-import { DatabaseObject } from './types';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { DatabaseObject } from './types';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -118,6 +119,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
+  // Database fetch logic
+  const {
+    state: { loading: dbLoading, resource: dbFetched },
+    fetchData,
+  } = useSingleViewResource<DatabaseObject>(
+    'database',
+    t('database'),
+    addDangerToast,
+  );
+
   // Functions
   const hide = () => {
     setIsHidden(true);
@@ -162,7 +173,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const validate = () => {
-    if (db && db.database_name.length && db.sqlalchemy_uri.length) {
+    if (
+      db &&
+      db.database_name.length &&
+      db.sqlalchemy_uri &&
+      db.sqlalchemy_uri.length
+    ) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
@@ -176,7 +192,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     isEditMode &&
     (!db || !db.id || (database && database.id !== db.id) || (isHidden && show))
   ) {
-    setDB(database);
+    if (database && database.id !== null && !dbLoading) {
+      const id = database.id || 0;
+
+      fetchData(id).then(() => {
+        setDB(dbFetched);
+      });
+    }
   } else if (!isEditMode && (!db || db.id || (isHidden && show))) {
     setDB({
       database_name: '',
@@ -404,7 +426,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="label">{t('CTAS Schema')}</div>
             <div className="input-container">
               <input
-                type="name"
+                type="text"
                 name="force_ctas_schema"
                 value={db ? db.force_ctas_schema || '' : ''}
                 placeholder={t('CTAS Schema')}

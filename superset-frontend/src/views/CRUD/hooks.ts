@@ -167,6 +167,101 @@ export function useListViewResource<D extends object = any>(
   };
 }
 
+// In the same vein as above, a hook for viewing a single instance of a resource (given id)
+interface SingleViewResourceState<D extends object = any> {
+  loading: boolean;
+  resource: D | null;
+  permissions: string[];
+}
+
+export function useSingleViewResource<D extends object = any>(
+  resource: string,
+  resourceLabel: string, // resourceLabel for translations
+  handleErrorMsg: (errorMsg: string) => void,
+) {
+  const [state, setState] = useState<SingleViewResourceState<D>>({
+    loading: false,
+    resource: null,
+    permissions: [],
+  });
+
+  function updateState(update: Partial<SingleViewResourceState<D>>) {
+    setState(currentState => ({ ...currentState, ...update }));
+  }
+
+  useEffect(() => {
+    SupersetClient.get({
+      endpoint: `/api/v1/${resource}/_info`,
+    }).then(
+      ({ json: infoJson = {} }) => {
+        updateState({
+          permissions: infoJson.permissions,
+        });
+      },
+      createErrorHandler(errMsg =>
+        handleErrorMsg(
+          t(
+            'An error occurred while fetching %ss info: %s',
+            resourceLabel,
+            errMsg,
+          ),
+        ),
+      ),
+    );
+  }, []);
+
+  function hasPerm(perm: string) {
+    if (!state.permissions.length) {
+      return false;
+    }
+
+    return Boolean(state.permissions.find(p => p === perm));
+  }
+
+  const fetchData = useCallback((resourceID: number) => {
+    // Set loading state
+    updateState({
+      loading: true,
+    });
+
+    return SupersetClient.get({
+      endpoint: `/api/v1/${resource}/${resourceID}`,
+    })
+      .then(
+        ({ json = {} }) => {
+          updateState({
+            resource: json.result,
+          });
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t(
+              'An error occurred while fetching %ss: %s',
+              resourceLabel,
+              errMsg,
+            ),
+          ),
+        ),
+      )
+      .finally(() => {
+        updateState({ loading: false });
+      });
+  }, []);
+
+  return {
+    state: {
+      loading: state.loading,
+      resource: state.resource,
+    },
+    setResource: (update: D) =>
+      updateState({
+        resource: update,
+      }),
+    hasPerm,
+    fetchData,
+  };
+}
+
 // the hooks api has some known limitations around stale state in closures.
 // See https://github.com/reactjs/rfcs/blob/master/text/0068-react-hooks.md#drawbacks
 // the useRef hook is a way of getting around these limitations by having a consistent ref

@@ -25,11 +25,11 @@ export type DatabaseObject = {
   // Connection + general
   id?: number;
   database_name: string;
-  sqlalchemy_uri: string;
-  backend: string;
-  created_by: null | DatabaseUser;
-  changed_on_delta_humanized: string;
-  changed_on: string;
+  sqlalchemy_uri?: string;
+  backend?: string;
+  created_by?: null | DatabaseUser;
+  changed_on_delta_humanized?: string;
+  changed_on?: string;
 
   // Performance
   cache_timeout?: string;
