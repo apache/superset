@@ -1495,19 +1495,15 @@ The first step: Configure authorization in Superset ``superset_config.py``.
             'token_key':'access_token', # Name of the token in the response of access_token_url
             'icon':'fa-address-card',   # Icon for the provider
             'remote_app': {
-                'consumer_key':'myClientId',  # Client Id (Identify Superset application)
-                'consumer_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
-                'request_token_params':{
+                'client_id':'myClientId',  # Client Id (Identify Superset application)
+                'client_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+                'client_kwargs':{
                     'scope': 'read'               # Scope for the Authorization
                 },
-                'access_token_method':'POST',    # HTTP Method to call access_token_url
                 'access_token_params':{        # Additional parameters for calls to access_token_url
                     'client_id':'myClientId'
                 },
-                'access_token_headers':{    # Additional headers for calls to access_token_url
-                    'Authorization': 'Basic Base64EncodedClientIdAndSecret'
-                },
-                'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
+                'api_base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
                 'access_token_url':'https://myAuthorizationServer/oauth2AuthorizationServer/token',
                 'authorize_url':'https://myAuthorizationServer/oauth2AuthorizationServer/authorize'
             }
