@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useState, ReactNode } from 'react';
 import { styled, withTheme, SupersetThemeProps } from '@superset-ui/style';
 
 import {
@@ -36,7 +36,7 @@ import {
 import { filterSelectStyles } from './utils';
 
 interface BaseFilter {
-  Header: string;
+  Header: ReactNode;
   initialValue: any;
 }
 interface SelectFilterProps extends BaseFilter {
@@ -130,7 +130,7 @@ function SelectFilter({
 
   return (
     <FilterContainer>
-      <FilterTitle>{Header}</FilterTitle>
+      <FilterTitle>{Header}:</FilterTitle>
       {fetchSelects ? (
         <PaginatedSelect
           data-test="filters-select"
