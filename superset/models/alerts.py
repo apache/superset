@@ -203,7 +203,7 @@ class Validator(Model, AuditMixinNullable):
             backref=backref("validators", cascade="all, delete-orphan"),
         )
 
-    def __str__(self) -> str:
+    def pretty_print(self) -> str:
         """ String representing the comparison that will trigger a validator """
         config = json.loads(self.config)
 

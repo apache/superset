@@ -19,6 +19,6 @@
 *Triggered Alert: {{label}} :redalert:*
 *Query*:```{{sql}}```
 *Result*: {{observation_value}}
-*Reason*: {{validation_str}}
+*Reason*: {{validation_error_message}}
 <{{alert_url}}|View Alert Details>
 <{{url}}|*Explore in Superset*>
