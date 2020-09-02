@@ -20,7 +20,7 @@
 ######################################################################
 FROM preset/superset:dev
 
-COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
+COPY ./requirements/*.txt ./docker/requirements-*.txt /app/requirements/
 
 USER root
 # Cache everything for dev purposes...
