@@ -328,9 +328,9 @@ def test_deliver_alert_screenshot(
         "channels": alert.slack_channel,
         "file": screenshot,
         "initial_comment": f"\n*Triggered Alert: {alert.label} :redalert:*\n"
-        f"*SQL* *Statement*:```{alert.sql_observer[0].sql}```\n"
-        f"*SQL* *Result*: {alert.observations[-1].value}\n"
-        f"*Reason* *For* *Alert*: {alert.observations[-1].value} {str(alert.validators[0])}\n"
+        f"*Query*:```{alert.sql_observer[0].sql}```\n"
+        f"*Result*: {alert.observations[-1].value}\n"
+        f"*Reason*: {alert.observations[-1].value} {str(alert.validators[0])}\n"
         f"<http://0.0.0.0:8080/alert/show/{alert.id}"
         f"|View Alert Details>\n<http://0.0.0.0:8080/superset/slice/{alert.slice_id}/"
         "|*Explore in Superset*>",
