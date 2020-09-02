@@ -55,7 +55,7 @@ are stateless, so you can scale out by running on as many servers
 as needed.
 
 Install and Deploy Superset Locally with Docker
------------------
+-----------------------------------------------
 
 To try Superset locally, the
 best-supported currently method is via Docker, using ``docker-compose``. Superset
