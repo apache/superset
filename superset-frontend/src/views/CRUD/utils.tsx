@@ -24,12 +24,12 @@ import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import { logging } from '@superset-ui/core';
 
-export const createFetchRelated = (
+const createFetchResourceMethod = (method: string) => (
   resource: string,
   relation: string,
   handleError: (error: Response) => void,
 ) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
-  const resourceEndpoint = `/api/v1/${resource}/related/${relation}`;
+  const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
 
   try {
     const queryParams = rison.encode({
@@ -52,6 +52,9 @@ export const createFetchRelated = (
   }
   return [];
 };
+
+export const createFetchRelated = createFetchResourceMethod('related');
+export const createFetchDistinct = createFetchResourceMethod('distinct');
 
 export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
   return async (e: SupersetClientResponse | string) => {
