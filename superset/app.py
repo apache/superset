@@ -144,7 +144,13 @@ class SupersetAppInitializer:
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import AlertLogModelView, AlertModelView
+        from superset.views.alerts import (
+            AlertLogModelView,
+            AlertModelView,
+            AlertObservationModelView,
+            ValidatorInlineView,
+            SQLObserverInlineView,
+        )
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
@@ -399,6 +405,9 @@ class SupersetAppInitializer:
                 category_label=__("Manage"),
                 icon="fa-exclamation-triangle",
             )
+            appbuilder.add_view_no_menu(SQLObserverInlineView)
+            appbuilder.add_view_no_menu(ValidatorInlineView)
+            appbuilder.add_view_no_menu(AlertObservationModelView)
             appbuilder.add_view_no_menu(AlertLogModelView)
 
         #

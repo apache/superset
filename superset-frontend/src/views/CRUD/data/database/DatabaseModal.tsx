@@ -23,14 +23,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
-import { Tabs as BaseTabs } from 'src/common/components';
-
-export type DatabaseObject = {
-  id?: number;
-  name: string;
-  uri: string;
-  // TODO: add more props
-};
+import { DatabaseObject } from './types';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -40,8 +33,6 @@ interface DatabaseModalProps {
   show: boolean;
   database?: DatabaseObject | null; // If included, will go into edit mode
 }
-
-const { TabPane } = BaseTabs;
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -93,7 +84,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 }) => {
   // const [disableSave, setDisableSave] = useState(true);
   const [disableSave] = useState<boolean>(true);
-  const [db, setDB] = useState<DatabaseObject | null>(null);
+  const [db, setDB] = useState<Partial<DatabaseObject> | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
   // Functions
@@ -113,7 +104,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const target = event.target;
     const data = {
-      name: db ? db.name : '',
+      database_name: db ? db.database_name : '',
       uri: db ? db.uri : '',
       ...db,
     };
@@ -133,7 +124,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setDB(database);
   } else if (!isEditMode && (!db || db.id || (isHidden && show))) {
     setDB({
-      name: '',
+      database_name: '',
       uri: '',
     });
   }
@@ -160,7 +151,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     >
       <Tabs defaultActiveKey="1">
-        <TabPane
+        <Tabs.TabPane
           tab={
             <span>
               {t('Connection')}
@@ -178,7 +169,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <input
                 type="text"
                 name="name"
-                value={db ? db.name : ''}
+                value={db ? db.database_name : ''}
                 placeholder={t('Name your datasource')}
                 onChange={onInputChange}
               />
@@ -210,19 +201,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               {t(' for more information on how to structure your URI.')}
             </div>
           </StyledInputContainer>
-        </TabPane>
-        <TabPane tab={<span>{t('Performance')}</span>} key="2">
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('Performance')}</span>} key="2">
           Performance Form Data
-        </TabPane>
-        <TabPane tab={<span>{t('SQL Lab Settings')}</span>} key="3">
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('SQL Lab Settings')}</span>} key="3">
           SQL Lab Settings Form Data
-        </TabPane>
-        <TabPane tab={<span>{t('Security')}</span>} key="4">
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('Security')}</span>} key="4">
           Security Form Data
-        </TabPane>
-        <TabPane tab={<span>{t('Extra')}</span>} key="5">
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('Extra')}</span>} key="5">
           Extra Form Data
-        </TabPane>
+        </Tabs.TabPane>
       </Tabs>
     </Modal>
   );

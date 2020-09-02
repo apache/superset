@@ -18,6 +18,7 @@ import tests.test_app
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.models.cache import CacheKey
 from superset.utils.core import (
     AdhocMetricExpressionType,
     ChartDataResultFormat,
@@ -141,7 +142,6 @@ class TestQueryContext(SupersetTestCase):
         query_object = query_context.queries[0]
         extras = query_object.to_dict()["extras"]
         self.assertTrue("time_range_endpoints" in extras)
-
         self.assertEqual(
             extras["time_range_endpoints"],
             (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
@@ -179,6 +179,9 @@ class TestQueryContext(SupersetTestCase):
         data = responses[0]["data"]
         self.assertIn("name,sum__num\n", data)
         self.assertEqual(len(data.split("\n")), 12)
+
+        ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
+        assert ck.datasource_uid == "3__table"
 
     def test_sql_injection_via_groupby(self):
         """

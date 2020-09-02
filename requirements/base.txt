@@ -9,16 +9,16 @@
 aiohttp==3.6.2            # via slackclient
 alembic==1.4.2            # via flask-migrate
 amqp==2.6.1               # via kombu
-apispec[yaml]==3.3.1      # via flask-appbuilder
+apispec[yaml]==3.3.2      # via flask-appbuilder
 async-timeout==3.0.1      # via aiohttp
 attrs==20.1.0             # via aiohttp, jsonschema
 babel==2.8.0              # via flask-babel
 backoff==1.10.0           # via apache-superset
 billiard==3.6.3.0         # via celery
 bleach==3.1.5             # via apache-superset
-boto3==1.14.48            # via tabulator
-botocore==1.17.48         # via boto3, s3transfer
-brotli==1.0.7             # via flask-compress
+boto3==1.14.51            # via tabulator
+botocore==1.17.51         # via boto3, s3transfer
+brotli==1.0.9             # via flask-compress
 cached-property==1.5.1    # via tableschema
 cachelib==0.1.1           # via apache-superset
 celery==4.4.7             # via apache-superset
@@ -29,7 +29,7 @@ click==7.1.2              # via apache-superset, flask, flask-appbuilder, tables
 colorama==0.4.3           # via apache-superset, flask-appbuilder
 contextlib2==0.6.0.post1  # via apache-superset
 croniter==0.3.34          # via apache-superset
-cryptography==3.0         # via apache-superset
+cryptography==3.1         # via apache-superset
 dataclasses==0.6          # via apache-superset
 decorator==4.4.2          # via retry
 defusedxml==0.6.0         # via python3-openid
@@ -41,7 +41,7 @@ flask-appbuilder==3.0.1   # via apache-superset
 flask-babel==1.0.0        # via flask-appbuilder
 flask-caching==1.9.0      # via apache-superset
 flask-compress==1.5.0     # via apache-superset
-flask-cors==3.0.8         # via apache-superset
+flask-cors==3.0.9         # via apache-superset
 flask-jwt-extended==3.24.1  # via flask-appbuilder
 flask-login==0.4.1        # via flask-appbuilder
 flask-migrate==2.5.3      # via apache-superset
@@ -88,7 +88,7 @@ polyline==1.4.0           # via apache-superset
 prison==0.1.3             # via flask-appbuilder
 psycopg2-binary==2.8.5    # via apache-superset
 py==1.9.0                 # via retry
-pyarrow==0.17.1           # via apache-superset
+pyarrow==1.0.1            # via apache-superset
 pycparser==2.20           # via cffi
 pydruid==0.6.1            # via apache-superset
 pyhive[hive]==0.6.3       # via apache-superset

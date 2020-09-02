@@ -23,9 +23,17 @@ from flask_babel import lazy_gettext as _
 from wtforms import BooleanField, Form, StringField
 
 from superset.constants import RouteMethod
-from superset.models.alerts import Alert, AlertLog
+from superset.models.alerts import (
+    Alert,
+    AlertLog,
+    SQLObservation,
+    SQLObserver,
+    Validator,
+)
 from superset.models.schedules import ScheduleType
+from superset.tasks.alerts.validator import check_validator
 from superset.tasks.schedules import schedule_alert_query
+from superset.utils import core as utils
 from superset.utils.core import get_email_address_str, markdown
 
 from ..exceptions import SupersetException
@@ -47,6 +55,127 @@ class AlertLogModelView(
     )
 
 
+class AlertObservationModelView(
+    CompactCRUDMixin, SupersetModelView
+):  # pylint: disable=too-many-ancestors
+    datamodel = SQLAInterface(SQLObservation)
+    include_route_methods = {RouteMethod.LIST} | {"show"}
+    list_title = _("List Observations")
+    show_title = _("Show Observation")
+    list_columns = (
+        "dttm",
+        "value",
+        "error_msg",
+    )
+    label_columns = {
+        "error_msg": _("Error Message"),
+    }
+
+
+# TODO: add a button to the form to test if the SQL statment can run with no errors
+class SQLObserverInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin, SupersetModelView
+):
+    datamodel = SQLAInterface(SQLObserver)
+    include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
+    list_title = _("SQL Observers")
+    show_title = _("Show SQL Observer")
+    add_title = _("Add SQL Observer")
+    edit_title = _("Edit SQL Observer")
+
+    edit_columns = [
+        "alert",
+        "database",
+        "sql",
+    ]
+
+    add_columns = edit_columns
+
+    list_columns = ["alert.label", "database", "sql"]
+
+    label_columns = {
+        "alert": _("Alert"),
+        "database": _("Database"),
+        "sql": _("SQL"),
+    }
+
+    description_columns = {
+        "sql": _(
+            "A SQL statement that defines whether the alert should get triggered or "
+            "not. The query is expected to return either NULL or a number value."
+        )
+    }
+
+    def pre_add(self, item: "SQLObserverInlineView") -> None:
+        if item.alert.sql_observer and item.alert.sql_observer[0].id != item.id:
+            raise SupersetException("Error: An alert should only have one observer.")
+
+
+class ValidatorInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin, SupersetModelView
+):
+    datamodel = SQLAInterface(Validator)
+    include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
+    list_title = _("Validators")
+    show_title = _("Show Validator")
+    add_title = _("Add Validator")
+    edit_title = _("Edit Validator")
+
+    edit_columns = [
+        "alert",
+        "validator_type",
+        "config",
+    ]
+
+    add_columns = edit_columns
+
+    list_columns = [
+        "validator_type",
+        "alert.label",
+    ]
+
+    label_columns = {
+        "validator_type": _("Validator Type"),
+        "alert": _("Alert"),
+    }
+
+    description_columns = {
+        "validator_type": utils.markdown(
+            "Determines when to trigger alert based off value from SQLObserver query. "
+            "Alerts will be triggered with these validator types:"
+            "<ul><li>Not Null - When the return value is Not NULL, Empty, or 0</li>"
+            "<li>Operator - When `sql_return_value comparison_operator threshold`"
+            " is True e.g. `50 <= 75`<br>Supports the comparison operators <, <=, "
+            ">, >=, ==, and !=</li></ul>",
+            True,
+        ),
+        "config": utils.markdown(
+            "JSON string containing values the validator will compare against. "
+            "Each validator needs the following values:"
+            "<ul><li>Not Null - Nothing. You can leave the config as it is.</li>"
+            '<li>Operator<ul><li>`"op": "operator"` with an operator from ["<", '
+            '"<=", ">", ">=", "==", "!="] e.g. `"op": ">="`</li>'
+            '<li>`"threshold": threshold_value` e.g. `"threshold": 50`'
+            '</li></ul>Example config:<br>{<br> "op":">=",<br>"threshold": 60<br>}'
+            "</li></ul>",
+            True,
+        ),
+    }
+
+    def pre_add(self, item: "ValidatorInlineView") -> None:
+        if item.alert.validators and item.alert.validators[0].id != item.id:
+            raise SupersetException(
+                "Error: Alerts currently only support 1 validator per alert."
+            )
+
+        item.validator_type = item.validator_type.lower()
+        check_validator(item.validator_type, item.config)
+
+    def pre_update(self, item: "ValidatorInlineView") -> None:
+        item.validator_type = item.validator_type.lower()
+        check_validator(item.validator_type, item.config)
+
+
 class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alert"
@@ -58,7 +187,6 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
 
     list_columns = (
         "label",
-        "database",
         "crontab",
         "last_eval_dttm",
         "last_state",
@@ -68,8 +196,6 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "label",
         "active",
         "crontab",
-        "database",
-        "sql",
         # TODO: implement different types of alerts
         # "alert_type",
         "owners",
@@ -85,18 +211,9 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "test_slack_channel",
     )
     label_columns = {
-        "sql": "SQL",
         "log_retention": _("Log Retentions (days)"),
     }
     description_columns = {
-        "sql": _(
-            "A SQL statement that defines whether the alert should get "
-            "triggered or not. If the statement return no row, the alert "
-            "is not triggered. If the statement returns one or many rows, "
-            "the cells will be evaluated to see if they are 'truthy' "
-            "if any cell is truthy, the alert will fire. Truthy values "
-            "are non zero, non null, non empty strings."
-        ),
         "crontab": markdown(
             "A CRON-like expression. "
             "[Crontab Guru](https://crontab.guru/) is "
@@ -134,7 +251,12 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     }
     edit_form_extra_fields = add_form_extra_fields
     edit_columns = add_columns
-    related_views = [AlertLogModelView]
+    related_views = [
+        AlertObservationModelView,
+        AlertLogModelView,
+        ValidatorInlineView,
+        SQLObserverInlineView,
+    ]
 
     def process_form(self, form: Form, is_created: bool) -> None:
         email_recipients = None

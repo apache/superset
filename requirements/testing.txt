@@ -22,13 +22,13 @@ isort==5.4.2              # via pylint
 jedi==0.17.2              # via ipython
 lazy-object-proxy==1.4.3  # via astroid
 mccabe==0.6.1             # via pylint
-more-itertools==8.4.0     # via pytest
+more-itertools==8.5.0     # via pytest
 openapi-spec-validator==0.2.9  # via -r requirements/testing.in
 parameterized==0.7.4      # via -r requirements/testing.in
 parso==0.7.1              # via jedi
 pexpect==4.8.0            # via ipython
 pickleshare==0.7.5        # via ipython
-prompt-toolkit==3.0.6     # via ipython
+prompt-toolkit==3.0.7     # via ipython
 ptyprocess==0.6.0         # via pexpect
 pygments==2.6.1           # via ipython
 pyhive[hive,presto]==0.6.3  # via -r requirements/testing.in, apache-superset

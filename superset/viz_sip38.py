@@ -43,10 +43,9 @@ from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
 from geopy.point import Point
-from markdown import markdown
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, cache, get_manifest_files, security_manager
+from superset import app, cache, security_manager
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -63,6 +62,7 @@ from superset.utils.core import (
     merge_extra_filters,
     to_adhoc,
 )
+from superset.viz import set_and_log_cache
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -521,16 +521,14 @@ class BaseViz:
                 and cache
                 and self.status != utils.QueryStatus.FAILED
             ):
-                try:
-                    cache_value = dict(dttm=cached_dttm, df=df, query=self.query)
-                    stats_logger.incr("set_cache_key")
-                    cache.set(cache_key, cache_value, timeout=self.cache_timeout)
-                except Exception as ex:
-                    # cache.set call can fail if the backend is down or if
-                    # the key is too large or whatever other reasons
-                    logger.warning("Could not cache key {}".format(cache_key))
-                    logger.exception(ex)
-                    cache.delete(cache_key)
+                set_and_log_cache(
+                    cache_key,
+                    df,
+                    self.query,
+                    cached_dttm,
+                    self.cache_timeout,
+                    self.datasource.uid,
+                )
 
         return {
             "cache_key": self._any_cache_key,

@@ -16,31 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
+type DatabaseUser = {
+  first_name: string;
+  last_name: string;
+};
 
-// Suerset's webpack.config.js
-const customConfig = require('../webpack.config.js');
+export type DatabaseObject = {
+  id: number;
+  database_name: string;
+  backend: string;
+  allow_run_async: boolean;
+  allow_dml: boolean;
+  allow_csv_upload: boolean;
+  expose_in_sqllab: boolean;
+  created_by: null | DatabaseUser;
+  changed_on_delta_humanized: string;
+  changed_on: string;
 
-module.exports = {
-stories: ['../src/@(components|common)/**/*.stories.@(t|j)sx'],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-links',
-    '@storybook/preset-typescript',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs/register',
-    'storybook-addon-paddings',
-  ],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
-    },
-    resolve: {
-      ...config.resolve,
-      ...customConfig.resolve,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
+  uri: string;
+  // TODO: add more props
 };
