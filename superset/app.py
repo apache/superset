@@ -25,6 +25,7 @@ from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
 
+from superset.cache.api import CacheRestApi
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
     _event_logger,
@@ -194,6 +195,7 @@ class SupersetAppInitializer:
         #
         # Setup API views
         #
+        appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
