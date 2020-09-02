@@ -127,6 +127,7 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
     },
     tooltip: {
       trigger: 'axis',
+      confine: true,
       formatter: (params, ticket, callback) => {
         // @ts-ignore
         const rows = [`${smartDateVerboseFormatter(params[0].value[0])}`];
