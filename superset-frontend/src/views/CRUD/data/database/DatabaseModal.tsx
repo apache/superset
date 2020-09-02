@@ -23,13 +23,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
-
-export type DatabaseObject = {
-  id?: number;
-  name: string;
-  uri: string;
-  // TODO: add more props
-};
+import { DatabaseObject } from './types';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -90,7 +84,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 }) => {
   // const [disableSave, setDisableSave] = useState(true);
   const [disableSave] = useState<boolean>(true);
-  const [db, setDB] = useState<DatabaseObject | null>(null);
+  const [db, setDB] = useState<Partial<DatabaseObject> | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
   // Functions
@@ -110,7 +104,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const target = event.target;
     const data = {
-      name: db ? db.name : '',
+      database_name: db ? db.database_name : '',
       uri: db ? db.uri : '',
       ...db,
     };
@@ -130,7 +124,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setDB(database);
   } else if (!isEditMode && (!db || db.id || (isHidden && show))) {
     setDB({
-      name: '',
+      database_name: '',
       uri: '',
     });
   }
@@ -175,7 +169,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <input
                 type="text"
                 name="name"
-                value={db ? db.name : ''}
+                value={db ? db.database_name : ''}
                 placeholder={t('Name your datasource')}
                 onChange={onInputChange}
               />

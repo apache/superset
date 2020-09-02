@@ -87,22 +87,26 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "sqlalchemy_uri",
     ]
     list_columns = [
-        "id",
-        "database_name",
-        "expose_in_sqllab",
+        "allow_csv_upload",
         "allow_ctas",
         "allow_cvas",
-        "force_ctas_schema",
-        "allow_run_async",
         "allow_dml",
         "allow_multi_schema_metadata_fetch",
-        "allow_csv_upload",
-        "allows_subquery",
+        "allow_run_async",
         "allows_cost_estimate",
+        "allows_subquery",
         "allows_virtual_table_explore",
-        "explore_database_id",
         "backend",
+        "changed_on",
+        "changed_on_delta_humanized",
+        "created_by.first_name",
+        "created_by.last_name",
+        "database_name",
+        "explore_database_id",
+        "expose_in_sqllab",
+        "force_ctas_schema",
         "function_names",
+        "id",
     ]
     add_columns = [
         "database_name",
@@ -124,6 +128,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     edit_columns = add_columns
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
+    order_columns = [
+        "allow_csv_upload",
+        "allow_dml",
+        "allow_run_async",
+        "changed_on",
+        "changed_on_delta_humanized",
+        "created_by.first_name",
+        "database_name",
+        "expose_in_sqllab",
+    ]
     # Removes the local limit for the page size
     max_page_size = -1
     add_model_schema = DatabasePostSchema()
