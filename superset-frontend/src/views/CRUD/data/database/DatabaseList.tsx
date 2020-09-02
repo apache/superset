@@ -43,6 +43,10 @@ const IconBlack = styled(Icon)`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
 
+function BooleanDisplay(value: any) {
+  return value ? <IconBlack name="check" /> : <IconBlack name="cancel-x" />;
+}
+
 function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const {
     state: {
@@ -129,12 +133,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_run_async: allowRunAsync },
           },
-        }: any) =>
-          allowRunAsync ? (
-            <IconBlack name="check" />
-          ) : (
-            <IconBlack name="cancel-x" />
-          ),
+        }: any) => <BooleanDisplay value={allowRunAsync} />,
         size: 'md',
       },
       {
@@ -152,8 +151,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_dml: allowDML },
           },
-        }: any) =>
-          allowDML ? <IconBlack name="check" /> : <IconBlack name="cancel-x" />,
+        }: any) => <BooleanDisplay value={allowDML} />,
         size: 'md',
       },
       {
@@ -163,12 +161,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_csv_upload: allowCSVUpload },
           },
-        }: any) =>
-          allowCSVUpload ? (
-            <IconBlack name="check" />
-          ) : (
-            <IconBlack name="cancel-x" />
-          ),
+        }: any) => <BooleanDisplay value={allowCSVUpload} />,
         size: 'xl',
       },
       {
@@ -178,12 +171,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { expose_in_sqllab: exposeInSqllab },
           },
-        }: any) =>
-          exposeInSqllab ? (
-            <IconBlack name="check" />
-          ) : (
-            <IconBlack name="cancel-x" />
-          ),
+        }: any) => <BooleanDisplay value={exposeInSqllab} />,
         size: 'xxl',
       },
       {
