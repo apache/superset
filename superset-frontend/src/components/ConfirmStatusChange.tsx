@@ -38,9 +38,20 @@ export default function ConfirmStatusChange({
 
   const showConfirm = (...callbackArgs: any[]) => {
     // check if any args are DOM events, if so, call persist
-    callbackArgs.forEach(
-      arg => arg && typeof arg.persist === 'function' && arg.persist(),
-    );
+    callbackArgs.forEach(arg => {
+      if (!arg) {
+        return;
+      }
+      if (typeof arg.persist === 'function') {
+        arg.persist();
+      }
+      if (typeof arg.preventDefault === 'function') {
+        arg.preventDefault();
+      }
+      if (typeof arg.stopPropagation === 'function') {
+        arg.stopPropagation();
+      }
+    });
     setOpen(true);
     setCurrentCallbackArgs(callbackArgs);
   };

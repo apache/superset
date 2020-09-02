@@ -515,6 +515,7 @@ class TestSqlLab(SupersetTestCase):
             "page_size": -1,
         }
         url = f"api/v1/database/?q={prison.dumps(arguments)}"
+
         self.assertEqual(
             {"examples", "fake_db_100", "main"},
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},
