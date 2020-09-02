@@ -37,7 +37,6 @@ from typing import (
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
-import pandas as pd
 import simplejson as json
 from celery.app.task import Task
 from dateutil.tz import tzlocal
@@ -52,7 +51,6 @@ from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
 from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app, machine_auth_provider_factory
 from superset.models.alerts import Alert, AlertLog
-from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     EmailDeliveryType,
@@ -61,7 +59,8 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery
+from superset.tasks.alerts.observer import observe
+from superset.tasks.alerts.validator import get_validator_function
 from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
 from superset.utils.screenshots import ChartScreenshot, WebDriverProxy
@@ -73,7 +72,6 @@ if TYPE_CHECKING:
     # pylint: disable=unused-import
     from werkzeug.datastructures import TypeConversionDict
     from flask_appbuilder.security.sqla.models import User
-
 
 # Globals
 config = app.config
@@ -106,6 +104,7 @@ class ScreenshotData(NamedTuple):
 class AlertContent(NamedTuple):
     label: str  # alert name
     sql: str  # sql statement for alert
+    observation_value: str  # value from observation that triggered the alert
     alert_url: str  # url to alert details
     image_data: Optional[ScreenshotData]  # data for the alert screenshot
 
@@ -539,15 +538,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             return
 
         if report_type == ScheduleType.alert:
-            if recipients or slack_channel:
-                deliver_alert(schedule.id, recipients, slack_channel)
-                return
-
-            if run_alert_query(
-                schedule.id, schedule.database_id, schedule.sql, schedule.label
-            ):
-                # deliver_dashboard OR deliver_slice
-                return
+            evaluate_alert(schedule.id, schedule.label, recipients, slack_channel)
         else:
             raise RuntimeError("Unknown report type")
     except NoSuchColumnError as column_error:
@@ -565,18 +556,35 @@ class AlertState:
 
 
 def deliver_alert(
-    alert_id: int, recipients: Optional[str] = None, slack_channel: Optional[str] = None
+    alert_id: int,
+    recipients: Optional[str] = None,
+    slack_channel: Optional[str] = None,
 ) -> None:
+    """
+    Gathers alert information and sends out the alert
+    to its respective email and slack recipients
+    """
+
     alert = db.session.query(Alert).get(alert_id)
 
     logging.info("Triggering alert: %s", alert)
+
+    # Set all the values for the alert report
+    # Alternate values are used in the case of a test alert
+    # where an alert has no observations yet
     recipients = recipients or alert.recipients
     slack_channel = slack_channel or alert.slack_channel
+    sql = alert.sql_observer[0].sql if alert.sql_observer else ""
+    observation_value = (
+        str(alert.observations[-1].value) if alert.observations else "Value"
+    )
 
+    # TODO: add sql query results and validator information to alert content
     if alert.slice:
         alert_content = AlertContent(
             alert.label,
-            alert.sql,
+            sql,
+            observation_value,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             _get_slice_screenshot(alert.slice.id),
         )
@@ -584,7 +592,8 @@ def deliver_alert(
         # TODO: dashboard delivery!
         alert_content = AlertContent(
             alert.label,
-            alert.sql,
+            sql,
+            observation_value,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             None,
         )
@@ -596,7 +605,7 @@ def deliver_alert(
 
 
 def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
-    # TODO add sql query results to email
+    """Delivers an email alert to the given email recipients"""
     subject = f"[Superset] Triggered alert: {alert_content.label}"
     deliver_as_group = False
     data = None
@@ -613,6 +622,7 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
         alert_url=alert_content.alert_url,
         label=alert_content.label,
         sql=alert_content.sql,
+        observation_value=alert_content.observation_value,
         image_url=image_url,
     )
 
@@ -620,6 +630,8 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
 
 
 def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None:
+    """Delivers a slack alert to the given slack channel"""
+
     subject = __("[Alert] %(label)s", label=alert_content.label)
 
     image = None
@@ -628,6 +640,7 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
             "slack/alert.txt",
             label=alert_content.label,
             sql=alert_content.sql,
+            observation_value=alert_content.observation_value,
             url=alert_content.image_data.url,
             alert_url=alert_content.alert_url,
         )
@@ -637,6 +650,7 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
             "slack/alert_no_screenshot.txt",
             label=alert_content.label,
             sql=alert_content.sql,
+            observation_value=alert_content.observation_value,
             alert_url=alert_content.alert_url,
         )
 
@@ -645,55 +659,48 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
     )
 
 
-def run_alert_query(
-    alert_id: int, database_id: int, sql: str, label: str
-) -> Optional[bool]:
-    """
-    Execute alert.sql and return value if any rows are returned
-    """
+def evaluate_alert(
+    alert_id: int,
+    label: str,
+    recipients: Optional[str] = None,
+    slack_channel: Optional[str] = None,
+) -> None:
+    """Processes an alert to see if it should be triggered"""
+
     logger.info("Processing alert ID: %i", alert_id)
-    database = db.session.query(Database).get(database_id)
-    if not database:
-        logger.error("Alert database not preset")
-        return None
-
-    if not sql:
-        logger.error("Alert SQL not preset")
-        return None
-
-    parsed_query = ParsedQuery(sql)
-    sql = parsed_query.stripped()
 
     state = None
     dttm_start = datetime.utcnow()
 
-    df = pd.DataFrame()
     try:
-        logger.info("Evaluating SQL for alert <%s:%s>", alert_id, label)
-        df = database.get_df(sql)
+        logger.info("Querying observers for alert <%s:%s>", alert_id, label)
+        error_msg = observe(alert_id)
+        if error_msg:
+            state = AlertState.ERROR
+            logging.error(error_msg)
     except Exception as exc:  # pylint: disable=broad-except
         state = AlertState.ERROR
         logging.exception(exc)
-        logging.error("Failed at evaluating alert: %s (%s)", label, alert_id)
+        logging.error("Failed at query observers for alert: %s (%s)", label, alert_id)
 
     dttm_end = datetime.utcnow()
-    last_eval_dttm = datetime.utcnow()
 
     if state != AlertState.ERROR:
-        if not df.empty:
-            # Looking for truthy cells
-            for row in df.to_records():
-                if any(row):
-                    state = AlertState.TRIGGER
-                    deliver_alert(alert_id)
-                    break
-        if not state:
+        # Don't validate alert on test runs since it may not be triggered
+        if recipients or slack_channel:
+            deliver_alert(alert_id, recipients, slack_channel)
+            state = AlertState.TRIGGER
+        # Validate during regular workflow and deliver only if triggered
+        elif validate_observations(alert_id, label):
+            deliver_alert(alert_id, recipients, slack_channel)
+            state = AlertState.TRIGGER
+        else:
             state = AlertState.PASS
 
     db.session.commit()
     alert = db.session.query(Alert).get(alert_id)
     if state != AlertState.ERROR:
-        alert.last_eval_dttm = last_eval_dttm
+        alert.last_eval_dttm = dttm_end
     alert.last_state = state
     alert.logs.append(
         AlertLog(
@@ -705,7 +712,23 @@ def run_alert_query(
     )
     db.session.commit()
 
-    return None
+
+def validate_observations(alert_id: int, label: str) -> bool:
+    """
+    Runs an alert's validators to check if it should be triggered or not
+    If so, return the name of the validator that returned true
+    """
+
+    logger.info("Validating observations for alert <%s:%s>", alert_id, label)
+
+    alert = db.session.query(Alert).get(alert_id)
+    if alert.validators:
+        validator = alert.validators[0]
+        validate = get_validator_function(validator.validator_type)
+        if validate and validate(alert.sql_observer[0], validator.config):
+            return True
+
+    return False
 
 
 def next_schedules(
