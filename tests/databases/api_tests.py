@@ -322,7 +322,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test create fails connection
         """
         example_db = get_example_database()
-        if example_db.backend == "sqlite":
+        if example_db.backend in ("sqlite", "hive", "preto"):
             return
         example_db.password = "wrong_password"
         database_data = {
@@ -362,7 +362,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test update fails connection
         """
         example_db = get_example_database()
-        if example_db.backend == "sqlite":
+        if example_db.backend in ("sqlite", "hive", "preto"):
             return
 
         test_database = self.insert_database(
