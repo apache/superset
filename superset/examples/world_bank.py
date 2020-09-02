@@ -153,7 +153,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
                         "column": "region",
                         "key": "2s98dfu",
                         "metric": "sum__SP_POP_TOTL",
-                        "multiple": True,
+                        "multiple": False,
                     },
                     {
                         "asc": False,
