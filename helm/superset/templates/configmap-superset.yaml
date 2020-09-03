@@ -27,6 +27,6 @@ metadata:
 data:
 {{- range $path, $config := .Values.extraConfigs }}
   {{ $path }}: |
-{{ $config | indent 4 -}}
+{{ tpl $config . | indent 4 -}}
 {{- end -}}
 {{- end -}}
