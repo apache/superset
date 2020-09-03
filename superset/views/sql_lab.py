@@ -21,7 +21,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import lazy_gettext as _
 
-from superset import db, get_feature_flags
+from superset import db
 from superset.constants import RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.typing import FlaskResponse
