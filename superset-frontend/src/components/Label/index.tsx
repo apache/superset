@@ -19,12 +19,14 @@
 import React from 'react';
 import { Label as BootstrapLabel } from 'react-bootstrap';
 import styled from '@superset-ui/style';
+import cx from 'classnames';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapLabel>;
 
 export interface LabelProps {
   key?: string;
   className?: string;
+  id?: string;
   tooltip?: string;
   placement?: string;
   onClick?: OnClickHandler;
@@ -34,6 +36,15 @@ export interface LabelProps {
 }
 
 const SupersetLabel = styled(BootstrapLabel)`
+  /* un-bunch them! */
+  margin-right: ${({ theme }) => theme.gridUnit}px;
+  &:first-of-type {
+    margin-left: 0;
+  }
+  &:last-of-type {
+    margin-right: 0;
+  }
+
   cursor: ${({ onClick }) => (onClick ? 'pointer' : 'default')};
   transition: background-color ${({ theme }) => theme.transitionTiming}s;
   &.label-warning {
@@ -103,9 +114,11 @@ export default function Label(props: LabelProps) {
     bsStyle: officialBootstrapStyles.includes(props.bsStyle || '')
       ? props.bsStyle
       : 'default',
-    className: officialBootstrapStyles.includes(props.bsStyle || '')
-      ? undefined
-      : `label-${props.bsStyle}`,
+    className: cx(props.className, {
+      [`label-${props.bsStyle}`]: !officialBootstrapStyles.includes(
+        props.bsStyle || '',
+      ),
+    }),
   };
   return <SupersetLabel {...labelProps}>{props.children}</SupersetLabel>;
 }

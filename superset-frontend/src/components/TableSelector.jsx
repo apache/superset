@@ -247,9 +247,7 @@ export default class TableSelector extends React.PureComponent {
   renderDatabaseOption(db) {
     return (
       <span title={db.database_name}>
-        <Label bsStyle="default" className="m-r-5">
-          {db.backend}
-        </Label>
+        <Label bsStyle="default">{db.backend}</Label>
         {db.database_name}
       </span>
     );
