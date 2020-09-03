@@ -1,4 +1,4 @@
-import { buildQueryContext } from '@superset-ui/query';
+import { buildQueryContext } from '@superset-ui/core';
 import { WordCloudFormData } from '../types';
 
 export default function buildQuery(formData: WordCloudFormData) {

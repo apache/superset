@@ -1,8 +1,7 @@
 import React, { PureComponent } from 'react';
 import { XYChart, PointSeries } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
-import { Margin, Dimension } from '@superset-ui/dimension';
-import { WithLegend } from '@superset-ui/chart-composition';
+import { WithLegend, Margin, Dimension } from '@superset-ui/core';
 import { isFieldDef, Dataset, PlainObject } from 'encodable';
 
 import {
@@ -87,9 +86,9 @@ export default class ScatterPlot extends PureComponent<Props> {
           <TooltipRenderer datum={datum} encoder={encoder} />
         )}
         theme={theme}
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         xScale={convertScaleToDataUIScale(channels.x.definition.scale as any)}
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         yScale={convertScaleToDataUIScale(channels.y.definition.scale as any)}
       >
         {layout.renderXAxis()}

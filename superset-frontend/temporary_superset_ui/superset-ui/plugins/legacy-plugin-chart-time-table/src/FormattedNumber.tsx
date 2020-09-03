@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { formatNumber } from '@superset-ui/number-format';
+import { formatNumber } from '@superset-ui/core';
 
 interface Props {
   format: string;

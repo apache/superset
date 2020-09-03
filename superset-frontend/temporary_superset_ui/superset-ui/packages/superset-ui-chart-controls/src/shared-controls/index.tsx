@@ -34,22 +34,21 @@
  * control interface.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
 import {
+  t,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
-} from '@superset-ui/color';
-import { legacyValidateInteger, validateNonEmpty } from '@superset-ui/validator';
+  legacyValidateInteger,
+  validateNonEmpty,
+} from '@superset-ui/core';
 
-import { formatSelectOptions } from '../utils/selectOptions';
-import mainMetric from '../utils/mainMetric';
+import { mainMetric, formatSelectOptions } from '../utils';
 import { TIME_FILTER_LABELS } from '../constants';
 import {
   Metric,
   SharedControlConfig,
   ColumnMeta,
-  DatasourceMeta,
   ExtraControlProps,
   SelectControlConfig,
 } from '../types';
@@ -163,15 +162,6 @@ const metric: SharedControlConfig<'MetricsControl'> = {
   description: t('Metric'),
   default: (c: Control) => mainMetric(c.savedMetrics),
 };
-
-export function columnChoices(datasource: DatasourceMeta) {
-  if (datasource?.columns) {
-    return datasource.columns
-      .map(col => [col.column_name, col.verbose_name || col.column_name])
-      .sort((opt1, opt2) => (opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1));
-  }
-  return [];
-}
 
 const datasourceControl: SharedControlConfig<'DatasourceControl'> = {
   type: 'DatasourceControl',
@@ -476,7 +466,7 @@ const label_colors: SharedControlConfig<'ColorMapControl'> = {
   }),
 };
 
-export default {
+const sharedControls = {
   metrics,
   metric,
   datasource: datasourceControl,
@@ -505,3 +495,5 @@ export default {
   color_scheme,
   label_colors,
 };
+
+export default sharedControls;

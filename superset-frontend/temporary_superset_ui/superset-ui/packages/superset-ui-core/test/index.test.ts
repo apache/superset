@@ -8,7 +8,7 @@ import {
   isDefined,
   isRequired,
   makeSingleton,
-} from '../src';
+} from '@superset-ui/core/src';
 
 describe('index', () => {
   it('exports modules', () => {

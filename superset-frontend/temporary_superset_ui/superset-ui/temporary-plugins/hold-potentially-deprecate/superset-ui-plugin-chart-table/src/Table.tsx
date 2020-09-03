@@ -10,8 +10,7 @@ import {
   GenericRow,
 } from '@airbnb/lunar/lib/components/DataTable/types';
 import { createSelector } from 'reselect';
-import { TimeFormatter } from '@superset-ui/time-format';
-import { NumberFormatter } from '@superset-ui/number-format';
+import { NumberFormatter, TimeFormatter } from '@superset-ui/core';
 import getRenderer, { ColumnType, Cell } from './getRenderer';
 
 type Props = {

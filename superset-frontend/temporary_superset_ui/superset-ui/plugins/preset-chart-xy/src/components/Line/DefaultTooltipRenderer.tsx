@@ -1,5 +1,5 @@
 import React from 'react';
-import { TooltipFrame, TooltipTable } from '@superset-ui/chart-composition';
+import { TooltipFrame, TooltipTable } from '@superset-ui/core';
 import { chartTheme } from '@data-ui/theme';
 import { TooltipProps } from './Line';
 

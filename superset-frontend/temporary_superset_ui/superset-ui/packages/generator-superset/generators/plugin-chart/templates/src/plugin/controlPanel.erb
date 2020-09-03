@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { validateNonEmpty } from '@superset-ui/validator';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { t, validateNonEmpty } from '@superset-ui/core';
+import { ControlPanelConfig } from '@superset-ui/chart-controls'
 
 const config: ControlPanelConfig = {
   /**
@@ -52,8 +51,12 @@ const config: ControlPanelConfig = {
    * can then be placed in the `controlSetRows` section
    * of the `Query` section instead of a predefined control.
    *
-   * import { validateNonEmpty } from '@superset-ui/validator';
-   * import { sharedControls, ControlConfig, ControlPanelConfig } from '@superset-ui/chart-controls'; 
+   * import { validateNonEmpty } from '@superset-ui/core';
+   * import {
+   *   sharedControls,
+   *   ControlConfig,
+   *   ControlPanelConfig,
+   * } from '@superset-ui/chart-controls';
    *
    * const myControl: ControlConfig<'SelectControl'> = {
    *   name: 'secondary_entity',
@@ -86,7 +89,7 @@ const config: ControlPanelConfig = {
    *
    * To ensure all controls have been filled out correctly, the following
    * validators are provided
-   * by the `@superset-ui/validator` package:
+   * by the `@superset-ui/core/lib/validator`:
    * - validateNonEmpty: must have at least one value
    * - validateInteger: must be an integer value
    * - validateNumber: must be an intger or decimal value

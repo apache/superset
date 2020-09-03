@@ -20,9 +20,8 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
-import { getSequentialSchemeRegistry } from '@superset-ui/color';
+import { getNumberFormatter, getSequentialSchemeRegistry } from '@superset-ui/core';
 import Datamap from 'datamaps/dist/datamaps.world.min';
-import { getNumberFormatter } from '@superset-ui/number-format';
 
 const propTypes = {
   data: PropTypes.arrayOf(

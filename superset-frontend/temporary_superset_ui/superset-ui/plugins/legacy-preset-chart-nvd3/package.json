@@ -29,6 +29,8 @@
   },
   "dependencies": {
     "@data-ui/xy-chart": "^0.0.84",
+    "@superset-ui/core": "^0.14.22",
+    "@superset-ui/chart-controls": "^0.14.22",
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
     "dompurify": "^2.0.6",
@@ -41,16 +43,6 @@
     "urijs": "^1.18.10"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.14.9",
-    "@superset-ui/chart-controls": "^0.14.9",
-    "@superset-ui/color": "^0.14.9",
-    "@superset-ui/core": "^0.14.9",
-    "@superset-ui/dimension": "^0.14.9",
-    "@superset-ui/number-format": "^0.14.9",
-    "@superset-ui/style": "^0.14.9",
-    "@superset-ui/time-format": "^0.14.9",
-    "@superset-ui/translation": "^0.14.9",
-    "@superset-ui/validator": "^0.14.9",
     "react": "^15 || ^16"
   }
 }

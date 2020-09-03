@@ -1,4 +1,4 @@
-import { Plugin, Preset } from '../../src';
+import { Plugin, Preset } from '@superset-ui/core/src';
 
 describe('Preset', () => {
   it('exists', () => {

@@ -1,5 +1,5 @@
 import { CSSProperties } from 'react';
-import { getTextDimension, Margin, Dimension } from '@superset-ui/dimension';
+import { getTextDimension, Margin, Dimension } from '@superset-ui/core';
 import { AxisOrient, ChannelDef, Value } from 'encodable';
 
 import ChannelEncoderAxis from 'encodable/lib/encoders/ChannelEncoderAxis';

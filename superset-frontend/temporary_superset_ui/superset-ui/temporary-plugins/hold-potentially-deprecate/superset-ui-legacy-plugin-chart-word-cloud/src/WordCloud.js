@@ -21,7 +21,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import cloudLayout from 'd3-cloud';
-import { CategoricalColorNamespace } from '@superset-ui/color';
+import { CategoricalColorNamespace } from '@superset-ui/core';
 
 const ROTATION = {
   square: () => Math.floor(Math.random() * 2) * 90,

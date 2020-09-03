@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { D3_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '@superset-ui/chart-controls';
+import { t, D3_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '@superset-ui/core';
 
 export default {
   controlPanelSections: [

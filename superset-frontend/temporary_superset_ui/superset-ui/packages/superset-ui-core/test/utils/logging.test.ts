@@ -22,7 +22,7 @@ describe('logging', () => {
     jest.resetModules();
   });
   it('should pipe to `console` methods', () => {
-    const { logging } = require('../../src');
+    const { logging } = require('@superset-ui/core/src');
 
     expect(() => {
       logging.debug();
@@ -42,7 +42,7 @@ describe('logging', () => {
   it('should use noop functions when console unavailable', () => {
     const { console } = window;
     Object.assign(window, { console: undefined });
-    const { logging } = require('../../src');
+    const { logging } = require('@superset-ui/core/src');
 
     afterAll(() => {
       Object.assign(window, { console });
