@@ -647,11 +647,11 @@ class TableViz(BaseViz):
 
     def process_metrics(self) -> None:
         """Process form data and store parsed column configs.
-           1. Determine query mode based on form_data params.
-                - Use `query_mode` if it has a valid value
-                - Set as RAW mode if `all_columns` is set
-                - Otherwise defaults to AGG mode
-           2. Determine output columns based on query mode.
+        1. Determine query mode based on form_data params.
+             - Use `query_mode` if it has a valid value
+             - Set as RAW mode if `all_columns` is set
+             - Otherwise defaults to AGG mode
+        2. Determine output columns based on query mode.
         """
         # Verify form data first: if not specifying query mode, then cannot have both
         # GROUP BY and RAW COLUMNS.
@@ -857,7 +857,7 @@ class PivotTableViz(BaseViz):
         return aggfunc if aggfunc in ("min", "max") else "max"
 
     @staticmethod
-    def _format_datetime(value: Any) -> Any:
+    def _format_datetime(value: Union[pd.Timestamp, datetime, date, str]) -> str:
         """
         Format a timestamp in such a way that the viz will be able to apply
         the correct formatting in the frontend.
@@ -878,7 +878,8 @@ class PivotTableViz(BaseViz):
                 pass
         if tstamp:
             return f"__timestamp:{datetime_to_epoch(tstamp)}"
-        return value
+        # fallback in case something incompatible is returned
+        return cast(str, value)
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
