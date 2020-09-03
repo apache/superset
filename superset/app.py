@@ -143,6 +143,7 @@ class SupersetAppInitializer:
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
+        from superset.queries.savedqueries.api import SavedQueryRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import (
             AlertLogModelView,
@@ -198,6 +199,7 @@ class SupersetAppInitializer:
         appbuilder.add_api(DatabaseRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(QueryRestApi)
+        appbuilder.add_api(SavedQueryRestApi)
         #
         # Setup regular views
         #
