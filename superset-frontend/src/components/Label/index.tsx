@@ -114,8 +114,7 @@ export default function Label(props: LabelProps) {
     bsStyle: officialBootstrapStyles.includes(props.bsStyle || '')
       ? props.bsStyle
       : 'default',
-    className: cx({
-      [`${props.className}`]: props.className,
+    className: cx(props.className, {
       [`label-${props.bsStyle}`]: !officialBootstrapStyles.includes(
         props.bsStyle || '',
       ),
