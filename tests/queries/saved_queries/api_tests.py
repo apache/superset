@@ -183,12 +183,18 @@ class TestSavedQueryApi(SupersetTestCase):
         SavedQuery API: Test related databases
         """
         self.login(username="admin")
+        databases = db.session.query(Database).all()
+        expected_result = {
+            "count": len(databases),
+            "result": [
+                {"text": str(database), "value": database.id} for database in databases
+            ],
+        }
+
         uri = f"api/v1/saved_query/related/database"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        raise Exception(data)
-        expected_result = {"count": 1, "result": [{"text": "examples", "value": 1}]}
         self.assertEqual(data, expected_result)
 
     def test_related_saved_query_not_found(self):

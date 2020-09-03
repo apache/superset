@@ -90,9 +90,9 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                 " columns and metadata.",
             }
         },
-        "post": {"post": {"description": "Create saved query",}},
-        "put": {"put": {"description": "Update saved query",}},
-        "delete": {"delete": {"description": "Delete saved query",}},
+        "post": {"post": {"description": "Create a saved query"}},
+        "put": {"put": {"description": "Update a saved query"}},
+        "delete": {"delete": {"description": "Delete saved query"}},
     }
 
     related_field_filters = {
