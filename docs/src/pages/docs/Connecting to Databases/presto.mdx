@@ -1,0 +1,27 @@
+---
+name: Presto
+menu: Connecting to Databases
+route: /docs/databases/presto
+index: 22
+version: 1
+---
+
+## Presto
+
+The connector library [pyhive](https://pypi.org/project/PyHive/) comes with Superset out of the box.
+This is the recommended way to connect to Presto.
+
+The expected connection string is formatted as follows:
+
+```
+hive://hive@{hostname}:{port}/{database}
+```
+
+By default Superset assumes the most recent version of Presto is being used when querying the
+datasource. If you’re using an older version of Presto, you can configure it in the extra parameter:
+
+```
+{
+    "version": "0.123"
+}
+```

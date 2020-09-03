@@ -1,0 +1,26 @@
+---
+name: MySQL
+menu: Connecting to Databases
+route: /docs/databases/mysql
+index: 19
+version: 1
+---
+
+## MySQL
+
+The [Installing Database Drivers](/docs/databases/installing-database-drivers) section has the most
+complete instructions for installing MySQL.
+
+The recommended connector library for MySQL is [mysqlclient](https://pypi.org/project/mysqlclient/).
+
+For Docker running in Linux, the recommended connection string is:
+
+```
+mysql://mysqluser:mysqluserpassword@localhost/example?charset=utf8
+```
+
+For Docker running in OSX, the recommended connection string is:
+
+```
+mysql://mysqluser:mysqluserpassword@docker.for.mac.host.internal/example?charset=utf8
+```

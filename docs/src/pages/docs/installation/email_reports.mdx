@@ -1,0 +1,174 @@
+---
+name: Scheduling and Emailing Reports
+menu: Installation and Configuration
+route: /docs/installation/email-reports
+index: 10
+version: 1
+---
+
+## Scheduling and Emailing Reports
+
+### Email Reports
+
+Email reports allow users to schedule email reports for:
+
+- chart and dashboard visualization (attachment or inline)
+- chart data (CSV attachment on inline table)
+
+Enable email reports in your `superset_config.py` file:
+
+```
+ENABLE_SCHEDULED_EMAIL_REPORTS = True
+```
+
+Now you will find two new items in the navigation bar that allow you to schedule email reports:
+
+- **Manage > Dashboard Emails**
+- **Manage > Chart Email Schedules**
+
+Schedules are defined in [crontab format](https://crontab.guru/) and each schedule can have a list
+of recipients (all of them can receive a single mail, or separate mails). For audit purposes, all
+outgoing mails can have a mandatory BCC.
+
+In order get picked up you need to configure a celery worker and a celery beat (see section above
+“Celery Tasks”). Your celery configuration also needs an entry `email_reports.schedule_hourly` for
+`CELERYBEAT_SCHEDULE`.
+
+To send emails you need to configure SMTP settings in your `superset_config.py` configuration file.
+
+```
+EMAIL_NOTIFICATIONS = True
+
+SMTP_HOST = "email-smtp.eu-west-1.amazonaws.com"
+SMTP_STARTTLS = True
+SMTP_SSL = False
+SMTP_USER = "smtp_username"
+SMTP_PORT = 25
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+SMTP_MAIL_FROM = "insights@komoot.com"
+```
+
+To render dashboards you need to install a local browser on your Superset instance:
+
+- [geckodriver](https://github.com/mozilla/geckodriver) for Firefox
+- [chromedriver](http://chromedriver.chromium.org/) for Chrome
+
+You'll need to adjust the `EMAIL_REPORTS_WEBDRIVER` accordingly in your configuration. You also need
+to specify on behalf of which username to render the dashboards. In general dashboards and charts
+are not accessible to unauthorized requests, that is why the worker needs to take over credentials
+of an existing user to take a snapshot.
+
+```
+EMAIL_REPORTS_USER = 'username_with_permission_to_access_dashboards'
+```
+
+**Important notes**
+
+- Be mindful of the concurrency setting for celery (using `-c 4`). Selenium/webdriver instances can
+  consume a lot of CPU / memory on your servers.
+- In some cases, if you notice a lot of leaked geckodriver processes, try running your celery
+  processes with `celery worker --pool=prefork --max-tasks-per-child=128 ...`
+- It is recommended to run separate workers for the `sql_lab` and `email_reports` tasks. This can be
+  done using the `queue` field in `CELERY_ANNOTATIONS`.
+- Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
+  its default value of `http://0.0.0.0:8080/`.
+
+### Schedule Reports
+
+You can optionally allow your users to schedule queries directly in SQL Lab. This is done by addding
+extra metadata to saved queries, which are then picked up by an external scheduled (like
+[Apache Airflow](https://airflow.apache.org/)).
+
+To allow scheduled queries, add the following to your configuration file:
+
+```
+FEATURE_FLAGS = {
+    # Configuration for scheduling queries from SQL Lab. This information is
+    # collected when the user clicks "Schedule query", and saved into the `extra`
+    # field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    'SCHEDULED_QUERIES': {
+        'JSONSCHEMA': {
+            'title': 'Schedule',
+            'description': (
+                'In order to schedule a query, you need to specify when it '
+                'should start running, when it should stop running, and how '
+                'often it should run. You can also optionally specify '
+                'dependencies that should be met before the query is '
+                'executed. Please read the documentation for best practices '
+                'and more information on how to specify dependencies.'
+            ),
+            'type': 'object',
+            'properties': {
+                'output_table': {
+                    'type': 'string',
+                    'title': 'Output table name',
+                },
+                'start_date': {
+                    'type': 'string',
+                    'title': 'Start date',
+                    # date-time is parsed using the chrono library, see
+                    # https://www.npmjs.com/package/chrono-node#usage
+                    'format': 'date-time',
+                    'default': 'tomorrow at 9am',
+                },
+                'end_date': {
+                    'type': 'string',
+                    'title': 'End date',
+                    # date-time is parsed using the chrono library, see
+                    # https://www.npmjs.com/package/chrono-node#usage
+                    'format': 'date-time',
+                    'default': '9am in 30 days',
+                },
+                'schedule_interval': {
+                    'type': 'string',
+                    'title': 'Schedule interval',
+                },
+                'dependencies': {
+                    'type': 'array',
+                    'title': 'Dependencies',
+                    'items': {
+                        'type': 'string',
+                    },
+                },
+            },
+        },
+        'UISCHEMA': {
+            'schedule_interval': {
+                'ui:placeholder': '@daily, @weekly, etc.',
+            },
+            'dependencies': {
+                'ui:help': (
+                    'Check the documentation for the correct format when '
+                    'defining dependencies.'
+                ),
+            },
+        },
+        'VALIDATION': [
+            # ensure that start_date <= end_date
+            {
+                'name': 'less_equal',
+                'arguments': ['start_date', 'end_date'],
+                'message': 'End date cannot be before start date',
+                # this is where the error message is shown
+                'container': 'end_date',
+            },
+        ],
+        # link to the scheduler; this example links to an Airflow pipeline
+        # that uses the query id and the output table as its name
+        'linkback': (
+            'https://airflow.example.com/admin/airflow/tree?'
+            'dag_id=query_${id}_${extra_json.schedule_info.output_table}'
+        ),
+    },
+}
+```
+
+This feature flag is based on
+[react-jsonschema-form](https://github.com/mozilla-services/react-jsonschema-form) and will add a
+button called “Schedule Query” to SQL Lab. When the button is clicked, a modal will show up where
+the user can add the metadata required for scheduling the query.
+
+This information can then be retrieved from the endpoint `/savedqueryviewapi/api/read` and used to
+schedule the queries that have `scheduled_queries` in their JSON metadata. For schedulers other than
+Airflow, additional fields can be easily added to the configuration file above.

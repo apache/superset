@@ -1,0 +1,89 @@
+---
+name: SQL Templating
+menu: Installation and Configuration
+route: /docs/installation/sql-templating
+index: 10
+version: 1
+---
+
+## SQL Templating
+
+### Jinja Templates
+
+SQL Lab supports [Jinja templating](https://jinja.palletsprojects.com/en/2.11.x/) in queries. You'll
+need to to overload the default Jinja context in your environment by defining the
+JINJA_CONTEXT_ADDONS in your superset configuration (`superset_config.py`). Objects referenced in
+this dictionary are made available for users to use in their SQL code.
+
+```
+JINJA_CONTEXT_ADDONS = {
+    'my_crazy_macro': lambda x: x*2,
+}
+```
+
+Besides default Jinja templating, SQL lab also supports self-defined template processor by setting
+the `CUSTOM_TEMPLATE_PROCESSORS` in your superset configuration. The values in this dictionary
+overwrite the default Jinja template processors of the specified database engine. The example below
+configures a custom presto template processor which implements its own logic of processing macro
+template with regex parsing. It uses the `$` style macro instead of `{{ }}` style in Jinja
+templating.
+
+By configuring it with `CUSTOM_TEMPLATE_PROCESSORS`, a SQL template on a presto database is
+processed by the custom one rather than the default one.
+
+```python
+def DATE(
+    ts: datetime, day_offset: SupportsInt = 0, hour_offset: SupportsInt = 0
+) -> str:
+    """Current day as a string."""
+    day_offset, hour_offset = int(day_offset), int(hour_offset)
+    offset_day = (ts + timedelta(days=day_offset, hours=hour_offset)).date()
+    return str(offset_day)
+
+class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
+    """A custom presto template processor."""
+
+    engine = "presto"
+
+    def process_template(self, sql: str, **kwargs) -> str:
+        """Processes a sql template with $ style macro using regex."""
+        # Add custom macros functions.
+        macros = {
+            "DATE": partial(DATE, datetime.utcnow())
+        }  # type: Dict[str, Any]
+        # Update with macros defined in context and kwargs.
+        macros.update(self.context)
+        macros.update(kwargs)
+
+        def replacer(match):
+            """Expand $ style macros with corresponding function calls."""
+            macro_name, args_str = match.groups()
+            args = [a.strip() for a in args_str.split(",")]
+            if args == [""]:
+                args = []
+            f = macros[macro_name[1:]]
+            return f(*args)
+
+        macro_names = ["$" + name for name in macros.keys()]
+        pattern = r"(%s)\s*\(([^()]*)\)" % "|".join(map(re.escape, macro_names))
+        return re.sub(pattern, replacer, sql)
+
+CUSTOM_TEMPLATE_PROCESSORS = {
+    CustomPrestoTemplateProcessor.engine: CustomPrestoTemplateProcessor
+}
+```
+
+SQL Lab also includes a live query validation feature with pluggable backends. You can configure
+which validation implementation is used with which database engine by adding a block like the
+following to your configuration file:
+
+```
+FEATURE_FLAGS = {
+    'SQL_VALIDATORS_BY_ENGINE': {
+        'presto': 'PrestoDBSQLValidator',
+    }
+}
+```
+
+The available validators and names can be found in
+[sql_validators](https://github.com/apache/incubator-superset/tree/master/superset/sql_validators).
