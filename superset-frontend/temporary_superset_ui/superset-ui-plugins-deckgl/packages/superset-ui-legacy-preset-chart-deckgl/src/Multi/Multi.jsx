@@ -1,5 +1,3 @@
-/* eslint-disable react/jsx-sort-default-props */
-/* eslint-disable react/sort-prop-types */
 /* eslint-disable react/jsx-handler-names */
 /* eslint-disable react/no-access-state-in-setstate */
 /* eslint-disable camelcase */
@@ -24,7 +22,7 @@
 import React from 'react';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 
 import DeckGLContainer from '../DeckGLContainer';
 import { getExploreLongUrl } from '../utils/explore';

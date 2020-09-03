@@ -23,7 +23,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ScreenGridLayer } from 'deck.gl';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import { getPlaySliderParams } from '../../utils/time';
 import sandboxedEval from '../../utils/sandbox';

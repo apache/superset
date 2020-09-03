@@ -20,8 +20,7 @@
 // These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
 
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { validateNonEmpty } from '@superset-ui/validator';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
 import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from './controls';
 
