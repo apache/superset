@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { Label } from 'react-bootstrap';
+import Label from 'src/components/Label';
 
 import { now, fDuration } from '../modules/dates';
 
@@ -73,7 +73,7 @@ export default function Timer({
   });
 
   return (
-    <Label id="timer" className="m-r-5" bsStyle={status}>
+    <Label id="timer" bsStyle={status}>
       {clockStr}
     </Label>
   );

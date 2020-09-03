@@ -72,8 +72,9 @@ const StyledHeader = styled.div`
     align-items: center;
     justify-content: flex-end;
 
-    .btn-group {
+    > .btn-group {
       flex: 0 0 auto;
+      margin-left: ${({ theme }) => theme.gridUnit}px;
     }
   }
 `;
