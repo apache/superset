@@ -61,15 +61,6 @@ class TestDatasetApi(SupersetTestCase):
         )
 
     @staticmethod
-    def get_birth_names_dataset():
-        example_db = get_example_database()
-        return (
-            db.session.query(SqlaTable)
-            .filter_by(database=example_db, table_name="birth_names")
-            .one()
-        )
-
-    @staticmethod
     def get_energy_usage_dataset():
         example_db = get_example_database()
         return (

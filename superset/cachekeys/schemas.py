@@ -14,28 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# RISON/JSON schemas for query parameters
 from marshmallow import fields, Schema, validate
 
-# from superset.charts.schemas import datasource_type_description, datasource_uid_description, datasource_name_description
+from superset.charts.schemas import (
+    datasource_name_description,
+    datasource_type_description,
+    datasource_uid_description,
+)
 
-#
-# RISON/JSON schemas for query parameters
-#
+
 class Datasource(Schema):
-    datasource_name = fields.String(description="",)  # datasource_name_description,
     database_name = fields.String(description="Datasource name",)
+    datasource_name = fields.String(description=datasource_name_description,)
     schema = fields.String(description="Datasource schema",)
     datasource_type = fields.String(
-        description="",  # datasource_type_description,
+        description=datasource_type_description,
         validate=validate.OneOf(choices=("druid", "table", "view")),
         allow_none=True,
     )
 
 
 class CacheInvalidationRequestSchema(Schema):
-    description = ""
     datasource_uids = fields.List(
-        fields.String(), description="",  # datasource_uid_description,
+        fields.String(), description=datasource_uid_description,
     )
     datasources = fields.List(
         fields.Nested(Datasource),

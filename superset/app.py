@@ -25,7 +25,6 @@ from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
 
-from superset.cache.api import CacheRestApi
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
     _event_logger,
@@ -126,6 +125,7 @@ class SupersetAppInitializer:
         #
         # pylint: disable=too-many-locals
         # pylint: disable=too-many-statements
+        from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.connectors.druid.views import (
             Druid,
