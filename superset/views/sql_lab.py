@@ -98,7 +98,6 @@ class SavedQueryView(
             title=self.show_title,
             widgets=widgets,
             related_views=self._related_views,
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
 
 
