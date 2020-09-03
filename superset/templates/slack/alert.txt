@@ -17,7 +17,8 @@
   under the License.
 #}
 *Triggered Alert: {{label}} :redalert:*
-*SQL* *Statement*:```{{sql}}```
-*SQL* *Result*: {{observation_value}}
+*Query*:```{{sql}}```
+*Result*: {{observation_value}}
+*Reason*: {{validation_error_message}}
 <{{alert_url}}|View Alert Details>
 <{{url}}|*Explore in Superset*>
