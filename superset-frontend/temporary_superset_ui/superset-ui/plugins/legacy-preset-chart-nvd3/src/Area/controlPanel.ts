@@ -84,11 +84,6 @@ export default {
     timeSeriesSection[1],
     sections.annotations,
   ],
-  controlOverrides: {
-    color_scheme: {
-      renderTrigger: false,
-    },
-  },
   sectionOverrides: {
     druidTimeSeries: {
       controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
