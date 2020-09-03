@@ -104,7 +104,7 @@ export default class FixedOrMetricControl extends React.Component {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <Label className="pointer" onClick={this.toggle}>
+        <Label onClick={this.toggle}>
           {this.state.type === controlTypes.fixed && (
             <span>{this.state.fixedValue}</span>
           )}
