@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
 import React, { useState } from 'react';
+import { t } from '@superset-ui/translation';
 import { Alert } from 'react-bootstrap';
+import { Empty } from 'src/common/components';
 import styled from '@superset-ui/style';
 import cx from 'classnames';
 import Button from 'src/components/Button';
@@ -138,6 +139,10 @@ const ViewModeContainer = styled.div`
       color: ${({ theme }) => theme.colors.grayscale.light5};
     }
   }
+`;
+
+const EmptyWrapper = styled.div`
+  margin: ${({ theme }) => theme.gridUnit * 40}px 0;
 `;
 
 const ViewModeToggle = ({
@@ -347,6 +352,11 @@ function ListView<T extends object = any>({
               columns={columns}
               loading={loading}
             />
+          )}
+          {!loading && rows.length === 0 && (
+            <EmptyWrapper>
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            </EmptyWrapper>
           )}
         </div>
       </div>

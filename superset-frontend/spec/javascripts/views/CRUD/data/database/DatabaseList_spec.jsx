@@ -26,6 +26,7 @@ import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
+import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 
@@ -115,5 +116,33 @@ describe('DatabaseList', () => {
     await waitForComponentToPaint(wrapper);
 
     expect(fetchMock.calls(/database\/0/, 'DELETE')).toHaveLength(1);
+  });
+
+  it('filters', async () => {
+    const filtersWrapper = wrapper.find(Filters);
+    act(() => {
+      filtersWrapper
+        .find('[name="expose_in_sqllab"]')
+        .first()
+        .props()
+        .onSelect(true);
+
+      filtersWrapper
+        .find('[name="allow_run_async"]')
+        .first()
+        .props()
+        .onSelect(false);
+
+      filtersWrapper
+        .find('[name="database_name"]')
+        .first()
+        .props()
+        .onSubmit('fooo');
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f),(col:database_name,opr:ct,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 });
