@@ -332,7 +332,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         show={databaseModalOpen}
         onHide={() => setDatabaseModalOpen(false)}
         onDatabaseAdd={() => {
-          /* TODO: add database logic here */
+          refreshData();
         }}
       />
       {databaseCurrentlyDeleting && (

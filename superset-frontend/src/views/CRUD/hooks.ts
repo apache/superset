@@ -175,7 +175,7 @@ interface SingleViewResourceState<D extends object = any> {
 }
 
 export function useSingleViewResource<D extends object = any>(
-  resource: string,
+  resourceName: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
 ) {
@@ -191,7 +191,7 @@ export function useSingleViewResource<D extends object = any>(
 
   useEffect(() => {
     SupersetClient.get({
-      endpoint: `/api/v1/${resource}/_info`,
+      endpoint: `/api/v1/${resourceName}/_info`,
     }).then(
       ({ json: infoJson = {} }) => {
         updateState({
@@ -218,14 +218,78 @@ export function useSingleViewResource<D extends object = any>(
     return Boolean(state.permissions.find(p => p === perm));
   }
 
-  const fetchData = useCallback((resourceID: number) => {
+  const fetchResource = useCallback((resourceID: number) => {
     // Set loading state
     updateState({
       loading: true,
     });
 
     return SupersetClient.get({
-      endpoint: `/api/v1/${resource}/${resourceID}`,
+      endpoint: `/api/v1/${resourceName}/${resourceID}`,
+    })
+      .then(
+        ({ json = {} }) => {
+          updateState({
+            resource: json.result,
+          });
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t(
+              'An error occurred while fetching %ss: %s',
+              resourceLabel,
+              errMsg,
+            ),
+          ),
+        ),
+      )
+      .finally(() => {
+        updateState({ loading: false });
+      });
+  }, []);
+
+  const createResource = useCallback((resource: D) => {
+    // Set loading state
+    updateState({
+      loading: true,
+    });
+
+    return SupersetClient.post({
+      endpoint: `/api/v1/${resourceName}/`,
+      body: JSON.stringify(resource),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(
+        ({ json = {} }) => {
+          updateState({
+            resource: json.result,
+          });
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t(
+              'An error occurred while fetching %ss: %s',
+              resourceLabel,
+              errMsg,
+            ),
+          ),
+        ),
+      )
+      .finally(() => {
+        updateState({ loading: false });
+      });
+  }, []);
+
+  const updateResource = useCallback((resourceID: number, resource: D) => {
+    // Set loading state
+    updateState({
+      loading: true,
+    });
+
+    return SupersetClient.put({
+      endpoint: `/api/v1/${resourceName}/${resourceID}`,
+      body: JSON.stringify(resource),
+      headers: { 'Content-Type': 'application/json' },
     })
       .then(
         ({ json = {} }) => {
@@ -258,7 +322,9 @@ export function useSingleViewResource<D extends object = any>(
         resource: update,
       }),
     hasPerm,
-    fetchData,
+    fetchResource,
+    createResource,
+    updateResource,
   };
 }
 

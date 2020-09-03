@@ -119,10 +119,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
+  const isEditMode = database !== null;
+
   // Database fetch logic
   const {
     state: { loading: dbLoading, resource: dbFetched },
-    fetchData,
+    fetchResource,
+    createResource,
+    updateResource,
   } = useSingleViewResource<DatabaseObject>(
     'database',
     t('database'),
@@ -136,11 +140,48 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = () => {
-    if (onDatabaseAdd) {
-      onDatabaseAdd();
-    }
+    if (isEditMode) {
+      // Edit
+      const update: DatabaseObject = {
+        ...db,
+      };
 
-    hide();
+      // Need to clean update object
+      delete update.id;
+
+      if (!update.cache_timeout) {
+        update.cache_timeout = '0';
+      }
+
+      if (!update.encrypted_extra) {
+        update.encrypted_extra = '';
+      }
+
+      if (!update.force_ctas_schema) {
+        update.force_ctas_schema = '';
+      }
+
+      if (!update.server_cert) {
+        update.server_cert = '';
+      }
+
+      updateResource(db.id, update).then(() => {
+        if (onDatabaseAdd) {
+          onDatabaseAdd();
+        }
+
+        hide();
+      });
+    } else {
+      // Create
+      createResource(db).then(() => {
+        if (onDatabaseAdd) {
+          onDatabaseAdd();
+        }
+
+        hide();
+      });
+    }
   };
 
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,8 +226,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
-  const isEditMode = database !== null;
-
   // Initialize
   if (
     isEditMode &&
@@ -195,7 +234,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (database && database.id !== null && !dbLoading) {
       const id = database.id || 0;
 
-      fetchData(id).then(() => {
+      fetchResource(id).then(() => {
         setDB(dbFetched);
       });
     }
