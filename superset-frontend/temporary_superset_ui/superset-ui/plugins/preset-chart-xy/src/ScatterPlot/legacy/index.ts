@@ -1,4 +1,4 @@
-import { ChartPlugin } from '@superset-ui/chart';
+import { ChartPlugin } from '@superset-ui/core';
 import createMetadata from '../createMetadata';
 import transformProps from './transformProps';
 

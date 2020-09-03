@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/core';
 import {
   extractForecastSeriesContext,
   extractProphetValuesFromTooltipParams,

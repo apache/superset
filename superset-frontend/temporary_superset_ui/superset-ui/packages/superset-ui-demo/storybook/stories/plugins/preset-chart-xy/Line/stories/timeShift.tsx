@@ -1,5 +1,5 @@
 import React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import data from '../data/data2';
 import { LINE_PLUGIN_TYPE } from '../constants';
 import dummyDatasource from '../../../../../shared/dummyDatasource';

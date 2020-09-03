@@ -1,6 +1,6 @@
 /* eslint-disable no-magic-numbers */
 import React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
 import data from './data';
 

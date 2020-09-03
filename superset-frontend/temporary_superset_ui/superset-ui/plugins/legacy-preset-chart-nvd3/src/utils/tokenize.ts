@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { validateNumber } from '@superset-ui/validator';
+import { validateNumber } from '@superset-ui/core';
 
 export function tokenizeToNumericArray(value: string): number[] | null {
   if (!value.trim()) return null;

@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord } from '@superset-ui/chart';
-import { NumberFormatter } from '@superset-ui/number-format';
+import { DataRecord, NumberFormatter } from '@superset-ui/core';
 import { ForecastSeriesContext, ForecastSeriesEnum, ProphetValue } from '../types';
 import { TimeseriesDataRecord } from '../Timeseries/types';
 

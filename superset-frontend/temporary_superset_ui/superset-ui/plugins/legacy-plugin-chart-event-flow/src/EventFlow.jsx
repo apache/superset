@@ -20,7 +20,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { App } from '@data-ui/event-flow';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 const propTypes = {
   data: PropTypes.array,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import { radios } from '@storybook/addon-knobs';
 import rawData from '../data/data';
 import { LINE_PLUGIN_TYPE } from '../constants';

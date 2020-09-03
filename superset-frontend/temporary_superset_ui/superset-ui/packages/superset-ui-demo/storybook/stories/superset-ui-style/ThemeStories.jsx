@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { supersetTheme } from '@superset-ui/style/src/';
+import { supersetTheme } from '@superset-ui/core';
 
 export default {
   title: 'Core Packages|@superset-ui/style',

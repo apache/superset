@@ -18,7 +18,7 @@
  * under the License.
  */
 import React from 'react';
-import { t, addLocaleData } from '@superset-ui/translation';
+import { t, validateNonEmpty, addLocaleData, smartDateFormatter } from '@superset-ui/core';
 import {
   formatSelectOptions,
   D3_TIME_FORMAT_OPTIONS,
@@ -29,8 +29,7 @@ import {
   ControlPanelsContainerProps,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { validateNonEmpty } from '@superset-ui/validator';
-import { smartDateFormatter } from '@superset-ui/time-format';
+
 import i18n from './i18n';
 
 addLocaleData(i18n);

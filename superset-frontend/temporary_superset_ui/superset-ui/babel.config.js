@@ -1,10 +1,10 @@
-// eslint-disable-next-line no-undef, import/no-extraneous-dependencies
 const { getConfig } = require('@airbnb/config-babel');
 
 const config = getConfig({
   library: true,
   react: true,
   next: true,
+  esm: process.env.BABEL_OUTPUT === 'esm',
   node: process.env.NODE_ENV === 'test',
   typescript: true,
   env: {
@@ -16,5 +16,4 @@ const config = getConfig({
 config.ignore = config.ignore.filter(item => item !== 'node_modules/');
 config.ignore.push('node_modules/(?!(vega-lite|lodash-es))');
 
-// eslint-disable-next-line no-undef
 module.exports = config;

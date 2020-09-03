@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DataRecord } from '@superset-ui/chart';
-import { QueryObjectMetric } from '@superset-ui/query';
+import { ChartProps, DataRecord, QueryObjectMetric } from '@superset-ui/core';
 
 interface FormData {
   groupby: string[];

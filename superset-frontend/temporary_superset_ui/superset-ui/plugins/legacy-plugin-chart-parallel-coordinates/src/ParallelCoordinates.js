@@ -19,7 +19,7 @@
 /* eslint-disable react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getSequentialSchemeRegistry } from '@superset-ui/color';
+import { getSequentialSchemeRegistry } from '@superset-ui/core';
 
 import parcoords from './vendor/parcoords/d3.parcoords';
 import divgrid from './vendor/parcoords/divgrid';

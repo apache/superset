@@ -1,5 +1,5 @@
-import styled from '@superset-ui/style';
 import React, { useState, ReactNode } from 'react';
+import { styled } from '@superset-ui/core';
 import { DecoratorFunction } from '@storybook/addons';
 import ResizablePanel, { Size } from './ResizablePanel';
 

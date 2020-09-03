@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { QueryFormData, QueryFormDataMetric } from '@superset-ui/query';
+import { QueryFormData, QueryFormDataMetric } from '@superset-ui/core';
 
 type TableFormData = QueryFormData & {
   all_columns: string[];

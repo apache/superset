@@ -55,6 +55,8 @@ jobs:
       run: yarn install --frozen-lockfile
     - name: Build packages
       run: yarn build
+    - name: Run ESLint
+      run: yarn lint --quiet
     - name: Run unit tests
       run: yarn test
 
