@@ -27,7 +27,7 @@ import logging
 import math
 import re
 from collections import defaultdict, OrderedDict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from itertools import product
 from typing import (
     Any,
@@ -856,6 +856,30 @@ class PivotTableViz(BaseViz):
         # only min and max work properly for non-numerics
         return aggfunc if aggfunc in ("min", "max") else "max"
 
+    @staticmethod
+    def _format_datetime(value: Any) -> Any:
+        """
+        Format a timestamp in such a way that the viz will be able to apply
+        the correct formatting in the frontend.
+
+        :param value: the value of a temporal column
+        :return: formatted timestamp if it is a valid timestamp, otherwise
+                 the original value
+        """
+        tstamp: Optional[pd.Timestamp] = None
+        if isinstance(value, pd.Timestamp):
+            tstamp = value
+        if isinstance(value, datetime) or isinstance(value, date):
+            tstamp = pd.Timestamp(value)
+        if isinstance(value, str):
+            try:
+                tstamp = pd.Timestamp(value)
+            except ValueError:
+                pass
+        if tstamp:
+            return f"__timestamp:{datetime_to_epoch(tstamp)}"
+        return value
+
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
@@ -871,15 +895,10 @@ class PivotTableViz(BaseViz):
         groupby = self.form_data.get("groupby") or []
         columns = self.form_data.get("columns") or []
 
-        def _format_datetime(value: Any) -> Optional[str]:
-            if isinstance(value, str):
-                return f"__timestamp:{datetime_to_epoch(pd.Timestamp(value))}"
-            return None
-
         for column_name in groupby + columns:
             column = self.datasource.get_column(column_name)
-            if column and column.type in ("DATE", "DATETIME", "TIMESTAMP"):
-                ts = df[column_name].apply(_format_datetime)
+            if column and column.is_temporal:
+                ts = df[column_name].apply(self._format_datetime)
                 df[column_name] = ts
 
         if self.form_data.get("transpose_pivot"):
