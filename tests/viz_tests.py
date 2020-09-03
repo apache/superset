@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 import uuid
-from datetime import datetime
+from datetime import date, datetime, timezone
 import logging
 from math import nan
 from unittest.mock import Mock, patch
@@ -1352,6 +1352,38 @@ class TestPivotTableViz(SupersetTestCase):
             viz.PivotTableViz.get_aggfunc("strcol", self.df, {"pandas_aggfunc": "min"})
             == "min"
         )
+
+    def test_format_datetime_from_pd_timestamp(self):
+        tstamp = pd.Timestamp(datetime(2020, 9, 3, tzinfo=timezone.utc))
+        assert (
+            viz.PivotTableViz._format_datetime(tstamp) == "__timestamp:1599091200000.0"
+        )
+
+    def test_format_datetime_from_datetime(self):
+        tstamp = datetime(2020, 9, 3, tzinfo=timezone.utc)
+        assert (
+            viz.PivotTableViz._format_datetime(tstamp) == "__timestamp:1599091200000.0"
+        )
+
+    def test_format_datetime_from_date(self):
+        tstamp = date(2020, 9, 3)
+        assert (
+            viz.PivotTableViz._format_datetime(tstamp) == "__timestamp:1599091200000.0"
+        )
+
+    def test_format_datetime_from_string(self):
+        tstamp = "2020-09-03T00:00:00"
+        assert (
+            viz.PivotTableViz._format_datetime(tstamp) == "__timestamp:1599091200000.0"
+        )
+
+    def test_format_datetime_from_invalid_string(self):
+        tstamp = "abracadabra"
+        assert viz.PivotTableViz._format_datetime(tstamp) == tstamp
+
+    def test_format_datetime_from_int(self):
+        assert viz.PivotTableViz._format_datetime(123) == 123
+        assert viz.PivotTableViz._format_datetime(123.0) == 123.0
 
 
 class TestDistributionPieViz(SupersetTestCase):
