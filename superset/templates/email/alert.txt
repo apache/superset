@@ -17,9 +17,10 @@
  under the License.
 -->
 <h2 style="color: red;">Alert: {{label}} &#x26A0;</h2>
-<p><b>SQL Statement:</b></p>
+<p><b>Query:</b></p>
 <code><mark style="background-color: LightGrey; font-size: 1.1em">{{sql}}</mark></code></p>
-<p><b>SQL Result</b>: {{observation_value}}</p>
+<p><b>Result</b>: {{observation_value}}</p>
+<p><b>Reason</b>: {{validation_error_message}}</p>
 <p><a href="{{alert_url}}">View Alert Details</a></p>
 <p>Click <a href="{{image_url}}">here</a> or the image below to view the chart related to this alert.</p>
 <a href="{{image_url}}">
