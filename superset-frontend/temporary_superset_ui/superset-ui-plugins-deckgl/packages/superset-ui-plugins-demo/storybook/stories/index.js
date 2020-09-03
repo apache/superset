@@ -2,12 +2,16 @@ import '@babel/polyfill';
 import { setAddon, storiesOf } from '@storybook/react';
 import { withKnobs } from '@storybook/addon-knobs';
 import JSXAddon from 'storybook-addon-jsx';
-import categoricalD3 from '@superset-ui/color/esm/colorSchemes/categorical/d3';
-import sequentialCommon from '@superset-ui/color/esm/colorSchemes/sequential/common';
-import sequentialD3 from '@superset-ui/color/esm/colorSchemes/sequential/d3';
-import { configure } from '@superset-ui/translation';
-import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
-import { getTimeFormatterRegistry, smartDateFormatter } from '@superset-ui/time-format';
+import categoricalD3 from '@superset-ui/core/lib/color/colorSchemes/categorical/d3';
+import sequentialCommon from '@superset-ui/core/lib/color/colorSchemes/sequential/common';
+import sequentialD3 from '@superset-ui/core/lib/color/colorSchemes/sequential/d3';
+import { configure } from '@superset-ui/core';
+import {
+  getTimeFormatterRegistry,
+  smartDateFormatter,
+  getCategoricalSchemeRegistry,
+  getSequentialSchemeRegistry,
+} from '@superset-ui/core';
 
 setAddon(JSXAddon);
 

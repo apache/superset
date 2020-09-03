@@ -21,7 +21,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { formatNumber } from '@superset-ui/number-format';
+import { formatNumber } from '@superset-ui/core';
 
 import './Legend.css';
 

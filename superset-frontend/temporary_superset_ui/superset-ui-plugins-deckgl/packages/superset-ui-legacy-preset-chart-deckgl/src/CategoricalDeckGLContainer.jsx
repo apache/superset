@@ -26,7 +26,7 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import { CategoricalColorNamespace } from '@superset-ui/color';
+import { CategoricalColorNamespace } from '@superset-ui/core';
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';

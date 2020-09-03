@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { validateNonEmpty, legacyValidateInteger } from '@superset-ui/validator';
+import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides, {
   columnChoices,
   PRIMARY_COLOR,

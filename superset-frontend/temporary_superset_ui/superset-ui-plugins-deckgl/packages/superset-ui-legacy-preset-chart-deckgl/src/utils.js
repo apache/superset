@@ -19,7 +19,7 @@
  */
 import { extent } from 'd3-array';
 import { scaleThreshold } from 'd3-scale';
-import { getSequentialSchemeRegistry, SequentialScheme } from '@superset-ui/color';
+import { getSequentialSchemeRegistry, SequentialScheme } from '@superset-ui/core';
 import { hexToRGB } from './utils/colors';
 
 const DEFAULT_NUM_BUCKETS = 10;

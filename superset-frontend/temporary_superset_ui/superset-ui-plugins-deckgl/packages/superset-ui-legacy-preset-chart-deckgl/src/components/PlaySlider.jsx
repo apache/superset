@@ -26,7 +26,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Mousetrap from 'mousetrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import BootrapSliderWrapper from './BootstrapSliderWrapper';
 import './PlaySlider.css';
 
