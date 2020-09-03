@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/preset-chart-xy",
-  "version": "0.14.23",
+  "version": "0.15.0",
   "description": "Superset Chart - XY",
   "sideEffects": [
     "*.css"
@@ -29,10 +29,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.14.22",
-    "@superset-ui/chart-controls": "^0.14.22",
     "@data-ui/theme": "^0.0.84",
     "@data-ui/xy-chart": "^0.0.84",
+    "@superset-ui/chart-controls": "0.15.0",
+    "@superset-ui/core": "0.15.0",
     "@vx/axis": "^0.0.198",
     "@vx/legend": "^0.0.198",
     "@vx/scale": "^0.0.197",
