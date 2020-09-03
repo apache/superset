@@ -187,6 +187,7 @@ class TestSavedQueryApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
+        raise Exception(data)
         expected_result = {"count": 1, "result": [{"text": "examples", "value": 1}]}
         self.assertEqual(data, expected_result)
 
