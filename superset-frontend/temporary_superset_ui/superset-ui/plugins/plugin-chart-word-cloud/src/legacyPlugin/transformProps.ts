@@ -1,4 +1,4 @@
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps } from '@superset-ui/core';
 import { WordCloudProps, WordCloudEncoding } from '../chart/WordCloud';
 import { LegacyWordCloudFormData } from './types';
 

@@ -1,4 +1,4 @@
-import { QueryFormDataMetric, AdhocMetric } from '@superset-ui/query';
+import { QueryFormDataMetric, AdhocMetric } from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import { PlainObject } from './types';
 

@@ -26,14 +26,6 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.14.1",
-    "@superset-ui/chart-controls": "^0.14.0",
-    "@superset-ui/color": "^0.14.1",
-    "@superset-ui/number-format": "^0.14.0",
-    "@superset-ui/query": "^0.14.1",
-    "@superset-ui/style": "^0.14.0",
-    "@superset-ui/translation": "^0.14.0",
-    "@superset-ui/validator": "^0.14.1",
     "react": "^16.13.1"
   },
   "devDependencies": {
@@ -41,7 +33,8 @@
     "jest": "^26.0.1"
   },
   "dependencies": {
-    "@superset-ui/time-format": "0.14.23",
+    "@superset-ui/core": "0.14.23",
+    "@superset-ui/chart-controls": "0.14.23",
     "@types/echarts": "^4.6.3",
     "echarts": "^4.9.0"
   }

@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, QueryData } from '@superset-ui/chart';
-import { QueryFormData, QueryFormDataMetric } from '@superset-ui/query';
+import { ChartProps, QueryData, QueryFormData, QueryFormDataMetric } from '@superset-ui/core';
 import { RawBoxPlotDataRow, BoxPlotDataRow } from '../../components/BoxPlot/types';
 
 export type LegacyBoxPlotFormData = {

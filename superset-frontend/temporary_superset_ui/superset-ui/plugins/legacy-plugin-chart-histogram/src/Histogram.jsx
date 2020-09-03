@@ -23,8 +23,7 @@ import { Histogram, BarSeries, XAxis, YAxis } from '@data-ui/histogram';
 import { chartTheme } from '@data-ui/theme';
 import { LegendOrdinal } from '@vx/legend';
 import { scaleOrdinal } from '@vx/scale';
-import styled from '@superset-ui/style';
-import { CategoricalColorNamespace } from '@superset-ui/color';
+import { CategoricalColorNamespace, styled } from '@superset-ui/core';
 import WithLegend from './WithLegend';
 
 const propTypes = {

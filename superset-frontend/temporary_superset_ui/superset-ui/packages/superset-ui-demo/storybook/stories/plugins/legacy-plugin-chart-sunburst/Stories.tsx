@@ -1,6 +1,6 @@
 /* eslint-disable no-magic-numbers */
 import React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import SunburstChartPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
 import data from './data';
 

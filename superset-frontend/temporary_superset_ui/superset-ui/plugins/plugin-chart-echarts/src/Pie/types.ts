@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/query';
+import { QueryFormData } from '@superset-ui/core';
 import { EchartsProps } from '../types';
 
 export type PieChartFormData = QueryFormData & {

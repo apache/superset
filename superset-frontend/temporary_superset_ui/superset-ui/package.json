@@ -19,15 +19,15 @@
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 10",
     "format": "yarn prettier --write",
     "jest": "NODE_ENV=test nimbus jest --coverage --verbose",
-    "lint": "nimbus eslint",
-    "lint:fix": "nimbus eslint --fix",
+    "lint": "esprint check --workers=3",
+    "lint:fix": "yarn lint --fix",
     "prettier": "nimbus prettier",
     "test": "yarn jest",
     "test:watch": "yarn lint:fix && yarn jest --watch",
-    "type": "nimbus typescript --build --reference-workspaces",
+    "type": "yarn build --no-babel",
+    "type:nimbus": "nimbus typescript --build --reference-workspaces",
     "prepare-release": "git checkout master && git pull --rebase origin master && yarn install && yarn test",
     "prerelease": "yarn build",
-    "pretest": "yarn lint",
     "release": "yarn prepare-release && lerna publish && yarn postrelease",
     "postrelease": "lerna run deploy-demo",
     "list-changed-packages": "lerna changed",
@@ -68,8 +68,10 @@
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.1",
     "enzyme-to-json": "^3.4.3",
-    "fast-glob": "^3.0.1",
+    "esprint": "^0.7.0",
+    "fast-glob": "^3.2.4",
     "fs-extra": "^9.0.0",
+    "global-box": "^1.2.0",
     "husky": "^4.2.5",
     "identity-obj-proxy": "^3.0.0",
     "jest-mock-console": "^1.0.0",
@@ -78,7 +80,8 @@
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-test-renderer": "^16.13.1",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "yargs": "^15.4.1"
   },
   "engines": {
     "node": ">=10.10.0",
@@ -101,9 +104,18 @@
         "driver": "babel",
         "strategy": "none"
       },
-      "eslint",
-      "jest",
-      "prettier",
+      {
+        "driver": "eslint",
+        "strategy": "none"
+      },
+      {
+        "driver": "jest",
+        "strategy": "none"
+      },
+      {
+        "driver": "prettier",
+        "strategy": "none"
+      },
       "typescript"
     ],
     "settings": {
@@ -154,54 +166,6 @@
     },
     "prettier": {
       "arrowParens": "avoid"
-    },
-    "eslint": {
-      "rules": {
-        "arrow-parens": [
-          "warn",
-          "as-needed"
-        ]
-      },
-      "overrides": [
-        {
-          "files": "./packages/generator-superset/**/*.test.{js,jsx,ts,tsx}",
-          "rules": {
-            "jest/expect-expect": "off"
-          }
-        },
-        {
-          "files": "**/test/**/*",
-          "rules": {
-            "import/no-extraneous-dependencies": "off",
-            "promise/param-names": "off",
-            "jest/require-to-throw-message": "off",
-            "jest/no-test-return-statement": "off",
-            "jest/no-expect-resolves": "off",
-            "@typescript-eslint/no-require-imports": "off",
-            "global-require": "off"
-          }
-        },
-        {
-          "files": "*.{js,jsx,ts,tsx}",
-          "rules": {
-            "import/extensions": "off",
-            "no-plusplus": "off",
-            "react/jsx-no-literals": "off",
-            "@typescript-eslint/no-explicit-any": [
-              "warn",
-              {
-                "fixToUnknown": false
-              }
-            ]
-          }
-        },
-        {
-          "files": "./scripts/*",
-          "env": {
-            "node": true
-          }
-        }
-      ]
     },
     "typescript": {
       "compilerOptions": {

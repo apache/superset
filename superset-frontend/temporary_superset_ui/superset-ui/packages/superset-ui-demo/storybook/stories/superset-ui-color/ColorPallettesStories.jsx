@@ -1,15 +1,15 @@
 import React from 'react';
 
-import AirbnbPalettes from '@superset-ui/color/src/colorSchemes/categorical/airbnb';
-import D3Palettes from '@superset-ui/color/src/colorSchemes/categorical/d3';
-import EchartsPalettes from '@superset-ui/color/src/colorSchemes/categorical/echarts';
-import GooglePalettes from '@superset-ui/color/src/colorSchemes/categorical/google';
-import LyftPalettes from '@superset-ui/color/src/colorSchemes/categorical/lyft';
-import PresetPalettes from '@superset-ui/color/src/colorSchemes/categorical/preset';
-import SupersetPalettes from '@superset-ui/color/src/colorSchemes/categorical/superset';
+import AirbnbPalettes from '@superset-ui/core/src/color/colorSchemes/categorical/airbnb';
+import D3Palettes from '@superset-ui/core/src/color/colorSchemes/categorical/d3';
+import EchartsPalettes from '@superset-ui/core/src/color/colorSchemes/categorical/echarts';
+import GooglePalettes from '@superset-ui/core/src/color/colorSchemes/categorical/google';
+import LyftPalettes from '@superset-ui/core/src/color/colorSchemes/categorical/lyft';
+import PresetPalettes from '@superset-ui/core/src/color/colorSchemes/categorical/preset';
+import SupersetPalettes from '@superset-ui/core/src/color/colorSchemes/categorical/superset';
 
-import SequantialCommonPalettes from '@superset-ui/color/src/colorSchemes/sequential/common';
-import SequantialD3Palettes from '@superset-ui/color/src/colorSchemes/sequential/d3';
+import SequantialCommonPalettes from '@superset-ui/core/src/color/colorSchemes/sequential/common';
+import SequantialD3Palettes from '@superset-ui/core/src/color/colorSchemes/sequential/d3';
 
 import RenderPalettes from './RenderPalettes';
 

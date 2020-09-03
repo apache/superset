@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
 import {
+  t,
   validateNonEmpty,
   legacyValidateInteger,
   legacyValidateNumber,
-} from '@superset-ui/validator';
+} from '@superset-ui/core';
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {

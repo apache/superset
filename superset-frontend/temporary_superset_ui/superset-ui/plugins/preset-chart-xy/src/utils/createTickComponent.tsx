@@ -1,5 +1,5 @@
 import React, { CSSProperties } from 'react';
-import { Dimension } from '@superset-ui/dimension';
+import { Dimension } from '@superset-ui/core';
 import { AxisLayout } from './computeAxisLayout';
 
 export default function createTickComponent({

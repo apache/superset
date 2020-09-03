@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line import/prefer-default-export
 export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
 export { default as EchartsPieChartPlugin } from './Pie';
 

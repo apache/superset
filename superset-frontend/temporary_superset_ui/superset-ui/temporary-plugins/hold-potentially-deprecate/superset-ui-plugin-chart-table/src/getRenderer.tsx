@@ -3,8 +3,7 @@
 import React, { CSSProperties, useMemo } from 'react';
 import { HEIGHT_TO_PX } from '@airbnb/lunar/lib/components/DataTable/constants';
 import { RendererProps } from '@airbnb/lunar/lib/components/DataTable/types';
-import { NumberFormatter } from '@superset-ui/number-format';
-import { TimeFormatter } from '@superset-ui/time-format';
+import { TimeFormatter, NumberFormatter } from '@superset-ui/core';
 import HTMLRenderer from './components/HTMLRenderer';
 
 const NEGATIVE_COLOR = '#FFA8A8';

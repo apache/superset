@@ -18,7 +18,7 @@
  * under the License.
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
-import { QueryFormData } from '@superset-ui/query';
+import { QueryFormData, DatasourceType } from '@superset-ui/core';
 import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
@@ -61,11 +61,12 @@ export interface ColumnMeta extends AnyDict {
 
 export interface DatasourceMeta {
   columns: ColumnMeta[];
-  metrics: unknown[];
-  type: unknown;
-  main_dttm_col: unknown;
-  time_grain_sqla: unknown;
-  order_by_choices?: [] | null;
+  metrics: Metric[];
+  type: DatasourceType;
+  main_dttm_col: string;
+  time_grain_sqla: string;
+  // eg. ['["ds", true]', 'ds [asc]']
+  order_by_choices?: [string, string][] | null;
 }
 
 export interface ControlPanelState {

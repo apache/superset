@@ -26,11 +26,6 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@superset-ui/color": "^0.14.0",
-    "@superset-ui/query": "^0.14.0",
-    "@superset-ui/style": "^0.14.0",
-    "@superset-ui/translation": "^0.14.0",
-    "@superset-ui/validator": "^0.14.0",
     "react": "^16.13.1"
   },
   "devDependencies": {
@@ -38,6 +33,7 @@
   },
   "dependencies": {
     "@types/react-bootstrap": "0.32.21",
+    "@superset-ui/core": "^0.14.22",
     "lodash": "^4.17.15",
     "prop-types": "^15.7.2",
     "react-bootstrap": "^0.33.1"

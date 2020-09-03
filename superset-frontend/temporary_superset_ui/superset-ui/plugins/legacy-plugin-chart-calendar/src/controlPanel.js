@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { legacyValidateInteger } from '@superset-ui/validator';
 import {
-  formatSelectOptions,
+  t,
+  legacyValidateInteger,
   D3_TIME_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
-} from '@superset-ui/chart-controls';
+} from '@superset-ui/core';
+import { formatSelectOptions } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { D3_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
 import {
   lineInterpolation,

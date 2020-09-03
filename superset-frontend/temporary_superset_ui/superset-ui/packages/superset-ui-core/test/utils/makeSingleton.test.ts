@@ -1,4 +1,4 @@
-import { makeSingleton } from '../../src';
+import { makeSingleton } from '@superset-ui/core/src';
 
 describe('makeSingleton()', () => {
   class Dog {

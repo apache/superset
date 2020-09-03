@@ -2,7 +2,7 @@ import React from 'react';
 import { isCompleteFieldDef } from 'encodable';
 import { uniqBy } from 'lodash';
 import { Tooltip } from '@vx/tooltip';
-import { TooltipFrame, TooltipTable } from '@superset-ui/chart-composition';
+import { TooltipFrame, TooltipTable } from '@superset-ui/core';
 import { ChoroplethMapChannelOutputs, ChoroplethMapEncoder } from './Encoder';
 
 export type MapDataPoint = Omit<ChoroplethMapChannelOutputs, 'tooltip'> & {

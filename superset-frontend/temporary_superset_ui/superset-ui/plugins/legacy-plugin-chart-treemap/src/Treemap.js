@@ -21,8 +21,7 @@
 import { select as d3Select, selectAll as d3SelectAll } from 'd3-selection';
 import { treemap as d3Treemap, hierarchy as d3Hierarchy, treemapSquarify } from 'd3-hierarchy';
 import PropTypes from 'prop-types';
-import { CategoricalColorNamespace } from '@superset-ui/color';
-import { getNumberFormatter } from '@superset-ui/number-format';
+import { getNumberFormatter, CategoricalColorNamespace } from '@superset-ui/core';
 import './Treemap.css';
 
 // Declare PropTypes for recursive data structures

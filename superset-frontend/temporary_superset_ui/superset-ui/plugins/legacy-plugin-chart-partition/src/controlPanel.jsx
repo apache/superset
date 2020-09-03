@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { validateNonEmpty } from '@superset-ui/validator';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   formatSelectOptions,
   D3_TIME_FORMAT_OPTIONS,

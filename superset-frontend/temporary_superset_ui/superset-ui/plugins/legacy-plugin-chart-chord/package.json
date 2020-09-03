@@ -28,16 +28,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/style": "0.14.23",
+    "@superset-ui/core": "^0.14.22",
+    "@superset-ui/chart-controls": "^0.14.22",
     "d3": "^3.5.17",
     "prop-types": "^15.6.2",
     "react": "^16.13.1"
-  },
-  "peerDependencies": {
-    "@superset-ui/chart": "^0.14.0",
-    "@superset-ui/color": "^0.14.0",
-    "@superset-ui/number-format": "^0.14.0",
-    "@superset-ui/translation": "^0.14.0",
-    "@superset-ui/validator": "^0.14.0"
   }
 }

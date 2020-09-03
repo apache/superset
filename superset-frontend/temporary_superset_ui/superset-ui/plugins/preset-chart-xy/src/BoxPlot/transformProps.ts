@@ -1,5 +1,5 @@
 import { pick } from 'lodash';
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps } from '@superset-ui/core';
 import { BoxPlotDataRow, RawBoxPlotDataRow } from '../components/BoxPlot/types';
 import { HookProps } from '../components/BoxPlot/BoxPlot';
 import { BoxPlotEncoding } from '../components/BoxPlot/Encoder';

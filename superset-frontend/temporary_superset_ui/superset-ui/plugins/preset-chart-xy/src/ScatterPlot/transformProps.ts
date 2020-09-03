@@ -1,5 +1,5 @@
 import { pick } from 'lodash';
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps } from '@superset-ui/core';
 import { HookProps } from '../components/ScatterPlot/ScatterPlot';
 
 export default function transformProps(chartProps: ChartProps) {

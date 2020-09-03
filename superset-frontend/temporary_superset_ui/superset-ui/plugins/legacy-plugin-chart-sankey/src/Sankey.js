@@ -21,8 +21,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
-import { CategoricalColorNamespace } from '@superset-ui/color';
-import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
+import { getNumberFormatter, NumberFormats, CategoricalColorNamespace } from '@superset-ui/core';
 
 const propTypes = {
   data: PropTypes.arrayOf(

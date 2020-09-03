@@ -33,19 +33,7 @@ _gh-pages/
 *.min.js
 test-changelog.md
 
-# Configs (provided by Nimbus)
-.babelrc
-.eslintignore
-.eslintrc.js
-.flowconfig
-.prettierignore
-jest.config.js
-prettier.config.js
-tsconfig.eslint.json
-tsconfig.json
-tsconfig.options.json
 *.tsbuildinfo
-webpack.config.js
 
 # Ignore npm lock files, always use yarn.lock instead
 npm-shrinkwrap.json

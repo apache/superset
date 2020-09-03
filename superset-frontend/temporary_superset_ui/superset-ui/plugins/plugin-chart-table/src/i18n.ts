@@ -1,4 +1,4 @@
-import { Locale } from '@superset-ui/translation';
+import { Locale } from '@superset-ui/core';
 
 const en = {
   'Query Mode': [''],

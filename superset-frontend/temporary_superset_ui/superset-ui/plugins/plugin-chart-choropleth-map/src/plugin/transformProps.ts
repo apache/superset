@@ -1,4 +1,4 @@
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps } from '@superset-ui/core';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one

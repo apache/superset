@@ -1,4 +1,3 @@
-/* eslint-disable react/no-multi-comp */
 declare module '@data-ui/xy-chart' {
   import React from 'react';
 

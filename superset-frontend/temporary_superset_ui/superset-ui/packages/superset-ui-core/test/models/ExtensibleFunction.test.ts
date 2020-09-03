@@ -1,4 +1,4 @@
-import { ExtensibleFunction } from '../../src';
+import { ExtensibleFunction } from '@superset-ui/core/src';
 
 describe('ExtensibleFunction', () => {
   interface Func1 {

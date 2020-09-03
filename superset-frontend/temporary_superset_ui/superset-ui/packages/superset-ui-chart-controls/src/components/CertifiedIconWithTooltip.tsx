@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { supersetTheme } from '@superset-ui/style';
 import { Tooltip, OverlayTrigger } from 'react-bootstrap';
 import { kebabCase } from 'lodash';
+import { t, supersetTheme } from '@superset-ui/core';
 
 const tooltipStyle: React.CSSProperties = { wordWrap: 'break-word' };
 

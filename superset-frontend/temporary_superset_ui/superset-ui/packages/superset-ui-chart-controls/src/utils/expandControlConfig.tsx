@@ -57,7 +57,13 @@ export function expandControlConfig(
   if (!control || typeof control === 'string' || React.isValidElement(control)) {
     return control as ReactElement;
   }
-  // already fully expanded control config
+  // already fully expanded control config, e.g.
+  // {
+  //   name: 'metric',
+  //   config: {
+  //     type: 'SelectControl' | SelectComonent
+  //   }
+  // }
   if ('name' in control && 'config' in control) {
     return {
       ...control,

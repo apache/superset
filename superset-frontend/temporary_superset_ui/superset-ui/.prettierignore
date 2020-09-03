@@ -1,0 +1,14 @@
+coverage/
+node_modules/
+public/
+esm/
+lib/
+tmp/
+dist/
+lerna.json
+npm-shrinkwrap.json
+package-lock.json
+tsconfig.json
+tsconfig.options.json
+tsconfig.eslint.json
+CHANGELOG.md

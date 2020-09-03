@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 // A few standard controls sections that are used internally.
 // Not recommended for use in third-party plugins.

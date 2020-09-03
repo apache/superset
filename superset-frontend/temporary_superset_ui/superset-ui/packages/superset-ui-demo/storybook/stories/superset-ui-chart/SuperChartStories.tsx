@@ -1,11 +1,11 @@
 import React from 'react';
 import { text, withKnobs } from '@storybook/addon-knobs';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import {
   DiligentChartPlugin,
   BuggyChartPlugin,
   ChartKeys,
-} from '@superset-ui/chart/test/components/MockChartPlugins';
+} from '@superset-ui/core/test/chart/components/MockChartPlugins';
 import ResizableChartDemo from '../../shared/components/ResizableChartDemo';
 
 new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }).register();
@@ -14,7 +14,7 @@ new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }).register();
 const DEFAULT_QUERY_DATA = { data: ['foo', 'bar'] };
 
 export default {
-  title: 'Core Packages|@superset-ui/chart',
+  title: 'Core / chart',
   decorators: [withKnobs],
 };
 

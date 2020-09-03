@@ -20,11 +20,9 @@ import React from 'react';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
 import { Table, Thead, Th, Tr, Td } from 'reactable-arc';
-import { formatNumber } from '@superset-ui/number-format';
-import { formatTime } from '@superset-ui/time-format';
-import styled from '@superset-ui/style';
-import moment from 'moment';
+import { formatNumber, formatTime, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger, MetricOption, Metric } from '@superset-ui/chart-controls';
+import moment from 'moment';
 
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';

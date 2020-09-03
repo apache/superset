@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { ReactText, ReactNode, MouseEvent, useCallback } from 'react';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
 
 export interface RadioButtonOption {

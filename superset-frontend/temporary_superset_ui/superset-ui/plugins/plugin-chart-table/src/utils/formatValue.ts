@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FilterXSS, getDefaultWhiteList } from 'xss';
-import { DataRecordValue } from '@superset-ui/chart';
+import { DataRecordValue } from '@superset-ui/core';
 import { DataColumnMeta } from '../types';
 
 const xss = new FilterXSS({

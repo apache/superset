@@ -1,4 +1,4 @@
-import { QueryFormData } from '@superset-ui/query';
+import { QueryFormData } from '@superset-ui/core';
 import { RotationType } from '../chart/WordCloud';
 
 export type LegacyWordCloudFormData = QueryFormData & {

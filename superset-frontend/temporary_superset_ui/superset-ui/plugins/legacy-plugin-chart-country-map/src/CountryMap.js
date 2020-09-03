@@ -20,8 +20,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
-import { getSequentialSchemeRegistry } from '@superset-ui/color';
-import { getNumberFormatter } from '@superset-ui/number-format';
+import { getNumberFormatter, getSequentialSchemeRegistry } from '@superset-ui/core';
 import countries from './countries';
 import './CountryMap.css';
 

@@ -1,4 +1,4 @@
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps } from '@superset-ui/core';
 import { flatMap } from 'lodash';
 
 interface DataRow {

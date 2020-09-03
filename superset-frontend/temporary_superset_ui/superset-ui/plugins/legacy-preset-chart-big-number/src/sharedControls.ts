@@ -18,7 +18,7 @@
  */
 
 // These are control configurations that are shared ONLY within the BigNumber viz plugin repo.
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { CustomControlItem } from '@superset-ui/chart-controls';
 
 export const headerFontSize: CustomControlItem = {

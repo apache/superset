@@ -20,8 +20,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { ColumnInstance, DefaultSortTypes, ColumnWithLooseAccessor } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { FaSort, FaSortUp as FaSortAsc, FaSortDown as FaSortDesc } from 'react-icons/fa';
-import { t, tn } from '@superset-ui/translation';
-import { DataRecordValue, DataRecord } from '@superset-ui/chart';
+import { t, tn, DataRecordValue, DataRecord } from '@superset-ui/core';
 
 import { TableChartTransformedProps, DataType, DataColumnMeta } from './types';
 import DataTable, {

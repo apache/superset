@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify } from '@superset-ui/chart';
+import { reactify } from '@superset-ui/core';
 import Component from './SankeyLoop';
 
 export default reactify(Component);

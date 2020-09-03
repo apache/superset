@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { D3_FORMAT_OPTIONS, formatSelectOptions } from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
+import { formatSelectOptions, D3_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
 import {
   showLegend,
   xAxisLabel,

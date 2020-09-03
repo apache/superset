@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { <%if (componentType == 'class') { %>PureComponent<% } %><%if (componentType == 'function') { %>useEffect<% } %>, createRef } from 'react';
-import styled, { supersetTheme } from '@superset-ui/style';
+import { styled, supersetTheme } from '@superset-ui/core';
 
 interface <%= packageLabel %>StylesProps {
   height: number;
@@ -41,8 +41,8 @@ export type <%= packageLabel %>Props = {
 // For docs, visit https://emotion.sh/docs/styled
 
 // Theming variables are provided for your use via a ThemeProvider
-// imported from @superset-ui/style. For variables available, please visit
-// https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-style/src/index.ts
+// imported from @superset-ui/core. For variables available, please visit
+// https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
 
 const Styles = styled.div<<%= packageLabel %>StylesProps>`
   background-color: ${({ theme }) => theme.colors.secondary.light2};

@@ -20,8 +20,7 @@
 import PropTypes from 'prop-types';
 import { select } from 'd3-selection';
 import { sankeyDiagram, sankey } from 'd3-sankey-diagram';
-import { CategoricalColorNamespace } from '@superset-ui/color';
-import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
+import { getNumberFormatter, NumberFormats, CategoricalColorNamespace } from '@superset-ui/core';
 
 import './SankeyLoop.css';
 

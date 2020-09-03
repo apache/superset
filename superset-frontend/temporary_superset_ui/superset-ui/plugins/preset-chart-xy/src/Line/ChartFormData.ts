@@ -1,4 +1,4 @@
-import { QueryFormData } from '@superset-ui/query';
+import { QueryFormData } from '@superset-ui/core';
 import { FormDataProps } from '../components/Line/Line';
 
 type CombinedFormData = QueryFormData & FormDataProps;

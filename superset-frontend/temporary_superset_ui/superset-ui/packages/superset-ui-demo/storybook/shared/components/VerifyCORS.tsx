@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react';
-import { SupersetClient, Method } from '@superset-ui/connection';
-import { makeApi, SupersetApiError } from '@superset-ui/query';
+import { SupersetClient, Method, makeApi, SupersetApiError } from '@superset-ui/core';
 import ErrorMessage from './ErrorMessage';
 
 export type Props = {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import data from '../data/legacyData';
 import { SCATTER_PLOT_PLUGIN_LEGACY_TYPE } from '../constants';
 import dummyDatasource from '../../../../../shared/dummyDatasource';

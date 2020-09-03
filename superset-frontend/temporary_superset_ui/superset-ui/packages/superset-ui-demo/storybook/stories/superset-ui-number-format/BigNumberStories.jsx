@@ -1,7 +1,6 @@
-/* eslint-disable no-magic-numbers, jsx-a11y/label-has-for, jsx-a11y/label-has-associated-control */
-
+/* eslint-disable jsx-a11y/label-has-associated-control */
 import React from 'react';
-import { formatNumber } from '@superset-ui/number-format';
+import { formatNumber } from '@superset-ui/core';
 
 const propTypes = {};
 const defaultProps = {};

@@ -1,5 +1,5 @@
 import 'babel-polyfill';
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps } from '@superset-ui/core';
 import transformProps from '../../src/legacyPlugin/transformProps';
 
 describe('WordCloud tranformProps', () => {

@@ -1,5 +1,5 @@
 import { createSelector } from 'reselect';
-import { Margin } from '@superset-ui/dimension';
+import { Margin } from '@superset-ui/core';
 
 export const DEFAULT_MARGIN = { bottom: 16, left: 16, right: 16, top: 16 };
 

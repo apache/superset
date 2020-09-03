@@ -3,7 +3,7 @@ import {
   convertMetric,
   QueryFormDataMetric,
   QueryObjectMetric,
-} from '@superset-ui/query';
+} from '@superset-ui/core';
 import TableFormData from './TableFormData';
 
 export default function buildQuery(formData: TableFormData) {

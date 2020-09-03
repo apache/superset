@@ -9,8 +9,7 @@ import {
   WithTooltip,
 } from '@data-ui/xy-chart';
 import { chartTheme } from '@data-ui/theme';
-import { Margin, Dimension } from '@superset-ui/dimension';
-import { WithLegend } from '@superset-ui/chart-composition';
+import { WithLegend, Margin, Dimension } from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import { Dataset, PlainObject } from 'encodable';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
@@ -240,9 +239,9 @@ export default class LineChart extends PureComponent<Props> {
             renderTooltip={null}
             theme={theme}
             tooltipData={tooltipData}
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             xScale={convertScaleToDataUIScale(channels.x.definition.scale as any)}
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             yScale={convertScaleToDataUIScale(channels.y.definition.scale as any)}
             onMouseMove={onMouseMove}
             onMouseLeave={onMouseLeave}

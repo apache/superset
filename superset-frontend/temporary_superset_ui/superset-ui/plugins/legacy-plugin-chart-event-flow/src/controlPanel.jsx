@@ -17,15 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { validateNonEmpty } from '@superset-ui/validator';
-import {
-  ColumnOption,
-  internalSharedControls,
-  formatSelectOptionsForRange,
-} from '@superset-ui/chart-controls';
-
-const { columnChoices } = internalSharedControls;
+import { t, validateNonEmpty, ColumnOption, columnChoices } from '@superset-ui/core';
+import { formatSelectOptionsForRange } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [

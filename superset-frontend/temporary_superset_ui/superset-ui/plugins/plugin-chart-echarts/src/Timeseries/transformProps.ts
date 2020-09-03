@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/chart';
-import { CategoricalColorNamespace } from '@superset-ui/color';
-import { getNumberFormatter } from '@superset-ui/number-format';
-import { smartDateVerboseFormatter } from '@superset-ui/time-format';
+import {
+  ChartProps,
+  CategoricalColorNamespace,
+  getNumberFormatter,
+  smartDateVerboseFormatter,
+} from '@superset-ui/core';
 import { EchartsTimeseriesProps } from './types';
 import { ForecastSeriesEnum } from '../types';
 import { extractTimeseriesSeries } from '../utils/series';

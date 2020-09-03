@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DataRecord } from '@superset-ui/chart';
+import { ChartProps, DataRecord } from '@superset-ui/core';
 import { EchartsPieProps } from './types';
 
 export default function transformProps(chartProps: ChartProps): EchartsPieProps {
@@ -32,14 +32,11 @@ export default function transformProps(chartProps: ChartProps): EchartsPieProps 
 
   const { innerRadius = 50, outerRadius = 70, groupby = [], metrics = [] } = formData;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const keys = Array.from(new Set(data.map(datum => datum[groupby[0]])));
 
   const transformedData = data.map(datum => {
     return {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       value: datum[metrics[0]],
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       name: datum[groupby[0]],
     };
   });

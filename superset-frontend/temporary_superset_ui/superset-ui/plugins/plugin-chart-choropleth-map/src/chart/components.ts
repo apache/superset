@@ -1,4 +1,4 @@
-import styled, { supersetTheme } from '@superset-ui/style';
+import { styled, supersetTheme } from '@superset-ui/core';
 
 export const PADDING = supersetTheme.gridUnit * 4;
 

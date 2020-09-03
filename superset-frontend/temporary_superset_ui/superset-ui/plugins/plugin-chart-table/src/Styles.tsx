@@ -1,4 +1,4 @@
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 
 export default styled.div`
   table {
