@@ -105,6 +105,5 @@ declare module '@data-ui/theme' {
     };
   }
 
-  // eslint-disable-next-line import/prefer-default-export
   export const chartTheme: ChartTheme;
 }

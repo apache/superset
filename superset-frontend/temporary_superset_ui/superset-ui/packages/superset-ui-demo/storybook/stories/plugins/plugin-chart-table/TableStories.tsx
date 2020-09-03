@@ -1,7 +1,7 @@
 import React from 'react';
 import memoizeOne from 'memoize-one';
 import { withKnobs, number, boolean } from '@storybook/addon-knobs';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import TableChartPlugin, { TableChartProps } from '@superset-ui/plugin-chart-table';
 import { basicFormData, basicData, birthNames } from './testData';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';

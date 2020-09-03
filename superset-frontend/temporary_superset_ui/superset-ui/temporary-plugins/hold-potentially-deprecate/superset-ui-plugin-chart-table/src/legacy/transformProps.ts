@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps } from '@superset-ui/core';
 import getProcessColumnsFunction from '../processColumns';
 import getProcessMetricsFunction from '../processMetrics';
 import getProcessDataFunction from '../processData';

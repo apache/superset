@@ -18,14 +18,17 @@
  */
 import React from 'react';
 import shortid from 'shortid';
-import { t } from '@superset-ui/translation';
-import { getNumberFormatter, NumberFormatter } from '@superset-ui/number-format';
+import {
+  t,
+  getNumberFormatter,
+  NumberFormatter,
+  smartDateVerboseFormatter,
+  TimeFormatter,
+  computeMaxFontSize,
+  BRAND_COLOR,
+  styled,
+} from '@superset-ui/core';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
-import { BRAND_COLOR } from '@superset-ui/color';
-import { computeMaxFontSize } from '@superset-ui/dimension';
-
-import styled from '@superset-ui/style';
-import { smartDateVerboseFormatter, TimeFormatter } from '@superset-ui/time-format';
 
 const defaultNumberFormatter = getNumberFormatter();
 

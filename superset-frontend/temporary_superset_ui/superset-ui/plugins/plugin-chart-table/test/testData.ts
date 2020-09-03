@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/chart';
-import { DatasourceType } from '@superset-ui/query';
+import { ChartProps, DatasourceType } from '@superset-ui/core';
 
 const basicFormData = {
   alignPn: false,

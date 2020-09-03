@@ -8,4 +8,6 @@ yarn build
 yarn storybook
 ```
 
-The Storybook will [automatically build from the source code](https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-demo/.storybook/main.js#L49-L58) when package names start with `@superset-ui/`.
+The Storybook will
+[automatically build from the source code](https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-demo/.storybook/main.js#L49-L58)
+when package names start with `@superset-ui/`.

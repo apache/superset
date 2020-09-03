@@ -1,6 +1,6 @@
 /* eslint-disable no-magic-numbers, sort-keys */
 import React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 import data from './data';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import data from './data';
 

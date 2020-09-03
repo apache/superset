@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
-import { reactify } from '@superset-ui/chart';
+import { styled, reactify } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import Component from './ParallelCoordinates';
 

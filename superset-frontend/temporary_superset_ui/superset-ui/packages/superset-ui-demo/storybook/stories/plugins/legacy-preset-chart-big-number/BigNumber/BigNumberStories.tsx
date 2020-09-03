@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import { BigNumberChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
 import testData from './data';
 

@@ -1,8 +1,7 @@
-/* eslint-disable no-magic-numbers */
 import React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
-import countries from '@superset-ui/legacy-plugin-chart-country-map/esm/countries';
+import countries from '@superset-ui/legacy-plugin-chart-country-map/lib/countries';
 import { withKnobs, select } from '@storybook/addon-knobs';
 import data from './data';
 

@@ -1,4 +1,4 @@
-import { configure } from '@superset-ui/translation';
+import { configure } from '@superset-ui/core';
 
 configure();
 

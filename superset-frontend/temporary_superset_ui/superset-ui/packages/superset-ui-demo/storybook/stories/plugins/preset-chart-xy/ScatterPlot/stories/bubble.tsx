@@ -1,6 +1,6 @@
 /* eslint-disable no-magic-numbers, sort-keys */
 import * as React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import { radios } from '@storybook/addon-knobs';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data/data';

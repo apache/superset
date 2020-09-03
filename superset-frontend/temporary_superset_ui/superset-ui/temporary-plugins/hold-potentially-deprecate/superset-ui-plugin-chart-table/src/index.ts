@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartPlugin } from '@superset-ui/chart';
+import { ChartPlugin } from '@superset-ui/core';
 import Core from '@airbnb/lunar/lib';
 import transformProps from './transformProps';
 import createMetadata from './createMetadata';

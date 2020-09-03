@@ -1,5 +1,5 @@
 import React from 'react';
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/chart';
+import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
 import { EchartsTimeseriesChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import transformProps from '@superset-ui/plugin-chart-echarts/lib/Timeseries/transformProps';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TooltipFrame, TooltipTable } from '@superset-ui/chart-composition';
+import { TooltipFrame, TooltipTable } from '@superset-ui/core';
 import { isFieldDef } from 'encodable';
 import { TooltipProps } from './ScatterPlot';
 

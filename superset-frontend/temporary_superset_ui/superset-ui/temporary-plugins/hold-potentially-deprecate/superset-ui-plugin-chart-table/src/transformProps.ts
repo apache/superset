@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { ChartProps } from '@superset-ui/chart';
-import { QueryFormDataMetric, AdhocMetric } from '@superset-ui/query';
+import { ChartProps, QueryFormDataMetric, AdhocMetric } from '@superset-ui/core';
 import getProcessColumnsFunction from './processColumns';
 import getProcessMetricsFunction from './processMetrics';
 import getProcessDataFunction from './processData';

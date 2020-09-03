@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/query';
+import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
 /**
  * The buildQuery function is used to create an instance of QueryContext that's

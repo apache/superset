@@ -1,5 +1,10 @@
-import { getNumberFormatter, NumberFormats, NumberFormatter } from '@superset-ui/number-format';
-import { getTimeFormatter, TimeFormatter } from '@superset-ui/time-format';
+import {
+  getTimeFormatter,
+  TimeFormatter,
+  getNumberFormatter,
+  NumberFormats,
+  NumberFormatter,
+} from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import { PlainObject } from './types';
 

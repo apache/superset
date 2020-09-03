@@ -1,5 +1,5 @@
 import React from 'react';
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/chart';
+import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { select, withKnobs } from '@storybook/addon-knobs';
 import {
   WordCloudChartPlugin,

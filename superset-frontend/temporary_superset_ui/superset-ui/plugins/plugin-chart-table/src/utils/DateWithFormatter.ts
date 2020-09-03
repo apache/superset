@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecordValue } from '@superset-ui/chart';
-import { TimeFormatFunction } from '@superset-ui/time-format';
+import { DataRecordValue, TimeFormatFunction } from '@superset-ui/core';
 
 const REGEXP_TIMESTAMP_NO_TIMEZONE = /T(\d{2}:){2}\d{2}$/;
 

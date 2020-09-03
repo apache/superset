@@ -17,7 +17,7 @@
  * under the License.
  */
 import 'babel-polyfill';
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps } from '@superset-ui/core';
 import transformProps from '../../src/Timeseries/transformProps';
 
 describe('EchartsTimeseries tranformProps', () => {
