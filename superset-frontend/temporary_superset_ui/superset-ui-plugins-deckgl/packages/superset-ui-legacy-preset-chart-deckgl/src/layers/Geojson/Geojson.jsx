@@ -1,4 +1,3 @@
-/* eslint-disable react/sort-prop-types */
 /* eslint-disable react/no-array-index-key */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one

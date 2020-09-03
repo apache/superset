@@ -1,7 +1,7 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import React from 'react';
-import { SuperChart } from '@superset-ui/chart';
+import { SuperChart } from '@superset-ui/core';
 import payload from './payload';
 import geojsonPayload from './geojsonPayload';
 import dummyDatasource from '../../../shared/dummyDatasource';
