@@ -143,11 +143,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (isEditMode) {
       // Edit
       const update: DatabaseObject = {
+        database_name: db ? db.database_name : '',
+        sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
         ...db,
       };
 
       // Need to clean update object
-      delete update.id;
+      if (update.id) {
+        delete update.id;
+      }
 
       if (!update.cache_timeout) {
         update.cache_timeout = '0';
@@ -165,14 +169,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         update.server_cert = '';
       }
 
-      updateResource(db.id, update).then(() => {
-        if (onDatabaseAdd) {
-          onDatabaseAdd();
-        }
+      if (db && db.id) {
+        updateResource(db.id, update).then(() => {
+          if (onDatabaseAdd) {
+            onDatabaseAdd();
+          }
 
-        hide();
-      });
-    } else {
+          hide();
+        });
+      }
+    } else if (db) {
       // Create
       createResource(db).then(() => {
         if (onDatabaseAdd) {
