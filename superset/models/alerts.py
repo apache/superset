@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Models for scheduled execution of jobs"""
+import json
 import textwrap
 from datetime import datetime
 from typing import Any, Optional
@@ -201,3 +202,15 @@ class Validator(Model, AuditMixinNullable):
             foreign_keys=[self.alert_id],
             backref=backref("validators", cascade="all, delete-orphan"),
         )
+
+    def pretty_print(self) -> str:
+        """ String representing the comparison that will trigger a validator """
+        config = json.loads(self.config)
+
+        if self.validator_type.lower() == "operator":
+            return f"{config['op']} {config['threshold']}"
+
+        if self.validator_type.lower() == "not null":
+            return "!= Null or 0"
+
+        return ""

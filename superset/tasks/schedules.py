@@ -105,6 +105,7 @@ class AlertContent(NamedTuple):
     label: str  # alert name
     sql: str  # sql statement for alert
     observation_value: str  # value from observation that triggered the alert
+    validation_error_message: str  # a string of the comparison that triggered an alert
     alert_url: str  # url to alert details
     image_data: Optional[ScreenshotData]  # data for the alert screenshot
 
@@ -571,20 +572,21 @@ def deliver_alert(
 
     # Set all the values for the alert report
     # Alternate values are used in the case of a test alert
-    # where an alert has no observations yet
+    # where an alert might not have a validator
     recipients = recipients or alert.recipients
     slack_channel = slack_channel or alert.slack_channel
-    sql = alert.sql_observer[0].sql if alert.sql_observer else ""
-    observation_value = (
-        str(alert.observations[-1].value) if alert.observations else "Value"
+    validation_error_message = (
+        str(alert.observations[-1].value) + " " + alert.validators[0].pretty_print()
+        if alert.validators
+        else ""
     )
 
-    # TODO: add sql query results and validator information to alert content
     if alert.slice:
         alert_content = AlertContent(
             alert.label,
-            sql,
-            observation_value,
+            alert.sql_observer[0].sql,
+            str(alert.observations[-1].value),
+            validation_error_message,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             _get_slice_screenshot(alert.slice.id),
         )
@@ -592,8 +594,9 @@ def deliver_alert(
         # TODO: dashboard delivery!
         alert_content = AlertContent(
             alert.label,
-            sql,
-            observation_value,
+            alert.sql_observer[0].sql,
+            str(alert.observations[-1].value),
+            validation_error_message,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
             None,
         )
@@ -623,6 +626,7 @@ def deliver_email_alert(alert_content: AlertContent, recipients: str) -> None:
         label=alert_content.label,
         sql=alert_content.sql,
         observation_value=alert_content.observation_value,
+        validation_error_message=alert_content.validation_error_message,
         image_url=image_url,
     )
 
@@ -641,6 +645,7 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
             label=alert_content.label,
             sql=alert_content.sql,
             observation_value=alert_content.observation_value,
+            validation_error_message=alert_content.validation_error_message,
             url=alert_content.image_data.url,
             alert_url=alert_content.alert_url,
         )
@@ -651,6 +656,7 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
             label=alert_content.label,
             sql=alert_content.sql,
             observation_value=alert_content.observation_value,
+            validation_error_message=alert_content.validation_error_message,
             alert_url=alert_content.alert_url,
         )
 
