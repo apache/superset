@@ -26,7 +26,7 @@ import NextLinks from '../components/next';
 import 'antd/dist/antd.css';
 
 interface Props {
-  children: React.ReactNode,
+  children: React.ReactNode;
 }
 
 const Theme = ({ children }: Props) => {

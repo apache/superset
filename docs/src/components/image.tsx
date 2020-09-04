@@ -57,7 +57,9 @@ const Image = ({
         }
       }
 
-      stackoverflow: file(relativePath: { eq: "src/images/stack_overflow.png" }) {
+      stackoverflow: file(
+        relativePath: { eq: "src/images/stack_overflow.png" }
+      ) {
         childImageSharp {
           fixed(width: 60) {
             ...GatsbyImageSharpFixed
@@ -94,7 +96,9 @@ const Image = ({
     }
   `);
 
-  const filter = data.getAllImages.edges.filter((n) => n.node.fixed.originalName === imageName);
+  const filter = data.getAllImages.edges.filter(
+    (n) => n.node.fixed.originalName === imageName,
+  );
   const imgStyle = width && height ? { width, height } : {};
 
   return type === 'db' ? (

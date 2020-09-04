@@ -213,13 +213,34 @@ const Theme = () => {
           </h2>
           <div className="github-section">
             <span className="github-button">
-              <GitHubButton href="https://github.com/apache/incubator-superset" data-size="large" data-show-count="true" aria-label="Star apache/incubator-superset on GitHub">Star</GitHubButton>
+              <GitHubButton
+                href="https://github.com/apache/incubator-superset"
+                data-size="large"
+                data-show-count="true"
+                aria-label="Star apache/incubator-superset on GitHub"
+              >
+                Star
+              </GitHubButton>
             </span>
             <span className="github-button">
-              <GitHubButton href="https://github.com/apache/incubator-superset/subscription" data-size="large" data-show-count="true" aria-label="Watch apache/incubator-superset on GitHub">Watch</GitHubButton>
+              <GitHubButton
+                href="https://github.com/apache/incubator-superset/subscription"
+                data-size="large"
+                data-show-count="true"
+                aria-label="Watch apache/incubator-superset on GitHub"
+              >
+                Watch
+              </GitHubButton>
             </span>
             <span className="github-button">
-              <GitHubButton href="https://github.com/apache/incubator-superset/fork" data-size="large" data-show-count="true" aria-label="Fork apache/incubator-superset on GitHub">Fork</GitHubButton>
+              <GitHubButton
+                href="https://github.com/apache/incubator-superset/fork"
+                data-size="large"
+                data-show-count="true"
+                aria-label="Fork apache/incubator-superset on GitHub"
+              >
+                Fork
+              </GitHubButton>
             </span>
           </div>
           <div className="incubator">
@@ -238,9 +259,10 @@ const Theme = () => {
           <h2 css={secondaryHeading}>Overview</h2>
           <h4 className="heading">
             {' '}
-            Superset is fast, lightweight, intuitive, and loaded with options that make it easy for
-            users of all skill sets to explore and visualize their data, from simple line charts to
-            highly detailed geospatial charts.
+            Superset is fast, lightweight, intuitive, and loaded with options
+            that make it easy for users of all skill sets to explore and
+            visualize their data, from simple line charts to highly detailed
+            geospatial charts.
             {' '}
           </h4>
           <ul className="featureList ant-row">
@@ -254,8 +276,9 @@ const Theme = () => {
                 <span className="featureText">
                   <strong>Powerful and easy to use </strong>
                   <br />
-                  Quickly and easily integrate and explore your data, using either our simple
-                  no-code viz builder or state of the art SQL IDE.
+                  Quickly and easily integrate and explore your data, using
+                  either our simple no-code viz builder or state of the art SQL
+                  IDE.
                 </span>
               </li>
 
@@ -269,8 +292,9 @@ const Theme = () => {
                   <strong> Integrates with modern databases</strong>
                   <br />
                   {' '}
-                  Superset can connect to any SQL based datasource through SQL Alchemy,
-                  including modern cloud native databases and engines at petabyte scale.
+                  Superset can connect to any SQL based datasource
+                  through SQL Alchemy, including modern cloud native databases
+                  and engines at petabyte scale.
                 </span>
               </li>
             </Col>
@@ -285,8 +309,9 @@ const Theme = () => {
                 <span className="featureText">
                   <strong> Modern architecture </strong>
                   <br />
-                  Superset is lightweight and highly scalable, leveraging the power of your existing
-                  data infrastructure without requiring yet another ingestion layer.
+                  Superset is lightweight and highly scalable, leveraging the
+                  power of your existing data infrastructure without requiring
+                  yet another ingestion layer.
                 </span>
               </li>
               <li className="feature">
@@ -299,9 +324,9 @@ const Theme = () => {
                   <strong> Rich visualizations and dashboards </strong>
                   {' '}
                   <br />
-                  Superset ships with a wide array of beautiful visualizations. Our visualization
-                  plug-in architecture makes it easy to build custom visualizations that drop
-                  directly into Superset.
+                  Superset ships with a wide array of beautiful visualizations.
+                  Our visualization plug-in architecture makes it easy to build
+                  custom visualizations that drop directly into Superset.
                 </span>
               </li>
             </Col>
@@ -312,16 +337,30 @@ const Theme = () => {
           <h2 css={secondaryHeading}>Explore</h2>
           <div className="toggleContainer">
             <div className="toggleBtns">
-              <div className="toggle" onClick={() => slider.current.goTo(0)} role="button">
+              <div
+                className="toggle"
+                onClick={() => slider.current.goTo(0)}
+                role="button"
+              >
                 <h3>Explore</h3>
-                <span>Explore your data using the array of data visualizations.</span>
+                <span>
+                  Explore your data using the array of data visualizations.
+                </span>
               </div>
 
-              <div className="toggle" onClick={() => slider.current.goTo(1)} role="button">
+              <div
+                className="toggle"
+                onClick={() => slider.current.goTo(1)}
+                role="button"
+              >
                 <h3>View</h3>
                 <span>View your data through interactive dashboards</span>
               </div>
-              <div className="toggle" onClick={() => slider.current.goTo(2)} role="button">
+              <div
+                className="toggle"
+                onClick={() => slider.current.goTo(2)}
+                role="button"
+              >
                 <h3>Investigate</h3>
                 <span>Use sqlab to write queries to explore your data</span>
               </div>
@@ -343,16 +382,23 @@ const Theme = () => {
           <h2 css={secondaryHeading}>Supported Databases</h2>
 
           <ul className="databaseList">
-            {Databases.map(({
-              title, href, imgName: imageName, width, height,
-            }) => (
-              <a href={href} target="_blank" key={imageName} rel="noreferrer">
-                <Image {...{
-                  imageName, type: 'db', width, height, alt: title,
-                }}
-                />
-              </a>
-            ))}
+            {Databases.map(
+              ({
+                title, href, imgName: imageName, width, height,
+              }) => (
+                <a href={href} target="_blank" key={imageName} rel="noreferrer">
+                  <Image
+                    {...{
+                      imageName,
+                      type: 'db',
+                      width,
+                      height,
+                      alt: title,
+                    }}
+                  />
+                </a>
+              ),
+            )}
           </ul>
           <span className="databaseSub">
             {' '}

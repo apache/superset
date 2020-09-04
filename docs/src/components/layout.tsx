@@ -135,11 +135,12 @@ const logoStyle = css`
   heigh: 30px;
 `;
 interface Props {
-  children: React.ReactNode,
+  children: React.ReactNode;
 }
 
 const AppLayout = ({ children }: Props) => {
-  const isOnDocsPage = typeof window !== 'undefined' && window.location.pathname.indexOf('docs') > 0;
+  const isOnDocsPage = typeof window !== 'undefined'
+    && window.location.pathname.indexOf('docs') > 0;
 
   return (
     <Layout css={layoutStyles}>

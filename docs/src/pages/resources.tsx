@@ -93,7 +93,11 @@ const Resources = () => (
             <div>
               <Image imageName="docker" />
             </div>
-            <a href="https://hub.docker.com/r/preset/superset/" target="_blank" rel="noreferrer">
+            <a
+              href="https://hub.docker.com/r/preset/superset/"
+              target="_blank"
+              rel="noreferrer"
+            >
               <Button type="primary">Docker Image</Button>
             </a>
           </div>
@@ -107,9 +111,17 @@ const Resources = () => (
           </div>
           <div className="link">
             <div>
-              <img src="/images/youtube.png" alt="youtube" className="youtube" />
+              <img
+                src="/images/youtube.png"
+                alt="youtube"
+                className="youtube"
+              />
             </div>
-            <a href="https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g" target="_blank" rel="noreferrer">
+            <a
+              href="https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g"
+              target="_blank"
+              rel="noreferrer"
+            >
               <Button type="primary">Youtube Page</Button>
             </a>
           </div>

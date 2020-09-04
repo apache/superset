@@ -27,7 +27,11 @@ export default () => {
   const menus = useMenus();
   const [openKey, selectedKey] = getActiveMenuItem(menus);
   return (
-    <Menu mode="inline" defaultOpenKeys={[openKey]} defaultSelectedKeys={[selectedKey]}>
+    <Menu
+      mode="inline"
+      defaultOpenKeys={[openKey]}
+      defaultSelectedKeys={[selectedKey]}
+    >
       {menus.map((menuItem) => {
         if (menuItem.menu?.length > 0) {
           return (

@@ -70,14 +70,26 @@ const LayoutFooter = () => (
   <>
     <Footer css={footerStyle}>
       <div css={apacheLinksStyle} className="apacheLinks">
-        <a href="https://www.apache.org/security/" target="_blank" rel="noreferrer">
+        <a
+          href="https://www.apache.org/security/"
+          target="_blank"
+          rel="noreferrer"
+        >
           Security &nbsp;|
         </a>
-        <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">
+        <a
+          href="https://www.apache.org/foundation/sponsorship.html"
+          target="_blank"
+          rel="noreferrer"
+        >
           Donate &nbsp;|
         </a>
 
-        <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">
+        <a
+          href="https://www.apache.org/foundation/thanks.html"
+          target="_blank"
+          rel="noreferrer"
+        >
           Thanks
         </a>
       </div>
@@ -90,7 +102,11 @@ const LayoutFooter = () => (
           >
             <SlackSquareOutlined className="icon" />
           </a>
-          <a href="https://github.com/apache/incubator-superset" target="_blank" rel="noreferrer">
+          <a
+            href="https://github.com/apache/incubator-superset"
+            target="_blank"
+            rel="noreferrer"
+          >
             <GithubOutlined className="icon" />
           </a>
           <a
@@ -98,7 +114,11 @@ const LayoutFooter = () => (
             target="_blank"
             rel="noreferrer"
           >
-            <img alt="StackOverflow" src="/images/so-icon.svg" className="icon svg" />
+            <img
+              alt="StackOverflow"
+              src="/images/so-icon.svg"
+              className="icon svg"
+            />
           </a>
         </div>
       </div>
@@ -111,19 +131,24 @@ const LayoutFooter = () => (
           &nbsp;The Apache Software Fountation
         </a>
         , &nbsp;Licensed under the Apache
-        <a href="https://www.apache.org/licenses/" target="_blank" rel="noreferrer">
+        <a
+          href="https://www.apache.org/licenses/"
+          target="_blank"
+          rel="noreferrer"
+        >
           &nbsp;License.
         </a>
         {' '}
         <br />
         <div>
-          Disclaimer: Apache Superset is an effort undergoing incubation at The Apache Software
-          Foundation (ASF), sponsored by the Apache Incubator. Incubation is required of all newly
-          accepted projects until a further review indicates that the infrastructure,
-          communications, and decision making process have stabilized in a manner consistent with
-          other successful ASF projects. While incubation status is not necessarily a reflection of
-          the completeness or stability of the code, it does indicate that the project has yet to be
-          fully endorsed by the ASF.
+          Disclaimer: Apache Superset is an effort undergoing incubation at The
+          Apache Software Foundation (ASF), sponsored by the Apache Incubator.
+          Incubation is required of all newly accepted projects until a further
+          review indicates that the infrastructure, communications, and decision
+          making process have stabilized in a manner consistent with other
+          successful ASF projects. While incubation status is not necessarily a
+          reflection of the completeness or stability of the code, it does
+          indicate that the project has yet to be fully endorsed by the ASF.
         </div>
       </div>
     </Footer>

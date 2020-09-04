@@ -135,7 +135,10 @@ const Community = () => {
       <SEO title="Community" />
       <div css={titleContainer}>
         <h1 css={title}>Community</h1>
-        <h2>The community has many active members who support each other in solving problems</h2>
+        <h2>
+          The community has many active members who support each other in
+          solving problems
+        </h2>
         <div css={getInvolvedContainer}>
           <div className="joinCommunity section">
             <h2 className="title">Join the Community</h2>
@@ -152,7 +155,11 @@ const Community = () => {
               ))}
             </span>
             <br />
-            <a href="https://github.com/apache-superset/awesome-apache-superset" target="_blank" rel="noreferrer">
+            <a
+              href="https://github.com/apache-superset/awesome-apache-superset"
+              target="_blank"
+              rel="noreferrer"
+            >
               <Button type="primary" size="large">
                 Additional resources
               </Button>

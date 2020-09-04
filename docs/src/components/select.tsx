@@ -33,7 +33,11 @@ export default function VersionSelect() {
   return (
     <div>
       version:
-      <Select defaultValue={version || 1} style={{ width: 120 }} onChange={handleChange}>
+      <Select
+        defaultValue={version || 1}
+        style={{ width: 120 }}
+        onChange={handleChange}
+      >
         {versions.map((e) => (
           <Option value={e}>{e}</Option>
         ))}
