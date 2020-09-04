@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Label as BootstrapLabel } from 'react-bootstrap';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapLabel>;

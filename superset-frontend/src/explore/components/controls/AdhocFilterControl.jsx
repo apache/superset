@@ -19,9 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
-import { logging } from '@superset-ui/core';
+import { t, logging, SupersetClient } from '@superset-ui/core';
 
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 

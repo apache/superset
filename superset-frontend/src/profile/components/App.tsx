@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Col, Row, Tabs, Tab, Panel } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Favorites from './Favorites';
 import UserInfo from './UserInfo';

@@ -23,7 +23,7 @@ import cx from 'classnames';
 import AceEditor from 'react-ace';
 import 'brace/mode/markdown';
 import 'brace/theme/textmate';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';

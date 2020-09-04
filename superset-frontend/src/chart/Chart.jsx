@@ -19,8 +19,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { Alert } from 'react-bootstrap';
-import styled from '@superset-ui/style';
-import { logging } from '@superset-ui/core';
+import { styled, logging } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';

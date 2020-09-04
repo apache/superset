@@ -19,7 +19,7 @@
 import React from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 
 interface TableCollectionProps {

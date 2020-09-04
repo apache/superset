@@ -19,9 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient, t } from '@superset-ui/core';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
 
 import Icon from 'src/components/Icon';
 

@@ -22,7 +22,7 @@ import { MenuItem, DropdownButton, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import * as Actions from '../actions/sqlLab';

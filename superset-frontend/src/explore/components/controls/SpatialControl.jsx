@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, OverlayTrigger, Popover } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import ControlHeader from '../ControlHeader';

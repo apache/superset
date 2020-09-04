@@ -17,7 +17,7 @@
  * under the License.
  */
 import sinon from 'sinon';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 
 import {
   removeSliceFromDashboard,

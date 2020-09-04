@@ -17,10 +17,8 @@
  * under the License.
  */
 import React, { FunctionComponent, useState } from 'react';
-import styled from '@superset-ui/style';
-import { SupersetClient } from '@superset-ui/connection';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import { isEmpty, isNil } from 'lodash';
-import { t } from '@superset-ui/translation';
 import Icon from 'src/components/Icon';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';

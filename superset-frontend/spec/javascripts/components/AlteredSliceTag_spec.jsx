@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { Table, Thead, Td, Th, Tr } from 'reactable-arc';
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { getChartControlPanelRegistry } from '@superset-ui/core';
 
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import ModalTrigger from 'src/components/ModalTrigger';

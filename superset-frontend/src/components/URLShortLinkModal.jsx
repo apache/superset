@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import CopyToClipboard from './CopyToClipboard';
 import { getShortUrl } from '../utils/common';
 import withToasts from '../messageToasts/enhancers/withToasts';

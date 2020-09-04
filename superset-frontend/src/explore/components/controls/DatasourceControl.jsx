@@ -28,7 +28,7 @@ import {
   Tooltip,
   Well,
 } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import Label from 'src/components/Label';

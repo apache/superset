@@ -24,7 +24,7 @@ import { Alert, FormControl, FormGroup, Modal, Radio } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 
 const propTypes = {

@@ -21,8 +21,7 @@ import { Alert, Modal } from 'react-bootstrap';
 import Button from 'src/components/Button';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import getClientErrorObject from '../utils/getClientErrorObject';
 import DatasourceEditor from './DatasourceEditor';

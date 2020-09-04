@@ -20,7 +20,7 @@ import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { act } from 'react-dom/test-utils';
 import { QueryParamProvider } from 'use-query-params';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import { Empty } from 'src/common/components';

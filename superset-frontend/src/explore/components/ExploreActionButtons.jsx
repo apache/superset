@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import URLShortLinkButton from '../../components/URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';

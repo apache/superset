@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/connection';
-import { getTimeFormatter, TimeFormats } from '@superset-ui/time-format';
+import {
+  SupersetClient,
+  getTimeFormatter,
+  TimeFormats,
+} from '@superset-ui/core';
 import getClientErrorObject from './getClientErrorObject';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py

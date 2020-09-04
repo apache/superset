@@ -20,10 +20,13 @@
 // These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
 
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { validateNonEmpty } from '@superset-ui/validator';
-import { sharedControls } from '@superset-ui/chart-controls';
-import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
+import { t, validateNonEmpty } from '@superset-ui/core';
+import {
+  sharedControls,
+  D3_FORMAT_OPTIONS,
+  columnChoices,
+} from '@superset-ui/chart-controls';
+import { PRIMARY_COLOR } from '../controls';
 import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
 
 const sandboxUrl =

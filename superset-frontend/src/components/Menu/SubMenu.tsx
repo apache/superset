@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import { Nav, Navbar, MenuItem } from 'react-bootstrap';
 import Button, { OnClickHandler } from 'src/components/Button';
 

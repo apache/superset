@@ -18,13 +18,13 @@
  */
 /* eslint camelcase: 0 */
 import URI from 'urijs';
-import { buildQueryContext } from '@superset-ui/query';
-import { availableDomains } from 'src/utils/hostNamesConfig';
-import { safeStringify } from 'src/utils/safeStringify';
 import {
+  buildQueryContext,
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
-} from '@superset-ui/chart';
+} from '@superset-ui/core';
+import { availableDomains } from 'src/utils/hostNamesConfig';
+import { safeStringify } from 'src/utils/safeStringify';
 
 const MAX_URL_LENGTH = 8000;
 

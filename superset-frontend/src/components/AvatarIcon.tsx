@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { getCategoricalSchemeRegistry } from '@superset-ui/color';
+import { getCategoricalSchemeRegistry } from '@superset-ui/core';
 import Avatar, { ConfigProvider } from 'react-avatar';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 

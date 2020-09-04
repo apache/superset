@@ -21,12 +21,14 @@ import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import Button from 'src/components/Button';
 import mathjs from 'mathjs';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
-import { getCategoricalSchemeRegistry } from '@superset-ui/color';
-import { getChartMetadataRegistry } from '@superset-ui/chart';
-import { validateNonEmpty } from '@superset-ui/validator';
-import { ThemeProvider } from '@superset-ui/style';
+import {
+  t,
+  SupersetClient,
+  getCategoricalSchemeRegistry,
+  getChartMetadataRegistry,
+  ThemeProvider,
+  validateNonEmpty,
+} from '@superset-ui/core';
 
 import SelectControl from './SelectControl';
 import TextControl from './TextControl';

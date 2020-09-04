@@ -24,8 +24,7 @@ import Dialog from 'react-bootstrap-dialog';
 import { AsyncSelect } from 'src/components/Select';
 import AceEditor from 'react-ace';
 import rison from 'rison';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';

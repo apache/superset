@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import Form from 'react-jsonschema-form';
 import chrono from 'chrono-node';
 import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import ModalTrigger from 'src/components/ModalTrigger';
