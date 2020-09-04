@@ -26,7 +26,6 @@ from superset.constants import Security as SecurityConsts
 
 logger = logging.getLogger(__name__)
 
-
 dashboard_level_access_enabled = None
 
 
@@ -38,7 +37,11 @@ def is_dashboard_level_access_enabled() -> bool:
         dashboard_level_access_enabled = is_feature_enabled(
             SecurityConsts.DASHBOARD_LEVEL_ACCESS_FEATURE
         )
-        logger.info("dashboard level access is: " + dashboard_level_access_enabled? "on": "off")
+        logger.info(
+            "dashboard level access is: " + "on"
+            if dashboard_level_access_enabled
+            else "off"
+        )
     return dashboard_level_access_enabled
 
 
