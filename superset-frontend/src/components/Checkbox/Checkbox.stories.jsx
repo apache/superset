@@ -17,32 +17,30 @@
  * under the License.
  */
 import React from 'react';
+import { useArgs } from '@storybook/client-api';
+import Checkbox from './';
 
-interface CheckboxProps {
-  checked: boolean;
-  onChange: (val?: boolean) => {};
-  style: object;
-}
+export default {
+  title: 'Checkbox',
+  component: Checkbox,
+};
 
-export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
+// eslint-disable-next-line no-unused-vars
+export const Component = _args => {
+  const [{ checked, style }, updateArgs] = useArgs();
+  const toggleCheckbox = () => {
+    updateArgs({ checked: !checked });
+  };
+
   return (
-    <span style={style}>
-      <i
-        role="button"
-        aria-label="Checkbox"
-        tabIndex={0}
-        className={`fa fa-check ${
-          checked ? 'text-primary' : 'text-transparent'
-        }`}
-        onClick={() => {
-          onChange(!checked);
-        }}
-        style={{
-          border: '1px solid #aaa',
-          borderRadius: '2px',
-          cursor: 'pointer',
-        }}
-      />
-    </span>
+    <>
+      <Checkbox onChange={toggleCheckbox} checked={checked} style={style} />
+      I'm a checkbox
+    </>
   );
-}
+};
+
+Component.args = {
+  checked: false,
+  style: { marginRight: '8px' },
+};
