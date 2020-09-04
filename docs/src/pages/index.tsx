@@ -134,6 +134,7 @@ const integrationSection = css`
     text-align: center;
     display: block;
     margin-bottom: 40px;
+    font-size: 18px;
   }
 
   .databaseList {
@@ -163,8 +164,9 @@ const linkCarousel = css`
       justify-content: center;
       .toggle {
         margin: 15px;
-        color: #bfbfbf;
-        border: 1px solid #bfbfbf;
+        color: #666;
+        border: 1px solid #888;
+        background-color: #f8f8f8;
         border-radius: 3px;
         padding: 30px;
         &:hover {
@@ -219,7 +221,7 @@ const Theme = () => {
           <h4 className="heading">
             {' '}
             Superset is fast, lightweight, intuitive, and loaded with options that make it easy for
-            users of all skill sets to explore and visualize their data, from simple pie charts to
+            users of all skill sets to explore and visualize their data, from simple line charts to
             highly detailed geospatial charts.
             {' '}
           </h4>
@@ -250,7 +252,7 @@ const Theme = () => {
                   <br />
                   {' '}
                   Superset can connect to any SQL based datasource through SQL Alchemy,
-                  including modern cloud native data sources and engines at petabyte scale.
+                  including modern cloud native databases and engines at petabyte scale.
                 </span>
               </li>
             </Col>
@@ -320,7 +322,7 @@ const Theme = () => {
           </div>
         </div>
         <div css={integrationSection}>
-          <h2 css={secondaryHeading}>Supported Data Sources</h2>
+          <h2 css={secondaryHeading}>Supported Databases</h2>
 
           <ul className="databaseList">
             {Databases.map(({
@@ -340,7 +342,7 @@ const Theme = () => {
             {' '}
             <a href="https://superset.incubator.apache.org/installation.html#database-dependencies">
               {' '}
-              compatible data source.
+              compatible databases
               {' '}
             </a>
             {' '}

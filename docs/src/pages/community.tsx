@@ -26,6 +26,39 @@ import { pmc } from '../resources/data';
 
 const { Meta } = Card;
 
+const links = [
+  [
+    'https://apache-superset.slack.com/join/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ#/',
+    'Slack community',
+    'interact with other Superset users and community members',
+  ],
+  [
+    'https://github.com/apache/incubator-superset',
+    'Github',
+    'create tickets to report issues, report bugs, and suggest new features',
+  ],
+  [
+    'https://lists.apache.org/list.html?dev@superset.apache.org',
+    'Mailing list',
+    'receive up-to-date news and announcements on all things Superset',
+  ],
+  [
+    'https://stackoverflow.com/questions/tagged/superset+apache-superset',
+    'Stack Overflow',
+    'get help with Superset issues',
+  ],
+  [
+    'https://www.meetup.com/Global-Apache-Superset-Community-Meetup/',
+    'Superset Meetup group',
+    'join our monthly virtual meetups and register for any upcoming events',
+  ],
+  [
+    'https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md',
+    'Companies',
+    'a list of some of the companies using Superset in production today',
+  ],
+];
+
 const titleContainer = css`
   text-align: center;
   background: #fff;
@@ -107,68 +140,13 @@ const Community = () => {
           <div className="joinCommunity section">
             <h2 className="title">Join the Community</h2>
             <span className="resources">
-              <a
-                href="https://apache-superset.slack.com/join/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ#/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Slack community
-                {' '}
-              </a>
-              {' '}
-              - interact with other Superset users and community members
-              {' '}
-              <br />
-              <a href="https://github.com/apache/incubator-superset" target="_blank" rel="noreferrer">
-                Github page
-                {' '}
-              </a>
-              {' '}
-              - create tickets to report issues, report bugs, and suggest new features
-              {' '}
-              <br />
-              <a href="https://lists.apache.org/list.html?dev@superset.apache.org" target="_blank" rel="noreferrer">
-                Mailing list
-                {' '}
-              </a>
-              - receive up-to-date news and announcements on all things Superset
-              {' '}
-              <br />
-              <a
-                href="https://stackoverflow.com/questions/tagged/superset+apache-superset"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Stack Overflow
-                {' '}
-              </a>
-              - get help with Superset issues
-              {' '}
-              <br />
-              <a
-                href="https://www.meetup.com/Global-Apache-Superset-Community-Meetup/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Superset Meetup group
-                {' '}
-              </a>
-              - join our monthly virtual meetups and register for any upcoming events
-              {' '}
-              <br />
-              <a
-                href="https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Companies
-                {' '}
-              </a>
-              - a list of some of the companies using Superset in production today
-              {' '}
-              <br />
-              <br />
+              {links.map(([href, link, post]) => (
+                <>
+                  <a href={href}>{link}</a> - {post} <br/>
+                </>
+              ))}
             </span>
+            <br />
             <a href="https://github.com/apache-superset/awesome-apache-superset" target="_blank" rel="noreferrer">
               <Button type="primary" size="large">
                 Additional resources
