@@ -10,6 +10,7 @@
     "babel:esm": "nimbus babel --clean --workspaces=\"@superset-ui/!(plugins-demo)\" --esm",
     "build:assets": "node ./scripts/buildAssets.js",
     "clean": "rm -rf ./packages/**/{lib,esm}",
+    "clean-tsc": "rm -rf ./packages/**/tsconfig.tsbuildinfo",
     "commit": "superset-commit",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
     "format": "yarn prettier --write",
