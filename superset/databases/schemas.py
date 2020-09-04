@@ -275,6 +275,25 @@ class DatabasePutSchema(Schema):
     )
 
 
+class DatabaseTestConnectionSchema(Schema):
+    database_name = fields.String(
+        description=database_name_description, allow_none=True, validate=Length(1, 250),
+    )
+    impersonate_user = fields.Boolean(description=impersonate_user_description)
+    extra = fields.String(description=extra_description, validate=extra_validator)
+    encrypted_extra = fields.String(
+        description=encrypted_extra_description, validate=encrypted_extra_validator
+    )
+    server_cert = fields.String(
+        description=server_cert_description, validate=server_cert_validator
+    )
+    sqlalchemy_uri = fields.String(
+        description=sqlalchemy_uri_description,
+        required=True,
+        validate=[Length(1, 1024), sqlalchemy_uri_validator],
+    )
+
+
 class TableMetadataOptionsResponseSchema(Schema):
     deferrable = fields.Bool()
     initially = fields.Bool()

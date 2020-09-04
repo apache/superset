@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Optional
 
 from superset.dao.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
@@ -43,43 +44,20 @@ class DatabaseDAO(BaseDAO):
         return not db.session.query(database_query.exists()).scalar()
 
     @staticmethod
-    def test_connection(  # pylint: disable=too-many-arguments, too-many-return-statements
-        db_name: str,
-        uri: str,
-        server_cert: str,
-        extra: str,
-        impersonate_user: bool,
-        encrypted_extra: str,
-    ) -> None:
-        if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-            check_sqlalchemy_uri(uri)
-        # if the database already exists in the database, only its safe
-        # (password-masked) URI would be shown in the UI and would be passed in the
-        # form data so if the database already exists and the form was submitted
-        # with the safe URI, we assume we should retrieve the decrypted URI to test
-        # the connection.
-        if db_name:
-            existing_database = (
-                db.session.query(Database)
-                .filter_by(database_name=db_name)
-                .one_or_none()
-            )
-            if existing_database and uri == existing_database.safe_sqlalchemy_uri():
-                uri = existing_database.sqlalchemy_uri_decrypted
+    def get_database_by_name(database_name: str) -> Optional[Database]:
+        return (
+            db.session.query(Database)
+            .filter(Database.database_name == database_name)
+            .one_or_none()
+        )
 
-        # this is the database instance that will be tested
-        database = Database(
-            # extras is sent as json, but required to be a string in the Database
-            # model
+    @staticmethod
+    def build_db_for_connection_test(
+        server_cert: str, extra: str, impersonate_user: bool, encrypted_extra: str
+    ) -> Optional[Database]:
+        return Database(
             server_cert=server_cert,
             extra=extra,
             impersonate_user=impersonate_user,
             encrypted_extra=encrypted_extra,
         )
-        database.set_sqlalchemy_uri(uri)
-        database.db_engine_spec.mutate_db_for_connection_test(database)
-
-        username = g.user.username if g.user is not None else None
-        engine = database.get_sqla_engine(user_name=username)
-        with closing(engine.connect()) as conn:
-            conn.scalar(select([1]))

@@ -21,7 +21,13 @@ from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
-from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import (
+    NoSuchModuleError,
+    NoSuchTableError,
+    OperationalError,
+    SQLAlchemyError,
+)
 
 from superset import event_logger
 from superset.constants import RouteMethod
@@ -33,8 +39,10 @@ from superset.databases.commands.exceptions import (
     DatabaseDeleteFailedError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
+    DatabaseSecurityUnsafeError,
     DatabaseUpdateFailedError,
 )
+from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter
@@ -42,6 +50,7 @@ from superset.databases.schemas import (
     database_schemas_query_schema,
     DatabasePostSchema,
     DatabasePutSchema,
+    DatabaseTestConnectionSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
@@ -49,7 +58,6 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.security.analytics_db_safety import DBSecurityException
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
@@ -550,39 +558,28 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        uri = request.json.get("uri")
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
         try:
-            DatabaseDAO.test_connection(
-                db_name=request.json.get("name"),
-                uri=uri,
-                server_cert=request.json.get("server_cert"),
-                extra=json.dumps(request.json.get("extras", {})),
-                impersonate_user=request.json.get("impersonate_user"),
-                encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
-            )
+            item = DatabaseTestConnectionSchema().load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            TestConnectionDatabaseCommand(g.user, item).run()
             return self.response(200, message="OK")
-        except CertificateException as ex:
-            logger.info("Certificate exception")
-            return self.response(500, message=ex.message)
         except (NoSuchModuleError, ModuleNotFoundError):
             logger.info("Invalid driver")
-            driver_name = make_url(uri).drivername
-            message = "Could not load database driver: %s" % (driver_name)
+            driver_name = make_url(item.get("sqlalchemy_uri")).drivername
+            message = f"Could not load database driver: {driver_name}"
             return self.response(400, message=message, driver_name=driver_name)
-        except ArgumentError:
-            logger.info("Invalid URI")
-            return self.response_422(
-                message="Invalid connection string, a valid string usually follows:\n"
-                "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
-            )
+        except DatabaseSecurityUnsafeError as ex:
+            return self.response_422(message=ex)
         except OperationalError:
             logger.warning("Connection failed")
             return self.response(
                 500, message="Connection failed, please check your connection settings"
             )
-        except DBSecurityException as ex:
-            logger.warning("Stopped an unsafe database connection")
-            return self.response_400(message=str(ex))
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Unexpected error %s", type(ex).__name__)
             return self.response_400(

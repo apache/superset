@@ -104,13 +104,12 @@ class BaseSupersetModelRestApi(ModelRestApi):
         "refresh": "edit",
         "related": "list",
         "related_objects": "list",
+        "schemas": "list",
+        "select_star": "list",
+        "table_metadata": "list",
         "test_connection": "post",
         "thumbnail": "list",
         "viz_types": "list",
-        "related_objects": "list",
-        "table_metadata": "list",
-        "select_star": "list",
-        "schemas": "list",
     }
 
     order_rel_fields: Dict[str, Tuple[str, str]] = {}
