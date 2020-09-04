@@ -20,6 +20,7 @@ from typing import Any, Optional
 from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import (
@@ -571,17 +572,23 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except (NoSuchModuleError, ModuleNotFoundError):
             logger.info("Invalid driver")
             driver_name = make_url(item.get("sqlalchemy_uri")).drivername
-            message = f"Could not load database driver: {driver_name}"
-            return self.response(400, message=message, driver_name=driver_name)
+            return self.response(
+                400,
+                message=_(f"Could not load database driver: {driver_name}"),
+                driver_name=driver_name,
+            )
         except DatabaseSecurityUnsafeError as ex:
             return self.response_422(message=ex)
         except OperationalError:
             logger.warning("Connection failed")
             return self.response(
-                500, message="Connection failed, please check your connection settings"
+                500,
+                message=_("Connection failed, please check your connection settings"),
             )
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Unexpected error %s", type(ex).__name__)
             return self.response_400(
-                message="Unexpected error occurred, please check your logs for details"
+                message=_(
+                    "Unexpected error occurred, please check your logs for details"
+                )
             )
