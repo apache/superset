@@ -466,7 +466,7 @@ class SupersetTestCase(TestCase):
     def post_assert_metric(
         self, uri: str, data: Dict[str, Any], func_name: str
     ) -> Response:
-        return post_assert_metric(self, uri, data, func_name)
+        return post_assert_metric(self.client, uri, data, func_name)
 
     def put_assert_metric(
         self, uri: str, data: Dict[str, Any], func_name: str

@@ -20,12 +20,20 @@ from tests.test_app import app  # noqa
 
 from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
-from tests.base_tests import SupersetTestCase, post_assert_metric, test_client, logged_in_admin  # noqa
+from tests.base_tests import (
+    SupersetTestCase,
+    post_assert_metric,
+    test_client,
+    logged_in_admin,
+)  # noqa
 
 
 def test_invalidate_cache(logged_in_admin):
     rv = post_assert_metric(
-        test_client, "api/v1/cache/invalidate", {"datasource_uids": ["3__table"]}, "invalidate"
+        test_client,
+        "api/v1/cache/invalidate",
+        {"datasource_uids": ["3__table"]},
+        "invalidate",
     )
     assert rv.status_code == 201
 
@@ -36,15 +44,16 @@ def test_invalidate_existing_cache(logged_in_admin):
     cache_manager.cache.set("cache_key", "value")
 
     rv = post_assert_metric(
-        test_client, "api/v1/cache/invalidate", {"datasource_uids": ["3__table"]}, "invalidate"
+        test_client,
+        "api/v1/cache/invalidate",
+        {"datasource_uids": ["3__table"]},
+        "invalidate",
     )
 
     assert rv.status_code == 201
     assert cache_manager.cache.get("cache_key") == None
     assert (
-        not db.session.query(CacheKey)
-        .filter(CacheKey.cache_key == "cache_key")
-        .first()
+        not db.session.query(CacheKey).filter(CacheKey.cache_key == "cache_key").first()
     )
 
 
@@ -53,9 +62,7 @@ def test_invalidate_existing_caches(logged_in_admin):
 
     db.session.add(CacheKey(cache_key="cache_key1", datasource_uid="3__druid"))
     db.session.add(CacheKey(cache_key="cache_key2", datasource_uid="3__druid"))
-    db.session.add(
-        CacheKey(cache_key="cache_key4", datasource_uid=f"{bn.id}__table")
-    )
+    db.session.add(CacheKey(cache_key="cache_key4", datasource_uid=f"{bn.id}__table"))
     db.session.add(CacheKey(cache_key="cache_keyX", datasource_uid="X__table"))
     db.session.commit()
 
