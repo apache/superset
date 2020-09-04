@@ -32,8 +32,6 @@ analyze:
     type: pip
     target: docs
     path: docs
-    options:
-      requirements: ./requirements/documentation.txt
   - name: .
     type: pip
     target: .
