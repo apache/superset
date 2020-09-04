@@ -29,7 +29,7 @@ import 'antd/dist/antd.css';
 import './layout.css';
 
 const { Header, Sider } = Layout;
-
+const leftPaneWidth = 350;
 const layoutStyles = css`
   font-family: Inter;
   .ant-layout {
@@ -106,7 +106,7 @@ const contentStyle = css`
     padding: 5px;
     background-color: #82ef8217;
     border-radius: 3px;
-    max-width: 800px;
+    max-width: 1000px;
   }
   p {
     font-size: 16px;
@@ -119,7 +119,7 @@ const contentStyle = css`
 const contentLayoutDocsStyle = css`
   position: fixed;
   top: 64px;
-  left: 250px;
+  left: ${leftPaneWidth}px;
   right: 0px;
   bottom: 0px;
   overflow: visible;
@@ -171,7 +171,7 @@ const AppLayout = ({ children }: Props) => {
         <>
           <Layout css={contentLayoutDocsStyle}>
             {isOnDocsPage && (
-              <Sider width={250} css={sidebarStyle}>
+              <Sider width={leftPaneWidth} css={sidebarStyle}>
                 <AppMenu />
               </Sider>
             )}
