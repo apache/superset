@@ -28,6 +28,7 @@
     "prop-types": "^15.7.2",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
+    "react-github-btn": "^1.2.0",
     "react-helmet": "^6.1.0",
     "theme-ui": "^0.3.1",
     "three": "^0.68.0"

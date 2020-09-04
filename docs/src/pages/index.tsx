@@ -29,6 +29,7 @@ import {
   DotChartOutlined,
   BoxPlotOutlined,
 } from '@ant-design/icons';
+import GitHubButton from 'react-github-btn';
 
 import { Databases } from '../resources/data';
 import Layout from '../components/layout';
@@ -48,6 +49,13 @@ const titleContainer = css`
   background-size: cover;
   Button {
     margin-top: 39px;
+  }
+  .github-section {
+    margin-bottom: 40px;
+    margin-top: 40px;
+    .github-button {
+      margin: 5px;
+    }
   }
   .logo-horiz {
     margin-top: 20px;
@@ -200,10 +208,20 @@ const Theme = () => {
           <img width="600" className="logo-horiz" src={logo} alt="logo-horiz" />
           <h2>
             Apache Superset is a modern data
-            {' '}
             <br />
             exploration and visualization platform
           </h2>
+          <div className="github-section">
+            <span className="github-button">
+              <GitHubButton href="https://github.com/apache/incubator-superset" data-size="large" data-show-count="true" aria-label="Star apache/incubator-superset on GitHub">Star</GitHubButton>
+            </span>
+            <span className="github-button">
+              <GitHubButton href="https://github.com/apache/incubator-superset/subscription" data-size="large" data-show-count="true" aria-label="Watch apache/incubator-superset on GitHub">Watch</GitHubButton>
+            </span>
+            <span className="github-button">
+              <GitHubButton href="https://github.com/apache/incubator-superset/fork" data-size="large" data-show-count="true" aria-label="Fork apache/incubator-superset on GitHub">Fork</GitHubButton>
+            </span>
+          </div>
           <div className="incubator">
             <Image imageName="incubatorSm" />
           </div>

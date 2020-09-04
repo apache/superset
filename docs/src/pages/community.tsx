@@ -29,7 +29,7 @@ const { Meta } = Card;
 const links = [
   [
     'https://apache-superset.slack.com/join/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ#/',
-    'Slack community',
+    'Slack',
     'interact with other Superset users and community members',
   ],
   [
@@ -54,8 +54,8 @@ const links = [
   ],
   [
     'https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md',
-    'Companies',
-    'a list of some of the companies using Superset in production today',
+    'Organizations',
+    'a list of some of the organizations using Superset in production',
   ],
 ];
 
@@ -142,7 +142,12 @@ const Community = () => {
             <span className="resources">
               {links.map(([href, link, post]) => (
                 <>
-                  <a href={href}>{link}</a> - {post} <br/>
+                  <a href={href}>{link}</a>
+                  {' '}
+                  -
+                  {post}
+                  {' '}
+                  <br />
                 </>
               ))}
             </span>
@@ -153,7 +158,7 @@ const Community = () => {
               </Button>
             </a>
           </div>
-          <h3 className="title ppm">PPMC Members</h3>
+          <h3 className="title ppm">Apache Committers</h3>
           <div css={communityContainer}>{pmcList}</div>
         </div>
       </div>
