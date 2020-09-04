@@ -21,7 +21,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import lazy_gettext as _
 
-from superset import db, get_feature_flags
+from superset import db
 from superset.constants import RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.typing import FlaskResponse
@@ -75,31 +75,11 @@ class SavedQueryView(
         "changed_on": _("Changed on"),
     }
 
-    show_template = "superset/models/savedquery/show.html"
-
     def pre_add(self, item: "SavedQueryView") -> None:
         item.user = g.user
 
     def pre_update(self, item: "SavedQueryView") -> None:
         self.pre_add(item)
-
-    @has_access
-    @expose("show/<pk>")
-    def show(self, pk: int) -> FlaskResponse:
-        pk = self._deserialize_pk_if_composite(pk)
-        widgets = self._show(pk)
-        query = self.datamodel.get(pk).to_json()
-        query["extra_json"] = json.loads(query["extra_json"])
-        payload = {"common": {"feature_flags": get_feature_flags(), "query": query}}
-
-        return self.render_template(
-            self.show_template,
-            pk=pk,
-            title=self.show_title,
-            widgets=widgets,
-            related_views=self._related_views,
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
-        )
 
 
 class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
