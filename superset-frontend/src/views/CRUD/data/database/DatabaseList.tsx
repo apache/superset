@@ -245,7 +245,47 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     [canDelete, canCreate],
   );
 
-  const filters: Filters = [];
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Expose in SQL Lab'),
+        id: 'expose_in_sqllab',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'All',
+        selects: [
+          { label: 'Yes', value: true },
+          { label: 'No', value: false },
+        ],
+      },
+      {
+        Header: (
+          <TooltipWrapper
+            label="allow-run-async-filter-header"
+            tooltip={t('Asynchronous Query Execution')}
+            placement="top"
+          >
+            <span>{t('AQE')}</span>
+          </TooltipWrapper>
+        ),
+        id: 'allow_run_async',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'All',
+        selects: [
+          { label: 'Yes', value: true },
+          { label: 'No', value: false },
+        ],
+      },
+      {
+        Header: t('Search'),
+        id: 'database_name',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [],
+  );
 
   return (
     <>
