@@ -339,3 +339,35 @@ class SelectStarResponseSchema(Schema):
 
 class SchemasResponseSchema(Schema):
     result = fields.List(fields.String(description="A database schema name"))
+
+
+class DatabaseRelatedChart(Schema):
+    id = fields.Integer()
+    slice_name = fields.String()
+    viz_type = fields.String()
+
+
+class DatabaseRelatedDashboard(Schema):
+    id = fields.Integer()
+    json_metadata = fields.Dict()
+    slug = fields.String()
+    title = fields.String()
+
+
+class DatabaseRelatedCharts(Schema):
+    count = fields.Integer(description="Chart count")
+    result = fields.List(
+        fields.Nested(DatabaseRelatedChart), description="A list of dashboards"
+    )
+
+
+class DatabaseRelatedDashboards(Schema):
+    count = fields.Integer(description="Dashboard count")
+    result = fields.List(
+        fields.Nested(DatabaseRelatedDashboard), description="A list of dashboards"
+    )
+
+
+class DatabaseRelatedObjectsResponse(Schema):
+    charts = fields.Nested(DatabaseRelatedCharts)
+    dashboards = fields.Nested(DatabaseRelatedDashboards)
