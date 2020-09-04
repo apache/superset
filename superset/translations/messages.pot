@@ -5786,4 +5786,3 @@ msgstr ""
 #: superset-frontend/src/welcome/Welcome.tsx:101
 msgid "Recently Viewed"
 msgstr ""
-
