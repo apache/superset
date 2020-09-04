@@ -70,6 +70,11 @@ const StyledInputContainer = styled.div`
     i {
       margin: 0 ${({ theme }) => theme.gridUnit}px;
     }
+
+    .btn-primary {
+      height: 36px;
+      font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    }
   }
 
   input,
@@ -254,7 +259,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   // Validation
   useEffect(() => {
     validate();
-  });
+  }, [db ? db.database_name : null, db ? db.sqlalchemy_uri : null]);
 
   // Show/hide
   if (isHidden && show) {
@@ -315,7 +320,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 placeholder={t('SQLAlchemy URI')}
                 onChange={onInputChange}
               />
-              <Button buttonStyle="primary">{t('Test Connection')}</Button>
+              <Button buttonStyle="primary" cta>
+                {t('Test Connection')}
+              </Button>
             </div>
             <div className="helper">
               {t('Refer to the ')}
@@ -344,10 +351,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </div>
             <div className="helper">
               {t(
-                'Duration (in seconds) of the caching timeout for charts of this database.',
+                'Duration (in seconds) of the caching timeout for charts of this database.' +
+                  ' A timeout of 0 indicates that the cache never expires.' +
+                  ' Note this defaults to the global timeout if undefined.',
               )}
-              {t(' A timeout of 0 indicates that the cache never expires.')}
-              {t(' Note this defaults to the global timeout if undefined.')}
             </div>
           </StyledInputContainer>
           <StyledInputContainer>
@@ -361,20 +368,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <div>{t('Asynchronous Query Execution')}</div>
               <InfoTooltipWithTrigger
                 label="aqe"
-                tooltip={
-                  t(
-                    'Operate the database in asynchronous mode, meaning that the queries ',
-                  ) +
-                  t(
-                    'are executed on remote workers as opposed to on the web server itself. ',
-                  ) +
-                  t(
-                    'This assumes that you have a Celery worker setup as well as a results ',
-                  ) +
-                  t(
+                tooltip={t(
+                  'Operate the database in asynchronous mode, meaning that the queries ' +
+                    'are executed on remote workers as opposed to on the web server itself. ' +
+                    'This assumes that you have a Celery worker setup as well as a results ' +
                     'backend. Refer to the installation docs for more information.',
-                  )
-                }
+                )}
               />
             </div>
           </StyledInputContainer>
@@ -454,15 +453,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 <div>{t('Allow Multi Schema Metadata Fetch')}</div>
                 <InfoTooltipWithTrigger
                   label="allow-msmf"
-                  tooltip={
-                    t(
-                      'Allow SQL Lab to fetch a list of all tables and all views across all database ',
-                    ) +
-                    t(
-                      'schemas. For large data warehouse with thousands of tables, this can be ',
-                    ) +
-                    t('expensive and put strain on the system.')
-                  }
+                  tooltip={t(
+                    'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
+                      'schemas. For large data warehouse with thousands of tables, this can be ' +
+                      'expensive and put strain on the system.',
+                  )}
                 />
               </div>
             </StyledInputContainer>
@@ -480,9 +475,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </div>
             <div className="helper">
               {t(
-                'When allowing CREATE TABLE AS option in SQL Lab, this option ',
-              )}{' '}
-              +{t('forces the table to be created in this schema')}
+                'When allowing CREATE TABLE AS option in SQL Lab, this option ' +
+                  'forces the table to be created in this schema.',
+              )}
             </div>
           </StyledInputContainer>
         </Tabs.TabPane>
@@ -505,12 +500,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               </div>
               <div>
                 {t(
-                  'This is used to provide connection information for systems like Hive, ',
-                ) +
-                  t(
-                    'Presto, and BigQuery, which do not conform to the username:password syntax ',
-                  ) +
-                  t('normally used by SQLAlchemy.')}
+                  'This is used to provide connection information for systems like Hive, ' +
+                    'Presto, and BigQuery, which do not conform to the username:password syntax ' +
+                    'normally used by SQLAlchemy.',
+                )}
               </div>
             </div>
           </StyledInputContainer>
@@ -526,8 +519,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </div>
             <div className="helper">
               {t(
-                'Optional CA_BUNDLE contents to validate HTTPS requests. Only available on ',
-              ) + t('certain database engines.')}
+                'Optional CA_BUNDLE contents to validate HTTPS requests. Only available on ' +
+                  'certain database engines.',
+              )}
             </div>
           </StyledInputContainer>
         </Tabs.TabPane>
@@ -543,21 +537,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <div>{t('Impersonate Logged In User (Presto & Hive')}</div>
               <InfoTooltipWithTrigger
                 label="impersonate"
-                tooltip={
-                  t(
-                    'If Presto, all the queries in SQL Lab are going to be executed as the ',
-                  ) +
-                  t(
-                    'currently logged on user who must have permission to run them. If Hive ',
-                  ) +
-                  t(
-                    'and hive.server2.enable.doAs is enabled, will run the queries as ',
-                  ) +
-                  t(
-                    'service account, but impersonate the currently logged on user via ',
-                  ) +
-                  t('hive.server2.proxy.user property.')
-                }
+                tooltip={t(
+                  'If Presto, all the queries in SQL Lab are going to be executed as the ' +
+                    'currently logged on user who must have permission to run them. If Hive ' +
+                    'and hive.server2.enable.doAs is enabled, will run the queries as ' +
+                    'service account, but impersonate the currently logged on user via ' +
+                    'hive.server2.proxy.user property.',
+                )}
               />
             </div>
           </StyledInputContainer>
@@ -597,53 +583,40 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               </div>
               <div>
                 {t(
-                  '1. The engine_params object gets unpacked into the sqlalchemy.create_engine ',
-                ) +
-                  t(
-                    'call, while the metadata_params gets unpacked into the sqlalchemy.MetaData ',
-                  ) +
-                  t('call.')}
+                  '1. The engine_params object gets unpacked into the sqlalchemy.create_engine ' +
+                    'call, while the metadata_params gets unpacked into the sqlalchemy.MetaData ' +
+                    'call.',
+                )}
               </div>
               <div>
                 {t(
-                  '2. The metadata_cache_timeout is a cache timeout setting in seconds for ',
-                ) +
-                  t(
-                    'metadata fetch of this database. Specify it as "metadata_cache_timeout": ',
-                  ) +
-                  t(
-                    '{"schema_cache_timeout": 600, "table_cache_timeout": 600}. If unset, cache ',
-                  ) +
-                  t(
-                    'will not be enabled for the functionality. A timeout of 0 indicates that ',
-                  ) +
-                  t('the cache never expires.')}
+                  '2. The metadata_cache_timeout is a cache timeout setting in seconds for ' +
+                    'metadata fetch of this database. Specify it as "metadata_cache_timeout": ' +
+                    '{"schema_cache_timeout": 600, "table_cache_timeout": 600}. If unset, cache ' +
+                    'will not be enabled for the functionality. A timeout of 0 indicates that ' +
+                    'the cache never expires.',
+                )}
               </div>
               <div>
                 {t(
-                  '3. The schemas_allowed_for_csv_upload is a comma separated list of schemas ',
-                ) +
-                  t('that CSVs are allowed to upload to. Specify it as ') +
-                  t(
-                    '"schemas_allowed_for_csv_upload": ["public", "csv_upload"]. If database ',
-                  ) +
-                  t(
-                    'flavor does not support schema or any schema is allowed to be accessed, ',
-                  ) +
-                  t('just leave the list empty.')}
+                  '3. The schemas_allowed_for_csv_upload is a comma separated list of schemas ' +
+                    'that CSVs are allowed to upload to. Specify it as ' +
+                    '"schemas_allowed_for_csv_upload": ["public", "csv_upload"]. If database ' +
+                    'flavor does not support schema or any schema is allowed to be accessed, ' +
+                    'just leave the list empty.',
+                )}
               </div>
               <div>
                 {t(
-                  "4. The version field is a string specifying this db's version. This ",
-                ) +
-                  t(
+                  "4. The version field is a string specifying this db's version. This " +
                     'should be used with Presto DBs so that the syntax is correct.',
-                  )}
+                )}
               </div>
               <div>
                 {t(
-                  '5. The allows_virtual_table_explore field is a boolean specifying whether ',
-                ) + t('or not the Explore button in SQL Lab results is shown.')}
+                  '5. The allows_virtual_table_explore field is a boolean specifying whether ' +
+                    'or not the Explore button in SQL Lab results is shown.',
+                )}
               </div>
             </div>
           </StyledInputContainer>
