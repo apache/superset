@@ -73,7 +73,10 @@ Superset's Jinja context:
 
 - ``time``: ``time``
 - ``datetime``: ``datetime.datetime``
-- ``uuid``: ``uuid``
+- ``uuid1``: ``uuid1``
+- ``uuid3``: ``uuid3``
+- ``uuid4``: ``uuid4``
+- ``uuid5``: ``uuid5``
 - ``random``: ``random``
 - ``relativedelta``: ``dateutil.relativedelta.relativedelta``
 
