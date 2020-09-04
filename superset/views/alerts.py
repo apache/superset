@@ -191,7 +191,9 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "last_eval_dttm",
         "last_state",
         "active",
+        "creator",
     )
+    order_columns = ["label", "last_eval_dttm", "last_state", "active"]
     add_columns = (
         "label",
         "active",
