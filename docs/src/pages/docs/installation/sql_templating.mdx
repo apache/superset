@@ -15,7 +15,7 @@ need to to overload the default Jinja context in your environment by defining th
 JINJA_CONTEXT_ADDONS in your superset configuration (`superset_config.py`). Objects referenced in
 this dictionary are made available for users to use in their SQL code.
 
-```
+```python
 JINJA_CONTEXT_ADDONS = {
     'my_crazy_macro': lambda x: x*2,
 }
@@ -77,7 +77,7 @@ SQL Lab also includes a live query validation feature with pluggable backends. Y
 which validation implementation is used with which database engine by adding a block like the
 following to your configuration file:
 
-```
+```python
 FEATURE_FLAGS = {
     'SQL_VALIDATORS_BY_ENGINE': {
         'presto': 'PrestoDBSQLValidator',

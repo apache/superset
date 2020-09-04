@@ -12,20 +12,20 @@ version: 1
 
 First make sure to wind down the running containers in Docker Compose:
 
-```
+```bash
 docker-compose down
 ```
 
 Then, update the folder that mirrors the `incubator-superset` repo through git:
 
-```
+```bash
 cd incubator_superset/
 git pull origin master
 ```
 
 Then, restart the containers and any changed Docker images will be automatically pulled down:
 
-```
+```bash
 docker-compose up
 ```
 
@@ -33,7 +33,7 @@ docker-compose up
 
 To upgrade superset in a native installation, run the following commands:
 
-```python
+```bash
 pip install apache-superset --upgrade
 superset db upgrade
 superset init

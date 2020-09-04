@@ -17,7 +17,7 @@ Email reports allow users to schedule email reports for:
 
 Enable email reports in your `superset_config.py` file:
 
-```
+```python
 ENABLE_SCHEDULED_EMAIL_REPORTS = True
 ```
 
@@ -36,7 +36,7 @@ In order get picked up you need to configure a celery worker and a celery beat (
 
 To send emails you need to configure SMTP settings in your `superset_config.py` configuration file.
 
-```
+```python
 EMAIL_NOTIFICATIONS = True
 
 SMTP_HOST = "email-smtp.eu-west-1.amazonaws.com"
@@ -58,7 +58,7 @@ to specify on behalf of which username to render the dashboards. In general dash
 are not accessible to unauthorized requests, that is why the worker needs to take over credentials
 of an existing user to take a snapshot.
 
-```
+```python
 EMAIL_REPORTS_USER = 'username_with_permission_to_access_dashboards'
 ```
 
@@ -81,7 +81,7 @@ extra metadata to saved queries, which are then picked up by an external schedul
 
 To allow scheduled queries, add the following to your configuration file:
 
-```
+```python
 FEATURE_FLAGS = {
     # Configuration for scheduling queries from SQL Lab. This information is
     # collected when the user clicks "Schedule query", and saved into the `extra`

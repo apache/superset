@@ -20,12 +20,11 @@
 module.exports = {
   siteMetadata: {
     title: `Superset`,
-    description: `Kick off your next, great Gatsby project with this default starter. This barebones starter ships with the main Gatsby configuration files you might need.`,
-    author: `@gatsbyjs`,
+    description: `Community website for Apache Superset, a data visualization and data exploration platform`,
+    author: `@apache-superset`,
   },
   plugins: [
     `gatsby-theme-docz`,
-    //`gatsby-dynamical-navigation`,
     `gatsby-plugin-react-helmet`,
     {
       resolve: `gatsby-source-filesystem`,
