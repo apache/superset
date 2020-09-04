@@ -132,7 +132,7 @@ export const Databases = [
   {
     title: 'Apache Druid',
     href: 'http://druid.io/',
-    imgName: 'apache-druid.jpeg',
+    imgName: 'druid.png',
   },
   {
     title: 'Apache Kylin',
@@ -210,7 +210,7 @@ export const Databases = [
     imgName: 'sqllite.png',
   },
   {
-    title: 'Vertic',
+    title: 'Vertica',
     href: 'https://www.vertica.com/',
     imgName: 'vertica.png',
   },

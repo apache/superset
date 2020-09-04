@@ -35,3 +35,18 @@ h1 {
 a {
   color: #1985a0;
 }
+
+h3 {
+  font-size: 30px;
+  font-weight: bold;
+  font-style: italic;
+
+}
+
+th, td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+tr:nth-child(even) {background-color: #f2f2f2;}

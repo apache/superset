@@ -367,13 +367,31 @@ const Theme = () => {
             </div>
             <Carousel ref={slider} effect="scrollx">
               <div className="imageContainer">
-                <img src="/images/pie-chart.png" alt="" />
+                <img src="/images/explorer.png" alt="" />
               </div>
               <div className="imageContainer">
-                <img src="/images/google-analytics.png" alt="" />
+                <img src="/images/explorer2.png" alt="" />
               </div>
               <div className="imageContainer">
-                <img src="/images/sqllab.png" alt="" />
+                <img src="/images/explorer3.png" alt="" />
+              </div>              
+              <div className="imageContainer">
+                <img src="/images/dashboard.png" alt="" />
+              </div>
+              <div className="imageContainer">
+                <img src="/images/dashboard2.png" alt="" />
+              </div>
+              <div className="imageContainer">
+                <img src="/images/dashboard3.png" alt="" />
+              </div>
+              <div className="imageContainer">
+                <img src="/images/sqllab0.png" alt="" />
+              </div>
+              <div className="imageContainer">
+                <img src="/images/sqllab1.png" alt="" />
+              </div>
+              <div className="imageContainer">
+                <img src="/images/sqllab3.png" alt="" />
               </div>
             </Carousel>
           </div>
