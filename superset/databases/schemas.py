@@ -225,7 +225,9 @@ class DatabasePostSchema(Schema):
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
     force_ctas_schema = fields.String(
-        description=force_ctas_schema_description, validate=Length(0, 250)
+        description=force_ctas_schema_description,
+        allow_none=True,
+        validate=Length(0, 250),
     )
     allow_multi_schema_metadata_fetch = fields.Boolean(
         description=allow_multi_schema_metadata_fetch_description,
@@ -263,7 +265,9 @@ class DatabasePutSchema(Schema):
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
     force_ctas_schema = fields.String(
-        description=force_ctas_schema_description, validate=Length(0, 250)
+        description=force_ctas_schema_description,
+        allow_none=True,
+        validate=Length(0, 250),
     )
     allow_multi_schema_metadata_fetch = fields.Boolean(
         description=allow_multi_schema_metadata_fetch_description
