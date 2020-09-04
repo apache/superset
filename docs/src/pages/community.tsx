@@ -112,7 +112,6 @@ const Community = () => {
                 target="_blank"
                 rel="noreferrer"
               >
-                {' '}
                 Slack community
                 {' '}
               </a>
@@ -121,7 +120,6 @@ const Community = () => {
               {' '}
               <br />
               <a href="https://github.com/apache/incubator-superset" target="_blank" rel="noreferrer">
-                {' '}
                 Github page
                 {' '}
               </a>
@@ -130,7 +128,6 @@ const Community = () => {
               {' '}
               <br />
               <a href="https://lists.apache.org/list.html?dev@superset.apache.org" target="_blank" rel="noreferrer">
-                {' '}
                 Mailing list
                 {' '}
               </a>
@@ -142,7 +139,6 @@ const Community = () => {
                 target="_blank"
                 rel="noreferrer"
               >
-                {' '}
                 Stack Overflow
                 {' '}
               </a>
@@ -154,11 +150,21 @@ const Community = () => {
                 target="_blank"
                 rel="noreferrer"
               >
-                {' '}
                 Superset Meetup group
                 {' '}
               </a>
               - join our monthly virtual meetups and register for any upcoming events
+              {' '}
+              <br />
+              <a
+                href="https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Companies
+                {' '}
+              </a>
+              - a list of some of the companies using Superset in production today
               {' '}
               <br />
               <br />

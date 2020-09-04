@@ -22,6 +22,7 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 body {
+  background-color: transparent !important;
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -30,4 +31,7 @@ body {
 h1 {
   font-size: 40px;
   font-weight: bold;
+}
+a {
+  color: #1985a0;
 }
