@@ -155,7 +155,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             return self.response(
                 200,
                 message=ngettext(
-                    "Deleted %(num)d saved queries",
+                    "Deleted %(num)d saved query",
                     "Deleted %(num)d saved queries",
                     num=len(item_ids),
                 ),

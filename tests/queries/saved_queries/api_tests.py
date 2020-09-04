@@ -376,6 +376,24 @@ class TestSavedQueryApi(SupersetTestCase):
         saved_queries = db.session.query(SavedQuery).all()
         assert saved_queries == []
 
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_delete_one_bulk_saved_queries(self):
+        """
+        Saved Query API: Test delete one in bulk
+        """
+        saved_query = db.session.query(SavedQuery).first()
+        saved_query_ids = [saved_query.id]
+
+        self.login(username="admin")
+        uri = f"api/v1/saved_query/?q={prison.dumps(saved_query_ids)}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": f"Deleted {len(saved_query_ids)} saved query"}
+        assert response == expected_response
+        saved_query_ = db.session.query(SavedQuery).get(saved_query_ids[0])
+        assert saved_query_ is None
+
     def test_delete_bulk_saved_query_bad_request(self):
         """
         Saved Query API: Test delete bulk bad request
