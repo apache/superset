@@ -357,3 +357,44 @@ class TestSavedQueryApi(SupersetTestCase):
         uri = f"api/v1/saved_query/{max_id + 1}"
         rv = self.client.delete(uri)
         assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_delete_bulk_saved_queries(self):
+        """
+        Saved Query API: Test delete bulk
+        """
+        saved_queries = db.session.query(SavedQuery).all()
+        saved_query_ids = [saved_query.id for saved_query in saved_queries]
+
+        self.login(username="admin")
+        uri = f"api/v1/saved_query/?q={prison.dumps(saved_query_ids)}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": f"Deleted {len(saved_query_ids)} saved queries"}
+        assert response == expected_response
+        saved_queries = db.session.query(SavedQuery).all()
+        assert saved_queries == []
+
+    def test_delete_bulk_saved_query_bad_request(self):
+        """
+        Saved Query API: Test delete bulk bad request
+        """
+        saved_query_ids = [1, "a"]
+        self.login(username="admin")
+        uri = f"api/v1/saved_query/?q={prison.dumps(saved_query_ids)}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_delete_bulk_saved_query_not_found(self):
+        """
+        Saved Query API: Test delete bulk not found
+        """
+        max_id = db.session.query(func.max(SavedQuery.id)).scalar()
+
+        saved_query_ids = [max_id + 1, max_id + 2]
+        self.login(username="admin")
+        uri = f"api/v1/saved_query/?q={prison.dumps(saved_query_ids)}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        assert rv.status_code == 404
