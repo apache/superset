@@ -34,22 +34,22 @@ const links = [
   ],
   [
     'https://github.com/apache/incubator-superset',
-    'Github',
+    'GitHub',
     'create tickets to report issues, report bugs, and suggest new features',
   ],
   [
     'https://lists.apache.org/list.html?dev@superset.apache.org',
-    'Mailing list',
-    'receive up-to-date news and announcements on all things Superset',
+    'dev@ Mailing List',
+    'participate in conversations with committers and contributors',
   ],
   [
     'https://stackoverflow.com/questions/tagged/superset+apache-superset',
     'Stack Overflow',
-    'get help with Superset issues',
+    'our growing knowledge base',
   ],
   [
     'https://www.meetup.com/Global-Apache-Superset-Community-Meetup/',
-    'Superset Meetup group',
+    'Superset Meetup Group',
     'join our monthly virtual meetups and register for any upcoming events',
   ],
   [
@@ -92,7 +92,7 @@ const getInvolvedContainer = css`
   margin-bottom: 25px;
   .resources {
     display: block;
-    font-size: 15px;
+    font-size: 17px;
     margin: 20px 0;
     text-align: left;
   }
@@ -136,20 +136,15 @@ const Community = () => {
       <div css={titleContainer}>
         <h1 css={title}>Community</h1>
         <h2>
-          The community has many active members who support each other in
-          solving problems
+            Get involved in our welcoming, fast growing community!
         </h2>
         <div css={getInvolvedContainer}>
           <div className="joinCommunity section">
-            <h2 className="title">Join the Community</h2>
+            <h2 className="title">Resources</h2>
             <span className="resources">
               {links.map(([href, link, post]) => (
                 <>
-                  <a href={href}>{link}</a>
-                  {' '}
-                  -
-                  {post}
-                  {' '}
+                  <a href={href}>{link}</a> - {post}
                   <br />
                 </>
               ))}
