@@ -18,7 +18,7 @@
 ######################################################################
 # PY stage that simply does a pip install on our requirements
 ######################################################################
-ARG PY_VER=3.6.9
+ARG PY_VER=3.7.9
 FROM python:${PY_VER} AS superset-py
 
 RUN mkdir /app \
