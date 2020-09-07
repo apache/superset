@@ -106,6 +106,12 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"database"}
     allowed_distinct_fields = {"schema"}
 
+    def pre_add(self, item: SavedQuery) -> None:
+        item.user = g.user
+
+    def pre_update(self, item: SavedQuery) -> None:
+        self.pre_add(item)
+
     @expose("/", methods=["DELETE"])
     @protect()
     @safe

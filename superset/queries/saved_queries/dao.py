@@ -23,12 +23,14 @@ from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.extensions import db
 from superset.models.sql_lab import SavedQuery
+from superset.queries.saved_queries.filters import SavedQueryFilter
 
 logger = logging.getLogger(__name__)
 
 
 class SavedQueryDAO(BaseDAO):
     model_cls = SavedQuery
+    base_filter = SavedQueryFilter
 
     @staticmethod
     def bulk_delete(models: Optional[List[SavedQuery]], commit: bool = True) -> None:
