@@ -54,43 +54,89 @@ The Superset web server and the Superset Celery workers (optional)
 are stateless, so you can scale out by running on as many servers
 as needed.
 
-Start with Docker
------------------
+Install and Deploy Superset Locally with Docker
+-----------------------------------------------
+
+To try Superset locally, the
+best-supported currently method is via Docker, using ``docker-compose``. Superset
+does not have official support for Windows, so we have provided a VM
+workaround below. (We will update this documentation once Windows is
+supported.)
+
+**Step 0 - Install a Docker Engine and Docker Compose**
+
+*Mac OSX:*
+
+    `Install Docker for Mac <https://docs.docker.com/docker-for-mac/install/>`__, which includes the Docker engine and a recent version of `docker-compose` out of the box.
+
+    Once you have Docker for Mac installed, open up the preferences pane for Docker, go to the "Resources" section and increase the allocated memory to 6GB. With only the 2GB of RAM allocated by default, Superset will fail to start.
+
+
+*Linux:*
+
+    `Install Docker on Linux <https://docs.docker.com/engine/install/>`__ by following Docker’s instructions for whichever flavor of Linux suits you.
+
+    Because ``docker-compose`` is not installed as part of the base Docker installation on Linux, once you have a working engine, follow the `docker-compose installation instructions <https://docs.docker.com/compose/install/>`__ for Linux.
+
+
+*Windows:*
+
+    NOTE: Windows is currently not a supported environment for Superset installation.
+
+    For Windows users, the best option may be to install an Ubuntu Desktop VM via `VirtualBox <https://www.virtualbox.org/>`__ and proceed with the Docker on Linux instructions inside of that VM. It is recommended to assign at least 8GB of RAM to the virtual machine as well as provisioning a hard drive of at least 40GB, so that there will be enough space for both the OS and all of the required dependencies.
+
+**Step 1 - Clone Superset's Github repository**
+
+`Clone Superset's repo <https://github.com/apache/incubator-superset>`__
+in your terminal with the following command:
+
+.. code:: bash
+
+    $ git clone https://github.com/apache/incubator-superset.git
+
+Once that command completes successfully, you should see a new
+``incubator-superset`` folder in your current directory.
+
+**Step 2 - Launch Superset via `docker-compose up`**
+
+Next, `cd` into the folder you created in Step 1:
+
+.. code:: bash
+
+    $ cd incubator-superset
+
+Once you're in the directory, run the following command:
+
+.. code:: bash
+
+    $ docker-compose up
+
+You should see a wall of logging output from the containers being
+launched on your machine. Once this output slows to a crawl, you should
+have a running instance of Superset on your local machine!
+
+**Step 3 - Log In to Superset**
+
+Your Superset local instance also includes a Postgres server to store
+your data and is already pre-loaded with some example datasets that ship
+with Superset. You can access Superset now via your web browser by
+visiting ``http://localhost:8088``. Note that many browsers now default
+to ``https`` - if yours is one of them, please make sure it uses
+``http``.
+
+Log in with the default username and password:
+
+::
+
+    username: admin
+    password: admin
+
+Congrats! You have successfully installed Superset!
 
 .. note ::
     The Docker-related files and documentation are actively maintained and
     managed by the core committers working on the project. Help and contributions
-    around Docker are welcomed!
-
-If you know docker, then you're lucky, we have shortcut road for you to
-initialize development environment: ::
-
-    git clone https://github.com/apache/incubator-superset/
-    cd incubator-superset
-    # you can run this command everytime you need to start superset now:
-    docker-compose up
-
-After several minutes for superset initialization to finish, you can open
-a browser and view `http://localhost:8088` to start your journey. By default
-the system configures an admin user with the username of `admin` and a password
-of `admin` - if you are in a non-local environment it is highly recommended to
-change this username and password at your earliest convenience.
-
-From there, the container server will reload on modification of the superset python
-and javascript source code.
-Don't forget to reload the page to take the new frontend into account though.
-
-See also `CONTRIBUTING.md#building <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#building>`_,
-for alternative way of serving the frontend.
-
-It is currently not recommended to run docker-compose in production.
-
-If you are attempting to build on a Mac and it exits with 137 you need to increase your docker resources.
-OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for memory)
-
-Or if you're curious and want to install superset from bottom up, then go ahead.
-
-See also `docker/README.md <https://github.com/apache/incubator-superset/blob/master/docker/README.md>`_
+    around Docker are welcomed! See also `docker/README.md <https://github.com/apache/incubator-superset/blob/master/docker/README.md>`_ for additional information.
 
 OS dependencies
 ---------------
@@ -1449,19 +1495,15 @@ The first step: Configure authorization in Superset ``superset_config.py``.
             'token_key':'access_token', # Name of the token in the response of access_token_url
             'icon':'fa-address-card',   # Icon for the provider
             'remote_app': {
-                'consumer_key':'myClientId',  # Client Id (Identify Superset application)
-                'consumer_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
-                'request_token_params':{
+                'client_id':'myClientId',  # Client Id (Identify Superset application)
+                'client_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+                'client_kwargs':{
                     'scope': 'read'               # Scope for the Authorization
                 },
-                'access_token_method':'POST',    # HTTP Method to call access_token_url
                 'access_token_params':{        # Additional parameters for calls to access_token_url
                     'client_id':'myClientId'
                 },
-                'access_token_headers':{    # Additional headers for calls to access_token_url
-                    'Authorization': 'Basic Base64EncodedClientIdAndSecret'
-                },
-                'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
+                'api_base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
                 'access_token_url':'https://myAuthorizationServer/oauth2AuthorizationServer/token',
                 'authorize_url':'https://myAuthorizationServer/oauth2AuthorizationServer/authorize'
             }

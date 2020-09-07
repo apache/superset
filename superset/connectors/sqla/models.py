@@ -1454,6 +1454,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
+        if config["ENABLE_ROW_LEVEL_SECURITY"] and self.is_rls_supported:
+            templatable_statements += [
+                f.clause for f in security_manager.get_rls_filters(self)
+            ]
         for statement in templatable_statements:
             if ExtraCache.regex.search(statement):
                 return True

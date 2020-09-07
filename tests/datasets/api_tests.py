@@ -192,15 +192,16 @@ class TestDatasetApi(SupersetTestCase):
                     "columns", "information_schema", [], get_main_database()
                 )
             )
+            schema_values = [
+                "",
+                "admin_database",
+                "information_schema",
+                "public",
+                "superset",
+            ]
             expected_response = {
                 "count": 5,
-                "result": [
-                    {"text": ""},
-                    {"text": "admin_database"},
-                    {"text": "information_schema"},
-                    {"text": "public"},
-                    {"text": "superset"},
-                ],
+                "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
             uri = "api/v1/dataset/distinct/schema"
@@ -213,17 +214,26 @@ class TestDatasetApi(SupersetTestCase):
             query_parameter = {"filter": "inf"}
             pg_test_query_parameter(
                 query_parameter,
-                {"count": 1, "result": [{"text": "information_schema"}]},
+                {
+                    "count": 1,
+                    "result": [
+                        {"text": "information_schema", "value": "information_schema"}
+                    ],
+                },
             )
 
             query_parameter = {"page": 0, "page_size": 1}
             pg_test_query_parameter(
-                query_parameter, {"count": 5, "result": [{"text": ""}]},
+                query_parameter, {"count": 5, "result": [{"text": "", "value": ""}]},
             )
 
             query_parameter = {"page": 1, "page_size": 1}
             pg_test_query_parameter(
-                query_parameter, {"count": 5, "result": [{"text": "admin_database"}]}
+                query_parameter,
+                {
+                    "count": 5,
+                    "result": [{"text": "admin_database", "value": "admin_database"}],
+                },
             )
 
         for dataset in datasets:

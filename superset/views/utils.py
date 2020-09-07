@@ -336,7 +336,7 @@ def get_dashboard_extra_filters(
     return []
 
 
-def build_extra_filters(
+def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks
     layout: Dict[str, Dict[str, Any]],
     filter_scopes: Dict[str, Dict[str, Any]],
     default_filters: Dict[str, Dict[str, List[Any]]],
@@ -344,11 +344,22 @@ def build_extra_filters(
 ) -> List[Dict[str, Any]]:
     extra_filters = []
 
-    # do not apply filters if chart is not in filter's scope or
-    # chart is immune to the filter
+    # do not apply filters if chart is not in filter's scope or chart is immune to the
+    # filter.
     for filter_id, columns in default_filters.items():
+        filter_slice = db.session.query(Slice).filter_by(id=filter_id).one_or_none()
+
+        filter_configs = (
+            json.loads(filter_slice.params or "{}").get("filter_configs") or []
+            if filter_slice
+            else []
+        )
+
         scopes_by_filter_field = filter_scopes.get(filter_id, {})
         for col, val in columns.items():
+            if not val:
+                continue
+
             current_field_scopes = scopes_by_filter_field.get(col, {})
             scoped_container_ids = current_field_scopes.get("scope", ["ROOT_ID"])
             immune_slice_ids = current_field_scopes.get("immune", [])
@@ -357,7 +368,25 @@ def build_extra_filters(
                 if slice_id not in immune_slice_ids and is_slice_in_container(
                     layout, container_id, slice_id
                 ):
-                    extra_filters.append({"col": col, "op": "in", "val": val})
+                    # Ensure that the filter value encoding adheres to the filter select
+                    # type.
+                    for filter_config in filter_configs:
+                        if filter_config["column"] == col:
+                            is_multiple = filter_config["multiple"]
+
+                            if not is_multiple and isinstance(val, list):
+                                val = val[0]
+                            elif is_multiple and not isinstance(val, list):
+                                val = [val]
+                            break
+
+                    extra_filters.append(
+                        {
+                            "col": col,
+                            "op": "in" if isinstance(val, list) else "==",
+                            "val": val,
+                        }
+                    )
 
     return extra_filters
 
