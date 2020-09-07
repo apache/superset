@@ -46,7 +46,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         "PT0.5H": "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 30 * 30, 0)",
         "PT1H": "DATEADD(hour, DATEDIFF(hour, 0, {col}), 0)",
         "P1D": "DATEADD(day, DATEDIFF(day, 0, {col}), 0)",
-        "P1W": "DATEADD(week, DATEDIFF(week, 0, {col}), 0)",
+        "P1W": "DATEADD(DAY, 1 - DATEPART(WEEKDAY, {col}), {col})",
         "P1M": "DATEADD(month, DATEDIFF(month, 0, {col}), 0)",
         "P0.25Y": "DATEADD(quarter, DATEDIFF(quarter, 0, {col}), 0)",
         "P1Y": "DATEADD(year, DATEDIFF(year, 0, {col}), 0)",
