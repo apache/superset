@@ -22,11 +22,11 @@ from flask_appbuilder.security.sqla.models import User
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.models.dashboard import Dashboard
-from superset.queries.savedqueries.commands.exceptions import (
+from superset.queries.saved_queries.commands.exceptions import (
     SavedQueryBulkDeleteFailedError,
     SavedQueryNotFoundError,
 )
-from superset.queries.savedqueries.dao import SavedQueryDAO
+from superset.queries.saved_queries.dao import SavedQueryDAO
 
 logger = logging.getLogger(__name__)
 

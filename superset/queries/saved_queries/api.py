@@ -25,14 +25,15 @@ from flask_babel import ngettext
 from superset.constants import RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.models.sql_lab import SavedQuery
-from superset.queries.savedqueries.commands.bulk_delete import (
+from superset.queries.saved_queries.commands.bulk_delete import (
     BulkDeleteSavedQueryCommand,
 )
-from superset.queries.savedqueries.commands.exceptions import (
+from superset.queries.saved_queries.commands.exceptions import (
     SavedQueryBulkDeleteFailedError,
     SavedQueryNotFoundError,
 )
-from superset.queries.savedqueries.schemas import (
+from superset.queries.saved_queries.filters import SavedQueryFilter
+from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
 )
@@ -52,46 +53,43 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     class_permission_name = "SavedQueryView"
     resource_name = "saved_query"
     allow_browser_login = True
+
+    base_filters = [["id", SavedQueryFilter, lambda: []]]
+
     show_columns = [
-        "id",
-        "schema",
-        "label",
-        "description",
-        "sql",
-        "user.first_name",
-        "user.last_name",
-        "user.id",
+        "created_by.first_name",
+        "created_by.id",
+        "created_by.last_name",
         "database.database_name",
         "database.id",
+        "description",
+        "id",
+        "label",
+        "schema",
+        "sql",
+        "sql_tables",
     ]
     list_columns = [
-        "user_id",
-        "db_id",
-        "schema",
-        "label",
-        "description",
-        "sql",
-        "user.first_name",
-        "user.last_name",
-        "user.id",
+        "created_by.first_name",
+        "created_by.id",
+        "created_by.last_name",
         "database.database_name",
         "database.id",
-    ]
-    add_columns = [
-        "schema",
-        "label",
-        "description",
-        "sql",
-        "user_id",
         "db_id",
+        "description",
+        "label",
+        "schema",
+        "sql",
+        "sql_tables",
     ]
+    add_columns = ["db_id", "description", "label", "schema", "sql"]
     edit_columns = add_columns
     order_columns = [
         "schema",
         "label",
         "description",
         "sql",
-        "user.first_name",
+        "created_by.first_name",
         "database.database_name",
     ]
 
