@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, NumberFormatter } from '@superset-ui/core';
+import { TimeseriesDataRecord, NumberFormatter } from '@superset-ui/core';
 import { ForecastSeriesContext, ForecastSeriesEnum, ProphetValue } from '../types';
-import { TimeseriesDataRecord } from '../Timeseries/types';
 
 const seriesTypeRegex = new RegExp(
   `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper})$`,
@@ -87,26 +86,27 @@ export const formatProphetTooltipSeries = ({
   return `${row.trim()}`;
 };
 
-export const rebaseTimeseriesDatum = (data: DataRecord[]): TimeseriesDataRecord[] => {
+export function rebaseTimeseriesDatum(data: TimeseriesDataRecord[]) {
   const keys = data.length > 0 ? Object.keys(data[0]) : [];
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return data.map(row => {
     const newRow: TimeseriesDataRecord = { __timestamp: '' };
     keys.forEach(key => {
       const forecastContext = extractForecastSeriesContext(key);
       const lowerKey = `${forecastContext.name}${ForecastSeriesEnum.ForecastLower}`;
-      let value = row[key];
+      let value = row[key] as number;
       if (
         forecastContext.type === ForecastSeriesEnum.ForecastUpper &&
         keys.includes(lowerKey) &&
         value !== null &&
         row[lowerKey] !== null
       ) {
-        // @ts-ignore
-        value -= row[lowerKey];
+        value -= row[lowerKey] as number;
       }
       newRow[key] = value;
     });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return newRow;
   });
-};
+}

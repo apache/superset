@@ -21,7 +21,7 @@ import { DatasourceMeta } from '../types';
 /**
  * Convert Dataource columns to column choices
  */
-export default function columnChoices(datasource?: DatasourceMeta) {
+export default function columnChoices(datasource?: DatasourceMeta | null) {
   return (
     datasource?.columns
       .map(col => [col.column_name, col.verbose_name || col.column_name])
