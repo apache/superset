@@ -9,6 +9,10 @@ export interface DataRecord {
   [key: string]: DataRecordValue;
 }
 
+export interface TimeseriesDataRecord extends DataRecord {
+  __timestamp: number | string | Date | null;
+}
+
 // data record value filters from FilterBox
 export interface DataRecordFilters {
   [key: string]: DataRecordValue[];

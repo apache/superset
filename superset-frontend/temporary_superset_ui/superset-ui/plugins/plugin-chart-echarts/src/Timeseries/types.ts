@@ -16,14 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, DataRecordValue } from '@superset-ui/core';
+import { DataRecordValue } from '@superset-ui/core';
 import { EchartsProps } from '../types';
 
 export type TimestampType = string | number | Date;
-
-export interface TimeseriesDataRecord extends DataRecord {
-  __timestamp: TimestampType;
-}
 
 export type EchartsBaseTimeseriesSeries = {
   name: string;
