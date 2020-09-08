@@ -37,7 +37,7 @@ export interface MetricOptionProps {
   openInNewWindow?: boolean;
   showFormula?: boolean;
   showType?: boolean;
-  url: string;
+  url?: string;
 }
 
 export function MetricOption({
