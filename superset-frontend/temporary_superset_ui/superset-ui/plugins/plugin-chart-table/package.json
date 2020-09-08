@@ -31,7 +31,6 @@
     "@superset-ui/core": "0.15.0",
     "@types/d3-array": "^2.0.0",
     "@types/match-sorter": "^4.0.0",
-    "@types/react": "*",
     "@types/react-table": "^7.0.19",
     "d3-array": "^2.4.0",
     "match-sorter": "^4.1.0",
@@ -42,6 +41,7 @@
     "xss": "^1.0.6"
   },
   "peerDependencies": {
+    "@types/react": "*",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   }

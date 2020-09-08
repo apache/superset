@@ -40,9 +40,6 @@
     "@types/d3-time": "^1.0.9",
     "@types/d3-time-format": "^2.1.0",
     "@types/lodash": "^4.14.149",
-    "@types/react": "*",
-    "@types/react-bootstrap": "0.32.21",
-    "@types/react-loadable": "^5.5.3",
     "@vx/responsive": "^0.0.197",
     "csstype": "^2.6.4",
     "d3-format": "^1.3.2",
@@ -56,11 +53,15 @@
     "lodash": "^4.17.11",
     "pretty-ms": "^7.0.0",
     "react-error-boundary": "^1.2.5",
-    "react-loadable": "^5.5.0",
     "reselect": "^4.0.0",
     "whatwg-fetch": "^3.0.0"
   },
   "peerDependencies": {
-    "react": "^16.13.1"
+    "@types/react-bootstrap": "*",
+    "@types/react-loadable": "*",
+    "@types/react": "*",
+    "react": "^16.13.1",
+    "react-bootstrap": "^0.33.1",
+    "react-loadable": "^5.5.0"
   }
 }
