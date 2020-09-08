@@ -18,6 +18,7 @@
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -125,6 +126,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
   const isEditMode = database !== null;
+  const testEndpointEnabled = false; // TODO: temporary flag until new test connection endpoint is up
 
   // Database fetch logic
   const {
@@ -137,6 +139,35 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
+
+  // Test Connection logic
+  const testConnection = () => {
+    if (!db || !testEndpointEnabled) {
+      return;
+    }
+
+    if (!db.sqlalchemy_uri || !db.sqlalchemy_uri.length) {
+      addDangerToast(t('Please enter a SQLAlchemy URI to test'));
+      return;
+    }
+
+    const connection = {
+      sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
+      database_name:
+        db && db.database_name.length ? db.database_name : undefined,
+      impersonate_user: db ? db.impersonate_user : undefined,
+      extra: db ? db.extra : undefined,
+      encrypted_extra: db ? db.encrypted_extra : undefined,
+      server_cert: db ? db.server_cert : undefined,
+    };
+
+    // TODO: add response logic once endpoint is up
+    SupersetClient.post({
+      endpoint: '/api/v1/database/test_connection/',
+      body: JSON.stringify(connection),
+      headers: { 'Content-Type': 'application/json' },
+    }).then();
+  };
 
   // Functions
   const hide = () => {
@@ -206,7 +237,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (target.type === 'checkbox') {
       data[target.name] = target.checked;
     } else {
-      data[target.name] = target.value;
+      data[target.name] =
+        typeof target.value === 'string' ? target.value.trim() : target.value;
     }
 
     setDB(data);
@@ -320,7 +352,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 placeholder={t('SQLAlchemy URI')}
                 onChange={onInputChange}
               />
-              <Button buttonStyle="primary" cta>
+              <Button buttonStyle="primary" onClick={testConnection} cta>
                 {t('Test Connection')}
               </Button>
             </div>

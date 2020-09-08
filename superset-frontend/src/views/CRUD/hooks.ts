@@ -171,7 +171,6 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  permissions: string[];
 }
 
 export function useSingleViewResource<D extends object = any>(
@@ -182,40 +181,10 @@ export function useSingleViewResource<D extends object = any>(
   const [state, setState] = useState<SingleViewResourceState<D>>({
     loading: false,
     resource: null,
-    permissions: [],
   });
 
   function updateState(update: Partial<SingleViewResourceState<D>>) {
     setState(currentState => ({ ...currentState, ...update }));
-  }
-
-  useEffect(() => {
-    SupersetClient.get({
-      endpoint: `/api/v1/${resourceName}/_info`,
-    }).then(
-      ({ json: infoJson = {} }) => {
-        updateState({
-          permissions: infoJson.permissions,
-        });
-      },
-      createErrorHandler(errMsg =>
-        handleErrorMsg(
-          t(
-            'An error occurred while fetching %ss info: %s',
-            resourceLabel,
-            errMsg,
-          ),
-        ),
-      ),
-    );
-  }, []);
-
-  function hasPerm(perm: string) {
-    if (!state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(state.permissions.find(p => p === perm));
   }
 
   const fetchResource = useCallback((resourceID: number) => {
@@ -321,7 +290,6 @@ export function useSingleViewResource<D extends object = any>(
       updateState({
         resource: update,
       }),
-    hasPerm,
     fetchResource,
     createResource,
     updateResource,
