@@ -16,30 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable react/forbid-prop-types */
 import React from 'react';
-import PropTypes from 'prop-types';
-import { App } from '@data-ui/event-flow';
-import { t } from '@superset-ui/core';
+import { App as EventFlowApp } from '@data-ui/event-flow';
+import { t, TimeseriesDataRecord } from '@superset-ui/core';
 
-const propTypes = {
-  data: PropTypes.array,
-  height: PropTypes.number,
-  /* eslint-disable-next-line */
-  initialMinEventCount: PropTypes.number,
-  width: PropTypes.number,
-};
-const defaultProps = {
-  data: null,
-  height: 400,
-  width: 400,
-};
+export interface EventFlowProps {
+  data: TimeseriesDataRecord[];
+  height: number;
+  width: number;
+  initialMinEventCount: number;
+}
 
-function CustomEventFlow(props) {
-  const { data, height, initialMinEventCount, width } = props;
+export default function EventFlow({
+  data,
+  initialMinEventCount,
+  height = 400,
+  width = 400,
+}: EventFlowProps) {
   if (data) {
     return (
-      <App
+      <EventFlowApp
         width={width}
         height={height}
         data={data}
@@ -55,8 +51,3 @@ function CustomEventFlow(props) {
     </div>
   );
 }
-
-CustomEventFlow.propTypes = propTypes;
-CustomEventFlow.defaultProps = defaultProps;
-
-export default CustomEventFlow;
