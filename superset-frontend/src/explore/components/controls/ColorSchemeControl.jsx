@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isFunction } from 'lodash';
-import { CreatableSelect } from 'src/components/Select';
+import { Select } from 'src/components/Select';
 import ControlHeader from '../ControlHeader';
 import TooltipWrapper from '../../../components/TooltipWrapper';
 import './ColorSchemeControl.less';
@@ -122,7 +122,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <CreatableSelect {...selectProps} />
+        <Select {...selectProps} />
       </div>
     );
   }
