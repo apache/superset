@@ -170,10 +170,14 @@
     "typescript": {
       "compilerOptions": {
         "rootDir": "./src",
+        "skipLibCheck": true,
         "declaration": true,
         "emitDeclarationOnly": true,
         "composite": true,
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "typeRoots": [
+          "./node_modules/@types"
+        ]
       }
     }
   },

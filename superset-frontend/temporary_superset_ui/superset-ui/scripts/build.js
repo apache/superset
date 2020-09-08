@@ -22,7 +22,7 @@ const { argv } = require('yargs')
   .option('clean', {
     describe: 'Whether to clean cache',
     type: 'boolean',
-    default: true,
+    default: false,
   })
   .option('type', {
     describe: 'Whether to run tsc',
