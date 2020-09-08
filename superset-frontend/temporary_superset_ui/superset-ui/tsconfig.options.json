@@ -23,7 +23,11 @@
     "composite": true,
     "declarationMap": true,
     "rootDir": "./src",
+    "skipLibCheck": true,
     "emitDeclarationOnly": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "typeRoots": [
+      "./node_modules/@types"
+    ]
   }
 }
