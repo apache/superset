@@ -17,10 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty, ColumnOption, columnChoices } from '@superset-ui/core';
-import { formatSelectOptionsForRange } from '@superset-ui/chart-controls';
+import { t, validateNonEmpty } from '@superset-ui/core';
+import {
+  formatSelectOptionsForRange,
+  ColumnOption,
+  columnChoices,
+  ControlPanelConfig,
+  SelectControlConfig,
+  ColumnMeta,
+} from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     {
       label: t('Event definition'),
@@ -32,14 +39,15 @@ export default {
             config: {
               type: 'SelectControl',
               label: t('Column containing event names'),
-              default: control =>
+              description: t('Columns to display'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state?.datasource),
+              }),
+              // choices is from `mapStateToProps`
+              default: (control: { choices?: string[] }) =>
                 control.choices && control.choices.length > 0 ? control.choices[0][0] : null,
+              validators: [validateNonEmpty],
             },
-            description: t('Columns to display'),
-            mapStateToProps: state => ({
-              choices: columnChoices(state.datasource),
-            }),
-            validators: [validateNonEmpty],
           },
         ],
         ['row_limit'],
@@ -86,6 +94,7 @@ export default {
         [
           {
             name: 'all_columns',
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             config: {
               type: 'SelectControl',
               multi: true,
@@ -101,7 +110,7 @@ export default {
               }),
               commaChoosesOption: false,
               freeForm: true,
-            },
+            } as SelectControlConfig<ColumnMeta>,
           },
         ],
       ],
@@ -118,3 +127,5 @@ export default {
     },
   },
 };
+
+export default config;
