@@ -128,22 +128,18 @@ function getStateFromSeparator(value) {
 
 function getStateFromCommonTimeFrame(value) {
   const units = `${value.split(' ')[1]}s`;
+  const sinceMoment =
+    value === 'No filter'
+      ? ''
+      : moment().utc().startOf(units).subtract(1, units);
+
   return {
     tab: TABS.DEFAULTS,
     type: TYPES.DEFAULTS,
     common: value,
-    since:
-      value === 'No filter'
-        ? ''
-        : moment()
-            .utc()
-            .startOf('day')
-            .subtract(1, units)
-            .format(MOMENT_FORMAT),
+    since: sinceMoment === '' ? '' : sinceMoment.format(MOMENT_FORMAT),
     until:
-      value === 'No filter'
-        ? ''
-        : moment().utc().startOf('day').format(MOMENT_FORMAT),
+      sinceMoment === '' ? '' : sinceMoment.add(1, units).format(MOMENT_FORMAT),
   };
 }
 
@@ -396,6 +392,8 @@ class DateFilterControl extends React.Component {
     ));
     const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => {
       const nextState = getStateFromCommonTimeFrame(timeFrame);
+      console.log('timeFrame', timeFrame);
+      console.log('nextState', nextState);
 
       const timeRange = buildTimeRangeString(nextState.since, nextState.until);
 
