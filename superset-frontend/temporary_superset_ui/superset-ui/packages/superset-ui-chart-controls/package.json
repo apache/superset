@@ -25,17 +25,15 @@
   "publishConfig": {
     "access": "public"
   },
-  "peerDependencies": {
-    "react": "^16.13.1"
-  },
-  "devDependencies": {
-    "enzyme": "^3.11.0"
-  },
   "dependencies": {
     "@superset-ui/core": "0.15.0",
-    "@types/react-bootstrap": "0.32.21",
     "lodash": "^4.17.15",
-    "prop-types": "^15.7.2",
-    "react-bootstrap": "^0.33.1"
+    "prop-types": "^15.7.2"
+  },
+  "peerDependencies": {
+    "@types/react-bootstrap": "*",
+    "@types/react": "*",
+    "react-bootstrap": "^0.33.1",
+    "react": "^16.13.1"
   }
 }
