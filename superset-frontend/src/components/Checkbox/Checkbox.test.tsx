@@ -18,8 +18,11 @@
  */
 
 import React from 'react';
-import { ReactWrapper, shallow } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { ReactWrapper } from 'enzyme';
+import {
+  styledMount as mount,
+  styledShallow as shallow,
+} from 'spec/helpers/theming';
 
 import Checkbox from '.';
 import { CheckboxChecked, CheckboxUnchecked } from './../CheckboxIcons';
@@ -40,7 +43,7 @@ describe('Checkbox', () => {
       const shallowWrapper = shallow(
         <Checkbox style={{}} checked={false} onChange={() => true} />,
       );
-      expect(shallowWrapper.find(CheckboxUnchecked)).toHaveLength(1);
+      expect(shallowWrapper.dive().dive().find(CheckboxUnchecked)).toExist();
     });
   });
 
@@ -49,7 +52,7 @@ describe('Checkbox', () => {
       const shallowWrapper = shallow(
         <Checkbox style={{}} checked onChange={() => true} />,
       );
-      expect(shallowWrapper.find(CheckboxChecked)).toHaveLength(1);
+      expect(shallowWrapper.dive().dive().find(CheckboxChecked)).toExist();
     });
   });
 
@@ -66,7 +69,7 @@ describe('Checkbox', () => {
     wrapper = mount(
       <Checkbox onChange={() => true} checked={false} style={{ foo: 'foo' }} />,
     );
-    expect(wrapper.find('Checkbox')).toHaveLength(1);
+    expect(wrapper.find('Checkbox')).toExist();
     expect(wrapper.find('Checkbox')).toHaveStyle({ foo: 'foo' });
   });
 });

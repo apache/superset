@@ -25,8 +25,25 @@ export default {
   component: Checkbox,
 };
 
+const STATUSES = {
+  checked: true,
+  unchecked: false,
+};
+
+export const CheckboxGallery = () =>
+  Object.keys(STATUSES).map(status => (
+    <div style={{ marginBottom: '16px' }} key={status}>
+      <Checkbox
+        onChange={() => {}}
+        checked={STATUSES[status]}
+        style={{ marginRight: '8px' }}
+      />
+      {`I'm a${STATUSES[status] ? '' : 'n'} ${status} checkbox`}
+    </div>
+  ));
+
 // eslint-disable-next-line no-unused-vars
-export const Component = _args => {
+export const InteractiveCheckbox = _args => {
   const [{ checked, style }, updateArgs] = useArgs();
   const toggleCheckbox = () => {
     updateArgs({ checked: !checked });
@@ -35,12 +52,12 @@ export const Component = _args => {
   return (
     <>
       <Checkbox onChange={toggleCheckbox} checked={checked} style={style} />
-      I'm a checkbox
+      I'm an interactive checkbox
     </>
   );
 };
 
-Component.args = {
+InteractiveCheckbox.args = {
   checked: false,
   style: { marginRight: '8px' },
 };

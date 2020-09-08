@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import styled from '@superset-ui/style';
 import {
   CheckboxChecked,
   CheckboxUnchecked,
@@ -28,10 +29,17 @@ interface CheckboxProps {
   style: object;
 }
 
+const Styles = styled.span`
+  &,
+  & svg {
+    vertical-align: top;
+  }
+`;
+
 export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
   return (
-    <span
-      style={{ verticalAlign: 'top', ...style }}
+    <Styles
+      style={style}
       onClick={() => {
         onChange(!checked);
       }}
@@ -41,6 +49,6 @@ export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
       aria-label="Checkbox"
     >
       {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
-    </span>
+    </Styles>
   );
 }
