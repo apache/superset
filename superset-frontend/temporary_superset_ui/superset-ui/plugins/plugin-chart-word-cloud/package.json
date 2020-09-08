@@ -32,13 +32,13 @@
     "@superset-ui/core": "0.15.0",
     "@types/d3-cloud": "^1.2.1",
     "@types/d3-scale": "^2.0.2",
-    "@types/react": "*",
     "d3-cloud": "^1.2.5",
     "d3-scale": "^3.0.1",
     "emotion-theming": "^10.0.27",
     "encodable": "^0.7.6"
   },
   "peerDependencies": {
+    "@types/react": "*",
     "react": "^16.13.1"
   }
 }
