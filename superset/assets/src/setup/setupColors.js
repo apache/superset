@@ -23,11 +23,12 @@ import lyft from '@superset-ui/color/esm/colorSchemes/categorical/lyft';
 import sequentialCommon from '@superset-ui/color/esm/colorSchemes/sequential/common';
 import sequentialD3 from '@superset-ui/color/esm/colorSchemes/sequential/d3';
 import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
+import peakColorSchemes from '../customColorSchemes/peak-color-schemes';
 
 export default function setupColors() {
   // Register color schemes
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
-  [airbnb, categoricalD3, google, lyft].forEach((group) => {
+  [airbnb, categoricalD3, google, lyft, peakColorSchemes].forEach((group) => {
     group.forEach((scheme) => {
       categoricalSchemeRegistry.registerValue(scheme.id, scheme);
     });

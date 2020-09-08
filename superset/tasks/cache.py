@@ -23,8 +23,11 @@ from urllib.error import URLError
 
 from celery.utils.log import get_task_logger
 from sqlalchemy import and_, func
+from flask import Response, session as flasksession
+from flask_login import login_user
+from werkzeug.http import parse_cookie
 
-from superset import app, db
+from superset import app, db, security_manager
 from superset.models.core import Dashboard, Log, Slice
 from superset.models.tags import Tag, TaggedObject
 from superset.tasks.celery_app import app as celery_app
@@ -79,7 +82,7 @@ def get_url(chart):
         baseurl = "{SUPERSET_WEBSERVER_ADDRESS}:{SUPERSET_WEBSERVER_PORT}".format(
             **app.config
         )
-        return f"{baseurl}{chart.url}"
+        return f"{baseurl}{chart.explore_json_url}"
 
 
 class Strategy:
@@ -250,6 +253,24 @@ class DashboardTagsStrategy(Strategy):
 
 strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
+def get_auth_cookies():
+    # Login with the user specified
+    with app.test_request_context():
+        user = security_manager.find_user('admin')
+        login_user(user)
+
+        # A mock response object to get the cookie information from
+        response = Response()
+        app.session_interface.save_session(app, flasksession, response)
+
+    cookies = []
+
+    for name, value in response.headers:
+        if name.lower() == "set-cookie":
+            cookie = parse_cookie(value)
+            cookies.append(cookie["session"])
+
+    return cookies
 
 @celery_app.task(name="cache-warmup")
 def cache_warmup(strategy_name, *args, **kwargs):
@@ -279,13 +300,16 @@ def cache_warmup(strategy_name, *args, **kwargs):
         return message
 
     results = {"success": [], "errors": []}
+    cookies = get_auth_cookies()
+    opener = request.build_opener()
+    opener.addheaders.append(("Cookie", "session={}".format(cookies[0])))
     for url in strategy.get_urls():
         try:
-            logger.info(f"Fetching {url}")
-            request.urlopen(url)
+            opener.open(url)
             results["success"].append(url)
         except URLError:
             logger.exception("Error warming up cache!")
             results["errors"].append(url)
 
+    logger.info("Successfully cache warmup for all urls")
     return results

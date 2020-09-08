@@ -140,7 +140,7 @@ def is_owner(obj, user):
       return True
     else:
       user_roles = [role.name.lower() for role in list(get_user_roles())]
-      if "admin" in user_roles or "peak_user" in user_roles:
+      if "admin" in user_roles or "peak_user" in user_roles or "peak_admin" in user_roles:
         return True
     return False
 
@@ -1063,6 +1063,7 @@ class Superset(BaseSupersetView):
             return self.get_samples(viz_obj)
 
         payload = viz_obj.get_payload()
+        print("Payload for dashboard", payload)
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
     @event_logger.log_this

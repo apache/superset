@@ -75,8 +75,10 @@ class CustomAuthDBView(AuthDBView):
                     }))['context']
                 if not auth_response['tenant'] == environ['TENANT']:
                     raise Exception('Tenant mismatch in token')
-                if auth_response['role'] in ['tenantManager', 'tenantAdmin']:
+                if (auth_response['role'] == 'tenantManager'):
                     user = 'admin'
+                elif (auth_response['role'] == 'tenantAdmin'):
+                    user = 'peakadmin'
                 else:
                     privileges = loads(auth_response['privileges'])
                     if has_solution_write_access(privileges):

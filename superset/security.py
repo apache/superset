@@ -84,14 +84,28 @@ class SupersetSecurityManager(SecurityManager):
 
     GAMMA_MINUS_PEAK_USER_VIEW_MENUS = {
         "AccessRequestsModelView",
-        "Manage",
-        "Queries",
         "Refresh Druid Metadata",
+        "Upload a CSV",
+        "Druid Clusters",
+        "Druid Datasources",
+        "Scan New Datasources",
         "ResetPasswordView",
         "RoleModelView",
         "Security",
-        "Sources",
-    }| USER_MODEL_VIEWS
+        "Databases",
+    } | USER_MODEL_VIEWS
+
+    GAMMA_MINUS_PEAK_ADMIN_VIEW_MENUS = {
+        "AccessRequestsModelView",
+        "Refresh Druid Metadata",
+        "Upload a CSV",
+        "Druid Clusters",
+        "Druid Datasources",
+        "Scan New Datasources",
+        "ResetPasswordView",
+        "RoleModelView",
+        "Security",
+    } | USER_MODEL_VIEWS
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
         "SqlMetricInlineView",
@@ -150,7 +164,12 @@ class SupersetSecurityManager(SecurityManager):
 
     GAMMA_ACCESSIBLE_PERMS = {"all_datasource_access"}
 
-    PEAK_USER_ACCESSIBLE_PERMS = {"all_database_access"}
+    PEAK_USER_ACCESSIBLE_PERMS = {
+      "all_database_access",
+      "all_datasource_access",
+      "can_add",
+      "can_edit",
+     }
 
     def get_schema_perm(
         self, database: Union["Database", str], schema: Optional[str] = None
@@ -592,6 +611,7 @@ class SupersetSecurityManager(SecurityManager):
         self.set_role("granter", self._is_granter_pvm)
         self.set_role("sql_lab", self._is_sql_lab_pvm)
         self.set_role("peak_user", self._is_peak_user_pvm)
+        self.set_role("peak_admin", self._is_peak_admin_pvm)
 
         if conf.get("PUBLIC_ROLE_LIKE_GAMMA", False):
             self.set_role("Public", self._is_gamma_pvm)
@@ -679,6 +699,25 @@ class SupersetSecurityManager(SecurityManager):
             or pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
         )
 
+    def _is_in_gamma_minus_peak_admin(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is accessible to only Alpha users,
+        False otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is accessible to only Alpha users
+        """
+
+        if (
+            pvm.view_menu.name in self.GAMMA_READ_ONLY_MODEL_VIEWS
+            and pvm.permission.name not in self.READ_ONLY_PERMISSION
+        ):
+            return True
+        return (
+            pvm.view_menu.name in self.GAMMA_MINUS_PEAK_ADMIN_VIEW_MENUS
+            or pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
+        )
+
 
     def _is_accessible_to_all(self, pvm: PermissionModelView) -> bool:
         """
@@ -703,13 +742,27 @@ class SupersetSecurityManager(SecurityManager):
 
     def _is_accessible_to_peak_user(self, pvm: PermissionModelView) -> bool:
         """
-        Return True if the FAB permission/view is accessible to gamma users, False
+        Return True if the FAB permission/view is accessible to peak users, False
         otherwise.
 
         :param pvm: The FAB permission/view
         :returns: Whether the FAB object is accessible to gamma users
         """
-        return pvm.permission.name in self.PEAK_USER_ACCESSIBLE_PERMS
+        return (
+            pvm.permission.name in self.PEAK_USER_ACCESSIBLE_PERMS
+        )
+
+    def _is_accessible_to_peak_admin(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is accessible to peak admin users, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is accessible to gamma users
+        """
+        return (
+            pvm.permission.name in self.PEAK_USER_ACCESSIBLE_PERMS
+        )
 
     def _is_admin_pvm(self, pvm: PermissionModelView) -> bool:
         """
@@ -787,6 +840,19 @@ class SupersetSecurityManager(SecurityManager):
              self._is_in_gamma_minus_peak_user(pvm)
              or self._is_accessible_to_all(pvm)
         ) or self._is_accessible_to_gamma(pvm) or self._is_accessible_to_peak_user(pvm)
+
+    def _is_peak_admin_pvm(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is Peak user related, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is Peak user related
+        """
+        return not (
+             self._is_in_gamma_minus_peak_admin(pvm)
+             or self._is_accessible_to_all(pvm)
+        ) or self._is_accessible_to_gamma(pvm) or self._is_accessible_to_peak_admin(pvm)
 
     def _is_granter_pvm(self, pvm: PermissionModelView) -> bool:
         """

@@ -957,7 +957,7 @@ def get_example_database():
     from superset import conf
 
     db_uri = conf.get("SQLALCHEMY_EXAMPLES_URI") or conf.get("SQLALCHEMY_DATABASE_URI")
-    return get_or_create_db("examples", db_uri)
+    return get_or_create_db("PeakDataModel", db_uri)
 
 
 def is_adhoc_metric(metric) -> bool:
