@@ -299,7 +299,7 @@ cd incubator-superset
 
 ### Documentation
 
-The latest documentation and tutorial are available at https://superset.incubator.apache.org/.
+The latest documentation and tutorial are available at [https://superset.incubator.apache.org/docs](https://superset.incubator.apache.org/docs).
 
 Contributing to the official documentation is relatively easy, once you've setup
 your environment and done an edit end-to-end. The docs can be found in the
@@ -390,7 +390,8 @@ python setup.py build_sphinx
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/docs/installation/installing-superset-from-scratch
+) before following these steps.
 
 Developers should use a virtualenv.
 
