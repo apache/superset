@@ -74,7 +74,7 @@ msgstr "Tablas"
 #: superset/views/chart/mixin.py:26
 #: superset/views/dashboard/mixin.py:75
 msgid "Charts"
-msgstr "Charts"
+msgstr "Gráficos"
 
 #: superset-frontend/src/profile/components/CreatedContent.tsx:71
 #: superset-frontend/src/profile/components/Favorites.tsx:72
@@ -146,7 +146,7 @@ msgstr "Programar Dashboard"
 
 #: superset/app.py:396
 msgid "Chart Email Schedules"
-msgstr "Programar Chart"
+msgstr "Programar Gráfico"
 
 #: superset/app.py:406
 msgid "Alerts"
@@ -399,7 +399,7 @@ msgstr ""
 #: superset/viz.py:1636
 #: superset/viz_sip38.py:1600
 msgid "Distribution - Bar Chart"
-msgstr "Distribución - Chart de Barra"
+msgstr "Distribución - Gráfico de Barra"
 
 #: superset/viz.py:1646
 msgid "Can't have overlap between Series and Breakdowns"
@@ -592,17 +592,17 @@ msgstr "Flujo de Evento"
 #: superset/viz.py:2720
 #: superset/viz_sip38.py:2584
 msgid "Time Series - Paired t-test"
-msgstr "Serie Temportal - Prueba-T Pareada"
+msgstr "Serie Temporal - Prueba-T Pareada"
 
 #: superset/viz.py:2775
 #: superset/viz_sip38.py:2639
 msgid "Time Series - Nightingale Rose Chart"
-msgstr ""
+msgstr "Serie Temporal - Gráfico de Nightingale Rose"
 
 #: superset/viz.py:2810
 #: superset/viz_sip38.py:2674
 msgid "Partition Diagram"
-msgstr ""
+msgstr "Partición de diagrama"
 
 #: superset/viz_sip38.py:627
 msgid ""
@@ -651,7 +651,7 @@ msgstr ""
 
 #: superset/charts/commands/exceptions.py:65
 msgid "Chart parameters are invalid."
-msgstr "Los parametros del Chart son invalidos"
+msgstr "Los parametros del Gráfico son invalidos"
 
 #: superset/charts/commands/exceptions.py:69
 msgid "Chart could not be created."
@@ -971,7 +971,7 @@ msgstr ""
 #: superset/connectors/druid/views.py:321
 #: superset/connectors/sqla/views.py:359
 msgid "Associated Charts"
-msgstr "Charts asociados"
+msgstr "Gráficos asociados"
 
 #: superset/connectors/druid/views.py:322
 msgid "Data Source"
@@ -1503,7 +1503,7 @@ msgstr ""
 #: superset/views/chart/views.py:102
 #: superset/views/schedules.py:286
 msgid "Chart"
-msgstr "Chart"
+msgstr "Gráfico"
 
 #: superset-frontend/src/components/Menu/NewMenu.jsx:56
 #: superset/templates/appbuilder/navbar_right.html:40
@@ -1887,7 +1887,7 @@ msgstr ""
 #: superset/views/core.py:678
 #: superset/views/core.py:684
 msgid "chart"
-msgstr ""
+msgstr "gráfico"
 
 #: superset/views/core.py:684
 #: superset/views/core.py:845
@@ -1901,11 +1901,11 @@ msgstr ""
 
 #: superset/views/core.py:806
 msgid "Chart [{}] has been saved"
-msgstr ""
+msgstr "El gráfico  [{}] ha sido guardado"
 
 #: superset/views/core.py:810
 msgid "Chart [{}] has been overwritten"
-msgstr ""
+msgstr "El gráfico  [{}] ha sido sobreescrito"
 
 #: superset/views/core.py:829
 #: superset/views/core.py:846
@@ -1914,7 +1914,7 @@ msgstr ""
 
 #: superset/views/core.py:834
 msgid "Chart [{}] was added to dashboard [{}]"
-msgstr ""
+msgstr "El gráfico [{}] ha sido añadido al dashboard [{}]"
 
 #: superset/views/core.py:855
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
@@ -2054,11 +2054,11 @@ msgstr ""
 
 #: superset/views/schedules.py:244
 msgid "Schedule Email Reports for Charts"
-msgstr ""
+msgstr "Programar informes por correo electrónico para gráficos"
 
 #: superset/views/schedules.py:246
 msgid "Manage Email Reports for Charts"
-msgstr ""
+msgstr "Administrar informes de correo electrónico para gráficos"
 
 #: superset/views/schedules.py:296
 msgid "Email Format"
@@ -2119,15 +2119,15 @@ msgstr "Cambiado el"
 
 #: superset/views/chart/mixin.py:27
 msgid "Show Chart"
-msgstr ""
+msgstr "Mostrar Gráfico"
 
 #: superset/views/chart/mixin.py:28
 msgid "Add Chart"
-msgstr ""
+msgstr "Añadir Gráfico"
 
 #: superset/views/chart/mixin.py:29
 msgid "Edit Chart"
-msgstr ""
+msgstr "Editar Gráfico"
 
 #: superset/views/chart/mixin.py:64
 msgid ""
@@ -3408,7 +3408,7 @@ msgstr ""
 
 #: superset-frontend/src/addSlice/AddSliceContainer.tsx:94
 msgid "Create a new chart"
-msgstr ""
+msgstr "Crear un nuevo Gráfico"
 
 #: superset-frontend/src/addSlice/AddSliceContainer.tsx:98
 #: superset-frontend/src/addSlice/AddSliceContainer.tsx:107
@@ -3427,7 +3427,7 @@ msgstr ""
 
 #: superset-frontend/src/addSlice/AddSliceContainer.tsx:149
 msgid "Create new chart"
-msgstr ""
+msgstr "Crear un nuevo Gráfico"
 
 #: superset-frontend/src/chart/chartAction.js:479
 msgid "An error occurred while loading the SQL"
@@ -3469,11 +3469,11 @@ msgstr "Modificado"
 
 #: superset-frontend/src/components/AlteredSliceTag.jsx:202
 msgid "Chart changes"
-msgstr ""
+msgstr "El Gráfico ha cambiado"
 
 #: superset-frontend/src/components/AnchorLink.jsx:88
 msgid "Superset Chart"
-msgstr "Superset Chart"
+msgstr "Gráfico Superset"
 
 #: superset-frontend/src/components/AnchorLink.jsx:89
 msgid "Check out this chart in dashboard:"
@@ -3829,11 +3829,11 @@ msgstr "Insertar componentes"
 
 #: superset-frontend/src/dashboard/components/InsertComponentPane.jsx:83
 msgid "Your charts & filters"
-msgstr "Tus charts & filtros"
+msgstr "Tus gráficos & filtros"
 
 #: superset-frontend/src/dashboard/components/InsertComponentPane.jsx:102
 msgid "Your charts and filters"
-msgstr "Tus charts & filtros"
+msgstr "Tus gráficos & filtros"
 
 #: superset-frontend/src/dashboard/components/MissingChart.jsx:31
 msgid ""
@@ -3996,11 +3996,11 @@ msgstr "[nombre del Dashboard]"
 
 #: superset-frontend/src/dashboard/components/SaveModal.jsx:188
 msgid "also copy (duplicate) charts"
-msgstr "copiar (duplicar) tambien los Charts"
+msgstr "copiar (duplicar) tambien los Gráficos"
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:225
 msgid "Filter your charts"
-msgstr "Filtrar tus Charts"
+msgstr "Filtrar tus Gráficos"
 
 #: superset-frontend/src/dashboard/components/SliceHeader.jsx:74
 msgid "Annotation layers are still loading."
@@ -4038,7 +4038,7 @@ msgstr "Alternar la descripción del Dashboard"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:163
 msgid "Edit chart metadata"
-msgstr "Editar los metadatos del Chart"
+msgstr "Editar los metadatos del Gráfico"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:168
 msgid "Export CSV"
@@ -4051,7 +4051,7 @@ msgstr "Explorar gráfico"
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:187
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:188
 msgid "Share chart"
-msgstr "Compartir Chart"
+msgstr "Compartir gráfico"
 
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:446
 msgid "Search..."
@@ -4124,7 +4124,7 @@ msgstr "Todos los filtros"
 
 #: superset-frontend/src/dashboard/util/getFilterScopeNodesTree.js:89
 msgid "All charts"
-msgstr "Todos los charts"
+msgstr "Todos los gráficos"
 
 #: superset-frontend/src/datasource/ChangeDatasourceModal.jsx:136
 msgid "Select a datasource"
@@ -4702,7 +4702,7 @@ msgstr "Limite alcanzado"
 
 #: superset-frontend/src/explore/components/SaveModal.jsx:108
 msgid "Please enter a chart name"
-msgstr "Por favor introduce un nombre para el chart"
+msgstr "Por favor introduce un nombre para el gráfico"
 
 #: superset-frontend/src/explore/components/SaveModal.jsx:122
 msgid "Please select a dashboard"
@@ -5669,7 +5669,7 @@ msgstr ""
 
 #: superset-frontend/src/profile/components/Favorites.tsx:46
 msgid "No favorite charts yet, go click on stars!"
-msgstr "No hay charts favoritos aun, clica en la estrella!"
+msgstr "No hay gráficos favoritos aun, clica en la estrella!"
 
 #: superset-frontend/src/profile/components/Favorites.tsx:63
 msgid "No favorite dashboards yet, go click on stars!"
