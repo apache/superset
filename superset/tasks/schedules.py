@@ -70,8 +70,8 @@ from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
-    from werkzeug.datastructures import TypeConversionDict
     from flask_appbuilder.security.sqla.models import User
+    from werkzeug.datastructures import TypeConversionDict
 
 # Globals
 config = app.config

@@ -17,6 +17,7 @@
 import inspect
 import json
 
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Length, ValidationError
@@ -24,7 +25,6 @@ from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
-from superset import app
 from superset.exceptions import CertificateException
 from superset.utils.core import markdown, parse_ssl_cert
 
@@ -142,7 +142,7 @@ def sqlalchemy_uri_validator(value: str) -> str:
                 )
             ]
         )
-    if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] and value:
+    if current_app.config.get("PREVENT_UNSAFE_DB_CONNECTIONS", True) and value:
         if value.startswith("sqlite"):
             raise ValidationError(
                 [
@@ -288,6 +288,25 @@ class DatabasePutSchema(Schema):
         description=sqlalchemy_uri_description,
         allow_none=True,
         validate=[Length(0, 1024), sqlalchemy_uri_validator],
+    )
+
+
+class DatabaseTestConnectionSchema(Schema):
+    database_name = fields.String(
+        description=database_name_description, allow_none=True, validate=Length(1, 250),
+    )
+    impersonate_user = fields.Boolean(description=impersonate_user_description)
+    extra = fields.String(description=extra_description, validate=extra_validator)
+    encrypted_extra = fields.String(
+        description=encrypted_extra_description, validate=encrypted_extra_validator
+    )
+    server_cert = fields.String(
+        description=server_cert_description, validate=server_cert_validator
+    )
+    sqlalchemy_uri = fields.String(
+        description=sqlalchemy_uri_description,
+        required=True,
+        validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
 
 
