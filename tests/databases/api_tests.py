@@ -21,13 +21,13 @@ import json
 import prison
 from sqlalchemy.sql import func
 
-import tests.test_app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.certificates import ssl_certificate
+from tests.test_app import app
 
 
 class TestDatabaseApi(SupersetTestCase):
@@ -651,6 +651,97 @@ class TestDatabaseApi(SupersetTestCase):
             f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': 'nop'})}"
         )
         self.assertEqual(rv.status_code, 400)
+
+    def test_test_connection(self):
+        """
+        Database API: Test test connection
+        """
+        # need to temporarily allow sqlite dbs, teardown will undo this
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
+        self.login("admin")
+        example_db = get_example_database()
+        # validate that the endpoint works with the password-masked sqlalchemy uri
+        data = {
+            "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
+            "database_name": "examples",
+            "impersonate_user": False,
+        }
+        url = f"api/v1/database/test_connection"
+        rv = self.post_assert_metric(url, data, "test_connection")
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
+
+        # validate that the endpoint works with the decrypted sqlalchemy uri
+        data = {
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "database_name": "examples",
+            "impersonate_user": False,
+        }
+        rv = self.post_assert_metric(url, data, "test_connection")
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
+
+    def test_test_connection_failed(self):
+        """
+        Database API: Test test connection failed
+        """
+        self.login("admin")
+
+        data = {
+            "sqlalchemy_uri": "broken://url",
+            "database_name": "examples",
+            "impersonate_user": False,
+        }
+        url = f"api/v1/database/test_connection"
+        rv = self.post_assert_metric(url, data, "test_connection")
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "driver_name": "broken",
+            "message": "Could not load database driver: broken",
+        }
+        self.assertEqual(response, expected_response)
+
+        data = {
+            "sqlalchemy_uri": "mssql+pymssql://url",
+            "database_name": "examples",
+            "impersonate_user": False,
+        }
+        rv = self.post_assert_metric(url, data, "test_connection")
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "driver_name": "mssql+pymssql",
+            "message": "Could not load database driver: mssql+pymssql",
+        }
+        self.assertEqual(response, expected_response)
+
+    def test_test_connection_unsafe_uri(self):
+        """
+        Database API: Test test connection with unsafe uri
+        """
+        self.login("admin")
+
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
+        data = {
+            "sqlalchemy_uri": "sqlite:///home/superset/unsafe.db",
+            "database_name": "unsafe",
+            "impersonate_user": False,
+        }
+        url = f"api/v1/database/test_connection"
+        rv = self.post_assert_metric(url, data, "test_connection")
+        self.assertEqual(rv.status_code, 400)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "message": {
+                "sqlalchemy_uri": [
+                    "SQLite database cannot be used as a data source for security reasons."
+                ]
+            }
+        }
+        self.assertEqual(response, expected_response)
 
     def test_get_database_related_objects(self):
         """

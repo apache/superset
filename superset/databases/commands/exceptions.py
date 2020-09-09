@@ -24,6 +24,7 @@ from superset.commands.exceptions import (
     DeleteFailedError,
     UpdateFailedError,
 )
+from superset.security.analytics_db_safety import DBSecurityException
 
 
 class DatabaseInvalidError(CommandInvalidError):
@@ -109,3 +110,7 @@ class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
 
 class DatabaseDeleteFailedError(DeleteFailedError):
     message = _("Database could not be deleted.")
+
+
+class DatabaseSecurityUnsafeError(DBSecurityException):
+    message = _("Stopped an unsafe database connection")

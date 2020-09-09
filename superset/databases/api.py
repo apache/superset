@@ -20,8 +20,15 @@ from typing import Any, Optional
 from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import gettext as _
 from marshmallow import ValidationError
-from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import (
+    NoSuchModuleError,
+    NoSuchTableError,
+    OperationalError,
+    SQLAlchemyError,
+)
 
 from superset import event_logger
 from superset.constants import RouteMethod
@@ -33,8 +40,10 @@ from superset.databases.commands.exceptions import (
     DatabaseDeleteFailedError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
+    DatabaseSecurityUnsafeError,
     DatabaseUpdateFailedError,
 )
+from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
@@ -44,6 +53,7 @@ from superset.databases.schemas import (
     DatabasePostSchema,
     DatabasePutSchema,
     DatabaseRelatedObjectsResponse,
+    DatabaseTestConnectionSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
@@ -65,6 +75,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "table_metadata",
         "select_star",
         "schemas",
+        "test_connection",
         "related_objects",
     }
     class_permission_name = "DatabaseView"
@@ -343,7 +354,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @rison(database_schemas_query_schema)
     @statsd_metrics
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
-        """ Get all schemas from a database
+        """Get all schemas from a database
         ---
         get:
           description: Get all schemas from a database
@@ -400,7 +411,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def table_metadata(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
-        """ Table schema info
+        """Table schema info
         ---
         get:
           description: Get database table metadata
@@ -457,7 +468,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
     ) -> FlaskResponse:
-        """ Table schema info
+        """Table schema info
         ---
         get:
           description: Get database select star for table
@@ -505,6 +516,86 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(404, message="Table not found on the database")
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
+
+    @expose("/test_connection", methods=["POST"])
+    @protect()
+    @safe
+    @event_logger.log_this
+    @statsd_metrics
+    def test_connection(  # pylint: disable=too-many-return-statements
+        self,
+    ) -> FlaskResponse:
+        """Tests a database connection
+        ---
+        post:
+          description: >-
+            Tests a database connection
+          requestBody:
+            description: Database schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    encrypted_extra:
+                      type: object
+                    extras:
+                      type: object
+                    name:
+                      type: string
+                    server_cert:
+                      type: string
+          responses:
+            200:
+              description: Database Test Connection
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            item = DatabaseTestConnectionSchema().load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            TestConnectionDatabaseCommand(g.user, item).run()
+            return self.response(200, message="OK")
+        except (NoSuchModuleError, ModuleNotFoundError):
+            logger.info("Invalid driver")
+            driver_name = make_url(item.get("sqlalchemy_uri")).drivername
+            return self.response(
+                400,
+                message=_(f"Could not load database driver: {driver_name}"),
+                driver_name=driver_name,
+            )
+        except DatabaseSecurityUnsafeError as ex:
+            return self.response_422(message=ex)
+        except OperationalError:
+            logger.warning("Connection failed")
+            return self.response(
+                500,
+                message=_("Connection failed, please check your connection settings"),
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error("Unexpected error %s", type(ex).__name__)
+            return self.response_400(
+                message=_(
+                    "Unexpected error occurred, please check your logs for details"
+                )
+            )
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()
