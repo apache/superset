@@ -76,7 +76,6 @@ setup(
         "contextlib2",
         "croniter>=0.3.28",
         "cryptography>=2.4.2",
-        "dataclasses<0.7",
         "flask>=1.1.0, <2.0.0",
         "flask-appbuilder>=3.0.1, <4.0.0",
         "flask-caching",
@@ -145,7 +144,6 @@ setup(
     url="https://superset.apache.org/",
     download_url="https://www.apache.org/dist/incubator/superset/" + version_string,
     classifiers=[
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],

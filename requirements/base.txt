@@ -11,13 +11,13 @@ alembic==1.4.2            # via flask-migrate
 amqp==2.6.1               # via kombu
 apispec[yaml]==3.3.2      # via flask-appbuilder
 async-timeout==3.0.1      # via aiohttp
-attrs==20.1.0             # via aiohttp, jsonschema
+attrs==20.2.0             # via aiohttp, jsonschema
 babel==2.8.0              # via flask-babel
 backoff==1.10.0           # via apache-superset
 billiard==3.6.3.0         # via celery
 bleach==3.1.5             # via apache-superset
-boto3==1.14.51            # via tabulator
-botocore==1.17.51         # via boto3, s3transfer
+boto3==1.14.56            # via tabulator
+botocore==1.17.56         # via boto3, s3transfer
 brotli==1.0.9             # via flask-compress
 cached-property==1.5.1    # via tableschema
 cachelib==0.1.1           # via apache-superset
@@ -30,7 +30,6 @@ colorama==0.4.3           # via apache-superset, flask-appbuilder
 contextlib2==0.6.0.post1  # via apache-superset
 croniter==0.3.34          # via apache-superset
 cryptography==3.1         # via apache-superset
-dataclasses==0.6          # via apache-superset
 decorator==4.4.2          # via retry
 defusedxml==0.6.0         # via python3-openid
 dnspython==2.0.0          # via email-validator
