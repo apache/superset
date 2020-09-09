@@ -1584,7 +1584,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         session.commit()
         return json_success(json.dumps({"published": dash.published}))
 
-    @event_logger.log_this
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
     def dashboard(  # pylint: disable=too-many-locals
