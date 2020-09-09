@@ -47,8 +47,9 @@ from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
 from selenium.webdriver.remote.webdriver import WebDriver
 from sqlalchemy.exc import NoSuchColumnError, ResourceClosedError
+from sqlalchemy.orm import Session
 
-from superset import app, db, security_manager, thumbnail_cache
+from superset import app, security_manager, thumbnail_cache
 from superset.extensions import celery_app, machine_auth_provider_factory
 from superset.models.alerts import Alert, AlertLog
 from superset.models.dashboard import Dashboard
@@ -62,6 +63,7 @@ from superset.models.slice import Slice
 from superset.tasks.alerts.observer import observe
 from superset.tasks.alerts.validator import get_validator_function
 from superset.tasks.slack_util import deliver_slack_msg
+from superset.utils.celery import session_scope
 from superset.utils.core import get_email_address_list, send_email_smtp
 from superset.utils.screenshots import ChartScreenshot, WebDriverProxy
 from superset.utils.urls import get_url_path
@@ -225,7 +227,7 @@ def destroy_webdriver(
         pass
 
 
-def deliver_dashboard(
+def deliver_dashboard(  # pylint: disable=too-many-locals
     dashboard_id: int,
     recipients: Optional[str],
     slack_channel: Optional[str],
@@ -236,68 +238,69 @@ def deliver_dashboard(
     """
     Given a schedule, delivery the dashboard as an email report
     """
-    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+    with session_scope(nullpool=True) as session:
+        dashboard = session.query(Dashboard).filter_by(id=dashboard_id).one()
 
-    dashboard_url = _get_url_path(
-        "Superset.dashboard", dashboard_id_or_slug=dashboard.id
-    )
-    dashboard_url_user_friendly = _get_url_path(
-        "Superset.dashboard", user_friendly=True, dashboard_id_or_slug=dashboard.id
-    )
-
-    # Create a driver, fetch the page, wait for the page to render
-    driver = create_webdriver()
-    window = config["WEBDRIVER_WINDOW"]["dashboard"]
-    driver.set_window_size(*window)
-    driver.get(dashboard_url)
-    time.sleep(EMAIL_PAGE_RENDER_WAIT)
-
-    # Set up a function to retry once for the element.
-    # This is buggy in certain selenium versions with firefox driver
-    get_element = getattr(driver, "find_element_by_class_name")
-    element = retry_call(
-        get_element, fargs=["grid-container"], tries=2, delay=EMAIL_PAGE_RENDER_WAIT
-    )
-
-    try:
-        screenshot = element.screenshot_as_png
-    except WebDriverException:
-        # Some webdrivers do not support screenshots for elements.
-        # In such cases, take a screenshot of the entire page.
-        screenshot = driver.screenshot()  # pylint: disable=no-member
-    finally:
-        destroy_webdriver(driver)
-
-    # Generate the email body and attachments
-    report_content = _generate_report_content(
-        delivery_type,
-        screenshot,
-        dashboard.dashboard_title,
-        dashboard_url_user_friendly,
-    )
-
-    subject = __(
-        "%(prefix)s %(title)s",
-        prefix=config["EMAIL_REPORTS_SUBJECT_PREFIX"],
-        title=dashboard.dashboard_title,
-    )
-
-    if recipients:
-        _deliver_email(
-            recipients,
-            deliver_as_group,
-            subject,
-            report_content.body,
-            report_content.data,
-            report_content.images,
+        dashboard_url = _get_url_path(
+            "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         )
-    if slack_channel:
-        deliver_slack_msg(
-            slack_channel,
-            subject,
-            report_content.slack_message,
-            report_content.slack_attachment,
+        dashboard_url_user_friendly = _get_url_path(
+            "Superset.dashboard", user_friendly=True, dashboard_id_or_slug=dashboard.id
         )
+
+        # Create a driver, fetch the page, wait for the page to render
+        driver = create_webdriver()
+        window = config["WEBDRIVER_WINDOW"]["dashboard"]
+        driver.set_window_size(*window)
+        driver.get(dashboard_url)
+        time.sleep(EMAIL_PAGE_RENDER_WAIT)
+
+        # Set up a function to retry once for the element.
+        # This is buggy in certain selenium versions with firefox driver
+        get_element = getattr(driver, "find_element_by_class_name")
+        element = retry_call(
+            get_element, fargs=["grid-container"], tries=2, delay=EMAIL_PAGE_RENDER_WAIT
+        )
+
+        try:
+            screenshot = element.screenshot_as_png
+        except WebDriverException:
+            # Some webdrivers do not support screenshots for elements.
+            # In such cases, take a screenshot of the entire page.
+            screenshot = driver.screenshot()  # pylint: disable=no-member
+        finally:
+            destroy_webdriver(driver)
+
+        # Generate the email body and attachments
+        report_content = _generate_report_content(
+            delivery_type,
+            screenshot,
+            dashboard.dashboard_title,
+            dashboard_url_user_friendly,
+        )
+
+        subject = __(
+            "%(prefix)s %(title)s",
+            prefix=config["EMAIL_REPORTS_SUBJECT_PREFIX"],
+            title=dashboard.dashboard_title,
+        )
+
+        if recipients:
+            _deliver_email(
+                recipients,
+                deliver_as_group,
+                subject,
+                report_content.body,
+                report_content.data,
+                report_content.images,
+            )
+        if slack_channel:
+            deliver_slack_msg(
+                slack_channel,
+                subject,
+                report_content.slack_message,
+                report_content.slack_attachment,
+            )
 
 
 def _get_slice_data(slc: Slice, delivery_type: EmailDeliveryType) -> ReportContent:
@@ -362,8 +365,8 @@ def _get_slice_data(slc: Slice, delivery_type: EmailDeliveryType) -> ReportConte
     return ReportContent(body, data, None, slack_message, content)
 
 
-def _get_slice_screenshot(slice_id: int) -> ScreenshotData:
-    slice_obj = db.session.query(Slice).get(slice_id)
+def _get_slice_screenshot(slice_id: int, session: Session) -> ScreenshotData:
+    slice_obj = session.query(Slice).get(slice_id)
 
     chart_url = get_url_path("Superset.slice", slice_id=slice_obj.id, standalone="true")
     screenshot = ChartScreenshot(chart_url, slice_obj.digest)
@@ -376,7 +379,7 @@ def _get_slice_screenshot(slice_id: int) -> ScreenshotData:
         user=user, cache=thumbnail_cache, force=True,
     )
 
-    db.session.commit()
+    session.commit()
     return ScreenshotData(image_url, image_data)
 
 
@@ -427,11 +430,12 @@ def deliver_slice(  # pylint: disable=too-many-arguments
     delivery_type: EmailDeliveryType,
     email_format: SliceEmailReportFormat,
     deliver_as_group: bool,
+    session: Session,
 ) -> None:
     """
     Given a schedule, delivery the slice as an email report
     """
-    slc = db.session.query(Slice).filter_by(id=slice_id).one()
+    slc = session.query(Slice).filter_by(id=slice_id).one()
 
     if email_format == SliceEmailReportFormat.data:
         report_content = _get_slice_data(slc, delivery_type)
@@ -477,38 +481,42 @@ def schedule_email_report(  # pylint: disable=unused-argument
     slack_channel: Optional[str] = None,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
-    schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
+    with session_scope(nullpool=True) as session:
+        schedule = session.query(model_cls).get(schedule_id)
 
-    # The user may have disabled the schedule. If so, ignore this
-    if not schedule or not schedule.active:
-        logger.info("Ignoring deactivated schedule")
-        return
+        # The user may have disabled the schedule. If so, ignore this
+        if not schedule or not schedule.active:
+            logger.info("Ignoring deactivated schedule")
+            return
 
-    recipients = recipients or schedule.recipients
-    slack_channel = slack_channel or schedule.slack_channel
-    logger.info(
-        "Starting report for slack: %s and recipients: %s.", slack_channel, recipients
-    )
-
-    if report_type == ScheduleType.dashboard:
-        deliver_dashboard(
-            schedule.dashboard_id,
-            recipients,
+        recipients = recipients or schedule.recipients
+        slack_channel = slack_channel or schedule.slack_channel
+        logger.info(
+            "Starting report for slack: %s and recipients: %s.",
             slack_channel,
-            schedule.delivery_type,
-            schedule.deliver_as_group,
-        )
-    elif report_type == ScheduleType.slice:
-        deliver_slice(
-            schedule.slice_id,
             recipients,
-            slack_channel,
-            schedule.delivery_type,
-            schedule.email_format,
-            schedule.deliver_as_group,
         )
-    else:
-        raise RuntimeError("Unknown report type")
+
+        if report_type == ScheduleType.dashboard:
+            deliver_dashboard(
+                schedule.dashboard_id,
+                recipients,
+                slack_channel,
+                schedule.delivery_type,
+                schedule.deliver_as_group,
+            )
+        elif report_type == ScheduleType.slice:
+            deliver_slice(
+                schedule.slice_id,
+                recipients,
+                slack_channel,
+                schedule.delivery_type,
+                schedule.email_format,
+                schedule.deliver_as_group,
+                session,
+            )
+        else:
+            raise RuntimeError("Unknown report type")
 
 
 @celery_app.task(
@@ -529,9 +537,8 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     slack_channel: Optional[str] = None,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
-
-    try:
-        schedule = db.session.query(model_cls).get(schedule_id)
+    with session_scope(nullpool=True) as session:
+        schedule = session.query(model_cls).get(schedule_id)
 
         # The user may have disabled the schedule. If so, ignore this
         if not schedule or not schedule.active:
@@ -539,15 +546,11 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             return
 
         if report_type == ScheduleType.alert:
-            evaluate_alert(schedule.id, schedule.label, recipients, slack_channel)
+            evaluate_alert(
+                schedule.id, schedule.label, session, recipients, slack_channel
+            )
         else:
             raise RuntimeError("Unknown report type")
-    except NoSuchColumnError as column_error:
-        stats_logger.incr("run_alert_task.error.nosuchcolumnerror")
-        raise column_error
-    except ResourceClosedError as resource_error:
-        stats_logger.incr("run_alert_task.error.resourceclosederror")
-        raise resource_error
 
 
 class AlertState:
@@ -558,6 +561,7 @@ class AlertState:
 
 def deliver_alert(
     alert_id: int,
+    session: Session,
     recipients: Optional[str] = None,
     slack_channel: Optional[str] = None,
 ) -> None:
@@ -566,7 +570,7 @@ def deliver_alert(
     to its respective email and slack recipients
     """
 
-    alert = db.session.query(Alert).get(alert_id)
+    alert = session.query(Alert).get(alert_id)
 
     logging.info("Triggering alert: %s", alert)
 
@@ -588,7 +592,7 @@ def deliver_alert(
             str(alert.observations[-1].value),
             validation_error_message,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
-            _get_slice_screenshot(alert.slice.id),
+            _get_slice_screenshot(alert.slice.id, session),
         )
     else:
         # TODO: dashboard delivery!
@@ -668,6 +672,7 @@ def deliver_slack_alert(alert_content: AlertContent, slack_channel: str) -> None
 def evaluate_alert(
     alert_id: int,
     label: str,
+    session: Session,
     recipients: Optional[str] = None,
     slack_channel: Optional[str] = None,
 ) -> None:
@@ -680,7 +685,7 @@ def evaluate_alert(
 
     try:
         logger.info("Querying observers for alert <%s:%s>", alert_id, label)
-        error_msg = observe(alert_id)
+        error_msg = observe(alert_id, session)
         if error_msg:
             state = AlertState.ERROR
             logging.error(error_msg)
@@ -694,17 +699,17 @@ def evaluate_alert(
     if state != AlertState.ERROR:
         # Don't validate alert on test runs since it may not be triggered
         if recipients or slack_channel:
-            deliver_alert(alert_id, recipients, slack_channel)
+            deliver_alert(alert_id, session, recipients, slack_channel)
             state = AlertState.TRIGGER
         # Validate during regular workflow and deliver only if triggered
-        elif validate_observations(alert_id, label):
-            deliver_alert(alert_id, recipients, slack_channel)
+        elif validate_observations(alert_id, label, session):
+            deliver_alert(alert_id, session, recipients, slack_channel)
             state = AlertState.TRIGGER
         else:
             state = AlertState.PASS
 
-    db.session.commit()
-    alert = db.session.query(Alert).get(alert_id)
+    session.commit()
+    alert = session.query(Alert).get(alert_id)
     if state != AlertState.ERROR:
         alert.last_eval_dttm = dttm_end
     alert.last_state = state
@@ -716,10 +721,10 @@ def evaluate_alert(
             state=state,
         )
     )
-    db.session.commit()
+    session.commit()
 
 
-def validate_observations(alert_id: int, label: str) -> bool:
+def validate_observations(alert_id: int, label: str, session: Session) -> bool:
     """
     Runs an alert's validators to check if it should be triggered or not
     If so, return the name of the validator that returned true
@@ -727,7 +732,7 @@ def validate_observations(alert_id: int, label: str) -> bool:
 
     logger.info("Validating observations for alert <%s:%s>", alert_id, label)
 
-    alert = db.session.query(Alert).get(alert_id)
+    alert = session.query(Alert).get(alert_id)
     if alert.validators:
         validator = alert.validators[0]
         validate = get_validator_function(validator.validator_type)
@@ -760,7 +765,11 @@ def next_schedules(
 
 
 def schedule_window(
-    report_type: str, start_at: datetime, stop_at: datetime, resolution: int
+    report_type: str,
+    start_at: datetime,
+    stop_at: datetime,
+    resolution: int,
+    session: Session,
 ) -> None:
     """
     Find all active schedules and schedule celery tasks for
@@ -772,8 +781,7 @@ def schedule_window(
     if not model_cls:
         return None
 
-    dbsession = db.create_scoped_session()
-    schedules = dbsession.query(model_cls).filter(model_cls.active.is_(True))
+    schedules = session.query(model_cls).filter(model_cls.active.is_(True))
 
     for schedule in schedules:
         logging.info("Processing schedule %s", schedule)
@@ -810,7 +818,6 @@ def get_scheduler_action(report_type: str) -> Optional[Callable[..., Any]]:
 @celery_app.task(name="email_reports.schedule_hourly")
 def schedule_hourly() -> None:
     """ Celery beat job meant to be invoked hourly """
-
     if not config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
         logger.info("Scheduled email reports not enabled in config")
         return
@@ -820,8 +827,10 @@ def schedule_hourly() -> None:
     # Get the top of the hour
     start_at = datetime.now(tzlocal()).replace(microsecond=0, second=0, minute=0)
     stop_at = start_at + timedelta(seconds=3600)
-    schedule_window(ScheduleType.dashboard, start_at, stop_at, resolution)
-    schedule_window(ScheduleType.slice, start_at, stop_at, resolution)
+
+    with session_scope(nullpool=True) as session:
+        schedule_window(ScheduleType.dashboard, start_at, stop_at, resolution, session)
+        schedule_window(ScheduleType.slice, start_at, stop_at, resolution, session)
 
 
 @celery_app.task(name="alerts.schedule_check")
@@ -833,5 +842,5 @@ def schedule_alerts() -> None:
         seconds=3600
     )  # process any missed tasks in the past hour
     stop_at = now + timedelta(seconds=1)
-
-    schedule_window(ScheduleType.alert, start_at, stop_at, resolution)
+    with session_scope(nullpool=True) as session:
+        schedule_window(ScheduleType.alert, start_at, stop_at, resolution, session)
