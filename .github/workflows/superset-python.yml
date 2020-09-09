@@ -213,8 +213,7 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-        # run unit tests in multiple version just for fun
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.7, 3.8]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.superset_test_config
