@@ -392,9 +392,6 @@ class DateFilterControl extends React.Component {
     ));
     const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => {
       const nextState = getStateFromCommonTimeFrame(timeFrame);
-      console.log('timeFrame', timeFrame);
-      console.log('nextState', nextState);
-
       const timeRange = buildTimeRangeString(nextState.since, nextState.until);
 
       return (
