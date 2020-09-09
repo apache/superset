@@ -19,7 +19,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import Button from 'src/components/Button';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Modal from 'src/components/Modal';
 

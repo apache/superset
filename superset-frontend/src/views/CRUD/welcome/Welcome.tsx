@@ -18,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import { Panel, Row, Col, Tabs, Tab, FormControl } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
 import RecentActivity from 'src/profile/components/RecentActivity';

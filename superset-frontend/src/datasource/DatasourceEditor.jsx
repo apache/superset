@@ -20,9 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Badge, Col, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
-import styled from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import Button from 'src/components/Button';

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import { getDashboardFilterKey } from './getDashboardFilterKey';
 import { ALL_FILTERS_ROOT } from './constants';

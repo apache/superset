@@ -19,8 +19,7 @@
 import React from 'react';
 import { FormGroup, FormControl, Overlay, Popover } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/translation';
-import styled from '@superset-ui/style';
+import { t, styled } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import ControlHeader from '../../explore/components/ControlHeader';

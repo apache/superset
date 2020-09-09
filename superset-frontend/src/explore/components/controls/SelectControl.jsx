@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { Select, CreatableSelect, OnPasteSelect } from 'src/components/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
 

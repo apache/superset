@@ -23,7 +23,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import shortid from 'shortid';
 

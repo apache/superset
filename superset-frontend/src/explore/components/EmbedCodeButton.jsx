@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 import CopyToClipboard from 'src/components/CopyToClipboard';

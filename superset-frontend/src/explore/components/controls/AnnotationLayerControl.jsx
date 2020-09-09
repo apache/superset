@@ -25,8 +25,7 @@ import {
   ListGroupItem,
 } from 'react-bootstrap';
 import { connect } from 'react-redux';
-import { t } from '@superset-ui/translation';
-import { withTheme } from '@superset-ui/style';
+import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { getChartKey } from '../../exploreUtils';
 import { runAnnotationQuery } from '../../../chart/chartAction';

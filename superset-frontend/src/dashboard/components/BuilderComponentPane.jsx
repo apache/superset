@@ -23,7 +23,7 @@ import { Tabs, Tab } from 'react-bootstrap';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';

@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { Alert } from 'react-bootstrap';
 import Button from 'src/components/Button';
 

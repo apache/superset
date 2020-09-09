@@ -20,10 +20,8 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from '@superset-ui/style';
+import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
 import { ButtonGroup } from 'react-bootstrap';
-import { CategoricalColorNamespace } from '@superset-ui/color';
-import { t } from '@superset-ui/translation';
 
 import Icon from 'src/components/Icon';
 import Button from 'src/components/Button';

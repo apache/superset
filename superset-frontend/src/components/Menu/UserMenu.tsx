@@ -19,7 +19,7 @@
 import React from 'react';
 import { MenuItem } from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 interface UserMenuProps {
   userInfoUrl: string;

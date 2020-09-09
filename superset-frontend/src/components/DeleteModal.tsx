@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
+import { t, styled } from '@superset-ui/core';
 import React, { useState } from 'react';
-import styled from '@superset-ui/style';
 import { FormGroup, FormControl } from 'react-bootstrap';
 import Modal from 'src/components/Modal';
 import FormLabel from 'src/components/FormLabel';

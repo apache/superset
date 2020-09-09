@@ -35,8 +35,7 @@ import Button from 'src/components/Button';
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
-import { t } from '@superset-ui/translation';
-import { styled, withTheme } from '@superset-ui/style';
+import { t, styled, withTheme } from '@superset-ui/core';
 
 import {
   buildTimeRangeString,

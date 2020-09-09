@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import { NavDropdown as ReactBootstrapNavDropdown } from 'react-bootstrap';
 
 const NavDropdown = styled(ReactBootstrapNavDropdown)`

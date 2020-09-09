@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import { Skeleton } from 'antd';
 
 /*

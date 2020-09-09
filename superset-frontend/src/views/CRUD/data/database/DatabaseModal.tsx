@@ -17,8 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent, useState } from 'react';
-import styled from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
+import { styled, t } from '@superset-ui/core';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';

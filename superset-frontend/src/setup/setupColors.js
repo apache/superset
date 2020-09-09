@@ -16,19 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import airbnb from '@superset-ui/color/esm/colorSchemes/categorical/airbnb';
-import categoricalD3 from '@superset-ui/color/esm/colorSchemes/categorical/d3';
-import echarts from '@superset-ui/color/esm/colorSchemes/categorical/echarts';
-import google from '@superset-ui/color/esm/colorSchemes/categorical/google';
-import lyft from '@superset-ui/color/esm/colorSchemes/categorical/lyft';
-import preset from '@superset-ui/color/esm/colorSchemes/categorical/preset';
-import sequentialCommon from '@superset-ui/color/esm/colorSchemes/sequential/common';
-import sequentialD3 from '@superset-ui/color/esm/colorSchemes/sequential/d3';
+import airbnb from '@superset-ui/core/esm/color/colorSchemes/categorical/airbnb';
+import categoricalD3 from '@superset-ui/core/esm/color/colorSchemes/categorical/d3';
+import echarts from '@superset-ui/core/esm/color/colorSchemes/categorical/echarts';
+import google from '@superset-ui/core/esm/color/colorSchemes/categorical/google';
+import lyft from '@superset-ui/core/esm/color/colorSchemes/categorical/lyft';
+import preset from '@superset-ui/core/esm/color/colorSchemes/categorical/preset';
+import sequentialCommon from '@superset-ui/core/esm/color/colorSchemes/sequential/common';
+import sequentialD3 from '@superset-ui/core/esm/color/colorSchemes/sequential/d3';
 import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
-} from '@superset-ui/color';
-import superset from '@superset-ui/color/esm/colorSchemes/categorical/superset';
+} from '@superset-ui/core';
+import superset from '@superset-ui/core/esm/color/colorSchemes/categorical/superset';
 
 export default function setupColors() {
   // Register color schemes

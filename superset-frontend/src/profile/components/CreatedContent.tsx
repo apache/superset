@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import moment from 'moment';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import TableLoader from '../../components/TableLoader';
 import { Slice } from '../types';

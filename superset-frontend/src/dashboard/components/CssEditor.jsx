@@ -22,7 +22,7 @@ import Select from 'src/components/Select';
 import AceEditor from 'react-ace';
 import 'brace/mode/css';
 import 'brace/theme/github';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import ModalTrigger from '../../components/ModalTrigger';
 

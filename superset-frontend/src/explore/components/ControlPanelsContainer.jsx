@@ -22,8 +22,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
-import styled from '@superset-ui/style';
+import { t, styled } from '@superset-ui/core';
 
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';

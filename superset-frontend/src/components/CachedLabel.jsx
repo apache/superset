@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import TooltipWrapper from './TooltipWrapper';

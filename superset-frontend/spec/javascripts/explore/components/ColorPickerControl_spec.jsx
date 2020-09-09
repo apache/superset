@@ -24,7 +24,7 @@ import { SketchPicker } from 'react-color';
 import {
   CategoricalScheme,
   getCategoricalSchemeRegistry,
-} from '@superset-ui/color';
+} from '@superset-ui/core';
 
 import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
 import ControlHeader from 'src/explore/components/ControlHeader';

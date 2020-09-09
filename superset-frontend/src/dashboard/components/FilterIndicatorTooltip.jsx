@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { isEmpty } from 'lodash';
 import FormLabel from 'src/components/FormLabel';
 

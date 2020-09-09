@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { supersetTheme } from '@superset-ui/style';
+import { t, supersetTheme } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 

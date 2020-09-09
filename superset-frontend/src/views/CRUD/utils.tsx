@@ -19,10 +19,10 @@
 import {
   SupersetClient,
   SupersetClientResponse,
-} from '@superset-ui/connection';
+  logging,
+} from '@superset-ui/core';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
-import { logging } from '@superset-ui/core';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,

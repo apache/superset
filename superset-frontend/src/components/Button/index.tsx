@@ -26,7 +26,7 @@ import {
   OverlayTrigger,
   MenuItem,
 } from 'react-bootstrap';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
 

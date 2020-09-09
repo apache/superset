@@ -21,9 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import styled from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
-import { logging } from '@superset-ui/core';
+import { styled, logging, t } from '@superset-ui/core';
 
 import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';

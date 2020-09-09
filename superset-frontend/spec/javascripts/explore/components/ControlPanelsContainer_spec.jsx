@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import { t } from '@superset-ui/translation';
+import { getChartControlPanelRegistry, t } from '@superset-ui/core';
 import { defaultControls } from 'src/explore/store';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { ControlPanelsContainer } from 'src/explore/components/ControlPanelsContainer';

@@ -18,7 +18,7 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { CategoricalColorNamespace } from '@superset-ui/color';
+import { CategoricalColorNamespace } from '@superset-ui/core';
 
 const propTypes = {
   onChange: PropTypes.func,

@@ -18,7 +18,7 @@
  */
 import React, { PureComponent } from 'react';
 import cx from 'classnames';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 
 interface PaginationButton {
   disabled?: boolean;
