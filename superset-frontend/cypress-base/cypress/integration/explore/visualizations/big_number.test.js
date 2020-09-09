@@ -43,7 +43,7 @@ describe('Visualization > Big Number with Trendline', () => {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
-      chartSelector: '.big_number',
+      chartSelector: '.superset-legacy-chart-big-number',
     });
   }
 
