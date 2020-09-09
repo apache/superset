@@ -64,6 +64,7 @@ describe('Datasource control', () => {
     // delete metric
     cy.get('#datasource_menu').click();
     cy.get('a').contains('Edit Datasource').click();
+    cy.get('a[role="tab"]').contains('Metrics').click();
     cy.get(`input[value="${newMetricName}"]`)
       .closest('tr')
       .find('.fa-trash')
