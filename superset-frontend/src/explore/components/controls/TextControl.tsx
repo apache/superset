@@ -18,10 +18,7 @@
  */
 import React from 'react';
 import { FormGroup, FormControl } from 'react-bootstrap';
-import {
-  legacyValidateNumber,
-  legacyValidateInteger,
-} from '@superset-ui/validator';
+import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import ControlHeader from '../ControlHeader';
 
 interface TextControlProps {

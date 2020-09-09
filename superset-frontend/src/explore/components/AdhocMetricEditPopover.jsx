@@ -26,9 +26,8 @@ import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
-import { t } from '@superset-ui/translation';
+import { t, ThemeProvider } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
-import { ThemeProvider } from '@superset-ui/style';
 
 import FormLabel from 'src/components/FormLabel';
 

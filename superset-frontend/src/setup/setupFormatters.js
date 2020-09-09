@@ -21,12 +21,10 @@ import {
   getNumberFormatter,
   getNumberFormatterRegistry,
   NumberFormats,
-} from '@superset-ui/number-format';
-import {
   getTimeFormatterRegistry,
   smartDateFormatter,
   smartDateVerboseFormatter,
-} from '@superset-ui/time-format';
+} from '@superset-ui/core';
 
 export default function setupFormatters() {
   getNumberFormatterRegistry()

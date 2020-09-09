@@ -21,8 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormControl, FormGroup, Radio } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import { CategoricalColorNamespace } from '@superset-ui/color';
-import { t } from '@superset-ui/translation';
+import { t, CategoricalColorNamespace } from '@superset-ui/core';
 
 import ModalTrigger from '../../components/ModalTrigger';
 import Checkbox from '../../components/Checkbox';

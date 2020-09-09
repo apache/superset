@@ -18,8 +18,7 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { SupersetClient } from '@superset-ui/connection';
-import { t } from '@superset-ui/translation';
+import { SupersetClient, t } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';

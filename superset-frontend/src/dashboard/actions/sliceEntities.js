@@ -17,8 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import { addDangerToast } from '../../messageToasts/actions';
 import { getDatasourceParameter } from '../../modules/utils';

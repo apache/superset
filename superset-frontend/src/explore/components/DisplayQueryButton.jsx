@@ -36,7 +36,7 @@ import {
   FormControl,
 } from 'react-bootstrap';
 import { Table } from 'reactable-arc';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import getClientErrorObject from '../../utils/getClientErrorObject';

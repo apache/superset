@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Label from 'src/components/Label';
 

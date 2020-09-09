@@ -19,8 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td } from 'reactable-arc';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from '../components/Loading';

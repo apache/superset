@@ -18,7 +18,7 @@
  */
 
 import memoize from 'lodash/memoize';
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { getChartControlPanelRegistry } from '@superset-ui/core';
 import controls from '../explore/controls';
 
 const getControlsForVizType = memoize(vizType => {

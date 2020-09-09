@@ -19,9 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { OverlayTrigger } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { withTheme } from '@superset-ui/style';
 
 import Label from 'src/components/Label';
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';

@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import TooltipWrapper from './TooltipWrapper';
 
 interface EditableTitleProps {

@@ -20,7 +20,7 @@ import React, { CSSProperties } from 'react';
 import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Loading from '../../components/Loading';

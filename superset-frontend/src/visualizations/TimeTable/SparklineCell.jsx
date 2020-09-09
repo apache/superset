@@ -26,8 +26,7 @@ import {
   VerticalReferenceLine,
   WithTooltip,
 } from '@data-ui/sparkline';
-import { formatNumber } from '@superset-ui/number-format';
-import { getTextDimension } from '@superset-ui/dimension';
+import { getTextDimension, formatNumber } from '@superset-ui/core';
 
 const propTypes = {
   className: PropTypes.string,

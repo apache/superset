@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t, styled } from '@superset-ui/core';
 import React, { useState } from 'react';
-import { t } from '@superset-ui/translation';
 import { Alert } from 'react-bootstrap';
 import { Empty } from 'src/common/components';
-import styled from '@superset-ui/style';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';

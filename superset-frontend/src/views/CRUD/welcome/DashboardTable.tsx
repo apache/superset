@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import ListView, { FetchDataConfig } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
