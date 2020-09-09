@@ -46,10 +46,22 @@ describe('Visualization > Line', () => {
   });
 
   it('should allow negative values in Y bounds', () => {
-    cy.get('#controlSections-tab-display').click().wait(1000);
+    cy.get('#controlSections-tab-display').click();
     cy.get('span').contains('Y Axis Bounds').scrollIntoView();
-    cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 }).wait(1000);
+    cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 });
     cy.get('.alert-warning').should('not.exist');
+  });
+
+  it('should allow type to search color schemes', () => {
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="text"]')
+      .focus()
+      .type('air{enter}');
+    cy.get('input[name="select-color_scheme"]').should(
+      'have.value',
+      'bnbColors',
+    );
   });
 
   it('should work with adhoc metric', () => {
