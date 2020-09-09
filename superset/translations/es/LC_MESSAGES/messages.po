@@ -609,8 +609,8 @@ msgid ""
 "Choose either fields to [Group By] and [Metrics] and/or [Percentage "
 "Metrics], or [Columns], not both"
 msgstr ""
-"Elige al menos campos en  [Group By] y [Metrics] y/o [Percentage "
-"Metrics], o [Columns], pero no ambas"
+"Elige al menos campos en  [Agrupar Por] y [Metricas] y/o [Metricas de "
+"Porcentage], o [Columnas], pero no ambas"
 
 #: superset/charts/api.py:405
 #, python-format
