@@ -364,7 +364,7 @@ msgstr "Por favor, elige diferentes métricas en el eje izquierdo y derecho"
 #: superset/viz.py:1487
 #: superset/viz_sip38.py:1454
 msgid "Time Series - Bar Chart"
-msgstr "Series de Tiempo - Chart de Barras"
+msgstr "Series de Tiempo - Gráfico de Barras"
 
 #: superset/viz.py:1496
 #: superset/viz_sip38.py:1463
