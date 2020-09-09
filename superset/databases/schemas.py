@@ -215,7 +215,9 @@ class DatabasePostSchema(Schema):
     database_name = fields.String(
         description=database_name_description, required=True, validate=Length(1, 250),
     )
-    cache_timeout = fields.Integer(description=cache_timeout_description)
+    cache_timeout = fields.Integer(
+        description=cache_timeout_description, allow_none=True
+    )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
     allow_run_async = fields.Boolean(description=allow_run_async_description)
     allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
@@ -223,18 +225,24 @@ class DatabasePostSchema(Schema):
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
     force_ctas_schema = fields.String(
-        description=force_ctas_schema_description, validate=Length(0, 250)
+        description=force_ctas_schema_description,
+        allow_none=True,
+        validate=Length(0, 250),
     )
     allow_multi_schema_metadata_fetch = fields.Boolean(
         description=allow_multi_schema_metadata_fetch_description,
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     encrypted_extra = fields.String(
-        description=encrypted_extra_description, validate=encrypted_extra_validator
+        description=encrypted_extra_description,
+        validate=encrypted_extra_validator,
+        allow_none=True,
     )
     extra = fields.String(description=extra_description, validate=extra_validator)
     server_cert = fields.String(
-        description=server_cert_description, validate=server_cert_validator
+        description=server_cert_description,
+        allow_none=True,
+        validate=server_cert_validator,
     )
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
@@ -247,7 +255,9 @@ class DatabasePutSchema(Schema):
     database_name = fields.String(
         description=database_name_description, allow_none=True, validate=Length(1, 250),
     )
-    cache_timeout = fields.Integer(description=cache_timeout_description)
+    cache_timeout = fields.Integer(
+        description=cache_timeout_description, allow_none=True
+    )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
     allow_run_async = fields.Boolean(description=allow_run_async_description)
     allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
@@ -255,18 +265,24 @@ class DatabasePutSchema(Schema):
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
     force_ctas_schema = fields.String(
-        description=force_ctas_schema_description, validate=Length(0, 250)
+        description=force_ctas_schema_description,
+        allow_none=True,
+        validate=Length(0, 250),
     )
     allow_multi_schema_metadata_fetch = fields.Boolean(
         description=allow_multi_schema_metadata_fetch_description
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     encrypted_extra = fields.String(
-        description=encrypted_extra_description, validate=encrypted_extra_validator
+        description=encrypted_extra_description,
+        allow_none=True,
+        validate=encrypted_extra_validator,
     )
     extra = fields.String(description=extra_description, validate=extra_validator)
     server_cert = fields.String(
-        description=server_cert_description, validate=server_cert_validator
+        description=server_cert_description,
+        allow_none=True,
+        validate=server_cert_validator,
     )
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
@@ -358,3 +374,35 @@ class SelectStarResponseSchema(Schema):
 
 class SchemasResponseSchema(Schema):
     result = fields.List(fields.String(description="A database schema name"))
+
+
+class DatabaseRelatedChart(Schema):
+    id = fields.Integer()
+    slice_name = fields.String()
+    viz_type = fields.String()
+
+
+class DatabaseRelatedDashboard(Schema):
+    id = fields.Integer()
+    json_metadata = fields.Dict()
+    slug = fields.String()
+    title = fields.String()
+
+
+class DatabaseRelatedCharts(Schema):
+    count = fields.Integer(description="Chart count")
+    result = fields.List(
+        fields.Nested(DatabaseRelatedChart), description="A list of dashboards"
+    )
+
+
+class DatabaseRelatedDashboards(Schema):
+    count = fields.Integer(description="Dashboard count")
+    result = fields.List(
+        fields.Nested(DatabaseRelatedDashboard), description="A list of dashboards"
+    )
+
+
+class DatabaseRelatedObjectsResponse(Schema):
+    charts = fields.Nested(DatabaseRelatedCharts)
+    dashboards = fields.Nested(DatabaseRelatedDashboards)

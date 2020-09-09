@@ -20,12 +20,13 @@ import styled from '@superset-ui/style';
 import React from 'react';
 import Icon from 'src/components/Icon';
 
-interface Props {
+interface SearchInputProps {
   onSubmit: () => void;
   onClear: () => void;
   value: string;
   onChange: React.EventHandler<React.ChangeEvent<HTMLInputElement>>;
   placeholder?: string;
+  name?: string;
 }
 
 const SearchInputWrapper = styled.div`
@@ -68,8 +69,9 @@ export default function SearchInput({
   onClear,
   onSubmit,
   placeholder = 'Search',
+  name,
   value,
-}: Props) {
+}: SearchInputProps) {
   return (
     <SearchInputWrapper>
       <SearchIcon
@@ -89,6 +91,7 @@ export default function SearchInput({
         placeholder={placeholder}
         onChange={onChange}
         value={value}
+        name={name}
       />
       {value && (
         <ClearIcon

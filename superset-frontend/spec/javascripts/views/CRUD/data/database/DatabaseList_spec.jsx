@@ -24,8 +24,10 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
+import DeleteModal from 'src/components/DeleteModal';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
+import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 
@@ -36,6 +38,7 @@ const store = mockStore({});
 const databasesInfoEndpoint = 'glob:*/api/v1/database/_info*';
 const databasesEndpoint = 'glob:*/api/v1/database/?*';
 const databaseEndpoint = 'glob:*/api/v1/database/*';
+const databaseRelatedEndpoint = 'glob:*/api/v1/database/*/related_objects*';
 
 const mockdatabases = [...new Array(3)].map((_, i) => ({
   changed_by: {
@@ -62,6 +65,16 @@ fetchMock.get(databasesEndpoint, {
 });
 
 fetchMock.delete(databaseEndpoint, {});
+fetchMock.get(databaseRelatedEndpoint, {
+  charts: {
+    count: 0,
+    result: [],
+  },
+  dashboards: {
+    count: 0,
+    result: [],
+  },
+});
 
 describe('DatabaseList', () => {
   const wrapper = mount(<DatabaseList />, { context: { store } });
@@ -100,6 +113,10 @@ describe('DatabaseList', () => {
     });
     await waitForComponentToPaint(wrapper);
 
+    expect(wrapper.find(DeleteModal).props().description).toMatchInlineSnapshot(
+      `"The database db 0 is linked to 0 charts that appear on 0 dashboards. Are you sure you want to continue? Deleting the database will break those objects."`,
+    );
+
     act(() => {
       wrapper
         .find('#delete')
@@ -114,6 +131,37 @@ describe('DatabaseList', () => {
 
     await waitForComponentToPaint(wrapper);
 
+    expect(fetchMock.calls(/database\/0\/related_objects/, 'GET')).toHaveLength(
+      1,
+    );
     expect(fetchMock.calls(/database\/0/, 'DELETE')).toHaveLength(1);
+  });
+
+  it('filters', async () => {
+    const filtersWrapper = wrapper.find(Filters);
+    act(() => {
+      filtersWrapper
+        .find('[name="expose_in_sqllab"]')
+        .first()
+        .props()
+        .onSelect(true);
+
+      filtersWrapper
+        .find('[name="allow_run_async"]')
+        .first()
+        .props()
+        .onSelect(false);
+
+      filtersWrapper
+        .find('[name="database_name"]')
+        .first()
+        .props()
+        .onSubmit('fooo');
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f),(col:database_name,opr:ct,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 });

@@ -19,12 +19,14 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import { mount } from 'enzyme';
-import Creatable from 'react-select/creatable';
+import { Select } from 'src/components/Select';
 import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
 
 const defaultProps = {
+  name: 'color_scheme',
+  label: 'Color Scheme',
   options: getCategoricalSchemeRegistry()
     .keys()
     .map(s => [s, s]),
@@ -37,6 +39,6 @@ describe('ColorSchemeControl', () => {
   });
 
   it('renders a Creatable', () => {
-    expect(wrapper.find(Creatable)).toExist();
+    expect(wrapper.find(Select)).toExist();
   });
 });

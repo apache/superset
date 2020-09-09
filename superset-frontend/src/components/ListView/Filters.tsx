@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useState, ReactNode } from 'react';
 import { styled, withTheme, SupersetThemeProps } from '@superset-ui/style';
 
 import {
@@ -36,7 +36,7 @@ import {
 import { filterSelectStyles } from './utils';
 
 interface BaseFilter {
-  Header: string;
+  Header: ReactNode;
   initialValue: any;
 }
 interface SelectFilterProps extends BaseFilter {
@@ -130,7 +130,7 @@ function SelectFilter({
 
   return (
     <FilterContainer>
-      <FilterTitle>{Header}</FilterTitle>
+      <FilterTitle>{Header}:</FilterTitle>
       {fetchSelects ? (
         <PaginatedSelect
           data-test="filters-select"
@@ -168,9 +168,15 @@ const StyledSelectFilter = withTheme(SelectFilter);
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
   onSubmit: (val: string) => void;
+  name: string;
 }
 
-function SearchFilter({ Header, initialValue, onSubmit }: SearchHeaderProps) {
+function SearchFilter({
+  Header,
+  name,
+  initialValue,
+  onSubmit,
+}: SearchHeaderProps) {
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => onSubmit(value);
   const onClear = () => {
@@ -183,6 +189,7 @@ function SearchFilter({ Header, initialValue, onSubmit }: SearchHeaderProps) {
       <SearchInput
         data-test="filters-search"
         placeholder={Header}
+        name={name}
         value={value}
         onChange={e => {
           setValue(e.currentTarget.value);
@@ -244,12 +251,13 @@ function UIFilters({
               />
             );
           }
-          if (input === 'search') {
+          if (input === 'search' && typeof Header === 'string') {
             return (
               <SearchFilter
                 Header={Header}
                 initialValue={initialValue}
                 key={id}
+                name={id}
                 onSubmit={(value: string) => updateFilterValue(index, value)}
               />
             );

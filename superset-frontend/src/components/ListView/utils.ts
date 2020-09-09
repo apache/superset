@@ -227,15 +227,21 @@ export function useListViewState({
   }, [query]);
 
   const applyFilterValue = (index: number, value: any) => {
-    // skip redunundant updates
-    if (internalFilters[index].value === value) {
-      return;
-    }
-    const update = { ...internalFilters[index], value };
-    const updatedFilters = updateInList(internalFilters, index, update);
-    setInternalFilters(updatedFilters);
-    setAllFilters(convertFilters(updatedFilters));
-    gotoPage(0); // clear pagination on filter
+    setInternalFilters(currentInternalFilters => {
+      // skip redunundant updates
+      if (currentInternalFilters[index].value === value) {
+        return currentInternalFilters;
+      }
+      const update = { ...currentInternalFilters[index], value };
+      const updatedFilters = updateInList(
+        currentInternalFilters,
+        index,
+        update,
+      );
+      setAllFilters(convertFilters(updatedFilters));
+      gotoPage(0); // clear pagination on filter
+      return updatedFilters;
+    });
   };
 
   return {

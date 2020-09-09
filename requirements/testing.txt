@@ -18,7 +18,7 @@ iniconfig==1.0.1          # via pytest
 ipdb==0.13.3              # via -r requirements/testing.in
 ipython-genutils==0.2.0   # via traitlets
 ipython==7.16.1           # via -r requirements/testing.in, ipdb
-isort==5.4.2              # via pylint
+isort==5.5.1              # via pylint
 jedi==0.17.2              # via ipython
 lazy-object-proxy==1.4.3  # via astroid
 mccabe==0.6.1             # via pylint
@@ -37,7 +37,7 @@ pytest-cov==2.10.1        # via -r requirements/testing.in
 pytest==6.0.1             # via -r requirements/testing.in, pytest-cov
 redis==3.5.3              # via -r requirements/testing.in
 statsd==3.3.0             # via -r requirements/testing.in
-traitlets==4.3.3          # via ipython
+traitlets==5.0.3          # via ipython
 typed-ast==1.4.1          # via astroid
 wcwidth==0.2.5            # via prompt-toolkit
 websocket-client==0.57.0  # via docker

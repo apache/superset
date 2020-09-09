@@ -21,11 +21,10 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Superset has deprecated support for Python ``2.*`` and supports
-only ``~=3.6`` to take advantage of the newer Python features and reduce
-the burden of supporting previous versions. We run our test suite
-against ``3.7``, with a subset of tests additionally being run against
-``3.6`` and ``3.8``.
+Superset supports Python versions ``>3.7`` to take advantage of the
+newer Python features and reduce the burden of supporting previous versions.
+We run our test suite against ``3.7``, with a subset of tests additionally
+also being run against ``3.8``.
 
 Cloud-native!
 -------------
