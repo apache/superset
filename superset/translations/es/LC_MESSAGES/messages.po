@@ -671,7 +671,7 @@ msgstr "No esta permitido modificar este Gráfico"
 
 #: superset/charts/commands/exceptions.py:85
 msgid "Charts could not be deleted."
-msgstr "Los Charts no han podido eliminarse"
+msgstr "Los Gráficos no han podido eliminarse"
 
 #: superset/commands/exceptions.py:80
 #: superset/datasets/commands/exceptions.py:140
