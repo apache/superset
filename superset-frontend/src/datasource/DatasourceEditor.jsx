@@ -457,15 +457,13 @@ export class DatasourceEditor extends React.PureComponent {
                 onSchemaChange={schema =>
                   this.onDatasourcePropChange('schema', schema)
                 }
-                onDbChange={database =>
-                  this.onDatasourcePropChange('database', database)
-                }
                 onTableChange={table =>
                   this.onDatasourcePropChange('datasource_name', table)
                 }
                 sqlLabMode={false}
                 clearable={false}
                 handleError={this.props.addDangerToast}
+                isDatabaseSelectEnabled={false}
               />
             }
             description={t(
@@ -748,6 +746,14 @@ export class DatasourceEditor extends React.PureComponent {
     return (
       <DatasourceContainer>
         {this.renderErrors()}
+        <div className="m-t-10">
+          <Alert bsStyle="warning">
+            <strong>{t('Be careful.')} </strong>
+            {t(
+              'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
+            )}
+          </Alert>
+        </div>
         <Tabs
           id="table-tabs"
           onSelect={this.handleTabSelect}
@@ -830,14 +836,6 @@ export class DatasourceEditor extends React.PureComponent {
           <Tab eventKey={4} title={t('Settings')}>
             {activeTabKey === 4 && (
               <div>
-                <div className="m-t-10">
-                  <Alert bsStyle="warning">
-                    <strong>{t('Be careful.')} </strong>
-                    {t(
-                      'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
-                    )}
-                  </Alert>
-                </div>
                 <Col md={6}>
                   <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
                 </Col>

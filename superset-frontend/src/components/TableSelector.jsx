@@ -53,6 +53,7 @@ const propTypes = {
   onChange: PropTypes.func,
   clearable: PropTypes.bool,
   handleError: PropTypes.func.isRequired,
+  isDatabaseSelectEnabled: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -67,6 +68,7 @@ const defaultProps = {
   sqlLabMode: true,
   formMode: false,
   clearable: true,
+  isDatabaseSelectEnabled: true,
 };
 
 export default class TableSelector extends React.PureComponent {
@@ -313,6 +315,7 @@ export default class TableSelector extends React.PureComponent {
         optionRenderer={this.renderDatabaseOption}
         mutator={this.dbMutator}
         placeholder={t('Select a database')}
+        isDisabled={!this.props.isDatabaseSelectEnabled}
         autoSelect
       />,
     );
