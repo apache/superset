@@ -663,7 +663,7 @@ msgstr "El Gráfico no ha podido guardarse"
 
 #: superset/charts/commands/exceptions.py:77
 msgid "Chart could not be deleted."
-msgstr "El Chart no ha podido eliminarse"
+msgstr "El Gráfico no ha podido eliminarse"
 
 #: superset/charts/commands/exceptions.py:81
 msgid "Changing this chart is forbidden"
