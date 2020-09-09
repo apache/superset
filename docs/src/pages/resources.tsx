@@ -135,6 +135,9 @@ const Resources = () => (
             allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
+          <iframe width="560" height="315" src="https://www.youtube.com/embed/AqousXQ7YHw" frameBorder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+          <iframe width="560" height="315" src="https://www.youtube.com/embed/JGeIHrQYhIs" frameBorder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+          <iframe width="560" height="315" src="https://www.youtube.com/embed/z350Gbi463I" frameBorder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
         </div>
       </div>
     </div>

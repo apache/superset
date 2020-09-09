@@ -374,7 +374,7 @@ const Theme = () => {
               </div>
               <div className="imageContainer">
                 <img src="/images/explorer3.png" alt="" />
-              </div>              
+              </div>
               <div className="imageContainer">
                 <img src="/images/dashboard.png" alt="" />
               </div>

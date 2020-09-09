@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'gatsby';
-import { Layout, Menu, Button } from 'antd';
+import {
+  Layout, Menu, Button, Drawer,
+} from 'antd';
 import { css } from '@emotion/core';
+import {
+  MenuOutlined,
+} from '@ant-design/icons';
 
 import logoSvg from '../images/superset-logo-horiz.svg';
 import Footer from './footer';
@@ -33,11 +38,11 @@ import './layout.css';
 const { Header, Sider } = Layout;
 
 const leftPaneWidth = 350;
-const breakpoints = [576, 768, 992, 1200]
+const breakpoints = [576, 768, 992, 1200];
 
 const mq = breakpoints.map(
-  bp => `@media (min-width: ${bp}px)`
-)
+  (bp) => `@media (max-width: ${bp}px)`,
+);
 
 const layoutStyles = css`
   font-family: Inter;
@@ -64,10 +69,6 @@ const headerStyle = css`
   .ant-menu-horizontal {
     border-bottom: none;
   }
-  .ant-menu-item-selected.custom {
-    color: #20a7c9 !important;
-    border-bottom: 2px solid #20a7c9 !important; 
-  }
 `;
 
 const getStartedButtonStyle = css`
@@ -81,6 +82,13 @@ const centerLayoutStyle = css`
   min-height: 60vw;
   overflow: auto;
   padding-right: 200px;
+  .menu {
+    display: none;
+    ${[mq[2]]} {
+      display: block;
+    }
+    padding: 25px;
+  }
 `;
 
 const sidebarStyle = css`
@@ -137,18 +145,17 @@ const contentLayoutDocsStyle = css`
   right: 0px;
   bottom: 0px;
   overflow: visible;
+  ${[mq[2]]} {
+    top: 64px;
+    left: 0; 
+  }
   aside {
-    ${[mq[3]]}{
+    ${[mq[2]]}{
       display: none;
     }
     overflow: auto;
   }
 `;
-
-/*
-top: 64px;
-left: 0;
-*/
 
 const logoStyle = css`
   float: left;
@@ -161,6 +168,7 @@ interface Props {
 }
 
 const AppLayout = ({ children }: Props) => {
+  const [showDrawer, setDrawer] = useState(false);
   const isOnDocsPage = getCurrentPath().indexOf('docs') > -1;
   return (
     <Layout css={layoutStyles}>
@@ -170,13 +178,13 @@ const AppLayout = ({ children }: Props) => {
           <img height="50" css={logoStyle} src={logoSvg} alt="logo" />
         </Link>
         <Menu mode="horizontal" selectedKeys={getCurrentPath()}>
-          <Menu.Item key="community" className="custom">
+          <Menu.Item key="community">
             <Link to="/community">Community</Link>
           </Menu.Item>
-          <Menu.Item key="resources" className="custom">
+          <Menu.Item key="resources">
             <Link to="/resources"> Resources</Link>
           </Menu.Item>
-          <Menu.Item key="docsintro" className="custom">
+          <Menu.Item key="docsintro">
             <Link to="/docs/intro">Documentation</Link>
           </Menu.Item>
         </Menu>
@@ -190,6 +198,16 @@ const AppLayout = ({ children }: Props) => {
       </Header>
       {isOnDocsPage ? (
         <>
+          <Drawer
+            placement="left"
+            closable={false}
+            onClose={() => setDrawer(false)}
+            visible={showDrawer}
+            getContainer={false}
+            style={{ position: 'absolute' }}
+          >
+            <AppMenu />
+          </Drawer>
           <Layout css={contentLayoutDocsStyle}>
             {isOnDocsPage && (
               <Sider width={leftPaneWidth} css={sidebarStyle}>
@@ -197,7 +215,10 @@ const AppLayout = ({ children }: Props) => {
               </Sider>
             )}
             <Layout css={contentStyle}>
-              <div css={centerLayoutStyle}>{children}</div>
+              <div css={centerLayoutStyle}>
+                <MenuOutlined onClick={() => setDrawer(true)} className="menu" />
+                {children}
+              </div>
               <Footer />
             </Layout>
           </Layout>

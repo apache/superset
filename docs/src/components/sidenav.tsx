@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Menu } from 'antd';
-import { useMenus, Link } from 'docz';
+import { useMenus } from 'docz';
 import { getActiveMenuItem } from '../utils';
 
 const HeaderNav = () => {
@@ -33,7 +33,7 @@ const HeaderNav = () => {
   )
   return (
     <Menu>
-        { headsList }
+      { headsList }
     </Menu>
   )
 } 

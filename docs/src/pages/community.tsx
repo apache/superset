@@ -136,7 +136,7 @@ const Community = () => {
       <div css={titleContainer}>
         <h1 css={title}>Community</h1>
         <h2>
-            Get involved in our welcoming, fast growing community!
+          Get involved in our welcoming, fast growing community!
         </h2>
         <div css={getInvolvedContainer}>
           <div className="joinCommunity section">
@@ -144,7 +144,10 @@ const Community = () => {
             <span className="resources">
               {links.map(([href, link, post]) => (
                 <>
-                  <a href={href}>{link}</a> - {post}
+                  <a href={href}>{link}</a>
+                  {' '}
+                  -
+                  {post}
                   <br />
                 </>
               ))}

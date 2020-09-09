@@ -20,16 +20,16 @@
 /* eslint no-undef: "error" */
 const getPathName = (path) => path.replace(/[/]+/g, '');
 
-export const getCurrentPath = () => {
-  return typeof window !== 'undefined' ? getPathName(window.location.pathname): "";
-}
+export const getCurrentPath = () => (typeof window !== 'undefined' ? getPathName(window.location.pathname) : '');
 // get active menus
 export const getActiveMenuItem = (items) => {
   let selectedKey;
   let openKey;
   let headings = [];
   const path = getCurrentPath();
-  items.forEach(({ menu, id: itemId, route: itemRoute , headings: itemHeadings}) => {
+  items.forEach(({
+    menu, id: itemId, route: itemRoute, headings: itemHeadings,
+  }) => {
     if (menu) {
       menu.forEach(({ id: menuId, route, headings: subHeadings }) => {
         if (getPathName(route) === path) {
@@ -42,11 +42,11 @@ export const getActiveMenuItem = (items) => {
       if (getPathName(itemRoute) === path) {
         selectedKey = itemId;
         openKey = itemId;
-        headings = itemHeadings
+        headings = itemHeadings;
       }
     }
   });
-  return {openKey, selectedKey, headings};
+  return { openKey, selectedKey, headings };
 };
 
 // TODO implement versioned dox?
@@ -98,4 +98,4 @@ export const getPreviousAndNextUrls = (menus) => {
 
 export const getCurrentMenu = () => {
 
-}
+};
