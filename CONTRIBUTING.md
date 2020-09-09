@@ -301,89 +301,39 @@ cd incubator-superset
 
 The latest documentation and tutorial are available at [https://superset.incubator.apache.org/docs](https://superset.incubator.apache.org/docs).
 
-Contributing to the official documentation is relatively easy, once you've setup
-your environment and done an edit end-to-end. The docs can be found in the
-`docs/` subdirectory of the repository, and are written in the
-[reStructuredText format](https://en.wikipedia.org/wiki/ReStructuredText) (.rst).
-If you've written Markdown before, you'll find the reStructuredText format familiar.
+The source for the docs can be found in the
+[/docs](https://github.com/apache/incubator-superset/tree/master/docs) subdirectory of the repository, and are written in the MDX format. [MDX](https://storybook.js.org/docs/react/api/mdx) is basically Markdown with the ability to sprinkle in JSX code.
 
-Superset uses [Sphinx](http://www.sphinx-doc.org/en/1.5.1/) to convert the rst files
-in `docs/` to the final HTML output users see.
+Rendering the docs is powered by [DocZ](https://www.docz.site/), which is built on top of [GatsbyJS](https://www.gatsbyjs.com/). 
 
-Finally, to make changes to the rst files and build the docs using Sphinx,
-you'll need to install a handful of dependencies from the repo you cloned:
+#### DocZ Installation
 
-```bash
-pip install -r requirements/documentation.txt
-```
-
-To get the feel for how to edit and build the docs, let's edit a file, build
-the docs and see our changes in action. First, you'll want to
-[create a new branch](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging)
-to work on your changes:
-
-```bash
-git checkout -b changes-to-docs
-```
-
-Now, go ahead and edit one of the files under `docs/`, say `docs/tutorial.rst` - change
-it however you want. Check out the
-[ReStructuredText Primer](http://docutils.sourceforge.net/docs/user/rst/quickstart.html)
-for a reference on the formatting of the rst files.
-
-Once you've made your changes, run this command to convert the docs into HTML:
-
-```bash
-make html
-```
-
-You'll see a lot of output as Sphinx handles the conversion. After it's done, the
-HTML Sphinx generated should be in `docs/_build/html`. Navigate there
-and start a simple web server so we can check out the docs in a browser:
-
-```bash
-cd docs/_build/html
-python -m http.server # Python2 users should use SimpleHTTPServer
+First, `cd` into the `/docs` folder from `incubator-superset`:
 
 ```
-
-This will start a small Python web server listening on port 8000. Point your
-browser to http://localhost:8000, find the file
-you edited earlier, and check out your changes!
-
-If you've made a change you'd like to contribute to the actual docs, just commit
-your code, push your new branch to Github:
-
-```bash
-git add docs/tutorial.rst
-git commit -m 'Awesome new change to tutorial'
-git push origin changes-to-docs
+cd docs/
 ```
 
-Then, [open a pull request](https://help.github.com/articles/about-pull-requests/).
+Then, install the Node packages that this project needs:
 
-#### Images
+```
+npm install
+```
 
-If you're adding new images to the documentation, you'll notice that the images
-referenced in the rst, e.g.
+To start the server and render the docs, you need to run:
 
-    .. image:: _static/images/tutorial/tutorial_01_sources_database.png
+```
+npm run develop
+```
 
-aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset-frontend/images` directory.
-When the docs are deployed to https://superset.incubator.apache.org/, images
-are copied from there to the `_static/images` directory, just like they're referenced
-in the docs.
+Navigate to [localhost:8000](localhost:8000) to interact with the documentation.
 
-For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
+#### Making Changes to the Documentation
 
-#### API documentation
+Every time you make changes to files in the `/docs` repo, DocZ will automatically rebuild and serve the changes to you. If you make more complex changes, sometimes DocZ will serve a 404 page with an error. When that happens, you can run the following command to clean any built-up state:
 
-Generate the API documentation with:
-
-```bash
-pip install -r requirements/documentation.txt
-python setup.py build_sphinx
+```
+npm run clean
 ```
 
 ### Flask server
