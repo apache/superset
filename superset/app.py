@@ -149,8 +149,8 @@ class SupersetAppInitializer:
             AlertLogModelView,
             AlertModelView,
             AlertObservationModelView,
-            ValidatorInlineView,
             SQLObserverInlineView,
+            ValidatorInlineView,
         )
         from superset.views.annotations import (
             AnnotationLayerModelView,

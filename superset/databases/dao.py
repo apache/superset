@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from superset.dao.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
@@ -44,6 +44,25 @@ class DatabaseDAO(BaseDAO):
             Database.database_name == database_name, Database.id != database_id,
         )
         return not db.session.query(database_query.exists()).scalar()
+
+    @staticmethod
+    def get_database_by_name(database_name: str) -> Optional[Database]:
+        return (
+            db.session.query(Database)
+            .filter(Database.database_name == database_name)
+            .one_or_none()
+        )
+
+    @staticmethod
+    def build_db_for_connection_test(
+        server_cert: str, extra: str, impersonate_user: bool, encrypted_extra: str
+    ) -> Optional[Database]:
+        return Database(
+            server_cert=server_cert,
+            extra=extra,
+            impersonate_user=impersonate_user,
+            encrypted_extra=encrypted_extra,
+        )
 
     @classmethod
     def get_related_objects(cls, database_id: int) -> Dict[str, Any]:
