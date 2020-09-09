@@ -19,8 +19,10 @@
 import React from 'react';
 import { theme, useConfig } from 'docz';
 import { ThemeProvider } from 'theme-ui';
+import { css } from '@emotion/core';
 import SEO from '../components/seo';
 import Layout from '../components/layout';
+import HeaderNav from '../components/sidenav';
 import NextLinks from '../components/next';
 
 import 'antd/dist/antd.css';
@@ -29,13 +31,41 @@ interface Props {
   children: React.ReactNode;
 }
 
+const docLayout = css`
+  display: flex;
+  flex-direction: row;
+  .headerNav {
+    position: fixed;
+    top: 64px;
+    right: 0;
+    width: 200px;
+    height: 605px;
+    overflow: auto; 
+    ul {
+      font-size: 12px;
+      li {
+        height: 25px;
+        line-height: 25px;
+        word-wrap: break-word;
+      }
+    }
+  }
+`;
+
 const Theme = ({ children }: Props) => {
   const config = useConfig();
   return (
     <ThemeProvider theme={config}>
       <Layout>
         <SEO title="Documents" />
-        {children}
+        <div css={docLayout}>
+          <div>
+            {children}
+          </div>
+          <div className="headerNav">
+            <HeaderNav />
+          </div>
+        </div>
         <div>
           <NextLinks />
         </div>

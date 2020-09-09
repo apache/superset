@@ -20,27 +20,33 @@
 /* eslint no-undef: "error" */
 const getPathName = (path) => path.replace(/[/]+/g, '');
 
+export const getCurrentPath = () => {
+  return typeof window !== 'undefined' ? getPathName(window.location.pathname): "";
+}
 // get active menus
 export const getActiveMenuItem = (items) => {
   let selectedKey;
   let openKey;
-  const path = getPathName(window.location.pathname);
-  items.forEach(({ menu, id: itemId, route: itemRoute }) => {
+  let headings = [];
+  const path = getCurrentPath();
+  items.forEach(({ menu, id: itemId, route: itemRoute , headings: itemHeadings}) => {
     if (menu) {
-      menu.forEach(({ id: menuId, route }) => {
+      menu.forEach(({ id: menuId, route, headings: subHeadings }) => {
         if (getPathName(route) === path) {
           selectedKey = menuId;
           openKey = itemId;
+          headings = subHeadings;
         }
       });
     } else if (itemRoute) {
       if (getPathName(itemRoute) === path) {
         selectedKey = itemId;
         openKey = itemId;
+        headings = itemHeadings
       }
     }
   });
-  return [openKey, selectedKey];
+  return {openKey, selectedKey, headings};
 };
 
 // TODO implement versioned dox?
@@ -74,7 +80,7 @@ export const getPreviousAndNextUrls = (menus) => {
   const items = listOrderedMenu(menus);
   let prevUrl;
   let nextUrl;
-  const path = typeof window !== 'undefined' && getPathName(window.location.pathname);
+  const path = getCurrentPath();
 
   items.forEach(({ route }, index) => {
     if (getPathName(route) === path) {
@@ -89,3 +95,7 @@ export const getPreviousAndNextUrls = (menus) => {
 
   return [prevUrl, nextUrl];
 };
+
+export const getCurrentMenu = () => {
+
+}

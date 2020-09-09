@@ -25,11 +25,20 @@ import logoSvg from '../images/superset-logo-horiz.svg';
 import Footer from './footer';
 import SEO from './seo';
 import AppMenu from './menu';
+
+import { getCurrentPath } from '../utils';
 import 'antd/dist/antd.css';
 import './layout.css';
 
 const { Header, Sider } = Layout;
+
 const leftPaneWidth = 350;
+const breakpoints = [576, 768, 992, 1200]
+
+const mq = breakpoints.map(
+  bp => `@media (min-width: ${bp}px)`
+)
+
 const layoutStyles = css`
   font-family: Inter;
   .ant-layout {
@@ -55,6 +64,10 @@ const headerStyle = css`
   .ant-menu-horizontal {
     border-bottom: none;
   }
+  .ant-menu-item-selected.custom {
+    color: #20a7c9 !important;
+    border-bottom: 2px solid #20a7c9 !important; 
+  }
 `;
 
 const getStartedButtonStyle = css`
@@ -67,6 +80,7 @@ const centerLayoutStyle = css`
   padding: 25px;
   min-height: 60vw;
   overflow: auto;
+  padding-right: 200px;
 `;
 
 const sidebarStyle = css`
@@ -124,9 +138,17 @@ const contentLayoutDocsStyle = css`
   bottom: 0px;
   overflow: visible;
   aside {
+    ${[mq[3]]}{
+      display: none;
+    }
     overflow: auto;
   }
 `;
+
+/*
+top: 64px;
+left: 0;
+*/
 
 const logoStyle = css`
   float: left;
@@ -139,9 +161,7 @@ interface Props {
 }
 
 const AppLayout = ({ children }: Props) => {
-  const isOnDocsPage = typeof window !== 'undefined'
-    && window.location.pathname.indexOf('docs') > 0;
-
+  const isOnDocsPage = getCurrentPath().indexOf('docs') > -1;
   return (
     <Layout css={layoutStyles}>
       <SEO title="Welcome" />
@@ -149,14 +169,14 @@ const AppLayout = ({ children }: Props) => {
         <Link to="/">
           <img height="50" css={logoStyle} src={logoSvg} alt="logo" />
         </Link>
-        <Menu mode="horizontal">
-          <Menu.Item>
+        <Menu mode="horizontal" selectedKeys={getCurrentPath()}>
+          <Menu.Item key="community" className="custom">
             <Link to="/community">Community</Link>
           </Menu.Item>
-          <Menu.Item>
+          <Menu.Item key="resources" className="custom">
             <Link to="/resources"> Resources</Link>
           </Menu.Item>
-          <Menu.Item>
+          <Menu.Item key="docsintro" className="custom">
             <Link to="/docs/intro">Documentation</Link>
           </Menu.Item>
         </Menu>

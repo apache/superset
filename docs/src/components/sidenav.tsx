@@ -17,42 +17,25 @@
  * under the License.
  */
 import React from 'react';
-import { useMenus, Link } from 'docz';
 import { Menu } from 'antd';
+import { useMenus, Link } from 'docz';
 import { getActiveMenuItem } from '../utils';
 
-const { SubMenu } = Menu;
-
-export default () => {
+const HeaderNav = () => {
   const menus = useMenus();
-  const {openKey, selectedKey} = getActiveMenuItem(menus);
-  console.log('menus', menus)
+  const { headings } = getActiveMenuItem(menus);
+  const headsList = headings.map(e=>
+    <Menu.Item> 
+      <a href={`#${e.slug}`}>
+        { e.value } 
+      </a>
+    </Menu.Item>
+  )
   return (
-    <Menu
-      mode="inline"
-      defaultOpenKeys={[openKey]}
-      defaultSelectedKeys={[selectedKey]}
-    >
-      {menus.map((menuItem) => {
-        if (menuItem.menu?.length > 0) {
-          return (
-            <SubMenu key={menuItem.id} title={menuItem.name}>
-              {menuItem.menu
-                .sort((a, b) => a.index - b.index)
-                .map((submenuItem) => (
-                  <Menu.Item key={submenuItem.id}>
-                    <Link to={submenuItem.route}>{submenuItem.name}</Link>
-                  </Menu.Item>
-                ))}
-            </SubMenu>
-          );
-        }
-        return (
-          <Menu.Item key={menuItem.id}>
-            <Link to={menuItem.route}>{menuItem.name}</Link>
-          </Menu.Item>
-        );
-      })}
+    <Menu>
+        { headsList }
     </Menu>
-  );
-};
+  )
+} 
+
+export default HeaderNav;
