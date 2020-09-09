@@ -128,10 +128,15 @@ function getStateFromSeparator(value) {
 
 function getStateFromCommonTimeFrame(value) {
   const units = `${value.split(' ')[1]}s`;
-  const sinceMoment =
-    value === 'No filter'
-      ? ''
-      : moment().utc().startOf(units).subtract(1, units);
+  let sinceMoment;
+
+  if (value === 'No filter') {
+    sinceMoment = '';
+  } else if (units === 'years') {
+    sinceMoment = moment().utc().startOf(units).subtract(1, units);
+  } else {
+    sinceMoment = moment().utc().startOf('day').subtract(1, units);
+  }
 
   return {
     tab: TABS.DEFAULTS,
