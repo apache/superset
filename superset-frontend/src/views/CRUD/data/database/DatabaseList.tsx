@@ -23,8 +23,8 @@ import React, { useState, useMemo } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import DeleteModal from 'src/components/DeleteModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
@@ -34,6 +34,10 @@ import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
 
+interface DatabaseDeleteObject extends DatabaseObject {
+  chart_count: number;
+  dashboard_count: number;
+}
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -63,9 +67,33 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     addDangerToast,
   );
   const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
+  const [
+    databaseCurrentlyDeleting,
+    setDatabaseCurrentlyDeleting,
+  ] = useState<DatabaseDeleteObject | null>(null);
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+
+  const openDatabaseDeleteModal = (database: DatabaseObject) =>
+    SupersetClient.get({
+      endpoint: `/api/v1/database/${database.id}/related_objects/`,
+    })
+      .then(({ json = {} }) => {
+        setDatabaseCurrentlyDeleting({
+          ...database,
+          chart_count: json.charts.count,
+          dashboard_count: json.dashboards.count,
+        });
+      })
+      .catch(
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching database related data: %s',
+            errMsg,
+          ),
+        ),
+      );
 
   function handleDatabaseDelete({ id, database_name: dbName }: DatabaseObject) {
     SupersetClient.delete({
@@ -198,41 +226,28 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleDelete = () => handleDatabaseDelete(original);
+          const handleDelete = () => openDatabaseDeleteModal(original);
           if (!canDelete) {
             return null;
           }
           return (
             <span className="actions">
               {canDelete && (
-                <ConfirmStatusChange
-                  title={t('Please Confirm')}
-                  description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{original.database_name}</b>?
-                    </>
-                  }
-                  onConfirm={handleDelete}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  data-test="database-delete"
+                  onClick={handleDelete}
                 >
-                  {confirmDelete => (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      data-test="database-delete"
-                      onClick={confirmDelete}
-                    >
-                      <TooltipWrapper
-                        label="delete-action"
-                        tooltip={t('Delete database')}
-                        placement="bottom"
-                      >
-                        <Icon name="trash" />
-                      </TooltipWrapper>
-                    </span>
-                  )}
-                </ConfirmStatusChange>
+                  <TooltipWrapper
+                    label="delete-action"
+                    tooltip={t('Delete database')}
+                    placement="bottom"
+                  >
+                    <Icon name="trash" />
+                  </TooltipWrapper>
+                </span>
               )}
             </span>
           );
@@ -298,6 +313,24 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           /* TODO: add database logic here */
         }}
       />
+      {databaseCurrentlyDeleting && (
+        <DeleteModal
+          description={t(
+            'The database %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the database will break those objects.',
+            databaseCurrentlyDeleting.database_name,
+            databaseCurrentlyDeleting.chart_count,
+            databaseCurrentlyDeleting.dashboard_count,
+          )}
+          onConfirm={() => {
+            if (databaseCurrentlyDeleting) {
+              handleDatabaseDelete(databaseCurrentlyDeleting);
+            }
+          }}
+          onHide={() => setDatabaseCurrentlyDeleting(null)}
+          open
+          title={t('Delete Database?')}
+        />
+      )}
 
       <ListView<DatabaseObject>
         className="database-list-view"

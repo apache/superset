@@ -36,12 +36,14 @@ from superset.databases.commands.exceptions import (
     DatabaseUpdateFailedError,
 )
 from superset.databases.commands.update import UpdateDatabaseCommand
+from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter
 from superset.databases.schemas import (
     database_schemas_query_schema,
     DatabasePostSchema,
     DatabasePutSchema,
+    DatabaseRelatedObjectsResponse,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
@@ -63,6 +65,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "table_metadata",
         "select_star",
         "schemas",
+        "related_objects",
     }
     class_permission_name = "DatabaseView"
     resource_name = "database"
@@ -148,6 +151,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     }
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
+        DatabaseRelatedObjectsResponse,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
@@ -501,3 +505,60 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(404, message="Table not found on the database")
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
+
+    @expose("/<int:pk>/related_objects/", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def related_objects(self, pk: int) -> Response:
+        """Get charts and dashboards count associated to a database
+        ---
+        get:
+          description:
+            Get charts and dashboards count associated to a database
+          parameters:
+          - in: path
+            name: pk
+            schema:
+              type: integer
+          responses:
+            200:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatabaseRelatedObjectsResponse"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dataset = DatabaseDAO.find_by_id(pk)
+        if not dataset:
+            return self.response_404()
+        data = DatabaseDAO.get_related_objects(pk)
+        charts = [
+            {
+                "id": chart.id,
+                "slice_name": chart.slice_name,
+                "viz_type": chart.viz_type,
+            }
+            for chart in data["charts"]
+        ]
+        dashboards = [
+            {
+                "id": dashboard.id,
+                "json_metadata": dashboard.json_metadata,
+                "slug": dashboard.slug,
+                "title": dashboard.dashboard_title,
+            }
+            for dashboard in data["dashboards"]
+        ]
+        return self.response(
+            200,
+            charts={"count": len(charts), "result": charts},
+            dashboards={"count": len(dashboards), "result": dashboards},
+        )
