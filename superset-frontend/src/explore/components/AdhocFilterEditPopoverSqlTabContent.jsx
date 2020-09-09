@@ -25,7 +25,7 @@ import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import { FormGroup } from 'react-bootstrap';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import sqlKeywords from '../../SqlLab/utils/sqlKeywords';
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';

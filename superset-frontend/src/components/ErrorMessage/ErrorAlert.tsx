@@ -18,8 +18,7 @@
  */
 import React, { useState, ReactNode } from 'react';
 import { Modal } from 'react-bootstrap';
-import { styled, supersetTheme } from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
+import { styled, supersetTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
 import Button from 'src/components/Button';
 

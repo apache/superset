@@ -20,7 +20,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import { Select } from 'src/components/Select';
-import { getCategoricalSchemeRegistry } from '@superset-ui/color';
+import { getCategoricalSchemeRegistry } from '@superset-ui/core';
 
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
 

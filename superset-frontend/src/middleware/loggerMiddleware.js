@@ -19,7 +19,7 @@
 /* eslint-disable camelcase */
 /* eslint prefer-const: 2 */
 import shortid from 'shortid';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 
 import { safeStringify } from '../utils/safeStringify';
 import { LOG_EVENT } from '../logger/actions';

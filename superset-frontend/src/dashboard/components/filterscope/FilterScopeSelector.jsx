@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import buildFilterScopeTreeEntry from '../../util/buildFilterScopeTreeEntry';
 import getFilterScopeNodesTree from '../../util/getFilterScopeNodesTree';

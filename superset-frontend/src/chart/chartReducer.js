@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
 

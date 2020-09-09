@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { OverlayTrigger } from 'react-bootstrap';
-import { withTheme } from '@superset-ui/style';
+import { withTheme } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';

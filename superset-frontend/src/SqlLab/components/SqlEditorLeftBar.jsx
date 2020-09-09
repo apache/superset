@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import TableElement from './TableElement';
 import TableSelector from '../../components/TableSelector';
 

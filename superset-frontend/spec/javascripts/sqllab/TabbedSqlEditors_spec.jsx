@@ -23,7 +23,7 @@ import URI from 'urijs';
 import { Tab } from 'react-bootstrap';
 import { shallow, mount } from 'enzyme';
 import sinon from 'sinon';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 

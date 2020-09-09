@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from './ErrorMessage/ErrorMessageWithStackTrace';
 
 const propTypes = {

@@ -29,7 +29,7 @@ import 'brace/mode/markdown';
 import 'brace/mode/javascript';
 import 'brace/theme/textmate';
 
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import ControlHeader from '../ControlHeader';
 import ModalTrigger from '../../../components/ModalTrigger';

@@ -22,7 +22,7 @@ import moment from 'moment';
 import { Table } from 'reactable-arc';
 import { ProgressBar, Well } from 'react-bootstrap';
 import Label from 'src/components/Label';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import Link from '../../components/Link';

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import CodeModal from 'src/dashboard/components/CodeModal';
 

@@ -20,7 +20,7 @@ import React from 'react';
 import { Panel } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import VizTypeControl from '../explore/components/controls/VizTypeControl';
 

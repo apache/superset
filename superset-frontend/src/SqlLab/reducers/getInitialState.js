@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 
 export default function getInitialState({

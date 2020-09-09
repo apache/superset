@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { TableInstance, Row } from 'react-table';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
 interface CardCollectionProps {

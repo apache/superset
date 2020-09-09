@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import { addWarningToast } from '../../messageToasts/actions';
 import { updateLayoutComponents } from './dashboardFilters';

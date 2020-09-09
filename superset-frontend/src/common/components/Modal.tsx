@@ -17,9 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
+import { styled, t } from '@superset-ui/core';
 import { Modal as BaseModal } from 'src/common/components';
-import { t } from '@superset-ui/translation';
 import Button from 'src/components/Button';
 
 interface ModalProps {
