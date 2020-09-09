@@ -825,7 +825,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         birth_names_dataset = self.get_birth_names_dataset()
         if birth_names_dataset.database.backend == "presto":
-            pass
+            return
 
         argument = [birth_names_dataset.id]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
