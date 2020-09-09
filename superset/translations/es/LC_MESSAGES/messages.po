@@ -655,7 +655,7 @@ msgstr "Los parametros del Gráfico son invalidos"
 
 #: superset/charts/commands/exceptions.py:69
 msgid "Chart could not be created."
-msgstr "El Gráfico no ha podido crearse" 
+msgstr "El Gráfico no ha podido crearse"
 
 #: superset/charts/commands/exceptions.py:73
 msgid "Chart could not be updated."
