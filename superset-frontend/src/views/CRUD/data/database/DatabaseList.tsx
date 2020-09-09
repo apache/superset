@@ -100,6 +100,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       () => {
         refreshData();
         addSuccessToast(t('Deleted: %s', dbName));
+
+        // Close delete modal
+        setDatabaseCurrentlyDeleting(null);
       },
       createErrorHandler(errMsg =>
         addDangerToast(t('There was an issue deleting %s: %s', dbName, errMsg)),

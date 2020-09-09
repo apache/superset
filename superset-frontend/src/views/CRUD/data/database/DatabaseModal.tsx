@@ -189,22 +189,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         delete update.id;
       }
 
-      if (!update.cache_timeout) {
-        update.cache_timeout = '0';
-      }
-
-      if (!update.encrypted_extra) {
-        update.encrypted_extra = '';
-      }
-
-      if (!update.force_ctas_schema) {
-        update.force_ctas_schema = '';
-      }
-
-      if (!update.server_cert) {
-        update.server_cert = '';
-      }
-
       if (db && db.id) {
         updateResource(db.id, update).then(() => {
           if (onDatabaseAdd) {
