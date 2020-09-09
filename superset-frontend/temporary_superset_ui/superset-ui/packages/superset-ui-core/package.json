@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/core",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Superset UI core",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -57,9 +57,9 @@
     "whatwg-fetch": "^3.0.0"
   },
   "peerDependencies": {
+    "@types/react": "*",
     "@types/react-bootstrap": "*",
     "@types/react-loadable": "*",
-    "@types/react": "*",
     "react": "^16.13.1",
     "react-bootstrap": "^0.33.1",
     "react-loadable": "^5.5.0"
