@@ -344,7 +344,7 @@ msgstr "Serie de tiempo - Gráfico de múltiples líneas"
 #: superset/viz.py:1412
 #: superset/viz_sip38.py:1379
 msgid "Time Series - Dual Axis Line Chart"
-msgstr "Series de tiempo - Chart de líneas de doble eje"
+msgstr "Series de tiempo - Gráfico de líneas de doble eje"
 
 #: superset/viz.py:1422
 #: superset/viz_sip38.py:1389
