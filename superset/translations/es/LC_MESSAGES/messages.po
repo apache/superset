@@ -339,7 +339,7 @@ msgstr ""
 #: superset/viz.py:1382
 #: superset/viz_sip38.py:1349
 msgid "Time Series - Multiple Line Charts"
-msgstr "Serie de tiempo - Chart de multiples lineas"
+msgstr "Serie de tiempo - Gráfico de múltiples líneas"
 
 #: superset/viz.py:1412
 #: superset/viz_sip38.py:1379
