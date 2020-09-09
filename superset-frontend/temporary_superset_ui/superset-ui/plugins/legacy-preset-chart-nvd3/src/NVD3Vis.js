@@ -24,14 +24,17 @@ import mathjs from 'mathjs';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import {
-  isDefined,
   t,
+  isDefined,
   getTimeFormatter,
   smartDateVerboseFormatter,
   getNumberFormatter,
   NumberFormats,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
+
+import 'nvd3-fork/build/nv.d3.css';
+
 /* eslint-disable-next-line */
 import ANNOTATION_TYPES, { applyNativeColumns } from './vendor/superset/AnnotationTypes';
 import isTruthy from './utils/isTruthy';
