@@ -354,7 +354,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @rison(database_schemas_query_schema)
     @statsd_metrics
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
-        """ Get all schemas from a database
+        """Get all schemas from a database
         ---
         get:
           description: Get all schemas from a database
@@ -411,7 +411,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def table_metadata(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
-        """ Table schema info
+        """Table schema info
         ---
         get:
           description: Get database table metadata
@@ -468,7 +468,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
     ) -> FlaskResponse:
-        """ Table schema info
+        """Table schema info
         ---
         get:
           description: Get database select star for table
@@ -596,6 +596,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                     "Unexpected error occurred, please check your logs for details"
                 )
             )
+
     @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()
     @safe
