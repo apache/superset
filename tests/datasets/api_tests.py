@@ -845,6 +845,7 @@ class TestDatasetApi(SupersetTestCase):
             include_defaults=False,
         )
         cli_export_tables = cli_export["databases"][0]["tables"]
+        raise Exception(cli_export_tables)
         expected_response = []
         for export_table in cli_export_tables:
             if export_table["table_name"] == "birth_names":
