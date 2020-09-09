@@ -288,7 +288,7 @@ msgstr "Por favor utiliza 3 etiquetas de metricas diferentes"
 #: superset/viz.py:1077
 #: superset/viz_sip38.py:1052
 msgid "Pick a metric for x, y and size"
-msgstr "Elige una métrica y tamaño para x, y "
+msgstr "Elige una métrica y tamaño para x, y"
 
 #: superset/viz.py:1104
 #: superset/viz_sip38.py:1079
