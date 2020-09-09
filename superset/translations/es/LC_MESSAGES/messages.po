@@ -293,7 +293,7 @@ msgstr "Elige una métrica y tamaño para x, y "
 #: superset/viz.py:1104
 #: superset/viz_sip38.py:1079
 msgid "Bullet Chart"
-msgstr "Grafico de Puntos"
+msgstr "Gráfico de Puntos"
 
 #: superset/viz.py:1114
 #: superset/viz_sip38.py:1089
