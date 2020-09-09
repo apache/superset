@@ -53,7 +53,6 @@ export default class ColorSchemeControl extends React.PureComponent {
     this.state = {
       scheme: this.props.value,
     };
-
     this.onChange = this.onChange.bind(this);
     this.renderOption = this.renderOption.bind(this);
   }
@@ -65,9 +64,8 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   renderOption(key) {
-    const { isLinear, schemes } = this.props;
-    const schemeLookup = isFunction(schemes) ? schemes() : schemes;
-    const currentScheme = schemeLookup[key.value || defaultProps.value];
+    const { isLinear } = this.props;
+    const currentScheme = this.schemes[key.value];
 
     // For categorical scheme, display all the colors
     // For sequential scheme, show 10 or interpolate to 10.
@@ -100,12 +98,16 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   render() {
-    const { choices } = this.props;
-    const options = (isFunction(choices) ? choices() : choices).map(choice => ({
-      value: choice[0],
-      label: choice[1],
-    }));
-
+    const { schemes, choices } = this.props;
+    // save parsed schemes for later
+    this.schemes = isFunction(schemes) ? schemes() : schemes;
+    const options = (isFunction(choices) ? choices() : choices).map(
+      ([value, label]) => ({
+        value,
+        // use scheme label if available
+        label: this.schemes[value]?.label || label,
+      }),
+    );
     const selectProps = {
       multi: false,
       name: `select-${this.props.name}`,

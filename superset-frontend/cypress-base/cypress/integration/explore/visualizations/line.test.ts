@@ -57,10 +57,10 @@ describe('Visualization > Line', () => {
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="text"]')
       .focus()
-      .type('d3{enter}');
+      .type('air{enter}');
     cy.get('input[name="select-color_scheme"]').should(
       'have.value',
-      'd3Category10',
+      'bnbColors',
     );
   });
 
