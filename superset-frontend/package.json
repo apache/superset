@@ -233,7 +233,7 @@
     "emotion-ts-plugin": "^0.5.3",
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.14.0",
-    "eslint": "^6.2.2",
+    "eslint": "^7.8.1",
     "eslint-config-airbnb": "^15.0.1",
     "eslint-config-prettier": "^6.11.0",
     "eslint-import-resolver-webpack": "^0.10.1",
