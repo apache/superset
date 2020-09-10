@@ -49,7 +49,6 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 impersonate_user=self._properties.get("impersonate_user", False),
                 encrypted_extra=self._properties.get("encrypted_extra", "{}"),
             )
-
             if database is not None:
                 database.set_sqlalchemy_uri(uri)
                 database.db_engine_spec.mutate_db_for_connection_test(database)
