@@ -236,7 +236,7 @@
     "eslint": "^7.8.1",
     "eslint-config-airbnb": "^15.0.1",
     "eslint-config-prettier": "^6.11.0",
-    "eslint-import-resolver-webpack": "^0.10.1",
+    "eslint-import-resolver-webpack": "^0.12.2",
     "eslint-plugin-cypress": "^2.0.1",
     "eslint-plugin-import": "^2.2.0",
     "eslint-plugin-jest": "^23.17.1",
