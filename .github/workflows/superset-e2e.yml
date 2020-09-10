@@ -3,8 +3,7 @@ name: E2E
 on: [push, pull_request]
 
 jobs:
-  cypress:
-    name: Cypress
+  Cypress:
     runs-on: ubuntu-18.04
     strategy:
       fail-fast: true
