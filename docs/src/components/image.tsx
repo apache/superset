@@ -28,9 +28,7 @@ interface Props {
   otherProps?: any;
 }
 
-const Image = ({
-  imageName, type, width, height, ...otherProps
-}: Props) => {
+const Image = ({ imageName, type, width, height, ...otherProps }: Props) => {
   const data = useStaticQuery(graphql`
     query {
       logoSm: file(relativePath: { eq: "src/images/s.png" }) {
@@ -97,7 +95,7 @@ const Image = ({
   `);
 
   const filter = data.getAllImages.edges.filter(
-    (n) => n.node.fixed.originalName === imageName,
+    n => n.node.fixed.originalName === imageName,
   );
   const imgStyle = width && height ? { width, height } : {};
 

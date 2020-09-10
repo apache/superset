@@ -18,13 +18,9 @@
  */
 import React, { useState } from 'react';
 import { Link } from 'gatsby';
-import {
-  Layout, Menu, Button, Drawer,
-} from 'antd';
+import { Layout, Menu, Button, Drawer } from 'antd';
 import { css } from '@emotion/core';
-import {
-  MenuOutlined,
-} from '@ant-design/icons';
+import { MenuOutlined } from '@ant-design/icons';
 
 import logoSvg from '../images/superset-logo-horiz.svg';
 import Footer from './footer';
@@ -40,9 +36,7 @@ const { Header, Sider } = Layout;
 const leftPaneWidth = 350;
 const breakpoints = [576, 768, 992, 1200];
 
-const mq = breakpoints.map(
-  (bp) => `@media (max-width: ${bp}px)`,
-);
+const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 
 const layoutStyles = css`
   font-family: Inter;
@@ -147,10 +141,10 @@ const contentLayoutDocsStyle = css`
   overflow: visible;
   ${[mq[2]]} {
     top: 64px;
-    left: 0; 
+    left: 0;
   }
   aside {
-    ${[mq[2]]}{
+    ${[mq[2]]} {
       display: none;
     }
     overflow: auto;
@@ -178,14 +172,14 @@ const AppLayout = ({ children }: Props) => {
           <img height="50" css={logoStyle} src={logoSvg} alt="logo" />
         </Link>
         <Menu mode="horizontal" selectedKeys={getCurrentPath()}>
+          <Menu.Item key="docsintro">
+            <Link to="/docs/intro">Documentation</Link>
+          </Menu.Item>
           <Menu.Item key="community">
             <Link to="/community">Community</Link>
           </Menu.Item>
           <Menu.Item key="resources">
             <Link to="/resources"> Resources</Link>
-          </Menu.Item>
-          <Menu.Item key="docsintro">
-            <Link to="/docs/intro">Documentation</Link>
           </Menu.Item>
         </Menu>
         <div css={getStartedButtonStyle}>
@@ -216,7 +210,10 @@ const AppLayout = ({ children }: Props) => {
             )}
             <Layout css={contentStyle}>
               <div css={centerLayoutStyle}>
-                <MenuOutlined onClick={() => setDrawer(true)} className="menu" />
+                <MenuOutlined
+                  onClick={() => setDrawer(true)}
+                  className="menu"
+                />
                 {children}
               </div>
               <Footer />

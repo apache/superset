@@ -17,25 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { Menu } from 'antd';
+import { Anchor } from 'antd';
 import { useMenus } from 'docz';
 import { getActiveMenuItem } from '../utils';
+
+const { Link } = Anchor;
 
 const HeaderNav = () => {
   const menus = useMenus();
   const { headings } = getActiveMenuItem(menus);
-  const headsList = headings.map(e=>
-    <Menu.Item> 
-      <a href={`#${e.slug}`}>
-        { e.value } 
-      </a>
-    </Menu.Item>
-  )
-  return (
-    <Menu>
-      { headsList }
-    </Menu>
-  )
-} 
+  const headsList = headings.map(e => (
+    <Link href={`#${e.slug}`} title={e.value} />
+  ));
+  return <Anchor>{headsList}</Anchor>;
+};
 
 export default HeaderNav;

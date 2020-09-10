@@ -20,7 +20,10 @@ module.exports = {
   parser: 'babel-eslint',
   rules: {
     strict: 0,
-    'react/jsx-filename-extension': [2, { 'extensions': ['.js', '.jsx', '.ts', '.tsx'] }],
+    'react/jsx-filename-extension': [
+      2,
+      { extensions: ['.js', '.jsx', '.ts', '.tsx'] },
+    ],
     'import/extensions': 'off',
     'react/jsx-props-no-spreading': 'off',
     'jsx-a11y/click-events-have-key-events': 'off',
@@ -38,7 +41,7 @@ module.exports = {
     'import/resolver': {
       node: {
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
-      }
-    }
-  }
-}
+      },
+    },
+  },
+};

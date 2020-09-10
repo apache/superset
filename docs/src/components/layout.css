@@ -32,21 +32,40 @@ h1 {
   font-size: 40px;
   font-weight: bold;
 }
+
 a {
   color: #1985a0;
 }
-
-h3 {
-  font-size: 30px;
-  font-weight: bold;
-  font-style: italic;
-
-}
-
 th, td {
   padding: 15px;
   text-align: left;
   border-bottom: 1px solid #ddd;
+}
+
+.ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected {
+  background-color: #20A7C9;
+}
+
+.ant-menu-item-selected a {
+  color: white;
+}
+.ant-menu-submenu-selected {
+  color: #20A7C9;
+}
+
+.ant-menu-horizontal > .ant-menu-item:hover,
+.ant-menu-horizontal > .ant-menu-item-active {
+  color: #20A7C9 !important;
+  border-bottom: 2px solid #20A7C9;
+}
+
+.ant-menu-horizontal >.ant-menu-item-selected {
+  color: #20A7C9;
+  border-bottom: 2px solid #20A7C9;
+}
+
+.ant-menu-horizontal > .ant-menu-item-selected a {
+  color: #20A7C9;
 }
 
 tr:nth-child(even) {background-color: #f2f2f2;}

@@ -30,7 +30,6 @@ export default {
     'Frequently Asked Questions',
     'Contribution Guide',
     'Roadmap',
-    'Learning Resources',
     'Security',
   ],
 };

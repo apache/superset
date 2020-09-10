@@ -18,34 +18,35 @@
  */
 
 /* eslint no-undef: "error" */
-const getPathName = (path) => path.replace(/[/]+/g, '');
+const getPathName = path => path.replace(/[/]+/g, '');
 
-export const getCurrentPath = () => (typeof window !== 'undefined' ? getPathName(window.location.pathname) : '');
+export const getCurrentPath = () =>
+  typeof window !== 'undefined' ? getPathName(window.location.pathname) : '';
 // get active menus
-export const getActiveMenuItem = (items) => {
+export const getActiveMenuItem = items => {
   let selectedKey;
   let openKey;
   let headings = [];
   const path = getCurrentPath();
-  items.forEach(({
-    menu, id: itemId, route: itemRoute, headings: itemHeadings,
-  }) => {
-    if (menu) {
-      menu.forEach(({ id: menuId, route, headings: subHeadings }) => {
-        if (getPathName(route) === path) {
-          selectedKey = menuId;
+  items.forEach(
+    ({ menu, id: itemId, route: itemRoute, headings: itemHeadings }) => {
+      if (menu) {
+        menu.forEach(({ id: menuId, route, headings: subHeadings }) => {
+          if (getPathName(route) === path) {
+            selectedKey = menuId;
+            openKey = itemId;
+            headings = subHeadings;
+          }
+        });
+      } else if (itemRoute) {
+        if (getPathName(itemRoute) === path) {
+          selectedKey = itemId;
           openKey = itemId;
-          headings = subHeadings;
+          headings = itemHeadings;
         }
-      });
-    } else if (itemRoute) {
-      if (getPathName(itemRoute) === path) {
-        selectedKey = itemId;
-        openKey = itemId;
-        headings = itemHeadings;
       }
-    }
-  });
+    },
+  );
   return { openKey, selectedKey, headings };
 };
 
@@ -62,7 +63,7 @@ export const getActiveMenuItem = (items) => {
 } */
 
 // flattens ordered menu
-const listOrderedMenu = (menus) => {
+const listOrderedMenu = menus => {
   const newlist = [];
   const stack = [...menus];
   while (stack.length > 0) {
@@ -76,7 +77,7 @@ const listOrderedMenu = (menus) => {
 };
 
 // functionality for prev and next button
-export const getPreviousAndNextUrls = (menus) => {
+export const getPreviousAndNextUrls = menus => {
   const items = listOrderedMenu(menus);
   let prevUrl;
   let nextUrl;
@@ -96,6 +97,4 @@ export const getPreviousAndNextUrls = (menus) => {
   return [prevUrl, nextUrl];
 };
 
-export const getCurrentMenu = () => {
-
-};
+export const getCurrentMenu = () => {};

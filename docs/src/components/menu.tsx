@@ -25,20 +25,20 @@ const { SubMenu } = Menu;
 
 export default () => {
   const menus = useMenus();
-  const {openKey, selectedKey} = getActiveMenuItem(menus);
+  const { openKey, selectedKey } = getActiveMenuItem(menus);
   return (
     <Menu
       mode="inline"
       defaultOpenKeys={[openKey]}
       defaultSelectedKeys={[selectedKey]}
     >
-      {menus.map((menuItem) => {
+      {menus.map(menuItem => {
         if (menuItem.menu?.length > 0) {
           return (
             <SubMenu key={menuItem.id} title={menuItem.name}>
               {menuItem.menu
                 .sort((a, b) => a.index - b.index)
-                .map((submenuItem) => (
+                .map(submenuItem => (
                   <Menu.Item key={submenuItem.id}>
                     <Link to={submenuItem.route}>{submenuItem.name}</Link>
                   </Menu.Item>

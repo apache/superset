@@ -40,7 +40,7 @@ const docLayout = css`
     right: 0;
     width: 200px;
     height: 605px;
-    overflow: auto; 
+    overflow: auto;
     ul {
       font-size: 12px;
       li {
@@ -59,10 +59,7 @@ const Theme = ({ children }: Props) => {
       <Layout>
         <SEO title="Documents" />
         <div css={docLayout}>
-
-          <div>
-            {children}
-          </div>
+          <div>{children}</div>
           <div className="headerNav">
             <HeaderNav />
           </div>

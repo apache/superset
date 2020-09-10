@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { css } from '@emotion/core';
-import { Button, Card } from 'antd';
+import { Card } from 'antd';
 import { GithubOutlined } from '@ant-design/icons';
 import SEO from '../components/seo';
 import Layout from '../components/layout';
@@ -56,6 +56,11 @@ const links = [
     'https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md',
     'Organizations',
     'a list of some of the organizations using Superset in production',
+  ],
+  [
+    'https://github.com/apache-superset/awesome-apache-superset',
+    'Contributors Guide',
+    'Interested in contributing? Learn how to contribute and best practices',
   ],
 ];
 
@@ -113,7 +118,7 @@ const getInvolvedContainer = css`
 `;
 
 const Community = () => {
-  const pmcList = pmc.map((e) => {
+  const pmcList = pmc.map(e => {
     const name = e.name.indexOf(' ');
     return (
       <a href={e.github} target="_blank" rel="noreferrer" key={name}>
@@ -135,33 +140,18 @@ const Community = () => {
       <SEO title="Community" />
       <div css={titleContainer}>
         <h1 css={title}>Community</h1>
-        <h2>
-          Get involved in our welcoming, fast growing community!
-        </h2>
+        <h2>Get involved in our welcoming, fast growing community!</h2>
         <div css={getInvolvedContainer}>
           <div className="joinCommunity section">
-            <h2 className="title">Resources</h2>
+            <h2 className="title">How to get involved:</h2>
             <span className="resources">
               {links.map(([href, link, post]) => (
                 <>
-                  <a href={href}>{link}</a>
-                  {' '}
-                  -
-                  {post}
+                  <a href={href}>{link}</a> -{post}
                   <br />
                 </>
               ))}
             </span>
-            <br />
-            <a
-              href="https://github.com/apache-superset/awesome-apache-superset"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Button type="primary" size="large">
-                Additional resources
-              </Button>
-            </a>
           </div>
           <h3 className="title ppm">Apache Committers</h3>
           <div css={communityContainer}>{pmcList}</div>
