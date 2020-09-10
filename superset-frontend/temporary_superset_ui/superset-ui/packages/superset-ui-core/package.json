@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/core",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "description": "Superset UI core",
   "sideEffects": false,
   "main": "lib/index.js",
