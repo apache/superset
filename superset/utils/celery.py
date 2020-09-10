@@ -26,7 +26,8 @@ from superset import app, db
 
 logger = logging.getLogger(__name__)
 
-
+# Null pool is used for the celery workers due process forking side effects.
+# For more info see: https://github.com/apache/incubator-superset/issues/10530
 @contextmanager
 def session_scope(nullpool: bool) -> Iterator[Session]:
     """Provide a transactional scope around a series of operations."""

@@ -28,6 +28,8 @@ from superset.sql_parse import ParsedQuery
 logger = logging.getLogger("tasks.email_reports")
 
 
+# Session needs to be passed along in the celery workers and db.session cannot be used.
+# For more info see: https://github.com/apache/incubator-superset/issues/10530
 def observe(alert_id: int, session: Session) -> Optional[str]:
     """
     Runs the SQL query in an alert's SQLObserver and then

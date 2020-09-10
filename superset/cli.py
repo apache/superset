@@ -622,9 +622,9 @@ def alert() -> None:
     click.secho("Processing one alert loop", fg="green")
     with session_scope(nullpool=True) as session:
         schedule_window(
-            ScheduleType.alert,
-            datetime.now() - timedelta(1000),
-            datetime.now(),
-            6000,
-            session,
+            report_type=ScheduleType.alert,
+            start_at=datetime.now() - timedelta(1000),
+            stop_at=datetime.now(),
+            resolution=6000,
+            session=session,
         )
