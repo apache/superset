@@ -25,7 +25,7 @@ export default {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['metric'], ['adhoc_filters'], ['groupby'], ['row_limit']],
+      controlSetRows: [['groupby'], ['metric'], ['adhoc_filters'], ['row_limit']],
     },
     {
       label: t('Chart Options'),

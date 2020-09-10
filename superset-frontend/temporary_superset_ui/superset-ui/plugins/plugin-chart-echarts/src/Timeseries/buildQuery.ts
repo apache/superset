@@ -40,7 +40,7 @@ export default function buildQuery(formData: QueryFormData) {
     return [
       {
         ...baseQueryObject,
-        // Time series charts need to set the `is_timeseries` flag to true
+        groupby: formData.series,
         is_timeseries: true,
         post_processing: [
           {

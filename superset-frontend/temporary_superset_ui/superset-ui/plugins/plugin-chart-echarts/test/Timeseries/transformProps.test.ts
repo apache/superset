@@ -26,14 +26,17 @@ describe('EchartsTimeseries tranformProps', () => {
     datasource: '3__table',
     granularity_sqla: 'ds',
     metric: 'sum__num',
-    series: 'name',
+    series: ['foo', 'bar'],
   };
   const chartProps = new ChartProps({
     formData,
     width: 800,
     height: 600,
     queryData: {
-      data: [{ sum__num: 1, __timestamp: 599616000000 }],
+      data: [
+        { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
+        { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
+      ],
     },
   });
 
@@ -43,10 +46,23 @@ describe('EchartsTimeseries tranformProps', () => {
         width: 800,
         height: 600,
         echartOptions: expect.objectContaining({
+          legend: expect.objectContaining({
+            data: ['San Francisco', 'New York'],
+          }),
           series: expect.arrayContaining([
             expect.objectContaining({
-              data: [[new Date(599616000000), 1]],
-              id: 'sum__num',
+              data: [
+                [new Date(599616000000), 1],
+                [new Date(599916000000), 3],
+              ],
+              name: 'San Francisco',
+            }),
+            expect.objectContaining({
+              data: [
+                [new Date(599616000000), 2],
+                [new Date(599916000000), 4],
+              ],
+              name: 'New York',
             }),
           ]),
         }),

@@ -17,9 +17,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TimeseriesDataRecord } from '@superset-ui/core';
+import { DataRecord, TimeseriesDataRecord } from '@superset-ui/core';
 
-// eslint-disable-next-line import/prefer-default-export
 export function extractTimeseriesSeries(
   data: TimeseriesDataRecord[],
 ): echarts.EChartOption.Series[] {
@@ -38,4 +37,9 @@ export function extractTimeseriesSeries(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       data: rows.map(datum => [datum.__timestamp, datum[key]]),
     }));
+}
+
+export function extractGroupbyLabel(datum: DataRecord, groupby: string[]): string {
+  // TODO: apply formatting to dates and numbers
+  return groupby.map(val => `${datum[val]}`).join(', ');
 }

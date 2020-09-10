@@ -17,9 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { EchartsPieProps } from './types';
+import { EchartsProps } from '../types';
 import Echart from '../components/Echart';
 
-export default function EchartsPie({ height, width, echartOptions }: EchartsPieProps) {
+export default function EchartsPie({ height, width, echartOptions }: EchartsProps) {
   return <Echart height={height} width={width} echartOptions={echartOptions} />;
 }

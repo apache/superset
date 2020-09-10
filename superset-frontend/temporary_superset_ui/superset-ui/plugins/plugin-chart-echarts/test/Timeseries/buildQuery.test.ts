@@ -18,18 +18,19 @@
  */
 import buildQuery from '../../src/Timeseries/buildQuery';
 
-describe('EchartsTimeseries buildQuery', () => {
+describe('Timeseries buildQuery', () => {
   const formData = {
     datasource: '5__table',
     granularity_sqla: 'ds',
-    series: 'foo',
+    series: ['foo'],
+    metrics: ['bar', 'baz'],
     viz_type: 'my_chart',
-    queryFields: { series: 'groupby' },
   };
 
   it('should build groupby with series in form data', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.groupby).toEqual(['foo']);
+    expect(query.metrics).toEqual([{ label: 'bar' }, { label: 'baz' }]);
   });
 });
