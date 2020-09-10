@@ -45,7 +45,7 @@ def is_dashboard_level_access_enabled() -> bool:
     return dashboard_level_access_enabled
 
 
-class SecuredMixin:
+class DashboardSecurityMixin:
     previous_title: Optional[str] = None
 
     @property
@@ -82,53 +82,3 @@ class DashboardSecurityManager:
         if matched:
             return matched.group("id")
         raise ValueError(f"the view name {view_name} does not contains an id segment")
-
-
-class DashboardSecurityOrientedDBEventsHandler:
-    @staticmethod
-    def after_insert(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
-    ) -> None:
-        try:
-            logger.info("in after insert on %s %d", target, target.id)
-            security_manager.set_permissions_views(
-                connection, target.permission_view_pairs
-            )
-        except Exception as ex:
-            logger.error(ex)
-
-    @staticmethod
-    def on_set(  # pylint: disable=unused-argument
-        dashboard: "Dashboard", new_title: str, old_title: str, event: Any  # type: ignore
-    ) -> None:
-        dashboard.previous_title = old_title
-
-    @staticmethod
-    def after_update(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
-    ) -> None:
-        previous_title = target.previous_title
-        new_title = target.dashboard_title
-        if target.previous_title in {NEVER_SET, NO_VALUE}:
-            DashboardSecurityOrientedDBEventsHandler.after_insert(
-                mapper, connection, target
-            )
-        elif previous_title and previous_title != new_title:
-            new_perm = target.view_name
-            old_perm = new_perm.replace(new_title, previous_title)
-            security_manager.change_view_name_by_connection(
-                connection, new_perm, old_perm
-            )
-        target.previous_title = None
-
-    @staticmethod
-    def after_delete(  # pylint: disable=unused-argument
-        mapper: Any, connection: Connection, target: "Dashboard"  # type: ignore
-    ) -> None:
-        try:
-            logger.info("in after delete on %s %d", target, target.id)
-            security_manager.delete_permissions_views(
-                connection, target.permission_view_pairs
-            )
-        except Exception as ex:
-            logger.error(ex)

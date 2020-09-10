@@ -43,9 +43,7 @@ from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.dashboards.security import (
-    DashboardSecurityOrientedDBEventsHandler,
-    is_dashboard_level_access_enabled,
-    SecuredMixin,
+    DashboardSecurityMixin,
 )
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.slice import Slice
@@ -123,7 +121,7 @@ dashboard_user = Table(
 
 
 class Dashboard(  # pylint: disable=too-many-instance-attributes
-    Model, SecuredMixin, AuditMixinNullable, ImportMixin
+    Model, DashboardSecurityMixin, AuditMixinNullable, ImportMixin
 ):
 
     """The dashboard object!"""
@@ -502,21 +500,3 @@ if is_feature_enabled("TAGGING_SYSTEM"):
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Dashboard, "after_insert", event_after_dashboard_changed)
     sqla.event.listen(Dashboard, "after_update", event_after_dashboard_changed)
-
-
-if is_dashboard_level_access_enabled():
-    sqla.event.listen(
-        Dashboard, "after_insert", DashboardSecurityOrientedDBEventsHandler.after_insert
-    )
-    sqla.event.listen(
-        Dashboard, "after_update", DashboardSecurityOrientedDBEventsHandler.after_update
-    )
-    sqla.event.listen(
-        Dashboard, "after_delete", DashboardSecurityOrientedDBEventsHandler.after_delete
-    )
-    sqla.event.listen(
-        Dashboard.dashboard_title,
-        "set",
-        DashboardSecurityOrientedDBEventsHandler.on_set,
-        active_history=True,
-    )
