@@ -23,6 +23,7 @@ jobs:
           apt-get-install
           pip-upgrade
           pip install -r requirements/testing.txt
+          pip install -r requirements/documentation.txt
 
     - name: pylint
       # `-j 0` run Pylint in parallel
