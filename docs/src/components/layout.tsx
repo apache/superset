@@ -18,7 +18,9 @@
  */
 import React, { useState } from 'react';
 import { Link } from 'gatsby';
-import { Layout, Menu, Button, Drawer } from 'antd';
+import {
+  Layout, Menu, Button, Drawer,
+} from 'antd';
 import { css } from '@emotion/core';
 import { MenuOutlined } from '@ant-design/icons';
 
@@ -36,7 +38,7 @@ const { Header, Sider } = Layout;
 const leftPaneWidth = 350;
 const breakpoints = [576, 768, 992, 1200];
 
-const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
+const mq = breakpoints.map((bp) => `@media (max-width: ${bp}px)`);
 
 const layoutStyles = css`
   font-family: Inter;

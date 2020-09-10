@@ -26,7 +26,7 @@ const { Link } = Anchor;
 const HeaderNav = () => {
   const menus = useMenus();
   const { headings } = getActiveMenuItem(menus);
-  const headsList = headings.map(e => (
+  const headsList = headings.map((e) => (
     <Link href={`#${e.slug}`} title={e.value} />
   ));
   return <Anchor>{headsList}</Anchor>;

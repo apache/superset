@@ -196,8 +196,12 @@ const Resources = () => (
     <div css={resourcesContainer}>
       <h1 css={title}>Resources</h1>
       <span className="span">
-        Here’s a collection of resources and blogs about Apache Superset <br />
-        from around the Internet. If you find anything worth adding, you <br />
+        Here’s a collection of resources and blogs about Apache Superset
+        {' '}
+        <br />
+        from around the Internet. If you find anything worth adding, you
+        {' '}
+        <br />
         can add to the list which can be found here
         <a href="https://github.com/apache-superset/awesome-apache-superset">
           Awesome Apache Superset

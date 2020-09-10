@@ -123,7 +123,10 @@ const LayoutFooter = () => (
         </div>
       </div>
       <div css={copyrightStyle}>
-        © Copyright {new Date().getFullYear()},
+        © Copyright
+        {' '}
+        {new Date().getFullYear()}
+        ,
         <a href="http://www.apache.org/" target="_blank" rel="noreferrer">
           &nbsp;The Apache Software Fountation
         </a>
@@ -134,7 +137,8 @@ const LayoutFooter = () => (
           rel="noreferrer"
         >
           &nbsp;License.
-        </a>{' '}
+        </a>
+        {' '}
         <br />
         <div>
           Disclaimer: Apache Superset is an effort undergoing incubation at The

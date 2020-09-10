@@ -26,7 +26,7 @@ const versions = ['1', '2'];
 
 export default function VersionSelect() {
   const { version } = querystring.parse(window.location.search.substr(1));
-  const handleChange = e => {
+  const handleChange = (e) => {
     // @ts-ignore
     window.location = `/docs/intro?version=${e}`;
   };
@@ -38,7 +38,7 @@ export default function VersionSelect() {
         style={{ width: 120 }}
         onChange={handleChange}
       >
-        {versions.map(e => (
+        {versions.map((e) => (
           <Option value={e}>{e}</Option>
         ))}
       </Select>

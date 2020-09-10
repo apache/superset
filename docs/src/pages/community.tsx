@@ -118,7 +118,7 @@ const getInvolvedContainer = css`
 `;
 
 const Community = () => {
-  const pmcList = pmc.map(e => {
+  const pmcList = pmc.map((e) => {
     const name = e.name.indexOf(' ');
     return (
       <a href={e.github} target="_blank" rel="noreferrer" key={name}>
@@ -147,7 +147,10 @@ const Community = () => {
             <span className="resources">
               {links.map(([href, link, post]) => (
                 <>
-                  <a href={href}>{link}</a> -{post}
+                  <a href={href}>{link}</a>
+                  {' '}
+                  -
+                  {post}
                   <br />
                 </>
               ))}
