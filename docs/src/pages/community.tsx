@@ -150,6 +150,7 @@ const Community = () => {
                   <a href={href}>{link}</a>
                   {' '}
                   -
+                  {' '}
                   {post}
                   <br />
                 </>

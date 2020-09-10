@@ -199,74 +199,13 @@ const Resources = () => (
         Here’s a collection of resources and blogs about Apache Superset
         {' '}
         <br />
-        from around the Internet. If you find anything worth adding, you
-        {' '}
-        <br />
-        can add to the list which can be found here
-        <a href="https://github.com/apache-superset/awesome-apache-superset">
+        from around the Internet.
+        For a more more extensive and dynamic list of
+        resources, check out the <a href="https://github.com/apache-superset/awesome-apache-superset">
           Awesome Apache Superset
-        </a>
+        </a> repository
       </span>
       <div className="links">
-        <div>
-          <h2> Getting Started Resources</h2>
-          <div className="resourcesLinks">
-            <div className="link">
-              <div className="title">Docker Image</div>
-              <a
-                href="https://hub.docker.com/r/preset/superset/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Button type="primary">Docker Image</Button>
-              </a>
-            </div>
-            <div className="link">
-              <div className="title">Preset Blog</div>
-              <a
-                href="https://preset.io/blog/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Button type="primary"> Go To Blog!</Button>
-              </a>
-            </div>
-            <div className="link">
-              <div>Youtube Page</div>
-              <a
-                href="https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Button type="primary" className="ytBtn">
-                  Go To YouTube Page!
-                </Button>
-              </a>
-            </div>
-            <div className="link">
-              <div className="title">Install Drivers</div>
-              <a
-                href="https://preset.io/blog/2020-05-18-install-db-drivers/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Button type="primary">Go To Blog!</Button>
-              </a>
-            </div>
-            <div className="link">
-              <div>Connect Superset To Google Sheets</div>
-              <a
-                href="https://preset.io/blog/2020-06-01-connect-superset-google-sheets/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Button type="primary" className="gBtn">
-                  Go To Blog!
-                </Button>
-              </a>
-            </div>
-          </div>
-        </div>
         <div className="learnContent">
           <h2>Learning Content</h2>
           {links.map(([link, href]) => (
