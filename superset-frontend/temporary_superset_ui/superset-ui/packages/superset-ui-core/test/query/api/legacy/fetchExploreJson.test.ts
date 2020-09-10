@@ -44,24 +44,38 @@ describe('fetchExploreJson()', () => {
       field2: 'def',
     });
   });
-  it('uses GET when specified', () => {
-    fetchMock.get('glob:*/superset/explore_json/', {
+  it('uses GET when specified', async () => {
+    expect.assertions(4);
+    const mockUrl = 'glob:*/superset/explore_json/*';
+
+    fetchMock.get(mockUrl, {
       field1: 'abc',
       field2: 'def',
     });
 
-    return expect(
-      fetchExploreJson({
-        method: 'GET',
-        formData: {
-          granularity: 'minute',
-          viz_type: 'word_cloud',
-          datasource: '1__table',
-        },
-      }),
-    ).resolves.toEqual({
+    const result = await fetchExploreJson({
+      method: 'GET',
+      formData: {
+        granularity: 'minute',
+        viz_type: 'word_cloud',
+        datasource: '1__table',
+      },
+    });
+
+    expect(result).toEqual({
       field1: 'abc',
       field2: 'def',
     });
+    const mockCalls = fetchMock.calls(mockUrl);
+    expect(mockCalls).toHaveLength(1);
+    expect(mockCalls[0][0]).toEqual(
+      'http://localhost/superset/explore_json/?form_data=%7B%22granularity%22%3A%22minute%22%2C%22viz_type%22%3A%22word_cloud%22%2C%22datasource%22%3A%221__table%22%7D',
+    );
+    expect(mockCalls[0][1]).toEqual(
+      expect.objectContaining({
+        method: 'GET',
+        body: undefined,
+      }),
+    );
   });
 });
