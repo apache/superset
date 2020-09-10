@@ -673,6 +673,7 @@ class TestDatabaseApi(SupersetTestCase):
             "extra": json.dumps(extra),
             "impersonate_user": False,
             "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
+            "server_cert": ssl_certificate,
         }
         url = f"api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
@@ -685,6 +686,7 @@ class TestDatabaseApi(SupersetTestCase):
             "database_name": "examples",
             "impersonate_user": False,
             "extra": json.dumps(extra),
+            "server_cert": None,
         }
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 200)
@@ -700,6 +702,7 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": "broken://url",
             "database_name": "examples",
             "impersonate_user": False,
+            "server_cert": None,
         }
         url = f"api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
@@ -716,6 +719,7 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": "mssql+pymssql://url",
             "database_name": "examples",
             "impersonate_user": False,
+            "server_cert": None,
         }
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 400)
@@ -738,6 +742,7 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": "sqlite:///home/superset/unsafe.db",
             "database_name": "unsafe",
             "impersonate_user": False,
+            "server_cert": None,
         }
         url = f"api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
