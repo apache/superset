@@ -16,25 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import buildQuery from '../../src/Pie/buildQuery';
 
-export type PieChartFormData = QueryFormData & {
-  groupby: string[];
-  metric: string;
-  outerRadius?: number;
-  innerRadius?: number;
-  colorScheme?: string;
-  donut?: boolean;
-  showLegend?: boolean;
-  showLabels?: boolean;
-  labelsOutside?: boolean;
-  numberFormat?: string;
-};
+describe('Pie buildQuery', () => {
+  const formData = {
+    datasource: '5__table',
+    granularity_sqla: 'ds',
+    metric: 'foo',
+    groupby: ['bar'],
+    viz_type: 'my_chart',
+  };
 
-export type EchartsPieLabelType =
-  | 'key'
-  | 'value'
-  | 'percent'
-  | 'key_value'
-  | 'key_percent'
-  | 'key_value_percent';
+  it('should build groupby with series in form data', () => {
+    const queryContext = buildQuery(formData);
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual([{ label: 'foo' }]);
+    expect(query.groupby).toEqual(['bar']);
+  });
+});
