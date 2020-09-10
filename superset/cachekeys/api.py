@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+
 from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import protect
-from jsonschema import ValidationError
+from marshmallow.exceptions import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.cachekeys.schemas import CacheInvalidationRequestSchema
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -27,10 +30,12 @@ from superset.extensions import cache_manager, db, event_logger
 from superset.models.cache import CacheKey
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
+logger = logging.getLogger(__name__)
+
 
 class CacheRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(CacheKey)
-    resource_name = "cache"
+    resource_name = "cachekey"
     allow_browser_login = True
     class_permission_name = "CacheRestApi"
 
@@ -72,7 +77,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
         except KeyError:
             return self.response_400(message="Request is incorrect")
         except ValidationError as error:
-            return self.response_400(message=error.message)
+            return self.response_400(message=str(error))
         datasource_uids = set(datasources.get("datasource_uids", []))
         for ds in datasources.get("datasources", []):
             ds_obj = ConnectorRegistry.get_datasource_by_name(
@@ -85,14 +90,31 @@ class CacheRestApi(BaseSupersetModelRestApi):
             if ds_obj:
                 datasource_uids.add(ds_obj.uid)
 
-        cache_keys = (
+        cache_key_objs = (
             db.session.query(CacheKey)
             .filter(CacheKey.datasource_uid.in_(datasource_uids))
             .all()
         )
-        if cache_keys:
-            cache_manager.cache.delete_many(*[c.cache_key for c in cache_keys])
-            for ck in cache_keys:
-                db.session.delete(ck)
+        cache_keys = [c.cache_key for c in cache_key_objs]
+        if cache_key_objs:
+            all_keys_deleted = cache_manager.cache.delete_many(*cache_keys)
+
+            if not all_keys_deleted:
+                # expected behavior as keys may expire and cache is not a
+                # persistent storage
+                logger.info(
+                    "Some of the cache keys were not deleted in the list %s", cache_keys
+                )
+
+            try:
+                delete_stmt = CacheKey.__table__.delete().where(  # pylint: disable=no-member
+                    CacheKey.cache_key.in_(cache_keys)
+                )
+                db.session.execute(delete_stmt)
+                db.session.commit()
+            except SQLAlchemyError as ex:  # pragma: no cover
+                logger.error(ex)
+                db.session.rollback()
+                return self.response_500(str(ex))
             db.session.commit()
         return self.response(201)

@@ -16,6 +16,8 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+from typing import Dict, Any
+
 from tests.test_app import app  # noqa
 
 from superset.extensions import cache_manager, db
@@ -28,13 +30,14 @@ from tests.base_tests import (
 )  # noqa
 
 
-def test_invalidate_cache(logged_in_admin):
-    rv = post_assert_metric(
-        test_client,
-        "api/v1/cache/invalidate",
-        {"datasource_uids": ["3__table"]},
-        "invalidate",
+def invalidate(params: Dict[str, Any]):
+    return post_assert_metric(
+        test_client, "api/v1/cachekey/invalidate", params, "invalidate"
     )
+
+
+def test_invalidate_cache(logged_in_admin):
+    rv = invalidate({"datasource_uids": ["3__table"]})
     assert rv.status_code == 201
 
 
@@ -43,18 +46,50 @@ def test_invalidate_existing_cache(logged_in_admin):
     db.session.commit()
     cache_manager.cache.set("cache_key", "value")
 
-    rv = post_assert_metric(
-        test_client,
-        "api/v1/cache/invalidate",
-        {"datasource_uids": ["3__table"]},
-        "invalidate",
-    )
+    rv = invalidate({"datasource_uids": ["3__table"]})
 
     assert rv.status_code == 201
     assert cache_manager.cache.get("cache_key") == None
     assert (
         not db.session.query(CacheKey).filter(CacheKey.cache_key == "cache_key").first()
     )
+
+
+def test_invalidate_cache_empty_input(logged_in_admin):
+    rv = invalidate({"datasource_uids": []})
+    assert rv.status_code == 201
+
+    rv = invalidate({"datasources": []})
+    assert rv.status_code == 201
+
+    rv = invalidate({"datasource_uids": [], "datasources": []})
+    assert rv.status_code == 201
+
+
+def test_invalidate_cache_bad_request(logged_in_admin):
+    rv = invalidate(
+        {
+            "datasource_uids": [],
+            "datasources": [{"datasource_name": "", "datasource_type": None}],
+        }
+    )
+    assert rv.status_code == 400
+
+    rv = invalidate(
+        {
+            "datasource_uids": [],
+            "datasources": [{"datasource_name": "", "datasource_type": "bla"}],
+        }
+    )
+    assert rv.status_code == 400
+
+    rv = invalidate(
+        {
+            "datasource_uids": "datasource",
+            "datasources": [{"datasource_name": "", "datasource_type": "bla"}],
+        }
+    )
+    assert rv.status_code == 400
 
 
 def test_invalidate_existing_caches(logged_in_admin):
@@ -71,9 +106,7 @@ def test_invalidate_existing_caches(logged_in_admin):
     cache_manager.cache.set("cache_key4", "value")
     cache_manager.cache.set("cache_keyX", "value")
 
-    rv = post_assert_metric(
-        test_client,
-        "api/v1/cache/invalidate",
+    rv = invalidate(
         {
             "datasource_uids": ["3__druid", "4__druid"],
             "datasources": [
@@ -108,8 +141,7 @@ def test_invalidate_existing_caches(logged_in_admin):
                     "datasource_type": "table",
                 },
             ],
-        },
-        "invalidate",
+        }
     )
 
     assert rv.status_code == 201
