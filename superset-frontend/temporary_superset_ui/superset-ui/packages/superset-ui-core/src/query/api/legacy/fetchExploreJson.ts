@@ -20,8 +20,9 @@ export default async function fetchExploreJson({
     ...requestConfig,
     method,
     endpoint,
-    // TODO: Have to transform formData as query string for GET
-    postPayload: { form_data: formData },
+    searchParams:
+      method === 'GET' ? new URLSearchParams({ form_data: JSON.stringify(formData) }) : undefined,
+    postPayload: method === 'POST' ? { form_data: formData } : undefined,
   });
   return json as LegacyChartDataResponse;
 }
