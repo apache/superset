@@ -17,8 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
-import { SupersetClient } from '@superset-ui/connection';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -126,7 +125,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
   const isEditMode = database !== null;
-  const testEndpointEnabled = false; // TODO: temporary flag until new test connection endpoint is up
 
   // Database fetch logic
   const {
@@ -142,11 +140,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Test Connection logic
   const testConnection = () => {
-    if (!db || !testEndpointEnabled) {
-      return;
-    }
-
-    if (!db.sqlalchemy_uri || !db.sqlalchemy_uri.length) {
+    if (!db || !db.sqlalchemy_uri || !db.sqlalchemy_uri.length) {
       addDangerToast(t('Please enter a SQLAlchemy URI to test'));
       return;
     }
@@ -155,18 +149,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
       database_name:
         db && db.database_name.length ? db.database_name : undefined,
-      impersonate_user: db ? db.impersonate_user : undefined,
-      extra: db ? db.extra : undefined,
-      encrypted_extra: db ? db.encrypted_extra : undefined,
-      server_cert: db ? db.server_cert : undefined,
+      impersonate_user: db ? db.impersonate_user || undefined : undefined,
+      extra: db && db.extra && db.extra.length ? db.extra : undefined,
+      encrypted_extra: db ? db.encrypted_extra || undefined : undefined,
+      server_cert: db ? db.server_cert || undefined : undefined,
     };
 
     // TODO: add response logic once endpoint is up
     SupersetClient.post({
-      endpoint: '/api/v1/database/test_connection/',
+      endpoint: 'api/v1/database/test_connection',
       body: JSON.stringify(connection),
       headers: { 'Content-Type': 'application/json' },
-    }).then();
+    })
+      .then(() => {
+        addSuccessToast(t('Connection looks good!'));
+      })
+      .catch(() => {
+        addDangerToast(
+          t('ERROR: Connection failed, please check your connection settings'),
+        );
+      });
   };
 
   // Functions
