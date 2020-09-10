@@ -17,7 +17,6 @@
 """A collection of ORM sqlalchemy models for SQL Lab"""
 import re
 from datetime import datetime
-from functools import lru_cache
 from typing import Any, Dict, List
 
 import simplejson as json
@@ -205,7 +204,6 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
         return "/superset/sqllab?savedQueryId={0}".format(self.id)
 
     @property
-    @lru_cache(maxsize=2)
     def sql_tables(self) -> List[Table]:
         return list(ParsedQuery(self.sql).tables)
 
