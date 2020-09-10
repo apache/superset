@@ -1,0 +1,36 @@
+# Python linting and docs
+name: Docs
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.7]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.1.1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
+          pip install -r requirements/documentation.txt
+
+    - name: pylint
+      # `-j 0` run Pylint in parallel
+      run: pylint -j 0 superset
+
+    - name: pre-commit
+      run: pre-commit run --all-files
+
+    - name: Build documentation
+      run: sphinx-build -b html docs _build/html -W
