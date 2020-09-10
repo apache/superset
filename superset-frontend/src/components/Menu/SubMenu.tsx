@@ -61,6 +61,8 @@ const StyledHeader = styled.header`
   }
 `;
 
+type MenuClickHandler = React.MouseEventHandler<MenuItem>;
+
 type MenuChild = {
   label: string;
   name: string;

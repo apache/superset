@@ -33,6 +33,8 @@ import RecentActivity from 'src/profile/components/RecentActivity';
 import Favorites from 'src/profile/components/Favorites';
 import DashboardTable from './DashboardTable';
 
+const { Panel } = Collapse;
+
 interface WelcomeProps {
   user: User;
 }
@@ -54,6 +56,10 @@ function useSyncQueryState(
   };
 
   return [state, setQueryStateAndState];
+}
+
+function ding(e: any) {
+  console.log('event',e);
 }
 
 export default function Welcome({ user }: WelcomeProps) {
@@ -82,6 +88,52 @@ export default function Welcome({ user }: WelcomeProps) {
   }, []);
 
   return (
+    <Collapse defaultActiveKey={['1']}>
+      <Panel header={t('Recents')} key="1">
+        <SubMenu
+          activeChild="Datasets"
+          name={''}
+          children={[
+            {
+              name: 'Viewed',
+              label: t('Viewed'),
+              onClick: () => ding('hi?'),
+            },
+            {
+              name: 'Edited',
+              label: t('Edited'),
+              onClick: ding,
+            },
+            {
+              name: 'Created',
+              label: t('Created'),
+              onClick: ding,
+            },
+          ]}
+        />
+        <RecentActivity user={user} />
+      </Panel>
+
+      <Panel header={t('Dashboards')} key="2">
+        <FormControl
+          type="text"
+          bsSize="sm"
+          placeholder="Search"
+          value={searchQuery}
+          // @ts-ignore React bootstrap types aren't quite right here
+          onChange={e => setSearchQuery(e.currentTarget.value)}
+        />
+        <DashboardTable search={searchQuery} />
+      </Panel>
+
+      <Panel header={t('Saved Queries')} key="3" >
+        Stuff here!
+      </Panel>
+      <Panel header={t('Charts')} key="4" >
+        Stuff here!
+      </Panel>
+    </Collapse>
+    /*
     <div className="container welcome">
       <Tabs
         activeKey={activeTab}
@@ -139,5 +191,6 @@ export default function Welcome({ user }: WelcomeProps) {
         </Tab>
       </Tabs>
     </div>
+    */
   );
 }
