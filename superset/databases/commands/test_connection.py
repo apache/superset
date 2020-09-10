@@ -18,7 +18,6 @@ import logging
 from contextlib import closing
 from typing import Any, Dict, Optional
 
-import simplejson as json
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import select
 

@@ -303,7 +303,9 @@ class DatabaseTestConnectionSchema(Schema):
         allow_none=True,
     )
     server_cert = fields.String(
-        description=server_cert_description, validate=server_cert_validator
+        description=server_cert_description,
+        allow_none=True,
+        validate=server_cert_validator,
     )
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
