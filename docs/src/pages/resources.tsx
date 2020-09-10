@@ -43,10 +43,6 @@ const installationLinks = [
     'https://superset.incubator.apache.org/installation.html#start-with-docker',
   ],
   [
-    'Install on Windows 10',
-    'https://gist.github.com/mark05e/d9cccae129dd11a21d7219eddd7d9923',
-  ],
-  [
     'Install on CentOS',
     'https://aichamp.wordpress.com/2019/11/20/installing-apache-superset-into-centos-7-with-python-3-7/',
   ],
@@ -103,8 +99,6 @@ const resourcesContainer = css`
       display: flex;
       flex-direction: row;
       flex-wrap: wrap;
-      justify-content: center;
-      text-align: center;
       .link {
         margin: 25px;
         width: 189px;
@@ -157,11 +151,9 @@ const resourcesContainer = css`
   }
   .span {
     display: block;
-    text-align: center;
     font-size: 20px;
   }
   h2 {
-    text-align: center;
     font-size: 35px;
   }
   .learnContent,
@@ -170,7 +162,6 @@ const resourcesContainer = css`
     margin-bottom: 50px;
     a {
       display: block;
-      text-align: center;
       font-size: 20px;
       margin: 15px;
     }
@@ -186,7 +177,6 @@ const resourcesContainer = css`
 
 const title = css`
   margin-top: 150px;
-  text-align: center;
   font-size: 60px;
 `;
 
