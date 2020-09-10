@@ -656,15 +656,24 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test test connection
         """
+        extra = {
+            "metadata_params": {},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
         # need to temporarily allow sqlite dbs, teardown will undo this
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
         self.login("admin")
         example_db = get_example_database()
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = {
-            "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
             "database_name": "examples",
+            "encrypted_extra": "{}",
+            "extra": json.dumps(extra),
             "impersonate_user": False,
+            "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
+            "server_cert": ssl_certificate,
         }
         url = f"api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
@@ -676,6 +685,8 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "database_name": "examples",
             "impersonate_user": False,
+            "extra": json.dumps(extra),
+            "server_cert": None,
         }
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 200)
@@ -691,6 +702,7 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": "broken://url",
             "database_name": "examples",
             "impersonate_user": False,
+            "server_cert": None,
         }
         url = f"api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
@@ -707,6 +719,7 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": "mssql+pymssql://url",
             "database_name": "examples",
             "impersonate_user": False,
+            "server_cert": None,
         }
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 400)
@@ -729,6 +742,7 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": "sqlite:///home/superset/unsafe.db",
             "database_name": "unsafe",
             "impersonate_user": False,
+            "server_cert": None,
         }
         url = f"api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")

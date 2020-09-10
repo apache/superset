@@ -298,10 +298,14 @@ class DatabaseTestConnectionSchema(Schema):
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
     encrypted_extra = fields.String(
-        description=encrypted_extra_description, validate=encrypted_extra_validator
+        description=encrypted_extra_description,
+        validate=encrypted_extra_validator,
+        allow_none=True,
     )
     server_cert = fields.String(
-        description=server_cert_description, validate=server_cert_validator
+        description=server_cert_description,
+        allow_none=True,
+        validate=server_cert_validator,
     )
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
