@@ -22,12 +22,6 @@ import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
-const metadata = new ChartMetadata({
-  description: 'Pie chart using ECharts',
-  name: t('EchartsPie'),
-  thumbnail,
-});
-
 export default class EchartsPieChartPlugin extends ChartPlugin {
   /**
    * The constructor is used to pass relevant metadata and callbacks that get
@@ -44,7 +38,11 @@ export default class EchartsPieChartPlugin extends ChartPlugin {
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsPie'),
-      metadata,
+      metadata: new ChartMetadata({
+        description: 'Pie chart using ECharts',
+        name: t('ECharts Pie'),
+        thumbnail,
+      }),
       transformProps,
     });
   }
