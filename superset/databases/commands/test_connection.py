@@ -18,7 +18,6 @@ import logging
 from contextlib import closing
 from typing import Any, Dict, Optional
 
-import simplejson as json
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import select
 
@@ -46,9 +45,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             database = DatabaseDAO.build_db_for_connection_test(
                 server_cert=self._properties.get("server_cert", ""),
-                extra=json.dumps(self._properties.get("extra", {})),
+                extra=self._properties.get("extra", "{}"),
                 impersonate_user=self._properties.get("impersonate_user", False),
-                encrypted_extra=json.dumps(self._properties.get("encrypted_extra", {})),
+                encrypted_extra=self._properties.get("encrypted_extra", "{}"),
             )
             if database is not None:
                 database.set_sqlalchemy_uri(uri)
