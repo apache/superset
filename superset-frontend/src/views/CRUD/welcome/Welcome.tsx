@@ -16,21 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
-import {
-  Panel,
-  Row,
-  Col,
-  Tabs,
-  Tab,
-  FormControl,
-  FormControlProps,
-} from 'react-bootstrap';
+import React, { useState } from 'react';
+import { FormControl } from 'react-bootstrap';
+import SubMenu from 'src/components/Menu/SubMenu';
+import { Collapse } from 'src/common/components';
 import { t } from '@superset-ui/core';
 import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
 import RecentActivity from 'src/profile/components/RecentActivity';
-import Favorites from 'src/profile/components/Favorites';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
