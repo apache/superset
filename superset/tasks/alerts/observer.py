@@ -20,22 +20,24 @@ from datetime import datetime
 from typing import Optional
 
 import pandas as pd
+from sqlalchemy.orm import Session
 
-from superset import db
 from superset.models.alerts import Alert, SQLObservation
 from superset.sql_parse import ParsedQuery
 
 logger = logging.getLogger("tasks.email_reports")
 
 
-def observe(alert_id: int) -> Optional[str]:
+# Session needs to be passed along in the celery workers and db.session cannot be used.
+# For more info see: https://github.com/apache/incubator-superset/issues/10530
+def observe(alert_id: int, session: Session) -> Optional[str]:
     """
     Runs the SQL query in an alert's SQLObserver and then
     stores the result in a SQLObservation.
     Returns an error message if the observer value was not valid
     """
 
-    alert = db.session.query(Alert).filter_by(id=alert_id).one()
+    alert = session.query(Alert).filter_by(id=alert_id).one()
     sql_observer = alert.sql_observer[0]
 
     value = None
@@ -57,8 +59,8 @@ def observe(alert_id: int) -> Optional[str]:
         error_msg=error_msg,
     )
 
-    db.session.add(observation)
-    db.session.commit()
+    session.add(observation)
+    session.commit()
 
     return error_msg
 
