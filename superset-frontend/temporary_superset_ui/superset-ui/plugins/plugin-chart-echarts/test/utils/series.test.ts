@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extractTimeseriesSeries } from '../../src/utils/series';
+import { extractGroupbyLabel, extractTimeseriesSeries } from '../../src/utils/series';
 
 describe('extractTimeseriesSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {
@@ -55,5 +55,25 @@ describe('extractTimeseriesSeries', () => {
         ],
       },
     ]);
+  });
+});
+
+describe('extractGroupbyLabel', () => {
+  it('should join together multiple groupby labels', () => {
+    expect(extractGroupbyLabel({ a: 'abc', b: 'qwerty' }, ['a', 'b'])).toEqual('abc, qwerty');
+  });
+
+  it('should handle a single groupby', () => {
+    expect(extractGroupbyLabel({ xyz: 'qqq' }, ['xyz'])).toEqual('qqq');
+  });
+
+  it('should handle mixed types', () => {
+    expect(
+      extractGroupbyLabel({ strcol: 'abc', intcol: 123, floatcol: 0.123 }, [
+        'strcol',
+        'intcol',
+        'floatcol',
+      ]),
+    ).toEqual('abc, 123, 0.123');
   });
 });

@@ -16,60 +16,126 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DataRecord } from '@superset-ui/core';
-import { EchartsPieProps } from './types';
+import {
+  CategoricalColorNamespace,
+  ChartProps,
+  convertMetric,
+  DataRecord,
+  getNumberFormatter,
+  NumberFormats,
+  NumberFormatter,
+} from '@superset-ui/core';
+import { EchartsPieLabelType, PieChartFormData } from './types';
+import { EchartsProps } from '../types';
+import { extractGroupbyLabel } from '../utils/series';
 
-export default function transformProps(chartProps: ChartProps): EchartsPieProps {
-  /*
-  TODO:
-  - add support for multiple groupby (requires post transform op)
-  - add support for ad-hoc metrics (currently only supports datasource metrics)
-  - add support for superset colors
-  - add support for control values in legacy pie chart
-   */
+const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
+
+export function formatPieLabel({
+  params,
+  pieLabelType,
+  numberFormatter,
+}: {
+  params: echarts.EChartOption.Tooltip.Format;
+  pieLabelType: EchartsPieLabelType;
+  numberFormatter: NumberFormatter;
+}): string {
+  const { name = '', value, percent } = params;
+  const formattedValue = numberFormatter(value as number);
+  const formattedPercent = percentFormatter((percent as number) / 100);
+  if (pieLabelType === 'key') return name;
+  if (pieLabelType === 'value') return formattedValue;
+  if (pieLabelType === 'percent') return formattedPercent;
+  if (pieLabelType === 'key_value') return `${name}: ${formattedValue}`;
+  if (pieLabelType === 'key_value_percent')
+    return `${name}: ${formattedValue} (${formattedPercent})`;
+  if (pieLabelType === 'key_percent') return `${name}: ${formattedPercent}`;
+  return name;
+}
+
+export default function transformProps(chartProps: ChartProps): EchartsProps {
   const { width, height, formData, queryData } = chartProps;
   const data: DataRecord[] = queryData.data || [];
 
-  const { innerRadius = 50, outerRadius = 70, groupby = [], metrics = [] } = formData;
+  const {
+    colorScheme,
+    donut = false,
+    groupby,
+    innerRadius = 40,
+    labelsOutside = true,
+    metric,
+    numberFormat,
+    outerRadius = 80,
+    pieLabelType = 'value',
+    showLabels = true,
+    showLegend = false,
+  } = formData as PieChartFormData;
+  const { label: metricLabel } = convertMetric(metric);
 
-  const keys = Array.from(new Set(data.map(datum => datum[groupby[0]])));
+  const keys = data.map(datum => extractGroupbyLabel(datum, groupby));
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const numberFormatter = getNumberFormatter(numberFormat);
 
   const transformedData = data.map(datum => {
+    const name = extractGroupbyLabel(datum, groupby);
     return {
-      value: datum[metrics[0]],
-      name: datum[groupby[0]],
+      value: datum[metricLabel],
+      name,
+      itemStyle: {
+        color: colorFn(name),
+      },
     };
   });
 
-  const echartOptions = {
+  const formatter = (params: { name: string; value: number; percent: number }) =>
+    formatPieLabel({ params, numberFormatter, pieLabelType });
+
+  const echartOptions: echarts.EChartOption<echarts.EChartOption.SeriesPie> = {
     tooltip: {
+      confine: true,
       trigger: 'item',
-      formatter: '{b}: {c} ({d}%)',
+      formatter: params => {
+        return formatPieLabel({
+          params: params as echarts.EChartOption.Tooltip.Format,
+          numberFormatter,
+          pieLabelType: 'key_value_percent',
+        });
+      },
     },
-    legend: {
-      orient: 'vertical',
-      left: 10,
-      data: keys,
-    },
+    legend: showLegend
+      ? {
+          orient: 'horizontal',
+          left: 10,
+          data: keys,
+        }
+      : undefined,
     series: [
       {
         type: 'pie',
-        radius: [`${innerRadius}%`, `${outerRadius}%`],
-        avoidLabelOverlap: false,
-        label: {
-          show: false,
-          position: 'center',
-        },
+        radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
+        avoidLabelOverlap: true,
+        labelLine: labelsOutside ? { show: true } : { show: false },
+        label: labelsOutside
+          ? {
+              formatter,
+              position: 'outer',
+              show: showLabels,
+              alignTo: 'none',
+              bleedMargin: 5,
+            }
+          : {
+              formatter,
+              position: 'inner',
+              show: showLabels,
+            },
         emphasis: {
           label: {
             show: true,
-            fontSize: '30',
+            fontSize: 30,
             fontWeight: 'bold',
           },
         },
-        labelLine: {
-          show: false,
-        },
+        // @ts-ignore
         data: transformedData,
       },
     ],
@@ -78,7 +144,6 @@ export default function transformProps(chartProps: ChartProps): EchartsPieProps 
   return {
     width,
     height,
-    // @ts-ignore
     echartOptions,
   };
 }
