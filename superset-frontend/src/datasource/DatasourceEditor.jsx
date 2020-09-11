@@ -160,7 +160,7 @@ function ColumnCollectionTable({
                       database/column name level via the extra parameter.`)}
                 </div>
               }
-              control={<TextControl placeholder={'%y/%m/%d'} />}
+              control={<TextControl placeholder="%y/%m/%d" />}
             />
           </Fieldset>
         </FormContainer>
