@@ -179,6 +179,7 @@ class DatasourceControl extends React.PureComponent {
             <a href="#">
               <i
                 role="button"
+                aria-label="Toggle show datasource"
                 tabIndex={0}
                 className={`fa fa-${
                   this.state.showDatasource ? 'minus' : 'plus'

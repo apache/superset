@@ -85,7 +85,6 @@ module.exports = {
         'jsx-a11y/anchor-has-content': 0,
         'jsx-a11y/anchor-is-valid': 0, // disabled temporarily
         'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
-        'jsx-a11y/control-has-associated-label': 0, // disabled temporarily
         'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
         'lines-between-class-members': 0, // disabled temporarily
         'new-cap': 0,
@@ -208,7 +207,6 @@ module.exports = {
     'jsx-a11y/anchor-has-content': 0,
     'jsx-a11y/anchor-is-valid': 0, // disabled temporarily
     'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
-    'jsx-a11y/control-has-associated-label': 0, // disabled temporarily
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
     'lines-between-class-members': 0, // disabled temporarily
     'new-cap': 0,
