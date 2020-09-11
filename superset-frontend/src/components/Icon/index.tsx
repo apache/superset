@@ -44,7 +44,7 @@ import { ReactComponent as SortAscIcon } from 'images/icons/sort-asc.svg';
 import { ReactComponent as SortDescIcon } from 'images/icons/sort-desc.svg';
 import { ReactComponent as SortIcon } from 'images/icons/sort.svg';
 import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
-import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
+import { ReactComponent as WarningSolidIcon } from 'images/icons/warning_solid.svg';
 
 type IconName =
   | 'cancel-x'
@@ -74,7 +74,7 @@ type IconName =
   | 'sort-desc'
   | 'sort'
   | 'trash'
-  | 'warning';
+  | 'warning-solid';
 
 export const iconsRegistry: Record<
   IconName,
@@ -107,7 +107,7 @@ export const iconsRegistry: Record<
   share: ShareIcon,
   sort: SortIcon,
   trash: TrashIcon,
-  warning: WarningIcon,
+  'warning-solid': WarningSolidIcon,
 };
 
 interface IconProps extends SVGProps<SVGSVGElement> {
