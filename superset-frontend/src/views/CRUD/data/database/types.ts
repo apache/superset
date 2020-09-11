@@ -22,17 +22,33 @@ type DatabaseUser = {
 };
 
 export type DatabaseObject = {
-  id: number;
+  // Connection + general
+  id?: number;
   database_name: string;
-  backend: string;
-  allow_run_async: boolean;
-  allow_dml: boolean;
-  allow_csv_upload: boolean;
-  expose_in_sqllab: boolean;
-  created_by: null | DatabaseUser;
-  changed_on_delta_humanized: string;
-  changed_on: string;
+  sqlalchemy_uri?: string;
+  backend?: string;
+  created_by?: null | DatabaseUser;
+  changed_on_delta_humanized?: string;
+  changed_on?: string;
 
-  uri: string;
-  // TODO: add more props
+  // Performance
+  cache_timeout?: string;
+  allow_run_async?: boolean;
+
+  // SQL Lab
+  expose_in_sqllab?: boolean;
+  allow_ctas?: boolean;
+  allow_cvas?: boolean;
+  allow_dml?: boolean;
+  allow_multi_schema_metadata_fetch?: boolean;
+  force_ctas_schema?: string;
+
+  // Security
+  encrypted_extra?: string;
+  server_cert?: string;
+
+  // Extra
+  impersonate_user?: boolean;
+  allow_csv_upload?: boolean;
+  extra?: string;
 };
