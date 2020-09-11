@@ -26,16 +26,8 @@ import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import Loading from 'src/components/Loading';
 
-const DatasourceEditor = AsyncEsmComponent(
-  () => import('./DatasourceEditor'),
-  () => (
-    <div style={{ height: 500 }}>
-      <Loading position="floating" />
-    </div>
-  ),
-);
+const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
 interface DatasourceModalProps {
   addSuccessToast: (msg: string) => void;
@@ -160,6 +152,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       <Modal.Body>
         {show && (
           <DatasourceEditor
+            showLoadingForImport
             height={500}
             datasource={currentDatasource}
             onChange={onDatasourceChange}

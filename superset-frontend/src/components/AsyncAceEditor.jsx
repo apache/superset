@@ -34,7 +34,6 @@ const AsyncAceEditor = AsyncEsmComponent(async () => {
     ref,
   ) {
     if (keywords && mode === 'sql') {
-      console.log(keywords);
       const langTools = ace.acequire('ace/ext/language_tools');
       const completer = {
         getCompletions: (aceEditor, session, pos, prefix, callback) => {

@@ -31,7 +31,6 @@ import {
 
 import Icon from 'src/components/Icon';
 import Button from 'src/components/Button';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -39,6 +38,7 @@ import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
+import PropertiesModal from './PropertiesModal';
 
 import { chartPropShape } from '../util/propShapes';
 import {
@@ -48,8 +48,6 @@ import {
 } from '../util/constants';
 import setPeriodicRunner from '../util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from './RefreshIntervalModal';
-
-const PropertiesModal = AsyncEsmComponent(() => import('./PropertiesModal'));
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,

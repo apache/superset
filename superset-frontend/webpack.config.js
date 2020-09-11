@@ -202,7 +202,8 @@ const config = {
     sideEffects: true,
     splitChunks: {
       chunks: 'all',
-      minSize: 20000,
+      // increase minSize for devMode to 1000kb because of sourcemap
+      minSize: isDevMode ? 1000000 : 20000,
       name: nameChunks,
       automaticNameDelimiter: '-',
       minChunks: 2,

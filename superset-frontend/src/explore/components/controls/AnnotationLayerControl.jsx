@@ -34,7 +34,7 @@ import { runAnnotationQuery } from 'src/chart/chartAction';
 const AnnotationLayer = AsyncEsmComponent(
   () => import('./AnnotationLayer'),
   // size of overlay inner content
-  () => <div style={{ width: 450, height: 368, textAlign: 'center' }} />,
+  () => <div style={{ width: 450, height: 368 }} />,
 );
 
 const propTypes = {
@@ -64,6 +64,11 @@ class AnnotationLayerControl extends React.PureComponent {
     super(props);
     this.addAnnotationLayer = this.addAnnotationLayer.bind(this);
     this.removeAnnotationLayer = this.removeAnnotationLayer.bind(this);
+  }
+
+  componentDidMount() {
+    // preload the AnotationLayer component and dependent libraries i.e. mathjs
+    AnnotationLayer.preload();
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
