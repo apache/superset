@@ -18,7 +18,12 @@
  */
 import serializeActiveFilterValues from './serializeActiveFilterValues';
 
-export default function getDashboardUrl(pathname, filters = {}, hash = '', standalone = false) {
+export default function getDashboardUrl(
+  pathname,
+  filters = {},
+  hash = '',
+  standalone = false,
+) {
   // convert flattened { [id_column]: values } object
   // to nested filter object
   const obj = serializeActiveFilterValues(filters);

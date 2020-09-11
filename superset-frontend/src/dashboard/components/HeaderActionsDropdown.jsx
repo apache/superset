@@ -230,7 +230,9 @@ class HeaderActionsDropdown extends React.PureComponent {
         {!editMode && (
           <MenuItem
             onClick={() => {
-              const hasStandalone = window.location.search.includes('standalone=true');
+              const hasStandalone = window.location.search.includes(
+                'standalone=true',
+              );
               const url = getDashboardUrl(
                 window.location.pathname,
                 getActiveFilters(),
