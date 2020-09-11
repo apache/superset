@@ -123,6 +123,13 @@ export default class FilterableTable extends PureComponent<
     expandedColumns: [],
   };
 
+  list: List<Datum>;
+  complexColumns: Record<string, boolean>;
+  widthsForColumnsByKey: Record<string, number>;
+  totalTableWidth: number;
+  totalTableHeight: number;
+  container: React.RefObject<HTMLDivElement>;
+
   constructor(props: FilterableTableProps) {
     super(props);
     this.list = List(this.formatTableData(props.data));
@@ -227,13 +234,6 @@ export default class FilterableTable extends PureComponent<
     }
     return this.complexColumns[columnKey] ? truncated : content;
   }
-
-  list: List<Datum>;
-  complexColumns: Record<string, boolean>;
-  widthsForColumnsByKey: Record<string, number>;
-  totalTableWidth: number;
-  totalTableHeight: number;
-  container: React.RefObject<HTMLDivElement>;
 
   formatTableData(data: Record<string, unknown>[]): Datum[] {
     const formattedData = data.map(row => {
