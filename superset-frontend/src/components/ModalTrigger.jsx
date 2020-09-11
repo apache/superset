@@ -69,6 +69,7 @@ export default class ModalTrigger extends React.Component {
     this.props.beforeOpen();
     this.setState(() => ({ showModal: true }));
   }
+
   renderModal() {
     return (
       <Modal

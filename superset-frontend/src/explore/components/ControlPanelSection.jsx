@@ -42,9 +42,11 @@ export default class ControlPanelSection extends React.Component {
     this.state = { expanded: this.props.startExpanded };
     this.toggleExpand = this.toggleExpand.bind(this);
   }
+
   toggleExpand() {
     this.setState({ expanded: !this.state.expanded });
   }
+
   renderHeader() {
     const { label, description, hasErrors } = this.props;
     return (

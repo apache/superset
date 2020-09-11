@@ -78,6 +78,7 @@ export default class CRUDCollection extends React.PureComponent<
     this.renderTableBody = this.renderTableBody.bind(this);
     this.changeCollection = this.changeCollection.bind(this);
   }
+
   UNSAFE_componentWillReceiveProps(nextProps: CRUDCollectionProps) {
     if (nextProps.collection !== this.props.collection) {
       this.setState({
@@ -85,6 +86,7 @@ export default class CRUDCollection extends React.PureComponent<
       });
     }
   }
+
   onCellChange(id: number, col: string, val: boolean) {
     this.changeCollection({
       ...this.state.collection,
@@ -94,6 +96,7 @@ export default class CRUDCollection extends React.PureComponent<
       },
     });
   }
+
   onAddItem() {
     if (this.props.itemGenerator) {
       let newItem = this.props.itemGenerator();
@@ -106,12 +109,14 @@ export default class CRUDCollection extends React.PureComponent<
       });
     }
   }
+
   onFieldsetChange(item: any) {
     this.changeCollection({
       ...this.state.collection,
       [item.id]: item,
     });
   }
+
   getLabel(col: any) {
     const { columnLabels } = this.props;
     let label = columnLabels && columnLabels[col] ? columnLabels[col] : col;
@@ -121,17 +126,20 @@ export default class CRUDCollection extends React.PureComponent<
     }
     return label;
   }
+
   changeCollection(collection: any) {
     this.setState({ collection });
     if (this.props.onChange) {
       this.props.onChange(Object.keys(collection).map(k => collection[k]));
     }
   }
+
   deleteItem(id: number) {
     const newColl = { ...this.state.collection };
     delete newColl[id];
     this.changeCollection(newColl);
   }
+
   effectiveTableColumns() {
     const { tableColumns, allowDeletes, expandFieldset } = this.props;
     const cols = allowDeletes
@@ -139,6 +147,7 @@ export default class CRUDCollection extends React.PureComponent<
       : tableColumns;
     return expandFieldset ? ['__expand'].concat(cols) : cols;
   }
+
   toggleExpand(id: any) {
     this.onCellChange(id, '__expanded', false);
     this.setState({
@@ -148,6 +157,7 @@ export default class CRUDCollection extends React.PureComponent<
       },
     });
   }
+
   renderHeaderRow() {
     const cols = this.effectiveTableColumns();
     const {
@@ -176,6 +186,7 @@ export default class CRUDCollection extends React.PureComponent<
       </thead>
     );
   }
+
   renderExpandableSection(item: any) {
     const propsGenerator = () => ({ item, onChange: this.onFieldsetChange });
     return recurseReactClone(
@@ -184,12 +195,14 @@ export default class CRUDCollection extends React.PureComponent<
       propsGenerator,
     );
   }
+
   renderCell(record: any, col: any) {
     const renderer = this.props.itemRenderers && this.props.itemRenderers[col];
     const val = record[col];
     const onChange = this.onCellChange.bind(this, record.id, col);
     return renderer ? renderer(val, onChange, this.getLabel(col), record) : val;
   }
+
   renderItem(record: any) {
     const {
       allowAddItem,
@@ -254,6 +267,7 @@ export default class CRUDCollection extends React.PureComponent<
     }
     return trs;
   }
+
   renderEmptyCell() {
     return (
       <tr>
@@ -261,6 +275,7 @@ export default class CRUDCollection extends React.PureComponent<
       </tr>
     );
   }
+
   renderTableBody() {
     const data = Object.keys(this.state.collection).map(
       k => this.state.collection[k],
@@ -270,6 +285,7 @@ export default class CRUDCollection extends React.PureComponent<
       : this.renderEmptyCell();
     return <tbody>{content}</tbody>;
   }
+
   render() {
     return (
       <div className="CRUD">

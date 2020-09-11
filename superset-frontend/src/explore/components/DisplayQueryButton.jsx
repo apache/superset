@@ -90,6 +90,7 @@ export class DisplayQueryButton extends React.PureComponent {
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
   }
+
   beforeOpen(resultType) {
     this.setState({ isLoading: true });
 
@@ -118,18 +119,23 @@ export class DisplayQueryButton extends React.PureComponent {
         });
       });
   }
+
   changeFilterText(event) {
     this.setState({ filterText: event.target.value });
   }
+
   redirectSQLLab() {
     this.props.onOpenInEditor(this.props.latestQueryFormData);
   }
+
   openPropertiesModal() {
     this.setState({ isPropertiesModalOpen: true });
   }
+
   closePropertiesModal() {
     this.setState({ isPropertiesModalOpen: false });
   }
+
   renderQueryModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
@@ -155,6 +161,7 @@ export class DisplayQueryButton extends React.PureComponent {
     }
     return null;
   }
+
   renderResultsModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
@@ -168,6 +175,7 @@ export class DisplayQueryButton extends React.PureComponent {
     }
     return null;
   }
+
   renderDataTable(data) {
     return (
       <div style={{ overflow: 'auto' }}>
@@ -209,6 +217,7 @@ export class DisplayQueryButton extends React.PureComponent {
       </div>
     );
   }
+
   renderSamplesModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
@@ -219,6 +228,7 @@ export class DisplayQueryButton extends React.PureComponent {
     }
     return null;
   }
+
   render() {
     const { animation, chartHeight, slice } = this.props;
     return (

@@ -280,6 +280,7 @@ export class DatasourceEditor extends React.PureComponent {
     };
     this.props.onChange(datasource, this.state.errors);
   }
+
   onDatasourceChange(datasource) {
     this.setState({ datasource }, this.validateAndChange);
   }

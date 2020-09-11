@@ -55,6 +55,7 @@ class SaveModal extends React.Component {
     this.onDashboardSelectChange = this.onDashboardSelectChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
   }
+
   componentDidMount() {
     this.props.actions.fetchDashboards(this.props.userId).then(() => {
       const dashboardIds = this.props.dashboards.map(
@@ -72,18 +73,22 @@ class SaveModal extends React.Component {
       }
     });
   }
+
   onSliceNameChange(event) {
     this.setState({ newSliceName: event.target.value });
   }
+
   onDashboardSelectChange(event) {
     const newDashboardName = event ? event.label : null;
     const saveToDashboardId =
       event && typeof event.value === 'number' ? event.value : null;
     this.setState({ saveToDashboardId, newDashboardName });
   }
+
   changeAction(action) {
     this.setState({ action });
   }
+
   saveOrOverwrite(gotodash) {
     this.setState({ alert: null });
     this.props.actions.removeSaveModalAlert();
@@ -117,12 +122,14 @@ class SaveModal extends React.Component {
       });
     this.props.onHide();
   }
+
   removeAlert() {
     if (this.props.alert) {
       this.props.actions.removeSaveModalAlert();
     }
     this.setState({ alert: null });
   }
+
   render() {
     return (
       <Modal show onHide={this.props.onHide}>

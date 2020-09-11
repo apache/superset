@@ -36,6 +36,7 @@ export default class TextControl extends React.Component<TextControlProps> {
     super(props);
     this.onChange = this.onChange.bind(this);
   }
+
   onChange(event: any) {
     let { value } = event.target;
 
@@ -59,6 +60,7 @@ export default class TextControl extends React.Component<TextControlProps> {
     }
     this.props.onChange(value, errors);
   }
+
   render() {
     const { value: rawValue } = this.props;
     const value =
