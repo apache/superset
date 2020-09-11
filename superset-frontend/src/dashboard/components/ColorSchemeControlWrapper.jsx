@@ -30,7 +30,6 @@ const propTypes = {
 
 const defaultProps = {
   colorScheme: undefined,
-  onChange: () => {},
 };
 
 class ColorSchemeControlWrapper extends React.PureComponent {

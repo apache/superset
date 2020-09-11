@@ -53,7 +53,6 @@ const propTypes = {
 const defaultProps = {
   directPathToChild: [],
   directPathLastUpdated: 0,
-  isComponentVisible: true,
 };
 
 function mapStateToProps(

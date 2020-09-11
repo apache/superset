@@ -118,7 +118,6 @@ module.exports = {
         'padded-blocks': 0,
         'prefer-arrow-callback': 0,
         'prefer-destructuring': 0, // disabled temporarily
-        'react/default-props-match-prop-types': 0, // disabled temporarily
         'react/destructuring-assignment': 0, // re-enable up for discussion
         'react/forbid-prop-types': 0,
         'react/jsx-curly-brace-presence': 0, // disabled temporarily
@@ -241,7 +240,6 @@ module.exports = {
     'prefer-arrow-callback': 0,
     'prefer-object-spread': 1,
     'prefer-destructuring': 0, // disabled temporarily
-    'react/default-props-match-prop-types': 0, // disabled temporarily
     'react/destructuring-assignment': 0, // re-enable up for discussion
     'react/forbid-prop-types': 0,
     'react/jsx-curly-brace-presence': 0, // disabled temporarily

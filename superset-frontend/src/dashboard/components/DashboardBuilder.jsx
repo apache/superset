@@ -64,7 +64,6 @@ const propTypes = {
 };
 
 const defaultProps = {
-  showBuilderPane: false,
   directPathToChild: [],
   colorScheme: undefined,
 };

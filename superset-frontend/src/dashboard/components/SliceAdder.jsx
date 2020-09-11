@@ -45,7 +45,6 @@ const propTypes = {
 };
 
 const defaultProps = {
-  selectedSliceIds: [],
   editMode: false,
   errorMessage: '',
   height: window.innerHeight,
