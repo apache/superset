@@ -32,7 +32,7 @@ import { ReactComponent as DatabasesIcon } from 'images/icons/databases.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
 import { ReactComponent as DropdownArrowIcon } from 'images/icons/dropdown-arrow.svg';
-import { ReactComponent as ErrorIcon } from 'images/icons/error.svg';
+import { ReactComponent as ErrorSolidIcon } from 'images/icons/error_solid.svg';
 import { ReactComponent as FavoriteSelectedIcon } from 'images/icons/favorite-selected.svg';
 import { ReactComponent as FavoriteUnselectedIcon } from 'images/icons/favorite-unselected.svg';
 import { ReactComponent as ListViewIcon } from 'images/icons/list-view.svg';
@@ -62,7 +62,7 @@ type IconName =
   | 'dataset-physical'
   | 'dataset-virtual'
   | 'dropdown-arrow'
-  | 'error'
+  | 'error-solid'
   | 'favorite-selected'
   | 'favorite-unselected'
   | 'list-view'
@@ -100,7 +100,7 @@ export const iconsRegistry: Record<
   check: CheckIcon,
   close: CloseIcon,
   compass: CompassIcon,
-  error: ErrorIcon,
+  'error-solid': ErrorSolidIcon,
   more: MoreIcon,
   pencil: PencilIcon,
   search: SearchIcon,
