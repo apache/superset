@@ -191,7 +191,7 @@ class TestCore(SupersetTestCase):
         db.session.add(annotation)
         db.session.commit()
 
-        self.login(username="admin")
+        self.login()
         resp_annotations = json.loads(
             self.get_resp("annotationlayermodelview/api/read")
         )
