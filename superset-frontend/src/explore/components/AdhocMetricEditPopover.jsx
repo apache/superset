@@ -21,23 +21,17 @@ import PropTypes from 'prop-types';
 import { FormGroup, Popover, Tab, Tabs } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import ace from 'brace';
-import AceEditor from 'react-ace';
-import 'brace/mode/sql';
-import 'brace/theme/github';
-import 'brace/ext/language_tools';
 import { t, ThemeProvider } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
 
 import FormLabel from 'src/components/FormLabel';
+import AceEditor from 'src/components/AsyncAceEditor';
+import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
 import { AGGREGATES_OPTIONS } from '../constants';
 import AdhocMetricEditPopoverTitle from './AdhocMetricEditPopoverTitle';
 import columnType from '../propTypes/columnType';
 import AdhocMetric, { EXPRESSION_TYPES } from '../AdhocMetric';
-import sqlKeywords from '../../SqlLab/utils/sqlKeywords';
-
-const langTools = ace.acequire('ace/ext/language_tools');
 
 const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric).isRequired,
@@ -80,22 +74,6 @@ export default class AdhocMetricEditPopover extends React.Component {
       autosize: false,
       clearable: true,
     };
-    if (langTools) {
-      const words = sqlKeywords.concat(
-        this.props.columns.map(column => ({
-          name: column.column_name,
-          value: column.column_name,
-          score: 50,
-          meta: 'column',
-        })),
-      );
-      const completer = {
-        getCompletions: (aceEditor, session, pos, prefix, callback) => {
-          callback(null, words);
-        },
-      };
-      langTools.setCompleters([completer]);
-    }
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
@@ -199,6 +177,14 @@ export default class AdhocMetricEditPopover extends React.Component {
     } = this.props;
 
     const { adhocMetric } = this.state;
+    const keywords = sqlKeywords.concat(
+      columns.map(column => ({
+        name: column.column_name,
+        value: column.column_name,
+        score: 50,
+        meta: 'column',
+      })),
+    );
 
     const columnSelectProps = {
       placeholder: t('%s column(s)', columns.length),
@@ -281,6 +267,7 @@ export default class AdhocMetricEditPopover extends React.Component {
                 <FormGroup>
                   <AceEditor
                     ref={this.handleAceEditorRef}
+                    keywords={keywords}
                     mode="sql"
                     theme="github"
                     height={`${this.state.height - 43}px`}

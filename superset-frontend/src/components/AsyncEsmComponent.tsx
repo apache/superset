@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, RefObject } from 'react';
 
 type PlaceholderProps = {
   width?: string | number;
@@ -66,20 +66,28 @@ export default function AsyncEsmComponent<
     return promise;
   }
 
-  function AsyncComponent(props: P) {
+  function AsyncComponent(props: P, ref: RefObject<React.ComponentType<P>>) {
     const [loaded, setLoaded] = useState(component !== undefined);
     useEffect(() => {
+      let isMounted = true;
       if (!loaded) {
         // update state to trigger a re-render
         waitForPromise().then(() => {
-          setLoaded(true);
+          if (isMounted) {
+            setLoaded(true);
+          }
         });
       }
+      return () => {
+        isMounted = false;
+      };
     });
     const Component = component || placeholder;
-    return Component ? <Component {...props} /> : null;
+    return Component ? (
+      <Component ref={Component === component ? ref : null} {...props} />
+    ) : null;
   }
   AsyncComponent.load = waitForPromise;
 
-  return AsyncComponent;
+  return React.forwardRef(AsyncComponent);
 }

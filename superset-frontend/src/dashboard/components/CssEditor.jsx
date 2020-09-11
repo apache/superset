@@ -20,8 +20,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/core';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import ModalTrigger from 'src/components/ModalTrigger';
+import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 
 const AceEditor = AsyncEsmComponent(async () => {
   const ace = await import('react-ace');
