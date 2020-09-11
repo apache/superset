@@ -24,6 +24,7 @@ module.exports = {
     author: `@apache-superset`,
   },
   plugins: [
+    `gatsby-plugin-sass`,
     `gatsby-theme-docz`,
     `gatsby-plugin-react-helmet`,
     {

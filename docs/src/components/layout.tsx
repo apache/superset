@@ -31,7 +31,7 @@ import AppMenu from './menu';
 
 import { getCurrentPath } from '../utils';
 import 'antd/dist/antd.css';
-import './layout.css';
+import './layout.scss';
 
 const { Header, Sider } = Layout;
 

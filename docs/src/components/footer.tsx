@@ -43,7 +43,7 @@ const apacheLinksStyle = css`
   text-align: center;
 `;
 const iconContainerStyle = css`
-  height: 60px;
+  padding: 30px;
   background-color: #323232;
   display: flex;
   flex-direction: row;
@@ -55,7 +55,7 @@ const iconContainerStyle = css`
       color: #ccc;
       width: 30px;
       height: 30px;
-      margin-left: 10px;
+      margin: 0 15px;
     }
     .svg {
       width: 30px;

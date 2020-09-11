@@ -18,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import { css } from '@emotion/core';
-import { Card, Row, Col, List, Modal } from 'antd';
+import { Card, Row, Col, List, Modal, Button } from 'antd';
 import SEO from '../components/seo';
 import Layout from '../components/layout';
 
@@ -122,20 +122,13 @@ const youtubeIds = [
 ];
 
 const resourcesContainer = css`
-  background: #fff;
-  width: 1000px;
-  margin: 0 auto;
   .links {
-    margin-top: 80px;
     .videos {
       margin-top: 50px;
       text-align: left;
       iframe {
         margin: 15px;
       }
-    }
-    h2 {
-      font-size: 45px;
     }
     .learnContent,
     .installation {
@@ -148,99 +141,111 @@ const resourcesContainer = css`
       }
     }
   }
-  .span {
-    display: block;
-    font-size: 17px;
-  }
-`;
-
-const title = css`
-  margin-top: 150px;
-  font-size: 60px;
 `;
 
 const Resources = () => {
   const [showModal, setModal] = useState(false);
   const [url, setUrl] = useState(null)
   const [cardTitle, setCardTitle] = useState(null);
+  const handleClose = () => {
+    setModal(false);
+    setUrl(null);
+    setCardTitle(null);
+  }
   return (
     <Layout>
-      <SEO title="Resources" />
-      <div css={resourcesContainer}>
-        <h1 css={title}>Resources</h1>
-        <span className="span">
-          Here’s a collection of resources and blogs about Apache Superset
-          from around the Internet.
-          For a more more extensive and dynamic list of
-          resources, check out the <a href="https://github.com/apache-superset/awesome-apache-superset">
-            Awesome Apache Superset
-          </a> repository
-        </span>
-        <div className="links">
-          <Modal
-            title={cardTitle}
-            visible={showModal}
-            onOk={()=>setModal(false)}
-            onCancel={()=>setModal(false)}
-            width={650} 
-          >
-            <iframe 
-              width="560" 
-              height="315" 
-              src={youtubeRefs[url]} 
-              frameBorder="0" 
-              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" 
-              allowFullScreen />
-          </Modal>
-          <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-            <Col span={12}>
-              <h2>Learning Content</h2>
-              <List
-                size="small"
-                bordered
-                dataSource={links}
-                renderItem={([link, href]) => ( 
-                  <List.Item>
-                    <a href={href} target="_blank" rel="noreferrer">
-                      {link}
-                    </a>
-                  </List.Item>
-                )}
+      <div className="contentPage">
+        <SEO title="Resources" />
+        <div css={resourcesContainer}>
+          <section>
+            <h1 className="title">Resources</h1>
+            <span>
+              Here’s a collection of resources and blogs about Apache Superset
+              from around the Internet. For a more more extensive and dynamic
+              list of resources, check out the{' '}
+              <a href="https://github.com/apache-superset/awesome-apache-superset">
+                Awesome Apache Superset
+              </a>{' '}
+              repository
+            </span>
+          </section>
+
+          <section className="links">
+            <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+              <Col span={12}>
+                <h2>Learning Content</h2>
+                <List
+                  size="small"
+                  bordered
+                  dataSource={links}
+                  renderItem={([link, href]) => (
+                    <List.Item>
+                      <a href={href} target="_blank" rel="noreferrer">
+                        {link}
+                      </a>
+                    </List.Item>
+                  )}
+                />
+              </Col>
+              <Col span={12}>
+                <h2>Installation</h2>
+                <List
+                  size="small"
+                  bordered
+                  dataSource={installationLinks}
+                  renderItem={([link, href]) => (
+                    <List.Item>
+                      <a href={href} target="_blank" rel="noreferrer">
+                        {link}
+                      </a>
+                    </List.Item>
+                  )}
+                />
+              </Col>
+            </Row>
+          </section>
+
+          <section className="videos">
+            <Modal
+              title={cardTitle}
+              visible={showModal}
+              onOk={handleClose}
+              onCancel={handleClose}
+              width={610}
+              footer={[
+                <Button key="back" onClick={handleClose}>
+                  Close
+                </Button>,
+              ]}
+            >
+              <iframe
+                width="560"
+                height="315"
+                src={youtubeRefs[url]}
+                frameBorder="0"
+                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
               />
-            </Col>
-            <Col span={12}>
-              <h2>Installation</h2>
-              <List
-                size="small"
-                bordered
-                dataSource={installationLinks}
-                renderItem={([link, href]) =>(
-                  <List.Item>
-                    <a href={href} target="_blank" rel="noreferrer">
-                      {link}
-                    </a>
-                  </List.Item>
-                )}
-              />
-            </Col>
-          </Row>
-          <div className="videos">
+            </Modal>
+            <h2>Videos</h2>
             <Card>
-              {youtubeIds.map(([idx,ids, cardTitle]) => 
-                <Card.Grid onClick={()=>{
-                    setModal(true)
-                    setUrl(idx)
-                    setCardTitle(cardTitle)
-                  }}>
-                  <span>{ cardTitle }</span>
+              {youtubeIds.map(([idx, ids, cardTitle]) => (
+                <Card.Grid
+                  onClick={() => {
+                    setModal(true);
+                    setUrl(idx);
+                    setCardTitle(cardTitle);
+                  }}
+                >
+                  <h4>{cardTitle}</h4>
                   <img
-                    style={{height: '150px', width:'250px'}}
+                    width="100%"
                     src={`http://img.youtube.com/vi/${ids}/maxresdefault.jpg`}
                   />
                 </Card.Grid>
-              )}
+              ))}
             </Card>
-          </div>
+          </section>
         </div>
       </div>
     </Layout>

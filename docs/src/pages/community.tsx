@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { css } from '@emotion/core';
-import { Card } from 'antd';
+import { Card, List } from 'antd';
 import { GithubOutlined } from '@ant-design/icons';
 import SEO from '../components/seo';
 import Layout from '../components/layout';
@@ -64,22 +64,10 @@ const links = [
   ],
 ];
 
-const titleContainer = css`
-  text-align: center;
-  background: #fff;
-  padding-bottom: 200px;
-`;
-
-const title = css`
-  margin-top: 150px;
-  font-size: 60px;
-`;
-
 const communityContainer = css`
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
-  max-width: 1000px;
   margin: 0 auto;
   overflow: auto;
   .communityCard {
@@ -93,28 +81,7 @@ const communityContainer = css`
 `;
 
 const getInvolvedContainer = css`
-  padding: 40px 0;
   margin-bottom: 25px;
-  .resources {
-    display: block;
-    font-size: 17px;
-    margin: 20px 0;
-    text-align: left;
-  }
-  .title {
-    font-size: 45px;
-  }
-  .section {
-    border-top: 1px solid #ccc;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 30px 0;
-    border-bottom: 1px solid #ccc;
-  }
-  .ppm {
-    margin-top: 100px;
-    margin-bottom: 100px;
-  }
 `;
 
 const Community = () => {
@@ -129,37 +96,39 @@ const Community = () => {
           size="small"
           cover={<img alt="example" src={e.image} />}
         >
+          {e.name}{' '}
           <GithubOutlined />
-          <Meta title={e.name} />
         </Card>
       </a>
     );
   });
   return (
     <Layout>
-      <SEO title="Community" />
-      <div css={titleContainer}>
-        <h1 css={title}>Community</h1>
-        <h2>Get involved in our welcoming, fast growing community!</h2>
-        <div css={getInvolvedContainer}>
-          <div className="joinCommunity section">
-            <h2 className="title">How to get involved:</h2>
-            <span className="resources">
-              {links.map(([href, link, post]) => (
-                <>
-                  <a href={href}>{link}</a>
-                  {' '}
-                  -
-                  {' '}
-                  {post}
-                  <br />
-                </>
-              ))}
-            </span>
+      <div className="contentPage">
+        <SEO title="Community" />
+        <section>
+          <h1 className="title">Community</h1>
+          Get involved in our welcoming, fast growing community!
+        </section>
+        <section className="joinCommunity">
+          <div css={getInvolvedContainer}>
+            <h2>How to get involved:</h2>
+            <List
+              size="small"
+              bordered
+              dataSource={links}
+              renderItem={([href, link, post]) => (
+                <List.Item>
+                  <a href={href}>{link}</a> - {post}
+                </List.Item>
+              )}
+            />
           </div>
-          <h3 className="title ppm">Apache Committers</h3>
+        </section>
+        <section className="ppmc">
+          <h2>Apache Committers:</h2>
           <div css={communityContainer}>{pmcList}</div>
-        </div>
+        </section>
       </div>
     </Layout>
   );

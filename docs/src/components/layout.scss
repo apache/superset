@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+$brandColor: #20A7C9;
+$bigPad: 60px;
+ 
 html {
   font-family: sans-serif;
   -ms-text-size-adjust: 100%;
@@ -28,10 +32,51 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: black;
 }
-h1 {
-  font-size: 40px;
-  font-weight: bold;
+
+.ant-layout {
+  background-color: #fff;
 }
+
+.contentPage {
+  padding-bottom: $bigPad;
+  section {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: $bigPad 0 0 0;
+    font-size: 17px;
+    &:first-of-type{
+      padding: 40px;
+      background-image: linear-gradient(120deg, lighten($brandColor, 45), lighten($brandColor, 15));
+      border-radius: 10px;
+    }  
+  }   
+  h1 {
+    font-size: 48px;
+  }
+  h2 {
+    font-size: 32px;
+  }
+  h3 {
+    font-size: 24px;
+  }
+  .title{
+    margin-top: $bigPad;
+  }
+  
+  .ant-card-body{
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    .ant-card-grid-hoverable {
+      cursor: pointer;
+    }
+    h4 {
+      margin-bottom: 20px;
+    }
+  }
+}
+
 
 a {
   color: #1985a0;
@@ -43,29 +88,32 @@ th, td {
 }
 
 .ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected {
-  background-color: #20A7C9;
+  background-color: $brandColor;
 }
 
 .ant-menu-item-selected a {
   color: white;
 }
 .ant-menu-submenu-selected {
-  color: #20A7C9;
+  color: $brandColor;
 }
 
-.ant-menu-horizontal > .ant-menu-item:hover,
-.ant-menu-horizontal > .ant-menu-item-active {
-  color: #20A7C9 !important;
-  border-bottom: 2px solid #20A7C9;
-}
-
-.ant-menu-horizontal >.ant-menu-item-selected {
-  color: #20A7C9;
-  border-bottom: 2px solid #20A7C9;
-}
-
-.ant-menu-horizontal > .ant-menu-item-selected a {
-  color: #20A7C9;
+.ant-menu-horizontal {
+  & > .ant-menu-item:hover, & > .ant-menu-item-active {
+    color: $brandColor !important;
+    border-bottom: 2px solid $brandColor;
+  }
+  & >.ant-menu-item-selected {
+    color: $brandColor;
+    border-bottom: 2px solid $brandColor;
+    a {
+      color: $brandColor;
+    }
+  }
 }
 
 tr:nth-child(even) {background-color: #f2f2f2;}
+
+.centered {
+  text-align: center;
+}

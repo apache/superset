@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { theme, useConfig } from 'docz';
 import { Link } from 'gatsby';
 import { ThemeProvider } from 'theme-ui';
@@ -24,10 +24,10 @@ import { Button, Col, Carousel } from 'antd';
 import { css } from '@emotion/core';
 import { supersetTheme } from '@superset-ui/style';
 import {
-  BarChartOutlined,
-  PieChartOutlined,
+  DeploymentUnitOutlined,
+  FireOutlined,
   DotChartOutlined,
-  BoxPlotOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 import GitHubButton from 'react-github-btn';
 
@@ -133,6 +133,9 @@ const featureSectionStyle = css`
     width: 60%;
     margin: 0 auto;
   }
+  .anticon {
+    color: #ccc;
+  }
 `;
 
 const integrationSection = css`
@@ -174,13 +177,18 @@ const linkCarousel = css`
         margin: 15px;
         color: #666;
         border: 1px solid #888;
-        background-color: #f8f8f8;
+        background-color: #20a7c911;
         border-radius: 3px;
         padding: 30px;
+        transition: all 0.25s;
         &:hover {
           cursor: pointer;
           color: ${colors.primary.base};
           border: 1px solid ${colors.primary.base};
+        }
+        &.active {
+          background: red;
+          background: #20a7c933;
         }
       }
     }
@@ -196,9 +204,17 @@ const linkCarousel = css`
   }
 `;
 
+
+
 const Theme = () => {
   const config = useConfig();
   const slider = useRef(null);
+
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  const onChange = index => {
+    setSlideIndex(index);
+  };
 
   return (
     <ThemeProvider theme={config}>
@@ -262,16 +278,14 @@ const Theme = () => {
             Superset is fast, lightweight, intuitive, and loaded with options
             that make it easy for users of all skill sets to explore and
             visualize their data, from simple line charts to highly detailed
-            geospatial charts.
-            {' '}
+            geospatial charts.{' '}
           </h4>
           <ul className="featureList ant-row">
             <Col span={12}>
               <li className="feature">
                 <span className="imagePlaceHolder">
                   {' '}
-                  <PieChartOutlined />
-                  {' '}
+                  <FireOutlined />{' '}
                 </span>
                 <span className="featureText">
                   <strong>Powerful and easy to use </strong>
@@ -285,14 +299,11 @@ const Theme = () => {
               <li className="feature">
                 <span className="imagePlaceHolder">
                   {' '}
-                  <BoxPlotOutlined />
-                  {' '}
+                  <DatabaseOutlined />{' '}
                 </span>
                 <span className="featureText">
                   <strong> Integrates with modern databases</strong>
-                  <br />
-                  {' '}
-                  Superset can connect to any SQL based datasource
+                  <br /> Superset can connect to any SQL based datasource
                   through SQL Alchemy, including modern cloud native databases
                   and engines at petabyte scale.
                 </span>
@@ -303,8 +314,7 @@ const Theme = () => {
               <li className="feature">
                 <span className="imagePlaceHolder">
                   {' '}
-                  <BarChartOutlined />
-                  {' '}
+                  <DeploymentUnitOutlined />{' '}
                 </span>
                 <span className="featureText">
                   <strong> Modern architecture </strong>
@@ -317,13 +327,10 @@ const Theme = () => {
               <li className="feature">
                 <span className="imagePlaceHolder">
                   {' '}
-                  <DotChartOutlined />
-                  {' '}
+                  <DotChartOutlined />{' '}
                 </span>
                 <span className="featureText">
-                  <strong> Rich visualizations and dashboards </strong>
-                  {' '}
-                  <br />
+                  <strong> Rich visualizations and dashboards </strong> <br />
                   Superset ships with a wide array of beautiful visualizations.
                   Our visualization plug-in architecture makes it easy to build
                   custom visualizations that drop directly into Superset.
@@ -338,34 +345,34 @@ const Theme = () => {
           <div className="toggleContainer">
             <div className="toggleBtns">
               <div
-                className="toggle"
+                className={`toggle ${slideIndex === 0 ? 'active' : null}`}
                 onClick={() => slider.current.goTo(0)}
                 role="button"
               >
-                <h3>Explore</h3>
+                <h2>Explore</h2>
                 <span>
                   Explore your data using the array of data visualizations.
                 </span>
               </div>
 
               <div
-                className="toggle"
+                className={`toggle ${slideIndex === 1 ? 'active' : null}`}
                 onClick={() => slider.current.goTo(1)}
                 role="button"
               >
-                <h3>View</h3>
+                <h2>View</h2>
                 <span>View your data through interactive dashboards</span>
               </div>
               <div
-                className="toggle"
+                className={`toggle ${slideIndex === 2 ? 'active' : null}`}
                 onClick={() => slider.current.goTo(2)}
                 role="button"
               >
-                <h3>Investigate</h3>
+                <h2>Investigate</h2>
                 <span>Use sqlab to write queries to explore your data</span>
               </div>
             </div>
-            <Carousel ref={slider} effect="scrollx">
+            <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
               <div className="imageContainer">
                 <img src="/images/explorer.png" alt="" />
               </div>
@@ -383,9 +390,7 @@ const Theme = () => {
 
           <ul className="databaseList">
             {Databases.map(
-              ({
-                title, href, imgName: imageName, width, height,
-              }) => (
+              ({ title, href, imgName: imageName, width, height }) => (
                 <a href={href} target="_blank" key={imageName} rel="noreferrer">
                   <Image
                     {...{
@@ -402,14 +407,11 @@ const Theme = () => {
           </ul>
           <span className="databaseSub">
             {' '}
-            ... and any other SQLAlchemy
-            {' '}
+            ... and any other SQLAlchemy{' '}
             <a href="https://superset.incubator.apache.org/installation.html#database-dependencies">
               {' '}
-              compatible databases
-              {' '}
-            </a>
-            {' '}
+              compatible databases{' '}
+            </a>{' '}
           </span>
         </div>
       </Layout>
