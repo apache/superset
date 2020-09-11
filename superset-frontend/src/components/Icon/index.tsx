@@ -18,7 +18,7 @@
  */
 import React, { SVGProps } from 'react';
 import { ReactComponent as CancelXIcon } from 'images/icons/cancel-x.svg';
-import { ReactComponent as CardViewIcon } from 'images/icons/card-view.svg';
+import { ReactComponent as CardViewIcon } from 'images/icons/card_view.svg';
 import { ReactComponent as CertifiedIcon } from 'images/icons/certified.svg';
 import { ReactComponent as CheckboxHalfIcon } from 'images/icons/checkbox-half.svg';
 import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
