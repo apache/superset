@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { css } from '@emotion/core';
-import { Button } from 'antd';
+import { Card, Row, Col, List, Modal } from 'antd';
 import SEO from '../components/seo';
 import Layout from '../components/layout';
 
@@ -91,88 +91,73 @@ const additionalResources = [
   ],
 ];
 
+const youtubeRefs = [
+  "https://www.youtube.com/embed/24XDOkGJrEY",
+  "https://www.youtube.com/embed/AqousXQ7YHw",
+  "https://www.youtube.com/embed/JGeIHrQYhIs",
+  "https://www.youtube.com/embed/z350Gbi463I" 
+];
+
+const youtubeIds = [
+  [
+    0,
+    '24XDOkGJrEY',
+    'The history and anatomy of Apache Superset'
+  ],
+  [
+    1,
+    'AqousXQ7YHw',
+    'Apache Superset for visualization and for data science'
+  ],
+  [
+    2,
+    'JGeIHrQYhIs',
+    'Apache Superset-Interactive Multi Tab Multiple Dashboards Samples'
+  ],
+  [
+    3,
+    'z350Gbi463I',
+    'Apache Superset -Interactive Sales Dashboard (Demo 1)'
+  ]
+];
+
 const resourcesContainer = css`
   background: #fff;
+  width: 1000px;
+  margin: 0 auto;
   .links {
     margin-top: 80px;
-    .resourcesLinks {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: wrap;
-      .link {
-        margin: 25px;
-        width: 189px;
-        position: relative;
-        font-size: 16px;
-        flex-direction: column;
-        border: solid 1px #cbcbcb;
-        border-radius: 5px;
-        padding: 45px 36px;
-        &:hover {
-          border-color: #1fa8c9;
-          cursor: pointer;
-        }
-        .youtube {
-          width: 94px;
-          height: 24px;
-          margin-bottom: 40px;
-        }
-        .preset {
-          margin-top: -13px;
-          margin-bottom: -10px;
-        }
-        .ytBtn {
-          position: absolute;
-          top: 129px;
-          left: 9px;
-        }
-        .title {
-          margin-bottom: 59px;
-        }
-        .gBtn {
-          margin-top: 10px;
-        }
-      }
-      a {
-        display: block;
-        margin-bottom: 50px;
-      }
-      .gatsby-image-wrapper {
-        display: block !important;
-        margin-bottom: 40px;
+    .videos {
+      text-align: left;
+      iframe {
+        margin: 15px;
       }
     }
-  }
-  .videos {
-    text-align: center;
-    iframe {
-      margin: 15px;
+    h2 {
+      font-size: 45px;
+    }
+    .learnContent,
+    .installation {
+      margin-top: 25px;
+      margin-bottom: 50px;
+      a {
+        display: block;
+        font-size: 17px;
+        margin: 15px;
+      }
     }
   }
   .span {
     display: block;
-    font-size: 20px;
-  }
-  h2 {
-    font-size: 35px;
-  }
-  .learnContent,
-  .installation {
-    margin-top: 25px;
-    margin-bottom: 50px;
-    a {
-      display: block;
-      font-size: 20px;
-      margin: 15px;
-    }
+    font-size: 17px;
   }
   ul {
-    display: table;
-    margin: 0 auto;
-    font-size: 20px;
-    margin-top: 25px;
-    margin-bottom: 25px;
-  }
+      display: table;
+      margin: 0 auto;
+      font-size: 17px;
+      margin-top: 25px;
+      margin-bottom: 25px;
+    }
 `;
 
 const title = css`
@@ -180,87 +165,105 @@ const title = css`
   font-size: 60px;
 `;
 
-const Resources = () => (
-  <Layout>
-    <SEO title="Resources" />
-    <div css={resourcesContainer}>
-      <h1 css={title}>Resources</h1>
-      <span className="span">
-        Here’s a collection of resources and blogs about Apache Superset
-        {' '}
-        <br />
-        from around the Internet.
-        For a more more extensive and dynamic list of
-        resources, check out the <a href="https://github.com/apache-superset/awesome-apache-superset">
-          Awesome Apache Superset
-        </a> repository
-      </span>
-      <div className="links">
-        <div className="learnContent">
-          <h2>Learning Content</h2>
-          {links.map(([link, href]) => (
-            <a href={href} target="_blank" rel="noreferrer">
-              {link}
-            </a>
-          ))}
-        </div>
-        <div className="installation">
-          <h2>Additional Installation Resources</h2>
-          {installationLinks.map(([link, href]) => (
-            <a href={href} target="_blank" rel="noreferrer">
-              {link}
-            </a>
-          ))}
-        </div>
-        <div className="videos">
-          <h2> Videos Content </h2>
-          <iframe
-            width="560"
-            height="315"
-            src="https://www.youtube.com/embed/24XDOkGJrEY"
-            frameBorder="0"
-            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-          <iframe
-            width="560"
-            height="315"
-            src="https://www.youtube.com/embed/AqousXQ7YHw"
-            frameBorder="0"
-            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-          <iframe
-            width="560"
-            height="315"
-            src="https://www.youtube.com/embed/JGeIHrQYhIs"
-            frameBorder="0"
-            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-          <iframe
-            width="560"
-            height="315"
-            src="https://www.youtube.com/embed/z350Gbi463I"
-            frameBorder="0"
-            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-        <div>
-          <ul>
-            {additionalResources.map(([span, href]) => (
-              <li>
-                <a href={href} target="_blank" rel="noreferrer">
-                  {span}
-                </a>
-              </li>
-            ))}
-          </ul>
+const Resources = () => {
+  const [showModal, setModal] = useState(false);
+  const [url, setUrl] = useState(null)
+  const [cardTitle, setCardTitle] = useState(null);
+  return (
+    <Layout>
+      <SEO title="Resources" />
+      <div css={resourcesContainer}>
+        <h1 css={title}>Resources</h1>
+        <span className="span">
+          Here’s a collection of resources and blogs about Apache Superset
+          {' '}
+          <br />
+          from around the Internet.
+          For a more more extensive and dynamic list of
+          resources, check out the <a href="https://github.com/apache-superset/awesome-apache-superset">
+            Awesome Apache Superset
+          </a> repository
+        </span>
+        <div className="links">
+          <Modal
+            title={cardTitle}
+            visible={showModal}
+            onOk={()=>setModal(false)}
+            onCancel={()=>setModal(false)}
+            width={650} 
+          >
+            <iframe 
+              width="560" 
+              height="315" 
+              src={youtubeRefs[url]} 
+              frameBorder="0" 
+              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" 
+              allowFullScreen />
+          </Modal>
+          <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+            <Col span={12}>
+              <h2>Learning Content</h2>
+              <List
+                size="small"
+                bordered
+                dataSource={links}
+                renderItem={([link, href]) => ( 
+                  <List.Item>
+                    <a href={href} target="_blank" rel="noreferrer">
+                      {link}
+                    </a>
+                  </List.Item>
+                )}
+              />
+            </Col>
+            <Col span={12}>
+              <h2>Additional Installation Resources</h2>
+              <List
+                size="small"
+                bordered
+                dataSource={installationLinks}
+                renderItem={([link, href]) =>(
+                  <List.Item>
+                    <a href={href} target="_blank" rel="noreferrer">
+                      {link}
+                    </a>
+                  </List.Item>
+                )}
+              />
+            </Col>
+          </Row>
+          <div className="videos">
+            <h2> Videos Content </h2>
+            <Card>
+              {youtubeIds.map(([idx,ids, cardTitle]) => 
+                <Card.Grid onClick={()=>{
+                    setModal(true)
+                    setUrl(idx)
+                    setCardTitle(cardTitle)
+                  }}>
+                  <img
+                    style={{height: '150px', width:'250px'}}
+                    src={`http://img.youtube.com/vi/${ids}/maxresdefault.jpg`}
+                  />
+                </Card.Grid>
+              )}
+            </Card>
+          </div>
+          <div>
+            <ul>
+              {additionalResources.map(([span, href]) => (
+                <li>
+                  <a href={href} target="_blank" rel="noreferrer">
+                    {span}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
-  </Layout>
-);
+    </Layout>
+  );
+}
 
 export default Resources;
