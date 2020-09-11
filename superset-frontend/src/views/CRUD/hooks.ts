@@ -167,6 +167,135 @@ export function useListViewResource<D extends object = any>(
   };
 }
 
+// In the same vein as above, a hook for viewing a single instance of a resource (given id)
+interface SingleViewResourceState<D extends object = any> {
+  loading: boolean;
+  resource: D | null;
+}
+
+export function useSingleViewResource<D extends object = any>(
+  resourceName: string,
+  resourceLabel: string, // resourceLabel for translations
+  handleErrorMsg: (errorMsg: string) => void,
+) {
+  const [state, setState] = useState<SingleViewResourceState<D>>({
+    loading: false,
+    resource: null,
+  });
+
+  function updateState(update: Partial<SingleViewResourceState<D>>) {
+    setState(currentState => ({ ...currentState, ...update }));
+  }
+
+  const fetchResource = useCallback((resourceID: number) => {
+    // Set loading state
+    updateState({
+      loading: true,
+    });
+
+    return SupersetClient.get({
+      endpoint: `/api/v1/${resourceName}/${resourceID}`,
+    })
+      .then(
+        ({ json = {} }) => {
+          updateState({
+            resource: json.result,
+          });
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t(
+              'An error occurred while fetching %ss: %s',
+              resourceLabel,
+              errMsg,
+            ),
+          ),
+        ),
+      )
+      .finally(() => {
+        updateState({ loading: false });
+      });
+  }, []);
+
+  const createResource = useCallback((resource: D) => {
+    // Set loading state
+    updateState({
+      loading: true,
+    });
+
+    return SupersetClient.post({
+      endpoint: `/api/v1/${resourceName}/`,
+      body: JSON.stringify(resource),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(
+        ({ json = {} }) => {
+          updateState({
+            resource: json.result,
+          });
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t(
+              'An error occurred while fetching %ss: %s',
+              resourceLabel,
+              errMsg,
+            ),
+          ),
+        ),
+      )
+      .finally(() => {
+        updateState({ loading: false });
+      });
+  }, []);
+
+  const updateResource = useCallback((resourceID: number, resource: D) => {
+    // Set loading state
+    updateState({
+      loading: true,
+    });
+
+    return SupersetClient.put({
+      endpoint: `/api/v1/${resourceName}/${resourceID}`,
+      body: JSON.stringify(resource),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(
+        ({ json = {} }) => {
+          updateState({
+            resource: json.result,
+          });
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t(
+              'An error occurred while fetching %ss: %s',
+              resourceLabel,
+              errMsg,
+            ),
+          ),
+        ),
+      )
+      .finally(() => {
+        updateState({ loading: false });
+      });
+  }, []);
+
+  return {
+    state: {
+      loading: state.loading,
+      resource: state.resource,
+    },
+    setResource: (update: D) =>
+      updateState({
+        resource: update,
+      }),
+    fetchResource,
+    createResource,
+    updateResource,
+  };
+}
+
 // the hooks api has some known limitations around stale state in closures.
 // See https://github.com/reactjs/rfcs/blob/master/text/0068-react-hooks.md#drawbacks
 // the useRef hook is a way of getting around these limitations by having a consistent ref
