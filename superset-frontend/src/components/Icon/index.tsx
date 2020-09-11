@@ -28,7 +28,7 @@ import { ReactComponent as CircleCheckIcon } from 'images/icons/circle_check.svg
 import { ReactComponent as CircleCheckSolidIcon } from 'images/icons/circle_check_solid.svg';
 import { ReactComponent as CloseIcon } from 'images/icons/close.svg';
 import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
-import { ReactComponent as DatabasesIcon } from 'images/icons/databases.svg';
+import { ReactComponent as DatabaseIcon } from 'images/icons/database.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
 import { ReactComponent as DropdownArrowIcon } from 'images/icons/dropdown-arrow.svg';
@@ -58,7 +58,7 @@ type IconName =
   | 'circle-check'
   | 'close'
   | 'compass'
-  | 'databases'
+  | 'database'
   | 'dataset-physical'
   | 'dataset-virtual'
   | 'dropdown-arrow'
@@ -87,7 +87,7 @@ export const iconsRegistry: Record<
   'checkbox-on': CheckboxOnIcon,
   'circle-check-solid': CircleCheckSolidIcon,
   'circle-check': CircleCheckIcon,
-  databases: DatabasesIcon,
+  database: DatabaseIcon,
   'dataset-physical': DatasetPhysicalIcon,
   'dataset-virtual': DatasetVirtualIcon,
   'favorite-selected': FavoriteSelectedIcon,
