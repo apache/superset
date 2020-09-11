@@ -207,6 +207,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return False
 
     @classmethod
+    def get_allow_stop_pending_queries(cls) -> bool:
+        return False
+
+    @classmethod
     def get_engine(
         cls,
         database: "Database",
