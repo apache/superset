@@ -21,13 +21,7 @@ import PropTypes from 'prop-types';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-
-const AceEditor = AsyncEsmComponent(async () => {
-  const ace = await import('react-ace');
-  await Promise.all([import('brace/mode/css'), import('brace/theme/github')]);
-  return ace.default;
-});
+import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
 const propTypes = {
   initialCss: PropTypes.string,
@@ -50,6 +44,10 @@ class CssEditor extends React.PureComponent {
     };
     this.changeCss = this.changeCss.bind(this);
     this.changeCssTemplate = this.changeCssTemplate.bind(this);
+  }
+
+  componentDidMount() {
+    AceCssEditor.preload();
   }
 
   changeCss(css) {
@@ -90,9 +88,7 @@ class CssEditor extends React.PureComponent {
             <div style={{ zIndex: 1 }}>
               <h5>{t('Live CSS Editor')}</h5>
               <div style={{ border: 'solid 1px grey' }}>
-                <AceEditor
-                  mode="css"
-                  theme="github"
+                <AceCssEditor
                   minLines={12}
                   maxLines={30}
                   onChange={this.changeCss}

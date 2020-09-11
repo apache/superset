@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/core';
-import AceEditor from 'src/components/AsyncAceEditor';
+import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
@@ -129,11 +129,9 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
           </span>
         </FormGroup>
         <FormGroup>
-          <AceEditor
+          <SQLEditor
             ref={this.handleAceEditorRef}
             keywords={keywords}
-            mode="sql"
-            theme="github"
             height={`${height - 100}px`}
             onChange={this.onSqlExpressionChange}
             width="100%"

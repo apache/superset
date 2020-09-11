@@ -25,7 +25,7 @@ import { t, ThemeProvider } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
 
 import FormLabel from 'src/components/FormLabel';
-import AceEditor from 'src/components/AsyncAceEditor';
+import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
 import { AGGREGATES_OPTIONS } from '../constants';
@@ -157,7 +157,11 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   refreshAceEditor() {
-    setTimeout(() => this.aceEditorRef.editor.resize(), 0);
+    setTimeout(() => {
+      if (this.aceEditorRef) {
+        this.aceEditorRef.editor.resize();
+      }
+    }, 0);
   }
 
   renderColumnOption(option) {
@@ -265,11 +269,10 @@ export default class AdhocMetricEditPopover extends React.Component {
             >
               {this.props.datasourceType !== 'druid' ? (
                 <FormGroup>
-                  <AceEditor
+                  <SQLEditor
+                    showLoadingForImport
                     ref={this.handleAceEditorRef}
                     keywords={keywords}
-                    mode="sql"
-                    theme="github"
                     height={`${this.state.height - 43}px`}
                     onChange={this.onSqlExpressionChange}
                     width="100%"

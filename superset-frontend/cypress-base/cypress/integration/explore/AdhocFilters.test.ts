@@ -25,14 +25,31 @@ describe('AdhocFilters', () => {
     cy.route('GET', '/superset/filter/table/*/name').as('filterValues');
   });
 
-  it('Set simple adhoc filter', () => {
-    cy.visitChartByName('Num Births Trend');
+  it('Should not load mathjs', () => {
+    cy.visitChartByName('Boys');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.get('script[src*="mathjs"]').should('have.length', 0);
+  });
+
+  let numScripts = 0;
+
+  it('Should load AceEditor scripts on demand', () => {
+    cy.get('script').then(nodes => {
+      numScripts = nodes.length;
+    });
 
     cy.get('[data-test=adhoc_filters]').within(() => {
-      cy.get('.Select__control').click();
+      cy.get('.Select__control').scrollIntoView().click();
       cy.get('input[type=text]').focus().type('name{enter}');
     });
+
+    cy.get('script').then(nodes => {
+      // should load new script chunks for SQL editor
+      expect(nodes.length).to.greaterThan(numScripts);
+    });
+  });
+
+  it('Set simple adhoc filter', () => {
     cy.get('#filter-edit-popover').within(() => {
       cy.get('[data-test=adhoc-filter-simple-value]').within(() => {
         cy.get('.Select__control').click();
@@ -40,7 +57,6 @@ describe('AdhocFilters', () => {
       });
       cy.get('button').contains('Save').click();
     });
-
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
@@ -53,7 +69,7 @@ describe('AdhocFilters', () => {
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=adhoc_filters]').within(() => {
-      cy.get('.Select__control').click();
+      cy.get('.Select__control').scrollIntoView().click();
       cy.get('input[type=text]').focus().type('name{enter}');
     });
 

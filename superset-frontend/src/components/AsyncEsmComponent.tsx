@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, RefObject } from 'react';
+import React, { CSSProperties, useEffect, useState, RefObject } from 'react';
 import Loading from './Loading';
 
 type PlaceholderProps = {
   showLoadingForImport: boolean;
   width?: string | number;
   height?: string | number;
+  style?: CSSProperties;
 } & {
   [key: string]: any;
 };
@@ -31,12 +32,13 @@ function DefaultPlaceholder({
   width,
   height,
   showLoadingForImport,
+  style,
 }: PlaceholderProps) {
   return (
     // since `width` defaults to 100%, we can display the placeholder once
     // height is specified.
     (height && (
-      <div style={{ width, height }}>
+      <div style={{ width, height, ...style }}>
         {showLoadingForImport && <Loading position="floating" />}
       </div>
     )) ||
@@ -64,10 +66,10 @@ export default function AsyncEsmComponent<
     PlaceholderProps
   > | null = DefaultPlaceholder,
 ) {
-  let component: React.ComponentType<P>;
-  let promise: Promise<M> | undefined;
   // component props + placeholder props
   type FullProps = P & PlaceholderProps;
+  let promise: Promise<M> | undefined;
+  let component: React.ComponentType<FullProps>;
 
   /**
    * Safely wait for promise, make sure the loader function only execute once.
@@ -81,7 +83,7 @@ export default function AsyncEsmComponent<
     if (!component) {
       promise.then(result => {
         component = ((result as { default?: React.ComponentType<P> }).default ||
-          result) as React.ComponentType<P>;
+          result) as React.ComponentType<FullProps>;
       });
     }
     return promise;
@@ -116,6 +118,7 @@ export default function AsyncEsmComponent<
       });
       const Component = component || placeholder;
       return Component ? (
+        // placeholder does not get the ref
         <Component ref={Component === component ? ref : null} {...props} />
       ) : null;
     },

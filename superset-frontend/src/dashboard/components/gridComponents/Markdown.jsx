@@ -22,7 +22,7 @@ import ReactMarkdown from 'react-markdown';
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
 import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';
@@ -36,17 +36,6 @@ import {
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from '../../util/constants';
-
-async function loadAceEditor() {
-  const ace = await import('react-ace');
-  await Promise.all([
-    import('brace/mode/markdown'),
-    import('brace/theme/textmate'),
-  ]);
-  return ace.default;
-}
-
-const AceEditor = AsyncEsmComponent(loadAceEditor);
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -177,7 +166,7 @@ class Markdown extends React.PureComponent {
     }
     // pre-load AceEditor when entering edit mode
     if (this.props.editMode) {
-      loadAceEditor();
+      MarkdownEditor.preload();
     }
   }
 
@@ -243,9 +232,7 @@ class Markdown extends React.PureComponent {
 
   renderEditMode() {
     return (
-      <AceEditor
-        mode="markdown"
-        theme="textmate"
+      <MarkdownEditor
         onChange={this.handleMarkdownChange}
         width="100%"
         height="100%"

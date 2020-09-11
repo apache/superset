@@ -17,12 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import AceEditor from 'react-ace';
-import 'brace/mode/sql';
-import 'brace/theme/github';
-import 'brace/ext/language_tools';
-import ace from 'brace';
 import { areArraysShallowEqual } from 'src/reduxUtils';
+import { supersetColors } from 'src/components/styles';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
   SCHEMA_AUTOCOMPLETE_SCORE,
@@ -30,8 +26,10 @@ import {
   COLUMN_AUTOCOMPLETE_SCORE,
   SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
 } from 'src/SqlLab/constants';
-
-const langTools = ace.acequire('ace/ext/language_tools');
+import {
+  AceCompleterKeyword,
+  SQLEditor as AceSQLEditor,
+} from 'src/components/AsyncAceEditor';
 
 type HotKey = {
   key: string;
@@ -61,7 +59,7 @@ interface Props {
 interface State {
   sql: string;
   selectedText: string;
-  words: any[];
+  words: AceCompleterKeyword[];
 }
 
 class AceEditorWrapper extends React.PureComponent<Props, State> {
@@ -235,14 +233,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       .concat(functionWords)
       .concat(sqlKeywords);
 
-    this.setState({ words }, () => {
-      const completer = {
-        getCompletions: this.getCompletions.bind(this),
-      };
-      if (langTools) {
-        langTools.setCompleters([completer]);
-      }
-    });
+    this.setState({ words });
   }
 
   getAceAnnotations() {
@@ -262,9 +253,8 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
 
   render() {
     return (
-      <AceEditor
-        mode="sql"
-        theme="github"
+      <AceSQLEditor
+        keywords={this.state.words}
         onLoad={this.onEditorLoad.bind(this)}
         onBlur={this.onBlur.bind(this)}
         height={this.props.height}
@@ -274,6 +264,11 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
         enableLiveAutocompletion={this.props.autocomplete}
         value={this.state.sql}
         annotations={this.getAceAnnotations()}
+        // TODO: migrate this color to supersetTheme
+        style={{
+          background: supersetColors.grayBg,
+          border: `1px solid ${supersetColors.grayLight}`,
+        }}
       />
     );
   }

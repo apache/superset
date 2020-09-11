@@ -26,14 +26,12 @@ import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 import '../stylesheets/buttons.less';
-
-const AceEditor = AsyncEsmComponent(() => import('react-ace'));
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
@@ -82,7 +80,7 @@ class PropertiesModal extends React.PureComponent {
 
   componentDidMount() {
     this.fetchDashboardDetails();
-    AceEditor.preload();
+    JsonEditor.preload();
   }
 
   onColorSchemeChange(value) {
@@ -308,14 +306,12 @@ class PropertiesModal extends React.PureComponent {
                     <FormLabel htmlFor="json_metadata">
                       {t('JSON Metadata')}
                     </FormLabel>
-                    <AceEditor
+                    <JsonEditor
                       showLoadingForImport
-                      mode="json"
                       name="json_metadata"
                       defaultValue={this.defaultMetadataValue}
                       value={values.json_metadata}
                       onChange={this.onMetadataChange}
-                      theme="textmate"
                       tabSize={2}
                       width="100%"
                       height="200px"

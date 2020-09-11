@@ -33,9 +33,10 @@ describe('Visualization > Line', () => {
     cy.get('.alert-warning').contains(`"Metrics" cannot be empty`);
   });
 
-  it('should load mathjs on demand', () => {
-    cy.get('script[src*="mathjs"]').should('have.length', 0);
+  it('should preload mathjs', () => {
+    cy.get('script[src*="mathjs"]').should('have.length', 1);
     cy.contains('Add Annotation Layer').scrollIntoView().click();
+    // should not load additional mathjs
     cy.get('script[src*="mathjs"]').should('have.length', 1);
     cy.contains('Layer Configuration');
   });

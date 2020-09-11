@@ -59,7 +59,7 @@ if (isDevMode) {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
 } else {
-  output.filename = '[chunkhash].entry.js';
+  output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[chunkhash].chunk.js';
 }
 
@@ -228,6 +228,7 @@ const config = {
               'react-sortable-hoc',
               'react-virtualized',
               'react-table',
+              'react-ace',
               '@hot-loader.*',
               'webpack.*',
               '@?babel.*',
@@ -245,11 +246,6 @@ const config = {
           ),
         },
         // bundle large libraries separately
-        brace: {
-          name: 'brace',
-          test: /\/node_modules\/(brace|react-ace)\//,
-          priority: 40,
-        },
         mathjs: {
           name: 'mathjs',
           test: /\/node_modules\/mathjs\//,

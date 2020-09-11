@@ -22,8 +22,12 @@ export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 export const CHECK_DASHBOARD_FAVORITE_ENDPOINT =
   '/superset/favstar/Dashboard/*/count';
 
+/**
+ * Drag an element and drop it to another element.
+ * Usage:
+ *    drag(source).to(target);
+ */
 export function drag(selector: string, content: string | number | RegExp) {
-  // drag-n-drop
   const dataTransfer = { data: {} };
   return {
     to(target: string | Cypress.Chainable) {

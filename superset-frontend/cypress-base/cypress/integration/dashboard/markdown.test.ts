@@ -25,18 +25,39 @@ describe('Dashboard edit markdown', () => {
     cy.visit(TABBED_DASHBOARD);
   });
 
-  it('should load brace on demand', () => {
-    cy.get('script[src*="brace"]').should('have.length', 0);
+  it('should load AceEditor on demand', () => {
+    let numScripts = 0;
+    cy.get('script').then(nodes => {
+      numScripts = nodes.length;
+    });
     cy.get('.dashboard-header [data-test=pencil]').click();
-    cy.get('script[src*="brace"]').should('have.length', 0);
+    cy.get('script').then(nodes => {
+      // load 5 new script chunks for css editor
+      expect(nodes.length).to.greaterThan(numScripts);
+      numScripts = nodes.length;
+    });
+
+    // add new markdown component
     drag('.new-component', 'Markdown').to(
       '.grid-row.background--transparent:first',
     );
-    cy.get('script[src*="brace"]').should('have.length', 1);
+    cy.get('script').then(nodes => {
+      // load more scripts for markdown editor
+      expect(nodes.length).to.greaterThan(numScripts);
+      numScripts = nodes.length;
+    });
+
     cy.contains('h3', '✨Markdown').click();
     cy.get('.ace_content').contains(
       'Click here to edit [markdown](https://bit.ly/1dQOfRK)',
     );
+
+    // entering edit mode does not add new scripts
+    // (though scripts may still be removed by others)
+    cy.get('script').then(nodes => {
+      expect(nodes.length).to.most(numScripts);
+    });
+
     cy.get('.grid-row.background--transparent:first').click('right');
     cy.get('.ace_content').should('not.exist');
   });

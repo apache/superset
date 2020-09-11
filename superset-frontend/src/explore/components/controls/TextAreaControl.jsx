@@ -20,26 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup, FormControl } from 'react-bootstrap';
 import { debounce } from 'lodash';
-import Button from 'src/components/Button';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-
 import { t } from '@superset-ui/core';
 
-import ControlHeader from '../ControlHeader';
-import ModalTrigger from '../../../components/ModalTrigger';
+import Button from 'src/components/Button';
+import { TextAreaEditor } from 'src/components/AsyncAceEditor';
+import ModalTrigger from 'src/components/ModalTrigger';
 
-const AceEditor = AsyncEsmComponent(async () => {
-  const { default: ReactAceEditor } = await import('react-ace');
-  await Promise.all([
-    import('brace/mode/sql'),
-    import('brace/mode/json'),
-    import('brace/mode/html'),
-    import('brace/mode/markdown'),
-    import('brace/mode/javascript'),
-    import('brace/theme/textmate'),
-  ]);
-  return ReactAceEditor;
-});
+import ControlHeader from '../ControlHeader';
 
 const propTypes = {
   name: PropTypes.string,
@@ -91,9 +78,8 @@ export default class TextAreaControl extends React.Component {
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
       return (
-        <AceEditor
+        <TextAreaEditor
           mode={this.props.language}
-          theme="textmate"
           style={{ border: '1px solid #CCC' }}
           minLines={minLines}
           maxLines={inModal ? 1000 : this.props.maxLines}
