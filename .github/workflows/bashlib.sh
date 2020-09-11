@@ -181,6 +181,7 @@ cypress-run-all() {
   # so errors can print to stderr.
   local flasklog="${HOME}/flask.log"
   local port=8081
+  export CYPRESS_BASE_URL="http://localhost:${port}"
 
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!

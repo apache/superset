@@ -680,6 +680,7 @@ We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be ru
 
 ```bash
 export SUPERSET_CONFIG=tests.superset_test_config
+export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
 superset init
 superset load_test_users
