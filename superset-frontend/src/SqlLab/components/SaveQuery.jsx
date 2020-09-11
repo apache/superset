@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormControl, FormGroup, Row, Col } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
@@ -135,7 +135,7 @@ class SaveQuery extends React.PureComponent {
           <Col md={12}>
             {isSaved && (
               <Button
-                bsStyle="primary"
+                buttonStyle="primary"
                 onClick={this.onUpdate}
                 className="m-r-3"
               >
@@ -143,7 +143,7 @@ class SaveQuery extends React.PureComponent {
               </Button>
             )}
             <Button
-              bsStyle={isSaved ? undefined : 'primary'}
+              buttonStyle={isSaved ? undefined : 'primary'}
               onClick={this.onSave}
               className="m-r-3"
             >
@@ -169,7 +169,7 @@ class SaveQuery extends React.PureComponent {
           backdrop="static"
           triggerNode={
             <Button
-              bsSize="small"
+              buttonSize="small"
               className="toggleSave"
               onClick={this.toggleSave}
             >

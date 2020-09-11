@@ -30,8 +30,7 @@ import {
   Table,
   SortDirectionType,
 } from 'react-virtualized';
-import { getMultipleTextDimensions } from '@superset-ui/dimension';
-import { t } from '@superset-ui/translation';
+import { t, getMultipleTextDimensions } from '@superset-ui/core';
 
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';

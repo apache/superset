@@ -168,7 +168,7 @@ class TestCacheWarmUp(SupersetTestCase):
             "slice_id": chart_id,
             "extra_filters": [
                 {"col": "name", "op": "in", "val": ["Alice", "Bob"]},
-                {"col": "__time_range", "op": "in", "val": "100 years ago : today"},
+                {"col": "__time_range", "op": "==", "val": "100 years ago : today"},
             ],
         }
         self.assertEqual(result, expected)

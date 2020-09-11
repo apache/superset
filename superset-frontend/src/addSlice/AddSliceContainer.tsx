@@ -17,9 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { Button, Panel } from 'react-bootstrap';
+import { Panel } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import VizTypeControl from '../explore/components/controls/VizTypeControl';
 
@@ -142,7 +143,7 @@ export default class AddSliceContainer extends React.PureComponent<
             <br />
             <hr />
             <Button
-              bsStyle="primary"
+              buttonStyle="primary"
               disabled={this.isBtnDisabled()}
               onClick={this.gotoSlice}
             >

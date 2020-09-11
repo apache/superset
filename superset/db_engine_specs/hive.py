@@ -51,6 +51,28 @@ tracking_url_trans = conf.get("TRACKING_URL_TRANSFORMER")
 hive_poll_interval = conf.get("HIVE_POLL_INTERVAL")
 
 
+def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
+    # Optional dependency
+    import boto3  # pylint: disable=import-error
+
+    bucket_path = config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
+
+    if not bucket_path:
+        logger.info("No upload bucket specified")
+        raise Exception(
+            "No upload bucket specified. You can specify one in the config file."
+        )
+
+    s3 = boto3.client("s3")
+    location = os.path.join("s3a://", bucket_path, upload_prefix, table.table)
+    s3.upload_file(
+        filename,
+        bucket_path,
+        os.path.join(upload_prefix, table.table, os.path.basename(filename)),
+    )
+    return location
+
+
 class HiveEngineSpec(PrestoEngineSpec):
     """Reuses PrestoEngineSpec functionality."""
 
@@ -110,7 +132,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         return BaseEngineSpec.get_all_datasource_names(database, datasource_type)
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
+    def fetch_data(
+        cls, cursor: Any, limit: Optional[int] = None
+    ) -> List[Tuple[Any, ...]]:
         import pyhive
         from TCLIService import ttypes
 
@@ -118,7 +142,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         if state.operationState == ttypes.TOperationState.ERROR_STATE:
             raise Exception("Query error", state.errorMessage)
         try:
-            return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+            return super().fetch_data(cursor, limit)
         except pyhive.exc.ProgrammingError:
             return []
 
@@ -171,7 +195,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         df_to_sql_kwargs: Dict[str, Any],
     ) -> None:
         """Uploads a csv file and creates a superset datasource in Hive."""
-
         if_exists = df_to_sql_kwargs["if_exists"]
         if if_exists == "append":
             raise SupersetException("Append operation not currently supported")
@@ -185,14 +208,6 @@ class HiveEngineSpec(PrestoEngineSpec):
                 "string": "STRING",
             }
             return tableschema_to_hive_types.get(col_type, "STRING")
-
-        bucket_path = config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
-
-        if not bucket_path:
-            logger.info("No upload bucket specified")
-            raise Exception(
-                "No upload bucket specified. You can specify one in the config file."
-            )
 
         upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
             database, g.user, table.schema
@@ -214,30 +229,23 @@ class HiveEngineSpec(PrestoEngineSpec):
         schema_definition = ", ".join(column_name_and_type)
 
         # ensure table doesn't already exist
-        if (
-            if_exists == "fail"
-            and not database.get_df(
-                f"SHOW TABLES IN {table.schema} LIKE '{table.table}'"
-            ).empty
-        ):
-            raise SupersetException("Table already exists")
+        if if_exists == "fail":
+            if table.schema:
+                table_exists = not database.get_df(
+                    f"SHOW TABLES IN {table.schema} LIKE '{table.table}'"
+                ).empty
+            else:
+                table_exists = not database.get_df(
+                    f"SHOW TABLES LIKE '{table.table}'"
+                ).empty
+            if table_exists:
+                raise SupersetException("Table already exists")
 
         engine = cls.get_engine(database)
 
         if if_exists == "replace":
             engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
-
-        # Optional dependency
-        import boto3  # pylint: disable=import-error
-
-        s3 = boto3.client("s3")
-        location = os.path.join("s3a://", bucket_path, upload_prefix, table.table)
-        s3.upload_file(
-            filename,
-            bucket_path,
-            os.path.join(upload_prefix, table.table, os.path.basename(filename)),
-        )
-
+        location = upload_to_s3(filename, upload_prefix, table)
         sql, params = cls.get_create_table_stmt(
             table,
             schema_definition,

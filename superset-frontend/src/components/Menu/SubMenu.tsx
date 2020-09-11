@@ -17,22 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import { Nav, Navbar, MenuItem } from 'react-bootstrap';
 import Button, { OnClickHandler } from 'src/components/Button';
 
 const StyledHeader = styled.header`
-  margin-top: -20px;
   .navbar-header .navbar-brand {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
   .navbar-right {
-    .supersetButton {
-      margin: ${({ theme }) =>
-        `${theme.gridUnit * 2}px ${theme.gridUnit * 4}px ${
-          theme.gridUnit * 2
-        }px 0`};
-    }
+    padding: 8px 0;
+    margin-right: 0;
   }
   .navbar-nav {
     li {
@@ -95,16 +90,18 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
         <Nav className="navbar-right">
           {props.secondaryButton && (
             <Button
-              className="supersetButton secondary"
+              buttonStyle="secondary"
               onClick={props.secondaryButton.onClick}
+              cta
             >
               {props.secondaryButton.name}
             </Button>
           )}
           {props.primaryButton && (
             <Button
-              className="supersetButton primary"
+              buttonStyle="primary"
               onClick={props.primaryButton.onClick}
+              cta
             >
               {props.primaryButton.name}
             </Button>

@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
 import { isEqual, isEmpty } from 'lodash';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import TooltipWrapper from './TooltipWrapper';
 import ModalTrigger from './ModalTrigger';
 import { safeStringify } from '../utils/safeStringify';

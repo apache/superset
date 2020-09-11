@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
+import { styled, t } from '@superset-ui/core';
 import { Modal as BaseModal } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
-import Button from 'src/views/CRUD/data/dataset/Button';
+import Button from 'src/components/Button';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -54,9 +53,6 @@ const StyledModal = styled(BaseModal)`
   .modal-footer {
     border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     padding: 16px;
-    .btn + .btn {
-      margin-left: 8px;
-    }
   }
 `;
 
@@ -86,11 +82,14 @@ export default function Modal({
       <BaseModal.Body>{children}</BaseModal.Body>
       <BaseModal.Footer>
         <span className="float-right">
-          <Button onClick={onHide}>{t('Cancel')}</Button>
+          <Button onClick={onHide} cta>
+            {t('Cancel')}
+          </Button>
           <Button
-            bsStyle={primaryButtonType}
+            buttonStyle={primaryButtonType}
             disabled={disablePrimaryButton}
             onClick={onHandledPrimaryAction}
+            cta
           >
             {primaryButtonName}
           </Button>

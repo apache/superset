@@ -24,7 +24,7 @@ import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { initFeatureFlags } from 'src/featureFlags';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
@@ -33,12 +33,12 @@ import ChartList from 'src/views/CRUD/chart/ChartList';
 import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
 import DatasourceList from 'src/views/CRUD/data/database/DatabaseList';
 
-import messageToastReducer from 'src/messageToasts/reducers';
-import { initEnhancer } from 'src/reduxUtils';
-import setupApp from 'src/setup/setupApp';
-import setupPlugins from 'src/setup/setupPlugins';
-import Welcome from 'src/views/CRUD/welcome/Welcome';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import messageToastReducer from '../messageToasts/reducers';
+import { initEnhancer } from '../reduxUtils';
+import setupApp from '../setup/setupApp';
+import setupPlugins from '../setup/setupPlugins';
+import Welcome from './CRUD/welcome/Welcome';
+import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 
 setupApp();
 setupPlugins();

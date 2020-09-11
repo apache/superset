@@ -21,10 +21,8 @@ import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
-import { Button } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
-import styled from '@superset-ui/style';
+import Button from 'src/components/Button';
+import { t, styled, SupersetClient } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 
@@ -341,7 +339,7 @@ class FilterBox extends React.Component {
           ? selectedValues[key]
           : [selectedValues[key]];
         selectedValuesForKey
-          .filter(value => !choiceIds.has(value))
+          .filter(value => value !== null && !choiceIds.has(value))
           .forEach(value => {
             choices.unshift({
               filter: key,
@@ -438,8 +436,8 @@ class FilterBox extends React.Component {
         {this.renderFilters()}
         {!instantFiltering && (
           <Button
-            bsSize="small"
-            bsStyle="primary"
+            buttonSize="small"
+            buttonStyle="primary"
             onClick={this.clickApply.bind(this)}
             disabled={!this.state.hasChanged}
           >

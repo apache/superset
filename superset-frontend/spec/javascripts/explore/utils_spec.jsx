@@ -30,7 +30,7 @@ import {
   formatTimeRange,
 } from 'src/explore/dateFilterUtils';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
-import { getChartMetadataRegistry } from '@superset-ui/chart';
+import { getChartMetadataRegistry } from '@superset-ui/core';
 
 describe('exploreUtils', () => {
   const location = window.location;

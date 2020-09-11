@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient, logging } from '@superset-ui/core';
 import parseCookie from 'src/utils/parseCookie';
-import { logging } from '@superset-ui/core';
 
 export default function setupClient() {
   const csrfNode = document.querySelector('#csrf_token');

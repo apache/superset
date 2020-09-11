@@ -42,6 +42,7 @@ little bit helps, and credit will always be given.
       - [Merging](#merging)
       - [Post-merge Responsibility](#post-merge-responsibility)
   - [Managing Issues and PRs](#managing-issues-and-prs)
+  - [Reporting a Security Vulnerability](#reporting-a-security-vulnerability)
   - [Revert Guidelines](#revert-guidelines)
   - [Setup Local Environment for Development](#setup-local-environment-for-development)
     - [Documentation](#documentation)
@@ -263,6 +264,12 @@ Committers may also update title to reflect the issue/PR content if the author-p
 If the PR passes CI tests and does not have any `need:` labels, it is ready for review, add label `review` and/or `design-review`.
 
 If an issue/PR has been inactive for >=30 days, it will be closed. If it does not have any status label, add `inactive`.
+
+## Reporting a Security Vulnerability
+
+Please report security vulnerabilities to private@superset.apache.org.
+
+In the event a community member discovers a security flaw in Superset, it is important to follow the [Apache Security Guidelines](https://www.apache.org/security/committers.html) and release a fix as quickly as possible before public disclosure. Reporting security vulnerabilities through the usual GitHub Issues channel is not ideal as it will publicize the flaw before a fix can be applied.
 
 ## Revert Guidelines
 

@@ -18,10 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Button } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import Loading from '../../components/Loading';
 import QueryTable from './QueryTable';
@@ -273,8 +272,8 @@ class QuerySearch extends React.PureComponent {
             />
 
             <Button
-              bsSize="small"
-              bsStyle="success"
+              buttonSize="small"
+              buttonStyle="success"
               onClick={this.refreshQueries}
             >
               {t('Search')}

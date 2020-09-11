@@ -14,158 +14,339 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+import logging
+from typing import Any, Optional
 
+from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
+from flask_babel import gettext as _
+from marshmallow import ValidationError
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import (
+    NoSuchModuleError,
+    NoSuchTableError,
+    OperationalError,
+    SQLAlchemyError,
+)
 
 from superset import event_logger
+from superset.constants import RouteMethod
+from superset.databases.commands.create import CreateDatabaseCommand
+from superset.databases.commands.delete import DeleteDatabaseCommand
+from superset.databases.commands.exceptions import (
+    DatabaseCreateFailedError,
+    DatabaseDeleteDatasetsExistFailedError,
+    DatabaseDeleteFailedError,
+    DatabaseInvalidError,
+    DatabaseNotFoundError,
+    DatabaseSecurityUnsafeError,
+    DatabaseUpdateFailedError,
+)
+from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
+from superset.databases.commands.update import UpdateDatabaseCommand
+from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
+from superset.databases.filters import DatabaseFilter
 from superset.databases.schemas import (
     database_schemas_query_schema,
+    DatabasePostSchema,
+    DatabasePutSchema,
+    DatabaseRelatedObjectsResponse,
+    DatabaseTestConnectionSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
 )
+from superset.databases.utils import get_table_metadata
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
-from superset.views.database.filters import DatabaseFilter
-from superset.views.database.validators import sqlalchemy_uri_validator
 
-
-def get_foreign_keys_metadata(
-    database: Database, table_name: str, schema_name: Optional[str]
-) -> List[Dict[str, Any]]:
-    foreign_keys = database.get_foreign_keys(table_name, schema_name)
-    for fk in foreign_keys:
-        fk["column_names"] = fk.pop("constrained_columns")
-        fk["type"] = "fk"
-    return foreign_keys
-
-
-def get_indexes_metadata(
-    database: Database, table_name: str, schema_name: Optional[str]
-) -> List[Dict[str, Any]]:
-    indexes = database.get_indexes(table_name, schema_name)
-    for idx in indexes:
-        idx["type"] = "index"
-    return indexes
-
-
-def get_col_type(col: Dict[Any, Any]) -> str:
-    try:
-        dtype = f"{col['type']}"
-    except Exception:  # pylint: disable=broad-except
-        # sqla.types.JSON __str__ has a bug, so using __class__.
-        dtype = col["type"].__class__.__name__
-    return dtype
-
-
-def get_table_metadata(
-    database: Database, table_name: str, schema_name: Optional[str]
-) -> Dict[str, Any]:
-    """
-    Get table metadata information, including type, pk, fks.
-    This function raises SQLAlchemyError when a schema is not found.
-
-    :param database: The database model
-    :param table_name: Table name
-    :param schema_name: schema name
-    :return: Dict table metadata ready for API response
-    """
-    keys = []
-    columns = database.get_columns(table_name, schema_name)
-    primary_key = database.get_pk_constraint(table_name, schema_name)
-    if primary_key and primary_key.get("constrained_columns"):
-        primary_key["column_names"] = primary_key.pop("constrained_columns")
-        primary_key["type"] = "pk"
-        keys += [primary_key]
-    foreign_keys = get_foreign_keys_metadata(database, table_name, schema_name)
-    indexes = get_indexes_metadata(database, table_name, schema_name)
-    keys += foreign_keys + indexes
-    payload_columns: List[Dict[str, Any]] = []
-    for col in columns:
-        dtype = get_col_type(col)
-        payload_columns.append(
-            {
-                "name": col["name"],
-                "type": dtype.split("(")[0] if "(" in dtype else dtype,
-                "longType": dtype,
-                "keys": [k for k in keys if col["name"] in k["column_names"]],
-            }
-        )
-    return {
-        "name": table_name,
-        "columns": payload_columns,
-        "selectStar": database.select_star(
-            table_name,
-            schema=schema_name,
-            show_cols=True,
-            indent=True,
-            cols=columns,
-            latest_partition=True,
-        ),
-        "primaryKey": primary_key,
-        "foreignKeys": foreign_keys,
-        "indexes": keys,
-    }
+logger = logging.getLogger(__name__)
 
 
 class DatabaseRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
-    include_route_methods = {
-        "get_list",
+    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         "table_metadata",
         "select_star",
         "schemas",
+        "test_connection",
+        "related_objects",
     }
     class_permission_name = "DatabaseView"
-    method_permission_name = {
-        "get_list": "list",
-        "table_metadata": "list",
-        "select_star": "list",
-        "schemas": "list",
-    }
     resource_name = "database"
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
-    list_columns = [
+    show_columns = [
         "id",
         "database_name",
+        "cache_timeout",
         "expose_in_sqllab",
+        "allow_run_async",
+        "allow_csv_upload",
         "allow_ctas",
         "allow_cvas",
+        "allow_dml",
         "force_ctas_schema",
-        "allow_run_async",
+        "allow_multi_schema_metadata_fetch",
+        "impersonate_user",
+        "encrypted_extra",
+        "extra",
+        "server_cert",
+        "sqlalchemy_uri",
+    ]
+    list_columns = [
+        "allow_csv_upload",
+        "allow_ctas",
+        "allow_cvas",
         "allow_dml",
         "allow_multi_schema_metadata_fetch",
-        "allow_csv_upload",
-        "allows_subquery",
+        "allow_run_async",
         "allows_cost_estimate",
+        "allows_subquery",
         "allows_virtual_table_explore",
-        "explore_database_id",
         "backend",
+        "changed_on",
+        "changed_on_delta_humanized",
+        "created_by.first_name",
+        "created_by.last_name",
+        "database_name",
+        "explore_database_id",
+        "expose_in_sqllab",
+        "force_ctas_schema",
         "function_names",
+        "id",
     ]
+    add_columns = [
+        "database_name",
+        "sqlalchemy_uri",
+        "cache_timeout",
+        "expose_in_sqllab",
+        "allow_run_async",
+        "allow_csv_upload",
+        "allow_ctas",
+        "allow_cvas",
+        "allow_dml",
+        "force_ctas_schema",
+        "impersonate_user",
+        "allow_multi_schema_metadata_fetch",
+        "extra",
+        "encrypted_extra",
+        "server_cert",
+    ]
+    edit_columns = add_columns
+
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
+    order_columns = [
+        "allow_csv_upload",
+        "allow_dml",
+        "allow_run_async",
+        "changed_on",
+        "changed_on_delta_humanized",
+        "created_by.first_name",
+        "database_name",
+        "expose_in_sqllab",
+    ]
     # Removes the local limit for the page size
     max_page_size = -1
-    validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
+    add_model_schema = DatabasePostSchema()
+    edit_model_schema = DatabasePutSchema()
 
     apispec_parameter_schemas = {
         "database_schemas_query_schema": database_schemas_query_schema,
     }
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
+        DatabaseRelatedObjectsResponse,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
     )
+
+    @expose("/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def post(self) -> Response:
+        """Creates a new Database
+        ---
+        post:
+          description: >-
+            Create a new Database.
+          requestBody:
+            description: Database schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Database added
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            item = self.add_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            new_model = CreateDatabaseCommand(g.user, item).run()
+            # Return censored version for sqlalchemy URI
+            item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
+            return self.response(201, id=new_model.id, result=item)
+        except DatabaseInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DatabaseCreateFailedError as ex:
+            logger.error(
+                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>", methods=["PUT"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def put(  # pylint: disable=too-many-return-statements, arguments-differ
+        self, pk: int
+    ) -> Response:
+        """Changes a Database
+        ---
+        put:
+          description: >-
+            Changes a Database.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Database schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Database changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            item = self.edit_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            changed_model = UpdateDatabaseCommand(g.user, pk, item).run()
+            # Return censored version for sqlalchemy URI
+            item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            return self.response(200, id=changed_model.id, result=item)
+        except DatabaseNotFoundError:
+            return self.response_404()
+        except DatabaseInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DatabaseUpdateFailedError as ex:
+            logger.error(
+                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>", methods=["DELETE"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
+        """Deletes a Database
+        ---
+        delete:
+          description: >-
+            Deletes a Database.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Database deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            DeleteDatabaseCommand(g.user, pk).run()
+            return self.response(200, message="OK")
+        except DatabaseNotFoundError:
+            return self.response_404()
+        except DatabaseDeleteDatasetsExistFailedError as ex:
+            return self.response_422(message=str(ex))
+        except DatabaseDeleteFailedError as ex:
+            logger.error(
+                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+            )
+            return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/schemas/")
     @protect()
@@ -173,7 +354,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @rison(database_schemas_query_schema)
     @statsd_metrics
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
-        """ Get all schemas from a database
+        """Get all schemas from a database
         ---
         get:
           description: Get all schemas from a database
@@ -230,7 +411,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def table_metadata(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
-        """ Table schema info
+        """Table schema info
         ---
         get:
           description: Get database table metadata
@@ -287,7 +468,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
     ) -> FlaskResponse:
-        """ Table schema info
+        """Table schema info
         ---
         get:
           description: Get database select star for table
@@ -335,3 +516,140 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(404, message="Table not found on the database")
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
+
+    @expose("/test_connection", methods=["POST"])
+    @protect()
+    @safe
+    @event_logger.log_this
+    @statsd_metrics
+    def test_connection(  # pylint: disable=too-many-return-statements
+        self,
+    ) -> FlaskResponse:
+        """Tests a database connection
+        ---
+        post:
+          description: >-
+            Tests a database connection
+          requestBody:
+            description: Database schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    encrypted_extra:
+                      type: object
+                    extras:
+                      type: object
+                    name:
+                      type: string
+                    server_cert:
+                      type: string
+          responses:
+            200:
+              description: Database Test Connection
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            item = DatabaseTestConnectionSchema().load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            TestConnectionDatabaseCommand(g.user, item).run()
+            return self.response(200, message="OK")
+        except (NoSuchModuleError, ModuleNotFoundError):
+            logger.info("Invalid driver")
+            driver_name = make_url(item.get("sqlalchemy_uri")).drivername
+            return self.response(
+                400,
+                message=_(f"Could not load database driver: {driver_name}"),
+                driver_name=driver_name,
+            )
+        except DatabaseSecurityUnsafeError as ex:
+            return self.response_422(message=ex)
+        except OperationalError:
+            logger.warning("Connection failed")
+            return self.response(
+                500,
+                message=_("Connection failed, please check your connection settings"),
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error("Unexpected error %s", type(ex).__name__)
+            return self.response_400(
+                message=_(
+                    "Unexpected error occurred, please check your logs for details"
+                )
+            )
+
+    @expose("/<int:pk>/related_objects/", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def related_objects(self, pk: int) -> Response:
+        """Get charts and dashboards count associated to a database
+        ---
+        get:
+          description:
+            Get charts and dashboards count associated to a database
+          parameters:
+          - in: path
+            name: pk
+            schema:
+              type: integer
+          responses:
+            200:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatabaseRelatedObjectsResponse"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dataset = DatabaseDAO.find_by_id(pk)
+        if not dataset:
+            return self.response_404()
+        data = DatabaseDAO.get_related_objects(pk)
+        charts = [
+            {
+                "id": chart.id,
+                "slice_name": chart.slice_name,
+                "viz_type": chart.viz_type,
+            }
+            for chart in data["charts"]
+        ]
+        dashboards = [
+            {
+                "id": dashboard.id,
+                "json_metadata": dashboard.json_metadata,
+                "slug": dashboard.slug,
+                "title": dashboard.dashboard_title,
+            }
+            for dashboard in data["dashboards"]
+        ]
+        return self.response(
+            200,
+            charts={"count": len(charts), "result": charts},
+            dashboards={"count": len(dashboards), "result": dashboards},
+        )

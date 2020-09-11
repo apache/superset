@@ -19,7 +19,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  Button,
   DropdownButton,
   FormControl,
   FormGroup,
@@ -32,11 +31,11 @@ import {
   Tabs,
   Tooltip,
 } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
-import { t } from '@superset-ui/translation';
-import { styled, withTheme } from '@superset-ui/style';
+import { t, styled, withTheme } from '@superset-ui/core';
 
 import {
   buildTimeRangeString,
@@ -365,7 +364,7 @@ class DateFilterControl extends React.Component {
             onClick={() => {}}
           />
           <InputGroup.Button onClick={() => this.toggleCalendar(key)}>
-            <Button>
+            <Button theme={this.props.theme}>
               <i className="fa fa-calendar" />
             </Button>
           </InputGroup.Button>
@@ -563,10 +562,11 @@ class DateFilterControl extends React.Component {
           </Tabs>
           <div className="clearfix">
             <Button
-              bsSize="small"
+              buttonSize="small"
               className="float-right ok"
-              bsStyle="primary"
+              buttonStyle="primary"
               onClick={this.close}
+              theme={this.props.theme}
             >
               Ok
             </Button>

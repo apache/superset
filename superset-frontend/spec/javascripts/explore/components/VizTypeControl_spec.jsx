@@ -20,7 +20,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Modal } from 'react-bootstrap';
-import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/chart';
+import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
 
 const defaultProps = {

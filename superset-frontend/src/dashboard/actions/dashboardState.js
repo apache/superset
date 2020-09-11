@@ -18,8 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';

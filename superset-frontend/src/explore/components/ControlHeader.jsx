@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
-import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import FormLabel from 'src/components/FormLabel';
 
 const propTypes = {

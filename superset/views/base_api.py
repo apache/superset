@@ -91,21 +91,25 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     csrf_exempt = False
     method_permission_name = {
-        "get_list": "list",
-        "get": "show",
+        "bulk_delete": "delete",
+        "data": "list",
+        "delete": "delete",
+        "distinct": "list",
         "export": "mulexport",
+        "get": "show",
+        "get_list": "list",
+        "info": "list",
         "post": "add",
         "put": "edit",
-        "delete": "delete",
-        "bulk_delete": "delete",
-        "info": "list",
-        "related": "list",
-        "distinct": "list",
-        "thumbnail": "list",
         "refresh": "edit",
-        "data": "list",
-        "viz_types": "list",
+        "related": "list",
         "related_objects": "list",
+        "schemas": "list",
+        "select_star": "list",
+        "table_metadata": "list",
+        "test_connection": "post",
+        "thumbnail": "list",
+        "viz_types": "list",
     }
 
     order_rel_fields: Dict[str, Tuple[str, str]] = {}
@@ -412,5 +416,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
         # Apply pagination
         result = self.datamodel.apply_pagination(query, page, page_size).all()
         # produce response
-        result = [{"text": item[0]} for item in result if item[0] is not None]
+        result = [
+            {"text": item[0], "value": item[0]}
+            for item in result
+            if item[0] is not None
+        ]
         return self.response(200, count=count, result=result)

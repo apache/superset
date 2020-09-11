@@ -585,7 +585,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return security_manager.get_schema_perm(self.database, self.schema)
 
     def get_perm(self) -> str:
-        return ("[{obj.database}].[{obj.table_name}]" "(id:{obj.id})").format(obj=self)
+        return f"[{self.database}].[{self.table_name}](id:{self.id})"
 
     @property
     def name(self) -> str:
@@ -1454,6 +1454,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
+        if config["ENABLE_ROW_LEVEL_SECURITY"] and self.is_rls_supported:
+            templatable_statements += [
+                f.clause for f in security_manager.get_rls_filters(self)
+            ]
         for statement in templatable_statements:
             if ExtraCache.regex.search(statement):
                 return True

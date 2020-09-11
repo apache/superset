@@ -26,9 +26,9 @@ import {
   Popover,
 } from 'react-bootstrap';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/translation';
-
+import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 

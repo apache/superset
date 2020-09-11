@@ -18,10 +18,7 @@
  */
 import React from 'react';
 import { FormGroup, FormControl } from 'react-bootstrap';
-import {
-  legacyValidateNumber,
-  legacyValidateInteger,
-} from '@superset-ui/validator';
+import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import ControlHeader from '../ControlHeader';
 
 interface TextControlProps {
@@ -49,7 +46,7 @@ export default class TextControl extends React.Component<TextControlProps> {
       if (error) {
         errors.push(error);
       } else {
-        value = value.match(/.*(\.)$/g) ? value : parseFloat(value);
+        value = value.match(/.*(\.|0)$/g) ? value : parseFloat(value);
       }
     }
     if (value !== '' && this.props.isInt) {

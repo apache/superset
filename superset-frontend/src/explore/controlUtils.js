@@ -17,7 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { expandControlConfig } from '@superset-ui/chart-controls';
 import * as SECTIONS from './controlPanels/sections';
 

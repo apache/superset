@@ -19,7 +19,7 @@
 /* eslint-disable camelcase */
 import { isString } from 'lodash';
 import shortid from 'shortid';
-import { CategoricalColorNamespace } from '@superset-ui/color';
+import { CategoricalColorNamespace } from '@superset-ui/core';
 
 import { chart } from '../../chart/chartReducer';
 import {

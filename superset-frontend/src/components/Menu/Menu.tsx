@@ -16,20 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MenuObjectProps } from './MenuObject';
-import { Languages } from './LanguagePicker';
-import './Menu.less';
-
-/* MENU YES : BEGIN */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { Nav, Navbar, NavItem } from 'react-bootstrap';
-import styled from '@superset-ui/style';
-import MenuObject from './MenuObject';
+import { t, styled } from '@superset-ui/core';
+import { Nav, Navbar, NavItem, MenuItem } from 'react-bootstrap';
+import NavDropdown from 'src/components/NavDropdown';
+import MenuObject, {
+  MenuObjectProps,
+  MenuObjectChildProps,
+} from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
-import LanguagePicker from './LanguagePicker';
-/* MENU YES : END */
+import LanguagePicker, { Languages } from './LanguagePicker';
 
 interface BrandProps {
   path: string;
@@ -57,47 +54,121 @@ export interface MenuProps {
     menu: MenuObjectProps[];
     brand: BrandProps;
     navbar_right: NavBarProps;
+    settings: MenuObjectProps[];
   };
 }
 
-/* MENU YES : BEGIN */
 const StyledHeader = styled.header`
+  &:nth-last-of-type(2) nav {
+    margin-bottom: 2px;
+  }
+
+  .caret {
+    display: none;
+  }
+
+  .navbar-inverse {
+    border: none;
+  }
+
+  .version-info {
+    padding: 5px 20px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+
+    div {
+      white-space: nowrap;
+    }
+  }
+
   .navbar-brand {
     display: flex;
     flex-direction: column;
     justify-content: center;
   }
 
+  .nav > li > a {
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
   .navbar-nav > li > a {
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    border-bottom: none;
+    &:focus {
+      border-bottom: none;
+    }
     &:after {
       content: '';
       position: absolute;
       bottom: -3px;
-      left: 0;
-      width: 100%;
+      left: 50%;
+      width: 0;
       height: 3px;
       background-color: ${({ theme }) => theme.colors.primary.base};
       opacity: 0;
-      transition: opacity ${({ theme }) => theme.transitionTiming * 2}s;
+      transform: translateX(-50%);
+      transition: all ${({ theme }) => theme.transitionTiming}s;
     }
 
     &:hover {
+      color: ${({ theme }) => theme.colors.grayscale.dark1};
       border-bottom: none;
-
       &:after {
         opacity: 1;
+        width: 100%;
       }
+    }
+    &:hover,
+    &:focus {
+      margin: 0;
+    }
+  }
+
+  .settings-divider {
+    margin-bottom: 8px;
+    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+  .navbar-right {
+    display: flex;
+    align-items: center;
+    .dropdown:first-of-type {
+      /* this is the "+ NEW" button. Sweep this up when it's replaced */
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 `;
-/* MENU YES: END */
 
-export default function Menu({
-  data: { menu, brand, navbar_right: navbarRight },
+export function Menu({
+  data: { menu, brand, navbar_right: navbarRight, settings },
 }: MenuProps) {
-  /* MENU YNO : BEGIN */
-  // return null;
-  /* MENU YES : BEGIN */
+  // Flatten settings
+  const flatSettings: any[] = [];
+
+  if (settings) {
+    settings.forEach((section: object, index: number) => {
+      const newSection: MenuObjectProps = {
+        ...section,
+        index,
+        isHeader: true,
+      };
+
+      flatSettings.push(newSection);
+
+      // Filter out '-'
+      if (newSection.childs) {
+        newSection.childs.forEach((child: any) => {
+          if (child !== '-') {
+            flatSettings.push(child);
+          }
+        });
+      }
+
+      if (index !== settings.length - 1) {
+        flatSettings.push('-');
+      }
+    });
+  }
+
   return (
     <StyledHeader className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
@@ -116,6 +187,38 @@ export default function Menu({
         </Nav>
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}
+          {settings && settings.length && (
+            <NavDropdown id={`settings-dropdown`} title="Settings">
+              {flatSettings.map((section, index) => {
+                if (section === '-') {
+                  return (
+                    <MenuItem
+                      key={`$${index}`}
+                      divider
+                      disabled
+                      className="settings-divider"
+                    />
+                  );
+                } else if (section.isHeader) {
+                  return (
+                    <MenuItem key={`${section.label}`} disabled>
+                      {section.label}
+                    </MenuItem>
+                  );
+                }
+
+                return (
+                  <MenuItem
+                    key={`${section.label}`}
+                    href={section.url}
+                    eventKey={index}
+                  >
+                    {section.label}
+                  </MenuItem>
+                );
+              })}
+            </NavDropdown>
+          )}
           {navbarRight.documentation_url && (
             <NavItem
               href={navbarRight.documentation_url}
@@ -160,5 +263,63 @@ export default function Menu({
       </Navbar>
     </StyledHeader>
   );
-  /* MENU YES/NO : END */
+}
+
+// transform the menu data to reorganize components
+export default function MenuWrapper({ data }: MenuProps) {
+  const newMenuData = {
+    ...data,
+  };
+  // Menu items that should go into settings dropdown
+  const settingsMenus = {
+    Security: true,
+    Manage: true,
+  };
+
+  // Menu items that should be ignored
+  const ignore = {
+    'Import Dashboards': true,
+  };
+
+  // Cycle through menu.menu to build out cleanedMenu and settings
+  const cleanedMenu: MenuObjectProps[] = [];
+  const settings: MenuObjectProps[] = [];
+
+  newMenuData.menu.forEach((item: any) => {
+    if (!item) {
+      return;
+    }
+
+    const children: (MenuObjectProps | string)[] = [];
+    const newItem = {
+      ...item,
+    };
+
+    // Filter childs
+    if (item.childs) {
+      item.childs.forEach((child: MenuObjectChildProps | string) => {
+        if (typeof child === 'string') {
+          children.push(child);
+        } else if (
+          (child as MenuObjectChildProps).label &&
+          !ignore.hasOwnProperty(child.label)
+        ) {
+          children.push(child);
+        }
+      });
+
+      newItem.childs = children;
+    }
+
+    if (!settingsMenus.hasOwnProperty(item.name)) {
+      cleanedMenu.push(newItem);
+    } else {
+      settings.push(newItem);
+    }
+  });
+
+  newMenuData.menu = cleanedMenu;
+  newMenuData.settings = settings;
+
+  return <Menu data={newMenuData} />;
 }

@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { getNumberFormatter } from '@superset-ui/number-format';
-import { t } from '@superset-ui/translation';
+import { getNumberFormatter, t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import TooltipWrapper from '../../components/TooltipWrapper';
@@ -47,7 +46,7 @@ export default function RowCountLabel({ rowcount, limit, suffix }) {
   );
   return (
     <TooltipWrapper label="tt-rowcount" tooltip={tooltip}>
-      <Label bsStyle={bsStyle} className="m-r-5 pointer">
+      <Label bsStyle={bsStyle}>
         {formattedRowCount} {suffix}
       </Label>
     </TooltipWrapper>

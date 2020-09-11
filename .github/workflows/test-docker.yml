@@ -1,4 +1,4 @@
-name: DOCKER
+name: Docker
 
 on: [push, pull_request]
 

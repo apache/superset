@@ -23,13 +23,13 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-
 import shortid from 'shortid';
+
+import Button from 'src/components/Button';
 import { exploreChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
-import Button from '../../components/Button';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -102,13 +102,12 @@ class ExploreResultsButton extends React.PureComponent {
       .asSeconds();
   }
   getInvalidColumns() {
-    const re1 = /^[A-Za-z_]\w*$/; // starts with char or _, then only alphanum
-    const re2 = /__\d+$/; // does not finish with __ and then a number which screams dup col name
-    const re3 = /^__timestamp/i; // is not a reserved temporal column alias
+    const re1 = /__\d+$/; // duplicate column name pattern
+    const re2 = /^__timestamp/i; // reserved temporal column alias
 
     return this.props.query.results.selected_columns
       .map(col => col.name)
-      .filter(col => !re1.test(col) || re2.test(col) || re3.test(col));
+      .filter(col => re1.test(col) || re2.test(col));
   }
   datasourceName() {
     const { query } = this.props;
@@ -193,17 +192,11 @@ class ExploreResultsButton extends React.PureComponent {
         <code>
           <strong>{invalidColumns.join(', ')} </strong>
         </code>
-        {t('cannot be used as a column name. Please use aliases (as in ')}
-        <code>
-          SELECT count(*)&nbsp;
-          <strong>AS my_alias</strong>
-        </code>
-        ){' '}
-        {t(`limited to alphanumeric characters and underscores. The alias "__timestamp"
-          used as for the temporal expression and column aliases ending with
-          double underscores followed by a numeric value are not allowed for reasons
-          discussed in Github issue #5739.
-          `)}
+        {t(`cannot be used as a column name. The column name/alias "__timestamp"
+          is reserved for the main temporal expression, and column aliases ending with
+          double underscores followed by a numeric value (e.g. "my_col__1") are reserved
+          for deduplicating duplicate column names. Please use aliases to rename the
+          invalid column names.`)}
       </div>
     );
   }
@@ -213,7 +206,7 @@ class ExploreResultsButton extends React.PureComponent {
     return (
       <>
         <Button
-          bsSize="small"
+          buttonSize="small"
           onClick={this.onClick}
           disabled={!allowsSubquery}
           tooltip={t('Explore the result set in the data exploration view')}

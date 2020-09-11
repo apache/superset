@@ -20,9 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Badge, Col, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
-import styled from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import Button from 'src/components/Button';
@@ -459,15 +457,13 @@ export class DatasourceEditor extends React.PureComponent {
                 onSchemaChange={schema =>
                   this.onDatasourcePropChange('schema', schema)
                 }
-                onDbChange={database =>
-                  this.onDatasourcePropChange('database', database)
-                }
                 onTableChange={table =>
                   this.onDatasourcePropChange('datasource_name', table)
                 }
                 sqlLabMode={false}
                 clearable={false}
                 handleError={this.props.addDangerToast}
+                isDatabaseSelectEnabled={false}
               />
             }
             description={t(
@@ -488,7 +484,7 @@ export class DatasourceEditor extends React.PureComponent {
           fieldKey="default_endpoint"
           label={t('Default URL')}
           description={t(
-            'Default URL to redirect to when accessing from the datasource list page',
+            'Default URL to redirect to when accessing from the dataset list page',
           )}
           control={<TextControl />}
         />
@@ -547,7 +543,7 @@ export class DatasourceEditor extends React.PureComponent {
             fieldKey="sql"
             label={t('SQL')}
             description={t(
-              'When specifying SQL, the datasource acts as a view. ' +
+              'When specifying SQL, the dataset acts as a view. ' +
                 'Superset will use this statement as a subquery while grouping and filtering ' +
                 'on the generated parent queries.',
             )}
@@ -750,6 +746,14 @@ export class DatasourceEditor extends React.PureComponent {
     return (
       <DatasourceContainer>
         {this.renderErrors()}
+        <div className="m-t-10">
+          <Alert bsStyle="warning">
+            <strong>{t('Be careful.')} </strong>
+            {t(
+              'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
+            )}
+          </Alert>
+        </div>
         <Tabs
           id="table-tabs"
           onSelect={this.handleTabSelect}
@@ -784,7 +788,7 @@ export class DatasourceEditor extends React.PureComponent {
                   }
                 />
                 <Button
-                  bsStyle="primary"
+                  buttonStyle="primary"
                   onClick={this.syncMetadata}
                   className="sync-from-source"
                   disabled={!!datasource.sql}
@@ -832,14 +836,6 @@ export class DatasourceEditor extends React.PureComponent {
           <Tab eventKey={4} title={t('Settings')}>
             {activeTabKey === 4 && (
               <div>
-                <div className="m-t-10">
-                  <Alert bsStyle="warning">
-                    <strong>{t('Be careful.')} </strong>
-                    {t(
-                      'Changing these settings will affect all charts using this datasource, including charts owned by other people.',
-                    )}
-                  </Alert>
-                </div>
                 <Col md={6}>
                   <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
                 </Col>

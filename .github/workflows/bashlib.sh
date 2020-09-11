@@ -59,8 +59,7 @@ npm-install() {
   say "::group::Install npm packages"
   echo "npm: $(npm --version)"
   echo "node: $(node --version)"
-  rm -rf ./node_modules
-  npm install
+  npm ci
   say "::endgroup::"
 
   # cache-save npm

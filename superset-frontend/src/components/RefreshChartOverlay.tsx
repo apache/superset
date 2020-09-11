@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import styled from '@superset-ui/style';
+import { t, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 
 type Callback = (...args: any[]) => void;
@@ -53,7 +52,7 @@ class RefreshChartOverlay extends React.PureComponent<Props> {
           <Button
             className="refresh-btn"
             onClick={this.props.onQuery}
-            bsStyle="primary"
+            buttonStyle="primary"
           >
             {t('Run Query')}
           </Button>

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isEmpty } from 'lodash';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import { DASHBOARD_ROOT_ID } from './constants';
 import {

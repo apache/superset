@@ -160,7 +160,7 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
     add_form_extra_fields = {
         "table": QuerySelectField(
             "Table",
-            query_factory=lambda: db.session().query(models.SqlaTable),
+            query_factory=lambda: db.session.query(models.SqlaTable),
             allow_blank=True,
             widget=Select2Widget(extra_classes="readonly"),
         )
@@ -232,7 +232,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     add_form_extra_fields = {
         "table": QuerySelectField(
             "Table",
-            query_factory=lambda: db.session().query(models.SqlaTable),
+            query_factory=lambda: db.session.query(models.SqlaTable),
             allow_blank=True,
             widget=Select2Widget(extra_classes="readonly"),
         )
@@ -274,6 +274,9 @@ class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
         "creator": _("Creator"),
         "modified": _("Modified"),
     }
+    if app.config["RLS_FORM_QUERY_REL_FIELDS"]:
+        add_form_query_rel_fields = app.config["RLS_FORM_QUERY_REL_FIELDS"]
+        edit_form_query_rel_fields = add_form_query_rel_fields
 
 
 class TableModelView(  # pylint: disable=too-many-ancestors
@@ -390,7 +393,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     edit_form_extra_fields = {
         "database": QuerySelectField(
             "Database",
-            query_factory=lambda: db.session().query(models.Database),
+            query_factory=lambda: db.session.query(models.Database),
             widget=Select2Widget(extra_classes="readonly"),
         )
     }

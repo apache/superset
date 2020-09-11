@@ -23,7 +23,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { act } from 'react-dom/test-utils';
 
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';

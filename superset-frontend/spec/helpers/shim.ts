@@ -23,7 +23,7 @@ import 'jest-enzyme';
 import jQuery from 'jquery';
 import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
-import { configure as configureTranslation } from '@superset-ui/translation';
+import { configure as configureTranslation } from '@superset-ui/core';
 
 import setupSupersetClient from './setupSupersetClient';
 

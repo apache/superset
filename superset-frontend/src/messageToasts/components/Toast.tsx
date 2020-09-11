@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Alert } from 'react-bootstrap';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import Interweave from 'interweave';
 import React, { useEffect, useState } from 'react';

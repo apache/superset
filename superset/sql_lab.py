@@ -19,33 +19,25 @@ import uuid
 from contextlib import closing
 from datetime import datetime
 from sys import getsizeof
-from typing import Any, cast, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import backoff
 import msgpack
 import pyarrow as pa
 import simplejson as json
-import sqlalchemy
 from celery.exceptions import SoftTimeLimitExceeded
 from celery.task.base import Task
-from contextlib2 import contextmanager
 from flask_babel import lazy_gettext as _
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.orm import Session
 
-from superset import (
-    app,
-    db,
-    results_backend,
-    results_backend_use_msgpack,
-    security_manager,
-)
+from superset import app, results_backend, results_backend_use_msgpack, security_manager
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
+from superset.utils.celery import session_scope
 from superset.utils.core import (
     json_iso_dttm_ser,
     QuerySource,
@@ -121,35 +113,6 @@ def get_query(query_id: int, session: Session) -> Query:
         raise SqlLabException("Failed at getting query")
 
 
-@contextmanager
-def session_scope(nullpool: bool) -> Iterator[Session]:
-    """Provide a transactional scope around a series of operations."""
-    database_uri = app.config["SQLALCHEMY_DATABASE_URI"]
-    if "sqlite" in database_uri:
-        logger.warning(
-            "SQLite Database support for metadata databases will be removed \
-            in a future version of Superset."
-        )
-    if nullpool:
-        engine = sqlalchemy.create_engine(database_uri, poolclass=NullPool)
-        session_class = sessionmaker()
-        session_class.configure(bind=engine)
-        session = session_class()
-    else:
-        session = db.session()
-        session.commit()  # HACK
-
-    try:
-        yield session
-        session.commit()
-    except Exception as ex:
-        session.rollback()
-        logger.exception(ex)
-        raise
-    finally:
-        session.close()
-
-
 @celery_app.task(
     name="sql_lab.get_sql_results",
     bind=True,
@@ -183,7 +146,6 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 log_params=log_params,
             )
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Query %d", query_id)
             logger.debug("Query %d: %s", query_id, ex)
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)

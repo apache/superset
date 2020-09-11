@@ -17,7 +17,7 @@
  * under the License.
  */
 import { shallow as enzymeShallow, mount as enzymeMount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { ReactElement } from 'react';
 
 type optionsType = {
@@ -51,5 +51,5 @@ export function styledShallow(
       theme: supersetTheme,
       ...options?.wrappingComponentProps,
     },
-  });
+  }).dive();
 }

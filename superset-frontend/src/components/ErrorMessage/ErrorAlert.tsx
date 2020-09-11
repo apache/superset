@@ -18,10 +18,9 @@
  */
 import React, { useState, ReactNode } from 'react';
 import { Modal } from 'react-bootstrap';
-import { styled, supersetTheme } from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
+import { styled, supersetTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
-import Button from 'src/views/CRUD/data/dataset/Button';
+import Button from 'src/components/Button';
 
 import Icon from '../Icon';
 import { ErrorLevel, ErrorSource } from './types';
@@ -190,7 +189,11 @@ export default function ErrorAlert({
                 copyNode={<Button onClick={noOp}>{t('Copy Message')}</Button>}
               />
             )}
-            <Button bsStyle="primary" onClick={() => setIsModalOpen(false)}>
+            <Button
+              cta
+              buttonStyle="primary"
+              onClick={() => setIsModalOpen(false)}
+            >
               {t('Close')}
             </Button>
           </Modal.Footer>

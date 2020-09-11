@@ -50,7 +50,10 @@ class JinjaContextManager:
             "relativedelta": relativedelta,
             "time": time,
             "timedelta": timedelta,
-            "uuid": uuid,
+            "uuid1": uuid.uuid1,
+            "uuid3": uuid.uuid3,
+            "uuid4": uuid.uuid4,
+            "uuid5": uuid.uuid5,
         }
         self._template_processors: Dict[str, Type["BaseTemplateProcessor"]] = {}
 

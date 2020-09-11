@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useEffect } from 'react';
+import { logging } from '@superset-ui/core';
 
 interface ImageLoaderProps
   extends React.DetailedHTMLProps<
@@ -48,7 +49,7 @@ export default function ImageLoader({
           }
         })
         .catch(e => {
-          console.error(e); // eslint-disable-line no-console
+          logging.error(e);
           setImgSrc(fallback);
         });
     }

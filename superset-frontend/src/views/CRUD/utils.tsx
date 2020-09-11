@@ -19,17 +19,17 @@
 import {
   SupersetClient,
   SupersetClientResponse,
-} from '@superset-ui/connection';
-import { t } from '@superset-ui/translation';
+  logging,
+} from '@superset-ui/core';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 
-export const createFetchRelated = (
+const createFetchResourceMethod = (method: string) => (
   resource: string,
   relation: string,
   handleError: (error: Response) => void,
 ) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
-  const resourceEndpoint = `/api/v1/${resource}/related/${relation}`;
+  const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
 
   try {
     const queryParams = rison.encode({
@@ -53,63 +53,13 @@ export const createFetchRelated = (
   return [];
 };
 
+export const createFetchRelated = createFetchResourceMethod('related');
+export const createFetchDistinct = createFetchResourceMethod('distinct');
+
 export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
-    console.error(e);
-    handleErrorFunc(parsedError.message);
-  };
-}
-
-export function createFaveStarHandlers(
-  baseURL: string,
-  context: any,
-  handleErrorFunc: (message: string) => void,
-) {
-  const fetchFaveStar = (id: number) => {
-    SupersetClient.get({
-      endpoint: `${baseURL}/${id}/count/`,
-    })
-      .then(({ json }) => {
-        const faves = {
-          ...context.state.favoriteStatus,
-        };
-
-        faves[id] = json.count > 0;
-
-        context.setState({
-          favoriteStatus: faves,
-        });
-      })
-      .catch(() =>
-        handleErrorFunc(t('There was an error fetching the favorite status')),
-      );
-  };
-
-  const saveFaveStar = (id: number, isStarred: boolean) => {
-    const urlSuffix = isStarred ? 'unselect' : 'select';
-
-    SupersetClient.get({
-      endpoint: `${baseURL}/${id}/${urlSuffix}/`,
-    })
-      .then(() => {
-        const faves = {
-          ...context.state.favoriteStatus,
-        };
-
-        faves[id] = !isStarred;
-
-        context.setState({
-          favoriteStatus: faves,
-        });
-      })
-      .catch(() =>
-        handleErrorFunc(t('There was an error saving the favorite status')),
-      );
-  };
-
-  return {
-    fetchFaveStar,
-    saveFaveStar,
+    logging.error(e);
+    handleErrorFunc(parsedError.message || parsedError.error);
   };
 }

@@ -38,10 +38,7 @@ from superset.utils.core import (
 )
 
 from .base_tests import SupersetTestCase
-from .sqllab_test_util import (
-    setup_presto_if_needed,
-    CTAS_SCHEMA_NAME,
-)  # noqa autoused fixture
+from .conftest import CTAS_SCHEMA_NAME
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -518,6 +515,7 @@ class TestSqlLab(SupersetTestCase):
             "page_size": -1,
         }
         url = f"api/v1/database/?q={prison.dumps(arguments)}"
+
         self.assertEqual(
             {"examples", "fake_db_100", "main"},
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},

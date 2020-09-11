@@ -30,17 +30,17 @@ describe('AdhocFilters', () => {
 
     cy.get('[data-test=adhoc_filters]').within(() => {
       cy.get('.Select__control').click();
-      cy.get('input[type=text]').type('name{enter}');
+      cy.get('input[type=text]').focus().type('name{enter}');
     });
     cy.get('#filter-edit-popover').within(() => {
       cy.get('[data-test=adhoc-filter-simple-value]').within(() => {
         cy.get('.Select__control').click();
-        cy.get('input[type=text]').type('Any{enter}');
+        cy.get('input[type=text]').focus().type('Any{enter}');
       });
       cy.get('button').contains('Save').click();
     });
 
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
       chartSelector: 'svg',
@@ -53,7 +53,7 @@ describe('AdhocFilters', () => {
 
     cy.get('[data-test=adhoc_filters]').within(() => {
       cy.get('.Select__control').click();
-      cy.get('input[type=text]').type('name{enter}');
+      cy.get('input[type=text]').focus().type('name{enter}');
     });
 
     cy.get('#filter-edit-popover').within(() => {
@@ -63,7 +63,7 @@ describe('AdhocFilters', () => {
       cy.get('button').contains('Save').click();
     });
 
-    cy.get('button.query').click();
+    cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
       chartSelector: 'svg',

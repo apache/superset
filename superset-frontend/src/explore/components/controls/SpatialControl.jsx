@@ -18,8 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, Button, OverlayTrigger, Popover } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { Row, Col, OverlayTrigger, Popover } from 'react-bootstrap';
+import Button from 'src/components/Button';
+import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import ControlHeader from '../ControlHeader';
@@ -204,9 +205,9 @@ export default class SpatialControl extends React.Component {
           </PopoverSection>
           <div className="clearfix">
             <Button
-              bsSize="small"
+              buttonSize="small"
               className="float-left ok"
-              bsStyle="primary"
+              buttonStyle="primary"
               onClick={this.close.bind(this)}
             >
               Ok

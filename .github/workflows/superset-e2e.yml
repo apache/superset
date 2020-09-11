@@ -3,8 +3,7 @@ name: E2E
 on: [push, pull_request]
 
 jobs:
-  cypress:
-    name: Cypress
+  Cypress:
     runs-on: ubuntu-18.04
     strategy:
       fail-fast: true
@@ -12,9 +11,9 @@ jobs:
         browser: ['chrome']
     env:
       FLASK_ENV: development
+      ENABLE_REACT_CRUD_VIEWS: true
       SUPERSET_CONFIG: tests.superset_test_config
-      SUPERSET__SQLALCHEMY_DATABASE_URI:
-        postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -37,17 +36,41 @@ jobs:
       uses: actions/setup-python@v2.1.1
       with:
         python-version: '3.7'
-    - name: Install dependencies
+    - name: OS dependencies
       uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
           apt-get-install
+    - name: Install python dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           pip-upgrade
           pip install -r requirements/testing.txt
+    - name: Setup postgres
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           setup-postgres
+    - name: Import test data
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           testdata
+    - name: Install npm dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           npm-install
+    - name: Build javascript packages
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           build-instrumented-assets
+    - name: Install cypress
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
           cypress-install
     - name: Run Cypress
       uses: apache-superset/cached-dependencies@b90713b

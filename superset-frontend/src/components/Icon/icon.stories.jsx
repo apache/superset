@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { withKnobs, select } from '@storybook/addon-knobs';
-import { styled, supersetTheme } from '@superset-ui/style';
+import { styled, supersetTheme } from '@superset-ui/core';
 import Icon, { iconsRegistry } from './';
 
 export default {

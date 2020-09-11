@@ -16,30 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../stylesheets/less/variables.less';
-
-#main-menu {
-  .navbar .caret {
-    width: 1rem;
-    padding: 0 0 18px 0;
-
-    &:before {
-      position: relative;
-      top: -2px;
-    }
-  }
-
-  .navbar-inverse {
-    border-bottom: 2px solid @gray-bg;
-  }
-
-  .version-info {
-    padding: 5px 20px;
-    color: @gray-heading;
-    font-size: @font-size-xs;
-
-    div {
-      white-space: nowrap;
-    }
-  }
-}
+export const CHART_LIST = '/chart/list/';

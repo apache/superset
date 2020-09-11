@@ -17,15 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import {
-  Button,
-  FormGroup,
-  FormControl,
-  Overlay,
-  Popover,
-} from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
-import styled from '@superset-ui/style';
+import { FormGroup, FormControl, Overlay, Popover } from 'react-bootstrap';
+import Button from 'src/components/Button';
+import { t, styled } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import ControlHeader from '../../explore/components/ControlHeader';
@@ -119,8 +113,8 @@ export default class LimitControl extends React.PureComponent<
           </FormGroup>
           <div className="clearfix">
             <Button
-              bsSize="small"
-              bsStyle="primary"
+              buttonSize="small"
+              buttonStyle="primary"
               className="float-right ok m-l-5"
               disabled={!isValid}
               onClick={this.submitAndClose}
@@ -128,7 +122,7 @@ export default class LimitControl extends React.PureComponent<
               {t('Ok')}
             </Button>
             <Button
-              bsSize="small"
+              buttonSize="small"
               className="float-right reset"
               onClick={this.setValueAndClose.bind(
                 this,
@@ -146,7 +140,7 @@ export default class LimitControl extends React.PureComponent<
   render() {
     return (
       <div>
-        <Label className="pointer" onClick={this.handleToggle}>
+        <Label onClick={this.handleToggle}>
           LIMIT {this.props.value || this.props.maxRow}
         </Label>
         <Overlay

@@ -18,13 +18,13 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, Button, Modal, FormControl } from 'react-bootstrap';
+import { Row, Col, Modal, FormControl } from 'react-bootstrap';
+import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { AsyncSelect } from 'src/components/Select';
 import AceEditor from 'react-ace';
 import rison from 'rison';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
@@ -288,11 +288,7 @@ class PropertiesModal extends React.PureComponent {
             <Row>
               <Col md={12}>
                 <h3 style={{ marginTop: '1em' }}>
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={this.toggleAdvanced}
-                  >
+                  <Button buttonStyle="link" onClick={this.toggleAdvanced}>
                     <i
                       className={`fa fa-angle-${
                         isAdvancedOpen ? 'down' : 'right'
@@ -300,7 +296,7 @@ class PropertiesModal extends React.PureComponent {
                       style={{ minWidth: '1em' }}
                     />
                     {t('Advanced')}
-                  </button>
+                  </Button>
                 </h3>
                 {isAdvancedOpen && (
                   <>
@@ -332,14 +328,15 @@ class PropertiesModal extends React.PureComponent {
             <span className="float-right">
               <Button
                 type="submit"
-                bsSize="sm"
-                bsStyle="primary"
+                buttonSize="sm"
+                buttonStyle="primary"
                 className="m-r-5"
                 disabled={errors.length > 0}
+                cta
               >
                 {saveLabel}
               </Button>
-              <Button type="button" bsSize="sm" onClick={onHide}>
+              <Button type="button" buttonSize="sm" onClick={onHide} cta>
                 {t('Cancel')}
               </Button>
               <Dialog

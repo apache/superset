@@ -17,8 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { NavDropdown, MenuItem } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { MenuItem } from 'react-bootstrap';
+import NavDropdown from 'src/components/NavDropdown';
+import { t } from '@superset-ui/core';
 
 interface UserMenuProps {
   userInfoUrl: string;
@@ -42,14 +43,8 @@ export default function UserMenu({
         </>
       }
     >
-      <MenuItem href={userInfoUrl}>
-        <span className="fa fa-fw fa-user" />
-        {t('Profile')}
-      </MenuItem>
-      <MenuItem href={userLogoutUrl}>
-        <span className="fa fa-fw fa-sign-out" />
-        {t('Logout')}
-      </MenuItem>
+      <MenuItem href={userInfoUrl}>{t('Profile')}</MenuItem>
+      <MenuItem href={userLogoutUrl}>{t('Logout')}</MenuItem>
       {(versionString || versionSha) && (
         <li className="version-info">
           {versionString && <div>Version: {versionString}</div>}

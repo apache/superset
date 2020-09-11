@@ -68,6 +68,7 @@ from superset.connectors.sqla.models import (
     TableColumn,
 )
 from superset.dashboards.dao import DashboardDAO
+from superset.databases.filters import DatabaseFilter
 from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
@@ -109,7 +110,6 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
-from superset.views.database.filters import DatabaseFilter
 from superset.views.utils import (
     _deserialize_results_payload,
     apply_display_max_row_limit,
@@ -1162,7 +1162,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             logger.warning("Stopped an unsafe database connection")
             return json_error_response(_(str(ex)), 400)
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Unexpected error %s", type(ex).__name__)
+            logger.warning("Unexpected error %s", type(ex).__name__)
             return json_error_response(
                 _("Unexpected error occurred, please check your logs for details"), 400
             )
@@ -1431,12 +1431,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """Warms up the cache for the slice or table.
 
         Note for slices a force refresh occurs.
+
+        In terms of the `extra_filters` these can be obtained from records in the JSON
+        encoded `logs.json` column associated with the `explore_json` action.
         """
         session = db.session()
         slice_id = request.args.get("slice_id")
         dashboard_id = request.args.get("dashboard_id")
         table_name = request.args.get("table_name")
         db_name = request.args.get("db_name")
+        extra_filters = request.args.get("extra_filters")
 
         if not slice_id and not (table_name and db_name):
             return json_error_response(
@@ -1482,8 +1486,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             try:
                 form_data = get_form_data(slc.id, use_slice_data=True)[0]
                 if dashboard_id:
-                    form_data["extra_filters"] = get_dashboard_extra_filters(
-                        slc.id, dashboard_id
+                    form_data["extra_filters"] = (
+                        json.loads(extra_filters)
+                        if extra_filters
+                        else get_dashboard_extra_filters(slc.id, dashboard_id)
                     )
 
                 obj = get_viz(
@@ -2523,6 +2529,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
+            if conf.get("PUBLIC_ROLE_LIKE_GAMMA", False) or conf["PUBLIC_ROLE_LIKE"]:
+                return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
 
         welcome_dashboard_id = (

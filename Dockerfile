@@ -18,7 +18,7 @@
 ######################################################################
 # PY stage that simply does a pip install on our requirements
 ######################################################################
-ARG PY_VER=3.6.9
+ARG PY_VER=3.7.9
 FROM python:${PY_VER} AS superset-py
 
 RUN mkdir /app \
@@ -44,7 +44,7 @@ RUN cd /app \
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-FROM node:10-jessie AS superset-node
+FROM node:12 AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
