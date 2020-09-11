@@ -117,9 +117,9 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
   // but can be specified with curUrl (used for unit tests to spoof
   // the window.location).
   let uri = new URI({
-    protocol: location.protocol.slice(0, -1),
+    protocol: window.location.protocol.slice(0, -1),
     hostname: getHostName(allowDomainSharding),
-    port: location.port ? location.port : '',
+    port: window.location.port ? window.location.port : '',
     path,
   });
   if (qs) {

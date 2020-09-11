@@ -153,7 +153,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   ) {
     // If the prefix starts with a number, don't try to autocomplete with a
     // table name or schema or anything else
-    if (!isNaN(parseInt(prefix, 10))) {
+    if (!Number.isNaN(parseInt(prefix, 10))) {
       return;
     }
     const completer = {
