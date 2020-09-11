@@ -31,6 +31,7 @@ from .base_tests import SupersetTestCase
 
 class Model1Api(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
+    allow_browser_login = True
     class_permission_name = "DashboardModelView"
     method_permission_name = {
         "get_list": "list",
