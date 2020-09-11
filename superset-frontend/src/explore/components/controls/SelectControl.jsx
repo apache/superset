@@ -173,7 +173,7 @@ export default class SelectControl extends React.PureComponent {
   }
 
   handleKeyDownForCreate(event) {
-    const key = event.key;
+    const { key } = event;
     if (key === 'Tab' || (this.props.commaChoosesOption && key === ',')) {
       // simulate an Enter event
       if (this.select) {

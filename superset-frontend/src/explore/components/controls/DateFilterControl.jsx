@@ -207,7 +207,7 @@ class DateFilterControl extends React.Component {
       untilViewMode: 'days',
     };
 
-    const value = props.value;
+    const { value } = props;
     if (value.indexOf(SEPARATOR) >= 0) {
       this.state = { ...this.state, ...getStateFromSeparator(value) };
     } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
@@ -282,7 +282,7 @@ class DateFilterControl extends React.Component {
   }
 
   handleClick(e) {
-    const target = e.target;
+    const { target } = e;
     // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
     if (this.startEndSectionRef && this.startEndSectionRef.contains(target)) {
       this.setTypeCustomStartEnd();

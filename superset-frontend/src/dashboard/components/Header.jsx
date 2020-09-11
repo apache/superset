@@ -132,7 +132,7 @@ class Header extends React.PureComponent {
   }
 
   componentDidMount() {
-    const refreshFrequency = this.props.refreshFrequency;
+    const { refreshFrequency } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
   }
 

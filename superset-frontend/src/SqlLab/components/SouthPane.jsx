@@ -94,7 +94,7 @@ export class SouthPane extends React.PureComponent {
     }
     const innerTabContentHeight = this.state.height - TAB_HEIGHT;
     let latestQuery;
-    const props = this.props;
+    const { props } = this;
     if (props.editorQueries.length > 0) {
       // get the latest query
       latestQuery = props.editorQueries.find(

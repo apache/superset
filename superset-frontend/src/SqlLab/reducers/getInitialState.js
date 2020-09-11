@@ -144,7 +144,7 @@ export default function getInitialState({
     localStorage.getItem('redux') &&
     JSON.parse(localStorage.getItem('redux')).sqlLab
   ) {
-    const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
+    const { sqlLab } = JSON.parse(localStorage.getItem('redux'));
 
     if (sqlLab.queryEditors.length === 0) {
       // migration was successful

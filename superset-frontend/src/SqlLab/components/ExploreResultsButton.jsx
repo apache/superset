@@ -53,7 +53,7 @@ class ExploreResultsButton extends React.PureComponent {
     );
   }
   onClick() {
-    const timeout = this.props.timeout;
+    const { timeout } = this.props;
     const msg = this.renderInvalidColumnMessage();
     if (Math.round(this.getQueryDuration()) > timeout) {
       this.dialog.show({
@@ -86,7 +86,7 @@ class ExploreResultsButton extends React.PureComponent {
     }
   }
   getColumns() {
-    const props = this.props;
+    const { props } = this;
     if (
       props.query &&
       props.query.results &&
