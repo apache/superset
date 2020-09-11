@@ -955,15 +955,8 @@ class TestCore(SupersetTestCase):
 
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
     @mock.patch("superset.views.core.results_backend")
-    @mock.patch("superset.views.core.db")
-    def test_display_limit(self, mock_superset_db, mock_results_backend):
-        query_mock = mock.Mock()
-        query_mock.sql = "SELECT *"
-        query_mock.database = 1
-        query_mock.schema = "superset"
-        mock_superset_db.session.query().filter_by().one_or_none.return_value = (
-            query_mock
-        )
+    def test_display_limit(self, mock_results_backend):
+        self.login()
 
         data = [{"col_0": i} for i in range(100)]
         payload = {
@@ -971,6 +964,21 @@ class TestCore(SupersetTestCase):
             "query": {"rows": 100},
             "data": data,
         }
+        # limit results to 1
+        expected_key = {"status": "success", "query": {"rows": 100}, "data": data}
+        limited_data = data[:1]
+        expected_limited = {
+            "status": "success",
+            "query": {"rows": 100},
+            "data": limited_data,
+            "displayLimitReached": True,
+        }
+
+        query_mock = mock.Mock()
+        query_mock.sql = "SELECT *"
+        query_mock.database = 1
+        query_mock.schema = "superset"
+
         # do not apply msgpack serialization
         use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
@@ -978,22 +986,16 @@ class TestCore(SupersetTestCase):
         compressed = utils.zlib_compress(serialized_payload)
         mock_results_backend.get.return_value = compressed
 
-        # get all results
-        self.login()
-        result = json.loads(self.get_resp("/superset/results/key/"))
-        expected = {"status": "success", "query": {"rows": 100}, "data": data}
-        self.assertEqual(result, expected)
+        with mock.patch("superset.views.core.db") as mock_superset_db:
+            mock_superset_db.session.query().filter_by().one_or_none.return_value = (
+                query_mock
+            )
+            # get all results
+            result_key = json.loads(self.get_resp("/superset/results/key/"))
+            result_limited = json.loads(self.get_resp("/superset/results/key/?rows=1"))
 
-        # limit results to 1
-        limited_data = data[:1]
-        result = json.loads(self.get_resp("/superset/results/key/?rows=1"))
-        expected = {
-            "status": "success",
-            "query": {"rows": 100},
-            "data": limited_data,
-            "displayLimitReached": True,
-        }
-        self.assertEqual(result, expected)
+        self.assertEqual(result_key, expected_key)
+        self.assertEqual(result_limited, expected_limited)
 
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
 
