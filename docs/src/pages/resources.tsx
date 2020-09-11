@@ -128,6 +128,7 @@ const resourcesContainer = css`
   .links {
     margin-top: 80px;
     .videos {
+      margin-top: 50px;
       text-align: left;
       iframe {
         margin: 15px;
@@ -151,13 +152,6 @@ const resourcesContainer = css`
     display: block;
     font-size: 17px;
   }
-  ul {
-      display: table;
-      margin: 0 auto;
-      font-size: 17px;
-      margin-top: 25px;
-      margin-bottom: 25px;
-    }
 `;
 
 const title = css`
@@ -176,8 +170,6 @@ const Resources = () => {
         <h1 css={title}>Resources</h1>
         <span className="span">
           Here’s a collection of resources and blogs about Apache Superset
-          {' '}
-          <br />
           from around the Internet.
           For a more more extensive and dynamic list of
           resources, check out the <a href="https://github.com/apache-superset/awesome-apache-superset">
@@ -217,7 +209,7 @@ const Resources = () => {
               />
             </Col>
             <Col span={12}>
-              <h2>Additional Installation Resources</h2>
+              <h2>Installation</h2>
               <List
                 size="small"
                 bordered
@@ -233,7 +225,6 @@ const Resources = () => {
             </Col>
           </Row>
           <div className="videos">
-            <h2> Videos Content </h2>
             <Card>
               {youtubeIds.map(([idx,ids, cardTitle]) => 
                 <Card.Grid onClick={()=>{
@@ -241,6 +232,7 @@ const Resources = () => {
                     setUrl(idx)
                     setCardTitle(cardTitle)
                   }}>
+                  <span>{ cardTitle }</span>
                   <img
                     style={{height: '150px', width:'250px'}}
                     src={`http://img.youtube.com/vi/${ids}/maxresdefault.jpg`}
@@ -248,17 +240,6 @@ const Resources = () => {
                 </Card.Grid>
               )}
             </Card>
-          </div>
-          <div>
-            <ul>
-              {additionalResources.map(([span, href]) => (
-                <li>
-                  <a href={href} target="_blank" rel="noreferrer">
-                    {span}
-                  </a>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </div>
