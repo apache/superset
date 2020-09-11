@@ -24,7 +24,7 @@ import { ReactComponent as CheckboxHalfIcon } from 'images/icons/checkbox-half.s
 import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
 import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
 import { ReactComponent as CheckIcon } from 'images/icons/check.svg';
-import { ReactComponent as CircleCheckIcon } from 'images/icons/circle-check.svg';
+import { ReactComponent as CircleCheckIcon } from 'images/icons/circle_check.svg';
 import { ReactComponent as CircleCheckSolidIcon } from 'images/icons/circle_check_solid.svg';
 import { ReactComponent as CloseIcon } from 'images/icons/close.svg';
 import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
