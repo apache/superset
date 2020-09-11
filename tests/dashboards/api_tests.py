@@ -17,15 +17,12 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-from typing import List, Optional
-from datetime import datetime
 
 import prison
+import pytest
 from pytest import mark
-import humanize
 from sqlalchemy.sql import func
 
-import tests.test_app
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -33,9 +30,10 @@ from superset.views.base import generate_download_headers
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
-from tests.dashboards import utils as dashboard_utils
+from tests.dashboards import dashboard_test_utils as dashboard_utils
 
 
+@pytest.mark.dashboard
 class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     resource_name = "dashboard"
 
@@ -48,42 +46,12 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         "published": False,
     }
 
-    def insert_dashboard(
-        self,
-        dashboard_title: str,
-        slug: Optional[str],
-        owners: List[int],
-        slices: Optional[List[Slice]] = None,
-        position_json: str = "",
-        css: str = "",
-        json_metadata: str = "",
-        published: bool = False,
-    ) -> Dashboard:
-        obj_owners = list()
-        slices = slices or []
-        for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
-        dashboard = Dashboard(
-            dashboard_title=dashboard_title,
-            slug=slug,
-            owners=obj_owners,
-            position_json=position_json,
-            css=css,
-            json_metadata=json_metadata,
-            slices=slices,
-            published=published,
-        )
-        db.session.add(dashboard)
-        db.session.commit()
-        return dashboard
-
     def test_get_dashboard(self):
         """
         Dashboard API: Test get dashboard
         """
         admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        dashboard = dashboard_utils.insert_dashboard("title", "slug1", [admin.id])
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.get_assert_metric(uri, "get")
@@ -146,7 +114,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test get dashboard without data access
         """
         admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        dashboard = dashboard_utils.insert_dashboard("title", "slug1", [admin.id])
 
         self.login(username="gamma")
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -165,7 +133,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         admin = self.get_user("admin")
         start_changed_on = datetime.now()
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        dashboard = dashboard_utils.insert_dashboard("title", "slug1", [admin.id])
 
         self.login(username="admin")
 
@@ -193,7 +161,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id, gamma.id])
+        dashboard = dashboard_utils.insert_dashboard(
+            "title", "slug1", [admin.id, gamma.id]
+        )
 
         self.login(username="admin")
 
@@ -227,10 +197,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test get dashboards custom filter
         """
         admin = self.get_user("admin")
-        dashboard1 = self.insert_dashboard("foo_a", "ZY_bar", [admin.id])
-        dashboard2 = self.insert_dashboard("zy_foo", "slug1", [admin.id])
-        dashboard3 = self.insert_dashboard("foo_b", "slug1zy_", [admin.id])
-        dashboard4 = self.insert_dashboard("bar", "foo", [admin.id])
+        dashboard1 = dashboard_utils.insert_dashboard("foo_a", "ZY_bar", [admin.id])
+        dashboard2 = dashboard_utils.insert_dashboard("zy_foo", "slug1", [admin.id])
+        dashboard3 = dashboard_utils.insert_dashboard("foo_b", "slug1zy_", [admin.id])
+        dashboard4 = dashboard_utils.insert_dashboard("bar", "foo", [admin.id])
 
         arguments = {
             "filters": [
@@ -279,7 +249,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test get dashboards no data access
         """
         admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        dashboard = dashboard_utils.insert_dashboard("title", "slug1", [admin.id])
 
         self.login(username="gamma")
         arguments = {
@@ -304,8 +274,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test delete
         """
         admin_id = self.get_user("admin").id
-        dashboard = self.insert_dashboard("title", "slug1", [admin_id])
-        dashboard_utils.arrange_to_delete_dashboard_test(dashboard)
+        dashboard = dashboard_utils.insert_dashboard("title", "slug1", [admin_id])
+        dashboard_utils.assign_dashboard_permissions_to_multiple_roles(dashboard)
         dashboard_id = dashboard.id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -314,7 +284,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
         dashboard_utils.assert_permissions_were_deleted(self, dashboard)
-        dashboard_utils.clean_after_delete_dashboard_test()
+        dashboard_utils.clean_dashboard_matching_roles()
 
     @mark.skipif(
         dashboard_utils.is_dashboard_level_access_enabled(),
@@ -325,7 +295,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test delete
         """
         admin_id = self.get_user("admin").id
-        dashboard_id = self.insert_dashboard("title", "slug1", [admin_id]).id
+        dashboard_id = dashboard_utils.insert_dashboard("title", "slug1", [admin_id]).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.delete_assert_metric(uri, "delete")
@@ -342,7 +312,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_ids = list()
         for dashboard_name_index in range(dashboard_count):
             dashboard_ids.append(
-                self.insert_dashboard(
+                dashboard_utils.insert_dashboard(
                     f"title{dashboard_name_index}",
                     f"slug{dashboard_name_index}",
                     [admin_id],
@@ -397,7 +367,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test admin delete not owned
         """
         gamma_id = self.get_user("gamma").id
-        dashboard_id = self.insert_dashboard("title", "slug1", [gamma_id]).id
+        dashboard_id = dashboard_utils.insert_dashboard("title", "slug1", [gamma_id]).id
 
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -415,7 +385,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_ids = list()
         for dashboard_name_index in range(dashboard_count):
             dashboard_ids.append(
-                self.insert_dashboard(
+                dashboard_utils.insert_dashboard(
                     f"title{dashboard_name_index}",
                     f"slug{dashboard_name_index}",
                     [gamma_id],
@@ -448,7 +418,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         existing_slice = (
             db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
         )
-        dashboard = self.insert_dashboard(
+        dashboard = dashboard_utils.insert_dashboard(
             "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
         )
         self.login(username="alpha2", password="password")
@@ -478,7 +448,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboards = list()
         for dashboard_name_index in range(dashboard_count):
             dashboards.append(
-                self.insert_dashboard(
+                dashboard_utils.insert_dashboard(
                     f"title{dashboard_name_index}",
                     f"slug{dashboard_name_index}",
                     [user_alpha1.id],
@@ -487,7 +457,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                 )
             )
 
-        owned_dashboard = self.insert_dashboard(
+        owned_dashboard = dashboard_utils.insert_dashboard(
             "title_owned",
             "slug_owned",
             [user_alpha2.id],
@@ -605,7 +575,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test create validate slug
         """
         admin_id = self.get_user("admin").id
-        dashboard = self.insert_dashboard("title1", "slug1", [admin_id])
+        dashboard = dashboard_utils.insert_dashboard("title1", "slug1", [admin_id])
         self.login(username="admin")
 
         # Check for slug uniqueness
@@ -675,7 +645,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             dashboard_utils.is_dashboard_level_access_enabled()
         )
         admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title1", "slug1", [admin.id])
+        dashboard = dashboard_utils.insert_dashboard("title1", "slug1", [admin.id])
         if dashboard_level_access_enabled:
             view_menu_id = security_manager.find_view_menu(dashboard.view_name).id
         dashboard_id = dashboard.id
@@ -717,7 +687,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         slices.append(db.session.query(Slice).filter_by(slice_name="Trends").first())
         slices.append(db.session.query(Slice).filter_by(slice_name="Boys").first())
 
-        dashboard = self.insert_dashboard("title1", "slug1", [admin.id], slices=slices,)
+        dashboard = dashboard_utils.insert_dashboard(
+            "title1", "slug1", [admin.id], slices=slices,
+        )
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
         dashboard_data = {"owners": [user_alpha1.id, user_alpha2.id]}
@@ -747,7 +719,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test update partial
         """
         admin_id = self.get_user("admin").id
-        dashboard_id = self.insert_dashboard("title1", "slug1", [admin_id]).id
+        dashboard_id = dashboard_utils.insert_dashboard(
+            "title1", "slug1", [admin_id]
+        ).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(
@@ -777,7 +751,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         gamma_id = self.get_user("gamma").id
         admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard("title1", "slug1", [gamma_id]).id
+        dashboard_id = dashboard_utils.insert_dashboard(
+            "title1", "slug1", [gamma_id]
+        ).id
         dashboard_data = {"dashboard_title": "title1_changed"}
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -795,7 +771,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test update slug formatting
         """
         admin_id = self.get_user("admin").id
-        dashboard_id = self.insert_dashboard("title1", "slug1", [admin_id]).id
+        dashboard_id = dashboard_utils.insert_dashboard(
+            "title1", "slug1", [admin_id]
+        ).id
         dashboard_data = {"dashboard_title": "title1_changed", "slug": "slug1 changed"}
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -812,8 +790,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test update validate slug
         """
         admin_id = self.get_user("admin").id
-        dashboard1 = self.insert_dashboard("title1", "slug-1", [admin_id])
-        dashboard2 = self.insert_dashboard("title2", "slug-2", [admin_id])
+        dashboard1 = dashboard_utils.insert_dashboard("title1", "slug-1", [admin_id])
+        dashboard2 = dashboard_utils.insert_dashboard("title2", "slug-2", [admin_id])
 
         self.login(username="admin")
         # Check for slug uniqueness
@@ -829,8 +807,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(dashboard2)
         db.session.commit()
 
-        dashboard1 = self.insert_dashboard("title1", None, [admin_id])
-        dashboard2 = self.insert_dashboard("title2", None, [admin_id])
+        dashboard1 = dashboard_utils.insert_dashboard("title1", None, [admin_id])
+        dashboard2 = dashboard_utils.insert_dashboard("title2", None, [admin_id])
         self.login(username="admin")
         # Accept empty slugs and don't validate them has unique
         dashboard_data = {"dashboard_title": "title2_changed", "slug": ""}
@@ -849,7 +827,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
 
-        dashboard = self.insert_dashboard("title1", "slug1", [admin.id, gamma.id])
+        dashboard = dashboard_utils.insert_dashboard(
+            "title1", "slug1", [admin.id, gamma.id]
+        )
         dashboard_data = {"published": True}
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -877,7 +857,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         existing_slice = (
             db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
         )
-        dashboard = self.insert_dashboard(
+        dashboard = dashboard_utils.insert_dashboard(
             "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
         )
         self.login(username="alpha2", password="password")
@@ -919,7 +899,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test dashboard export not allowed
         """
         admin_id = self.get_user("admin").id
-        dashboard = self.insert_dashboard("title", "slug1", [admin_id], published=False)
+        dashboard = dashboard_utils.insert_dashboard(
+            "title", "slug1", [admin_id], published=False
+        )
 
         self.login(username="gamma")
         argument = [dashboard.id]

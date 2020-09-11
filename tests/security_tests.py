@@ -27,7 +27,7 @@ import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
-from tests.dashboards.utils import is_dashboard_level_access_enabled
+from tests.dashboards.dashboard_test_utils import is_dashboard_level_access_enabled
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -515,14 +515,10 @@ class TestRolePermission(SupersetTestCase):
         reason="with dashboard level access access to dashboard does not directly dependent on schema access",
     )
     def test_gamma_user_schema_access_to_dashboards(self):
-        self.grant_access_to_all_dashboards("Gamma")
-        try:
-            self.login(username="gamma")
-            data = str(self.client.get("api/v1/dashboard/").data)
-            self.assertIn("/superset/dashboard/world_health/", data)
-            self.assertNotIn("/superset/dashboard/births/", data)
-        finally:
-            self.revoke_access_to_all_dashboards("Gamma")
+        self.login(username="gamma")
+        data = str(self.client.get("api/v1/dashboard/").data)
+        self.assertIn("/superset/dashboard/world_health/", data)
+        self.assertNotIn("/superset/dashboard/births/", data)
 
     def test_gamma_user_schema_access_to_tables(self):
         self.login(username="gamma")

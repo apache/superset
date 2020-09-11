@@ -14,8 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import is_feature_enabled, security_manager
+from typing import List, Optional
+
+from superset import db, is_feature_enabled, security_manager
 from superset.constants import Security
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 
 
 def assert_permission_was_created(case, dashboard):
@@ -39,20 +43,57 @@ def assert_permissions_were_deleted(case, deleted_dashboard):
 
 DASHBOARD_PERMISSION_ROLE = "dashboard_permission_role"
 
+number_of_roles = 3
 
-def arrange_to_delete_dashboard_test(dashboard):
+
+def assign_dashboard_permissions_to_multiple_roles(dashboard):
     permission_name, view_name = dashboard.permission_view_pairs[0]
     pv = security_manager.find_permission_view_menu(permission_name, view_name)
-    for i in range(3):
+
+    for i in range(number_of_roles):
         security_manager.add_permission_role(
             security_manager.add_role("dashboard_permission_role" + str(i)), pv
         )
 
 
-def clean_after_delete_dashboard_test():
-    for i in range(3):
+def clean_dashboard_matching_roles():
+    for i in range(number_of_roles):
         security_manager.del_role("dashboard_permission_role" + str(i))
 
 
 def is_dashboard_level_access_enabled():
     return is_feature_enabled(Security.DASHBOARD_LEVEL_ACCESS_FEATURE)
+
+
+def insert_dashboard(
+    dashboard_title: str,
+    slug: Optional[str],
+    owners: List[int],
+    slices: Optional[List[Slice]] = None,
+    position_json: str = "",
+    css: str = "",
+    json_metadata: str = "",
+    published: bool = False,
+) -> Dashboard:
+    obj_owners = list()
+    slices = slices or []
+    for owner in owners:
+        user = db.session.query(security_manager.user_model).get(owner)
+        obj_owners.append(user)
+    dashboard = Dashboard(
+        dashboard_title=dashboard_title,
+        slug=slug,
+        owners=obj_owners,
+        position_json=position_json,
+        css=css,
+        json_metadata=json_metadata,
+        slices=slices,
+        published=published,
+    )
+    db.session.add(dashboard)
+    db.session.commit()
+    if is_dashboard_level_access_enabled():
+        security_manager.set_permissions_views_by_session(
+            dashboard.permission_view_pairs
+        )
+    return dashboard

@@ -920,6 +920,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         view_menu = self.__set_view_by_connection(connection, view_name)
         self.__set_permission_view_by_connection(connection, permission, view_menu)
 
+    def set_permissions_views_by_session(
+        self, permission_view_pairs: List[Tuple[str, str]]
+    ) -> None:
+        for permission_name, view_menu_name in permission_view_pairs:
+            self.add_permission(permission_name)
+            self.add_view_menu(view_menu_name)
+            self.add_permission_view_menu(permission_name, view_menu_name)
+
+    def del_permissions_views_by_session(
+        self, permission_view_pairs: List[Tuple[str, str]]
+    ) -> None:
+        for permission_name, view_menu_name in permission_view_pairs:
+            # permission_view_menu = self.find_permission_view_menu(permission_name, view_menu_name)
+            self.del_permission_view_menu(permission_name, view_menu_name)
+            self.del_permission(permission_name)
+            self.del_view_menu(view_menu_name)
+
     def __set_permission_by_connection(
         self, connection: Connection, permission_name: str
     ) -> Permission:
@@ -971,6 +988,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .one_or_none()
             )
         return None
+
+    def update_dashboard_permission(self, dashboard):
+        new_perm = dashboard.view_name
+        current_perm = self.find_view_menu_by_pattern(dashboard.id)
+        if not current_perm:
+            self.add_view_menu(new_perm)
+        elif new_perm != current_perm:
+            current_perm.name = new_perm
+            self.get_session().merge(current_perm)
+            self.get_session().commit()
+
+    def find_view_menu_by_pattern(self, id):
+        """
+            Finds and returns a ViewMenu by name
+        """
+        return (
+            self.get_session.query(self.viewmenu_model)
+            .filter(ViewMenu.name.like(f"dashboard.[*](id:{id})"))
+            .one_or_none()
+        )
 
     def change_view_name_by_connection(
         self, connection: Connection, new_name: str, old_name: str

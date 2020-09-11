@@ -20,22 +20,22 @@ import json
 import unittest
 from random import random
 
+import pytest
 from flask import escape, url_for
 from pytest import mark
 from sqlalchemy import func
 
-import tests.test_app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
+from superset.dashboards.commands.create import CreateDashboardCommand
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 
 from .base_tests import SupersetTestCase
-from .dashboards import utils as dashboard_utils
+from .dashboards import dashboard_test_utils as dashboard_utils
 
 GET_DASHBOARDS_URL = "/api/v1/dashboard/"
-GET_DASHBOARD_URL_FORMAT = "/superset/dashboard/{}/"
 GET_DASHBOARD_URL_FORMAT = "/superset/dashboard/{}/"
 DELETE_DASHBOARD_URL_FORMAT = "/dashboard/delete/{}"
 SAVE_DASHBOARD_URL_FORMAT = "/superset/save_dash/{}/"
@@ -50,10 +50,9 @@ ADMIN_USERNAME = "admin"
 ALPHA_USERNAME = "alpha"
 GAMMA_USERNAME = "gamma"
 
-DEFAULT_ACCESSIABLE_TABLE = "birth_names"
-DASHBOARD_SLUG_OF_ACCESSABLE_TABLE = "births"
+DEFAULT_ACCESSIBLE_TABLE = "birth_names"
+DASHBOARD_SLUG_OF_ACCESSIBLE_TABLE = "births"
 DEFAULT_DASHBOARD_SLUG_TO_TEST = "births"
-import pytest
 
 
 @pytest.mark.dashboard
@@ -81,7 +80,7 @@ class TestDashboard(SupersetTestCase):
             dash.url: dash.dashboard_title for dash in db.session.query(Dashboard).all()
         }
 
-        # call
+        # act
         responses_by_url = {
             url: self.client.get(url).data.decode("utf-8")
             for url in dashboard_title_by_url.keys()
@@ -96,8 +95,8 @@ class TestDashboard(SupersetTestCase):
     def test_dashboard_access_with_created_by_can_be_accessed_by_public_users(self):
         # arrange
         self.logout()
-        the_accessed_table_name = DEFAULT_ACCESSIABLE_TABLE
-        the_accessed_dashboard_slug = DASHBOARD_SLUG_OF_ACCESSABLE_TABLE
+        the_accessed_table_name = DEFAULT_ACCESSIBLE_TABLE
+        the_accessed_dashboard_slug = DASHBOARD_SLUG_OF_ACCESSIBLE_TABLE
         table_to_access = (
             db.session.query(SqlaTable)
             .filter_by(table_name=the_accessed_table_name)
@@ -117,7 +116,7 @@ class TestDashboard(SupersetTestCase):
         db.session.commit()
         self.grant_public_access_to_table(table_to_access)
 
-        # call
+        # act
         get_dashboard_response = self.get_resp(dashboard_to_access.url)
         try:
             # assert
@@ -141,7 +140,7 @@ class TestDashboard(SupersetTestCase):
         )
         dashboard_url_with_modes = self.__add_dashboard_mode_parmas(dash.url)
 
-        # call
+        # act
         resp = self.get_resp(dashboard_url_with_modes)
 
         # assert
@@ -154,7 +153,7 @@ class TestDashboard(SupersetTestCase):
         id = 1
         excepted_url = GET_DASHBOARD_URL_FORMAT.format(id)
 
-        # call
+        # act
         generated_url = url_for("Superset.dashboard", dashboard_id_or_slug=id)
 
         # assert
@@ -165,7 +164,7 @@ class TestDashboard(SupersetTestCase):
         slug = "some_slug"
         excepted_url = GET_DASHBOARD_URL_FORMAT.format(slug)
 
-        # call
+        # act
         generated_url = url_for("Superset.dashboard", dashboard_id_or_slug=slug)
 
         # assert
@@ -180,7 +179,7 @@ class TestDashboard(SupersetTestCase):
         dash_count_before_new = db.session.query(func.count(Dashboard.id)).first()[0]
         excepted_dashboard_title_in_response = "[ untitled dashboard ]"
 
-        # call
+        # act
         post_new_dashboard_response = self.get_resp(NEW_DASHBOARD_URL)
 
         # assert
@@ -207,9 +206,9 @@ class TestDashboard(SupersetTestCase):
         self.assertEqual(dash_count_before_new + 1, dash_count_after_new)
         dash = db.session.query(Dashboard).filter_by(id=dash_count_after_new)[0]
         if dashboard_level_access_enabled:
-            dashboard_utils.arrange_to_delete_dashboard_test(dash)
+            dashboard_utils.assign_dashboard_permissions_to_multiple_roles(dash)
 
-        # call
+        # act
         self.__delete_dashboard(dash.id)
 
         # assert
@@ -217,7 +216,7 @@ class TestDashboard(SupersetTestCase):
         self.assertEqual(dash_count_before_new, dash_count_after_delete)
         if dashboard_level_access_enabled:
             dashboard_utils.assert_permissions_were_deleted(self, dash)
-            dashboard_utils.clean_after_delete_dashboard_test()
+            dashboard_utils.clean_dashboard_matching_roles()
 
     def __add_dashboard_mode_parmas(self, dashboard_url):
         full_url = dashboard_url
@@ -248,7 +247,7 @@ class TestDashboard(SupersetTestCase):
         }
         save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(dashboard_to_edit.id)
 
-        # call
+        # act
         save_dash_response = self.get_resp(
             save_dash_url, data=dict(data=json.dumps(data))
         )
@@ -290,7 +289,7 @@ class TestDashboard(SupersetTestCase):
 
         save_dash_url = "/superset/save_dash/{}/".format(dashboard_to_edit.id)
 
-        # call
+        # act
         save_dash_response = self.get_resp(
             save_dash_url, data=dict(data=json.dumps(data))
         )
@@ -333,7 +332,7 @@ class TestDashboard(SupersetTestCase):
 
         save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(dash.id)
 
-        # call
+        # act
         save_dash_response = self.get_resp(
             save_dash_url, data=dict(data=json.dumps(data))
         )
@@ -348,6 +347,7 @@ class TestDashboard(SupersetTestCase):
         # post test
         self.get_resp(save_dash_url, data=dict(data=json.dumps(data_before_change)))
 
+    @pytest.mark.dashboard
     def test_save_dash_with_dashboard_title(self, username=ADMIN_USERNAME):
         # arrange
         dashboard_level_access_enabled = (
@@ -374,7 +374,7 @@ class TestDashboard(SupersetTestCase):
         }
         save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(dashboard_to_be_changed.id)
 
-        # call
+        # act
         self.get_resp(save_dash_url, data=dict(data=json.dumps(data)))
 
         # assert
@@ -414,7 +414,7 @@ class TestDashboard(SupersetTestCase):
         }
         save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(dash.id)
 
-        # call
+        # act
         self.get_resp(save_dash_url, data=dict(data=json.dumps(data)))
 
         # assert
@@ -448,7 +448,7 @@ class TestDashboard(SupersetTestCase):
         db.session.commit()
         self.logout()
 
-        # call + assert #1
+        # act + assert #1
         self.assertRaises(Exception, self.test_save_dash, ALPHA_USERNAME)
 
         # arrange before call #2
@@ -456,7 +456,7 @@ class TestDashboard(SupersetTestCase):
         db.session.merge(dashboard_to_be_saved)
         db.session.commit()
 
-        # call + assert #2
+        # act + assert #2
         self.test_save_dash(ALPHA_USERNAME)
 
     def test_copy_dash(self, username=ADMIN_USERNAME):
@@ -493,7 +493,7 @@ class TestDashboard(SupersetTestCase):
         orig_json_data = dashboard_to_copy.data
         copy_dash_url = COPY_DASHBOARD_URL_FORMAT.format(dash_id)
 
-        # call
+        # act
         copied_response = self.get_json_resp(
             copy_dash_url, data=dict(data=json.dumps(data))
         )
@@ -535,7 +535,7 @@ class TestDashboard(SupersetTestCase):
         }
         add_slices_url = ADD_SLICES_URL_FORMAT.format(dash.id)
 
-        # call
+        # act
         add_slices_response = self.client.post(
             add_slices_url, data=dict(data=json.dumps(data))
         )
@@ -646,7 +646,7 @@ class TestDashboard(SupersetTestCase):
         self.revoke_public_access_to_table(table_to_access)
         self.logout()
 
-        # call #1 - Try access before adding appropriate permissions
+        # act #1 - Try access before adding appropriate permissions
         get_charts_response = self.get_resp(GET_CHARTS_URL)
         get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
 
@@ -659,7 +659,7 @@ class TestDashboard(SupersetTestCase):
         self.grant_public_access_to_table(table_to_access)
 
         try:
-            # call #2 - Try access after adding appropriate permissions.
+            # act #2 - Try access after adding appropriate permissions.
             get_charts_response = self.get_resp(GET_CHARTS_URL)
             get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
 
@@ -697,36 +697,30 @@ class TestDashboard(SupersetTestCase):
         slice_to_add_to_dashboards = (
             db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
         )
-        self.grant_public_access_to_table(accessed_table)
+        self.grant_role_access_to_table(accessed_table, GAMMA_ROLE_NAME)
         try:
-            hidden_dash_slug = f"hidden_dash_{random()}"
-            published_dash_slug = f"published_dash_{random()}"
-
             # Create a published and hidden dashboard and add them to the database
-            published_dash = Dashboard()
-            published_dash.dashboard_title = "Published Dashboard"
-            published_dash.slug = published_dash_slug
-            published_dash.slices = [slice_to_add_to_dashboards]
-            published_dash.published = True
-            published_dash_url = published_dash.url
-
-            hidden_dash = Dashboard()
-            hidden_dash.dashboard_title = "Hidden Dashboard"
-            hidden_dash.slug = hidden_dash_slug
-            hidden_dash.slices = [slice_to_add_to_dashboards]
-            hidden_dash.published = False
-            hidden_dash_url = hidden_dash.url
-
-            db.session.merge(published_dash)
-            db.session.merge(hidden_dash)
-            db.session.commit()
-
-            # call
+            published_dash = self.create_dashboard(
+                "Published Dashboard",
+                True,
+                f"published_dash_{random()}",
+                slices=[slice_to_add_to_dashboards],
+                action_username=ADMIN_USERNAME,
+            )
+            hidden_dash = self.create_dashboard(
+                "Hidden Dashboard",
+                False,
+                f"hidden_dash_{random()}",
+                slices=[slice_to_add_to_dashboards],
+                action_username=ADMIN_USERNAME,
+            )
+            # act
+            self.login(username=GAMMA_USERNAME)
             get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
 
             # assert
-            self.assertNotIn(hidden_dash_url, get_dashboards_response)
-            self.assertNotIn(published_dash_url, get_dashboards_response)
+            self.assertNotIn(hidden_dash.url, get_dashboards_response)
+            self.assertNotIn(published_dash.url, get_dashboards_response)
         finally:
             self.revoke_public_access_to_table(accessed_table)
 
@@ -750,34 +744,28 @@ class TestDashboard(SupersetTestCase):
         self.grant_access_to_all_dashboards()
         self.grant_public_access_to_table(accessed_table)
         try:
-            hidden_dash_slug = f"hidden_dash_{random()}"
-            published_dash_slug = f"published_dash_{random()}"
-
             # Create a published and hidden dashboard and add them to the database
-            published_dash = Dashboard()
-            published_dash.dashboard_title = "Published Dashboard"
-            published_dash.slug = published_dash_slug
-            published_dash.slices = [slice_to_add_to_dashboards]
-            published_dash.published = True
-            published_dash_url = published_dash.url
+            published_dash = self.create_dashboard(
+                "Published Dashboard",
+                True,
+                f"published_dash_{random()}",
+                [slice_to_add_to_dashboards],
+                action_username=ADMIN_USERNAME,
+            )
+            hidden_dash = self.create_dashboard(
+                "Hidden Dashboard",
+                False,
+                f"hidden_dash_{random()}",
+                [slice_to_add_to_dashboards],
+                action_username=ADMIN_USERNAME,
+            )
 
-            hidden_dash = Dashboard()
-            hidden_dash.dashboard_title = "Hidden Dashboard"
-            hidden_dash.slug = hidden_dash_slug
-            hidden_dash.slices = [slice_to_add_to_dashboards]
-            hidden_dash.published = False
-            hidden_dash_url = hidden_dash.url
-
-            db.session.merge(published_dash)
-            db.session.merge(hidden_dash)
-            db.session.commit()
-
-            # call
+            # act
             get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
 
             # assert
-            self.assertNotIn(hidden_dash_url, get_dashboards_response)
-            self.assertIn(published_dash_url, get_dashboards_response)
+            self.assertNotIn(hidden_dash.url, get_dashboards_response)
+            self.assertIn(published_dash.url, get_dashboards_response)
         finally:
             self.revoke_public_access_to_table(accessed_table)
             self.revoke_access_to_all_dashboards()
@@ -791,44 +779,44 @@ class TestDashboard(SupersetTestCase):
         accessed_table = (
             db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
         )
-        self.grant_public_access_to_table(accessed_table)
+        self.grant_role_access_to_table(accessed_table, GAMMA_ROLE_NAME)
         # get a slice from the allowed table
         slice_name_to_add = "Energy Sankey"
         slice_to_add_to_dashboards = (
             db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
         )
-        first_dash_slug = f"first_dash_{random()}"
-        second_dash_slug = f"second_dash_{random()}"
-
         # Create a published and hidden dashboard and add them to the database
-        first_dash = Dashboard()
-        first_dash.dashboard_title = "Published Dashboard"
-        first_dash.slug = first_dash_slug
-        first_dash.slices = [slice_to_add_to_dashboards]
-        first_dash.published = True
-        first_dash_url = first_dash.url
+        first_dash = self.create_dashboard(
+            "Published Dashboard",
+            True,
+            f"first_dash_{random()}",
+            [slice_to_add_to_dashboards],
+            action_username=ADMIN_USERNAME,
+        )
 
-        second_dash = Dashboard()
-        second_dash.dashboard_title = "Hidden Dashboard"
-        second_dash.slug = second_dash_slug
-        second_dash.slices = [slice_to_add_to_dashboards]
-        second_dash.published = True
-        second_dash_url = second_dash.url
+        second_dash = self.create_dashboard(
+            "Hidden Dashboard",
+            True,
+            f"second_dash_{random()}",
+            [slice_to_add_to_dashboards],
+            action_username=ADMIN_USERNAME,
+        )
 
-        self.grant_access_to_dashboard(first_dash, dashboard_level_access_enabled)
-        self.grant_access_to_dashboard(second_dash, dashboard_level_access_enabled)
+        self.grant_access_to_dashboard(
+            first_dash, dashboard_level_access_enabled, role_name=GAMMA_ROLE_NAME
+        )
+        self.grant_access_to_dashboard(
+            second_dash, dashboard_level_access_enabled, role_name=GAMMA_ROLE_NAME
+        )
 
         try:
-            db.session.merge(first_dash)
-            db.session.merge(second_dash)
-            db.session.commit()
-
-            # call
+            self.login(GAMMA_USERNAME)
+            # act
             get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
 
             # assert
-            self.assertIn(second_dash_url, get_dashboards_response)
-            self.assertIn(first_dash_url, get_dashboards_response)
+            self.assertIn(second_dash.url, get_dashboards_response)
+            self.assertIn(first_dash.url, get_dashboards_response)
         finally:
             db.session.delete(first_dash)
             db.session.delete(second_dash)
@@ -836,6 +824,42 @@ class TestDashboard(SupersetTestCase):
             self.revoke_access_to_dashboard(first_dash, dashboard_level_access_enabled)
             self.revoke_access_to_dashboard(second_dash, dashboard_level_access_enabled)
             self.revoke_public_access_to_table(accessed_table)
+
+    def create_dashboard(
+        self,
+        dashboard_title,
+        published=False,
+        slug=None,
+        slices=[],
+        owners=[],
+        action_username="gamma",
+    ):
+        # dash = dict(dashboard_title=dashboard_title)
+        # dash.update({
+        #     "slug": slug,
+        # })
+        # dash.update({
+        #     #"slices": slices,
+        #     "published": published,
+        #     "owners": owners
+        # })
+        # # db.session.merge(dash)
+        # # db.session.commit()
+        # # user = security_manager.find_user(action_username)
+        # # CreateDashboardCommand(user = user,data=dash.__dict__).run()
+        # self.get_json_resp(GET_DASHBOARDS_URL, json_=dash)
+        # resp = self.get_json_resp(GET_DASHBOARD_URL_FORMAT.format(dash[slug]))
+        # dash.update({
+        #     "url": resp["url"]
+        # })
+        # return dash
+        return dashboard_utils.insert_dashboard(
+            dashboard_title=dashboard_title,
+            slug=slug,
+            owners=owners,
+            slices=slices,
+            published=published,
+        )
 
     @mark.skipif(
         not dashboard_utils.is_dashboard_level_access_enabled(),
@@ -848,78 +872,66 @@ class TestDashboard(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
         )
         # get a slice from the allowed table
-        slice_name_to_add = "Energy Sankey"
         slice_to_add_to_dashboards = (
-            db.session.query(Slice).filter_by(slice_name=slice_name_to_add).one()
+            db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
         )
         self.grant_public_access_to_table(accessed_table)
-        first_dash_slug = f"first_dash_{random()}"
-        second_dash_slug = f"second_dash_{random()}"
 
         # Create a published and hidden dashboard and add them to the database
-        first_dash = Dashboard()
-        first_dash.dashboard_title = "Published Dashboard"
-        first_dash.slug = first_dash_slug
-        first_dash.slices = [slice_to_add_to_dashboards]
-        first_dash.published = True
-        first_dash_url = first_dash.url
-
-        second_dash = Dashboard()
-        second_dash.dashboard_title = "Hidden Dashboard"
-        second_dash.slug = second_dash_slug
-        second_dash.slices = [slice_to_add_to_dashboards]
-        second_dash.published = True
-        second_dash_url = second_dash.url
-
+        first_dash = self.create_dashboard(
+            "Published Dashboard",
+            True,
+            f"first_dash_{random()}",
+            [slice_to_add_to_dashboards],
+            action_username=ADMIN_USERNAME,
+        )
+        second_dash = self.create_dashboard(
+            "Hidden Dashboard",
+            True,
+            f"second_dash_{random()}",
+            [slice_to_add_to_dashboards],
+            action_username=ADMIN_USERNAME,
+        )
         try:
-            db.session.merge(first_dash)
-            db.session.merge(second_dash)
-            db.session.commit()
-
-            # call
+            # act
             get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
 
             # assert
-            self.assertNotIn(second_dash_url, get_dashboards_response)
-            self.assertNotIn(first_dash_url, get_dashboards_response)
+            self.assertNotIn(second_dash.url, get_dashboards_response)
+            self.assertNotIn(first_dash.url, get_dashboards_response)
         finally:
             db.session.delete(first_dash)
             db.session.delete(second_dash)
             db.session.commit()
             self.revoke_public_access_to_table(accessed_table)
 
-    def test_get_dashboards__users_are_dsahboards_owners(self):
+    def test_get_dashboards__users_are_dashboards_owners(self):
         # arrange
-        user = security_manager.find_user("gamma")
-        my_dash_slug = f"my_dash_{random()}"
-        not_my_dash_slug = f"not_my_dash_{random()}"
+        username = "gamma"
+        user = security_manager.find_user(username)
+        my_owned_dashboard = self.create_dashboard(
+            "My Dashboard",
+            False,
+            f"my_dash_{random()}",
+            owners=[user.id],
+            action_username=username,
+        )
 
-        my_owned_dashboard = Dashboard()
-        my_owned_dashboard.dashboard_title = "My Dashboard"
-        my_owned_dashboard.slug = my_dash_slug
-        my_owned_dashboard.owners = [user]
-        my_owned_dashboard.slices = []
-        my_owned_dashboard_url = my_owned_dashboard.url
-
-        not_my_owned_dashboard = Dashboard()
-        not_my_owned_dashboard.dashboard_title = "Not My Dashboard"
-        not_my_owned_dashboard.slug = not_my_dash_slug
-        not_my_owned_dashboard.slices = []
-        not_my_owned_dashboard.owners = []
-        not_my_owned_dashboard_url = not_my_owned_dashboard.url
-
-        db.session.merge(my_owned_dashboard)
-        db.session.merge(not_my_owned_dashboard)
-        db.session.commit()
+        not_my_owned_dashboard = self.create_dashboard(
+            "Not My Dashboard",
+            False,
+            f"not_my_dash_{random()}",
+            action_username="admin",
+        )
 
         self.login(user.username)
 
-        # call
+        # act
         get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
 
         # assert
-        self.assertIn(my_owned_dashboard_url, get_dashboards_response)
-        self.assertNotIn(not_my_owned_dashboard_url, get_dashboards_response)
+        self.assertIn(my_owned_dashboard.url, get_dashboards_response)
+        self.assertNotIn(not_my_owned_dashboard.url, get_dashboards_response)
 
     def test_get_dashboards__owners_can_view_empty_dashboard(self):
         # arrange
@@ -938,7 +950,7 @@ class TestDashboard(SupersetTestCase):
         gamma_user = security_manager.find_user("gamma")
         self.login(gamma_user.username)
 
-        # call
+        # act
         get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
 
         # assert
@@ -946,9 +958,9 @@ class TestDashboard(SupersetTestCase):
 
     @mark.skipif(
         dashboard_utils.is_dashboard_level_access_enabled(),
-        reason="with dashboard level access require favorites were omited",
+        reason="with dashboard level access favorite by itself will not permit access to the dashboard",
     )
-    def test_get_dashboards__users_can_view_favorited_dashboards(self):
+    def test_get_dashboards__users_can_view_favorites_dashboards(self):
         # arrange
         user = security_manager.find_user("gamma")
         fav_dash_slug = f"my_favorite_dash_{random()}"
@@ -978,7 +990,7 @@ class TestDashboard(SupersetTestCase):
 
         self.login(user.username)
 
-        # call
+        # act
         get_dashboards_response = self.get_resp(GET_DASHBOARDS_URL)
 
         # assert
@@ -986,29 +998,22 @@ class TestDashboard(SupersetTestCase):
 
     def test_get_dashboards__user_can_not_view_unpublished_dash(self):
         # arrange
-        admin_user = security_manager.find_user("admin")
-        gamma_user = security_manager.find_user("gamma")
+        admin_user = security_manager.find_user(ADMIN_USERNAME)
+        gamma_user = security_manager.find_user(GAMMA_USERNAME)
         slug = f"admin_owned_unpublished_dash_{random()}"
 
-        admin_and_not_published_dashboard = Dashboard()
-        admin_and_not_published_dashboard.dashboard_title = "My Dashboard"
-        admin_and_not_published_dashboard.slug = slug
-        admin_and_not_published_dashboard.owners = [admin_user]
-        admin_and_not_published_dashboard.slices = []
-        admin_and_not_published_dashboard.published = False
-        url_of_admin_and_not_published_dashboard = admin_and_not_published_dashboard.url
-
-        db.session.merge(admin_and_not_published_dashboard)
-        db.session.commit()
+        admin_and_not_published_dashboard = self.create_dashboard(
+            "My Dashboard", slug=slug, owners=[admin_user.id]
+        )
 
         self.login(gamma_user.username)
 
-        # call - list dashboards as a gamma user
+        # act - list dashboards as a gamma user
         get_dashboards_response_as_gamma = self.get_resp(GET_DASHBOARDS_URL)
 
         # assert
         self.assertNotIn(
-            url_of_admin_and_not_published_dashboard, get_dashboards_response_as_gamma
+            admin_and_not_published_dashboard.url, get_dashboards_response_as_gamma
         )
 
 

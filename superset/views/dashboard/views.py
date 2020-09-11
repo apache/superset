@@ -25,7 +25,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
-from superset import app, db, event_logger
+from superset import app, db, event_logger, security_manager
 from superset.constants import RouteMethod
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -113,8 +113,12 @@ class Dashboard(BaseSupersetView):
         new_dashboard = models.Dashboard(
             dashboard_title="[ untitled dashboard ]", owners=[g.user]
         )
+
         db.session.add(new_dashboard)
         db.session.commit()
+        security_manager.set_permissions_views_by_session(
+            new_dashboard.permission_view_pairs
+        )
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
 
