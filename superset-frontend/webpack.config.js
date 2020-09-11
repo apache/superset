@@ -236,6 +236,7 @@ const config = {
               'antd',
               '@ant-design.*',
               '.*bootstrap',
+              'react-bootstrap-slider',
               'moment',
               'jquery',
               'core-js.*',
