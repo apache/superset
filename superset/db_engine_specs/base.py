@@ -656,6 +656,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sorted(views)
 
     @classmethod
+    def get_table_comment(
+            cls, inspector: Inspector, table_name: str, schema: Optional[str]
+    ) -> str:
+        """
+        Get comment of table from a given schema and table
+
+        :param inspector: SqlAlchemy Inspector instance
+        :param table_name: Table name
+        :param schema: Schema name. If omitted, uses default schema for database
+        :return: comment of table
+        """
+        comment = None
+        try:
+            comment = inspector.get_table_comment(table_name, schema)
+            comment = comment.get('text') if isinstance(comment, dict) else None
+        except NotImplementedError:
+            pass
+        return comment
+
+    @classmethod
     def get_columns(
         cls, inspector: Inspector, table_name: str, schema: Optional[str]
     ) -> List[Dict[str, Any]]:
