@@ -658,7 +658,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_table_comment(
             cls, inspector: Inspector, table_name: str, schema: Optional[str]
-    ) -> str:
+    ) -> Optional[str]:
         """
         Get comment of table from a given schema and table
 
