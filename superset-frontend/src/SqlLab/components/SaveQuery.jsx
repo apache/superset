@@ -91,7 +91,7 @@ class SaveQuery extends React.PureComponent {
   }
 
   toggleSave() {
-    this.setState({ showSave: !this.state.showSave });
+    this.setState(prevState => ({ showSave: !prevState.showSave }));
   }
 
   renderModalBody() {

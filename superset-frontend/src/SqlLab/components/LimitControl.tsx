@@ -77,7 +77,7 @@ export default class LimitControl extends React.PureComponent<
   }
 
   handleToggle() {
-    this.setState({ showOverlay: !this.state.showOverlay });
+    this.setState(prevState => ({ showOverlay: !prevState.showOverlay }));
   }
 
   handleHide() {

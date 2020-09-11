@@ -114,7 +114,7 @@ export default class SpatialControl extends React.Component {
 
   toggleCheckbox() {
     this.setState(
-      { reverseCheckbox: !this.state.reverseCheckbox },
+      prevState => ({ reverseCheckbox: !prevState.reverseCheckbox }),
       this.onChange,
     );
   }

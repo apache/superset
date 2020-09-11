@@ -70,7 +70,7 @@ class OmniContainer extends React.Component {
           show_omni: !this.state.showOmni,
         });
 
-        this.setState({ showOmni: !this.state.showOmni });
+        this.setState(prevState => ({ showOmni: !prevState.showOmni }));
 
         document.getElementsByClassName('Omnibar')[0].focus();
       }

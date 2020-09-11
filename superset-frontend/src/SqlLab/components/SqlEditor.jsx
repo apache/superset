@@ -260,7 +260,9 @@ class SqlEditor extends React.PureComponent {
   }
 
   handleToggleAutocompleteEnabled = () => {
-    this.setState({ autocompleteEnabled: !this.state.autocompleteEnabled });
+    this.setState(prevState => ({
+      autocompleteEnabled: !prevState.autocompleteEnabled,
+    }));
   };
 
   handleWindowResize() {

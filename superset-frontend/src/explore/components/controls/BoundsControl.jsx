@@ -48,18 +48,18 @@ export default class BoundsControl extends React.Component {
 
   onMinChange(event) {
     this.setState(
-      {
-        minMax: [event.target.value, this.state.minMax[1]],
-      },
+      prevState => ({
+        minMax: [event.target.value, prevState.minMax[1]],
+      }),
       this.onChange,
     );
   }
 
   onMaxChange(event) {
     this.setState(
-      {
-        minMax: [this.state.minMax[0], event.target.value],
-      },
+      prevState => ({
+        minMax: [prevState.minMax[0], event.target.value],
+      }),
       this.onChange,
     );
   }
