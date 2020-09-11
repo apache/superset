@@ -25,15 +25,15 @@ describe('AdhocFilters', () => {
     cy.route('GET', '/superset/filter/table/*/name').as('filterValues');
   });
 
-  it('Should not load mathjs', () => {
-    cy.visitChartByName('Boys');
+  it('Should not load mathjs when not needed', () => {
+    cy.visitChartByName('Boys'); // a table chart
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.get('script[src*="mathjs"]').should('have.length', 0);
   });
 
   let numScripts = 0;
 
-  it('Should load AceEditor scripts on demand', () => {
+  it('Should load AceEditor scripts when needed', () => {
     cy.get('script').then(nodes => {
       numScripts = nodes.length;
     });

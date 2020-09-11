@@ -37,7 +37,7 @@ describe('Datasource control', () => {
     cy.get('#datasource_menu').click();
     cy.get('a').contains('Edit Datasource').click();
     // create new metric
-    cy.get('button').contains('Add Item').click();
+    cy.get('table button').contains('Add Item', { timeout: 10000 }).click();
     cy.get('input[value="<new metric>"]').click();
     cy.get('input[value="<new metric>"]')
       .focus()
