@@ -16,15 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { MenuObjectProps } from './MenuObject';
+import { Languages } from './LanguagePicker';
+import './Menu.less';
+
+/* MENU YES : BEGIN */
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { Nav, Navbar, NavItem } from 'react-bootstrap';
 import styled from '@superset-ui/style';
-import MenuObject, { MenuObjectProps } from './MenuObject';
+import MenuObject from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
-import LanguagePicker, { Languages } from './LanguagePicker';
-import './Menu.less';
+import LanguagePicker from './LanguagePicker';
+/* MENU YES : END */
 
 interface BrandProps {
   path: string;
@@ -55,6 +60,7 @@ export interface MenuProps {
   };
 }
 
+/* MENU YES : BEGIN */
 const StyledHeader = styled.header`
   .navbar-brand {
     display: flex;
@@ -84,10 +90,14 @@ const StyledHeader = styled.header`
     }
   }
 `;
+/* MENU YES: END */
 
 export default function Menu({
   data: { menu, brand, navbar_right: navbarRight },
 }: MenuProps) {
+  /* MENU YNO : BEGIN */
+  // return null;
+  /* MENU YES : BEGIN */
   return (
     <StyledHeader className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
@@ -150,4 +160,5 @@ export default function Menu({
       </Navbar>
     </StyledHeader>
   );
+  /* MENU YES/NO : END */
 }

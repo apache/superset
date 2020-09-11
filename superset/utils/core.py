@@ -1059,7 +1059,8 @@ def is_adhoc_metric(metric: Metric) -> bool:
 
 
 def get_metric_name(metric: Metric) -> str:
-    return metric["label"] if is_adhoc_metric(metric) else metric  # type: ignore
+    has_label = isinstance(metric, dict) and ("label" in metric.keys())
+    return metric["label"] if is_adhoc_metric(metric) or has_label else metric  # type: ignore
 
 
 def get_metric_names(metrics: Sequence[Metric]) -> List[str]:

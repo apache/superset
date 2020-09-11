@@ -358,29 +358,13 @@ class Header extends React.PureComponent {
 
     return (
       <StyledDashboardHeader className="dashboard-header">
-        <div className="dashboard-component-header header-large">
+        <div className="dashboard-component-header header-small">
           <EditableTitle
             title={dashboardTitle}
             canEdit={userCanEdit && editMode}
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
           />
-          <PublishedStatus
-            dashboardId={dashboardInfo.id}
-            isPublished={isPublished}
-            savePublished={this.props.savePublished}
-            canEdit={userCanEdit}
-            canSave={userCanSaveAs}
-          />
-          {dashboardInfo.userId && (
-            <FaveStar
-              itemId={dashboardInfo.id}
-              fetchFaveStar={this.props.fetchFaveStar}
-              saveFaveStar={this.props.saveFaveStar}
-              isStarred={this.props.isStarred}
-              showTooltip
-            />
-          )}
         </div>
 
         <div className="button-container">

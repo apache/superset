@@ -65,11 +65,6 @@
   </head>
 
   <body {% if standalone_mode %}class="standalone"{% endif %}>
-    {% block navbar %}
-      {% if not standalone_mode %}
-        {% include 'appbuilder/navbar.html' %}
-      {% endif %}
-    {% endblock %}
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">

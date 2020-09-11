@@ -20,7 +20,8 @@ import os
 from typing import Any, Callable, Dict
 
 import wtforms_json
-from flask import Flask, redirect
+from flask import Flask, redirect, request
+from flask_login import login_user
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
@@ -96,6 +97,7 @@ class SupersetAppInitializer:
         """
         Called after any other init tasks
         """
+
 
     def configure_celery(self) -> None:
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
@@ -495,6 +497,7 @@ class SupersetAppInitializer:
         self.configure_middlewares()
         self.configure_cache()
         self.configure_jinja_context()
+        self.setup_embedded_login()
 
         with self.flask_app.app_context():  # type: ignore
             self.init_app_in_ctx()
@@ -617,6 +620,26 @@ class SupersetAppInitializer:
             pessimistic_connection_handling(db.engine)
 
         migrate.init_app(self.flask_app, db=db, directory=APP_DIR + "/migrations")
+
+    def setup_embedded_login(self) -> None:
+        @csrf.exempt
+        @self.flask_app.route('/embedded/login', methods=['GET','POST'])
+        def login():
+            user_key = request.form.get('token') or request.args.get('token')
+            print(user_key)
+
+            if user_key:
+
+                # get the user_id by jwt -> email -> id
+                User = appbuilder.security_manager_class.user_model
+                user = db.session.query(User).filter_by(id=user_key).first()
+
+                if user:
+                    login_user(user)
+                    next_url = request.args.get('next')
+                    return redirect(next_url)
+
+            return ''
 
     def configure_wtf(self) -> None:
         if self.config["WTF_CSRF_ENABLED"]:
