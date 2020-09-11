@@ -108,7 +108,8 @@ export default class ModalTrigger extends React.Component {
           {this.renderModal()}
         </>
       );
-    } else if (this.props.isMenuItem) {
+    }
+    if (this.props.isMenuItem) {
       return (
         <>
           <MenuItem onClick={this.open}>{this.props.triggerNode}</MenuItem>

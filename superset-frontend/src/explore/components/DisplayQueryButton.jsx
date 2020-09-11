@@ -133,9 +133,11 @@ export class DisplayQueryButton extends React.PureComponent {
   renderQueryModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
-    } else if (this.state.error) {
+    }
+    if (this.state.error) {
       return <pre>{this.state.error}</pre>;
-    } else if (this.state.query) {
+    }
+    if (this.state.query) {
       return (
         <div>
           <CopyToClipboard
@@ -158,9 +160,11 @@ export class DisplayQueryButton extends React.PureComponent {
   renderResultsModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
-    } else if (this.state.error) {
+    }
+    if (this.state.error) {
       return <pre>{this.state.error}</pre>;
-    } else if (this.state.data) {
+    }
+    if (this.state.data) {
       if (this.state.data.length === 0) {
         return 'No data';
       }
@@ -212,9 +216,11 @@ export class DisplayQueryButton extends React.PureComponent {
   renderSamplesModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
-    } else if (this.state.error) {
+    }
+    if (this.state.error) {
       return <pre>{this.state.error}</pre>;
-    } else if (this.state.data) {
+    }
+    if (this.state.data) {
       return this.renderDataTable(this.state.data);
     }
     return null;

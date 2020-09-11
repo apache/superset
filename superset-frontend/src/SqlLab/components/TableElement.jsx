@@ -238,7 +238,8 @@ class TableElement extends React.PureComponent {
           const colB = b.name.toUpperCase();
           if (colA < colB) {
             return -1;
-          } else if (colA > colB) {
+          }
+          if (colA > colB) {
             return 1;
           }
           return 0;

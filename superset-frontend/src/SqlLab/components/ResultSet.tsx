@@ -216,7 +216,8 @@ export default class ResultSet extends React.PureComponent<
 
     if (query.state === 'stopped') {
       return <Alert bsStyle="warning">Query was stopped</Alert>;
-    } else if (query.state === 'failed') {
+    }
+    if (query.state === 'failed') {
       return (
         <div className="result-set-error-message">
           <ErrorMessageWithStackTrace
@@ -227,7 +228,8 @@ export default class ResultSet extends React.PureComponent<
           />
         </div>
       );
-    } else if (query.state === 'success' && query.ctas) {
+    }
+    if (query.state === 'success' && query.ctas) {
       const { tempSchema, tempTable } = query;
       let object = 'Table';
       if (query.ctas_method === CtasEnum.VIEW) {
@@ -262,7 +264,8 @@ export default class ResultSet extends React.PureComponent<
           </Alert>
         </div>
       );
-    } else if (query.state === 'success' && query.results) {
+    }
+    if (query.state === 'success' && query.results) {
       const { results } = query;
       let data;
       if (this.props.cache && query.cached) {
@@ -287,7 +290,8 @@ export default class ResultSet extends React.PureComponent<
             />
           </>
         );
-      } else if (data && data.length === 0) {
+      }
+      if (data && data.length === 0) {
         return (
           <Alert bsStyle="warning">{t('The query returned no data')}</Alert>
         );
@@ -310,7 +314,8 @@ export default class ResultSet extends React.PureComponent<
             {t('Fetch data preview')}
           </Button>
         );
-      } else if (query.resultsKey) {
+      }
+      if (query.resultsKey) {
         return (
           <Button
             buttonSize="sm"

@@ -199,7 +199,8 @@ export function Menu({
                       className="settings-divider"
                     />
                   );
-                } else if (section.isHeader) {
+                }
+                if (section.isHeader) {
                   return (
                     <MenuItem key={`${section.label}`} disabled>
                       {section.label}

@@ -90,7 +90,6 @@ module.exports = {
         'new-cap': 0,
         'no-bitwise': 0,
         'no-continue': 0,
-        'no-else-return': 0, // disabled temporarily
         'no-mixed-operators': 0,
         'no-multi-assign': 0,
         'no-multi-spaces': 0,
@@ -208,8 +207,7 @@ module.exports = {
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
     'lines-between-class-members': 0, // disabled temporarily
     'new-cap': 0,
-    'no-restricted-globals': 0, // disabled temporarily
-    'no-else-return': 0, // disabled temporarily
+    'no-restricted-globals': 0,
     'no-bitwise': 0,
     'no-continue': 0,
     'no-mixed-operators': 0,
