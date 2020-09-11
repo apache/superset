@@ -20,32 +20,25 @@ import readResponseBlob from '../../utils/readResponseBlob';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard save action', () => {
-  let dashboardId;
-
   beforeEach(() => {
     cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-
-    cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
-      dashboardId = dashboard.id;
-      cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
-    });
-
-    cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
-    cy.get('[data-test="save-as-menu-item"]').trigger('click', { force: true });
-    cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
-      force: true,
-    });
   });
 
   it('should save as new dashboard', () => {
-    cy.wait('@copyRequest').then(xhr => {
-      expect(xhr.status).to.eq(200);
-      readResponseBlob(xhr.response.body).then(json => {
-        expect(json.id).to.be.gt(dashboardId);
+    cy.get('#app').then(data => {
+      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
+      const dashboard = bootstrapData.dashboard_data;
+      const dashboardId = dashboard.id;
+      cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
+
+      cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
+      cy.get('[data-test="save-as-menu-item"]').trigger('click', {
+        force: true,
+      });
+      cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
+        force: true,
       });
     });
   });
@@ -79,5 +72,53 @@ describe('Dashboard save action', () => {
     cy.get('[data-test="grid-container"]')
       .find('.box_plot', { timeout: 20000 })
       .should('not.be.visible');
+  });
+
+  it('should save after edit', () => {
+    cy.get('.dashboard-grid', { timeout: 50000 }) // wait for 50 secs to load dashboard
+      .then(() => {
+        // open dashboard properties edit modal
+        cy.get('.dashboard-header [data-test=pencil]').click();
+        cy.get('#save-dash-split-button').trigger('click', { force: true });
+        cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
+
+        // open color scheme dropdown
+        cy.get('.modal-body')
+          .contains('Color Scheme')
+          .parents('.ControlHeader')
+          .next('.Select')
+          .click()
+          .then($colorSelect => {
+            // select a new color scheme
+            cy.wrap($colorSelect)
+              .find('.Select__option')
+              .first()
+              .next()
+              .click();
+          });
+
+        // remove json metadata
+        cy.get('.modal-body')
+          .contains('Advanced')
+          .click()
+          .then(() => {
+            cy.get('#json_metadata').type('{selectall}{backspace}');
+          });
+
+        // save edit changes
+        cy.get('.modal-footer')
+          .contains('Save')
+          .click()
+          .then(() => {
+            // assert that modal edit window has closed
+            cy.get('.modal-body').should('not.exist');
+
+            // save dashboard changes
+            cy.get('.dashboard-header').contains('Save').click();
+
+            // assert success flash
+            cy.contains('saved successfully').should('be.visible');
+          });
+      });
   });
 });

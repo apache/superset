@@ -42,7 +42,7 @@ const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   show: PropTypes.bool,
   onHide: PropTypes.func,
-  colorScheme: PropTypes.object,
+  colorScheme: PropTypes.string,
   setColorSchemeAndUnsavedChanges: PropTypes.func,
   onSubmit: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
