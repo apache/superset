@@ -172,7 +172,11 @@ QUERY_SEARCH_LIMIT = 1000
 WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
+WTF_CSRF_EXEMPT_LIST = [
+    "superset.views.core.log",
+    "superset.charts.api.data",
+    "superset.views.core.stop_dashboard_queries",
+]
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
@@ -310,6 +314,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "SIP_34_DATABASE_UI": False,
+    # stop pending queries when user close/reload dashboard in browser
+    "STOP_DASHBOARD_PENDING_QUERIES": False,
 }
 
 # This is merely a default.
@@ -628,11 +634,11 @@ UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[
-    ["Database", "models.User"], List[str]
-] = lambda database, user: [
-    UPLOADED_CSV_HIVE_NAMESPACE
-] if UPLOADED_CSV_HIVE_NAMESPACE else []
+ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[["Database", "models.User"], List[str]] = (
+    lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
+    if UPLOADED_CSV_HIVE_NAMESPACE
+    else []
+)
 
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
