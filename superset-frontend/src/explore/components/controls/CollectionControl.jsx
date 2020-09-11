@@ -29,7 +29,7 @@ import {
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import ControlHeader from '../ControlHeader';
-import controlMap from './';
+import controlMap from '.';
 import './CollectionControl.less';
 
 const propTypes = {

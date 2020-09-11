@@ -24,7 +24,7 @@ import ChartImg from 'images/chart-card-fallback.png';
 import { Dropdown, Menu } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
-import ListViewCard from './';
+import ListViewCard from '.';
 
 export default {
   title: 'ListViewCard',
