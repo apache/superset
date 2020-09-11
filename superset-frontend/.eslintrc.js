@@ -131,7 +131,6 @@ module.exports = {
         'react/no-string-refs': 0,
         'react/no-unescaped-entities': 0,
         'react/no-unused-prop-types': 0,
-        'react/no-unused-state': 0, // disabled temporarily
         'react/prop-types': 0,
         'react/require-default-props': 0,
         'react/sort-comp': 0, // disabled temporarily
@@ -254,7 +253,6 @@ module.exports = {
     'react/no-string-refs': 0,
     'react/no-unescaped-entities': 0,
     'react/no-unused-prop-types': 0,
-    'react/no-unused-state': 0, // disabled temporarily
     'react/prop-types': 0,
     'react/require-default-props': 0,
     'react/sort-comp': 0, // disabled temporarily
