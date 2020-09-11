@@ -32,10 +32,12 @@ import { t } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import Label from 'src/components/Label';
+import TooltipWrapper from 'src/components/TooltipWrapper';
+
+import DatasourceModal from 'src/datasource/DatasourceModal';
+import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
+
 import ControlHeader from '../ControlHeader';
-import DatasourceModal from '../../../datasource/DatasourceModal';
-import ChangeDatasourceModal from '../../../datasource/ChangeDatasourceModal';
-import TooltipWrapper from '../../../components/TooltipWrapper';
 import './DatasourceControl.less';
 
 const propTypes = {

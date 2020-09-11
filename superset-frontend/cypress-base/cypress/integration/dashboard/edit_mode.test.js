@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import { WORLD_HEALTH_DASHBOARD, drag } from './dashboard.helper';
 
 describe('Dashboard edit mode', () => {
   beforeEach(() => {
@@ -45,19 +45,9 @@ describe('Dashboard edit mode', () => {
       .find('.chart-card-container')
       .contains('Box plot');
 
-    // drag-n-drop
-    const dataTransfer = { data: {} };
-    cy.get('.dragdroppable')
-      .contains('Box plot')
-      .trigger('mousedown', { which: 1 })
-      .trigger('dragstart', { dataTransfer })
-      .trigger('drag', {});
-    cy.get('.grid-content div.grid-row.background--transparent')
-      .last()
-      .trigger('dragover', { dataTransfer })
-      .trigger('drop', { dataTransfer })
-      .trigger('dragend', { dataTransfer })
-      .trigger('mouseup', { which: 1 });
+    drag('.chart-card', 'Box plot').to(
+      '.grid-row.background--transparent:last',
+    );
 
     // add back to dashboard
     cy.get('.grid-container .box_plot').should('be.exist');

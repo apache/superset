@@ -23,10 +23,10 @@ import Button from 'src/components/Button';
 import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
+import PopoverSection from 'src/components/PopoverSection';
+import Checkbox from 'src/components/Checkbox';
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
-import PopoverSection from '../../../components/PopoverSection';
-import Checkbox from '../../../components/Checkbox';
 
 const spatialTypes = {
   latlong: 'latlong',

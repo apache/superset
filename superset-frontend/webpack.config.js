@@ -55,9 +55,12 @@ const output = {
 if (isDevMode) {
   output.filename = '[name].[hash:8].entry.js';
   output.chunkFilename = '[name].[hash:8].chunk.js';
-} else {
+} else if (nameChunks) {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
+} else {
+  output.filename = '[chunkhash].entry.js';
+  output.chunkFilename = '[chunkhash].chunk.js';
 }
 
 const plugins = [
@@ -199,6 +202,7 @@ const config = {
     sideEffects: true,
     splitChunks: {
       chunks: 'all',
+      minSize: 20000,
       name: nameChunks,
       automaticNameDelimiter: '-',
       minChunks: 2,
@@ -214,6 +218,8 @@ const config = {
               'react',
               'react-dom',
               'prop-types',
+              'react-prop-types',
+              'prop-types-extra',
               'redux',
               'react-redux',
               'react-hot-loader',

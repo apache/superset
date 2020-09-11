@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
@@ -25,19 +26,15 @@ import ColorPickerControl from './ColorPickerControl';
 import ColorSchemeControl from './ColorSchemeControl';
 import DatasourceControl from './DatasourceControl';
 import DateFilterControl from './DateFilterControl';
-import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';
 import SelectAsyncControl from './SelectAsyncControl';
 import SelectControl from './SelectControl';
 import SliderControl from './SliderControl';
 import SpatialControl from './SpatialControl';
-import TextAreaControl from './TextAreaControl';
 import TextControl from './TextControl';
 import TimeSeriesColumnControl from './TimeSeriesColumnControl';
 import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
-import MetricsControl from './MetricsControl';
-import AdhocFilterControl from './AdhocFilterControl';
 import FilterBoxItemControl from './FilterBoxItemControl';
 import withVerification from './withVerification';
 
@@ -51,34 +48,36 @@ const controlMap = {
   ColorSchemeControl,
   DatasourceControl,
   DateFilterControl,
-  FixedOrMetricControl,
+  FixedOrMetricControl: AsyncEsmComponent(() =>
+    import('./FixedOrMetricControl'),
+  ),
   HiddenControl,
   SelectAsyncControl,
   SelectControl,
   SliderControl,
   SpatialControl,
-  TextAreaControl,
+  TextAreaControl: AsyncEsmComponent(() => import('./TextAreaControl')),
   TextControl,
   TimeSeriesColumnControl,
   ViewportControl,
   VizTypeControl,
-  MetricsControl,
-  AdhocFilterControl,
+  MetricsControl: AsyncEsmComponent(() => import('./MetricsControl')),
+  AdhocFilterControl: AsyncEsmComponent(() => import('./AdhocFilterControl')),
   FilterBoxItemControl,
-  MetricsControlVerifiedOptions: withVerification(
-    MetricsControl,
-    'metric_name',
-    'savedMetrics',
-  ),
   SelectControlVerifiedOptions: withVerification(
     SelectControl,
     'column_name',
     'options',
   ),
-  AdhocFilterControlVerifiedOptions: withVerification(
-    AdhocFilterControl,
-    'column_name',
-    'columns',
+  MetricsControlVerifiedOptions: AsyncEsmComponent(() =>
+    import('./MetricsControl').then(module => {
+      return withVerification(module.default, 'metric_name', 'savedMetrics');
+    }),
+  ),
+  AdhocFilterControlVerifiedOptions: AsyncEsmComponent(() =>
+    import('./AdhocFilterControl').then(module => {
+      return withVerification(module.default, 'column_name', 'columns');
+    }),
   ),
 };
 export default controlMap;

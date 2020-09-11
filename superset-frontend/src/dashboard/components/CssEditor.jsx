@@ -19,12 +19,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'src/components/Select';
-import AceEditor from 'react-ace';
-import 'brace/mode/css';
-import 'brace/theme/github';
 import { t } from '@superset-ui/core';
+import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import ModalTrigger from 'src/components/ModalTrigger';
 
-import ModalTrigger from '../../components/ModalTrigger';
+const AceEditor = AsyncEsmComponent(async () => {
+  const ace = await import('react-ace');
+  await Promise.all([import('brace/mode/css'), import('brace/theme/github')]);
+  return ace.default;
+});
 
 const propTypes = {
   initialCss: PropTypes.string,
@@ -90,7 +93,7 @@ class CssEditor extends React.PureComponent {
                 <AceEditor
                   mode="css"
                   theme="github"
-                  minLines={8}
+                  minLines={12}
                   maxLines={30}
                   onChange={this.changeCss}
                   height="200px"

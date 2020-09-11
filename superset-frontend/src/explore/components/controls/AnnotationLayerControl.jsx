@@ -32,7 +32,7 @@ import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/chart/chartAction';
 
 const AnnotationLayer = AsyncEsmComponent(
-  () => import('./AnnotationLayer').then(module => module.default),
+  () => import('./AnnotationLayer'),
   // size of overlay inner content
   () => <div style={{ width: 450, height: 368, textAlign: 'center' }} />,
 );

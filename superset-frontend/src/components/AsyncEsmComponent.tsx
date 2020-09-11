@@ -18,51 +18,68 @@
  */
 import React, { useEffect, useState } from 'react';
 
+type PlaceholderProps = {
+  width?: string | number;
+  height?: string | number;
+} & {
+  [key: string]: any;
+};
+
+function DefaultPlaceholder({ width, height }: PlaceholderProps) {
+  // `|| null` is for in case of width=0 or height=0.
+  return (width && height && <div style={{ width, height }} />) || null;
+}
+
 /**
- * Create an asynchronously imported component, will re-render once import is
- * complete.
+ * Asynchronously import an ES module as a React component, render a placeholder
+ * first (if provided) and re-render once import is complete.
  */
-export default function AsyncEsmComponent<P = {}>(
+export default function AsyncEsmComponent<
+  P = PlaceholderProps,
+  M = React.ComponentType<P> | { default: React.ComponentType<P> }
+>(
   /**
    * A promise generator that returns the React component to render.
    */
-  loadComponent:
-    | Promise<React.ComponentType<P>>
-    | (() => Promise<React.ComponentType<P>>),
+  loadComponent: Promise<M> | (() => Promise<M>),
   /**
    * Placeholder while still importing.
    */
-  placeholder?: React.ComponentType<P>,
+  placeholder: React.ComponentType<P> | null = DefaultPlaceholder,
 ) {
   let component: React.ComponentType<P>;
-  let promise: Promise<typeof component>;
+  let promise: Promise<M> | undefined;
 
-  // load component on initialization
-  if (loadComponent instanceof Promise) {
-    promise = loadComponent;
-    promise.then(loadedComponent => {
-      component = loadedComponent;
+  /**
+   * Safely wait for promise, make sure the loader function only execute once.
+   */
+  function waitForPromise() {
+    if (!promise) {
+      // load component on initialization
+      promise =
+        loadComponent instanceof Promise ? loadComponent : loadComponent();
+    }
+    promise.then(result => {
+      component = ((result as { default?: React.ComponentType<P> }).default ||
+        result) as React.ComponentType<P>;
     });
+    return promise;
   }
 
-  return function AsyncComponent(props: P) {
+  function AsyncComponent(props: P) {
     const [loaded, setLoaded] = useState(component !== undefined);
     useEffect(() => {
       if (!loaded) {
-        if (!promise && typeof loadComponent === 'function') {
-          promise = loadComponent();
-          // save to cache cache
-          promise.then(loadedComponent => {
-            component = loadedComponent;
-          });
-        }
         // update state to trigger a re-render
-        promise.then(() => {
+        waitForPromise().then(() => {
           setLoaded(true);
         });
       }
     });
     const Component = component || placeholder;
     return Component ? <Component {...props} /> : null;
-  };
+  }
+  AsyncComponent.load = waitForPromise;
+
+  return AsyncComponent;
 }
