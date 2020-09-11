@@ -27,7 +27,7 @@ import { ReactComponent as CheckIcon } from 'images/icons/check.svg';
 import { ReactComponent as CircleCheckIcon } from 'images/icons/circle_check.svg';
 import { ReactComponent as CircleCheckSolidIcon } from 'images/icons/circle_check_solid.svg';
 import { ReactComponent as CloseIcon } from 'images/icons/close.svg';
-import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
+import { ReactComponent as NavExploreIcon } from 'images/icons/nav_explore.svg';
 import { ReactComponent as DatabaseIcon } from 'images/icons/database.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
@@ -57,7 +57,7 @@ type IconName =
   | 'circle-check-solid'
   | 'circle-check'
   | 'close'
-  | 'compass'
+  | 'nav-explore'
   | 'database'
   | 'dataset-physical'
   | 'dataset-virtual'
@@ -99,7 +99,7 @@ export const iconsRegistry: Record<
   certified: CertifiedIcon,
   check: CheckIcon,
   close: CloseIcon,
-  compass: CompassIcon,
+  'nav-explore': NavExploreIcon,
   'error-solid': ErrorSolidIcon,
   more: MoreIcon,
   pencil: PencilIcon,
