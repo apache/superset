@@ -27,10 +27,15 @@ import {
 import { connect } from 'react-redux';
 import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { getChartKey } from '../../exploreUtils';
-import { runAnnotationQuery } from '../../../chart/chartAction';
+import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { getChartKey } from 'src/explore/exploreUtils';
+import { runAnnotationQuery } from 'src/chart/chartAction';
 
-import AnnotationLayer from './AnnotationLayer';
+const AnnotationLayer = AsyncEsmComponent(
+  () => import('./AnnotationLayer').then(module => module.default),
+  // size of overlay inner content
+  () => <div style={{ width: 450, height: 368, textAlign: 'center' }} />,
+);
 
 const propTypes = {
   colorScheme: PropTypes.string.isRequired,
@@ -111,6 +116,7 @@ class AnnotationLayerControl extends React.PureComponent {
       >
         <AnnotationLayer
           {...annotation}
+          parent={this.refs[parent]}
           error={error}
           colorScheme={this.props.colorScheme}
           vizType={this.props.vizType}
