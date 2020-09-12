@@ -16,8 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import shortid from 'shortid';
 import readResponseBlob from '../../utils/readResponseBlob';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+
+function openDashboardEditProperties() {
+  cy.get('.dashboard-header [data-test=pencil]').click();
+  cy.get('#save-dash-split-button').trigger('click', { force: true });
+  cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
+}
 
 describe('Dashboard save action', () => {
   beforeEach(() => {
@@ -77,10 +85,9 @@ describe('Dashboard save action', () => {
   it('should save after edit', () => {
     cy.get('.dashboard-grid', { timeout: 50000 }) // wait for 50 secs to load dashboard
       .then(() => {
-        // open dashboard properties edit modal
-        cy.get('.dashboard-header [data-test=pencil]').click();
-        cy.get('#save-dash-split-button').trigger('click', { force: true });
-        cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
+        const dashboardTitle = `Test dashboard [${shortid.generate()}]`;
+
+        openDashboardEditProperties();
 
         // open color scheme dropdown
         cy.get('.modal-body')
@@ -105,6 +112,12 @@ describe('Dashboard save action', () => {
             cy.get('#json_metadata').type('{selectall}{backspace}');
           });
 
+        // update title
+        cy.get('.modal-body')
+          .contains('Title')
+          .siblings('input')
+          .type(`{selectall}{backspace}${dashboardTitle}`);
+
         // save edit changes
         cy.get('.modal-footer')
           .contains('Save')
@@ -118,6 +131,12 @@ describe('Dashboard save action', () => {
 
             // assert success flash
             cy.contains('saved successfully').should('be.visible');
+
+            // assert title has been updated
+            cy.get('.editable-title input').should(
+              'have.value',
+              dashboardTitle,
+            );
           });
       });
   });
