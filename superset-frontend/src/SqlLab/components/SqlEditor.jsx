@@ -534,6 +534,7 @@ class SqlEditor extends React.PureComponent {
         <div className="rightItems">
           <Button
             className="autocomplete"
+            buttonSize="small"
             onClick={this.handleToggleAutocompleteEnabled}
           >
             <Checkbox checked={this.state.autocompleteEnabled} />{' '}
