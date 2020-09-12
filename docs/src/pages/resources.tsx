@@ -95,7 +95,7 @@ const youtubeRefs = [
   "https://www.youtube.com/embed/24XDOkGJrEY",
   "https://www.youtube.com/embed/AqousXQ7YHw",
   "https://www.youtube.com/embed/JGeIHrQYhIs",
-  "https://www.youtube.com/embed/z350Gbi463I" 
+  "https://www.youtube.com/embed/z350Gbi463I"
 ];
 
 const youtubeIds = [
@@ -204,7 +204,6 @@ const Resources = () => {
               </Col>
             </Row>
           </section>
-
           <section className="videos">
             <Modal
               title={cardTitle}
