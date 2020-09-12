@@ -19,7 +19,7 @@
 
 $brandColor: #20A7C9;
 $bigPad: 60px;
- 
+
 html {
   font-family: sans-serif;
   -ms-text-size-adjust: 100%;
@@ -49,8 +49,8 @@ body {
       padding: 40px;
       background-image: linear-gradient(120deg, lighten($brandColor, 45), lighten($brandColor, 15));
       border-radius: 10px;
-    }  
-  }   
+    }
+  }
   h1 {
     font-size: 48px;
   }
@@ -63,7 +63,7 @@ body {
   .title{
     margin-top: $bigPad;
   }
-  
+
   .ant-card-body{
     display: flex;
     align-items: stretch;
@@ -116,4 +116,8 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 
 .centered {
   text-align: center;
+}
+
+button {
+  background: $brandColor;
 }

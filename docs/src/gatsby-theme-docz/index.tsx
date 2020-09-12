@@ -38,7 +38,8 @@ const docLayout = css`
     position: fixed;
     top: 64px;
     right: 0;
-    width: 200px;
+    width: 250px;
+    padding: 16px;
     height: 605px;
     overflow: auto;
     ul {

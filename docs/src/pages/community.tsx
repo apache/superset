@@ -71,11 +71,17 @@ const communityContainer = css`
   margin: 0 auto;
   overflow: auto;
   .communityCard {
-    margin: 10px 20px;
+    font-size: 12px;
+    overflow: hidden;
+    margin: 10px 10px;
     .ant-card-meta-title {
       text-overflow: clip;
       white-space: normal;
-      font-size: 13px;
+    }
+    .ant-card-body {
+      padding: 8px;
+      display:inline-block;
+      white-space: nowrap;
     }
   }
 `;
@@ -92,12 +98,12 @@ const Community = () => {
         <Card
           className="communityCard"
           hoverable
-          style={{ width: '140px' }}
+          style={{ width: '150px' }}
           size="small"
           cover={<img alt="example" src={e.image} />}
         >
-          {e.name}{' '}
-          <GithubOutlined />
+          <GithubOutlined style={{ paddingRight: 3, paddingTop: 3}} />
+          {e.name}
         </Card>
       </a>
     );
@@ -112,7 +118,7 @@ const Community = () => {
         </section>
         <section className="joinCommunity">
           <div css={getInvolvedContainer}>
-            <h2>How to get involved:</h2>
+            <h2>Get involved!</h2>
             <List
               size="small"
               bordered
@@ -126,7 +132,7 @@ const Community = () => {
           </div>
         </section>
         <section className="ppmc">
-          <h2>Apache Committers:</h2>
+          <h2>Apache Committers</h2>
           <div css={communityContainer}>{pmcList}</div>
         </section>
       </div>

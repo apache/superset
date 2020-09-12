@@ -77,7 +77,7 @@ const centerLayoutStyle = css`
   padding: 25px;
   min-height: 60vw;
   overflow: auto;
-  padding-right: 200px;
+  padding-right: 250px;
   .menu {
     display: none;
     ${[mq[2]]} {
@@ -186,7 +186,7 @@ const AppLayout = ({ children }: Props) => {
         </Menu>
         <div css={getStartedButtonStyle}>
           <Link to="/docs/intro">
-            <Button type="primary" size="large">
+            <Button type="primary" size="medium">
               Get Started
             </Button>
           </Link>

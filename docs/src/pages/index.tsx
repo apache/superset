@@ -264,7 +264,7 @@ const Theme = () => {
           </div>
           <div>
             <Link to="/docs/intro">
-              <Button type="primary" size="large">
+              <Button type="primary" size="medium">
                 Get Started
               </Button>
             </Link>
