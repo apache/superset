@@ -37,7 +37,7 @@ import { ReactComponent as FavoriteSelectedIcon } from 'images/icons/favorite-se
 import { ReactComponent as FavoriteUnselectedIcon } from 'images/icons/favorite-unselected.svg';
 import { ReactComponent as ListViewIcon } from 'images/icons/list-view.svg';
 import { ReactComponent as MoreIcon } from 'images/icons/more.svg';
-import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
+import { ReactComponent as EditAltIcon } from 'images/icons/edit_alt.svg';
 import { ReactComponent as SearchIcon } from 'images/icons/search.svg';
 import { ReactComponent as ShareIcon } from 'images/icons/share.svg';
 import { ReactComponent as SortAscIcon } from 'images/icons/sort_asc.svg';
@@ -67,7 +67,7 @@ type IconName =
   | 'favorite-unselected'
   | 'list-view'
   | 'more'
-  | 'pencil'
+  | 'edit-alt'
   | 'search'
   | 'share'
   | 'sort-asc'
@@ -102,7 +102,7 @@ export const iconsRegistry: Record<
   'nav-explore': NavExploreIcon,
   'error-solid': ErrorSolidIcon,
   more: MoreIcon,
-  pencil: PencilIcon,
+  "edit-alt": EditAltIcon,
   search: SearchIcon,
   share: ShareIcon,
   sort: SortIcon,

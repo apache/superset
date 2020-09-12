@@ -297,7 +297,7 @@ function ChartList(props: ChartListProps) {
                   className="action-button"
                   onClick={openEditModal}
                 >
-                  <Icon name="pencil" />
+                  <Icon name="edit-alt" />
                 </span>
               )}
             </span>
@@ -423,7 +423,7 @@ function ChartList(props: ChartListProps) {
             tabIndex={0}
             onClick={() => openChartEditModal(chart)}
           >
-            <ListViewCard.MenuIcon name="pencil" /> Edit
+            <ListViewCard.MenuIcon name="edit-alt" /> Edit
           </Menu.Item>
         )}
       </Menu>

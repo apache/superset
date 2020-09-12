@@ -444,7 +444,7 @@ class Header extends React.PureComponent {
               className="action-button"
               onClick={this.toggleEditMode}
             >
-              <Icon name="pencil" />
+              <Icon name="edit-alt" />
             </span>
           )}
 

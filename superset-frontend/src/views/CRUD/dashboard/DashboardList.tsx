@@ -302,7 +302,7 @@ function DashboardList(props: DashboardListProps) {
                   className="action-button"
                   onClick={handleEdit}
                 >
-                  <Icon name="pencil" />
+                  <Icon name="edit-alt" />
                 </span>
               )}
             </span>
@@ -420,7 +420,7 @@ function DashboardList(props: DashboardListProps) {
             tabIndex={0}
             onClick={() => openDashboardEditModal(dashboard)}
           >
-            <ListViewCard.MenuIcon name="pencil" /> Edit
+            <ListViewCard.MenuIcon name="edit-alt" /> Edit
           </Menu.Item>
         )}
       </Menu>

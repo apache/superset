@@ -75,7 +75,7 @@ export const SupersetListViewCard = () => {
                   <ListViewCard.MenuIcon name="trash" /> Delete
                 </Menu.Item>
                 <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
-                  <ListViewCard.MenuIcon name="pencil" /> Edit
+                  <ListViewCard.MenuIcon name="edit-alt" /> Edit
                 </Menu.Item>
               </Menu>
             }
