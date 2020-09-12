@@ -83,12 +83,12 @@ const App = () => (
               </Route>
               <Route path="/tablemodelview/list/">
                 <ErrorBoundary>
-                  <DatasetList user={user} />
+                  <DatasetList user={user} usesRouter />
                 </ErrorBoundary>
               </Route>
               <Route path="/databaseview/list/">
                 <ErrorBoundary>
-                  <DatasourceList user={user} />
+                  <DatasourceList user={user} usesRouter />
                 </ErrorBoundary>
               </Route>
             </Switch>

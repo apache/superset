@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import { Nav, Navbar, MenuItem } from 'react-bootstrap';
 import Button, { OnClickHandler } from 'src/components/Button';
@@ -33,9 +34,18 @@ const StyledHeader = styled.header`
     li {
       a {
         font-size: ${({ theme }) => theme.typography.sizes.s}px;
-        padding: ${({ theme }) => theme.gridUnit * 2}px;
+        padding: ${({ theme }) => theme.gridUnit * 2}px 0;
         margin: ${({ theme }) => theme.gridUnit * 2}px;
         color: ${({ theme }) => theme.colors.secondary.dark1};
+
+        a {
+          margin: 0;
+          padding: ${({ theme }) => theme.gridUnit * 4}px;
+        }
+      }
+
+      &.no-router a {
+        padding: ${({ theme }) => theme.gridUnit * 2}px;
       }
     }
 
@@ -66,6 +76,10 @@ export interface SubMenuProps {
   name: string;
   children?: MenuChild[];
   activeChild?: MenuChild['name'];
+  /* If usesRouter is true, a react-router <Link> component will be used instead of href.
+   *  ONLY set usesRouter to true if SubMenu is wrapped in a react-router <Router>;
+   *  otherwise, a 'You should not use <Link> outside a <Router>' error will be thrown */
+  usesRouter?: boolean;
 }
 
 const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
@@ -77,15 +91,29 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
         </Navbar.Header>
         <Nav>
           {props.children &&
-            props.children.map(child => (
-              <MenuItem
-                active={child.name === props.activeChild}
-                key={`${child.label}`}
-                href={child.url}
-              >
-                {child.label}
-              </MenuItem>
-            ))}
+            props.children.map(child => {
+              if (props.usesRouter) {
+                return (
+                  <MenuItem
+                    active={child.name === props.activeChild}
+                    key={`${child.label}`}
+                  >
+                    <Link to={child.url}>{child.label}</Link>
+                  </MenuItem>
+                );
+              }
+
+              return (
+                <MenuItem
+                  className="no-router"
+                  active={child.name === props.activeChild}
+                  key={`${child.label}`}
+                  href={child.url}
+                >
+                  {child.label}
+                </MenuItem>
+              );
+            })}
         </Nav>
         <Nav className="navbar-right">
           {props.secondaryButton && (
