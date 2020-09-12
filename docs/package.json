@@ -1,0 +1,72 @@
+{
+  "name": "apache-superset-docs",
+  "private": true,
+  "description": "The landing page and doc size for getting started with Apache Superset",
+  "version": "0.1.0",
+  "author": "preset.io",
+  "dependencies": {
+    "@ant-design/icons": "^4.2.2",
+    "@emotion/core": "^10.0.28",
+    "@emotion/styled": "^10.0.27",
+    "@superset-ui/style": "^0.14.9",
+    "antd": "^4.5.2",
+    "docz": "^2.3.1",
+    "emotion": "^10.0.27",
+    "gatsby": "^2.24.53",
+    "gatsby-dynamical-navigation": "^0.4.1",
+    "gatsby-image": "^2.4.14",
+    "gatsby-plugin-antd": "^2.2.0",
+    "gatsby-plugin-emotion": "^4.3.10",
+    "gatsby-plugin-google-fonts": "^1.0.1",
+    "gatsby-plugin-manifest": "^2.4.21",
+    "gatsby-plugin-offline": "^3.2.21",
+    "gatsby-plugin-react-helmet": "^3.3.10",
+    "gatsby-plugin-sass": "^2.3.12",
+    "gatsby-plugin-sharp": "^2.6.24",
+    "gatsby-source-filesystem": "^2.3.23",
+    "gatsby-theme-docz": "^2.3.1",
+    "gatsby-transformer-sharp": "^2.5.12",
+    "node-sass": "^4.14.1",
+    "prop-types": "^15.7.2",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "react-github-btn": "^1.2.0",
+    "react-helmet": "^6.1.0",
+    "theme-ui": "^0.3.1",
+    "three": "^0.68.0"
+  },
+  "devDependencies": {
+    "eslint-config-airbnb": "^18.2.0",
+    "gatsby-plugin-eslint": "^2.0.8",
+    "prettier": "^2.0.5",
+    "typescript": "^3.9.7"
+  },
+  "keywords": [
+    "gatsby"
+  ],
+  "license": "0BSD",
+  "scripts": {
+    "build": "gatsby build",
+    "develop": "gatsby develop",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,mdx}\"",
+    "start": "npm run develop",
+    "serve": "gatsby serve",
+    "clean": "gatsby clean",
+    "lint": "eslint src/ --ext .ts,.js,.tsx,.jsx",
+    "lint-fix": "eslint --fix src/ --ext .ts,.js,.tsx,.jsx",
+    "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gatsbyjs/gatsby-starter-default"
+  },
+  "eslintConfig": {
+    "globals": {
+      "window": true,
+      "console": true
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/gatsbyjs/gatsby/issues"
+  }
+}

@@ -25,3 +25,19 @@ jobs:
       working-directory: ./superset-frontend
       run: |
         bash <(curl -s https://codecov.io/bash) -cF javascript
+
+  docs:
+    name: build
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Install dependencies
+    - name: npm install
+      working-directory: ./superset-frontend
+      run: |
+        npm install
+    - name: gatsby build
+      working-directory: ./superset-frontend
+      run: |
+        npm run build
