@@ -20,7 +20,7 @@ ARG VERSION
 RUN git clone --depth 1 --branch ${VERSION} https://github.com/apache/incubator-superset.git /superset
 WORKDIR /superset
 # install doc dependencies
-RUN pip install -r requirements/documentation.txt
+RUN pip install -r requirements/base.txt
 # build the docs
 RUN python setup.py build_sphinx
 
