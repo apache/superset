@@ -1,0 +1,70 @@
+---
+name: Install Database Drivers
+menu: Connecting to Databases
+route: /docs/databases/installing-database-drivers
+index: 0
+version: 1
+---
+
+## Install Database Drivers
+
+Superset requires a Python database driver to be installed for each additional type of database you
+want to connect to.
+
+Superset interacts with the underlying databases using the provided SQL interface (often times
+through a SQLAlchemy library).
+
+### Supported Databases and Dependecies
+
+Superset does not ship bundled with connectivity to databases, except for Sqlite, which is part of the Python standard library. You’ll need to install the required packages for the database you want to use as your metadata database as well as the packages needed to connect to the databases you want to access through Superset.
+
+A list of some of the recommended packages.
+
+| Database | PyPI package | Connection String  |
+| --- | --- | --- |
+|[Amazon Athena](/docs/databases/athena)|```pip install "PyAthenaJDBC>1.0.9``` , ```pip install "PyAthena>1.2.0``` | ```awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{ ```|
+|[Amazon Redshift](/docs/databases/redshift)|```pip install sqlalchemy-redshift```| ``` redshift+psycopg2://<userName>:<DBPassword>@<AWS End Point>:5439/<Database Name>``` |
+|[Apache Drill](/docs/databases/drill)|```pip install sqlalchemy-drill```| ```drill+sadrill:// For JDBC drill+jdbc://``` |
+|[Apache Druid](/docs/databases/druid)|```pip install pydruid```| ```druid://<User>:<password>@<Host>:<Port-default-9088>/druid/v2/sql``` |
+|[Apache Hive](/docs/databases/hive)|```pip install pyhive```|```hive://hive@{hostname}:{port}/{database}```|
+|[Apache Impala](/docs/databases/impala)|```pip install impala```|```impala://{hostname}:{port}/{database}```|
+|[Apache Kylin](/docs/databases/kylin)|```pip install kylinpy```|```kylin://<username>:<password>@<hostname>:<port>/<project>?<param1>=<value1>&<param2>=<value2>```|
+|[Apache Pinot](/docs/databases/pinot)|```pip install pinotdb```|```pinot+http://CONTROLLER:5436/ query?server=http://CONTROLLER:5983/```|
+|[Apache Spark SQL](/docs/databases/spark)|```pip install pyhive```|```hive://hive@{hostname}:{port}/{database}```
+|[Azure MS SQL](/docs/databases/sqlserver)||```mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema```
+|[Big Query](/docs/databases/bigquery)|```pip install pybigquery```|```bigquery://{project_id}```|
+|[ClickHouse](/docs/databases/clickhouse)|```pip install sqlalchemy-clickhouse```|```clickhouse://{username}:{password}@{hostname}:{port}/{database}```|
+|[CockroachDB](/docs/databases/cockroachdb)|```pip install cockroachdb```|```cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable```|
+|[Dremio](/docs/databases/dremio)|```pip install sqlalchemy_dremio```|```dremio://user:pwd@host:31010/```|
+|[Elasticsearch](/docs/databases/elasticsearch)|```pip install sqlalchemy-exasol```|```elasticsearch+http://{user}:{password}@{host}:9200/```|
+|[Exasol](/docs/databases/exasol)|```pip install sqlalchemy-exasol```|```exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC```|
+|[Google Sheets](/docs/databases/google-sheets)|```pip install gsheetsdb```|```gsheets://```|
+|[IBM Db2](/docs/databases/ibm-db2)|```pip install ibm_db_sa```|```db2+ibm_db://```|
+|[MySQL](/docs/databases/mysql)|```pip install mysqlclient```|```mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>```|
+|[Oracle](/docs/databases/oracle)|```pip install cx_Oracle```|```oracle://```|
+|[PostgreSQL](/docs/databases/postgresql)|```pip install psycopg2```|```postgresql:://<UserName>:<DBPassword>@<Database Host>/<Database Name>```|
+|[Presto](/docs/databases/presto)|```pip install pyhive```|```presto://```|
+|[SAP Hana](/docs/databases/hana)|```pip install hdbcli sqlalchemy-hana or pip install apache-superset[hana]```|```hana://{username}:{password}@{host}:{port}```|
+|[Snowflake](/docs/databases/snowflake)|```pip install snowflake-sqlalchemy```|```ssnowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}```|
+|SQLite||```sqlite://```|
+|[SQL Server](/docs/databases/sqlserver)|```pip install pymssql```|```mssql://```|
+|[Teradata](/docs/databases/teradata)|```pip install sqlalchemy-teradata```|```teradata://{user}:{password}@{host}```|
+|[Vertica](/docs/databases/vertica)|```pip install sqlalchemy-vertica-python```|```vertica+vertica_python://<UserName>:<DBPassword>@<Database Host>/<Database Name>```|
+
+***
+
+Note that many other databases are supported, the main criteria being the existence of a functional SqlAlchemy dialect and Python driver. Googling the keyword sqlalchemy in addition of a keyword that describes the database you want to connect to should get you to the right place.
+
+If your database or data engine isn't on the list but a SQL interface
+exists, please file an issue on the
+[Superset GitHub repo](https://github.com/apache/incubator-superset/issues), so we can work on
+supporting it.
+
+[StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset+superset) and the
+[Superset community Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)
+are great places to get help with connecting to databases in Superset.
+
+In the end, you should be looking for a Python package compatible with your database. One part that
+makes database driver installation tricky is the fact that local binaries are sometimes required in
+order for them to bind properly, which means that various apt packages might need to be installed
+before pip can get things set up.

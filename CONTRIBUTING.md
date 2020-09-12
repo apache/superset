@@ -205,7 +205,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
   - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
   - For TypeScript/JavaScript, include new libraries in `package.json`
 - **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
-- **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR. Doc string are often sufficient, make sure to follow the sphinx compatible standards.
+- **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR.
 - **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists. After the CI fix has been deployed to `master`, please rebase your PR.
 - **Code coverage:** Please ensure that code coverage does not decrease.
 - Remove `[WIP]` when ready for review. Please note that it may be merged soon after approved so please make sure the PR is ready to merge and do not expect more time for post-approval edits.
@@ -299,68 +299,10 @@ cd incubator-superset
 
 ### Documentation
 
-The latest documentation and tutorial are available at https://superset.incubator.apache.org/.
+The latest documentation and tutorial are available at https://superset.apache.org/.
 
-Contributing to the official documentation is relatively easy, once you've setup
-your environment and done an edit end-to-end. The docs can be found in the
-`docs/` subdirectory of the repository, and are written in the
-[reStructuredText format](https://en.wikipedia.org/wiki/ReStructuredText) (.rst).
-If you've written Markdown before, you'll find the reStructuredText format familiar.
-
-Superset uses [Sphinx](http://www.sphinx-doc.org/en/1.5.1/) to convert the rst files
-in `docs/` to the final HTML output users see.
-
-Finally, to make changes to the rst files and build the docs using Sphinx,
-you'll need to install a handful of dependencies from the repo you cloned:
-
-```bash
-pip install -r requirements/documentation.txt
-```
-
-To get the feel for how to edit and build the docs, let's edit a file, build
-the docs and see our changes in action. First, you'll want to
-[create a new branch](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging)
-to work on your changes:
-
-```bash
-git checkout -b changes-to-docs
-```
-
-Now, go ahead and edit one of the files under `docs/`, say `docs/tutorial.rst` - change
-it however you want. Check out the
-[ReStructuredText Primer](http://docutils.sourceforge.net/docs/user/rst/quickstart.html)
-for a reference on the formatting of the rst files.
-
-Once you've made your changes, run this command to convert the docs into HTML:
-
-```bash
-make html
-```
-
-You'll see a lot of output as Sphinx handles the conversion. After it's done, the
-HTML Sphinx generated should be in `docs/_build/html`. Navigate there
-and start a simple web server so we can check out the docs in a browser:
-
-```bash
-cd docs/_build/html
-python -m http.server # Python2 users should use SimpleHTTPServer
-
-```
-
-This will start a small Python web server listening on port 8000. Point your
-browser to http://localhost:8000, find the file
-you edited earlier, and check out your changes!
-
-If you've made a change you'd like to contribute to the actual docs, just commit
-your code, push your new branch to Github:
-
-```bash
-git add docs/tutorial.rst
-git commit -m 'Awesome new change to tutorial'
-git push origin changes-to-docs
-```
-
-Then, [open a pull request](https://help.github.com/articles/about-pull-requests/).
+The site is written using the Gatsby framework and docz for the
+documentation subsection. Find out more about it in `docs/README.md`
 
 #### Images
 
@@ -376,15 +318,6 @@ are copied from there to the `_static/images` directory, just like they're refer
 in the docs.
 
 For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
-
-#### API documentation
-
-Generate the API documentation with:
-
-```bash
-pip install -r requirements/documentation.txt
-python setup.py build_sphinx
-```
 
 ### Flask server
 
@@ -604,7 +537,7 @@ or similar as the later will cause typing issues. The former is of type `List[Ca
 
 To ensure clarity, consistency, all readability, _all_ new functions should use
 [type hints](https://docs.python.org/3/library/typing.html) and include a
-docstring using Sphinx documentation.
+docstring.
 
 Note per [PEP-484](https://www.python.org/dev/peps/pep-0484/#exceptions) no
 syntax for listing explicitly raised exceptions is proposed and thus the

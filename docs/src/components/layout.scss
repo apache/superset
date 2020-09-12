@@ -1,0 +1,123 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+$brandColor: #20A7C9;
+$bigPad: 60px;
+
+html {
+  font-family: sans-serif;
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  background-color: transparent !important;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: black;
+}
+
+.ant-layout {
+  background-color: #fff;
+}
+
+.contentPage {
+  padding-bottom: $bigPad;
+  section {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: $bigPad 0 0 0;
+    font-size: 17px;
+    &:first-of-type{
+      padding: 40px;
+      background-image: linear-gradient(120deg, lighten($brandColor, 45), lighten($brandColor, 15));
+      border-radius: 10px;
+    }
+  }
+  h1 {
+    font-size: 48px;
+  }
+  h2 {
+    font-size: 32px;
+  }
+  h3 {
+    font-size: 24px;
+  }
+  .title{
+    margin-top: $bigPad;
+  }
+
+  .ant-card-body{
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    .ant-card-grid-hoverable {
+      cursor: pointer;
+    }
+    h4 {
+      margin-bottom: 20px;
+    }
+  }
+}
+
+
+a {
+  color: #1985a0;
+}
+th, td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected {
+  background-color: $brandColor;
+}
+
+.ant-menu-item-selected a {
+  color: white;
+}
+.ant-menu-submenu-selected {
+  color: $brandColor;
+}
+
+.ant-menu-horizontal {
+  & > .ant-menu-item:hover, & > .ant-menu-item-active {
+    color: $brandColor !important;
+    border-bottom: 2px solid $brandColor;
+  }
+  & >.ant-menu-item-selected {
+    color: $brandColor;
+    border-bottom: 2px solid $brandColor;
+    a {
+      color: $brandColor;
+    }
+  }
+}
+
+tr:nth-child(even) {background-color: #f2f2f2;}
+
+.centered {
+  text-align: center;
+}
+
+button {
+  background: $brandColor;
+}

@@ -1,0 +1,21 @@
+---
+name: Dremio
+menu: Connecting to Databases
+route: /docs/databases/dremio
+index: 14
+version: 1
+---
+
+## Dremio
+
+The recommended connector library for Dremio is
+[sqlalchemy_dremio](https://github.com/sqggles/sqlalchemy_dremio).
+
+The expected connection string is formatted as follows:
+
+```
+dremio://{username}:{password}@{host}:{port}/dremio
+```
+
+This [blog post by Dremio](https://www.dremio.com/tutorials/dremio-apache-superset/) has some
+additional helpful instructions on connecting Superset to Dremio.

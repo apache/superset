@@ -46,3 +46,4 @@ requirements/*
 vendor/*
 # github configuration
 .github/*
+.*mdx
