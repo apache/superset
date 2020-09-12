@@ -157,7 +157,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     SupersetClient.post({
       endpoint: 'api/v1/database/test_connection',
-      postPayload: JSON.stringify(connection),
+      body: JSON.stringify(connection),
+      headers: { 'Content-Type': 'application/json' },
     })
       .then(() => {
         addSuccessToast(t('Connection looks good!'));
