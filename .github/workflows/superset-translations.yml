@@ -35,7 +35,7 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
-            pip install -r requirements/documentation.txt
+            pip install -r requirements/base.txt
       - name: Test babel extraction
         run: |
           flask fab babel-extract --target superset/translations \
