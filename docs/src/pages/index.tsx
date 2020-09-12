@@ -20,7 +20,9 @@ import React, { useRef, useState } from 'react';
 import { theme, useConfig } from 'docz';
 import { Link } from 'gatsby';
 import { ThemeProvider } from 'theme-ui';
-import { Button, Col, Carousel } from 'antd';
+import {
+  Button, Col, Row, Carousel,
+} from 'antd';
 import { css } from '@emotion/core';
 import { supersetTheme } from '@superset-ui/style';
 import {
@@ -37,6 +39,7 @@ import Image from '../components/image';
 import 'antd/dist/antd.css';
 import SEO from '../components/seo';
 import logo from '../images/superset-logo-horiz-apache.svg';
+import { mq } from '../utils';
 
 const { colors } = supersetTheme;
 
@@ -60,6 +63,19 @@ const titleContainer = css`
   .logo-horiz {
     margin-top: 20px;
     margin-bottom: 20px;
+    width: 600px;
+    ${[mq[3]]} {
+      width: 500px;
+    }
+    ${[mq[2]]} {
+      width: 450px;
+    }
+    ${[mq[1]]} {
+      width: 400px;
+    }
+    ${[mq[0]]} {
+      width: 350px;
+    }
   }
   .incubator {
     margin-top: 40px;
@@ -82,46 +98,30 @@ const secondaryHeading = css`
   text-align: center;
 `;
 
-const featureHeight = '160';
-
 const featureSectionStyle = css`
   background: #fff;
   padding: 5vw 0;
   margin-top: 0px;
   margin-bottom: 30px;
   .featureList {
-    padding: 0px;
+    padding: 40px;
     width: 100%;
     list-style-type: none;
     margin: 0 auto;
     max-width: 1000px;
-    margin-top: 40px;
     .feature {
-      display: flex;
-      margin: 10px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 40px;
       .imagePlaceHolder {
-        display: block;
-        position: relative;
-        min-width: ${featureHeight}px;
-        min-height: ${featureHeight}px;
-        background: white;
-        flex-grow: 1;
         svg {
-          position: absolute;
           width: 60px;
           height: 60px;
-          right: 10px;
-          left: 72px;
-          top: 35px;
         }
+        margin-bottom: 15px;
       }
       .featureText {
-        display: block;
-        padding-top: 30px;
-        flex-grow: 6;
-        font-size: 16px;
         color: ${colors.grayscale.dark2};
-        line-height: 25px;
         strong {
           font-size: 18px;
         }
@@ -129,9 +129,9 @@ const featureSectionStyle = css`
     }
   }
   .heading {
-    font-size: 25px;
-    width: 60%;
+    font-size: 22px;
     margin: 0 auto;
+    text-align: center;
   }
   .anticon {
     color: #ccc;
@@ -140,7 +140,7 @@ const featureSectionStyle = css`
 
 const integrationSection = css`
   background: white;
-  margin-bottom: 150px;
+  margin-bottom: 64px;
   .databaseSub {
     text-align: center;
     display: block;
@@ -174,12 +174,12 @@ const linkCarousel = css`
       flex-direction: row;
       justify-content: center;
       .toggle {
-        margin: 15px;
+        margin: 10px;
         color: #666;
         border: 1px solid #888;
         background-color: #20a7c911;
         border-radius: 3px;
-        padding: 30px;
+        padding: 16px;
         transition: all 0.25s;
         &:hover {
           cursor: pointer;
@@ -194,8 +194,8 @@ const linkCarousel = css`
     }
     .imageContainer {
       img {
-        height: 400px;
         margin: 0 auto;
+        width: 80%;
         box-shadow: 0 0 3px #aaa;
         margin-top: 5px;
         margin-bottom: 5px;
@@ -204,15 +204,25 @@ const linkCarousel = css`
   }
 `;
 
-
-
+const Feature = ({ icon, title, descr }) => (
+  <li className="feature">
+    <div className="imagePlaceHolder">
+      {icon}
+    </div>
+    <div className="featureText">
+      <strong>{title}</strong>
+      <br />
+      {descr}
+    </div>
+  </li>
+);
 const Theme = () => {
   const config = useConfig();
   const slider = useRef(null);
 
   const [slideIndex, setSlideIndex] = useState(0);
 
-  const onChange = index => {
+  const onChange = (index) => {
     setSlideIndex(index);
   };
 
@@ -221,7 +231,7 @@ const Theme = () => {
       <SEO title="Superset" />
       <Layout>
         <div css={titleContainer}>
-          <img width="600" className="logo-horiz" src={logo} alt="logo-horiz" />
+          <img className="logo-horiz" src={logo} alt="logo-horiz" />
           <h2>
             Apache Superset is a modern data
             <br />
@@ -274,69 +284,62 @@ const Theme = () => {
         <div css={featureSectionStyle}>
           <h2 css={secondaryHeading}>Overview</h2>
           <h4 className="heading">
-            {' '}
             Superset is fast, lightweight, intuitive, and loaded with options
             that make it easy for users of all skill sets to explore and
             visualize their data, from simple line charts to highly detailed
-            geospatial charts.{' '}
+            geospatial charts.
           </h4>
           <ul className="featureList ant-row">
-            <Col span={12}>
-              <li className="feature">
-                <span className="imagePlaceHolder">
-                  {' '}
-                  <FireOutlined />{' '}
-                </span>
-                <span className="featureText">
-                  <strong>Powerful and easy to use </strong>
-                  <br />
-                  Quickly and easily integrate and explore your data, using
-                  either our simple no-code viz builder or state of the art SQL
-                  IDE.
-                </span>
-              </li>
+            <Row>
+              <Col sm={24} md={12}>
+                <Feature
+                  icon={<FireOutlined />}
+                  title="Powerful and easy to use"
+                  descr={`
+                    Quickly and easily integrate and explore your data, using
+                    either our simple no-code viz builder or state of the art SQL
+                    IDE.
+                  `}
+                />
+              </Col>
 
-              <li className="feature">
-                <span className="imagePlaceHolder">
-                  {' '}
-                  <DatabaseOutlined />{' '}
-                </span>
-                <span className="featureText">
-                  <strong> Integrates with modern databases</strong>
-                  <br /> Superset can connect to any SQL based datasource
-                  through SQL Alchemy, including modern cloud native databases
-                  and engines at petabyte scale.
-                </span>
-              </li>
-            </Col>
+              <Col sm={24} md={12}>
+                <Feature
+                  icon={<DatabaseOutlined />}
+                  title="Integrates with modern databases"
+                  descr={`
+                    Superset can connect to any SQL based datasource
+                    through SQL Alchemy, including modern cloud native databases
+                    and engines at petabyte scale.
+                  `}
+                />
+              </Col>
 
-            <Col span={12}>
-              <li className="feature">
-                <span className="imagePlaceHolder">
-                  {' '}
-                  <DeploymentUnitOutlined />{' '}
-                </span>
-                <span className="featureText">
-                  <strong> Modern architecture </strong>
-                  <br />
-                  Superset is lightweight and highly scalable, leveraging the
-                  power of your existing data infrastructure without requiring
-                  yet another ingestion layer.
-                </span>
-              </li>
-              <li className="feature">
-                <span className="imagePlaceHolder">
-                  {' '}
-                  <DotChartOutlined />{' '}
-                </span>
-                <span className="featureText">
-                  <strong> Rich visualizations and dashboards </strong> <br />
-                  Superset ships with a wide array of beautiful visualizations.
-                  Our visualization plug-in architecture makes it easy to build
-                  custom visualizations that drop directly into Superset.
-                </span>
-              </li>
-            </Col>
+            </Row>
+            <Row>
+              <Col sm={24} md={12}>
+                <Feature
+                  icon={<DeploymentUnitOutlined />}
+                  title="Modern architecture"
+                  descr={`
+                    Superset is lightweight and highly scalable, leveraging the
+                    power of your existing data infrastructure without requiring
+                    yet another ingestion layer.
+                  `}
+                />
+              </Col>
+              <Col sm={24} md={12}>
+                <Feature
+                  icon={<DotChartOutlined />}
+                  title="Rich visualizations and dashboards"
+                  descr={`
+                    Superset ships with a wide array of beautiful visualizations.
+                    Our visualization plug-in architecture makes it easy to build
+                    custom visualizations that drop directly into Superset.
+                  `}
+                />
+              </Col>
+            </Row>
           </ul>
         </div>
 
@@ -390,7 +393,9 @@ const Theme = () => {
 
           <ul className="databaseList">
             {Databases.map(
-              ({ title, href, imgName: imageName, width, height }) => (
+              ({
+                title, href, imgName: imageName, width, height,
+              }) => (
                 <a href={href} target="_blank" key={imageName} rel="noreferrer">
                   <Image
                     {...{
@@ -407,11 +412,14 @@ const Theme = () => {
           </ul>
           <span className="databaseSub">
             {' '}
-            ... and any other SQLAlchemy{' '}
+            ... and any other SQLAlchemy
+            {' '}
             <a href="https://superset.incubator.apache.org/installation.html#database-dependencies">
               {' '}
-              compatible databases{' '}
-            </a>{' '}
+              compatible databases
+              {' '}
+            </a>
+            {' '}
           </span>
         </div>
       </Layout>

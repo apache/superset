@@ -39,6 +39,8 @@ body {
 
 .contentPage {
   padding-bottom: $bigPad;
+  padding-left: 16px;
+  padding-right: 16px;
   section {
     width: 100%;
     max-width: 800px;
@@ -88,11 +90,11 @@ th, td {
 }
 
 .ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected {
-  background-color: $brandColor;
+  background-color: lighten($brandColor, 42);
 }
 
 .ant-menu-item-selected a {
-  color: white;
+  color: black;
 }
 .ant-menu-submenu-selected {
   color: $brandColor;

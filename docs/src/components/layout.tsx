@@ -27,18 +27,15 @@ import { MenuOutlined } from '@ant-design/icons';
 import logoSvg from '../images/superset-logo-horiz.svg';
 import Footer from './footer';
 import SEO from './seo';
-import AppMenu from './menu';
+import DoczMenu from './DoczMenu';
 
-import { getCurrentPath } from '../utils';
+import { getCurrentPath, mq } from '../utils';
 import 'antd/dist/antd.css';
 import './layout.scss';
 
 const { Header, Sider } = Layout;
 
 const leftPaneWidth = 350;
-const breakpoints = [576, 768, 992, 1200];
-
-const mq = breakpoints.map((bp) => `@media (max-width: ${bp}px)`);
 
 const layoutStyles = css`
   font-family: Inter;
@@ -53,7 +50,7 @@ const layoutStyles = css`
 `;
 
 const headerStyle = css`
-  background-color: #fff;
+  background-color: rgb(255,255,255, 0.9);
   position: fixed;
   top: 0;
   width: 100%;
@@ -71,6 +68,9 @@ const getStartedButtonStyle = css`
   position: absolute;
   top: 0;
   right: 16px;
+  ${[mq[2]]} {
+    display: none;
+  }
 `;
 
 const centerLayoutStyle = css`
@@ -78,6 +78,9 @@ const centerLayoutStyle = css`
   min-height: 60vw;
   overflow: auto;
   padding-right: 250px;
+  ${[mq[2]]} {
+    padding-right: 25px;
+  }
   .menu {
     display: none;
     ${[mq[2]]} {
@@ -202,14 +205,12 @@ const AppLayout = ({ children }: Props) => {
             getContainer={false}
             style={{ position: 'absolute' }}
           >
-            <AppMenu />
+            <DoczMenu />
           </Drawer>
           <Layout css={contentLayoutDocsStyle}>
-            {isOnDocsPage && (
-              <Sider width={leftPaneWidth} css={sidebarStyle}>
-                <AppMenu />
-              </Sider>
-            )}
+            <Sider width={leftPaneWidth} css={sidebarStyle}>
+              <DoczMenu />
+            </Sider>
             <Layout css={contentStyle}>
               <div css={centerLayoutStyle}>
                 <MenuOutlined
@@ -218,7 +219,6 @@ const AppLayout = ({ children }: Props) => {
                 />
                 {children}
               </div>
-              <Footer />
             </Layout>
           </Layout>
         </>

@@ -18,7 +18,9 @@
  */
 import React, { useState } from 'react';
 import { css } from '@emotion/core';
-import { Card, Row, Col, List, Modal, Button } from 'antd';
+import {
+  Card, Row, Col, List, Modal, Button,
+} from 'antd';
 import SEO from '../components/seo';
 import Layout from '../components/layout';
 
@@ -92,36 +94,39 @@ const additionalResources = [
 ];
 
 const youtubeRefs = [
-  "https://www.youtube.com/embed/24XDOkGJrEY",
-  "https://www.youtube.com/embed/AqousXQ7YHw",
-  "https://www.youtube.com/embed/JGeIHrQYhIs",
-  "https://www.youtube.com/embed/z350Gbi463I"
+  'https://www.youtube.com/embed/24XDOkGJrEY',
+  'https://www.youtube.com/embed/AqousXQ7YHw',
+  'https://www.youtube.com/embed/JGeIHrQYhIs',
+  'https://www.youtube.com/embed/z350Gbi463I',
 ];
 
 const youtubeIds = [
   [
     0,
     '24XDOkGJrEY',
-    'The history and anatomy of Apache Superset'
+    'The history and anatomy of Apache Superset',
   ],
   [
     1,
     'AqousXQ7YHw',
-    'Apache Superset for visualization and for data science'
+    'Apache Superset for visualization and for data science',
   ],
   [
     2,
     'JGeIHrQYhIs',
-    'Apache Superset-Interactive Multi Tab Multiple Dashboards Samples'
+    'Apache Superset-Interactive Multi Tab Multiple Dashboards Samples',
   ],
   [
     3,
     'z350Gbi463I',
-    'Apache Superset -Interactive Sales Dashboard (Demo 1)'
-  ]
+    'Apache Superset -Interactive Sales Dashboard (Demo 1)',
+  ],
 ];
 
 const resourcesContainer = css`
+  .link-section {
+    margin-bottom: 24px;
+  }
   .links {
     .videos {
       margin-top: 50px;
@@ -143,15 +148,33 @@ const resourcesContainer = css`
   }
 `;
 
+const LinkSection = ({ title, links }) => (
+  <div className="link-section">
+    <h2>{title}</h2>
+    <List
+      size="small"
+      bordered
+      dataSource={links}
+      renderItem={([link, href]) => (
+        <List.Item>
+          <a href={href} target="_blank" rel="noreferrer">
+            {link}
+          </a>
+        </List.Item>
+      )}
+    />
+  </div>
+);
+
 const Resources = () => {
   const [showModal, setModal] = useState(false);
-  const [url, setUrl] = useState(null)
+  const [url, setUrl] = useState(null);
   const [cardTitle, setCardTitle] = useState(null);
   const handleClose = () => {
     setModal(false);
     setUrl(null);
     setCardTitle(null);
-  }
+  };
   return (
     <Layout>
       <div className="contentPage">
@@ -162,45 +185,22 @@ const Resources = () => {
             <span>
               Here’s a collection of resources and blogs about Apache Superset
               from around the Internet. For a more more extensive and dynamic
-              list of resources, check out the{' '}
+              list of resources, check out the
+              {' '}
               <a href="https://github.com/apache-superset/awesome-apache-superset">
                 Awesome Apache Superset
-              </a>{' '}
+              </a>
+              {' '}
               repository
             </span>
           </section>
-
           <section className="links">
-            <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-              <Col span={12}>
-                <h2>Learning Content</h2>
-                <List
-                  size="small"
-                  bordered
-                  dataSource={links}
-                  renderItem={([link, href]) => (
-                    <List.Item>
-                      <a href={href} target="_blank" rel="noreferrer">
-                        {link}
-                      </a>
-                    </List.Item>
-                  )}
-                />
+            <Row gutter={24}>
+              <Col md={12} sm={24}>
+                <LinkSection title="Learning Content" links={links} />
               </Col>
-              <Col span={12}>
-                <h2>Installation</h2>
-                <List
-                  size="small"
-                  bordered
-                  dataSource={installationLinks}
-                  renderItem={([link, href]) => (
-                    <List.Item>
-                      <a href={href} target="_blank" rel="noreferrer">
-                        {link}
-                      </a>
-                    </List.Item>
-                  )}
-                />
+              <Col md={12} sm={24}>
+                <LinkSection title="Installation" links={installationLinks} />
               </Col>
             </Row>
           </section>
@@ -228,17 +228,18 @@ const Resources = () => {
             </Modal>
             <h2>Videos</h2>
             <Card>
-              {youtubeIds.map(([idx, ids, cardTitle]) => (
+              {youtubeIds.map(([idx, ids, title]) => (
                 <Card.Grid
                   onClick={() => {
                     setModal(true);
                     setUrl(idx);
-                    setCardTitle(cardTitle);
+                    setCardTitle(title);
                   }}
                 >
-                  <h4>{cardTitle}</h4>
+                  <h4>{title}</h4>
                   <img
                     width="100%"
+                    alt="youtube vid"
                     src={`http://img.youtube.com/vi/${ids}/maxresdefault.jpg`}
                   />
                 </Card.Grid>
@@ -249,6 +250,6 @@ const Resources = () => {
       </div>
     </Layout>
   );
-}
+};
 
 export default Resources;

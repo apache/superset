@@ -24,6 +24,7 @@ import SEO from '../components/seo';
 import Layout from '../components/layout';
 import HeaderNav from '../components/sidenav';
 import NextLinks from '../components/next';
+import { mq } from '../utils';
 
 import 'antd/dist/antd.css';
 
@@ -33,8 +34,12 @@ interface Props {
 
 const docLayout = css`
   display: flex;
+
   flex-direction: row;
   .headerNav {
+    ${[mq[2]]} {
+      display: none;
+    }
     position: fixed;
     top: 64px;
     right: 0;
