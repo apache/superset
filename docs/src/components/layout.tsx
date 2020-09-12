@@ -21,8 +21,8 @@ import {
   Layout, Drawer,
 } from 'antd';
 import { css } from '@emotion/core';
-import Image from './image';
 import { MenuOutlined } from '@ant-design/icons';
+import Image from './image';
 
 import Footer from './footer';
 import SEO from './seo';
