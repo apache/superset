@@ -657,7 +657,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_table_comment(
-            cls, inspector: Inspector, table_name: str, schema: Optional[str]
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
     ) -> Optional[str]:
         """
         Get comment of table from a given schema and table
@@ -670,7 +670,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         comment = None
         try:
             comment = inspector.get_table_comment(table_name, schema)
-            comment = comment.get('text') if isinstance(comment, dict) else None
+            comment = comment.get("text") if isinstance(comment, dict) else None
         except NotImplementedError:
             pass
         return comment
