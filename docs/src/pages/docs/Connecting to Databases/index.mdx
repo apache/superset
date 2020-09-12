@@ -9,10 +9,10 @@ version: 1
 ## Install Database Drivers
 
 Superset requires a Python database driver to be installed for each additional type of database you
-want to connect to. 
+want to connect to.
 
 Superset interacts with the underlying databases using the provided SQL interface (often times
-through a SQLAlchemy library). 
+through a SQLAlchemy library).
 
 ### Supported Databases and Dependecies
 
@@ -20,7 +20,7 @@ Superset does not ship bundled with connectivity to databases, except for Sqlite
 
 A list of some of the recommended packages.
 
-| Database | PyPI package | Connection String  | 	
+| Database | PyPI package | Connection String  |
 | --- | --- | --- |
 |[Amazon Athena](/docs/databases/athena)|```pip install "PyAthenaJDBC>1.0.9``` , ```pip install "PyAthena>1.2.0``` | ```awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{ ```|
 |[Amazon Redshift](/docs/databases/redshift)|```pip install sqlalchemy-redshift```| ``` redshift+psycopg2://<userName>:<DBPassword>@<AWS End Point>:5439/<Database Name>``` |
@@ -68,4 +68,3 @@ In the end, you should be looking for a Python package compatible with your data
 makes database driver installation tricky is the fact that local binaries are sometimes required in
 order for them to bind properly, which means that various apt packages might need to be installed
 before pip can get things set up.
-
