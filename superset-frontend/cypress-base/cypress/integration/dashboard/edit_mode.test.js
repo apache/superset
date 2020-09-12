@@ -23,7 +23,7 @@ describe('Dashboard edit mode', () => {
     cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.get('.dashboard-header [data-test=pencil]').click();
+    cy.get('.dashboard-header [data-test=edit-alt]').click();
   });
 
   it('remove, and add chart flow', () => {

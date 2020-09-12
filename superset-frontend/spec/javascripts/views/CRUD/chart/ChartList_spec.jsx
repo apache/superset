@@ -125,7 +125,7 @@ describe('ChartList', () => {
 
   it('edits', () => {
     expect(wrapper.find(PropertiesModal)).not.toExist();
-    wrapper.find('[data-test="pencil"]').first().simulate('click');
+    wrapper.find('[data-test="edit-alt"]').first().simulate('click');
     expect(wrapper.find(PropertiesModal)).toExist();
   });
 
