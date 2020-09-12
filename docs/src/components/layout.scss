@@ -99,8 +99,8 @@ th, td {
   & >.ant-menu-item-selected {
     color: $brandColor;
     border-bottom: 2px solid $brandColor;
-    a {
-      color: $brandColor;
+    a:hover{
+      color: white;
     }
   }
 }

@@ -21,6 +21,7 @@ import {
   Layout, Drawer,
 } from 'antd';
 import { css } from '@emotion/core';
+import Image from './image';
 import { MenuOutlined } from '@ant-design/icons';
 
 import Footer from './footer';
@@ -46,6 +47,23 @@ const layoutStyles = css`
     border-color: #20a7c9;
     border-radius: 4px;
   }
+  .desktopView {
+    ${mq[0]} {
+      display: none;
+    }
+  }
+  .mobileView {
+    display: none;
+    ${[mq[0]]} {
+      display: block;
+    }
+  }
+  .tabletView {
+    display: none;
+    ${[mq[2]]} {
+      display: block;
+    }
+  }
 `;
 
 const centerLayoutStyle = css`
@@ -59,7 +77,7 @@ const centerLayoutStyle = css`
   .doc-hamburger {
     display: none;
     ${[mq[2]]} {
-      display: block;
+      display: inline-block;
     }
     text-align: left;
   }
@@ -78,8 +96,13 @@ const contentStyle = css`
   margin-top: 3px;
   background-color: white;
   img {
-    max-width: 800px;
+    max-width: 100%;
     margin-bottom: 15px;
+  }
+  table {
+    table-layout: fixed;
+    width: 100%;
+    word-break: break-all;
   }
   blockquote {
     color: rgb(132, 146, 166);
@@ -132,6 +155,7 @@ interface Props {
 const AppLayout = ({ children }: Props) => {
   const [showDrawer, setDrawer] = useState(false);
   const isOnDocsPage = getCurrentPath().indexOf('docs') > -1;
+
   return (
     <Layout css={layoutStyles}>
       <SEO title="Welcome" />
