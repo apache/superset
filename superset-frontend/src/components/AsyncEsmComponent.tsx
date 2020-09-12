@@ -19,11 +19,11 @@
 import React, { CSSProperties, useEffect, useState, RefObject } from 'react';
 import Loading from './Loading';
 
-type PlaceholderProps = {
-  showLoadingForImport: boolean;
+export type PlaceholderProps = {
+  showLoadingForImport?: boolean;
   width?: string | number;
   height?: string | number;
-  style?: CSSProperties;
+  placeholderStyle?: CSSProperties;
 } & {
   [key: string]: any;
 };
@@ -31,14 +31,14 @@ type PlaceholderProps = {
 function DefaultPlaceholder({
   width,
   height,
-  showLoadingForImport,
-  style,
+  showLoadingForImport = false,
+  placeholderStyle: style,
 }: PlaceholderProps) {
   return (
     // since `width` defaults to 100%, we can display the placeholder once
     // height is specified.
     (height && (
-      <div style={{ width, height, ...style }}>
+      <div key="async-asm-placeholder" style={{ width, height, ...style }}>
         {showLoadingForImport && <Loading position="floating" />}
       </div>
     )) ||
@@ -63,7 +63,7 @@ export default function AsyncEsmComponent<
    * Placeholder while still importing.
    */
   placeholder: React.ComponentType<
-    PlaceholderProps
+    PlaceholderProps & Partial<P>
   > | null = DefaultPlaceholder,
 ) {
   // component props + placeholder props

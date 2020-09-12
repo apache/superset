@@ -18,15 +18,40 @@
  */
 import React from 'react';
 import {
-  Editor,
+  Editor as OrigEditor,
   IEditSession,
   Position,
   TextMode as OrigTextMode,
 } from 'brace';
 import AceEditor, { AceEditorProps } from 'react-ace';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import AsyncEsmComponent, {
+  PlaceholderProps,
+} from 'src/components/AsyncEsmComponent';
 
-type TextMode = OrigTextMode & { $id: string };
+export interface AceCompleterKeywordData {
+  name: string;
+  value: string;
+  score: number;
+  meta: string;
+}
+
+export type TextMode = OrigTextMode & { $id: string };
+
+export interface AceCompleter {
+  insertMatch: (
+    data?: Editor | { value: string } | string,
+    options?: AceCompleterKeywordData,
+  ) => void;
+}
+
+export type Editor = OrigEditor & {
+  completer: AceCompleter;
+  completers: AceCompleter[];
+};
+
+export interface AceCompleterKeyword extends AceCompleterKeywordData {
+  completer?: AceCompleter;
+}
 
 /**
  * Async loaders to import brace modules. Must manually create call `import(...)`
@@ -44,19 +69,8 @@ const aceModuleLoaders = {
   'theme/github': () => import('brace/theme/github'),
   'ext/language_tools': () => import('brace/ext/language_tools'),
 };
-export type AceModule = keyof typeof aceModuleLoaders;
 
-export interface AceCompleterKeywordData {
-  name: string;
-  value: string;
-  score: number;
-  meta: string;
-}
-export interface AceCompleterKeyword extends AceCompleterKeywordData {
-  completer?: {
-    insertMatch: (editor: Editor, data: AceCompleterKeywordData) => void;
-  };
-}
+export type AceModule = keyof typeof aceModuleLoaders;
 
 export type AsyncAceEditorProps = AceEditorProps & {
   keywords?: AceCompleterKeyword[];
@@ -68,6 +82,9 @@ export type AsyncAceEditorOptions = {
   defaultMode?: AceEditorMode;
   defaultTheme?: AceEditorTheme;
   defaultTabSize?: number;
+  placeholder?: React.ComponentType<
+    PlaceholderProps & Partial<AceEditorProps>
+  > | null;
 };
 
 /**
@@ -75,7 +92,12 @@ export type AsyncAceEditorOptions = {
  */
 export default function AsyncAceEditor(
   aceModules: AceModule[],
-  { defaultMode, defaultTheme, defaultTabSize = 2 }: AsyncAceEditorOptions = {},
+  {
+    defaultMode,
+    defaultTheme,
+    defaultTabSize = 2,
+    placeholder,
+  }: AsyncAceEditorOptions = {},
 ) {
   return AsyncEsmComponent(async () => {
     const { default: ace } = await import('brace');
@@ -111,6 +133,10 @@ export default function AsyncAceEditor(
               prefix: string,
               callback: (error: null, wordList: object[]) => void,
             ) => {
+              // If the prefix starts with a number, don't try to autocomplete
+              if (!Number.isNaN(parseInt(prefix, 10))) {
+                return;
+              }
               if ((session.getMode() as TextMode).$id === `ace/mode/${mode}`) {
                 callback(null, keywords);
               }
@@ -129,7 +155,7 @@ export default function AsyncAceEditor(
         );
       },
     );
-  });
+  }, placeholder);
 }
 
 export const SQLEditor = AsyncAceEditor([
@@ -137,6 +163,29 @@ export const SQLEditor = AsyncAceEditor([
   'theme/github',
   'ext/language_tools',
 ]);
+
+export const FullSQLEditor = AsyncAceEditor(
+  ['mode/sql', 'theme/github', 'ext/language_tools'],
+  {
+    // a custom placeholder in SQL lab for less jumpy re-renders
+    placeholder: () => {
+      const gutterBackground = '#e8e8e8'; // from ace-github theme
+      return (
+        <div
+          style={{
+            height: '100%',
+          }}
+        >
+          <div
+            style={{ width: 41, height: '100%', background: gutterBackground }}
+          />
+          {/* make it possible to resize the placeholder */}
+          <div className="ace_content" />
+        </div>
+      );
+    },
+  },
+);
 
 export const MarkdownEditor = AsyncAceEditor([
   'mode/markdown',

@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { areArraysShallowEqual } from 'src/reduxUtils';
-import { supersetColors } from 'src/components/styles';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
   SCHEMA_AUTOCOMPLETE_SCORE,
@@ -27,8 +26,9 @@ import {
   SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
 } from 'src/SqlLab/constants';
 import {
+  Editor,
   AceCompleterKeyword,
-  SQLEditor as AceSQLEditor,
+  FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
 
 type HotKey = {
@@ -149,43 +149,6 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     this.props.onChange(text);
   }
 
-  getCompletions(
-    aceEditor: any,
-    session: any,
-    pos: any,
-    prefix: string,
-    callback: (p0: any, p1: any[]) => void,
-  ) {
-    // If the prefix starts with a number, don't try to autocomplete with a
-    // table name or schema or anything else
-    if (!Number.isNaN(parseInt(prefix, 10))) {
-      return;
-    }
-    const completer = {
-      insertMatch: (editor: any, data: any) => {
-        if (data.meta === 'table') {
-          this.props.actions.addTable(
-            this.props.queryEditor,
-            data.value,
-            this.props.queryEditor.schema,
-          );
-        }
-        editor.completer.insertMatch({
-          value: `${data.caption}${
-            ['function', 'schema'].includes(data.meta) ? '' : ' '
-          }`,
-        });
-      },
-    };
-    // Mutate instead of object spread here for performance
-    const words = this.state.words.map(word => {
-      /* eslint-disable-next-line no-param-reassign */
-      word.completer = completer;
-      return word;
-    });
-    callback(null, words);
-  }
-
   setAutoCompleter(props: Props) {
     // Loading schema, table and column names as auto-completable words
     const schemas = props.schemas || [];
@@ -227,11 +190,33 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       meta: 'function',
     }));
 
+    const completer = {
+      insertMatch: (editor: Editor, data: any) => {
+        if (data.meta === 'table') {
+          this.props.actions.addTable(
+            this.props.queryEditor,
+            data.value,
+            this.props.queryEditor.schema,
+          );
+        }
+        // executing https://github.com/thlorenz/brace/blob/3a00c5d59777f9d826841178e1eb36694177f5e6/ext/language_tools.js#L1448
+        editor.completer.insertMatch(
+          `${data.caption}${
+            ['function', 'schema'].includes(data.meta) ? '' : ' '
+          }`,
+        );
+      },
+    };
+
     const words = schemaWords
       .concat(tableWords)
       .concat(columnWords)
       .concat(functionWords)
-      .concat(sqlKeywords);
+      .concat(sqlKeywords)
+      .map(word => ({
+        ...word,
+        completer,
+      }));
 
     this.setState({ words });
   }
@@ -253,7 +238,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
 
   render() {
     return (
-      <AceSQLEditor
+      <AceEditor
         keywords={this.state.words}
         onLoad={this.onEditorLoad.bind(this)}
         onBlur={this.onBlur.bind(this)}
@@ -264,11 +249,6 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
         enableLiveAutocompletion={this.props.autocomplete}
         value={this.state.sql}
         annotations={this.getAceAnnotations()}
-        // TODO: migrate this color to supersetTheme
-        style={{
-          background: supersetColors.grayBg,
-          border: `1px solid ${supersetColors.grayLight}`,
-        }}
       />
     );
   }
