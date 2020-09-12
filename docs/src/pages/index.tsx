@@ -380,7 +380,7 @@ const Theme = () => {
                 <img src="/images/dashboard3.png" alt="" />
               </div>
               <div className="imageContainer">
-                <img src="/images/sqllab3.png" alt="" />
+                <img src="/images/sqllab1.png" alt="" />
               </div>
             </Carousel>
           </div>
