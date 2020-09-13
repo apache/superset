@@ -17,12 +17,7 @@
  * under the License.
  */
 module.exports = {
-  extends: [
-    'airbnb',
-    'prettier',
-    'prettier/@typescript-eslint',
-    'prettier/react',
-  ],
+  extends: ['airbnb', 'prettier', 'prettier/react'],
   parser: 'babel-eslint',
   parserOptions: {
     ecmaFeatures: {
