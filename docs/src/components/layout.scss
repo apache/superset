@@ -53,15 +53,6 @@ body {
       border-radius: 10px;
     }
   }
-  h1 {
-    font-size: 48px;
-  }
-  h2 {
-    font-size: 32px;
-  }
-  h3 {
-    font-size: 24px;
-  }
   .title{
     margin-top: $bigPad;
   }
@@ -125,4 +116,19 @@ button {
 }
 .ant-drawer-body {
   padding: 0px !important;
+}
+h1, h2, h3, h4 {
+  font-weight: bold;
+}
+h1 {
+  font-size: 40px;
+}
+h2 {
+  font-size: 32px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 16px;
 }

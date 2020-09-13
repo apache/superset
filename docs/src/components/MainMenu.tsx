@@ -76,7 +76,11 @@ const rightMenuStyle = css`
   }
 `;
 
-const LeftMenuItems = ({ mode }) => (
+interface menuProps {
+  mode: string;
+}
+
+const LeftMenuItems = ({ mode }: menuProps) => (
   <Menu mode={mode} selectedKeys={getCurrentPath()}>
     <Menu.Item key="docsintro">
       <Link to="/docs/intro">Documentation</Link>
@@ -89,7 +93,7 @@ const LeftMenuItems = ({ mode }) => (
     </Menu.Item>
   </Menu>
 );
-const RightMenuItems = ({ mode }) => (
+const RightMenuItems = ({ mode }: menuProps) => (
   <Menu mode={mode} selectedKeys={getCurrentPath()}>
     <Menu.Item>
       <Link to="/docs/intro">
@@ -107,16 +111,10 @@ export default class MainMenu extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-	  visible: false,
+      visible: false,
     };
     this.toggleDrawer = this.toggleDrawer.bind(this);
     this.onClose = this.onClose.bind(this);
-  }
-
-  toggleDrawer() {
-    this.setState({
-      visible: !this.state.visible,
-    });
   }
 
   onClose() {
@@ -125,7 +123,14 @@ export default class MainMenu extends React.Component {
     });
   }
 
+  toggleDrawer() {
+    this.setState((prevState) => ({
+      visible: !prevState.visible,
+    }));
+  }
+
   render() {
+    const { visible } = this.state;
     return (
       <Layout.Header css={headerStyle}>
         <Link to="/">
@@ -141,10 +146,11 @@ export default class MainMenu extends React.Component {
           <MenuOutlined onClick={this.toggleDrawer} />
         </span>
         <Drawer
+          title="Menu"
           placement="right"
           closable={false}
           onClose={this.onClose}
-          visible={this.state.visible}
+          visible={visible}
         >
           <LeftMenuItems mode="vertical" />
         </Drawer>

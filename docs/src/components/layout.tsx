@@ -32,7 +32,7 @@ import MainMenu from './MainMenu';
 import 'antd/dist/antd.css';
 import './layout.scss';
 
-const { Header, Sider } = Layout;
+const { Sider } = Layout;
 
 const leftPaneWidth = 350;
 
@@ -53,15 +53,15 @@ const centerLayoutStyle = css`
   min-height: 60vw;
   overflow: auto;
   padding-right: 250px;
-  ${[mq[2]]} {
+  ${[mq[3]]} {
     padding-right: 25px;
   }
-  .menu {
+  .doc-hamburger {
     display: none;
     ${[mq[2]]} {
       display: block;
     }
-    padding: 25px;
+    text-align: left;
   }
 `;
 
@@ -77,14 +77,6 @@ const sidebarStyle = css`
 const contentStyle = css`
   margin-top: 3px;
   background-color: white;
-  h2 {
-    font-size: 30px;
-    font-weight: bold;
-  }
-  h3 {
-    font-size: 20px;
-    font-weight: bold;
-  }
   img {
     max-width: 800px;
     margin-bottom: 15px;
@@ -99,10 +91,13 @@ const contentStyle = css`
   }
   pre {
     border: solid #00000033 1px;
-    padding: 5px;
+    padding: 5px 10px;
     background-color: #82ef8217;
     border-radius: 3px;
-    max-width: 1000px;
+    max-width: 800px;
+    width: 100%;
+    white-space: nowrap;
+    overflow: auto;
   }
   p {
     font-size: 16px;
@@ -145,6 +140,7 @@ const AppLayout = ({ children }: Props) => {
       {isOnDocsPage ? (
         <>
           <Drawer
+            title="Documentation"
             placement="left"
             closable={false}
             onClose={() => setDrawer(false)}
@@ -160,10 +156,13 @@ const AppLayout = ({ children }: Props) => {
             </Sider>
             <Layout css={contentStyle}>
               <div css={centerLayoutStyle}>
-                <MenuOutlined
-                  onClick={() => setDrawer(true)}
-                  className="menu"
-                />
+                <h1 className="doc-hamburger" onClick={() => setDrawer(true)}>
+                  <MenuOutlined
+                    className="menu"
+                  />
+                  {' '}
+                  Documentation
+                </h1>
                 {children}
               </div>
             </Layout>

@@ -24,7 +24,7 @@ import {
 import SEO from '../components/seo';
 import Layout from '../components/layout';
 
-const links = [
+const learningLinks = [
   [
     "O'Reilly Live Training: Rapid Data Exploration and Analysis with Apache Superset",
     'https://learning.oreilly.com/live-training/courses/rapid-data-exploration-and-analysis-with-apache-superset/0636920457251/',
@@ -47,45 +47,6 @@ const installationLinks = [
   [
     'Install on CentOS',
     'https://aichamp.wordpress.com/2019/11/20/installing-apache-superset-into-centos-7-with-python-3-7/',
-  ],
-  [
-    'Build Apache Superset from source',
-    'https://hackernoon.com/a-better-guide-to-build-apache-superset-from-source-6f2ki32n0',
-  ],
-];
-
-const additionalResources = [
-  [
-    'YouTube Channel',
-    'https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g',
-  ],
-  [
-    'May 15, 2020: Virtual Meetup Recording. Topics: 0.36 Overview, Committers Self-Intro, Roadmap',
-    'https://www.youtube.com/watch?v=f6up5x_iRbI',
-  ],
-  [
-    "O'Reilly Apache Superset Quick Start Guide",
-    'https://www.oreilly.com/library/view/apache-superset-quick/9781788992244/',
-  ],
-  [
-    'Getting Started with Apache Superset, an Enterprise-Ready Business Intelligence Platform',
-    'https://reflectivedata.com/getting-started-apache-superset-enterprise-ready-business-intelligence-platform/',
-  ],
-  [
-    'Unlocking Advanced Data Analytics on The Data Lake Using Apache Superset and Dremio',
-    'https://www.dremio.com/tutorials/dremio-apache-superset/',
-    {
-      sub: 'Dremio',
-      link: 'https://www.dremio.com',
-    },
-  ],
-  [
-    'Test-driving Apache Superset',
-    'https://blog.smartcat.io/2018/test-driving-apache-superset/',
-    {
-      sub: 'SmartCat',
-      link: 'https://smartcat.io',
-    },
   ],
   [
     'Build Apache Superset from source',
@@ -126,6 +87,9 @@ const youtubeIds = [
 const resourcesContainer = css`
   .link-section {
     margin-bottom: 24px;
+    a {
+      display: block;
+    }
   }
   .links {
     .videos {
@@ -135,20 +99,14 @@ const resourcesContainer = css`
         margin: 15px;
       }
     }
-    .learnContent,
-    .installation {
-      margin-top: 25px;
-      margin-bottom: 50px;
-      a {
-        display: block;
-        font-size: 17px;
-        margin: 15px;
-      }
-    }
   }
 `;
 
-const LinkSection = ({ title, links }) => (
+interface featureProps {
+  title: string,
+  descr: Array,
+}
+const LinkSection = ({ title, links }: featureProps) => (
   <div className="link-section">
     <h2>{title}</h2>
     <List
@@ -196,10 +154,10 @@ const Resources = () => {
           </section>
           <section className="links">
             <Row gutter={24}>
-              <Col md={12} sm={24}>
-                <LinkSection title="Learning Content" links={links} />
+              <Col md={12} sm={24} xs={24}>
+                <LinkSection title="Learning Content" links={learningLinks} />
               </Col>
-              <Col md={12} sm={24}>
+              <Col md={12} sm={24} xs={24}>
                 <LinkSection title="Installation" links={installationLinks} />
               </Col>
             </Row>

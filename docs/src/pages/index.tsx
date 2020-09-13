@@ -203,8 +203,12 @@ const linkCarousel = css`
     }
   }
 `;
-
-const Feature = ({ icon, title, descr }) => (
+interface featureProps {
+  icon: React.ReactNode,
+  title: string,
+  descr: string,
+}
+const Feature = ({ icon, title, descr }: featureProps) => (
   <li className="feature">
     <div className="imagePlaceHolder">
       {icon}
