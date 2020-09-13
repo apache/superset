@@ -81,16 +81,37 @@ th, td {
 }
 
 .ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected {
+<<<<<<< HEAD
   background-color: lighten($brandColor, 42);
+=======
+  background-color: $brandColor;
+  a:hover{
+    color: white;
+  }
+>>>>>>> fix nits
 }
 
 .ant-menu-item-selected a {
   color: black;
 }
-.ant-menu-submenu-selected {
+.ant-menu-submenu-selected,
+.ant-anchor .ant-anchor-link-active > .ant-anchor-link-title {
   color: $brandColor;
 }
 
+.ant-anchor .ant-anchor-ink-ball {
+  border: 2px solid $brandColor;
+}
+
+.ant-menu-submenu,
+.ant-menu-submenu-title,
+.ant-anchor-link-title,
+.ant-menu .ant-menu-item a
+{
+  &:hover {
+    color:$brandColor;
+  }
+}
 .ant-menu-horizontal {
   & > .ant-menu-item:hover, & > .ant-menu-item-active {
     color: $brandColor !important;
@@ -99,8 +120,8 @@ th, td {
   & >.ant-menu-item-selected {
     color: $brandColor;
     border-bottom: 2px solid $brandColor;
-    a:hover{
-      color: white;
+    a {
+      color:$brandColor;
     }
   }
 }
