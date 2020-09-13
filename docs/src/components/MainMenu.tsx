@@ -17,11 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import {
-  Button, Drawer, Layout, Menu,
-} from 'antd';
+import { Drawer, Layout, Menu } from 'antd';
 import { Link } from 'gatsby';
-import { MenuOutlined } from '@ant-design/icons';
+import { MenuOutlined, GithubOutlined } from '@ant-design/icons';
 import { css } from '@emotion/core';
 import { getCurrentPath, mq } from '../utils';
 import logoSvg from '../images/superset-logo-horiz.svg';
@@ -33,79 +31,78 @@ const headerStyle = css`
   padding-left: 0px;
   padding-right: 0px;
   position: fixed;
-  /top: 0;
+  top: 0;
   width: 100%;
   box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.12);
   z-index: 1;
   .ant-menu {
     background: transparent;
   }
+  .menu-icon {
+    vertical-align: middle;
+    font-size: 24px;
+    padding-left: 0px;
+    padding-right: 0px;
+  }
   .ant-menu-horizontal {
     border-bottom: none;
+  }
+  .menu-sm {
+    display: none;
+  }
+  ${[mq[menuResponsiveIndex]]} {
+    .menu-sm {
+      display: block;
+    }
+    .menu-lg {
+      display: none;
+    }
   }
 `;
 const logoStyle = css`
   float: left;
-  margin-top: 5px;
+  margin-top: 6px;
   height: 50px;
-`;
-
-const getStartedButtonStyle = css`
-  ${[mq[menuResponsiveIndex]]} {
-    display: none;
-  }
-`;
-const hamStyle = css`
-  display: none;
-  float: right;
-  padding-right: 16px;
-  ${[mq[menuResponsiveIndex]]} {
-    display: inline-block;
-  }
-`;
-const leftMenuStyle = css`
-  float: left;
-  ${[mq[menuResponsiveIndex]]} {
-    display: none;
-  }
-`;
-const rightMenuStyle = css`
-  float: right;
-  ${[mq[menuResponsiveIndex]]} {
-    display: none;
-  }
 `;
 
 interface menuProps {
   mode: string;
 }
 
-const LeftMenuItems = ({ mode }: menuProps) => (
-  <Menu mode={mode} selectedKeys={getCurrentPath()}>
-    <Menu.Item key="docsintro">
-      <Link to="/docs/intro">Documentation</Link>
-    </Menu.Item>
-    <Menu.Item key="community">
-      <Link to="/community">Community</Link>
-    </Menu.Item>
-    <Menu.Item key="resources">
-      <Link to="/resources"> Resources</Link>
-    </Menu.Item>
-  </Menu>
-);
-const RightMenuItems = ({ mode }: menuProps) => (
-  <Menu mode={mode} selectedKeys={getCurrentPath()}>
-    <Menu.Item>
-      <Link to="/docs/intro">
-        <span css={getStartedButtonStyle}>
-          <Button type="primary" size="medium">
-            Get Started
-          </Button>
-        </span>
-      </Link>
-    </Menu.Item>
-  </Menu>
-);
+const MenuItems = ({ mode, toggleDrawer }: menuProps) => {
+  let leftStyle = { float: 'left' };
+  let rightStyle = { float: 'right' };
+  if (mode === 'vertical') {
+    leftStyle = null;
+    rightStyle = null;
+  }
+  return (
+    <Menu mode={mode} selectedKeys={getCurrentPath()}>
+      <Menu.Item key="docsintro" style={leftStyle} className="menu-lg">
+        <Link to="/docs/intro">Documentation</Link>
+      </Menu.Item>
+      <Menu.Item key="community" style={leftStyle} className="menu-lg">
+        <Link to="/community">Community</Link>
+      </Menu.Item>
+      <Menu.Item key="resources" style={leftStyle} className="menu-lg">
+        <Link to="/resources"> Resources</Link>
+      </Menu.Item>
+      {toggleDrawer && (
+      <Menu.Item style={rightStyle} className="menu-sm">
+        <MenuOutlined onClick={toggleDrawer} className="menu-icon" />
+      </Menu.Item>
+      )}
+      {mode === 'horizontal'
+      && (
+      <Menu.Item key="github" style={rightStyle}>
+        <a href="https://github.com/apache/incubator-superset" target="_blank" rel="noreferrer">
+          <GithubOutlined className="menu-icon" />
+        </a>
+      </Menu.Item>
+      )}
+    </Menu>
+  );
+};
 
 export default class MainMenu extends React.Component {
   constructor(props) {
@@ -136,15 +133,7 @@ export default class MainMenu extends React.Component {
         <Link to="/">
           <img height="50" css={logoStyle} src={logoSvg} alt="logo" />
         </Link>
-        <div css={leftMenuStyle}>
-          <LeftMenuItems mode="horizontal" />
-        </div>
-        <div css={rightMenuStyle}>
-          <RightMenuItems mode="horizontal" />
-        </div>
-        <span css={hamStyle}>
-          <MenuOutlined onClick={this.toggleDrawer} />
-        </span>
+        <MenuItems toggleDrawer={this.toggleDrawer} mode="horizontal" />
         <Drawer
           title="Menu"
           placement="right"
@@ -152,7 +141,7 @@ export default class MainMenu extends React.Component {
           onClose={this.onClose}
           visible={visible}
         >
-          <LeftMenuItems mode="vertical" />
+          <MenuItems mode="vertical" />
         </Drawer>
       </Layout.Header>
     );

@@ -126,6 +126,7 @@ const Community = () => {
                   <a href={href}>{link}</a>
                   {' '}
                   -
+                  {' '}
                   {post}
                 </List.Item>
               )}

@@ -75,12 +75,12 @@ const youtubeIds = [
   [
     2,
     'JGeIHrQYhIs',
-    'Apache Superset-Interactive Multi Tab Multiple Dashboards Samples',
+    'Apache Superset- Interactive Multi Tab Multiple Dashboards Samples',
   ],
   [
     3,
     'z350Gbi463I',
-    'Apache Superset -Interactive Sales Dashboard (Demo 1)',
+    'Apache Superset - Interactive Sales Dashboard (Demo 1)',
   ],
 ];
 

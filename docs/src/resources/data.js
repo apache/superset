@@ -128,6 +128,7 @@ export const Databases = [
     title: 'Amazon Redshfit',
     href: 'https://aws.amazon.com/redshift/',
     imgName: 'aws-redshift.png',
+    width: 50,
   },
   {
     title: 'Apache Druid',
