@@ -17,19 +17,18 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { Link } from 'gatsby';
 import {
-  Layout, Menu, Button, Drawer,
+  Layout, Drawer,
 } from 'antd';
 import { css } from '@emotion/core';
 import { MenuOutlined } from '@ant-design/icons';
 
-import logoSvg from '../images/superset-logo-horiz.svg';
 import Footer from './footer';
 import SEO from './seo';
 import DoczMenu from './DoczMenu';
 
 import { getCurrentPath, mq } from '../utils';
+import MainMenu from './MainMenu';
 import 'antd/dist/antd.css';
 import './layout.scss';
 
@@ -46,30 +45,6 @@ const layoutStyles = css`
     background: #20a7c9;
     border-color: #20a7c9;
     border-radius: 4px;
-  }
-`;
-
-const headerStyle = css`
-  background-color: rgb(255,255,255, 0.9);
-  position: fixed;
-  top: 0;
-  width: 100%;
-  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.12);
-  z-index: 1;
-  .ant-menu {
-    background: transparent;
-  }
-  .ant-menu-horizontal {
-    border-bottom: none;
-  }
-`;
-
-const getStartedButtonStyle = css`
-  position: absolute;
-  top: 0;
-  right: 16px;
-  ${[mq[2]]} {
-    display: none;
   }
 `;
 
@@ -156,12 +131,6 @@ const contentLayoutDocsStyle = css`
   }
 `;
 
-const logoStyle = css`
-  float: left;
-  margin-left: -50px;
-  margin-top: 5px;
-  heigh: 30px;
-`;
 interface Props {
   children: React.ReactNode;
 }
@@ -172,29 +141,7 @@ const AppLayout = ({ children }: Props) => {
   return (
     <Layout css={layoutStyles}>
       <SEO title="Welcome" />
-      <Header css={headerStyle}>
-        <Link to="/">
-          <img height="50" css={logoStyle} src={logoSvg} alt="logo" />
-        </Link>
-        <Menu mode="horizontal" selectedKeys={getCurrentPath()}>
-          <Menu.Item key="docsintro">
-            <Link to="/docs/intro">Documentation</Link>
-          </Menu.Item>
-          <Menu.Item key="community">
-            <Link to="/community">Community</Link>
-          </Menu.Item>
-          <Menu.Item key="resources">
-            <Link to="/resources"> Resources</Link>
-          </Menu.Item>
-        </Menu>
-        <div css={getStartedButtonStyle}>
-          <Link to="/docs/intro">
-            <Button type="primary" size="medium">
-              Get Started
-            </Button>
-          </Link>
-        </div>
-      </Header>
+      <MainMenu />
       {isOnDocsPage ? (
         <>
           <Drawer

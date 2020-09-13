@@ -123,3 +123,6 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 button {
   background: $brandColor;
 }
+.ant-drawer-body {
+  padding: 0px !important;
+}

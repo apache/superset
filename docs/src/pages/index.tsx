@@ -65,16 +65,16 @@ const titleContainer = css`
     margin-bottom: 20px;
     width: 600px;
     ${[mq[3]]} {
-      width: 500px;
+      width: 550px;
     }
     ${[mq[2]]} {
       width: 450px;
     }
     ${[mq[1]]} {
-      width: 400px;
+      width: 425px;
     }
     ${[mq[0]]} {
-      width: 350px;
+      width: 400px;
     }
   }
   .incubator {
