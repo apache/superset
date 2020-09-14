@@ -396,7 +396,7 @@ Ensure Python versions >3.7, Then proceed with:
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
-python -m venv venv # setup a python3 virtualenv
+python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
