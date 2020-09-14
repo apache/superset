@@ -24,8 +24,6 @@ import SEO from '../components/seo';
 import Layout from '../components/layout';
 import { pmc } from '../resources/data';
 
-const { Meta } = Card;
-
 const links = [
   [
     'https://apache-superset.slack.com/join/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ#/',
@@ -102,7 +100,7 @@ const Community = () => {
           size="small"
           cover={<img alt="example" src={e.image} />}
         >
-          <GithubOutlined style={{ paddingRight: 3, paddingTop: 3}} />
+          <GithubOutlined style={{ paddingRight: 3, paddingTop: 3 }} />
           {e.name}
         </Card>
       </a>
@@ -125,7 +123,11 @@ const Community = () => {
               dataSource={links}
               renderItem={([href, link, post]) => (
                 <List.Item>
-                  <a href={href}>{link}</a> - {post}
+                  <a href={href}>{link}</a>
+                  {' '}
+                  -
+                  {' '}
+                  {post}
                 </List.Item>
               )}
             />

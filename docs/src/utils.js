@@ -99,3 +99,7 @@ export const getPreviousAndNextUrls = (menus) => {
 };
 
 export const getCurrentMenu = () => {};
+
+const breakpoints = [576, 768, 992, 1200];
+
+export const mq = breakpoints.map((bp) => `@media (max-width: ${bp}px)`);
