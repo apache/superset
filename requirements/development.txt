@@ -8,20 +8,49 @@
 -r base.txt
 -e file:.                 # via -r requirements/base.txt, -r requirements/development.in
 appdirs==1.4.4            # via virtualenv
+boto3==1.14.60            # via tabulator
+botocore==1.17.60         # via boto3, s3transfer
+cached-property==1.5.1    # via tableschema
+certifi==2020.6.20        # via requests
 cfgv==3.2.0               # via pre-commit
 distlib==0.3.1            # via virtualenv
+docutils==0.15.2          # via botocore
+et-xmlfile==1.0.1         # via openpyxl
 filelock==3.0.12          # via tox, virtualenv
+flask-cors==3.0.9         # via apache-superset
+future==0.18.2            # via pyhive
 identify==1.5.0           # via pre-commit
+ijson==3.1.1              # via tabulator
 importlib-resources==3.0.0  # via pre-commit, virtualenv
+jdcal==1.4.1              # via openpyxl
+jmespath==0.10.0          # via boto3, botocore
+jsonlines==1.2.0          # via tabulator
+linear-tsv==1.1.0         # via tabulator
+mysqlclient==1.4.2.post1  # via apache-superset
 nodeenv==1.5.0            # via pre-commit
+openpyxl==3.0.5           # via tabulator
+pillow==7.2.0             # via apache-superset
 pip-compile-multi==2.1.0  # via -r requirements/development.in
 pip-tools==5.3.1          # via pip-compile-multi
 pluggy==0.13.1            # via tox
 pre-commit==2.7.1         # via -r requirements/development.in
+psycopg2-binary==2.8.5    # via apache-superset
+pydruid==0.6.1            # via apache-superset
+pyhive[hive]==0.6.3       # via apache-superset
+requests==2.24.0          # via pydruid, tableschema, tabulator
+rfc3986==1.4.0            # via tableschema
+s3transfer==0.3.3         # via boto3
+sasl==0.2.1               # via pyhive, thrift-sasl
+tableschema==1.19.4       # via apache-superset
+tabulator==1.52.3         # via tableschema
+thrift-sasl==0.4.2        # via pyhive
+thrift==0.13.0            # via apache-superset, pyhive, thrift-sasl
 toml==0.10.1              # via pre-commit, tox
 toposort==1.5             # via pip-compile-multi
 tox==3.20.0               # via -r requirements/development.in
+unicodecsv==0.14.1        # via tableschema, tabulator
 virtualenv==20.0.31       # via pre-commit, tox
+xlrd==1.2.0               # via tabulator
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
