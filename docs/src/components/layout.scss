@@ -81,14 +81,10 @@ th, td {
 }
 
 .ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected {
-<<<<<<< HEAD
   background-color: lighten($brandColor, 42);
-=======
-  background-color: $brandColor;
   a:hover{
     color: white;
   }
->>>>>>> fix nits
 }
 
 .ant-menu-item-selected a {
