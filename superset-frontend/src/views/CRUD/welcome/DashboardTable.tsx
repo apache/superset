@@ -40,23 +40,6 @@ class DashboardTable extends React.PureComponent<
   DashboardTableProps,
   DashboardTableState
 > {
-  state = {
-    dashboards: [],
-    dashboard_count: 0,
-    loading: false,
-  };
-
-  componentDidUpdate(prevProps: DashboardTableProps) {
-    if (prevProps.search !== this.props.search) {
-      this.fetchDataDebounced({
-        pageSize: PAGE_SIZE,
-        pageIndex: 0,
-        sortBy: this.initialSort,
-        filters: [],
-      });
-    }
-  }
-
   columns = [
     {
       accessor: 'dashboard_title',
@@ -109,6 +92,23 @@ class DashboardTable extends React.PureComponent<
 
   initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
+  state = {
+    dashboards: [],
+    dashboard_count: 0,
+    loading: false,
+  };
+
+  componentDidUpdate(prevProps: DashboardTableProps) {
+    if (prevProps.search !== this.props.search) {
+      this.fetchDataDebounced({
+        pageSize: PAGE_SIZE,
+        pageIndex: 0,
+        sortBy: this.initialSort,
+        filters: [],
+      });
+    }
+  }
+
   fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
     this.setState({ loading: true });
     const filterExps = Object.keys(filters)
@@ -159,6 +159,8 @@ class DashboardTable extends React.PureComponent<
       .finally(() => this.setState({ loading: false }));
   };
 
+  // sort-comp disabled because of conflict with no-use-before-define rule
+  // eslint-disable-next-line react/sort-comp
   fetchDataDebounced = debounce(this.fetchData, 200);
 
   render() {
