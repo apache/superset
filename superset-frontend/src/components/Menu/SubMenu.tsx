@@ -32,7 +32,8 @@ const StyledHeader = styled.header`
   }
   .navbar-nav {
     li {
-      a {
+      a,
+      div {
         font-size: ${({ theme }) => theme.typography.sizes.s}px;
         padding: ${({ theme }) => theme.gridUnit * 2}px 0;
         margin: ${({ theme }) => theme.gridUnit * 2}px;
@@ -45,12 +46,15 @@ const StyledHeader = styled.header`
       }
 
       &.no-router a {
-        padding: ${({ theme }) => theme.gridUnit * 2}px;
+        padding: ${({ theme }) => theme.gridUnit * 2}px
+          ${({ theme }) => theme.gridUnit * 4}px;
       }
     }
 
     li.active > a,
-    li > a:hover {
+    li.active > div,
+    li > a:hover,
+    li > div:hover {
       background-color: ${({ theme }) => theme.colors.secondary.light4};
       border-bottom: none;
       border-radius: 4px;
@@ -62,6 +66,7 @@ type MenuChild = {
   label: string;
   name: string;
   url: string;
+  usesRouter?: boolean;
 };
 
 export interface SubMenuProps {
@@ -92,14 +97,16 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
         <Nav>
           {props.children &&
             props.children.map(child => {
-              if (props.usesRouter) {
+              if (props.usesRouter && !!child.usesRouter) {
                 return (
-                  <MenuItem
-                    active={child.name === props.activeChild}
+                  <li
+                    className={child.name === props.activeChild ? 'active' : ''}
                     key={`${child.label}`}
                   >
-                    <Link to={child.url}>{child.label}</Link>
-                  </MenuItem>
+                    <div>
+                      <Link to={child.url}>{child.label}</Link>
+                    </div>
+                  </li>
                 );
               }
 
