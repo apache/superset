@@ -17,6 +17,7 @@
 import json
 import logging
 from copy import copy
+from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
 from urllib import parse
 
@@ -62,8 +63,9 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(mapper: Mapper, connection: Connection, target: "Dashboard") -> None:
-    # pylint: disable=unused-argument
+def copy_dashboard(
+    _mapper: Mapper, connection: Connection, target: "Dashboard"
+) -> None:
     dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
@@ -153,6 +155,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @property
     def url(self) -> str:
+        url = f"/superset/dashboard/{self.slug or self.id}/"
         if self.json_metadata:
             # add default_filters to the preselect_filters of dashboard
             json_metadata = json.loads(self.json_metadata)
@@ -165,9 +168,12 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                         return "/superset/dashboard/{}/?preselect_filters={}".format(
                             self.slug or self.id, filters
                         )
-                except Exception:  # pylint: disable=broad-except
-                    pass
-        return f"/superset/dashboard/{self.slug or self.id}/"
+                except (TypeError, JSONDecodeError) as exc:
+                    logger.error('Unable to parse json for url: %r. '
+                                 'Returning default url.',
+                                 exc, exc_info=True)
+                    return url
+        return url
 
     @property
     def datasources(self) -> Set[Optional["BaseDatasource"]]:
@@ -478,8 +484,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         )
 
 
-def event_after_dashboard_changed(  # pylint: disable=unused-argument
-    mapper: Mapper, connection: Connection, target: Dashboard
+def event_after_dashboard_changed(
+    _mapper: Mapper, _connection: Connection, target: Dashboard
 ) -> None:
     url = get_url_path("Superset.dashboard", dashboard_id_or_slug=target.id)
     cache_dashboard_thumbnail.delay(url, target.digest, force=True)
