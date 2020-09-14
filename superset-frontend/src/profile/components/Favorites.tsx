@@ -48,6 +48,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       />
     );
   }
+
   renderDashboardTable() {
     const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
@@ -66,6 +67,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       />
     );
   }
+
   render() {
     return (
       <div>

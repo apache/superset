@@ -75,6 +75,7 @@ export default class ControlHeader extends React.Component {
     }
     return null;
   }
+
   render() {
     if (!this.props.label) {
       return null;

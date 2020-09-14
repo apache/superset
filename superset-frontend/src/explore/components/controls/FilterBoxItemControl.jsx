@@ -95,9 +95,11 @@ export default class FilterBoxItemControl extends React.Component {
     this.onChange = this.onChange.bind(this);
     this.onControlChange = this.onControlChange.bind(this);
   }
+
   onChange() {
     this.props.onChange(this.state);
   }
+
   onControlChange(attr, value) {
     let typedValue = value;
     const { column: selectedColumnName, multiple } = this.state;
@@ -122,10 +124,13 @@ export default class FilterBoxItemControl extends React.Component {
     }
     this.setState({ [attr]: typedValue }, this.onChange);
   }
+
   setType() {}
+
   textSummary() {
     return this.state.column || 'N/A';
   }
+
   renderForm() {
     return (
       <div>
@@ -257,6 +262,7 @@ export default class FilterBoxItemControl extends React.Component {
       </div>
     );
   }
+
   renderPopover() {
     return (
       <Popover id="ts-col-popo" title={t('Filter Configuration')}>
@@ -264,6 +270,7 @@ export default class FilterBoxItemControl extends React.Component {
       </Popover>
     );
   }
+
   render() {
     return (
       <span>
