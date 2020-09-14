@@ -246,12 +246,12 @@ class SqlEditor extends React.PureComponent {
       this.props.actions.estimateQueryCost(query);
     }
   }
-  handleWindowResize() {
-    this.setState({ height: this.getSqlEditorHeight() });
-  }
   handleToggleAutocompleteEnabled = () => {
     this.setState({ autocompleteEnabled: !this.state.autocompleteEnabled });
   };
+  handleWindowResize() {
+    this.setState({ height: this.getSqlEditorHeight() });
+  }
   elementStyle(dimension, elementSize, gutterSize) {
     return {
       [dimension]: `calc(${elementSize}% - ${
