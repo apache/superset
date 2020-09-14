@@ -36,7 +36,7 @@ import { ReactComponent as ErrorSolidIcon } from 'images/icons/error_solid.svg';
 import { ReactComponent as FavoriteSelectedIcon } from 'images/icons/favorite-selected.svg';
 import { ReactComponent as FavoriteUnselectedIcon } from 'images/icons/favorite-unselected.svg';
 import { ReactComponent as ListViewIcon } from 'images/icons/list_view.svg';
-import { ReactComponent as MoreHorizIcon } from 'images/icons/more-horiz.svg';
+import { ReactComponent as MoreHorizIcon } from 'images/icons/more_horiz.svg';
 import { ReactComponent as EditAltIcon } from 'images/icons/edit_alt.svg';
 import { ReactComponent as SearchIcon } from 'images/icons/search.svg';
 import { ReactComponent as ShareIcon } from 'images/icons/share.svg';
