@@ -53,13 +53,13 @@ const commonStyles = `
   cursor: pointer;
 `;
 const SearchIcon = styled(Icon)`
-  ${commonStyles}
+  ${commonStyles};
   top: 1px;
   left: 2px;
 `;
 
 const ClearIcon = styled(Icon)`
-  ${commonStyles}
+  ${commonStyles};
   right: 0px;
   top: 1px;
 `;
