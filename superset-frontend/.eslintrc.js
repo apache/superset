@@ -90,7 +90,6 @@ module.exports = {
         'lines-between-class-members': 0, // disabled temporarily
         'new-cap': 0,
         'no-bitwise': 0,
-        'no-confusing-arrow': 0,
         'no-continue': 0,
         'no-else-return': 0, // disabled temporarily
         'no-mixed-operators': 0,
@@ -215,7 +214,6 @@ module.exports = {
     'no-restricted-globals': 0, // disabled temporarily
     'no-else-return': 0, // disabled temporarily
     'no-bitwise': 0,
-    'no-confusing-arrow': 0,
     'no-continue': 0,
     'no-mixed-operators': 0,
     'no-multi-assign': 0,
