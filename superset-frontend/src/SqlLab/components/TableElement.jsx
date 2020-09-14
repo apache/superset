@@ -213,6 +213,7 @@ class TableElement extends React.PureComponent {
           )}
           <i
             role="button"
+            aria-label="Toggle table"
             tabIndex={0}
             onClick={e => {
               this.toggleTable(e);
