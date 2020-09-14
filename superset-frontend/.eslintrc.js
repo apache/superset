@@ -125,7 +125,6 @@ module.exports = {
         'react/no-unused-prop-types': 0,
         'react/prop-types': 0,
         'react/require-default-props': 0,
-        'react/state-in-constructor': 0, // disabled temporarily
         'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
       },
@@ -239,7 +238,6 @@ module.exports = {
     'react/no-unused-prop-types': 0,
     'react/prop-types': 0,
     'react/require-default-props': 0,
-    'react/state-in-constructor': 0, // disabled temporarily
     'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',
   },
