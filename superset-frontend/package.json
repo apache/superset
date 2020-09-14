@@ -121,7 +121,6 @@
     "mousetrap": "^1.6.1",
     "mustache": "^2.2.1",
     "omnibar": "^2.1.1",
-    "path": "^0.12.7",
     "polished": "^3.6.5",
     "prop-types": "^15.7.2",
     "re-resizable": "^4.3.1",
@@ -169,8 +168,7 @@
     "rison": "^0.1.1",
     "shortid": "^2.2.6",
     "urijs": "^1.18.10",
-    "use-query-params": "^0.4.5",
-    "zlib": "^1.0.5"
+    "use-query-params": "^0.4.5"
   },
   "devDependencies": {
     "@babel/cli": "^7.11.5",

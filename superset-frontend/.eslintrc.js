@@ -37,6 +37,12 @@ module.exports = {
       },
     },
     {
+      files: ['webpack*.js'],
+      rules: {
+        'import/no-extraneous-dependencies': 0,
+      },
+    },
+    {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
       extends: [
