@@ -97,7 +97,7 @@ class DatasourceControl extends React.PureComponent {
   }
 
   renderDatasource() {
-    const datasource = this.props.datasource;
+    const { datasource } = this.props;
     return (
       <div className="m-t-10">
         <Well className="m-t-0">

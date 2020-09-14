@@ -92,13 +92,13 @@ class TableElement extends React.PureComponent {
   }
 
   renderWell() {
-    const table = this.props.table;
+    const { table } = this.props;
     let header;
     if (table.partitions) {
       let partitionQuery;
       let partitionClipBoard;
       if (table.partitions.partitionQuery) {
-        partitionQuery = table.partitions.partitionQuery;
+        ({ partitionQuery } = table.partitions.partitionQuery);
         const tt = t('Copy partition query to clipboard');
         partitionClipBoard = (
           <CopyToClipboard
@@ -129,7 +129,7 @@ class TableElement extends React.PureComponent {
   }
   renderControls() {
     let keyLink;
-    const table = this.props.table;
+    const { table } = this.props;
     if (table.indexes && table.indexes.length > 0) {
       keyLink = (
         <ModalTrigger
@@ -191,7 +191,7 @@ class TableElement extends React.PureComponent {
     );
   }
   renderHeader() {
-    const table = this.props.table;
+    const { table } = this.props;
     return (
       <div className="clearfix">
         <div className="pull-left">
@@ -228,7 +228,7 @@ class TableElement extends React.PureComponent {
     );
   }
   renderBody() {
-    const table = this.props.table;
+    const { table } = this.props;
     let cols;
     if (table.columns) {
       cols = table.columns.slice();

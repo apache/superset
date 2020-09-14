@@ -104,7 +104,7 @@ function coerceAdhocMetrics(value) {
 }
 
 function getDefaultAggregateForColumn(column) {
-  const type = column.type;
+  const { type } = column;
   if (typeof type !== 'string') {
     return AGGREGATES.COUNT;
   } else if (type === '' || type === 'expression') {

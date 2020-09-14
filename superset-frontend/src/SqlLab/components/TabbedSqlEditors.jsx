@@ -129,7 +129,7 @@ class TabbedSqlEditors extends React.PureComponent {
         if (dbId) {
           dbId = parseInt(dbId, 10);
         } else {
-          const databases = this.props.databases;
+          const { databases } = this.props;
           const dbName = query.dbname;
           if (dbName) {
             Object.keys(databases).forEach(db => {

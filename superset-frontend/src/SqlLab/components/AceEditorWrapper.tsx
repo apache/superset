@@ -237,7 +237,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     });
   }
   getAceAnnotations() {
-    const validationResult = this.props.queryEditor.validationResult;
+    const { validationResult } = this.props.queryEditor;
     const resultIsReady = validationResult && validationResult.completed;
     if (resultIsReady && validationResult.errors.length > 0) {
       const errors = validationResult.errors.map((err: any) => ({
