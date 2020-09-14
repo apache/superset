@@ -79,7 +79,6 @@ module.exports = {
         ],
         'import/no-named-as-default': 0,
         'import/no-named-as-default-member': 0,
-        'import/no-useless-path-segments': 0, // disabled temporarily
         'import/prefer-default-export': 0,
         indent: 0,
         'jsx-a11y/anchor-has-content': 0,
@@ -200,7 +199,6 @@ module.exports = {
     ],
     'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
     'import/no-named-as-default': 0,
-    'import/no-useless-path-segments': 0, // disabled temporarily
     'import/prefer-default-export': 0,
     indent: 0,
     'jsx-a11y/anchor-has-content': 0,
