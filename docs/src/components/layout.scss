@@ -39,6 +39,8 @@ body {
 
 .contentPage {
   padding-bottom: $bigPad;
+  padding-left: 16px;
+  padding-right: 16px;
   section {
     width: 100%;
     max-width: 800px;
@@ -50,15 +52,6 @@ body {
       background-image: linear-gradient(120deg, lighten($brandColor, 45), lighten($brandColor, 15));
       border-radius: 10px;
     }
-  }
-  h1 {
-    font-size: 48px;
-  }
-  h2 {
-    font-size: 32px;
-  }
-  h3 {
-    font-size: 24px;
   }
   .title{
     margin-top: $bigPad;
@@ -88,11 +81,11 @@ th, td {
 }
 
 .ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected {
-  background-color: $brandColor;
+  background-color: lighten($brandColor, 42);
 }
 
 .ant-menu-item-selected a {
-  color: white;
+  color: black;
 }
 .ant-menu-submenu-selected {
   color: $brandColor;
@@ -120,4 +113,22 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 
 button {
   background: $brandColor;
+}
+.ant-drawer-body {
+  padding: 0px !important;
+}
+h1, h2, h3, h4 {
+  font-weight: bold;
+}
+h1 {
+  font-size: 40px;
+}
+h2 {
+  font-size: 32px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 16px;
 }

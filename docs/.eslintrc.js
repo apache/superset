@@ -30,6 +30,7 @@ module.exports = {
     'jsx-a11y/iframe-has-title': 'off',
     'jsx-a11y/interactive-supports-focus': 'off',
     'react-hooks/rules-of-hooks': 'off',
+    'jsx-a11y/no-noninteractive-element-interactions': 'off',
   },
   extends: ['airbnb', 'airbnb/hooks'],
   env: {
