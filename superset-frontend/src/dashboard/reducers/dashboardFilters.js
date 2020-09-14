@@ -126,7 +126,8 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
       components: action.components,
     });
     return dashboardFilters;
-  } else if (action.type === UPDATE_DASHBOARD_FILTERS_SCOPE) {
+  }
+  if (action.type === UPDATE_DASHBOARD_FILTERS_SCOPE) {
     const allDashboardFiltersScope = action.scopes;
     // update filter scope for each filter field
     const updatedFilters = Object.entries(allDashboardFiltersScope).reduce(
@@ -153,14 +154,16 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
 
     buildActiveFilters({ dashboardFilters: updatedFilters });
     return updatedFilters;
-  } else if (action.type === REMOVE_FILTER) {
+  }
+  if (action.type === REMOVE_FILTER) {
     const { chartId } = action;
     const { [chartId]: deletedFilter, ...updatedFilters } = dashboardFilters;
     buildActiveFilters({ dashboardFilters: updatedFilters });
     buildFilterColorMap(updatedFilters);
 
     return updatedFilters;
-  } else if (action.type in actionHandlers) {
+  }
+  if (action.type in actionHandlers) {
     const updatedFilters = {
       ...dashboardFilters,
       [action.chartId]: actionHandlers[action.type](

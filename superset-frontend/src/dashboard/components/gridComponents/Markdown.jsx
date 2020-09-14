@@ -137,7 +137,8 @@ class Markdown extends React.PureComponent {
         markdownSource: nextComponent.meta.code,
         hasError: false,
       };
-    } else if (
+    }
+    if (
       !hasError &&
       editorMode === 'preview' &&
       nextComponent.meta.code !== markdownSource

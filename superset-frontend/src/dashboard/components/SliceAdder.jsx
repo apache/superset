@@ -71,7 +71,8 @@ class SliceAdder extends React.Component {
     return (a, b) => {
       if (a[attr] < b[attr]) {
         return -1 * desc;
-      } else if (a[attr] > b[attr]) {
+      }
+      if (a[attr] > b[attr]) {
         return 1 * desc;
       }
       return 0;

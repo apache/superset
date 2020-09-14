@@ -107,26 +107,32 @@ function getDefaultAggregateForColumn(column) {
   const { type } = column;
   if (typeof type !== 'string') {
     return AGGREGATES.COUNT;
-  } else if (type === '' || type === 'expression') {
+  }
+  if (type === '' || type === 'expression') {
     return AGGREGATES.SUM;
-  } else if (
+  }
+  if (
     type.match(/.*char.*/i) ||
     type.match(/string.*/i) ||
     type.match(/.*text.*/i)
   ) {
     return AGGREGATES.COUNT_DISTINCT;
-  } else if (
+  }
+  if (
     type.match(/.*int.*/i) ||
     type === 'LONG' ||
     type === 'DOUBLE' ||
     type === 'FLOAT'
   ) {
     return AGGREGATES.SUM;
-  } else if (type.match(/.*bool.*/i)) {
+  }
+  if (type.match(/.*bool.*/i)) {
     return AGGREGATES.MAX;
-  } else if (type.match(/.*time.*/i)) {
+  }
+  if (type.match(/.*time.*/i)) {
     return AGGREGATES.COUNT;
-  } else if (type.match(/unknown/i)) {
+  }
+  if (type.match(/unknown/i)) {
     return AGGREGATES.COUNT;
   }
   return null;

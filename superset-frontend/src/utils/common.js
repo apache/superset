@@ -93,13 +93,17 @@ export function supersetURL(rootUrl, getParams = {}) {
 export function optionLabel(opt) {
   if (opt === null) {
     return NULL_STRING;
-  } else if (opt === '') {
+  }
+  if (opt === '') {
     return '<empty string>';
-  } else if (opt === true) {
+  }
+  if (opt === true) {
     return '<true>';
-  } else if (opt === false) {
+  }
+  if (opt === false) {
     return '<false>';
-  } else if (typeof opt !== 'string' && opt.toString) {
+  }
+  if (typeof opt !== 'string' && opt.toString) {
     return opt.toString();
   }
   return opt;
