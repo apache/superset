@@ -427,7 +427,7 @@ export default class AnnotationLayer extends React.PureComponent {
       intervalEndColumn,
       descriptionColumns,
     } = this.state;
-    const slice = (valueOptions.find(x => x.value === value) || {}).slice;
+    const { slice } = valueOptions.find(x => x.value === value) || {};
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE && slice) {
       const columns = (slice.data.groupby || [])
         .concat(slice.data.all_columns || [])

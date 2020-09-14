@@ -51,7 +51,7 @@ export function fetchAllSlices(userId) {
           const slices = {};
           json.result.forEach(slice => {
             let form_data = JSON.parse(slice.params);
-            let datasource = form_data.datasource;
+            let { datasource } = form_data;
             if (!datasource) {
               datasource = getDatasourceParameter(
                 slice.datasource_id,

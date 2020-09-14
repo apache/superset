@@ -47,10 +47,10 @@ interface ColumnElementProps {
 }
 
 export default function ColumnElement({ column }: ColumnElementProps) {
-  let name: React.ReactNode = column.name;
+  let columnName: React.ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
-    name = <strong>{column.name}</strong>;
+    columnName = <strong>{column.name}</strong>;
     icons = column.keys.map((key, i) => (
       <span key={i} className="ColumnElement">
         <OverlayTrigger
@@ -73,7 +73,7 @@ export default function ColumnElement({ column }: ColumnElementProps) {
   return (
     <div className="clearfix table-column">
       <div className="pull-left m-l-10 col-name">
-        {name}
+        {columnName}
         {icons}
       </div>
       <div className="pull-right text-muted">

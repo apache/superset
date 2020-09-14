@@ -38,7 +38,7 @@ function traverse({
     return null;
   }
 
-  const type = currentNode.type;
+  const { type } = currentNode;
   if (
     CHART_TYPE === type &&
     currentNode &&

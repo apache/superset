@@ -74,7 +74,7 @@ export default class SpatialControl extends React.Component {
     this.onChange();
   }
   onChange() {
-    const type = this.state.type;
+    const { type } = this.state;
     const value = { type };
     const errors = [];
     const errMsg = t('Invalid lat/long configuration.');

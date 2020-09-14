@@ -57,8 +57,7 @@ export default class EmbedCodeButton extends React.Component {
   }
 
   handleInputChange(e) {
-    const value = e.currentTarget.value;
-    const name = e.currentTarget.name;
+    const { value, name } = e.currentTarget;
     const data = {};
     data[name] = value;
     this.setState(data);
