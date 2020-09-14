@@ -43,8 +43,6 @@ class QuerySearch extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      userLoading: false,
-      userOptions: [],
       databaseId: null,
       userId: null,
       searchText: null,
