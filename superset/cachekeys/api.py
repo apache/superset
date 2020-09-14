@@ -38,6 +38,9 @@ class CacheRestApi(BaseSupersetModelRestApi):
     resource_name = "cachekey"
     allow_browser_login = True
     class_permission_name = "CacheRestApi"
+    include_route_methods = {
+        "invalidate",
+    }
 
     openapi_spec_component_schemas = (CacheInvalidationRequestSchema,)
 
