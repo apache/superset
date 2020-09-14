@@ -50,27 +50,33 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     this.getDbList = this.getDbList.bind(this);
     this.onTableChange = this.onTableChange.bind(this);
   }
+
   onSchemaChange(schema) {
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, schema);
   }
+
   onSchemasLoad(schemas) {
     this.props.actions.queryEditorSetSchemaOptions(
       this.props.queryEditor,
       schemas,
     );
   }
+
   onTablesLoad(tables) {
     this.props.actions.queryEditorSetTableOptions(
       this.props.queryEditor,
       tables,
     );
   }
+
   onDbChange(db) {
     this.props.actions.queryEditorSetDb(this.props.queryEditor, db.id);
   }
+
   onTableChange(tableName, schemaName) {
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
   }
+
   getDbList(dbs) {
     this.props.actions.setDatabases(dbs);
   }
@@ -92,6 +98,7 @@ export default class SqlEditorLeftBar extends React.PureComponent {
   resetState() {
     this.props.actions.resetState();
   }
+
   changeTable(tableOpt) {
     if (!tableOpt) {
       return;
@@ -105,6 +112,7 @@ export default class SqlEditorLeftBar extends React.PureComponent {
   closePopover(ref) {
     this.refs[ref].hide();
   }
+
   render() {
     const shouldShowReset = window.location.search === '?reset=1';
     const tableMetaDataHeight = this.props.height - 130; // 130 is the height of the selects above

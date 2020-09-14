@@ -70,9 +70,11 @@ export default class SpatialControl extends React.Component {
     this.onChange = this.onChange.bind(this);
     this.renderReverseCheckbox = this.renderReverseCheckbox.bind(this);
   }
+
   componentDidMount() {
     this.onChange();
   }
+
   onChange() {
     const { type } = this.state;
     const value = { type };
@@ -101,18 +103,22 @@ export default class SpatialControl extends React.Component {
     this.setState({ value, errors });
     this.props.onChange(value, errors);
   }
+
   setType(type) {
     this.setState({ type }, this.onChange);
   }
+
   close() {
     this.refs.trigger.hide();
   }
+
   toggleCheckbox() {
     this.setState(
       { reverseCheckbox: !this.state.reverseCheckbox },
       this.onChange,
     );
   }
+
   renderLabelContent() {
     if (this.state.errors.length > 0) {
       return 'N/A';
@@ -128,6 +134,7 @@ export default class SpatialControl extends React.Component {
     }
     return null;
   }
+
   renderSelect(name, type) {
     return (
       <SelectControl
@@ -144,6 +151,7 @@ export default class SpatialControl extends React.Component {
       />
     );
   }
+
   renderReverseCheckbox() {
     return (
       <span>
@@ -155,6 +163,7 @@ export default class SpatialControl extends React.Component {
       </span>
     );
   }
+
   renderPopover() {
     return (
       <Popover id="filter-popover">
@@ -219,6 +228,7 @@ export default class SpatialControl extends React.Component {
       </Popover>
     );
   }
+
   render() {
     return (
       <div>

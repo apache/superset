@@ -83,6 +83,7 @@ class TableElement extends React.PureComponent {
     this.setState({ expanded: false });
     this.props.actions.removeDataPreview(this.props.table);
   }
+
   toggleSortColumns() {
     this.setState({ sortColumns: !this.state.sortColumns });
   }
@@ -127,6 +128,7 @@ class TableElement extends React.PureComponent {
     }
     return header;
   }
+
   renderControls() {
     let keyLink;
     const { table } = this.props;
@@ -190,6 +192,7 @@ class TableElement extends React.PureComponent {
       </ButtonGroup>
     );
   }
+
   renderHeader() {
     const { table } = this.props;
     return (
@@ -228,6 +231,7 @@ class TableElement extends React.PureComponent {
       </div>
     );
   }
+
   renderBody() {
     const { table } = this.props;
     let cols;

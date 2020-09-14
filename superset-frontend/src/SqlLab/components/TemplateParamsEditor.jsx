@@ -56,9 +56,11 @@ export default class TemplateParamsEditor extends React.Component {
     };
     this.onChange = this.onChange.bind(this);
   }
+
   componentDidMount() {
     this.onChange(this.state.codeText);
   }
+
   onChange(value) {
     const codeText = value;
     let isValid;
@@ -75,6 +77,7 @@ export default class TemplateParamsEditor extends React.Component {
       this.props.onChange(newValue);
     }
   }
+
   renderDoc() {
     return (
       <p>
@@ -96,6 +99,7 @@ export default class TemplateParamsEditor extends React.Component {
       </p>
     );
   }
+
   renderModalBody() {
     return (
       <div>
@@ -115,6 +119,7 @@ export default class TemplateParamsEditor extends React.Component {
       </div>
     );
   }
+
   render() {
     const paramCount = this.state.parsedJSON
       ? Object.keys(this.state.parsedJSON).length

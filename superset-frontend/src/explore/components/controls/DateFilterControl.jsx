@@ -238,11 +238,13 @@ class DateFilterControl extends React.Component {
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClick);
   }
+
   onEnter(event) {
     if (event.key === 'Enter') {
       this.close();
     }
   }
+
   setCustomRange(key, value) {
     const updatedState = { ...this.state, [key]: value };
     const combinedValue = [
@@ -252,6 +254,7 @@ class DateFilterControl extends React.Component {
     ].join(' ');
     this.setState(getStateFromCustomRange(combinedValue));
   }
+
   setCustomStartEnd(key, value) {
     const closeCalendar =
       (key === 'since' && this.state.sinceViewMode === 'days') ||
@@ -265,9 +268,11 @@ class DateFilterControl extends React.Component {
       untilViewMode: closeCalendar ? 'days' : this.state.untilViewMode,
     });
   }
+
   setTypeCustomRange() {
     this.setState({ type: TYPES.CUSTOM_RANGE });
   }
+
   setTypeCustomStartEnd() {
     this.setState({ type: TYPES.CUSTOM_START_END });
   }
@@ -325,18 +330,21 @@ class DateFilterControl extends React.Component {
     this.refs.trigger.hide();
     this.setState({ showSinceCalendar: false, showUntilCalendar: false });
   }
+
   isValidSince(date) {
     return (
       !isValidMoment(this.state.until) ||
       date <= moment(this.state.until, MOMENT_FORMAT)
     );
   }
+
   isValidUntil(date) {
     return (
       !isValidMoment(this.state.since) ||
       date >= moment(this.state.since, MOMENT_FORMAT)
     );
   }
+
   toggleCalendar(key) {
     const nextState = {};
     if (key === 'showSinceCalendar') {
@@ -352,6 +360,7 @@ class DateFilterControl extends React.Component {
     }
     this.setState(nextState);
   }
+
   renderInput(props, key) {
     return (
       <FormGroup>
@@ -372,6 +381,7 @@ class DateFilterControl extends React.Component {
       </FormGroup>
     );
   }
+
   renderPopover() {
     const grainOptions = TIME_GRAIN_OPTIONS.map(grain => (
       <MenuItem
@@ -575,6 +585,7 @@ class DateFilterControl extends React.Component {
       </Popover>
     );
   }
+
   render() {
     const timeRange = this.props.value || defaultProps.value;
     return (

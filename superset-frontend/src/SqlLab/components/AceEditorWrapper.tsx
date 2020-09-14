@@ -83,11 +83,13 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     };
     this.onChange = this.onChange.bind(this);
   }
+
   componentDidMount() {
     // Making sure no text is selected from previous mount
     this.props.actions.queryEditorSetSelectedText(this.props.queryEditor, null);
     this.setAutoCompleter(this.props);
   }
+
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (
       !areArraysShallowEqual(this.props.tables, nextProps.tables) ||
@@ -103,12 +105,15 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       this.setState({ sql: nextProps.sql });
     }
   }
+
   onBlur() {
     this.props.onBlur(this.state.sql);
   }
+
   onAltEnter() {
     this.props.onBlur(this.state.sql);
   }
+
   onEditorLoad(editor: any) {
     editor.commands.addCommand({
       name: 'runQuery',
@@ -140,10 +145,12 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       }
     });
   }
+
   onChange(text: string) {
     this.setState({ sql: text });
     this.props.onChange(text);
   }
+
   getCompletions(
     aceEditor: any,
     session: any,
@@ -180,6 +187,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     });
     callback(null, words);
   }
+
   setAutoCompleter(props: Props) {
     // Loading schema, table and column names as auto-completable words
     const schemas = props.schemas || [];
@@ -236,6 +244,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       }
     });
   }
+
   getAceAnnotations() {
     const { validationResult } = this.props.queryEditor;
     const resultIsReady = validationResult && validationResult.completed;
@@ -250,6 +259,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     }
     return [];
   }
+
   render() {
     return (
       <AceEditor

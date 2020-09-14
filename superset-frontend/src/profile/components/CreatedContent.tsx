@@ -47,6 +47,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
       />
     );
   }
+
   renderDashboardTable() {
     const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
@@ -65,6 +66,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
       />
     );
   }
+
   render() {
     return (
       <div>

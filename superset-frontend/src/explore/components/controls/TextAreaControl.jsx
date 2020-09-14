@@ -68,9 +68,11 @@ export default class TextAreaControl extends React.Component {
   onControlChange(event) {
     this.props.onChange(event.target.value);
   }
+
   onAceChange(value) {
     this.props.onChange(value);
   }
+
   renderEditor(inModal = false) {
     const value = this.props.value || '';
     if (this.props.language) {
@@ -103,6 +105,7 @@ export default class TextAreaControl extends React.Component {
       </FormGroup>
     );
   }
+
   renderModalBody() {
     return (
       <div>
@@ -111,6 +114,7 @@ export default class TextAreaControl extends React.Component {
       </div>
     );
   }
+
   render() {
     const controlHeader = <ControlHeader {...this.props} />;
     return (
