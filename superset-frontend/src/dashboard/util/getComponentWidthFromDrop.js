@@ -65,9 +65,11 @@ export default function getComponentWidthFromDrop({
 
   if (Number.isNaN(destinationCapacity) || Number.isNaN(draggingWidth.width)) {
     return draggingWidth.width;
-  } else if (destinationCapacity >= draggingWidth.width) {
+  }
+  if (destinationCapacity >= draggingWidth.width) {
     return draggingWidth.width;
-  } else if (destinationCapacity >= draggingWidth.minimumWidth) {
+  }
+  if (destinationCapacity >= draggingWidth.minimumWidth) {
     return destinationCapacity;
   }
 

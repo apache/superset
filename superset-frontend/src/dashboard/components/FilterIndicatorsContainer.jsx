@@ -54,7 +54,8 @@ function sortByIndicatorLabel(indicator1, indicator2) {
   const s2 = (indicator2.label || indicator2.name).toLowerCase();
   if (s1 < s2) {
     return -1;
-  } else if (s1 > s2) {
+  }
+  if (s1 > s2) {
     return 1;
   }
   return 0;

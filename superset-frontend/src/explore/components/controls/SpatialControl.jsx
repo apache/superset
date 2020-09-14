@@ -119,9 +119,11 @@ export default class SpatialControl extends React.Component {
     }
     if (this.state.type === spatialTypes.latlong) {
       return `${this.state.lonCol} | ${this.state.latCol}`;
-    } else if (this.state.type === spatialTypes.delimited) {
+    }
+    if (this.state.type === spatialTypes.delimited) {
       return `${this.state.lonlatCol}`;
-    } else if (this.state.type === spatialTypes.geohash) {
+    }
+    if (this.state.type === spatialTypes.geohash) {
       return `${this.state.geohashCol}`;
     }
     return null;

@@ -60,7 +60,8 @@ function translateToSql(adhocMetric, { useSimple } = {}) {
     return `${subject} ${operator} ${isMulti ? "('" : ''}${comparator}${
       isMulti ? "')" : ''
     }`;
-  } else if (adhocMetric.expressionType === EXPRESSION_TYPES.SQL) {
+  }
+  if (adhocMetric.expressionType === EXPRESSION_TYPES.SQL) {
     return adhocMetric.sqlExpression;
   }
   return '';
