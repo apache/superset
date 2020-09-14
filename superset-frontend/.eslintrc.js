@@ -17,7 +17,7 @@
  * under the License.
  */
 module.exports = {
-  extends: ['airbnb', 'prettier'],
+  extends: ['airbnb', 'prettier', 'prettier/react'],
   parser: 'babel-eslint',
   parserOptions: {
     ecmaFeatures: {
@@ -37,6 +37,12 @@ module.exports = {
       },
     },
     {
+      files: ['webpack*.js'],
+      rules: {
+        'import/no-extraneous-dependencies': 0,
+      },
+    },
+    {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
       extends: [
@@ -44,24 +50,25 @@ module.exports = {
         'plugin:@typescript-eslint/recommended',
         'prettier',
         'prettier/@typescript-eslint',
+        'prettier/react',
       ],
       plugins: ['@typescript-eslint/eslint-plugin', 'prettier', 'react'],
       rules: {
         '@typescript-eslint/ban-ts-ignore': 0,
-        '@typescript-eslint/camelcase': [
-          'error',
-          {
-            allow: ['^UNSAFE_'],
-            properties: 'never',
-          },
-        ],
+        '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
+        '@typescript-eslint/ban-types': 0, // disabled temporarily
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
+        '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
+        '@typescript-eslint/no-use-before-define': 1, // disabled temporarily
+        '@typescript-eslint/no-unused-vars': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
+        '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
         camelcase: 0,
         'class-methods-use-this': 0,
         'func-names': 0,
         'guard-for-in': 0,
+        'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
         'import/extensions': [
           'error',
           {
@@ -72,19 +79,26 @@ module.exports = {
         ],
         'import/no-named-as-default': 0,
         'import/no-named-as-default-member': 0,
+        'import/no-useless-path-segments': 0, // disabled temporarily
         'import/prefer-default-export': 0,
         indent: 0,
         'jsx-a11y/anchor-has-content': 0,
-        'jsx-a11y/href-no-hash': 0,
+        'jsx-a11y/anchor-is-valid': 0, // disabled temporarily
+        'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
+        'jsx-a11y/control-has-associated-label': 0, // disabled temporarily
+        'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
+        'lines-between-class-members': 0, // disabled temporarily
         'new-cap': 0,
         'no-bitwise': 0,
         'no-confusing-arrow': 0,
         'no-continue': 0,
+        'no-else-return': 0, // disabled temporarily
         'no-mixed-operators': 0,
         'no-multi-assign': 0,
         'no-multi-spaces': 0,
         'no-plusplus': 0,
         'no-prototype-builtins': 0,
+        'no-restricted-globals': 0, // disabled temporarily
         'no-restricted-properties': 0,
         'no-restricted-syntax': 0,
         'no-restricted-imports': [
@@ -99,18 +113,30 @@ module.exports = {
             ],
           },
         ],
+        'no-shadow': 0, // re-enable up for discussion
+        'no-use-before-define': 0, // disabled temporarily
         'padded-blocks': 0,
         'prefer-arrow-callback': 0,
+        'prefer-destructuring': 0, // disabled temporarily
+        'react/default-props-match-prop-types': 0, // disabled temporarily
+        'react/destructuring-assignment': 0, // re-enable up for discussion
         'react/forbid-prop-types': 0,
+        'react/jsx-curly-brace-presence': 0, // disabled temporarily
         'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
+        'react/jsx-fragments': 1,
         'react/jsx-no-bind': 0,
+        'react/jsx-props-no-spreading': 0, // re-enable up for discussion
+        'react/no-access-state-in-setstate': 0, // disabled temporarily
         'react/no-array-index-key': 0,
         'react/no-string-refs': 0,
         'react/no-unescaped-entities': 0,
         'react/no-unused-prop-types': 0,
-        'react/require-default-props': 0,
-        'react/jsx-fragments': 1,
+        'react/no-unused-state': 0, // disabled temporarily
         'react/prop-types': 0,
+        'react/require-default-props': 0,
+        'react/sort-comp': 0, // disabled temporarily
+        'react/state-in-constructor': 0, // disabled temporarily
+        'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
       },
       settings: {
@@ -174,12 +200,20 @@ module.exports = {
         '.json': 'always',
       },
     ],
+    'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
     'import/no-named-as-default': 0,
+    'import/no-useless-path-segments': 0, // disabled temporarily
     'import/prefer-default-export': 0,
     indent: 0,
     'jsx-a11y/anchor-has-content': 0,
-    'jsx-a11y/href-no-hash': 0,
+    'jsx-a11y/anchor-is-valid': 0, // disabled temporarily
+    'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
+    'jsx-a11y/control-has-associated-label': 0, // disabled temporarily
+    'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
+    'lines-between-class-members': 0, // disabled temporarily
     'new-cap': 0,
+    'no-restricted-globals': 0, // disabled temporarily
+    'no-else-return': 0, // disabled temporarily
     'no-bitwise': 0,
     'no-confusing-arrow': 0,
     'no-continue': 0,
@@ -202,19 +236,30 @@ module.exports = {
         ],
       },
     ],
+    'no-shadow': 0, // re-enable up for discussion
     'padded-blocks': 0,
     'prefer-arrow-callback': 0,
     'prefer-object-spread': 1,
+    'prefer-destructuring': 0, // disabled temporarily
+    'react/default-props-match-prop-types': 0, // disabled temporarily
+    'react/destructuring-assignment': 0, // re-enable up for discussion
     'react/forbid-prop-types': 0,
+    'react/jsx-curly-brace-presence': 0, // disabled temporarily
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
+    'react/jsx-fragments': 1,
     'react/jsx-no-bind': 0,
+    'react/jsx-props-no-spreading': 0, // re-enable up for discussion
+    'react/no-access-state-in-setstate': 0, // disabled temporarily
     'react/no-array-index-key': 0,
     'react/no-string-refs': 0,
     'react/no-unescaped-entities': 0,
     'react/no-unused-prop-types': 0,
-    'react/require-default-props': 0,
-    'react/jsx-fragments': 1,
+    'react/no-unused-state': 0, // disabled temporarily
     'react/prop-types': 0,
+    'react/require-default-props': 0,
+    'react/sort-comp': 0, // disabled temporarily
+    'react/state-in-constructor': 0, // disabled temporarily
+    'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',
   },
   settings: {

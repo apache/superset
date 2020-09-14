@@ -20,7 +20,6 @@
     "no-multi-assign": 2,
     "no-restricted-properties": 2,
     "no-prototype-builtins": 2,
-    "jsx-a11y/href-no-hash": 2,
     "class-methods-use-this": 2,
     "import/no-named-as-default": 2,
     "import/prefer-default-export": 2,
