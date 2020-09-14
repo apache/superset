@@ -435,7 +435,7 @@ function ChartList(props: ChartListProps) {
         title={chart.slice_name}
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url ?? ''}
-        imgFallbackURL={'/static/assets/images/chart-card-fallback.png'}
+        imgFallbackURL="/static/assets/images/chart-card-fallback.png"
         description={t('Last modified %s', chart.changed_on_delta_humanized)}
         coverLeft={(chart.owners || []).slice(0, 5).map(owner => (
           <AvatarIcon

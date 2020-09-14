@@ -117,7 +117,6 @@ module.exports = {
         'react/default-props-match-prop-types': 0, // disabled temporarily
         'react/destructuring-assignment': 0, // re-enable up for discussion
         'react/forbid-prop-types': 0,
-        'react/jsx-curly-brace-presence': 0, // disabled temporarily
         'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
         'react/jsx-fragments': 1,
         'react/jsx-no-bind': 0,
@@ -236,7 +235,6 @@ module.exports = {
     'react/default-props-match-prop-types': 0, // disabled temporarily
     'react/destructuring-assignment': 0, // re-enable up for discussion
     'react/forbid-prop-types': 0,
-    'react/jsx-curly-brace-presence': 0, // disabled temporarily
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
     'react/jsx-fragments': 1,
     'react/jsx-no-bind': 0,
