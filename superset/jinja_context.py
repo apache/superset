@@ -22,7 +22,7 @@ from typing import Any, cast, List, Optional, Tuple, TYPE_CHECKING
 from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment
 
-from superset import jinja_base_context
+from superset import app, jinja_base_context
 from superset.extensions import jinja_context_manager
 from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
 
@@ -249,6 +249,16 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         return template.render(kwargs)
 
 
+class NoOpTemplateProcessor(
+    BaseTemplateProcessor
+):  # pylint: disable=too-few-public-methods
+    def process_template(self, sql: str, **kwargs: Any) -> str:
+        """
+        Makes processing a template a noop
+        """
+        return sql
+
+
 class PrestoTemplateProcessor(BaseTemplateProcessor):
     """Presto Jinja context
 
@@ -327,6 +337,6 @@ def get_template_processor(
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
     template_processor = template_processors.get(
-        database.backend, BaseTemplateProcessor
+        database.backend, app.config["JINJA_BASE_TEMPLATE_PROCESSOR"]
     )
     return template_processor(database=database, table=table, query=query, **kwargs)

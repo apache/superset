@@ -39,6 +39,7 @@ from pandas.io.parsers import STR_NA_VALUES
 
 from superset.jinja_context import (  # pylint: disable=unused-import
     BaseTemplateProcessor,
+    NoOpTemplateProcessor,
 )
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
@@ -636,6 +637,11 @@ ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[
 
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
+
+# By default Jinja2 template processing is disabled
+# You can re enable it by defining:
+# JINJA_BASE_TEMPLATE_PROCESSOR = BaseTemplateProcessor
+JINJA_BASE_TEMPLATE_PROCESSOR: Type[BaseTemplateProcessor] = NoOpTemplateProcessor
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
