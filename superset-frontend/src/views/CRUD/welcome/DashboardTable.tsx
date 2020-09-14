@@ -92,11 +92,14 @@ class DashboardTable extends React.PureComponent<
 
   initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  state = {
-    dashboards: [],
-    dashboard_count: 0,
-    loading: false,
-  };
+  constructor(props: DashboardTableProps) {
+    super(props);
+    this.state = {
+      dashboards: [],
+      dashboard_count: 0,
+      loading: false,
+    };
+  }
 
   componentDidUpdate(prevProps: DashboardTableProps) {
     if (prevProps.search !== this.props.search) {
