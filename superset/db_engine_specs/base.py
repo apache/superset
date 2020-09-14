@@ -675,8 +675,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # It's expected that some dialects don't implement the comment fetching method
             pass
         except Exception as e:
-            logging.error("Unexpected error while fetching table comment")
-            logging.exception(e)
+            logger.error("Unexpected error while fetching table comment")
+            logger.exception(e)
         return comment
 
     @classmethod
