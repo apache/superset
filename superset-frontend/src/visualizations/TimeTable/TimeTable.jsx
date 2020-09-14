@@ -121,7 +121,7 @@ class TimeTable extends React.PureComponent {
     if (column.timeRatio) {
       // Period ratio sparkline
       sparkData = [];
-      for (let i = column.timeRatio; i < entries.length; i++) {
+      for (let i = column.timeRatio; i < entries.length; i += 1) {
         const prevData = entries[i - column.timeRatio][valueField];
         if (prevData && prevData !== 0) {
           sparkData.push(entries[i][valueField] / prevData);

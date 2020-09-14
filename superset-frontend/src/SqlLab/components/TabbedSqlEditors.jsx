@@ -202,7 +202,7 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
   popNewTab() {
-    queryCount++;
+    queryCount += 1;
     // Clean the url in browser history
     window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
@@ -221,7 +221,7 @@ class TabbedSqlEditors extends React.PureComponent {
     return this.props.queryEditors.find(qe => qe.id === qeid) || null;
   }
   newQueryEditor() {
-    queryCount++;
+    queryCount += 1;
     const activeQueryEditor = this.activeQueryEditor();
     const firstDbId = Math.min(
       ...Object.values(this.props.databases).map(database => database.id),
