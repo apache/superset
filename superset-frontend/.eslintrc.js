@@ -96,7 +96,6 @@ module.exports = {
         'no-multi-spaces': 0,
         'no-plusplus': 0,
         'no-prototype-builtins': 0,
-        'no-restricted-globals': 0, // disabled temporarily
         'no-restricted-properties': 0,
         'no-restricted-syntax': 0,
         'no-restricted-imports': [
@@ -208,7 +207,6 @@ module.exports = {
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
     'lines-between-class-members': 0, // disabled temporarily
     'new-cap': 0,
-    'no-restricted-globals': 0, // disabled temporarily
     'no-else-return': 0, // disabled temporarily
     'no-bitwise': 0,
     'no-continue': 0,

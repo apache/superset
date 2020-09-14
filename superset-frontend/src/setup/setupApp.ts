@@ -75,7 +75,7 @@ export default function setupApp() {
         url: ev.currentTarget.href,
         parseMethod: null,
       }).then(() => {
-        location.reload();
+        window.location.reload();
       });
     });
   });
