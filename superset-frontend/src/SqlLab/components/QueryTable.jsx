@@ -48,26 +48,11 @@ const defaultProps = {
 };
 
 class QueryTable extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    const uri = window.location.toString();
-    const cleanUri = uri.substring(0, uri.indexOf('#'));
-    this.state = {
-      cleanUri,
-      showVisualizeModal: false,
-      activeQuery: null,
-    };
-  }
   openQuery(id) {
     const url = `/superset/sqllab?queryId=${id}`;
     window.open(url);
   }
-  hideVisualizeModal() {
-    this.setState({ showVisualizeModal: false });
-  }
-  showVisualizeModal(query) {
-    this.setState({ activeQuery: query, showVisualizeModal: true });
-  }
+
   restoreSql(query) {
     this.props.actions.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
   }

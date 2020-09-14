@@ -49,10 +49,8 @@ class SaveModal extends React.Component {
     this.state = {
       saveToDashboardId: null,
       newSliceName: props.sliceName,
-      dashboards: [],
       alert: null,
       action: props.can_overwrite ? 'overwrite' : 'saveas',
-      vizType: props.form_data.viz_type,
     };
     this.onDashboardSelectChange = this.onDashboardSelectChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);

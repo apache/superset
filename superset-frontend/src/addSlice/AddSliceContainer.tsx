@@ -75,7 +75,6 @@ export default class AddSliceContainer extends React.PureComponent<
     this.setState({
       datasourceValue: option.value,
       datasourceId: option.value.split('__')[0],
-      datasourceType: option.value.split('__')[1],
     });
   }
 
