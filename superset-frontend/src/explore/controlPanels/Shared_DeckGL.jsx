@@ -27,7 +27,7 @@ import {
   columnChoices,
 } from '@superset-ui/chart-controls';
 import { PRIMARY_COLOR } from '../controls';
-import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
+import { DEFAULT_VIEWPORT } from '../components/controls/ViewportControl';
 
 const sandboxUrl =
   'https://github.com/apache/incubator-superset/' +
