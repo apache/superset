@@ -1700,6 +1700,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             entry="dashboard",
             standalone_mode=standalone_mode,
             title=dash.dashboard_title,
+            custom_css=dashboard_data.get("css"),
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
