@@ -18,7 +18,6 @@
  */
 
 import shortid from 'shortid';
-import readResponseBlob from '../../utils/readResponseBlob';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 function openDashboardEditProperties() {
@@ -52,10 +51,11 @@ describe('Dashboard save action', () => {
   });
 
   it('should save/overwrite dashboard', () => {
-    // should have box_plot chart
     cy.get('[data-test="grid-row-background--transparent"]').within(() => {
       cy.get('.box_plot', { timeout: 10000 }).should('be.visible');
     });
+    // should load chart
+    cy.get('.dashboard-grid', { timeout: 50000 }); // wait for 50 secs
 
     // remove box_plot chart from dashboard
     cy.get('[data-test="edit-alt"]').click({ timeout: 5000 });
