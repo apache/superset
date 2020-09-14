@@ -188,7 +188,7 @@ export function Menu({
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}
           {settings && settings.length && (
-            <NavDropdown id={`settings-dropdown`} title="Settings">
+            <NavDropdown id="settings-dropdown" title="Settings">
               {flatSettings.map((section, index) => {
                 if (section === '-') {
                   return (
