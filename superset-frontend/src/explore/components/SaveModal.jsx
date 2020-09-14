@@ -135,6 +135,7 @@ class SaveModal extends React.Component {
               {this.state.alert ? this.state.alert : this.props.alert}
               <i
                 role="button"
+                aria-label="Remove alert"
                 tabIndex={0}
                 className="fa fa-close pull-right"
                 onClick={this.removeAlert.bind(this)}

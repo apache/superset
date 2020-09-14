@@ -67,6 +67,7 @@ export default class ControlPanelSection extends React.Component {
           </span>
           <i
             role="button"
+            aria-label="Toggle expand"
             tabIndex={0}
             className={`float-right fa-lg text-primary expander fa fa-angle-${
               this.state.expanded ? 'up' : 'down'
