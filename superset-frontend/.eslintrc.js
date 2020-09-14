@@ -59,7 +59,6 @@ module.exports = {
         '@typescript-eslint/ban-types': 0, // disabled temporarily
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
-        '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/no-use-before-define': 1, // disabled temporarily
         '@typescript-eslint/no-unused-vars': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
@@ -95,7 +94,6 @@ module.exports = {
         'no-multi-spaces': 0,
         'no-plusplus': 0,
         'no-prototype-builtins': 0,
-        'no-restricted-globals': 0, // disabled temporarily
         'no-restricted-properties': 0,
         'no-restricted-syntax': 0,
         'no-restricted-imports': [
@@ -118,7 +116,6 @@ module.exports = {
         'react/default-props-match-prop-types': 0, // disabled temporarily
         'react/destructuring-assignment': 0, // re-enable up for discussion
         'react/forbid-prop-types': 0,
-        'react/jsx-curly-brace-presence': 0, // disabled temporarily
         'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
         'react/jsx-fragments': 1,
         'react/jsx-no-bind': 0,
@@ -130,7 +127,6 @@ module.exports = {
         'react/no-unused-prop-types': 0,
         'react/prop-types': 0,
         'react/require-default-props': 0,
-        'react/sort-comp': 0, // disabled temporarily
         'react/state-in-constructor': 0, // disabled temporarily
         'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
@@ -207,7 +203,6 @@ module.exports = {
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
     'lines-between-class-members': 0, // disabled temporarily
     'new-cap': 0,
-    'no-restricted-globals': 0,
     'no-bitwise': 0,
     'no-continue': 0,
     'no-mixed-operators': 0,
@@ -237,7 +232,6 @@ module.exports = {
     'react/default-props-match-prop-types': 0, // disabled temporarily
     'react/destructuring-assignment': 0, // re-enable up for discussion
     'react/forbid-prop-types': 0,
-    'react/jsx-curly-brace-presence': 0, // disabled temporarily
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
     'react/jsx-fragments': 1,
     'react/jsx-no-bind': 0,
@@ -249,7 +243,6 @@ module.exports = {
     'react/no-unused-prop-types': 0,
     'react/prop-types': 0,
     'react/require-default-props': 0,
-    'react/sort-comp': 0, // disabled temporarily
     'react/state-in-constructor': 0, // disabled temporarily
     'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',

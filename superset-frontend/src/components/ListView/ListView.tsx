@@ -106,7 +106,7 @@ const bulkSelectColumnConfig = {
   Header: ({ getToggleAllRowsSelectedProps }: any) => (
     <IndeterminateCheckbox
       {...getToggleAllRowsSelectedProps()}
-      id={'header-toggle-all'}
+      id="header-toggle-all"
     />
   ),
   id: 'selection',

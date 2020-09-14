@@ -241,9 +241,9 @@ class ExploreViewContainer extends React.Component {
     const longUrl = getExploreLongUrl(this.props.form_data, null, false);
     try {
       if (isReplace) {
-        history.replaceState(payload, title, longUrl);
+        window.history.replaceState(payload, title, longUrl);
       } else {
-        history.pushState(payload, title, longUrl);
+        window.history.pushState(payload, title, longUrl);
       }
     } catch (e) {
       logging.warn(
@@ -268,7 +268,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   handlePopstate() {
-    const formData = history.state;
+    const formData = window.history.state;
     if (formData && Object.keys(formData).length) {
       this.props.actions.setExploreControls(formData);
       this.props.actions.postChartFormData(
