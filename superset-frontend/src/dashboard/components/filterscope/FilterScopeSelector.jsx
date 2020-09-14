@@ -303,7 +303,7 @@ export default class FilterScopeSelector extends React.PureComponent {
 
     const allFilterFieldScopes = this.allfilterFields.reduce(
       (map, filterKey) => {
-        const nodes = filterScopeMap[filterKey].nodes;
+        const { nodes } = filterScopeMap[filterKey];
         const checkedChartIds = filterScopeMap[filterKey].checked;
 
         return {

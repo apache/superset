@@ -51,7 +51,7 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
     [REMOVE_SLICE]() {
-      const sliceId = action.sliceId;
+      const { sliceId } = action;
       const updatedSliceIds = new Set(state.sliceIds);
       updatedSliceIds.delete(sliceId);
 
@@ -88,7 +88,7 @@ export default function dashboardStateReducer(state = {}, action) {
     },
     [TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.expandedSlices };
-      const sliceId = action.sliceId;
+      const { sliceId } = action;
       if (updatedExpandedSlices[sliceId]) {
         delete updatedExpandedSlices[sliceId];
       } else {
