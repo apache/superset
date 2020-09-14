@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 -r base.in
--r integration.in
+-r development.in
 flask-testing
 docker
 ipdb
