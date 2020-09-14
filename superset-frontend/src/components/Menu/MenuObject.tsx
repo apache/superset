@@ -39,7 +39,6 @@ export interface MenuObjectProps {
 
 export default function MenuObject({
   label,
-  icon,
   childs,
   url,
   index,
