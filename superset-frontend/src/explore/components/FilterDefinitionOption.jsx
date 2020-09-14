@@ -40,9 +40,11 @@ export default function FilterDefinitionOption({ option }) {
         <span className="option-label">{option.saved_metric_name}</span>
       </div>
     );
-  } else if (option.column_name) {
+  }
+  if (option.column_name) {
     return <ColumnOption column={option} showType />;
-  } else if (option.label) {
+  }
+  if (option.label) {
     return <AdhocMetricStaticOption adhocMetric={option} showType />;
   }
 }

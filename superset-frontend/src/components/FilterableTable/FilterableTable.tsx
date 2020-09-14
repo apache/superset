@@ -323,12 +323,15 @@ export default class FilterableTable extends PureComponent<
       if (aValue === bValue) {
         // equal items sort equally
         return 0;
-      } else if (aValue === null) {
+      }
+      if (aValue === null) {
         // nulls sort after anything else
         return 1;
-      } else if (bValue === null) {
+      }
+      if (bValue === null) {
         return -1;
-      } else if (descending) {
+      }
+      if (descending) {
         return aValue < bValue ? 1 : -1;
       }
       return aValue < bValue ? -1 : 1;

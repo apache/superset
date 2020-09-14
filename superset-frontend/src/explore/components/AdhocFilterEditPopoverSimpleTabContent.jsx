@@ -60,11 +60,14 @@ const defaultProps = {
 function translateOperator(operator) {
   if (operator === OPERATORS['==']) {
     return 'equals';
-  } else if (operator === OPERATORS['!=']) {
+  }
+  if (operator === OPERATORS['!=']) {
     return 'not equal to';
-  } else if (operator === OPERATORS.LIKE) {
+  }
+  if (operator === OPERATORS.LIKE) {
     return 'like';
-  } else if (operator === OPERATORS['LATEST PARTITION']) {
+  }
+  if (operator === OPERATORS['LATEST PARTITION']) {
     return 'use latest_partition template';
   }
   return operator;
