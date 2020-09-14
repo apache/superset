@@ -283,12 +283,14 @@ class ExploreViewContainer extends React.Component {
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
   }
+
   hasErrors() {
     const ctrls = this.props.controls;
     return Object.keys(ctrls).some(
       k => ctrls[k].validationErrors && ctrls[k].validationErrors.length > 0,
     );
   }
+
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
     const errors = [];
@@ -311,6 +313,7 @@ class ExploreViewContainer extends React.Component {
     }
     return errorMessage;
   }
+
   renderChartContainer() {
     return (
       <ExploreChartPanel

@@ -124,10 +124,15 @@ export default class FilterableTable extends PureComponent<
   };
 
   list: List<Datum>;
+
   complexColumns: Record<string, boolean>;
+
   widthsForColumnsByKey: Record<string, number>;
+
   totalTableWidth: number;
+
   totalTableHeight: number;
+
   container: React.RefObject<HTMLDivElement>;
 
   constructor(props: FilterableTableProps) {

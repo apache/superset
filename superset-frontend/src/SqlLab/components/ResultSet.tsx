@@ -86,10 +86,12 @@ export default class ResultSet extends React.PureComponent<
       this,
     );
   }
+
   componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
   }
+
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
     // when new results comes in, save them locally and clear in store
     if (
@@ -110,9 +112,11 @@ export default class ResultSet extends React.PureComponent<
       this.fetchResults(nextProps.query);
     }
   }
+
   clearQueryResults(query: Query) {
     this.props.actions.clearQueryResults(query);
   }
+
   popSelectStar(tempSchema: string | null, tempTable: string) {
     const qe = {
       id: shortid.generate(),
@@ -123,20 +127,25 @@ export default class ResultSet extends React.PureComponent<
     };
     this.props.actions.addQueryEditor(qe);
   }
+
   toggleExploreResultsButton() {
     this.setState({
       showExploreResultsButton: !this.state.showExploreResultsButton,
     });
   }
+
   changeSearch(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({ searchText: event.target.value });
   }
+
   fetchResults(query: Query) {
     this.props.actions.fetchQueryResults(query, this.props.displayLimit);
   }
+
   reFetchQueryResults(query: Query) {
     this.props.actions.reFetchQueryResults(query);
   }
+
   reRunQueryIfSessionTimeoutErrorOnMount() {
     const { query } = this.props;
     if (
@@ -146,6 +155,7 @@ export default class ResultSet extends React.PureComponent<
       this.props.actions.runQuery(query, true);
     }
   }
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let { data } = this.props.query.results;
@@ -198,6 +208,7 @@ export default class ResultSet extends React.PureComponent<
     }
     return <div className="noControls" />;
   }
+
   render() {
     const { query } = this.props;
     const height = Math.max(
