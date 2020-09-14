@@ -47,7 +47,7 @@ export function formatSelectOptionsForRange(start, end) {
   // formatSelectOptionsForRange(1, 5)
   // returns [[1,1], [2,2], [3,3], [4,4], [5,5]]
   const options = [];
-  for (let i = start; i <= end; i++) {
+  for (let i = start; i <= end; i += 1) {
     options.push([i, i.toString()]);
   }
   return options;
