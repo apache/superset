@@ -132,10 +132,12 @@ const Resources = () => {
             <span>
               Here’s a collection of resources and blogs about Apache Superset
               from around the Internet. For a more more extensive and dynamic
-              list of resources, check out the{' '}
+              list of resources, check out the
+              {' '}
               <a href="https://github.com/apache-superset/awesome-apache-superset">
                 Awesome Apache Superset
-              </a>{' '}
+              </a>
+              {' '}
               repository
             </span>
           </section>
@@ -176,6 +178,7 @@ const Resources = () => {
               {youtubeVideos.map(([id, title], idx) => (
                 <Card.Grid>
                   <div
+                    role="button"
                     onClick={() => {
                       setModal(true);
                       setVideoId(idx);
