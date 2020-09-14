@@ -1065,9 +1065,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form["data"])
         DashboardDAO.set_dash_metadata(dash, data)
-        security_manager.update_dashboard_permission(dash)
         session.merge(dash)
         session.commit()
+        security_manager.update_dashboard_permission(dash)
         session.close()
         return json_success(json.dumps({"status": "SUCCESS"}))
 

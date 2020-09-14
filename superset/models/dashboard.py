@@ -42,9 +42,7 @@ from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
-from superset.dashboards.security import (
-    DashboardSecurityMixin,
-)
+from superset.dashboards.security import DashboardSecurityMixin
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater

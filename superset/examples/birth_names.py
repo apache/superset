@@ -38,6 +38,7 @@ from .helpers import (
     TBL,
     update_slice_ids,
 )
+from ..dashboards.security import is_dashboard_level_access_enabled
 
 
 def gen_filter(
@@ -474,8 +475,14 @@ def load_birth_names(
         misc_dash_slices.add(slc.slice_name)
 
     print("Creating a dashboard")
-    dash = db.session.query(Dashboard).filter_by(slug="births").first()
+    dash = __configure_dash(slices)
 
+    if is_dashboard_level_access_enabled:
+        security_manager.add_permissions_views(dash.permission_view_pairs)
+
+
+def __configure_dash(slices):
+    dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
         db.session.add(dash)
@@ -772,3 +779,4 @@ def load_birth_names(
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"
     db.session.commit()
+    return dash

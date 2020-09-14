@@ -516,8 +516,8 @@ class TestDashboard(SupersetTestCase):
         copy_dashboard_id = copied_response.get("id")
         self.__delete_dashboard(copy_dashboard_id)
 
-    def __delete_dashboard(self, copy_dashboard_id):
-        delete_dashboard_url = DELETE_DASHBOARD_URL_FORMAT.format(copy_dashboard_id)
+    def __delete_dashboard(self, dashboard_id):
+        delete_dashboard_url = DELETE_DASHBOARD_URL_FORMAT.format(dashboard_id)
         self.get_resp(delete_dashboard_url, {})
 
     def test_add_slices(self, username=ADMIN_USERNAME):

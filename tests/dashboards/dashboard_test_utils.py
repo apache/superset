@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import List, Optional
 
-from superset import db, is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager, app, appbuilder
 from superset.constants import Security
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+
+logger = logging.getLogger(__name__)
 
 
 def assert_permission_was_created(case, dashboard):
@@ -50,35 +53,46 @@ def assign_dashboard_permissions_to_multiple_roles(dashboard):
     permission_name, view_name = dashboard.permission_view_pairs[0]
     pv = security_manager.find_permission_view_menu(permission_name, view_name)
 
-    for i in range(number_of_roles):
-        security_manager.add_permission_role(
-            security_manager.add_role("dashboard_permission_role" + str(i)), pv
-        )
+    if pv:
+        logger.info(f"permission view is {pv.__repr__}")
+        for i in range(number_of_roles):
+            role = security_manager.add_role(dashboard_permission_role_pattern(i))
+            logger.info(f"role {role.name} created")
+            security_manager.add_permission_role(role, pv)
+    else:
+        logger.warning("permission view not found")
 
 
 def clean_dashboard_matching_roles():
     for i in range(number_of_roles):
-        security_manager.del_role("dashboard_permission_role" + str(i))
+        security_manager.del_role(dashboard_permission_role_pattern(i))
+
+
+def dashboard_permission_role_pattern(i):
+    return "dashboard_permission_role" + str(i)
 
 
 def is_dashboard_level_access_enabled():
     return is_feature_enabled(Security.DASHBOARD_LEVEL_ACCESS_FEATURE)
 
 
+inserted_dashboards_ids = []
+
+
 def insert_dashboard(
-    dashboard_title: str,
-    slug: Optional[str],
-    owners: List[int],
-    slices: Optional[List[Slice]] = None,
-    position_json: str = "",
-    css: str = "",
-    json_metadata: str = "",
-    published: bool = False,
+        dashboard_title: str,
+        slug: Optional[str],
+        owners: List[int],
+        slices: Optional[List[Slice]] = None,
+        position_json: str = "",
+        css: str = "",
+        json_metadata: str = "",
+        published: bool = False,
 ) -> Dashboard:
     obj_owners = list()
     slices = slices or []
     for owner in owners:
-        user = db.session.query(security_manager.user_model).get(owner)
+        user = appbuilder.get_session.query(security_manager.user_model).get(owner)
         obj_owners.append(user)
     dashboard = Dashboard(
         dashboard_title=dashboard_title,
@@ -90,10 +104,35 @@ def insert_dashboard(
         slices=slices,
         published=published,
     )
-    db.session.add(dashboard)
-    db.session.commit()
+    appbuilder.get_session.add(dashboard)
+    appbuilder.get_session.commit()
+
+    appbuilder.get_session.refresh(dashboard)
+
+    inserted_dashboards_ids.append(dashboard.id)
+
     if is_dashboard_level_access_enabled():
-        security_manager.set_permissions_views_by_session(
+        security_manager.add_permissions_views(
             dashboard.permission_view_pairs
         )
     return dashboard
+
+
+def delete_all_inserted_dashboards():
+        try:
+            for dashboard_id in inserted_dashboards_ids:
+                try:
+                    logger.info(f"deleting dashboard{dashboard_id}")
+                    dashboard = appbuilder.get_session.query(Dashboard).filter_by(id=dashboard_id).first()
+                    if dashboard:
+                        security_manager.del_permissions_views(
+                            dashboard.permission_view_pairs
+                        )
+                        appbuilder.get_session.delete(dashboard)
+                except:
+                    logger.error(f"failed to delete {dashboard_id}",exc_info=True)
+            if len(inserted_dashboards_ids) > 0:
+                appbuilder.get_session.commit()
+                inserted_dashboards_ids.clear()
+        except:
+            logger.error("delete_all_inserted_dashboards failed",exc_info=True)

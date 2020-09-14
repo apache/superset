@@ -60,6 +60,15 @@ class DashboardModelView(
 
         return super().render_app_template()
 
+    @expose("/delete/<pk>", methods=["GET", "POST"])
+    @has_access
+    def delete(self, pk):
+        dash = db.session.query(models.Dashboard).filter_by(id=int(pk)).one()
+        permission_view_pairs = dash.permission_view_pairs
+        redirect_url = super().delete(pk)
+        security_manager.del_permissions_views(permission_view_pairs)
+        return redirect_url
+
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
     def mulexport(  # pylint: disable=no-self-use
         self, items: Union["DashboardModelView", List["DashboardModelView"]]
@@ -116,7 +125,7 @@ class Dashboard(BaseSupersetView):
 
         db.session.add(new_dashboard)
         db.session.commit()
-        security_manager.set_permissions_views_by_session(
+        security_manager.add_permissions_views(
             new_dashboard.permission_view_pairs
         )
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")

@@ -113,9 +113,9 @@ class SupersetTestCase(TestCase):
         email: str = "admin@fab.org",
     ) -> Union[ab_models.User, bool]:
         role_admin = security_manager.find_role(role_name)
-        return security_manager.add_user(
-            username, first_name, last_name, email, role_admin, password
-        )
+        user = security_manager.add_user(username, first_name, last_name, email, role_admin, password)
+        user = security_manager.find_user(username) if not user else user
+        return user
 
     @staticmethod
     def get_user(username: str) -> ab_models.User:

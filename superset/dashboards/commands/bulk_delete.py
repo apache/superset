@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import itertools
 import logging
 from typing import List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DeleteFailedError
 from superset.dashboards.commands.exceptions import (
@@ -44,6 +46,11 @@ class BulkDeleteDashboardCommand(BaseCommand):
         self.validate()
         try:
             DashboardDAO.bulk_delete(self._models)
+            lists = map((lambda x: x.permission_view_pairs),self._models)
+            merged_lists=list(itertools.chain.from_iterable(lists))
+            security_manager.del_permissions_views(
+                merged_lists
+            )
             return None
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
