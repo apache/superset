@@ -94,7 +94,6 @@ module.exports = {
         'no-mixed-operators': 0,
         'no-multi-assign': 0,
         'no-multi-spaces': 0,
-        'no-plusplus': 0,
         'no-prototype-builtins': 0,
         'no-restricted-globals': 0, // disabled temporarily
         'no-restricted-properties': 0,
@@ -215,7 +214,6 @@ module.exports = {
     'no-mixed-operators': 0,
     'no-multi-assign': 0,
     'no-multi-spaces': 0,
-    'no-plusplus': 0,
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-syntax': 0,

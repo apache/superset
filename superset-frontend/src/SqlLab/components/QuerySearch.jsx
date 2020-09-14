@@ -154,7 +154,7 @@ class QuerySearch extends React.PureComponent {
 
   userMutator(data) {
     const options = [];
-    for (let i = 0; i < data.pks.length; i++) {
+    for (let i = 0; i < data.pks.length; i += 1) {
       options.push({
         value: data.pks[i],
         label: this.userLabel(data.result[i]),
