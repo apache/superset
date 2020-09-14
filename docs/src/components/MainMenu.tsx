@@ -79,7 +79,7 @@ const MenuItems = ({ mode, toggleDrawer }: menuProps) => {
   return (
     <Menu mode={mode} selectedKeys={getCurrentPath()}>
       <Menu.Item key="docsintro" style={leftStyle} className="menu-lg">
-        <Link to="/docs/intro">Documentation</Link>
+        <Link to="/docs">Documentation</Link>
       </Menu.Item>
       <Menu.Item key="community" style={leftStyle} className="menu-lg">
         <Link to="/community">Community</Link>

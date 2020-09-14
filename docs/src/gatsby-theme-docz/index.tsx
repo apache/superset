@@ -34,6 +34,10 @@ interface Props {
 const docLayout = css`
   display: flex;
   flex-direction: row;
+  .docContainer {
+    word-wrap: break-all;
+    width: 100%;
+  }
 `;
 
 const Theme = ({ children }: Props) => {
@@ -43,7 +47,7 @@ const Theme = ({ children }: Props) => {
       <Layout>
         <SEO title="Documentation" />
         <div css={docLayout}>
-          <div>{children}</div>
+          <div className="docContainer">{children}</div>
           <AnchorNavigator />
         </div>
         <div>

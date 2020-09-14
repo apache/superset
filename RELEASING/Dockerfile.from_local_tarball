@@ -33,7 +33,7 @@ RUN apt-get install -y build-essential libssl-dev \
     libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
 
 # Install nodejs for custom build
-# https://superset.incubator.apache.org/installation.html#making-your-own-build
+# https://superset.incubator.apache.org/docs/installation/installing-superset-from-scratch
 # https://nodejs.org/en/download/package-manager/
 RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
     && apt-get install -y nodejs

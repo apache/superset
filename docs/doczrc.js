@@ -27,9 +27,9 @@ export default {
     'Connecting to Databases',
     'Creating Charts and Dashboards',
     'Miscellaneous',
+    'Security',
     'Frequently Asked Questions',
     'Contribution Guide',
     'Roadmap',
-    'Security',
   ],
 };

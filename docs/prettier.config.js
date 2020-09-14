@@ -17,5 +17,9 @@
  * under the License.
  */
 {
-	"endOfLine":"lf", "semi":false,"singleQuote":false,"tabWidth": 2,"trailingComma":"es5"
+	"endOfLine":"lf", 
+	"semi":false,
+	"singleQuote":false,
+	"tabWidth": 2,
+	"trailingComma":"es5"
 }

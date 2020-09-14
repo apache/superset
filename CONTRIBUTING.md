@@ -299,31 +299,53 @@ cd incubator-superset
 
 ### Documentation
 
-The latest documentation and tutorial are available at https://superset.apache.org/.
+The latest documentation and tutorial are available at https://superset.apache.org/docs.
 
 The site is written using the Gatsby framework and docz for the
 documentation subsection. Find out more about it in `docs/README.md`
 
-#### Images
+The source for the docs can be fround in 
+[/docs](https://github.com/apache/incubator-superset/tree/master/docs) subdirectory of the repository, 
+and are written in the MDX format. [MDX]
+(https://storybook.js.org/docs/react/api/mdx) is basically Markdown with the ability to sprinkle in JSX code.
 
-If you're adding new images to the documentation, you'll notice that the images
-referenced in the rst, e.g.
+Rendering the docs is powered by [DocZ](https://www.docz.site/), 
+which is built on top of [GatsbyJS](https://www.gatsbyjs.com/).
 
-    .. image:: _static/images/tutorial/tutorial_01_sources_database.png
+#### DocZ Installation
 
-aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset-frontend/images` directory.
-When the docs are deployed to https://superset.incubator.apache.org/, images
-are copied from there to the `_static/images` directory, just like they're referenced
-in the docs.
+First, `cd` into the `/docs` folder from `incubator-superset`:
 
-For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
+```
+cd docs/
+```
+
+Then, install the Node packages that this project needs:
+
+```
+npm install
+```
+
+To start the server and render the docs, you need to run:
+
+```
+npm run develop
+```
+
+
+#### Making Changes to the Documentation
+
+Every time you make changes to files in the `/docs` repo, DocZ will automatically rebuild and serve the changes to you. If you make more complex changes, sometimes DocZ will serve a 404 page with an error. When that happens, you can run the following command to clean any built-up state:
+
+```
+npm run clean
+```
 
 ### Flask server
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/docs/installation/installing-from -scratch) before following these steps.
 
 Ensure Python versions >3.7, Then proceed with:
 
