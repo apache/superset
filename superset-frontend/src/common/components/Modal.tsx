@@ -86,6 +86,7 @@ export default function Modal({
   onHide,
   onHandledPrimaryAction,
   primaryButtonName,
+  primaryButtonType = 'primary',
   show,
   title,
   width,
