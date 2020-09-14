@@ -86,7 +86,7 @@ const Image = ({
       getAllImages: allImageSharp {
         edges {
           node {
-            fixed(height: 70) {
+            fixed(height: 50) {
               ...GatsbyImageSharpFixed
               originalName
             }
