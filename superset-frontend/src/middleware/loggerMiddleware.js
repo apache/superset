@@ -117,7 +117,7 @@ const loggerMiddleware = store => next => action => {
   }
 
   if (eventData.target_id && dashboardLayout.present) {
-    const meta = dashboardLayout.present[eventData.target_id].meta;
+    const { meta } = dashboardLayout.present[eventData.target_id];
     // chart name or tab/header text
     eventData.target_name = meta.chartId ? meta.sliceName : meta.text;
   }

@@ -148,9 +148,9 @@ export default class ResultSet extends React.PureComponent<
   }
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
-      let data = this.props.query.results.data;
+      let { data } = this.props.query.results;
       if (this.props.cache && this.props.query.cached) {
-        data = this.state.data;
+        ({ data } = this.state);
       }
       return (
         <div className="ResultSetControls">
@@ -199,7 +199,7 @@ export default class ResultSet extends React.PureComponent<
     return <div className="noControls" />;
   }
   render() {
-    const query = this.props.query;
+    const { query } = this.props;
     const height = Math.max(
       0,
       this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height,
@@ -263,12 +263,12 @@ export default class ResultSet extends React.PureComponent<
         </div>
       );
     } else if (query.state === 'success' && query.results) {
-      const results = query.results;
+      const { results } = query;
       let data;
       if (this.props.cache && query.cached) {
-        data = this.state.data;
+        ({ data } = this.state);
       } else if (results && results.data) {
-        data = results.data;
+        ({ data } = results);
       }
       if (data && data.length > 0) {
         const expandedColumns = results.expanded_columns

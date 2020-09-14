@@ -37,7 +37,7 @@ export default class TextControl extends React.Component<TextControlProps> {
     this.onChange = this.onChange.bind(this);
   }
   onChange(event: any) {
-    let value = event.target.value;
+    let { value } = event.target;
 
     // Validation & casting
     const errors = [];

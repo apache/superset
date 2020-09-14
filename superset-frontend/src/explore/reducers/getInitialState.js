@@ -28,7 +28,7 @@ import {
 
 export default function getInitialState(bootstrapData) {
   const { form_data: rawFormData } = bootstrapData;
-  const slice = bootstrapData.slice;
+  const { slice } = bootstrapData;
   const sliceName = slice ? slice.slice_name : null;
   const bootstrappedState = {
     ...bootstrapData,

@@ -31,7 +31,7 @@ configure({ adapter: new Adapter() });
 
 const exposedProperties = ['window', 'navigator', 'document'];
 
-const defaultView = document.defaultView;
+const { defaultView } = document;
 if (defaultView != null) {
   Object.keys(defaultView).forEach(property => {
     if (typeof global[property] === 'undefined') {

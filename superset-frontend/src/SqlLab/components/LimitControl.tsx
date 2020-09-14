@@ -85,7 +85,7 @@ export default class LimitControl extends React.PureComponent<
   }
 
   renderPopover() {
-    const textValue = this.state.textValue;
+    const { textValue } = this.state;
     const isValid = this.isValidLimit(textValue);
     const errorMsg =
       t('Row limit must be positive integer') +

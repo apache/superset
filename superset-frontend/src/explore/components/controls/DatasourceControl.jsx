@@ -60,7 +60,6 @@ class DatasourceControl extends React.PureComponent {
     this.state = {
       showEditDatasourceModal: false,
       showChangeDatasourceModal: false,
-      menuExpanded: false,
     };
     this.onDatasourceSave = this.onDatasourceSave.bind(this);
     this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(
@@ -97,7 +96,7 @@ class DatasourceControl extends React.PureComponent {
   }
 
   renderDatasource() {
-    const datasource = this.props.datasource;
+    const { datasource } = this.props;
     return (
       <div className="m-t-10">
         <Well className="m-t-0">
@@ -171,7 +170,7 @@ class DatasourceControl extends React.PureComponent {
           <OverlayTrigger
             placement="right"
             overlay={
-              <Tooltip id={'toggle-datasource-tooltip'}>
+              <Tooltip id="toggle-datasource-tooltip">
                 {t('Expand/collapse datasource configuration')}
               </Tooltip>
             }

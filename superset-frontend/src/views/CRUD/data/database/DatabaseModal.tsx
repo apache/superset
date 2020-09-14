@@ -212,7 +212,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const target = event.target;
+    const { target } = event;
     const data = {
       database_name: db ? db.database_name : '',
       sqlalchemy_uri: db ? db.sqlalchemy_uri : '',

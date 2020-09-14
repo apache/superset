@@ -132,7 +132,7 @@ class Header extends React.PureComponent {
   }
 
   componentDidMount() {
-    const refreshFrequency = this.props.refreshFrequency;
+    const { refreshFrequency } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
   }
 
@@ -466,7 +466,7 @@ class Header extends React.PureComponent {
                 setColorSchemeAndUnsavedChanges(updates.colorScheme);
                 dashboardTitleChanged(updates.title);
                 if (updates.slug) {
-                  history.pushState(
+                  window.history.pushState(
                     { event: 'dashboard_properties_changed' },
                     '',
                     `/superset/dashboard/${updates.slug}/`,

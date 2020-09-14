@@ -23,7 +23,7 @@ import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
 } from './getDashboardFilterKey';
-import { CHART_TYPE } from '../util/componentTypes';
+import { CHART_TYPE } from './componentTypes';
 import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../reducers/dashboardFilters';
 
 let allFilterBoxChartIds = [];

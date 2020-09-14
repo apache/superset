@@ -50,9 +50,6 @@ const defaultProps = {
 export default class ColorSchemeControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {
-      scheme: this.props.value,
-    };
     this.onChange = this.onChange.bind(this);
     this.renderOption = this.renderOption.bind(this);
   }
@@ -60,7 +57,6 @@ export default class ColorSchemeControl extends React.PureComponent {
   onChange(option) {
     const optionValue = option ? option.value : null;
     this.props.onChange(optionValue);
-    this.setState({ scheme: optionValue });
   }
 
   renderOption(key) {

@@ -139,7 +139,7 @@ export default class AlteredSliceTag extends React.Component {
   }
 
   renderRows() {
-    const diffs = this.state.diffs;
+    const { diffs } = this.state;
     const rows = [];
     for (const key in diffs) {
       rows.push(

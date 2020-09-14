@@ -325,17 +325,11 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 
 Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
 
-Developers should use a virtualenv.
-
-```bash
-pip install virtualenv
-```
-
-Then proceed with:
+Ensure Python versions >3.7, Then proceed with:
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
-virtualenv -p python3 venv # setup a python3.6 virtualenv
+python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
@@ -648,7 +642,7 @@ Superset includes a [Storybook](https://storybook.js.org/) to preview the layout
 
 ```bash
 cd superset-frontend
-npm run storybool
+npm run storybook
 ```
 
 When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.

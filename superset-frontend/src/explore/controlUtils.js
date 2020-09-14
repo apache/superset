@@ -34,7 +34,7 @@ export function getFormDataFromControls(controlsState) {
 }
 
 export function validateControl(control, processedState) {
-  const validators = control.validators;
+  const { validators } = control;
   const validationErrors = [];
   if (validators && validators.length > 0) {
     validators.forEach(f => {
@@ -88,7 +88,7 @@ export const getControlConfig = memoizeOne(function getControlConfig(
 
 function handleMissingChoice(control) {
   // If the value is not valid anymore based on choices, clear it
-  const value = control.value;
+  const { value } = control;
   if (
     control.type === 'SelectControl' &&
     !control.freeForm &&

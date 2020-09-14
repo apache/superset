@@ -41,7 +41,7 @@ describe('CollectionTable', () => {
   });
 
   it('renders a table', () => {
-    const length = mockDatasource['7__table'].columns.length;
+    const { length } = mockDatasource['7__table'].columns;
     expect(wrapper.find('table')).toExist();
     expect(wrapper.find('tbody tr.row')).toHaveLength(length);
   });

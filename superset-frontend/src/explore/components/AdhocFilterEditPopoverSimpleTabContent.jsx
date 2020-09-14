@@ -211,7 +211,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
   }
 
   refreshComparatorSuggestions() {
-    const datasource = this.props.datasource;
+    const { datasource } = this.props;
     const col = this.props.adhocFilter.subject;
     const having = this.props.adhocFilter.clause === CLAUSES.HAVING;
 
