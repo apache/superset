@@ -672,7 +672,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             comment = inspector.get_table_comment(table_name, schema)
             comment = comment.get("text") if isinstance(comment, dict) else None
         except NotImplementedError:
+            # It's expected that some dialects don't implement the comment fetching method
             pass
+        except Exception as e:
+            logging.error("Unexpected error while fetching table comment")
+            logging.exception(e)
         return comment
 
     @classmethod
