@@ -170,7 +170,7 @@ class DatasourceControl extends React.PureComponent {
           <OverlayTrigger
             placement="right"
             overlay={
-              <Tooltip id={'toggle-datasource-tooltip'}>
+              <Tooltip id="toggle-datasource-tooltip">
                 {t('Expand/collapse datasource configuration')}
               </Tooltip>
             }
