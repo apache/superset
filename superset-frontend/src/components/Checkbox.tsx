@@ -29,6 +29,7 @@ export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
     <span style={style}>
       <i
         role="button"
+        aria-label="Checkbox"
         tabIndex={0}
         className={`fa fa-check ${
           checked ? 'text-primary' : 'text-transparent'

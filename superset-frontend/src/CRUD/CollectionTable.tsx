@@ -159,12 +159,14 @@ export default class CRUDCollection extends React.PureComponent<
     return (
       <thead>
         <tr>
-          {expandFieldset && <th className="tiny-cell" />}
+          {expandFieldset && <th aria-label="Expand" className="tiny-cell" />}
           {cols.map(col => (
             <th key={col}>{this.getLabel(col)}</th>
           ))}
           {extraButtons}
-          {allowDeletes && !allowAddItem && <th className="tiny-cell" />}
+          {allowDeletes && !allowAddItem && (
+            <th aria-label="Delete" className="tiny-cell" />
+          )}
           {allowAddItem && (
             <th>
               <Button buttonStyle="primary" onClick={this.onAddItem}>
@@ -206,6 +208,7 @@ export default class CRUDCollection extends React.PureComponent<
         <td key="__expand" className="expand">
           <i
             role="button"
+            aria-label="Toggle expand"
             tabIndex={0}
             className={`fa fa-caret-${
               isExpanded ? 'down' : 'right'
@@ -228,6 +231,7 @@ export default class CRUDCollection extends React.PureComponent<
         <td key="__actions">
           <i
             role="button"
+            aria-label="Delete item"
             tabIndex={0}
             className="fa fa-trash text-primary pointer"
             onClick={this.deleteItem.bind(this, record.id)}

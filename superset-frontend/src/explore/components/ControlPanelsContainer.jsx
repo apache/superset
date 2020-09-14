@@ -200,6 +200,7 @@ class ControlPanelsContainer extends React.Component {
             {this.props.alert}
             <i
               role="button"
+              aria-label="Remove alert"
               tabIndex={0}
               className="fa fa-close pull-right"
               onClick={this.removeAlert}
