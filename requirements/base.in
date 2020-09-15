@@ -15,4 +15,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
--e file:.
+-e file:.[cors,druid,hive,mysql,postgres,thumbnails]
