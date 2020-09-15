@@ -16,11 +16,15 @@
 # under the License.
 # pylint: disable=too-few-public-methods
 """A set of constants and methods to manage permissions and security"""
+from __future__ import annotations
 import logging
 import re
 from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
-import numpy
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
 from flask import current_app, g
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.manager import SecurityManager
@@ -49,7 +53,6 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod, Security as SecurityConsts
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.models.dashboard import Dashboard
 from superset.utils.core import DatasourceName
 
 if TYPE_CHECKING:
