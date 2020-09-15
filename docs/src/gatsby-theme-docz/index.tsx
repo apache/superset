@@ -32,8 +32,6 @@ interface Props {
 }
 
 const docLayout = css`
-  display: flex;
-  flex-direction: row;
   .docContainer {
     word-wrap: break-all;
     width: 100%;

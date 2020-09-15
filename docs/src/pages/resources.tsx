@@ -42,7 +42,7 @@ const learningLinks = [
 const installationLinks = [
   [
     'Locally with Docker',
-    'https://superset.incubator.apache.org/installation.html/docks/installation/installing-superset-using-docker-compose',
+    'https://superset.incubator.apache.org/installation.html/docs/installation/installing-superset-using-docker-compose',
   ],
   [
     'Install on CentOS',

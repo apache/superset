@@ -47,23 +47,6 @@ const layoutStyles = css`
     border-color: #20a7c9;
     border-radius: 4px;
   }
-  .desktopView {
-    ${mq[0]} {
-      display: none;
-    }
-  }
-  .mobileView {
-    display: none;
-    ${[mq[0]]} {
-      display: block;
-    }
-  }
-  .tabletView {
-    display: none;
-    ${[mq[2]]} {
-      display: block;
-    }
-  }
 `;
 
 const centerLayoutStyle = css`

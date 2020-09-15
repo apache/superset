@@ -76,31 +76,33 @@ deck.gl geospatial charts.
 Superset provides:
 
 Viewed
-@@ -35,7 +35,7 @@ Superset
-  width="500"	  width="500"
-/>	/>
 
-
-A modern, enterprise-ready business intelligence web application.	Apache Superset (Incubating) is a modern, enterprise-ready business intelligence web application. It is fast, lightweight, intuitive, and loaded with options that make it easy for users of all skill sets to explore and visualize their data, from simple pie charts to highly detailed deck.gl geospatial charts.
-
+A modern, enterprise-ready business intelligence web application.	Apache Superset (Incubating) is a modern, 
+enterprise-ready business intelligence web application. It is fast, lightweight, intuitive, 
+and loaded with options that make it easy for users of all skill sets to explore and visualize 
+their data, from simple pie charts to highly detailed deck.gl geospatial charts.
 
 [**Why Superset**](#why-superset) |	[**Why Superset**](#why-superset) |
 [**Supported Databases**](#supported-databases) |	[**Supported Databases**](#supported-databases) |
-@@ -71,25 +71,27 @@ A modern, enterprise-ready business intelligence web application.
-## Why Superset	## Why Superset
 
+## Why Superset	## Why Superset
 
 Superset provides:	Superset provides:
 - A rich set of data visualizations out of the box
 - An easy-to-use interface for exploring and visualizing data
 - The ability to easily create and share dashboards
-- Enterprise-ready authentication with integration with major authentication providers (database, OpenID, LDAP, OAuth & REMOTE_USER through Flask AppBuilder)
-- An extensible, high-granularity security/permission model allowing intricate rules on who can access individual features and the dataset
-- A simple semantic layer, allowing users to control how data sources are displayed in the UI by defining which fields should show up in which drop-down and which aggregation and function metrics are made available to the user
+- Enterprise-ready authentication with integration with major authentication providers 
+  (database, OpenID, LDAP, OAuth & REMOTE_USER through Flask AppBuilder)
+- An extensible, high-granularity security/permission model allowing intricate rules on who can access 
+  individual features and the dataset
+- A simple semantic layer, allowing users to control how data sources are displayed in the UI by defining 
+  which fields should show up in which drop-down and which aggregation and function metrics are made available to the user
 - Integration with most SQL-speaking RDBMS through SQLAlchemy
 - Deep integration with Druid.io
 
-Superset is cloud-native and designed to be highly available. It was designed to scale out to large, distributed environments and works very well inside containers. While you can easily test drive Superset on a modest setup or simply on your laptop, there’s virtually no limit around scaling out the platform.
+Superset is cloud-native and designed to be highly available. It was designed to scale out to large, 
+distributed environments and works very well inside containers. While you can easily test drive Superset on a 
+modest setup or simply on your laptop, there’s virtually no limit around scaling out the platform.
 
 Superset is also cloud-native in the sense that it is flexible and lets you choose the:
 
