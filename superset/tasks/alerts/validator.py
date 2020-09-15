@@ -46,7 +46,7 @@ def check_validator(validator_type: str, config: str) -> None:
 
     if validator_type == AlertValidatorType.operator.value:
 
-        if not (config_dict.get("op") and config_dict.get("threshold")):
+        if not (config_dict.get("op") and config_dict.get("threshold") is not None):
             raise SupersetException(
                 "Error: Operator Validator needs specified operator and threshold "
                 'values. Add "op" and "threshold" to config.'
@@ -87,15 +87,13 @@ def operator_validator(observer: SQLObserver, validator_config: str) -> bool:
     Returns True if a SQLObserver's recent observation is greater than or equal to
     the value given in the validator config
     """
-
     observation = observer.get_last_observation()
-    if observation and observation.value not in (None, np.nan):
-        operator = json.loads(validator_config)["op"]
-        threshold = json.loads(validator_config)["threshold"]
-        if OPERATOR_FUNCTIONS[operator](observation.value, threshold):
-            return True
+    if not observation or observation.value in (None, np.nan):
+        return False
 
-    return False
+    operator = json.loads(validator_config)["op"]
+    threshold = json.loads(validator_config)["threshold"]
+    return OPERATOR_FUNCTIONS[operator](observation.value, threshold)
 
 
 def get_validator_function(
