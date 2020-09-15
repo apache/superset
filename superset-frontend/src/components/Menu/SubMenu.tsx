@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import { Nav, Navbar, MenuItem } from 'react-bootstrap';
 import Button, { OnClickHandler } from 'src/components/Button';
@@ -88,6 +88,16 @@ export interface SubMenuProps {
 }
 
 const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
+  let hasHistory = true;
+
+  // If no parent <Router> component exists, useHistory throws an error
+  try {
+    useHistory();
+  } catch (err) {
+    // If error is thrown, we know not to use <Link> in render
+    hasHistory = false;
+  }
+
   return (
     <StyledHeader>
       <Navbar inverse fluid role="navigation">
@@ -97,7 +107,7 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
         <Nav>
           {props.children &&
             props.children.map(child => {
-              if (props.usesRouter && !!child.usesRouter) {
+              if ((props.usesRouter || hasHistory) && !!child.usesRouter) {
                 return (
                   <li
                     className={child.name === props.activeChild ? 'active' : ''}
