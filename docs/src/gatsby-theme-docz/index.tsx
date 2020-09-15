@@ -24,7 +24,6 @@ import SEO from '../components/seo';
 import Layout from '../components/layout';
 import AnchorNavigator from '../components/AnchorNavigator';
 import NextLinks from '../components/next';
-import { mq } from '../utils';
 
 import 'antd/dist/antd.css';
 
@@ -35,9 +34,6 @@ interface Props {
 const docLayout = css`
   display: flex;
   flex-direction: row;
-  ${[mq[3]]} {
-    flex-direction: column;
-  }
 `;
 
 const Theme = ({ children }: Props) => {
