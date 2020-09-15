@@ -173,6 +173,9 @@ class BaseViz:
 
         self.process_metrics()
 
+        self.applied_filters = []
+        self.rejected_filters = []
+
     def process_metrics(self) -> None:
         # metrics in TableViz is order sensitive, so metric_dict should be
         # OrderedDict
@@ -342,6 +345,12 @@ class BaseViz:
         merge_extra_filters(self.form_data)
         utils.split_adhoc_filters_into_base_filters(self.form_data)
 
+        filters = self.form_data.get("filters")
+        filter_columns = [flt.get("col") for flt in filters]
+        columns = set(self.datasource.column_names)
+        self.applied_filters = [{"column": col} for col in filter_columns if col in columns]
+        self.rejected_filters = [{"reason": "not_in_datasource", "column": col} for col in filter_columns if col not in columns]
+
     def query_obj(self) -> QueryObjectDict:
         """Building a query object"""
         form_data = self.form_data
@@ -474,19 +483,13 @@ class BaseViz:
 
         df = payload.get("df")
 
-        # Check incompatible filters. Probably a better spot for this.
-        filters = self.form_data.get("filters")
-        labels = set()
-        for flt in filters:
-            labels.add(flt.get("col"))
-        # This doesn't seem to work for the date-time columns. Probably due to date time fields getting prefixed
-        # with underscore like __ds. To fix, we need to try comparing with ds instead.
-        payload["applied_filters"] = labels.intersection(set(self.datasource.column_names))
-
         if self.status != utils.QueryStatus.FAILED:
             payload["data"] = self.get_data(df)
         if "df" in payload:
             del payload["df"]
+
+        payload["applied_filters"] = self.applied_filters
+        payload["rejected_filters"] = self.rejected_filters
 
         return payload
 
