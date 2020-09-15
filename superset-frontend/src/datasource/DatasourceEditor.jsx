@@ -22,11 +22,12 @@ import { Alert, Badge, Col, Radio, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 
-import Label from 'src/components/Label';
 import Button from 'src/components/Button';
+import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import DatabaseSelector from 'src/components/DatabaseSelector';
+import Label from 'src/components/Label';
 import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
-import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 import EditableTitle from 'src/components/EditableTitle';
 
 import getClientErrorObject from 'src/utils/getClientErrorObject';
@@ -621,23 +622,43 @@ class DatasourceEditor extends React.PureComponent {
           {this.state.datasourceType === DATASOURCE_TYPES.virtual.key && (
             <div>
               {this.state.isSqla && (
-                <Field
-                  fieldKey="sql"
-                  label={t('SQL')}
-                  description={t(
-                    'When specifying SQL, the datasource acts as a view. ' +
-                      'Superset will use this statement as a subquery while grouping and filtering ' +
-                      'on the generated parent queries.',
-                  )}
-                  control={
-                    <TextAreaControl
-                      language="sql"
-                      offerEditInModal={false}
-                      minLines={25}
-                      maxLines={25}
-                    />
-                  }
-                />
+                <>
+                  <Field
+                    fieldKey="databaseSelector"
+                    label={t('virtual')}
+                    control={
+                      <DatabaseSelector
+                        dbId={datasource.database.id}
+                        schema={datasource.schema}
+                        onSchemaChange={schema =>
+                          this.onDatasourcePropChange('schema', schema)
+                        }
+                        onDbChange={database =>
+                          this.onDatasourcePropChange('database', database)
+                        }
+                        formMode={false}
+                        handleError={this.props.addDangerToast}
+                      />
+                    }
+                  />
+                  <Field
+                    fieldKey="sql"
+                    label={t('SQL')}
+                    description={t(
+                      'When specifying SQL, the datasource acts as a view. ' +
+                        'Superset will use this statement as a subquery while grouping and filtering ' +
+                        'on the generated parent queries.',
+                    )}
+                    control={
+                      <TextAreaControl
+                        language="sql"
+                        offerEditInModal={false}
+                        minLines={25}
+                        maxLines={25}
+                      />
+                    }
+                  />
+                </>
               )}
               {this.state.isDruid && (
                 <Field
@@ -663,8 +684,11 @@ class DatasourceEditor extends React.PureComponent {
                   label={t('Physical')}
                   control={
                     <TableSelector
+                      clearable={false}
                       dbId={datasource.database.id}
+                      handleError={this.props.addDangerToast}
                       schema={datasource.schema}
+                      sqlLabMode={false}
                       tableName={datasource.table_name}
                       onSchemaChange={schema =>
                         this.onDatasourcePropChange('schema', schema)
@@ -675,9 +699,6 @@ class DatasourceEditor extends React.PureComponent {
                       onTableChange={table => {
                         this.onDatasourcePropChange('table_name', table);
                       }}
-                      sqlLabMode={false}
-                      clearable={false}
-                      handleError={this.props.addDangerToast}
                     />
                   }
                   description={t(
