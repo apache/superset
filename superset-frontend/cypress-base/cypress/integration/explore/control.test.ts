@@ -32,12 +32,25 @@ describe('Datasource control', () => {
   });
 
   it('should allow edit datasource', () => {
+    let numScripts = 0;
+
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.get('#datasource_menu').click();
+
+    cy.get('script').then(nodes => {
+      numScripts = nodes.length;
+    });
+
     cy.get('a').contains('Edit Datasource').click();
+
+    // should load additional scripts for the modal
+    cy.get('script').then(nodes => {
+      expect(nodes.length).to.greaterThan(numScripts);
+    });
+
     // create new metric
-    cy.get('button').contains('Add Item').click();
+    cy.get('table button').contains('Add Item', { timeout: 10000 }).click();
     cy.get('input[value="<new metric>"]').click();
     cy.get('input[value="<new metric>"]')
       .focus()
@@ -65,19 +78,33 @@ describe('Datasource control', () => {
   });
 });
 
-describe('Groupby control', () => {
-  it('Set groupby', () => {
-    cy.server();
+describe('VizType control', () => {
+  beforeEach(() => {
     cy.login();
+    cy.server();
     cy.route('GET', '/superset/explore_json/**').as('getJson');
     cy.route('POST', '/superset/explore_json/**').as('postJson');
-    cy.visitChartByName('Num Births Trend');
+  });
+
+  it('Can change vizType', () => {
+    cy.visitChartByName('Daily Totals');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('[data-test=groupby]').within(() => {
-      cy.get('.Select__control').click();
-      cy.get('input[type=text]').type('state{enter}');
+    let numScripts = 0;
+    cy.get('script').then(nodes => {
+      numScripts = nodes.length;
     });
+
+    cy.get('.Control .label').contains('Table').click();
+
+    cy.get('[role="button"]').contains('Line Chart').click();
+
+    // should load mathjs for line chart
+    cy.get('script[src*="mathjs"]').should('have.length', 1);
+    cy.get('script').then(nodes => {
+      expect(nodes.length).to.greaterThan(numScripts);
+    });
+
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({ waitAlias: '@postJson', chartSelector: 'svg' });
   });
@@ -116,5 +143,23 @@ describe('Time range filter', () => {
     });
     cy.get('#filter-popover button').contains('Ok').click();
     cy.get('#filter-popover').should('not.exist');
+  });
+});
+
+describe('Groupby control', () => {
+  it('Set groupby', () => {
+    cy.server();
+    cy.login();
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.visitChartByName('Num Births Trend');
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
+    cy.get('[data-test=groupby]').within(() => {
+      cy.get('.Select__control').click();
+      cy.get('input[type=text]').type('state{enter}');
+    });
+    cy.get('button[data-test="run-query-button"]').click();
+    cy.verifySliceSuccess({ waitAlias: '@postJson', chartSelector: 'svg' });
   });
 });

@@ -22,11 +22,12 @@ import { Row, Col, Modal, FormControl } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { AsyncSelect } from 'src/components/Select';
-import AceEditor from 'react-ace';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
+import { JsonEditor } from 'src/components/AsyncAceEditor';
+
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
@@ -79,6 +80,7 @@ class PropertiesModal extends React.PureComponent {
 
   componentDidMount() {
     this.fetchDashboardDetails();
+    JsonEditor.preload();
   }
 
   onColorSchemeChange(value) {
@@ -304,13 +306,12 @@ class PropertiesModal extends React.PureComponent {
                     <FormLabel htmlFor="json_metadata">
                       {t('JSON Metadata')}
                     </FormLabel>
-                    <AceEditor
-                      mode="json"
+                    <JsonEditor
+                      showLoadingForImport
                       name="json_metadata"
                       defaultValue={this.defaultMetadataValue}
                       value={values.json_metadata}
                       onChange={this.onMetadataChange}
-                      theme="textmate"
                       tabSize={2}
                       width="100%"
                       height="200px"

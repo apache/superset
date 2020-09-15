@@ -19,18 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Badge } from 'react-bootstrap';
-import AceEditor from 'react-ace';
-import 'brace/mode/sql';
-import 'brace/mode/json';
-import 'brace/mode/html';
-import 'brace/mode/markdown';
-import 'brace/theme/textmate';
-
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import Button from 'src/components/Button';
-import ModalTrigger from '../../components/ModalTrigger';
+import ModalTrigger from 'src/components/ModalTrigger';
+import { ConfigEditor } from 'src/components/AsyncAceEditor';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -104,9 +98,9 @@ export default class TemplateParamsEditor extends React.Component {
     return (
       <div>
         {this.renderDoc()}
-        <AceEditor
+        <ConfigEditor
+          keywords={[]}
           mode={this.props.language}
-          theme="textmate"
           style={{ border: '1px solid #CCC' }}
           minLines={25}
           maxLines={50}
