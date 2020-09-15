@@ -39,7 +39,6 @@ interface DatabaseDeleteObject extends DatabaseObject {
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  usesRouter: boolean;
 }
 
 const IconBlack = styled(Icon)`
@@ -50,11 +49,7 @@ function BooleanDisplay(value: any) {
   return value ? <IconBlack name="check" /> : <IconBlack name="cancel-x" />;
 }
 
-function DatabaseList({
-  addDangerToast,
-  addSuccessToast,
-  usesRouter,
-}: DatabaseListProps) {
+function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const {
     state: {
       loading,
@@ -127,7 +122,6 @@ function DatabaseList({
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
-    usesRouter,
     ...commonMenuData,
   };
 

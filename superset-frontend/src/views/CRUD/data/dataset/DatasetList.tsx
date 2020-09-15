@@ -60,13 +60,11 @@ type Dataset = {
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  usesRouter: boolean;
 }
 
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
   addSuccessToast,
-  usesRouter,
 }) => {
   const {
     state: {
@@ -396,7 +394,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const menuData: SubMenuProps = {
     activeChild: 'Datasets',
-    usesRouter,
     ...commonMenuData,
   };
 
