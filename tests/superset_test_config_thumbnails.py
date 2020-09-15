@@ -17,9 +17,6 @@
 # type: ignore
 from copy import copy
 
-from cachelib.redis import RedisCache
-from flask import Flask
-
 from superset.config import *
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
@@ -79,15 +76,11 @@ FEATURE_FLAGS = {
     "THUMBNAILS_SQLA_LISTENERS": False,
 }
 
-
-def init_thumbnail_cache(app: Flask) -> RedisCache:
-    return RedisCache(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        db=REDIS_CELERY_DB,
-        key_prefix="superset_thumbnails_",
-        default_timeout=10000,
-    )
-
-
-THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
+THUMBNAIL_CACHE_CONFIG = {
+    "CACHE_TYPE": "redis",
+    "CACHE_DEFAULT_TIMEOUT": 10000,
+    "CACHE_KEY_PREFIX": "superset_thumbnails_",
+    "CACHE_REDIS_HOST": REDIS_HOST,
+    "CACHE_REDIS_PORT": REDIS_PORT,
+    "CACHE_REDIS_DB": REDIS_CELERY_DB,
+}
