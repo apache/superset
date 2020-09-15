@@ -45,7 +45,7 @@ jobs:
         run: |
           apt-get-install
           pip-upgrade
-          pip install -r requirements/development.txt
+          pip install -r requirements/integration.txt
     - name: pre-commit
       run: pre-commit run --all-files
 
