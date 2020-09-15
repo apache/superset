@@ -127,7 +127,10 @@ module.exports = {
         'prettier/prettier': 'error',
       },
       settings: {
-        'import/resolver': 'webpack',
+        'import/resolver': {
+          webpack: {},
+          typescript: {},
+        },
         react: {
           version: 'detect',
         },
