@@ -111,7 +111,6 @@ export default class LimitControl extends React.PureComponent<
               value={textValue}
               placeholder={t(`Max: ${this.props.maxRow}`)}
               bsSize="small"
-              // @ts-ignore
               onChange={(
                 event: React.FormEvent<FormControl & FormControlProps>,
               ) =>

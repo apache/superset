@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { ReactNode } from 'react';
-// @ts-ignore
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 interface Props {

@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, Row, Col, FormControl, FormGroup } from 'react-bootstrap';
+import {
+  Modal,
+  Row,
+  Col,
+  FormControl,
+  FormGroup,
+  FormControlProps,
+} from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';
@@ -168,10 +175,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={name}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setName(event.target.value)
-                }
+                onChange={(
+                  event: React.FormEvent<FormControl & FormControlProps>,
+                ) => setName((event.currentTarget.value as string) ?? '')}
               />
             </FormGroup>
             <FormGroup>
@@ -182,9 +188,10 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setDescription(event.target.value)
+                onChange={(
+                  event: React.FormEvent<FormControl & FormControlProps>,
+                ) =>
+                  setDescription((event.currentTarget.value as string) ?? '')
                 }
                 style={{ maxWidth: '100%' }}
               />
@@ -204,10 +211,13 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={cacheTimeout}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
-                }
+                onChange={(
+                  event: React.FormEvent<FormControl & FormControlProps>,
+                ) => {
+                  const targetValue =
+                    (event.currentTarget.value as string) ?? '';
+                  setCacheTimeout(targetValue.replace(/[^0-9]/, ''));
+                }}
               />
               <p className="help-block">
                 {t(

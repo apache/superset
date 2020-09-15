@@ -132,7 +132,6 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
   return (
     <WindowedList
       css={getStyles('menuList', props)}
-      // @ts-ignore
       className={cx(
         {
           'menu-list': true,
