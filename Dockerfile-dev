@@ -29,4 +29,7 @@ RUN cd /app \
     && pip install -e . \
     && pip install -r requirements/docker.txt \
     && pip install -r requirements/requirements-local.txt || true
+
+RUN pip install clickhouse-driver[lz4,zstd] clickhouse-cityhash sqlalchemy-clickhouse 
+
 USER superset

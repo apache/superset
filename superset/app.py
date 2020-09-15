@@ -634,9 +634,9 @@ class SupersetAppInitializer:
 
     def setup_embedded_login(self) -> None:
         @csrf.exempt
-        @self.flask_app.route('/embedded/login', methods=['GET','POST'])
+        @self.flask_app.route('/embedded/login', methods=['POST'])
         def login():
-            user_key = request.form.get('token') or request.args.get('token')
+            user_key = request.form.get('token')
             print(user_key)
 
             if user_key:
