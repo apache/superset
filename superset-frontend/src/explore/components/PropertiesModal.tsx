@@ -17,16 +17,8 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Modal,
-  Row,
-  Col,
-  FormControl,
-  FormGroup,
-  // @ts-ignore
-} from 'react-bootstrap';
+import { Modal, Row, Col, FormControl, FormGroup } from 'react-bootstrap';
 import Button from 'src/components/Button';
-// @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
