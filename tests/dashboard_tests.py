@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+import re
 import unittest
 from random import random
 
@@ -192,6 +193,7 @@ class TestDashboard(SupersetTestCase):
 
         # post test - delete the new dashboard
 
+    @pytest.mark.dashcount_id_coupling
     def test_delete_dashboard(self):
         # arrange
         dashboard_level_access_enabled = (
@@ -199,12 +201,13 @@ class TestDashboard(SupersetTestCase):
         )
         self.login(username=ADMIN_USERNAME)
         dash_count_before_new = db.session.query(func.count(Dashboard.id)).first()[0]
-        excepted_dashboard_title_in_response = "[ untitled dashboard ]"
-        post_new_dashboard_response = self.get_resp(NEW_DASHBOARD_URL)
-        self.assertIn(excepted_dashboard_title_in_response, post_new_dashboard_response)
+        post_new_dashboard_response = self.get_resp(NEW_DASHBOARD_URL,follow_redirects=False)
         dash_count_after_new = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before_new + 1, dash_count_after_new)
-        dash = db.session.query(Dashboard).filter_by(id=dash_count_after_new)[0]
+
+        new_dashboard_id = self.parse_dashboard_id(post_new_dashboard_response)
+
+        dash = db.session.query(Dashboard).filter_by(id=new_dashboard_id)[0]
         if dashboard_level_access_enabled:
             dashboard_utils.assign_dashboard_permissions_to_multiple_roles(dash)
 
@@ -217,6 +220,12 @@ class TestDashboard(SupersetTestCase):
         if dashboard_level_access_enabled:
             dashboard_utils.assert_permissions_were_deleted(self, dash)
             dashboard_utils.clean_dashboard_matching_roles()
+
+    def parse_dashboard_id(self, post_new_dashboard_response):
+        regex = re.compile(r"<a href=\"/superset/dashboard/(\d+)/")
+        findall = regex.findall(post_new_dashboard_response)
+        new_dashboard_id = int(findall[0])
+        return new_dashboard_id
 
     def __add_dashboard_mode_parmas(self, dashboard_url):
         full_url = dashboard_url
