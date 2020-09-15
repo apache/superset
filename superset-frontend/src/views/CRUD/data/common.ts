@@ -25,16 +25,19 @@ export const commonMenuData = {
       name: 'Datasets',
       label: t('Datasets'),
       url: '/tablemodelview/list/',
+      usesRouter: true,
     },
     {
       name: 'Databases',
       label: t('Databases'),
       url: '/databaseview/list/',
+      usesRouter: true,
     },
     {
       name: 'Saved Queries',
       label: t('Saved Queries'),
       url: '/sqllab/my_queries/',
+      usesRouter: false,
     },
   ],
 };
