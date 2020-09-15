@@ -55,9 +55,12 @@ const output = {
 if (isDevMode) {
   output.filename = '[name].[hash:8].entry.js';
   output.chunkFilename = '[name].[hash:8].chunk.js';
-} else {
+} else if (nameChunks) {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
+} else {
+  output.filename = '[name].[chunkhash].entry.js';
+  output.chunkFilename = '[chunkhash].chunk.js';
 }
 
 const plugins = [
@@ -199,6 +202,8 @@ const config = {
     sideEffects: true,
     splitChunks: {
       chunks: 'all',
+      // increase minSize for devMode to 1000kb because of sourcemap
+      minSize: isDevMode ? 1000000 : 20000,
       name: nameChunks,
       automaticNameDelimiter: '-',
       minChunks: 2,
@@ -214,6 +219,8 @@ const config = {
               'react',
               'react-dom',
               'prop-types',
+              'react-prop-types',
+              'prop-types-extra',
               'redux',
               'react-redux',
               'react-hot-loader',
@@ -221,6 +228,7 @@ const config = {
               'react-sortable-hoc',
               'react-virtualized',
               'react-table',
+              'react-ace',
               '@hot-loader.*',
               'webpack.*',
               '@?babel.*',
@@ -228,20 +236,17 @@ const config = {
               'antd',
               '@ant-design.*',
               '.*bootstrap',
+              'react-bootstrap-slider',
               'moment',
               'jquery',
               'core-js.*',
               '@emotion.*',
-              'd3.*',
+              'd3',
+              'd3-(array|color|scale|interpolate|format|selection|collection|time|time-format)',
             ].join('|')})/`,
           ),
         },
         // bundle large libraries separately
-        brace: {
-          name: 'brace',
-          test: /\/node_modules\/(brace|react-ace)\//,
-          priority: 40,
-        },
         mathjs: {
           name: 'mathjs',
           test: /\/node_modules\/mathjs\//,

@@ -175,10 +175,10 @@ export default class CRUDCollection extends React.PureComponent<
           ))}
           {extraButtons}
           {allowDeletes && !allowAddItem && (
-            <th aria-label="Delete" className="tiny-cell" />
+            <th key="delete-item" aria-label="Delete" className="tiny-cell" />
           )}
           {allowAddItem && (
-            <th>
+            <th key="add-item">
               <Button buttonStyle="primary" onClick={this.onAddItem}>
                 <i className="fa fa-plus" /> {t('Add Item')}
               </Button>
@@ -237,7 +237,7 @@ export default class CRUDCollection extends React.PureComponent<
       )),
     );
     if (allowAddItem) {
-      tds.push(<td />);
+      tds.push(<td key="add" />);
     }
     if (allowDeletes) {
       tds.push(
