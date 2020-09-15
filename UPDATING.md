@@ -23,6 +23,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [10887](https://github.com/apache/incubator-superset/pull/10887): Breaking change: The custom cache backend changed in order to support the Flask-Caching factory method approach and thus must be registered as a custom type. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
+
 * [10794](https://github.com/apache/incubator-superset/pull/10794): Breaking change: `uuid` python package is not supported on Jinja2 anymore, only uuid functions are exposed eg: `uuid1`, `uuid3`, `uuid4`, `uuid5`.
 
 * [10674](https://github.com/apache/incubator-superset/pull/10674): Breaking change: PUBLIC_ROLE_LIKE_GAMMA was removed is favour of the new PUBLIC_ROLE_LIKE so it can be set it whatever role you want.
