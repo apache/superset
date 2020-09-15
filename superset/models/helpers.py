@@ -21,8 +21,6 @@ import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set, Union
 
-# isort and pylint disagree, isort should win
-# pylint: disable=ungrouped-imports
 import humanize
 import pandas as pd
 import pytz
