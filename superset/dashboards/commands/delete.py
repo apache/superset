@@ -46,9 +46,7 @@ class DeleteDashboardCommand(BaseCommand):
         self.validate()
         try:
             dashboard = DashboardDAO.delete(self._model)
-            security_manager.del_permissions_views(
-                dashboard.permission_view_pairs
-            )
+            security_manager.del_permissions_views(dashboard.permission_view_pairs)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardDeleteFailedError()

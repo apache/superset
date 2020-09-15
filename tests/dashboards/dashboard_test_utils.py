@@ -17,7 +17,7 @@
 import logging
 from typing import List, Optional
 
-from superset import db, is_feature_enabled, security_manager, app, appbuilder
+from superset import app, appbuilder, db, is_feature_enabled, security_manager
 from superset.constants import Security
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -80,14 +80,14 @@ inserted_dashboards_ids = []
 
 
 def insert_dashboard(
-        dashboard_title: str,
-        slug: Optional[str],
-        owners: List[int],
-        slices: Optional[List[Slice]] = None,
-        position_json: str = "",
-        css: str = "",
-        json_metadata: str = "",
-        published: bool = False,
+    dashboard_title: str,
+    slug: Optional[str],
+    owners: List[int],
+    slices: Optional[List[Slice]] = None,
+    position_json: str = "",
+    css: str = "",
+    json_metadata: str = "",
+    published: bool = False,
 ) -> Dashboard:
     obj_owners = list()
     slices = slices or []
@@ -112,27 +112,29 @@ def insert_dashboard(
     inserted_dashboards_ids.append(dashboard.id)
 
     if is_dashboard_level_access_enabled():
-        security_manager.add_permissions_views(
-            dashboard.permission_view_pairs
-        )
+        security_manager.add_permissions_views(dashboard.permission_view_pairs)
     return dashboard
 
 
 def delete_all_inserted_dashboards():
-        try:
-            for dashboard_id in inserted_dashboards_ids:
-                try:
-                    logger.info(f"deleting dashboard{dashboard_id}")
-                    dashboard = appbuilder.get_session.query(Dashboard).filter_by(id=dashboard_id).first()
-                    if dashboard:
-                        security_manager.del_permissions_views(
-                            dashboard.permission_view_pairs
-                        )
-                        appbuilder.get_session.delete(dashboard)
-                except:
-                    logger.error(f"failed to delete {dashboard_id}",exc_info=True)
-            if len(inserted_dashboards_ids) > 0:
-                appbuilder.get_session.commit()
-                inserted_dashboards_ids.clear()
-        except:
-            logger.error("delete_all_inserted_dashboards failed",exc_info=True)
+    try:
+        for dashboard_id in inserted_dashboards_ids:
+            try:
+                logger.info(f"deleting dashboard{dashboard_id}")
+                dashboard = (
+                    appbuilder.get_session.query(Dashboard)
+                    .filter_by(id=dashboard_id)
+                    .first()
+                )
+                if dashboard:
+                    security_manager.del_permissions_views(
+                        dashboard.permission_view_pairs
+                    )
+                    appbuilder.get_session.delete(dashboard)
+            except:
+                logger.error(f"failed to delete {dashboard_id}", exc_info=True)
+        if len(inserted_dashboards_ids) > 0:
+            appbuilder.get_session.commit()
+            inserted_dashboards_ids.clear()
+    except:
+        logger.error("delete_all_inserted_dashboards failed", exc_info=True)

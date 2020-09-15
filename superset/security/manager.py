@@ -49,6 +49,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod, Security as SecurityConsts
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard import Dashboard
 from superset.utils.core import DatasourceName
 
 if TYPE_CHECKING:
@@ -884,7 +885,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ) -> None:
         # TODO(bogdan): modify slice permissions as well.
         for permission_name, view_menu_name in permission_view_pairs:
-            permission = self.__set_permission_by_connection(connection, permission_name)
+            permission = self.__set_permission_by_connection(
+                connection, permission_name
+            )
             view_menu = self.__set_view_by_connection(connection, view_menu_name)
             self.__set_permission_view_by_connection(connection, permission, view_menu)
 
@@ -900,9 +903,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self, permission_view_pairs: List[Tuple[str, str]]
     ) -> None:
         for permission_name, view_menu_name in permission_view_pairs:
-            permission_view_menu = self.find_permission_view_menu(permission_name, view_menu_name)
+            permission_view_menu = self.find_permission_view_menu(
+                permission_name, view_menu_name
+            )
             for role in self.get_session.query(self.role_model).all():
-                self.del_permission_role(role,permission_view_menu)
+                self.del_permission_role(role, permission_view_menu)
             self.del_permission_view_menu(permission_name, view_menu_name)
             self.del_permission(permission_name)
             self.del_view_menu(view_menu_name)
@@ -959,7 +964,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
         return None
 
-    def update_dashboard_permission(self, dashboard):
+    def update_dashboard_permission(self, dashboard: Dashboard) -> None:
         new_perm = dashboard.view_name
         current_perm = self.find_view_menu_by_pattern(dashboard.id)
         if not current_perm:
@@ -969,11 +974,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self.get_session().merge(current_perm)
             self.get_session().commit()
 
-    def find_view_menu_by_pattern(self, dashboard_id):
+    def find_view_menu_by_pattern(self, dashboard_id: int) -> ViewMenu:
         """
             Finds and returns a ViewMenu by name
         """
-        results = self.get_session.query(self.viewmenu_model).filter(ViewMenu.name.like(f"dashboard.%"))
+        results = self.get_session.query(self.viewmenu_model).filter(
+            ViewMenu.name.like(f"dashboard.%")
+        )
         regex = re.compile(rf"dashboard\.\[(.*)\]\(id:{dashboard_id}\)")
         results = list(filter(lambda x: regex.match(x.name), results.all()))
         return results[0] if len(results) else None

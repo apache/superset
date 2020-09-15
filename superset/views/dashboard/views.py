@@ -62,7 +62,7 @@ class DashboardModelView(
 
     @expose("/delete/<pk>", methods=["GET", "POST"])
     @has_access
-    def delete(self, pk):
+    def delete(self, pk: int) -> FlaskResponse:
         dash = db.session.query(models.Dashboard).filter_by(id=int(pk)).one()
         permission_view_pairs = dash.permission_view_pairs
         redirect_url = super().delete(pk)
@@ -125,9 +125,7 @@ class Dashboard(BaseSupersetView):
 
         db.session.add(new_dashboard)
         db.session.commit()
-        security_manager.add_permissions_views(
-            new_dashboard.permission_view_pairs
-        )
+        security_manager.add_permissions_views(new_dashboard.permission_view_pairs)
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
 

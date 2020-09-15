@@ -16,7 +16,7 @@
 # under the License.
 import json
 import textwrap
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 import pandas as pd
 from sqlalchemy import DateTime, String
@@ -29,6 +29,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
+from ..dashboards.security import is_dashboard_level_access_enabled
 from .helpers import (
     config,
     get_example_data,
@@ -38,7 +39,6 @@ from .helpers import (
     TBL,
     update_slice_ids,
 )
-from ..dashboards.security import is_dashboard_level_access_enabled
 
 
 def gen_filter(
@@ -481,7 +481,7 @@ def load_birth_names(
         security_manager.add_permissions_views(dash.permission_view_pairs)
 
 
-def __configure_dash(slices):
+def __configure_dash(slices: List[Slice]) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()

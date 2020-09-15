@@ -45,9 +45,7 @@ class CreateDashboardCommand(BaseCommand):
         try:
             dashboard = DashboardDAO.create(self._properties, commit=False)
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
-            security_manager.add_permissions_views(
-                dashboard.permission_view_pairs
-            )
+            security_manager.add_permissions_views(dashboard.permission_view_pairs)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardCreateFailedError()

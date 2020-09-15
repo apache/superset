@@ -36,7 +36,6 @@ from tests.base_tests import SupersetTestCase
 from tests.dashboards import dashboard_test_utils as dashboard_utils
 
 
-
 @pytest.mark.dashboardApi
 class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     resource_name = "dashboard"
@@ -62,8 +61,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     def random_str(self):
         def get_random_string(length):
             import random
+
             letters = string.ascii_lowercase
-            result_str = ''.join(random.choice(letters) for i in range(length))
+            result_str = "".join(random.choice(letters) for i in range(length))
             print("Random string of length", length, "is:", result_str)
             return result_str
 
@@ -78,8 +78,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         admin = self.get_user("admin")
         expected_title = self.random_title()
-        expected_slug =  self.random_slug()
-        dashboard = dashboard_utils.insert_dashboard(expected_title, expected_slug, [admin.id])
+        expected_slug = self.random_slug()
+        dashboard = dashboard_utils.insert_dashboard(
+            expected_title, expected_slug, [admin.id]
+        )
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.get_assert_metric(uri, "get")
@@ -139,7 +141,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test get dashboard without data access
         """
         admin = self.get_user("admin")
-        dashboard = dashboard_utils.insert_dashboard(self.random_title(), self.random_slug(), [admin.id])
+        dashboard = dashboard_utils.insert_dashboard(
+            self.random_title(), self.random_slug(), [admin.id]
+        )
 
         self.login(username="gamma")
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -155,7 +159,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         admin = self.get_user("admin")
         start_changed_on = datetime.now()
-        dashboard = dashboard_utils.insert_dashboard(self.random_title(), self.random_slug(), [admin.id])
+        dashboard = dashboard_utils.insert_dashboard(
+            self.random_title(), self.random_slug(), [admin.id]
+        )
 
         self.login(username="admin")
 
@@ -279,7 +285,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(0,data["count"])
+        self.assertEqual(0, data["count"])
 
         # rollback changes
         # appbuilder.get_session.delete(dashboard)
@@ -294,7 +300,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test delete
         """
         admin_id = self.get_user("admin").id
-        dashboard = dashboard_utils.insert_dashboard(f"title{self.random_str()}", "slug1", [admin_id])
+        dashboard = dashboard_utils.insert_dashboard(
+            f"title{self.random_str()}", "slug1", [admin_id]
+        )
         dashboard_utils.assign_dashboard_permissions_to_multiple_roles(dashboard)
         dashboard_id = dashboard.id
         self.login(username="admin")
@@ -315,7 +323,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test delete
         """
         admin_id = self.get_user("admin").id
-        dashboard_id = dashboard_utils.insert_dashboard(f"title{self.random_str()}", "slug1", [admin_id]).id
+        dashboard_id = dashboard_utils.insert_dashboard(
+            f"title{self.random_str()}", "slug1", [admin_id]
+        ).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.delete_assert_metric(uri, "delete")
@@ -387,7 +397,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test admin delete not owned
         """
         gamma_id = self.get_user("gamma").id
-        dashboard_id = dashboard_utils.insert_dashboard(f"title{self.random_str()}", "slug1", [gamma_id]).id
+        dashboard_id = dashboard_utils.insert_dashboard(
+            f"title{self.random_str()}", "slug1", [gamma_id]
+        ).id
 
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -436,10 +448,16 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            appbuilder.get_session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            appbuilder.get_session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .first()
         )
         dashboard = dashboard_utils.insert_dashboard(
-            f"title{self.random_str()}", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
+            f"title{self.random_str()}",
+            "slug1",
+            [user_alpha1.id],
+            slices=[existing_slice],
+            published=True,
         )
         self.login(username="alpha2", password="password")
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -461,7 +479,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            appbuilder.get_session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            appbuilder.get_session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .first()
         )
 
         dashboard_count = 4
@@ -663,7 +683,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             dashboard_utils.is_dashboard_level_access_enabled()
         )
         admin = self.get_user("admin")
-        dashboard = dashboard_utils.insert_dashboard(self.random_title(), self.random_slug(), [admin.id])
+        dashboard = dashboard_utils.insert_dashboard(
+            self.random_title(), self.random_slug(), [admin.id]
+        )
         if dashboard_level_access_enabled:
             view_menu_id = security_manager.find_view_menu(dashboard.view_name).id
         dashboard_id = dashboard.id
@@ -701,10 +723,16 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         admin = self.get_user("admin")
         slices = []
         slices.append(
-            appbuilder.get_session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            appbuilder.get_session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .first()
         )
-        slices.append(appbuilder.get_session.query(Slice).filter_by(slice_name="Trends").first())
-        slices.append(appbuilder.get_session.query(Slice).filter_by(slice_name="Boys").first())
+        slices.append(
+            appbuilder.get_session.query(Slice).filter_by(slice_name="Trends").first()
+        )
+        slices.append(
+            appbuilder.get_session.query(Slice).filter_by(slice_name="Boys").first()
+        )
 
         dashboard = dashboard_utils.insert_dashboard(
             self.random_title(), self.random_slug(), [admin.id], slices=slices,
@@ -718,7 +746,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         # verify slices owners include alpha1 and alpha2 users
         slices_ids = [slice.id for slice in slices]
         # Refetch Slices
-        slices = appbuilder.get_session.query(Slice).filter(Slice.id.in_(slices_ids)).all()
+        slices = (
+            appbuilder.get_session.query(Slice).filter(Slice.id.in_(slices_ids)).all()
+        )
         for slice in slices:
             self.assertIn(user_alpha1, slice.owners)
             self.assertIn(user_alpha2, slice.owners)
@@ -749,9 +779,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
 
         changed_title = self.random_title()
-        rv = self.client.put(
-            uri, json={"dashboard_title": changed_title}
-        )
+        rv = self.client.put(uri, json={"dashboard_title": changed_title})
         self.assertEqual(rv.status_code, 200)
 
         new_slug = self.random_slug()
@@ -762,7 +790,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
         self.assertEqual(model.dashboard_title, changed_title)
         self.assertEqual(model.slug, new_slug)
-
 
     def test_update_published(self):
         """
@@ -832,7 +859,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         admin_id = self.get_user("admin").id
         slug_1 = self.random_slug()
         dashboard1 = dashboard_utils.insert_dashboard("title2", slug_1, [admin_id])
-        dashboard2 = dashboard_utils.insert_dashboard("title2", self.random_slug(),[admin_id])
+        dashboard2 = dashboard_utils.insert_dashboard(
+            "title2", self.random_slug(), [admin_id]
+        )
 
         self.login(username="admin")
         # Check for slug uniqueness
@@ -876,7 +905,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             self.random_title(), "slug1", [user_alpha1.id], published=True
         )
         self.login(username=alpha2, password=password)
-        dashboard_data = {"dashboard_title": self.random_title(), "slug": self.random_slug()}
+        dashboard_data = {
+            "dashboard_title": self.random_title(),
+            "slug": self.random_slug(),
+        }
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.put_assert_metric(uri, dashboard_data, "put")
         self.assertEqual(rv.status_code, 403)
@@ -914,7 +946,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         admin_id = self.get_user("admin").id
         dashboard = dashboard_utils.insert_dashboard(
-            self.random_title(),self.random_slug(), [admin_id], published=False
+            self.random_title(), self.random_slug(), [admin_id], published=False
         )
 
         self.login(username="gamma")

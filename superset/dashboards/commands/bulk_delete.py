@@ -46,11 +46,9 @@ class BulkDeleteDashboardCommand(BaseCommand):
         self.validate()
         try:
             DashboardDAO.bulk_delete(self._models)
-            lists = map((lambda x: x.permission_view_pairs),self._models)
-            merged_lists=list(itertools.chain.from_iterable(lists))
-            security_manager.del_permissions_views(
-                merged_lists
-            )
+            lists = map((lambda x: x.permission_view_pairs), self._models)
+            merged_lists = list(itertools.chain.from_iterable(lists))
+            security_manager.del_permissions_views(merged_lists)
             return None
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
