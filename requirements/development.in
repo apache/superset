@@ -16,7 +16,6 @@
 # specific language governing permissions and limitations
 # under the License.
 -r base.in
--e file:.[cors,druid,hive,mysql,postgres,thumbnails]
 flask-cors>=2.0.0
 pydruid>=0.6.1,<0.7
 pyhive[hive]>=0.6.1
