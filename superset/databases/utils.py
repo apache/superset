@@ -73,6 +73,7 @@ def get_table_metadata(
     indexes = get_indexes_metadata(database, table_name, schema_name)
     keys += foreign_keys + indexes
     payload_columns: List[Dict[str, Any]] = []
+    table_comment = database.get_table_comment(table_name, schema_name)
     for col in columns:
         dtype = get_col_type(col)
         payload_columns.append(
@@ -81,6 +82,7 @@ def get_table_metadata(
                 "type": dtype.split("(")[0] if "(" in dtype else dtype,
                 "longType": dtype,
                 "keys": [k for k in keys if col["name"] in k["column_names"]],
+                "comment": col.get("comment"),
             }
         )
     return {
@@ -97,4 +99,5 @@ def get_table_metadata(
         "primaryKey": primary_key,
         "foreignKeys": foreign_keys,
         "indexes": keys,
+        "comment": table_comment,
     }
