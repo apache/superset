@@ -33,6 +33,7 @@ export type FeatureFlagMap = {
   [key in FeatureFlag]?: boolean;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare global {
   interface Window {
     featureFlags: FeatureFlagMap;
