@@ -50,7 +50,7 @@ export default function getComponentWidthFromDrop({
   let destinationCapacity =
     destinationWidth.width - destinationWidth.occupiedWidth;
 
-  if (Number.isNaN(destinationCapacity)) {
+  if (Number.isNaN(Number(destinationCapacity))) {
     const grandparentWidth = getDetailedComponentWidth({
       id: findParentId({
         childId: destination.id,
@@ -63,7 +63,10 @@ export default function getComponentWidthFromDrop({
       grandparentWidth.width - grandparentWidth.occupiedWidth;
   }
 
-  if (Number.isNaN(destinationCapacity) || Number.isNaN(draggingWidth.width)) {
+  if (
+    Number.isNaN(Number(destinationCapacity)) ||
+    Number.isNaN(Number(draggingWidth.width))
+  ) {
     return draggingWidth.width;
   }
   if (destinationCapacity >= draggingWidth.width) {
