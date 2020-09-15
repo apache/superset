@@ -11,65 +11,37 @@
 appnope==0.1.0            # via ipython
 astroid==2.4.2            # via pylint
 backcall==0.2.0           # via ipython
-boto3==1.14.62            # via tabulator
-botocore==1.17.62         # via boto3, s3transfer
-cached-property==1.5.1    # via tableschema
-certifi==2020.6.20        # via requests
 coverage==5.2.1           # via pytest-cov
 docker==4.3.1             # via -r requirements/testing.in
-docutils==0.15.2          # via botocore
-et-xmlfile==1.0.1         # via openpyxl
-flask-cors==3.0.9         # via apache-superset
 flask-testing==0.8.0      # via -r requirements/testing.in
-future==0.18.2            # via pyhive
-ijson==3.1.1              # via tabulator
 iniconfig==1.0.1          # via pytest
 ipdb==0.13.3              # via -r requirements/testing.in
 ipython-genutils==0.2.0   # via traitlets
 ipython==7.16.1           # via -r requirements/testing.in, ipdb
 isort==5.5.1              # via pylint
-jdcal==1.4.1              # via openpyxl
 jedi==0.17.2              # via ipython
-jmespath==0.10.0          # via boto3, botocore
-jsonlines==1.2.0          # via tabulator
 lazy-object-proxy==1.4.3  # via astroid
-linear-tsv==1.1.0         # via tabulator
 mccabe==0.6.1             # via pylint
 more-itertools==8.5.0     # via pytest
-mysqlclient==1.4.2.post1  # via apache-superset
 openapi-spec-validator==0.2.9  # via -r requirements/testing.in
-openpyxl==3.0.5           # via -r requirements/testing.in, tabulator
 parameterized==0.7.4      # via -r requirements/testing.in
 parso==0.7.1              # via jedi
 pexpect==4.8.0            # via ipython
 pickleshare==0.7.5        # via ipython
-pillow==7.2.0             # via apache-superset
 prompt-toolkit==3.0.7     # via ipython
-psycopg2-binary==2.8.5    # via apache-superset
 ptyprocess==0.6.0         # via pexpect
-pydruid==0.6.1            # via apache-superset
 pygments==2.6.1           # via ipython
-pyhive[hive,presto]==0.6.3  # via -r requirements/testing.in, apache-superset
+pyhive[hive,presto]==0.6.3  # via -r requirements/development.in, -r requirements/testing.in
 pylint==2.6.0             # via -r requirements/testing.in
 pytest-cov==2.10.1        # via -r requirements/testing.in
 pytest==6.0.1             # via -r requirements/testing.in, pytest-cov
 redis==3.5.3              # via -r requirements/testing.in
-requests==2.24.0          # via docker, pydruid, pyhive, tableschema, tabulator
-rfc3986==1.4.0            # via tableschema
-s3transfer==0.3.3         # via boto3
-sasl==0.2.1               # via pyhive, thrift-sasl
 statsd==3.3.0             # via -r requirements/testing.in
-tableschema==1.19.4       # via apache-superset
-tabulator==1.52.3         # via tableschema
-thrift-sasl==0.4.2        # via pyhive
-thrift==0.13.0            # via apache-superset, pyhive, thrift-sasl
 traitlets==5.0.3          # via ipython
 typed-ast==1.4.1          # via astroid
-unicodecsv==0.14.1        # via tableschema, tabulator
 wcwidth==0.2.5            # via prompt-toolkit
 websocket-client==0.57.0  # via docker
 wrapt==1.12.1             # via astroid
-xlrd==1.2.0               # via tabulator
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
