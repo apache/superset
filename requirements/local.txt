@@ -6,7 +6,7 @@
 #    pip-compile-multi
 #
 -r development.txt
--e file:.                 # via -r requirements/development.in
+-e file:.                 # via -r requirements/base.txt, -r requirements/development.in
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
