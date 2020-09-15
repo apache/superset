@@ -46,8 +46,7 @@ geographiclib==1.50       # via geopy
 geopy==2.0.0              # via apache-superset
 gunicorn==20.0.4          # via apache-superset
 humanize==2.6.0           # via apache-superset
-idna-ssl==1.1.0           # via aiohttp
-idna==2.10                # via email-validator, idna-ssl, yarl
+idna==2.10                # via email-validator, yarl
 importlib-metadata==1.7.0  # via jsonschema, kombu, markdown
 isodate==0.6.0            # via apache-superset
 itsdangerous==1.1.0       # via flask, flask-wtf
@@ -91,7 +90,7 @@ slackclient==2.5.0        # via apache-superset
 sqlalchemy-utils==0.36.8  # via apache-superset, flask-appbuilder
 sqlalchemy==1.3.19        # via alembic, apache-superset, flask-sqlalchemy, marshmallow-sqlalchemy, sqlalchemy-utils
 sqlparse==0.3.0           # via apache-superset
-typing-extensions==3.7.4.3  # via aiohttp, yarl
+typing-extensions==3.7.4.3  # via yarl
 urllib3==1.25.10          # via selenium
 vine==1.3.0               # via amqp, celery
 webencodings==0.5.1       # via bleach
