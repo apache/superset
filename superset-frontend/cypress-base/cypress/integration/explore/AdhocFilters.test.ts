@@ -22,6 +22,7 @@ describe('AdhocFilters', () => {
     cy.server();
     cy.route('GET', '/superset/explore_json/**').as('getJson');
     cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.route('GET', '/superset/filter/table/*/name').as('filterValues');
   });
 
   it('Set simple adhoc filter', () => {
@@ -55,6 +56,8 @@ describe('AdhocFilters', () => {
       cy.get('.Select__control').click();
       cy.get('input[type=text]').focus().type('name{enter}');
     });
+
+    cy.wait('@filterValues');
 
     cy.get('#filter-edit-popover').within(() => {
       cy.get('#adhoc-filter-edit-tabs-tab-SQL').click();
