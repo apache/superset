@@ -1,0 +1,136 @@
+---
+name: Caching
+menu: Installation and Configuration
+route: /docs/installation/cache
+index: 5
+version: 1
+---
+
+## Caching
+
+Superset uses [Flask-Cache](https://pythonhosted.org/Flask-Cache/) for caching purpose. Configuring
+your caching backend is as easy as providing a `CACHE_CONFIG`, constant in your `superset_config.py`
+that complies with the Flask-Cache specifications.
+
+Flask-Cache supports multiple caching backends (Redis, Memcached, SimpleCache (in-memory), or the
+local filesystem).
+
+- Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
+  `python-memcached` does not handle storing binary data correctly.
+- Redis: we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
+
+Both of these libraries can be installed using pip.
+
+For setting your timeouts, this is done in the Superset metadata and goes up the “timeout
+searchpath”, from your slice configuration, to your data source’s configuration, to your database’s
+and ultimately falls back into your global default defined in `CACHE_CONFIG`.
+
+```
+CACHE_CONFIG = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
+    'CACHE_KEY_PREFIX': 'superset_results',
+    'CACHE_REDIS_URL': 'redis://localhost:6379/0',
+}
+```
+
+It is also possible to pass a custom cache initialization function in the config to handle
+additional caching use cases. The function must return an object that is compatible with the
+[Flask-Cache API](https://pythonhosted.org/Flask-Cache/).
+
+```python
+from custom_caching import CustomCache
+
+def init_cache(app):
+    """Takes an app instance and returns a custom cache backend"""
+    config = {
+        'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
+        'CACHE_KEY_PREFIX': 'superset_results',
+    }
+    return CustomCache(app, config)
+
+CACHE_CONFIG = init_cache
+```
+
+Superset has a Celery task that will periodically warm up the cache based on different strategies.
+To use it, add the following to the `CELERYBEAT_SCHEDULE` section in `config.py`:
+
+```python
+CELERYBEAT_SCHEDULE = {
+    'cache-warmup-hourly': {
+        'task': 'cache-warmup',
+        'schedule': crontab(minute=0, hour='*'),  # hourly
+        'kwargs': {
+            'strategy_name': 'top_n_dashboards',
+            'top_n': 5,
+            'since': '7 days ago',
+        },
+    },
+}
+```
+
+This will cache all the charts in the top 5 most popular dashboards every hour. For other
+strategies, check the `superset/tasks/cache.py` file.
+
+### Caching Thumbnails
+
+This is an optional feature that can be turned on by activating it’s feature flag on config:
+
+```
+FEATURE_FLAGS = {
+    "THUMBNAILS": True,
+    "THUMBNAILS_SQLA_LISTENERS": True,
+}
+```
+
+For this feature you will need a cache system and celery workers. All thumbnails are store on cache
+and are processed asynchronously by the workers.
+
+An example config where images are stored on S3 could be:
+
+```python
+from flask import Flask
+from s3cache.s3cache import S3Cache
+
+...
+
+class CeleryConfig(object):
+    BROKER_URL = "redis://localhost:6379/0"
+    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
+    CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+    CELERYD_PREFETCH_MULTIPLIER = 10
+    CELERY_ACKS_LATE = True
+
+
+CELERY_CONFIG = CeleryConfig
+
+def init_thumbnail_cache(app: Flask) -> S3Cache:
+    return S3Cache("bucket_name", 'thumbs_cache/')
+
+
+THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
+# Async selenium thumbnail task will use the following user
+THUMBNAIL_SELENIUM_USER = "Admin"
+```
+
+Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`. You can
+override the base URL for selenium using:
+
+```
+WEBDRIVER_BASEURL = "https://superset.company.com"
+```
+
+Additional selenium web drive configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
+implement a custom function to authenticate selenium. The default function uses the `flask-login`
+session cookie. Here's an example of a custom function signature:
+
+```python
+def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
+    pass
+```
+
+Then on configuration:
+
+```
+WEBDRIVER_AUTH_FUNC = auth_driver
+```

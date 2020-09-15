@@ -163,6 +163,7 @@ class FilterBox extends React.Component {
       this.props.onChange(selectedValues, false);
     });
   }
+
   changeFilter(filter, options) {
     const fltr = TIME_FILTER_MAP[filter] || filter;
     let vals = null;
@@ -320,6 +321,7 @@ class FilterBox extends React.Component {
     }
     return datasourceFilters;
   }
+
   renderSelect(filterConfig) {
     const { filtersChoices } = this.props;
     const { selectedValues } = this.state;

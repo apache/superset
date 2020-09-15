@@ -59,7 +59,8 @@ const RunQueryActionButton = ({
         <i className="fa fa-stop" /> {t('Stop')}
       </Button>
     );
-  } else if (allowAsync) {
+  }
+  if (allowAsync) {
     return (
       <Button
         {...commonBtnProps}

@@ -44,7 +44,6 @@ class CssEditor extends React.PureComponent {
     super(props);
     this.state = {
       css: props.initialCss,
-      cssTemplateOptions: [],
     };
     this.changeCss = this.changeCss.bind(this);
     this.changeCssTemplate = this.changeCssTemplate.bind(this);

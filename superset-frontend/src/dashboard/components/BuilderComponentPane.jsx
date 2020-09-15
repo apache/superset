@@ -64,6 +64,7 @@ class BuilderComponentPane extends React.PureComponent {
       </Tabs>
     );
   }
+
   render() {
     const { topOffset } = this.props;
     return (

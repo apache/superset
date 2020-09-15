@@ -157,7 +157,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     SupersetClient.post({
       endpoint: 'api/v1/database/test_connection',
-      postPayload: JSON.stringify(connection),
+      body: JSON.stringify(connection),
+      headers: { 'Content-Type': 'application/json' },
     })
       .then(() => {
         addSuccessToast(t('Connection looks good!'));
@@ -211,7 +212,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const target = event.target;
+    const { target } = event;
     const data = {
       database_name: db ? db.database_name : '',
       sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
@@ -229,7 +230,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const target = event.target;
+    const { target } = event;
     const data = {
       database_name: db ? db.database_name : '',
       sqlalchemy_uri: db ? db.sqlalchemy_uri : '',

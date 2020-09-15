@@ -40,11 +40,11 @@ import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import getClientErrorObject from '../../utils/getClientErrorObject';
-import CopyToClipboard from './../../components/CopyToClipboard';
+import CopyToClipboard from '../../components/CopyToClipboard';
 import { getChartDataRequest } from '../../chart/chartAction';
 import downloadAsImage from '../../utils/downloadAsImage';
 import Loading from '../../components/Loading';
-import ModalTrigger from './../../components/ModalTrigger';
+import ModalTrigger from '../../components/ModalTrigger';
 import RowCountLabel from './RowCountLabel';
 import {
   applyFormattingToTabularData,
@@ -90,6 +90,7 @@ export class DisplayQueryButton extends React.PureComponent {
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
   }
+
   beforeOpen(resultType) {
     this.setState({ isLoading: true });
 
@@ -118,24 +119,31 @@ export class DisplayQueryButton extends React.PureComponent {
         });
       });
   }
+
   changeFilterText(event) {
     this.setState({ filterText: event.target.value });
   }
+
   redirectSQLLab() {
     this.props.onOpenInEditor(this.props.latestQueryFormData);
   }
+
   openPropertiesModal() {
     this.setState({ isPropertiesModalOpen: true });
   }
+
   closePropertiesModal() {
     this.setState({ isPropertiesModalOpen: false });
   }
+
   renderQueryModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
-    } else if (this.state.error) {
+    }
+    if (this.state.error) {
       return <pre>{this.state.error}</pre>;
-    } else if (this.state.query) {
+    }
+    if (this.state.query) {
       return (
         <div>
           <CopyToClipboard
@@ -155,12 +163,15 @@ export class DisplayQueryButton extends React.PureComponent {
     }
     return null;
   }
+
   renderResultsModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
-    } else if (this.state.error) {
+    }
+    if (this.state.error) {
       return <pre>{this.state.error}</pre>;
-    } else if (this.state.data) {
+    }
+    if (this.state.data) {
       if (this.state.data.length === 0) {
         return 'No data';
       }
@@ -168,6 +179,7 @@ export class DisplayQueryButton extends React.PureComponent {
     }
     return null;
   }
+
   renderDataTable(data) {
     return (
       <div style={{ overflow: 'auto' }}>
@@ -209,16 +221,20 @@ export class DisplayQueryButton extends React.PureComponent {
       </div>
     );
   }
+
   renderSamplesModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
-    } else if (this.state.error) {
+    }
+    if (this.state.error) {
       return <pre>{this.state.error}</pre>;
-    } else if (this.state.data) {
+    }
+    if (this.state.data) {
       return this.renderDataTable(this.state.data);
     }
     return null;
   }
+
   render() {
     const { animation, chartHeight, slice } = this.props;
     return (

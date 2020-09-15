@@ -45,6 +45,7 @@ export default class Hotkeys extends React.PureComponent {
       }
     });
   }
+
   renderPopover() {
     const { header, hotkeys } = this.props;
     return (
@@ -70,6 +71,7 @@ export default class Hotkeys extends React.PureComponent {
       </Popover>
     );
   }
+
   render() {
     return (
       <OverlayTrigger

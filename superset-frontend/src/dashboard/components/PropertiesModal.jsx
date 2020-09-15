@@ -80,6 +80,7 @@ class PropertiesModal extends React.PureComponent {
   componentDidMount() {
     this.fetchDashboardDetails();
   }
+
   onColorSchemeChange(value) {
     this.updateFormState('colorScheme', value);
   }

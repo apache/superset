@@ -160,7 +160,7 @@ function ColumnCollectionTable({
                       database/column name level via the extra parameter.`)}
                 </div>
               }
-              control={<TextControl placeholder={'%y/%m/%d'} />}
+              control={<TextControl placeholder="%y/%m/%d" />}
             />
           </Fieldset>
         </FormContainer>
@@ -280,6 +280,7 @@ export class DatasourceEditor extends React.PureComponent {
     };
     this.props.onChange(datasource, this.state.errors);
   }
+
   onDatasourceChange(datasource) {
     this.setState({ datasource }, this.validateAndChange);
   }
@@ -406,7 +407,7 @@ export class DatasourceEditor extends React.PureComponent {
   validate(callback) {
     let errors = [];
     let dups;
-    const datasource = this.state.datasource;
+    const { datasource } = this.state;
 
     // Looking for duplicate column_name
     dups = this.findDuplicates(datasource.columns, obj => obj.column_name);
@@ -438,7 +439,7 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   renderSettingsFieldset() {
-    const datasource = this.state.datasource;
+    const { datasource } = this.state;
     return (
       <Fieldset
         title={t('Basic')}
@@ -531,7 +532,7 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   renderAdvancedFieldset() {
-    const datasource = this.state.datasource;
+    const { datasource } = this.state;
     return (
       <Fieldset
         title={t('Advanced')}

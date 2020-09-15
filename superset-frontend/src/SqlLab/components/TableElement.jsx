@@ -83,6 +83,7 @@ class TableElement extends React.PureComponent {
     this.setState({ expanded: false });
     this.props.actions.removeDataPreview(this.props.table);
   }
+
   toggleSortColumns() {
     this.setState({ sortColumns: !this.state.sortColumns });
   }
@@ -92,13 +93,13 @@ class TableElement extends React.PureComponent {
   }
 
   renderWell() {
-    const table = this.props.table;
+    const { table } = this.props;
     let header;
     if (table.partitions) {
       let partitionQuery;
       let partitionClipBoard;
       if (table.partitions.partitionQuery) {
-        partitionQuery = table.partitions.partitionQuery;
+        ({ partitionQuery } = table.partitions.partitionQuery);
         const tt = t('Copy partition query to clipboard');
         partitionClipBoard = (
           <CopyToClipboard
@@ -127,9 +128,10 @@ class TableElement extends React.PureComponent {
     }
     return header;
   }
+
   renderControls() {
     let keyLink;
-    const table = this.props.table;
+    const { table } = this.props;
     if (table.indexes && table.indexes.length > 0) {
       keyLink = (
         <ModalTrigger
@@ -190,8 +192,9 @@ class TableElement extends React.PureComponent {
       </ButtonGroup>
     );
   }
+
   renderHeader() {
-    const table = this.props.table;
+    const { table } = this.props;
     return (
       <div className="clearfix">
         <div className="pull-left">
@@ -213,6 +216,7 @@ class TableElement extends React.PureComponent {
           )}
           <i
             role="button"
+            aria-label="Toggle table"
             tabIndex={0}
             onClick={e => {
               this.toggleTable(e);
@@ -227,8 +231,9 @@ class TableElement extends React.PureComponent {
       </div>
     );
   }
+
   renderBody() {
-    const table = this.props.table;
+    const { table } = this.props;
     let cols;
     if (table.columns) {
       cols = table.columns.slice();
@@ -238,7 +243,8 @@ class TableElement extends React.PureComponent {
           const colB = b.name.toUpperCase();
           if (colA < colB) {
             return -1;
-          } else if (colA > colB) {
+          }
+          if (colA > colB) {
             return 1;
           }
           return 0;

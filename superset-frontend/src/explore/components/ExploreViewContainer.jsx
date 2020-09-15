@@ -35,7 +35,7 @@ import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
-import * as logActions from '../../logger/actions/';
+import * as logActions from '../../logger/actions';
 import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
@@ -241,9 +241,9 @@ class ExploreViewContainer extends React.Component {
     const longUrl = getExploreLongUrl(this.props.form_data, null, false);
     try {
       if (isReplace) {
-        history.replaceState(payload, title, longUrl);
+        window.history.replaceState(payload, title, longUrl);
       } else {
-        history.pushState(payload, title, longUrl);
+        window.history.pushState(payload, title, longUrl);
       }
     } catch (e) {
       logging.warn(
@@ -268,7 +268,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   handlePopstate() {
-    const formData = history.state;
+    const formData = window.history.state;
     if (formData && Object.keys(formData).length) {
       this.props.actions.setExploreControls(formData);
       this.props.actions.postChartFormData(
@@ -283,12 +283,14 @@ class ExploreViewContainer extends React.Component {
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
   }
+
   hasErrors() {
     const ctrls = this.props.controls;
     return Object.keys(ctrls).some(
       k => ctrls[k].validationErrors && ctrls[k].validationErrors.length > 0,
     );
   }
+
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
     const errors = [];
@@ -311,6 +313,7 @@ class ExploreViewContainer extends React.Component {
     }
     return errorMessage;
   }
+
   renderChartContainer() {
     return (
       <ExploreChartPanel

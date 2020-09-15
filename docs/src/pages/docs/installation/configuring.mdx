@@ -1,0 +1,282 @@
+---
+name: Configuring Superset
+menu: Installation and Configuration
+route: /docs/installation/configuring-superset
+index: 3
+version: 1
+---
+
+## Configuring Superset
+
+### Configuration
+
+To configure your application, you need to create a file `superset_config.py` and add it to your
+`PYTHONPATH`. Here are some of the parameters you can set in that file:
+
+```
+# Superset specific config
+ROW_LIMIT = 5000
+
+SUPERSET_WEBSERVER_PORT = 8088
+
+# Flask App Builder configuration
+# Your App secret key
+SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
+
+# The SQLAlchemy connection string to your database backend
+# This connection defines the path to the database that stores your
+# superset metadata (slices, connections, tables, dashboards, ...).
+# Note that the connection information to connect to the datasources
+# you want to explore are managed directly in the web UI
+SQLALCHEMY_DATABASE_URI = 'sqlite:////path/to/superset.db'
+
+# Flask-WTF flag for CSRF
+WTF_CSRF_ENABLED = True
+# Add endpoints that need to be exempt from CSRF protection
+WTF_CSRF_EXEMPT_LIST = []
+# A CSRF token that expires in 1 year
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
+
+# Set this API key to enable Mapbox visualizations
+MAPBOX_API_KEY = ''
+```
+
+All the parameters and default values defined in
+[https://github.com/apache/incubator-superset/blob/master/superset/config.py](https://github.com/apache/incubator-superset/blob/master/superset/config.py)
+can be altered in your local `superset_config.py`. Administrators will want to read through the file
+to understand what can be configured locally as well as the default values in place.
+
+Since `superset_config.py` acts as a Flask configuration module, it can be used to alter the
+settings Flask itself, as well as Flask extensions like `flask-wtf`, `flask-cache`, `flask-migrate`,
+and `flask-appbuilder`. Flask App Builder, the web framework used by Superset, offers many
+configuration settings. Please consult the
+[Flask App Builder Documentation](https://flask-appbuilder.readthedocs.org/en/latest/config.html)
+for more information on how to configure it.
+
+Make sure to change:
+
+- `SQLALCHEMY_DATABASE_URI`: by default it is stored at ~/.superset/superset.db
+- `SECRET_KEY`: to a long random string
+
+If you need to exempt endpoints from CSRF (e.g. if you are running a custom auth postback endpoint),
+you can add the endpoints to `WTF_CSRF_EXEMPT_LIST`:
+
+```
+WTF_CSRF_EXEMPT_LIST = [‘’]
+```
+
+### Flask AppBuilder Permissions
+
+By default, every time the Flask-AppBuilder (FAB) app is initialized the permissions and views are
+added automatically to the backend and associated with the ‘Admin’ role. The issue, however, is when
+you are running multiple concurrent workers this creates a lot of contention and race conditions
+when defining permissions and views.
+
+To alleviate this issue, the automatic updating of permissions can be disabled by setting
+`FAB_UPDATE_PERMS = False` (defaults to True).
+
+In a production environment initialization could take on the following form:
+
+```
+superset init gunicorn -w 10 … superset:app
+```
+
+### Running on a WSGI HTTP Server
+
+While you can run Superset on NGINX or Apache, we recommend using Gunicorn in async mode. This
+enables impressive concurrency even and is fairly easy to install and configure. Please refer to the
+documentation of your preferred technology to set up this Flask WSGI application in a way that works
+well in your environment. Here’s an async setup known to work well in production:
+
+```
+      -w 10 \
+      -k gevent \
+      --timeout 120 \
+      -b  0.0.0.0:6666 \
+      --limit-request-line 0 \
+      --limit-request-field_size 0 \
+      --statsd-host localhost:8125 \
+      "superset.app:create_app()"
+```
+
+Refer to the [Gunicorn documentation](https://docs.gunicorn.org/en/stable/design.html) for more
+information. _Note that the development web server (`superset run` or `flask run`) is not intended
+for production use._
+
+If you're not using Gunicorn, you may want to disable the use of `flask-compress` by setting
+`COMPRESS_REGISTER = False` in your `superset_config.py`.
+
+### Configuration Behind a Load Balancer
+
+If you are running superset behind a load balancer or reverse proxy (e.g. NGINX or ELB on AWS), you
+may need to utilize a healthcheck endpoint so that your load balancer knows if your superset
+instance is running. This is provided at `/health` which will return a 200 response containing “OK”
+if the the webserver is running.
+
+If the load balancer is inserting `X-Forwarded-For/X-Forwarded-Proto` headers, you should set
+`ENABLE_PROXY_FIX = True` in the superset config file (`superset_config.py`) to extract and use the
+headers.
+
+In case the reverse proxy is used for providing SSL encryption, an explicit definition of the
+`X-Forwarded-Proto` may be required. For the Apache webserver this can be set as follows:
+
+```
+RequestHeader set X-Forwarded-Proto "https"
+```
+
+### Custom OAuth2 Configuration
+
+Beyond FAB supported providers (Github, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
+Superset with other OAuth2 Authorization Server implementations that support “code” authorization.
+
+First, configure authorization in Superset `superset_config.py`.
+
+```python
+AUTH_TYPE = AUTH_OAUTH
+OAUTH_PROVIDERS = [
+    {   'name':'egaSSO',
+        'token_key':'access_token', # Name of the token in the response of access_token_url
+        'icon':'fa-address-card',   # Icon for the provider
+        'remote_app': {
+            'consumer_key':'myClientId',  # Client Id (Identify Superset application)
+            'consumer_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+            'request_token_params':{
+                'scope': 'read'               # Scope for the Authorization
+            },
+            'access_token_method':'POST',    # HTTP Method to call access_token_url
+            'access_token_params':{        # Additional parameters for calls to access_token_url
+                'client_id':'myClientId'
+            },
+            'access_token_headers':{    # Additional headers for calls to access_token_url
+                'Authorization': 'Basic Base64EncodedClientIdAndSecret'
+            },
+            'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
+            'access_token_url':'https://myAuthorizationServer/oauth2AuthorizationServer/token',
+            'authorize_url':'https://myAuthorizationServer/oauth2AuthorizationServer/authorize'
+        }
+    }
+]
+
+# Will allow user self registration, allowing to create Flask users from Authorized User
+AUTH_USER_REGISTRATION = True
+
+# The default user self registration role
+AUTH_USER_REGISTRATION_ROLE = "Public"
+```
+
+Then, create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager` and overrides
+`oauth_user_info`:
+
+```python
+from superset.security import SupersetSecurityManager
+
+class CustomSsoSecurityManager(SupersetSecurityManager):
+
+    def oauth_user_info(self, provider, response=None):
+        logging.debug("Oauth2 provider: {0}.".format(provider))
+        if provider == 'egaSSO':
+            # As example, this line request a GET to base_url + '/' + userDetails with Bearer  Authentication,
+    # and expects that authorization server checks the token, and response with user details
+            me = self.appbuilder.sm.oauth_remotes[provider].get('userDetails').data
+            logging.debug("user_data: {0}".format(me))
+            return { 'name' : me['name'], 'email' : me['email'], 'id' : me['user_name'], 'username' : me['user_name'], 'first_name':'', 'last_name':''}
+    ...
+```
+
+This file must be located at the same directory than `superset_config.py` with the name
+`custom_sso_security_manager.py`. Finally, add the following 2 lines to `superset_config.py`:
+
+```
+from custom_sso_security_manager import CustomSsoSecurityManager
+CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+```
+
+### Feature Flags
+
+To support a diverse set of users, Superset has some features that are not enabled by default. For
+example, some users have stronger security restrictions, while some others may not. So Superset
+allow users to enable or disable some features by config. For feature owners, you can add optional
+functionalities in Superset, but will be only affected by a subset of users.
+
+You can enable or disable features with flag from `superset_config.py`:
+
+```python
+DEFAULT_FEATURE_FLAGS = {
+    'CLIENT_CACHE': False,
+    'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
+    'PRESTO_EXPAND_DATA': False,
+}
+```
+
+Here is a list of flags and descriptions:
+
+- `ENABLE_EXPLORE_JSON_CSRF_PROTECTION`: For some security concerns, you may need to enforce CSRF
+  protection on all query request to the `explore_json` endpoint. When
+  `ENABLE_EXPLORE_JSON_CSRF_PROTECTION` is set to true, your users cannot make GET request to
+  `explore_json`. The default value for this feature is `False` and `explore_json` will accept both
+  GET and POST request. See [PR 7935](https://github.com/apache/incubator-superset/pull/7935) for
+  more details.
+
+- `PRESTO_EXPAND_DATA`: When this feature is enabled, nested types in Presto will be expanded into
+  extra columns and / or arrays. This is experimental, and doesn’t work with all nested types.
+
+### SIP 15
+
+[Superset Improvement Proposal 15](https://github.com/apache/incubator-superset/issues/6360) aims to
+ensure that time intervals are handled in a consistent and transparent manner for both the Druid and
+SQLAlchemy connectors.
+
+Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave like exclusive for
+string columns (due to lexicographical ordering) if no formatting was defined and the column
+formatting did not conform to an ISO 8601 date-time (refer to the SIP for details).
+
+To remedy this rather than having to define the date/time format for every non-IS0 8601 date-time
+column, once can define a default column mapping on a per database level via the `extra` parameter:
+
+```
+{
+    "python_date_format_by_column_name": {
+        "ds": "%Y-%m-%d"
+    }
+}
+```
+
+**New Deployments**
+
+All new deployments should enable SIP-15 by setting this value in `superset_config.py`:
+
+```
+SIP_15_ENABLED = True
+
+```
+
+**Existing Deployments**
+
+Given that it is not apparent whether the chart creator was aware of the time range inconsistencies
+(and adjusted the endpoints accordingly) changing the behavior of all charts is overly aggressive.
+Instead SIP-15 proivides a soft transistion allowing producers (chart owners) to see the impact of
+the proposed change and adjust their charts accordingly.
+
+Prior to enabling SIP-15, existing deployments should communicate to their users the impact of the
+change and define a grace period end date (exclusive of course) after which all charts will conform
+to the [start, end) interval.
+
+```python
+from dateime import date
+
+SIP_15_ENABLED = True
+SIP_15_GRACE_PERIOD_END = date(<YYYY>, <MM>, <DD>)
+```
+
+To aid with transparency the current endpoint behavior is explicitly called out in the chart time
+range (post SIP-15 this will be [start, end) for all connectors and databases). One can override the
+defaults on a per database level via the `extra` parameter.
+
+```python
+{
+    "time_range_endpoints": ["inclusive", "inclusive"]
+}
+```
+
+Note in a future release the interim SIP-15 logic will be removed (including the
+`time_grain_endpoints` form-data field) via a code change and Alembic migration.

@@ -37,7 +37,7 @@ import {
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
 import { sliceId as chartId } from './mockChartQueries';
-import { filterId } from './mockDashboardFilters';
+import { filterId } from './mockSliceEntities';
 
 export const sliceId = chartId;
 

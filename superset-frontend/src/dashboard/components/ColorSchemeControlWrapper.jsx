@@ -41,6 +41,7 @@ class ColorSchemeControlWrapper extends React.PureComponent {
     this.choices = this.categoricalSchemeRegistry.keys().map(s => [s, s]);
     this.schemes = this.categoricalSchemeRegistry.getMap();
   }
+
   setHover(hovered) {
     this.setState({ hovered });
   }
