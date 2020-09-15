@@ -78,7 +78,7 @@ const plugins = [
       //   }
       // }
       const entryFiles = {};
-      for (const [entry, chunks] of Object.entries(entrypoints)) {
+      Object.entries(entrypoints).forEach(([entry, chunks]) => {
         entryFiles[entry] = {
           css: chunks
             .filter(x => x.endsWith('.css'))
@@ -87,7 +87,8 @@ const plugins = [
             .filter(x => x.endsWith('.js'))
             .map(x => path.join(output.publicPath, x)),
         };
-      }
+      });
+
       return {
         ...seed,
         entrypoints: entryFiles,
@@ -430,7 +431,7 @@ if (isDevMode) {
 
   // find all the symlinked plugins and use their source code for imports
   let hasSymlink = false;
-  for (const [pkg, version] of Object.entries(packageConfig.dependencies)) {
+  Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
     const srcPath = `./node_modules/${pkg}/src`;
     if (/superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
       console.log(
@@ -441,7 +442,7 @@ if (isDevMode) {
       config.resolve.alias[`${pkg}$`] = `${pkg}/src`;
       hasSymlink = true;
     }
-  }
+  });
   if (hasSymlink) {
     console.log(''); // pure cosmetic new line
   }
