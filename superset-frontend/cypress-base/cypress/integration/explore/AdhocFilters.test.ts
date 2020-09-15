@@ -68,19 +68,21 @@ describe('AdhocFilters', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('[data-test=adhoc_filters]').within(() => {
-      cy.get('.Select__control').scrollIntoView().click();
-      cy.get('input[type=text]').focus().type('name{enter}');
-    });
+    cy.get('[data-test=adhoc_filters] .Select__control')
+      .scrollIntoView()
+      .click();
+    cy.get('[data-test=adhoc_filters] input[type=text]')
+      .focus()
+      .type('name{enter}');
 
     cy.wait('@filterValues');
 
-    cy.get('#filter-edit-popover').within(() => {
-      cy.get('#adhoc-filter-edit-tabs-tab-SQL').click();
-      cy.get('.ace_content').click();
-      cy.get('.ace_text-input').type("'Amy' OR name = 'Bob'");
-      cy.get('button').contains('Save').click();
-    });
+    cy.get('#filter-edit-popover #adhoc-filter-edit-tabs-tab-SQL').click();
+    cy.get('#filter-edit-popover .ace_content').click();
+    cy.get('#filter-edit-popover .ace_text-input').type(
+      "'Amy' OR name = 'Bob'",
+    );
+    cy.get('#filter-edit-popover button').contains('Save').click();
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
