@@ -24,7 +24,7 @@ describe('AdhocFilters', () => {
     cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
-  it('Set simple adhoc filter', () => {
+  xit('Set simple adhoc filter', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
