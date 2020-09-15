@@ -22,6 +22,7 @@ from typing import Any, Dict, Union, List, Optional
 from unittest.mock import Mock, patch
 
 import pandas as pd
+import pytest
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
@@ -42,6 +43,7 @@ from superset.utils.core import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
+test_client = app.test_client()
 
 
 def login(client: Any, username: str = "admin", password: str = "general"):
@@ -69,6 +71,39 @@ def get_resp(
     return resp.data.decode("utf-8")
 
 
+def post_assert_metric(
+    client: Any, uri: str, data: Dict[str, Any], func_name: str
+) -> Response:
+    """
+    Simple client post with an extra assertion for statsd metrics
+
+    :param client: test client for superset api requests
+    :param uri: The URI to use for the HTTP POST
+    :param data: The JSON data payload to be posted
+    :param func_name: The function name that the HTTP POST triggers
+    for the statsd metric assertion
+    :return: HTTP Response
+    """
+    with patch.object(
+        BaseSupersetModelRestApi, "incr_stats", return_value=None
+    ) as mock_method:
+        rv = client.post(uri, json=data)
+    if 200 <= rv.status_code < 400:
+        mock_method.assert_called_once_with("success", func_name)
+    else:
+        mock_method.assert_called_once_with("error", func_name)
+    return rv
+
+
+@pytest.fixture
+def logged_in_admin():
+    """Fixture with app context and logged in admin user."""
+    with app.app_context():
+        login(test_client, username="admin")
+        yield
+        test_client.get("/logout/", follow_redirects=True)
+
+
 class SupersetTestCase(TestCase):
 
     default_schema_backend_map = {
@@ -83,6 +118,15 @@ class SupersetTestCase(TestCase):
 
     def create_app(self):
         return app
+
+    @staticmethod
+    def get_birth_names_dataset():
+        example_db = get_example_database()
+        return (
+            db.session.query(SqlaTable)
+            .filter_by(database=example_db, table_name="birth_names")
+            .one()
+        )
 
     @staticmethod
     def create_user_with_roles(username: str, roles: List[str]):
@@ -422,24 +466,7 @@ class SupersetTestCase(TestCase):
     def post_assert_metric(
         self, uri: str, data: Dict[str, Any], func_name: str
     ) -> Response:
-        """
-        Simple client post with an extra assertion for statsd metrics
-
-        :param uri: The URI to use for the HTTP POST
-        :param data: The JSON data payload to be posted
-        :param func_name: The function name that the HTTP POST triggers
-        for the statsd metric assertion
-        :return: HTTP Response
-        """
-        with patch.object(
-            BaseSupersetModelRestApi, "incr_stats", return_value=None
-        ) as mock_method:
-            rv = self.client.post(uri, json=data)
-        if 200 <= rv.status_code < 400:
-            mock_method.assert_called_once_with("success", func_name)
-        else:
-            mock_method.assert_called_once_with("error", func_name)
-        return rv
+        return post_assert_metric(self.client, uri, data, func_name)
 
     def put_assert_metric(
         self, uri: str, data: Dict[str, Any], func_name: str
