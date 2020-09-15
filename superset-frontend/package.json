@@ -108,7 +108,7 @@
     "dom-to-image": "^2.6.0",
     "geolib": "^2.0.24",
     "global-box": "^1.2.0",
-    "immutable": "^3.8.2",
+    "immutable": "^4.0.0-rc.12",
     "interweave": "^11.2.0",
     "jquery": "^3.5.1",
     "json-bigint": "^1.0.0",
