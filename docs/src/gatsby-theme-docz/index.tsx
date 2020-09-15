@@ -32,7 +32,7 @@ interface Props {
 }
 
 const docLayout = css`
-  .docContainer {
+  .docSearch-content {
     word-wrap: break-all;
     width: 100%;
   }
@@ -45,7 +45,7 @@ const Theme = ({ children }: Props) => {
       <Layout>
         <SEO title="Documentation" />
         <div css={docLayout}>
-          <div className="docContainer">{children}</div>
+          <div className="docSearch-content">{children}</div>
           <AnchorNavigator />
         </div>
         <div>
