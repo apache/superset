@@ -120,12 +120,12 @@ SQL toolkit that is compatible with most databases. Here are some of the major d
 </p>
 
 A complete list of supported databases can be found
-[here](https://superset.incubator.apache.org/#databases).
+[here](https://superset.incubator.apache.org/docs/databases/installing-database-drivers).
 
 
 ## Installation and Configuration
 
-[See in the documentation](https://superset.incubator.apache.org/installation.html)
+[See in the documentation](https://superset.incubator.apache.org/docs/installation/installing-superset-using-docker-compose)
 
 
 ## Get Involved
