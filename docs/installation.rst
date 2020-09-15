@@ -157,7 +157,7 @@ the required dependencies are installed: ::
 
 **Ubuntu 20.04** the following command will ensure that the required dependencies are installed: ::
 
-    sudo apt-get install build-essential libssl-dev libffi-dev python3-dev python-pip libsasl2-dev libldap2-dev
+    sudo apt-get install build-essential libssl-dev libffi-dev python3-dev python3-pip libsasl2-dev libldap2-dev
 
 otherwise build for ``cryptography`` fails.
 
