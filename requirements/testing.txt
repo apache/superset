@@ -11,19 +11,24 @@
 appnope==0.1.0            # via ipython
 astroid==2.4.2            # via pylint
 backcall==0.2.0           # via ipython
+certifi==2020.6.20        # via requests
 coverage==5.2.1           # via pytest-cov
 docker==4.3.1             # via -r requirements/testing.in
+et-xmlfile==1.0.1         # via openpyxl
 flask-testing==0.8.0      # via -r requirements/testing.in
+future==0.18.2            # via pyhive
 iniconfig==1.0.1          # via pytest
 ipdb==0.13.3              # via -r requirements/testing.in
 ipython-genutils==0.2.0   # via traitlets
 ipython==7.16.1           # via -r requirements/testing.in, ipdb
 isort==5.5.1              # via pylint
+jdcal==1.4.1              # via openpyxl
 jedi==0.17.2              # via ipython
 lazy-object-proxy==1.4.3  # via astroid
 mccabe==0.6.1             # via pylint
 more-itertools==8.5.0     # via pytest
 openapi-spec-validator==0.2.9  # via -r requirements/testing.in
+openpyxl==3.0.5           # via -r requirements/testing.in
 parameterized==0.7.4      # via -r requirements/testing.in
 parso==0.7.1              # via jedi
 pexpect==4.8.0            # via ipython
@@ -31,11 +36,12 @@ pickleshare==0.7.5        # via ipython
 prompt-toolkit==3.0.7     # via ipython
 ptyprocess==0.6.0         # via pexpect
 pygments==2.6.1           # via ipython
-pyhive[hive,presto]==0.6.3  # via -r requirements/testing.in, apache-superset
+pyhive[presto]==0.6.3     # via -r requirements/testing.in
 pylint==2.6.0             # via -r requirements/testing.in
 pytest-cov==2.10.1        # via -r requirements/testing.in
 pytest==6.0.1             # via -r requirements/testing.in, pytest-cov
 redis==3.5.3              # via -r requirements/testing.in
+requests==2.24.0          # via docker, pyhive
 statsd==3.3.0             # via -r requirements/testing.in
 traitlets==4.3.2          # via ipython
 typed-ast==1.4.1          # via astroid
