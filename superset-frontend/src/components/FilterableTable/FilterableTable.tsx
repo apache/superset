@@ -184,15 +184,12 @@ export default class FilterableTable extends PureComponent<
     const PADDING = 40; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
     const cellContent = [].concat(
-      ...this.props.orderedColumnKeys.map(key =>
-        this.list
-          .map((data: Datum) =>
-            this.getCellContent({ cellData: data[key], columnKey: key }),
-          )
-          // @ts-ignore
-          .push(key)
-          .toJS(),
-      ),
+      ...this.props.orderedColumnKeys.map(key => {
+        const cellContentList = this.list.map((data: Datum) =>
+          this.getCellContent({ cellData: data[key], columnKey: key }),
+        ) as List<string | JSX.Element>;
+        return cellContentList.push(key).toJS();
+      }),
     );
 
     const colWidths = getMultipleTextDimensions({
@@ -222,7 +219,7 @@ export default class FilterableTable extends PureComponent<
   }: {
     cellData: CellDataType;
     columnKey: string;
-  }) {
+  }): string | JSX.Element {
     if (cellData === null) {
       return <i className="text-muted">NULL</i>;
     }
