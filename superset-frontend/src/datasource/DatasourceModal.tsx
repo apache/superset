@@ -22,10 +22,12 @@ import Button from 'src/components/Button';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { t, SupersetClient } from '@superset-ui/core';
+import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 
-import getClientErrorObject from '../utils/getClientErrorObject';
-import DatasourceEditor from './DatasourceEditor';
-import withToasts from '../messageToasts/enhancers/withToasts';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+
+const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
 interface DatasourceModalProps {
   addSuccessToast: (msg: string) => void;
@@ -150,6 +152,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       <Modal.Body>
         {show && (
           <DatasourceEditor
+            showLoadingForImport
+            height={500}
             datasource={currentDatasource}
             onChange={onDatasourceChange}
           />

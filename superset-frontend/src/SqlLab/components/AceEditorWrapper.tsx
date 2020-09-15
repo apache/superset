@@ -17,11 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import AceEditor from 'react-ace';
-import 'brace/mode/sql';
-import 'brace/theme/github';
-import 'brace/ext/language_tools';
-import ace from 'brace';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
@@ -30,8 +25,11 @@ import {
   COLUMN_AUTOCOMPLETE_SCORE,
   SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
 } from 'src/SqlLab/constants';
-
-const langTools = ace.acequire('ace/ext/language_tools');
+import {
+  Editor,
+  AceCompleterKeyword,
+  FullSQLEditor as AceEditor,
+} from 'src/components/AsyncAceEditor';
 
 type HotKey = {
   key: string;
@@ -61,7 +59,7 @@ interface Props {
 interface State {
   sql: string;
   selectedText: string;
-  words: any[];
+  words: AceCompleterKeyword[];
 }
 
 class AceEditorWrapper extends React.PureComponent<Props, State> {
@@ -151,43 +149,6 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     this.props.onChange(text);
   }
 
-  getCompletions(
-    aceEditor: any,
-    session: any,
-    pos: any,
-    prefix: string,
-    callback: (p0: any, p1: any[]) => void,
-  ) {
-    // If the prefix starts with a number, don't try to autocomplete with a
-    // table name or schema or anything else
-    if (!Number.isNaN(parseInt(prefix, 10))) {
-      return;
-    }
-    const completer = {
-      insertMatch: (editor: any, data: any) => {
-        if (data.meta === 'table') {
-          this.props.actions.addTable(
-            this.props.queryEditor,
-            data.value,
-            this.props.queryEditor.schema,
-          );
-        }
-        editor.completer.insertMatch({
-          value: `${data.caption}${
-            ['function', 'schema'].includes(data.meta) ? '' : ' '
-          }`,
-        });
-      },
-    };
-    // Mutate instead of object spread here for performance
-    const words = this.state.words.map(word => {
-      /* eslint-disable-next-line no-param-reassign */
-      word.completer = completer;
-      return word;
-    });
-    callback(null, words);
-  }
-
   setAutoCompleter(props: Props) {
     // Loading schema, table and column names as auto-completable words
     const schemas = props.schemas || [];
@@ -229,20 +190,35 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       meta: 'function',
     }));
 
+    const completer = {
+      insertMatch: (editor: Editor, data: any) => {
+        if (data.meta === 'table') {
+          this.props.actions.addTable(
+            this.props.queryEditor,
+            data.value,
+            this.props.queryEditor.schema,
+          );
+        }
+        // executing https://github.com/thlorenz/brace/blob/3a00c5d59777f9d826841178e1eb36694177f5e6/ext/language_tools.js#L1448
+        editor.completer.insertMatch(
+          `${data.caption}${
+            ['function', 'schema'].includes(data.meta) ? '' : ' '
+          }`,
+        );
+      },
+    };
+
     const words = schemaWords
       .concat(tableWords)
       .concat(columnWords)
       .concat(functionWords)
-      .concat(sqlKeywords);
+      .concat(sqlKeywords)
+      .map(word => ({
+        ...word,
+        completer,
+      }));
 
-    this.setState({ words }, () => {
-      const completer = {
-        getCompletions: this.getCompletions.bind(this),
-      };
-      if (langTools) {
-        langTools.setCompleters([completer]);
-      }
-    });
+    this.setState({ words });
   }
 
   getAceAnnotations() {
@@ -263,8 +239,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   render() {
     return (
       <AceEditor
-        mode="sql"
-        theme="github"
+        keywords={this.state.words}
         onLoad={this.onEditorLoad.bind(this)}
         onBlur={this.onBlur.bind(this)}
         height={this.props.height}

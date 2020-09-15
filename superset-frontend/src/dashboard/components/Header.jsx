@@ -23,14 +23,22 @@ import PropTypes from 'prop-types';
 import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
 import { ButtonGroup } from 'react-bootstrap';
 
+import {
+  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
+  LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
+  LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
+} from 'src/logger/LogUtils';
+
 import Icon from 'src/components/Icon';
 import Button from 'src/components/Button';
+import EditableTitle from 'src/components/EditableTitle';
+import FaveStar from 'src/components/FaveStar';
+import { safeStringify } from 'src/utils/safeStringify';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
-import EditableTitle from '../../components/EditableTitle';
-import FaveStar from '../../components/FaveStar';
 import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
+import PropertiesModal from './PropertiesModal';
 
 import { chartPropShape } from '../util/propShapes';
 import {
@@ -38,14 +46,6 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
 } from '../util/constants';
-import { safeStringify } from '../../utils/safeStringify';
-
-import {
-  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
-  LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
-  LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
-} from '../../logger/LogUtils';
-import PropertiesModal from './PropertiesModal';
 import setPeriodicRunner from '../util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from './RefreshIntervalModal';
 

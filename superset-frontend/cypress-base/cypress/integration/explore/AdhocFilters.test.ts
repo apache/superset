@@ -25,14 +25,31 @@ describe('AdhocFilters', () => {
     cy.route('GET', '/superset/filter/table/*/name').as('filterValues');
   });
 
-  it('Set simple adhoc filter', () => {
-    cy.visitChartByName('Num Births Trend');
+  it('Should not load mathjs when not needed', () => {
+    cy.visitChartByName('Boys'); // a table chart
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.get('script[src*="mathjs"]').should('have.length', 0);
+  });
+
+  let numScripts = 0;
+
+  it('Should load AceEditor scripts when needed', () => {
+    cy.get('script').then(nodes => {
+      numScripts = nodes.length;
+    });
 
     cy.get('[data-test=adhoc_filters]').within(() => {
-      cy.get('.Select__control').click();
+      cy.get('.Select__control').scrollIntoView().click();
       cy.get('input[type=text]').focus().type('name{enter}');
     });
+
+    cy.get('script').then(nodes => {
+      // should load new script chunks for SQL editor
+      expect(nodes.length).to.greaterThan(numScripts);
+    });
+  });
+
+  it('Set simple adhoc filter', () => {
     cy.get('#filter-edit-popover').within(() => {
       cy.get('[data-test=adhoc-filter-simple-value]').within(() => {
         cy.get('.Select__control').click();
@@ -40,7 +57,6 @@ describe('AdhocFilters', () => {
       });
       cy.get('button').contains('Save').click();
     });
-
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
@@ -52,19 +68,21 @@ describe('AdhocFilters', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('[data-test=adhoc_filters]').within(() => {
-      cy.get('.Select__control').click();
-      cy.get('input[type=text]').focus().type('name{enter}');
-    });
+    cy.get('[data-test=adhoc_filters] .Select__control')
+      .scrollIntoView()
+      .click();
+    cy.get('[data-test=adhoc_filters] input[type=text]')
+      .focus()
+      .type('name{enter}');
 
     cy.wait('@filterValues');
 
-    cy.get('#filter-edit-popover').within(() => {
-      cy.get('#adhoc-filter-edit-tabs-tab-SQL').click();
-      cy.get('.ace_content').click();
-      cy.get('.ace_text-input').type("'Amy' OR name = 'Bob'");
-      cy.get('button').contains('Save').click();
-    });
+    cy.get('#filter-edit-popover #adhoc-filter-edit-tabs-tab-SQL').click();
+    cy.get('#filter-edit-popover .ace_content').click();
+    cy.get('#filter-edit-popover .ace_text-input').type(
+      "'Amy' OR name = 'Bob'",
+    );
+    cy.get('#filter-edit-popover button').contains('Save').click();
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
