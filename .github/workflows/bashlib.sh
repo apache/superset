@@ -132,10 +132,10 @@ codecov() {
   local codecovScript="${HOME}/codecov.sh"
   # download bash script if needed
   if [[ ! -f "$codecovScript" ]]; then
-    say "::group::Download codecov bash utility"
+    echo "Download codecov bash utility"
     curl -s https://codecov.io/bash >"$codecovScript"
   fi
-  say "::group::Executing codecov script"
+  echo "Executing codecov script"
   bash "$codecovScript" "$@"
   say "::endgroup::"
 }
