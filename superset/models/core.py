@@ -611,6 +611,11 @@ class Database(
             autoload_with=self.get_sqla_engine(),
         )
 
+    def get_table_comment(
+        self, table_name: str, schema: Optional[str] = None
+    ) -> Optional[str]:
+        return self.db_engine_spec.get_table_comment(self.inspector, table_name, schema)
+
     def get_columns(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
