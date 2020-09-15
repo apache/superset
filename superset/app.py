@@ -125,6 +125,7 @@ class SupersetAppInitializer:
         #
         # pylint: disable=too-many-locals
         # pylint: disable=too-many-statements
+        from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.connectors.druid.views import (
             Druid,
@@ -194,6 +195,7 @@ class SupersetAppInitializer:
         #
         # Setup API views
         #
+        appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
