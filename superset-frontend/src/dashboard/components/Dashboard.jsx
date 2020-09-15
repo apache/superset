@@ -83,7 +83,7 @@ class Dashboard extends React.PureComponent {
       FeatureFlag.STOP_DASHBOARD_PENDING_QUERIES,
     );
 
-    this.onStopPendingQueries = this.onStopPendingQueries.bind(this);
+    this.stopPendingQueries = this.stopPendingQueries.bind(this);
     this.onVisibilityChange = this.onVisibilityChange.bind(this);
   }
 
@@ -157,9 +157,9 @@ class Dashboard extends React.PureComponent {
     }
 
     if (this.canStopPendingQueries && isDashboardLoading(charts)) {
-      window.addEventListener('beforeunload', this.onStopPendingQueries);
+      window.addEventListener('beforeunload', this.stopPendingQueries);
     } else {
-      window.removeEventListener('beforeunload', this.onStopPendingQueries);
+      window.removeEventListener('beforeunload', this.stopPendingQueries);
     }
   }
 
@@ -167,7 +167,7 @@ class Dashboard extends React.PureComponent {
     window.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
-  onStopPendingQueries() {
+  stopPendingQueries() {
     if (navigator && navigator.sendBeacon) {
       navigator.sendBeacon(
         `/superset/dashboard/${this.props.dashboardInfo.id}/stop/`,

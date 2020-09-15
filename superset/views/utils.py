@@ -213,6 +213,34 @@ def get_datasource_info(
     return datasource_id, datasource_type
 
 
+def get_database_ids(dashboard_id: int,) -> List[int]:
+    """
+    Find all database ids used by a given dashboard
+
+    :param dashboard_id: The dashboard id
+    :returns: A list of database ids used by the given dashboard
+    """
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+    slices = dashboard.slices
+    datasource_ids = set()
+    database_ids = set()
+
+    for slc in slices:
+        datasource_type = slc.datasource.type
+        datasource_id = slc.datasource.id
+
+        if datasource_id and datasource_type:
+            ds_class = ConnectorRegistry.sources.get(datasource_type)
+            datasource = db.session.query(ds_class).filter_by(id=datasource_id).one()
+            if datasource and datasource_id not in datasource_ids:
+                datasource_ids.add(datasource_id)
+                database = datasource.database
+                if database:
+                    database_ids.add(database.id)
+
+    return list(database_ids)
+
+
 def apply_display_max_row_limit(
     sql_results: Dict[str, Any], rows: Optional[int] = None
 ) -> Dict[str, Any]:

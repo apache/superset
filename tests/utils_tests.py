@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 import re
+from typing import List
 from unittest.mock import Mock, patch
 
 import numpy
@@ -69,6 +70,7 @@ from superset.utils.core import (
 from superset.utils import schema
 from superset.views.utils import (
     build_extra_filters,
+    get_database_ids,
     get_form_data,
     get_time_range_endpoints,
 )
@@ -1162,3 +1164,15 @@ class TestUtils(SupersetTestCase):
         assert get_form_data_token({"token": "token_abcdefg1"}) == "token_abcdefg1"
         generated_token = get_form_data_token({})
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
+
+    def test_get_database_ids(self) -> None:
+        world_health = db.session.query(Dashboard).filter_by(slug="world_health").one()
+        dash_id = world_health.id
+        database_ids = get_database_ids(dash_id)
+        assert len(database_ids) == 1
+
+        world_slice = (
+            db.session.query(Slice).filter_by(slice_name="World's Population").one()
+        )
+        database_id = world_slice.datasource.database.id
+        assert database_ids == [database_id]

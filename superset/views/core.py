@@ -118,6 +118,7 @@ from superset.views.utils import (
     check_slice_perms,
     get_cta_schema_name,
     get_dashboard_extra_filters,
+    get_database_ids,
     get_datasource_info,
     get_form_data,
     get_viz,
@@ -1429,37 +1430,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, dashboard_id: int
     ) -> FlaskResponse:
         if is_feature_enabled("STOP_DASHBOARD_PENDING_QUERIES"):
-            username = g.user.username if g.user else None
-            dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
-            slices = dashboard.slices
-            datasource_ids = set()
-            database_ids = set()
+            username = g.user.username
+            database_ids = get_database_ids(dashboard_id)
 
-            # find databases for all charts in a given dashboard
             # stop pending query is only available for certain database(s)
-            for slc in slices:
-                datasource_type = slc.datasource.type
-                datasource_id = slc.datasource.id
-
-                if datasource_id and datasource_type:
-                    ds_class = ConnectorRegistry.sources.get(datasource_type)
-                    datasource = (
-                        db.session.query(ds_class).filter_by(id=datasource_id).one()
-                    )
-                    if datasource and datasource_id not in datasource_ids:
-                        datasource_ids.add(datasource_id)
-                        database_id = datasource.database.id
-
-                        if database_id in database_ids:
-                            continue
-
-                        database_ids.add(database_id)
-                        mydb = db.session.query(models.Database).get(database_id)
-                        if (
-                            mydb
-                            and mydb.db_engine_spec.get_allow_stop_pending_queries()
-                        ):
-                            mydb.db_engine_spec.stop_queries(username, dashboard_id)
+            for dbid in database_ids:
+                mydb = db.session.query(models.Database).get(dbid)
+                if mydb:
+                    mydb.db_engine_spec.stop_queries(username, dashboard_id)
 
         return Response(status=200)
 
