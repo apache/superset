@@ -242,7 +242,7 @@ const config = {
               'core-js.*',
               '@emotion.*',
               'd3',
-              'd3-(array|color|scale||interpolateformat|selection|collection|time|time-format)',
+              'd3-(array|color|scale|interpolate|format|selection|collection|time|time-format)',
             ].join('|')})/`,
           ),
         },
