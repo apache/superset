@@ -454,7 +454,7 @@ function ChartList(props: ChartListProps) {
           <ListViewCard.Actions>
             {renderFaveStar(chart.id)}
             <Dropdown overlay={menu}>
-              <Icon name="more" />
+              <Icon name="more-horiz" />
             </Dropdown>
           </ListViewCard.Actions>
         }

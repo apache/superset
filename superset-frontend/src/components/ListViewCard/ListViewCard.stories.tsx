@@ -80,7 +80,7 @@ export const SupersetListViewCard = () => {
               </Menu>
             }
           >
-            <Icon name="more" />
+            <Icon name="more-horiz" />
           </Dropdown>
         </ListViewCard.Actions>
       }

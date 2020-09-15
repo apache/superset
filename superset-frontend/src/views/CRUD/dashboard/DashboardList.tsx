@@ -454,7 +454,7 @@ function DashboardList(props: DashboardListProps) {
           <ListViewCard.Actions>
             {renderFaveStar(dashboard.id)}
             <Dropdown overlay={menu}>
-              <Icon name="more" />
+              <Icon name="more-horiz" />
             </Dropdown>
           </ListViewCard.Actions>
         }

@@ -253,7 +253,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icon name="pencil" />
+                    <Icon name="edit-alt" />
                   </span>
                 </TooltipWrapper>
               )}
