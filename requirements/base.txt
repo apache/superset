@@ -74,6 +74,7 @@ marshmallow-sqlalchemy==0.23.1  # via flask-appbuilder
 marshmallow==3.7.1        # via flask-appbuilder, marshmallow-enum, marshmallow-sqlalchemy
 msgpack==1.0.0            # via apache-superset
 multidict==4.7.6          # via aiohttp, yarl
+mysqlclient==1.4.2.post1  # via apache-superset
 natsort==7.0.1            # via croniter
 numpy==1.19.1             # via pandas, pyarrow
 openpyxl==3.0.5           # via tabulator
