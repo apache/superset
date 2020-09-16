@@ -406,6 +406,7 @@ function ChartList(props: ChartListProps) {
             >
               {confirmDelete => (
                 <div
+                  data-test="delete-option"
                   role="button"
                   tabIndex={0}
                   className="action-button"
@@ -419,6 +420,7 @@ function ChartList(props: ChartListProps) {
         )}
         {canEdit && (
           <Menu.Item
+            data-test="edit-option"
             role="button"
             tabIndex={0}
             onClick={() => openChartEditModal(chart)}

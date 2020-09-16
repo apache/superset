@@ -30,32 +30,36 @@ describe('chart filters', () => {
     // filter by owners
     cy.get('.Select__control').first().click();
     cy.get('.Select__menu').contains('alpha user').click();
-    cy.get('.ant-card').should('not.exist');
+    cy.get('[data-test="styled-card"]').should('not.exist');
     cy.get('.Select__control').first().click();
     cy.get('.Select__menu').contains('gamma user').click();
-    cy.get('.ant-card').should('not.exist');
+    cy.get('[data-test="styled-card"]').should('not.exist');
   });
 
   it('should filter by viz type correctly', () => {
     // filter by viz type
     cy.get('.Select__control').eq(1).click();
     cy.get('.Select__menu').contains('area').click({ timeout: 5000 });
-    cy.get('.ant-card').its('length').should('be.gt', 0);
-    cy.get('.ant-card').contains("World's Pop Growth").should('exist');
+    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
+    cy.get('[data-test="styled-card"]')
+      .contains("World's Pop Growth")
+      .should('exist');
     cy.get('.Select__control').eq(1).click();
     cy.get('.Select__control').eq(1).type('world_map{enter}');
-    cy.get('.ant-card').should('have.length', 1);
-    cy.get('.ant-card').contains('% Rural').should('exist');
+    cy.get('[data-test="styled-card"]').should('have.length', 1);
+    cy.get('[data-test="styled-card"]').contains('% Rural').should('exist');
   });
 
   it('should filter by datasource correctly', () => {
     // filter by datasource
     cy.get('.Select__control').eq(2).click();
     cy.get('.Select__menu').contains('unicode_test').click();
-    cy.get('.ant-card').should('have.length', 1);
-    cy.get('.ant-card').contains('Unicode Cloud').should('exist');
+    cy.get('[data-test="styled-card"]').should('have.length', 1);
+    cy.get('[data-test="styled-card"]')
+      .contains('Unicode Cloud')
+      .should('exist');
     cy.get('.Select__control').eq(2).click();
     cy.get('.Select__control').eq(2).type('energy_usage{enter}{enter}');
-    cy.get('.ant-card').its('length').should('be.gt', 0);
+    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
   });
 });

@@ -28,39 +28,41 @@ describe('Dashboard card view', () => {
 
   it('should load cards', () => {
     cy.get('.dashboard-list-view');
-    cy.get('.ant-card').should('be.visible');
-    cy.get('.ant-card').should('have.length', 4);
+    cy.get('[data-test="styled-card"]').should('be.visible');
+    cy.get('[data-test="styled-card"]').should('have.length', 4);
   });
 
   it('should allow to favorite/unfavorite dashboard card', () => {
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-selected']")
       .should('not.exist');
-    cy.get(".ant-card .card-actions [data-test='favorite-unselected']")
+    cy.get("[data-test='card-actions']")
+      .find("[data-test='favorite-unselected']")
       .first()
       .click();
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-selected']")
       .should('exist');
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-unselected']")
       .should('not.exist');
 
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-unselected']")
       .should('not.exist');
-    cy.get(".ant-card .card-actions [data-test='favorite-selected']")
+    cy.get("[data-test='card-actions']")
       .first()
+      .find("[data-test='favorite-selected']")
       .click();
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-unselected']")
       .should('exist');
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-selected']")
       .should('not.exist');
@@ -79,33 +81,31 @@ describe('Dashboard card view', () => {
     cy.get('.Select__control').last().should('be.visible');
     cy.get('.Select__control').last().click({ force: true });
     cy.get('.Select__menu').contains('Recently Modified').click();
-    cy.get('.dashboard-list-view').should('be.visible');
-    cy.get('.ant-card').first().contains('Tabbed Dashboard');
-    cy.get('.ant-card').last().contains("World Bank's Data");
+    cy.get('[data-test="dashboard-list-view"]').should('be.visible');
+    cy.get('[data-test="styled-card"]').first().contains('Tabbed Dashboard');
+    cy.get('[data-test="styled-card"]').last().contains("World Bank's Data");
   });
 
   it('should delete correctly', () => {
     // show delete modal
-    cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
-    cy.get('.ant-dropdown-menu-item').contains('Delete').should('exist');
-    cy.get('.ant-dropdown-menu-item').contains('Delete').click();
-    cy.get('.modal-dialog').should('be.visible');
-    cy.get('.modal-dialog .btn-danger').should('have.attr', 'disabled');
-    cy.get(".modal-dialog input[id='delete']").type('DELETE');
-    cy.get('.modal-dialog .btn-danger').should('not.have.attr', 'disabled');
-    cy.get('.modal-dialog .btn-default').contains('Cancel').click();
+    cy.get('[data-test="more-horizon"]').last().trigger('mouseover');
+    cy.get('[data-test="delete-option"]').contains('Delete').should('exist');
+    cy.get('[data-test="delete-option"]').contains('Delete').click();
+    cy.get('[data-test="modal-footer"]').should('exist');
+    cy.get('[data-test="delete-button"]').should('have.attr', 'disabled');
+    cy.get('[data-test="modal-body"]').should('exist');
+    cy.get("[data-test='delete-input']").type('DELETE');
+    cy.get('[data-test="delete-button"]').should('not.have.attr', 'disabled');
+    cy.get('[data-test="cancel-button"]').click();
   });
 
   it('should edit correctly', () => {
     // show edit modal
-    cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
-    cy.get('.ant-dropdown-menu-item').contains('Edit').should('exist');
-    cy.get('.ant-dropdown-menu-item').contains('Edit').click();
-    cy.get('.modal-dialog').should('be.visible');
-    cy.get('.modal-dialog input[name="dashboard_title"]').should(
-      'not.have.value',
-    );
-    cy.get('.modal-dialog input[name="slug"]').should('not.have.value');
-    cy.get('.modal-dialog .btn-default').contains('Cancel').click();
+    cy.get('[data-test="more-horizon"]').last().trigger('mouseover');
+    cy.get('[data-test="edit-option"]').contains('Edit').should('exist');
+    cy.get('[data-test="edit-option"]').contains('Edit').click();
+    cy.get('[data-test="dashboard-properties-modal"]').should('exist');
+    cy.get('[data-test="dashboard-title-input"]').should('not.have.value');
+    cy.get('[data-test="cancel-button"]').contains('Cancel').click();
   });
 });

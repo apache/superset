@@ -207,7 +207,7 @@ export default function TableCollection({
   sticky,
 }: TableCollectionProps) {
   return (
-    <Table {...getTableProps()} sticky={sticky} className="table table-hover">
+    <Table {...getTableProps()} className="table table-hover" data-test="table">
       <thead>
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
@@ -266,6 +266,7 @@ export default function TableCollection({
             prepareRow(row);
             return (
               <tr
+                data-test="table-row"
                 {...row.getRowProps()}
                 className={cx('table-row', {
                   'table-row-selected': row.isSelected,
@@ -277,7 +278,8 @@ export default function TableCollection({
                   const columnCellProps = cell.column.cellProps || {};
                   return (
                     <td
-                      className={cx('table-cell', {
+                      data-test="row-cell"
+                      className={cx('row-cell', {
                         'table-cell-loader': loading,
                         [cell.column.size || '']: cell.column.size,
                       })}
@@ -285,7 +287,7 @@ export default function TableCollection({
                       {...columnCellProps}
                     >
                       <span className={cx({ 'loading-bar': loading })}>
-                        <span>{cell.render('Cell')}</span>
+                        <span data-test="cell-text">{cell.render('Cell')}</span>
                       </span>
                     </td>
                   );
