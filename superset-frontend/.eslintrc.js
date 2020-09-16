@@ -27,6 +27,12 @@ module.exports = {
   env: {
     browser: true,
   },
+  settings: {
+    'import/resolver': 'webpack',
+    react: {
+      version: 'detect',
+    },
+  },
   plugins: ['prettier', 'react'],
   overrides: [
     {
@@ -38,8 +44,13 @@ module.exports = {
     },
     {
       files: ['webpack*.js'],
-      rules: {
-        'import/no-extraneous-dependencies': 0,
+      env: {
+        node: true,
+      },
+      settings: {
+        'import/resolver': {
+          node: {},
+        },
       },
     },
     {
@@ -240,11 +251,5 @@ module.exports = {
     'react/require-default-props': 0,
     'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',
-  },
-  settings: {
-    'import/resolver': 'webpack',
-    react: {
-      version: 'detect',
-    },
   },
 };
