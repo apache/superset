@@ -116,6 +116,8 @@ class DatasourceControl extends React.PureComponent {
 
   renderDatasource() {
     const { datasource } = this.props;
+    const { showDatasource } = this.state;
+    const maxNumColumns = 30;
     return (
       <div className="m-t-10">
         <Well className="m-t-0">
@@ -125,24 +127,26 @@ class DatasourceControl extends React.PureComponent {
             </Label>
             {` ${datasource.database.name} `}
           </div>
-          <Row className="datasource-container">
-            <Col md={6}>
-              <strong>Columns</strong>
-              {datasource.columns.map(col => (
-                <div key={col.column_name}>
-                  <ColumnOption showType column={col} />
-                </div>
-              ))}
-            </Col>
-            <Col md={6}>
-              <strong>Metrics</strong>
-              {datasource.metrics.map(m => (
-                <div key={m.metric_name}>
-                  <MetricOption metric={m} showType />
-                </div>
-              ))}
-            </Col>
-          </Row>
+          {showDatasource && (
+            <Row className="datasource-container">
+              <Col md={6}>
+                <strong>Columns</strong>
+                {datasource.columns.slice(0, maxNumColumns).map(col => (
+                  <div key={col.column_name}>
+                    <ColumnOption showType column={col} />
+                  </div>
+                ))}
+              </Col>
+              <Col md={6}>
+                <strong>Metrics</strong>
+                {datasource.metrics.slice(0, maxNumColumns).map(m => (
+                  <div key={m.metric_name}>
+                    <MetricOption metric={m} showType />
+                  </div>
+                ))}
+              </Col>
+            </Row>
+          )}
         </Well>
       </div>
     );
@@ -214,18 +218,22 @@ class DatasourceControl extends React.PureComponent {
         <Collapse in={this.state.showDatasource}>
           {this.renderDatasource()}
         </Collapse>
-        <DatasourceModal
-          datasource={datasource}
-          show={showEditDatasourceModal}
-          onDatasourceSave={this.onDatasourceSave}
-          onHide={this.toggleEditDatasourceModal}
-        />
-        <ChangeDatasourceModal
-          onDatasourceSave={this.onDatasourceSave}
-          onHide={this.toggleChangeDatasourceModal}
-          show={showChangeDatasourceModal}
-          onChange={onChange}
-        />
+        {showChangeDatasourceModal && (
+          <DatasourceModal
+            datasource={datasource}
+            show={showEditDatasourceModal}
+            onDatasourceSave={this.onDatasourceSave}
+            onHide={this.toggleEditDatasourceModal}
+          />
+        )}
+        {showChangeDatasourceModal && (
+          <ChangeDatasourceModal
+            onDatasourceSave={this.onDatasourceSave}
+            onHide={this.toggleChangeDatasourceModal}
+            show={showChangeDatasourceModal}
+            onChange={onChange}
+          />
+        )}
       </Styles>
     );
   }
