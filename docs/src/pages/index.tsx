@@ -405,7 +405,7 @@ const Theme = () => {
                   role="button"
                 >
                   <h2>Investigate</h2>
-                  <span>Use sqlab to write queries to explore your data</span>
+                  <span>Use SQL Lab to write queries to explore your data</span>
                 </div>
               </div>
               <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
