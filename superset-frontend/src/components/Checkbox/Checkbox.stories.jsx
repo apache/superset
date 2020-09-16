@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { useArgs } from '@storybook/client-api';
-import Checkbox from './';
+import Checkbox from '.';
 
 export default {
   title: 'Checkbox',
