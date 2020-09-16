@@ -22,8 +22,8 @@ from typing import Any, cast, List, Optional, Tuple, TYPE_CHECKING
 from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment
 
-from superset import app, jinja_base_context
-from superset.extensions import jinja_context_manager
+from superset import jinja_base_context
+from superset.extensions import feature_flag_manager, jinja_context_manager
 from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
 
 if TYPE_CHECKING:
@@ -336,7 +336,10 @@ def get_template_processor(
     query: Optional["Query"] = None,
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
-    template_processor = template_processors.get(
-        database.backend, app.config["JINJA_BASE_TEMPLATE_PROCESSOR"]
-    )
+    if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+        template_processor = template_processors.get(
+            database.backend, BaseTemplateProcessor
+        )
+    else:
+        template_processor = NoOpTemplateProcessor
     return template_processor(database=database, table=table, query=query, **kwargs)
