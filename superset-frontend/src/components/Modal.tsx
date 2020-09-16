@@ -73,19 +73,22 @@ export default function Modal({
   title,
 }: ModalProps) {
   return (
-    <StyledModal show={show} onHide={onHide}>
-      <BaseModal.Header closeButton>
+    <StyledModal show={show} onHide={onHide} data-test={`${title}-modal`}>
+      <BaseModal.Header data-test={`${title}-modal-header`} closeButton>
         <BaseModal.Title>
           <Title>{title}</Title>
         </BaseModal.Title>
       </BaseModal.Header>
-      <BaseModal.Body>{children}</BaseModal.Body>
-      <BaseModal.Footer>
+      <BaseModal.Body data-test={`${title}-modal-body`}>
+        {children}
+      </BaseModal.Body>
+      <BaseModal.Footer data-test={`${title}-modal-footer`}>
         <span className="float-right">
-          <Button onClick={onHide} cta>
+          <Button data-test="modal-cancel-button" onClick={onHide} cta>
             {t('Cancel')}
           </Button>
           <Button
+            data-test="modal-delete-button"
             buttonStyle={primaryButtonType}
             disabled={disablePrimaryButton}
             onClick={onHandledPrimaryAction}

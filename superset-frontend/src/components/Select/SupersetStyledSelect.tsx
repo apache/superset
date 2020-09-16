@@ -254,7 +254,6 @@ function styled<
         selectRef.current = stateManager;
       }
     };
-
     return (
       <MaybeSortableSelect
         ref={setRef}

@@ -208,7 +208,7 @@ class ControlPanelsContainer extends React.Component {
             />
           </Alert>
         )}
-        <Tabs id="controlSections">
+        <Tabs id="controlSections" data-test="control-tabs">
           <Tab eventKey="query" title={t('Data')}>
             {querySectionsToRender.map(this.renderControlPanelSection)}
           </Tab>

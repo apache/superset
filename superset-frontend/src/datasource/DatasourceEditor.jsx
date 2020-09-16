@@ -81,7 +81,7 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 
 function CollectionTabTitle({ title, collection }) {
   return (
-    <div>
+    <div data-test={`collection-tab-${title}`}>
       {title} <Badge>{collection ? collection.length : 0}</Badge>
     </div>
   );

@@ -229,8 +229,9 @@ export default class CRUDCollection extends React.PureComponent<
     }
     if (allowDeletes) {
       tds.push(
-        <td key="__actions">
+        <td key="__actions" data-test="crud-delete-option">
           <i
+            {...{ 'data-test': 'crud-delete-icon' }}
             role="button"
             aria-label="Delete item"
             tabIndex={0}
@@ -241,7 +242,7 @@ export default class CRUDCollection extends React.PureComponent<
       );
     }
     const trs = [
-      <tr className="row" key={record.id}>
+      <tr {...{ 'data-test': 'table-row' }} className="row" key={record.id}>
         {tds}
       </tr>,
     ];
@@ -275,7 +276,7 @@ export default class CRUDCollection extends React.PureComponent<
     const content = data.length
       ? data.map(d => this.renderItem(d))
       : this.renderEmptyCell();
-    return <tbody>{content}</tbody>;
+    return <tbody data-test="table-content-rows">{content}</tbody>;
   }
 
   render() {
@@ -287,12 +288,13 @@ export default class CRUDCollection extends React.PureComponent<
               buttonSize="sm"
               buttonStyle="primary"
               onClick={this.onAddItem}
+              data-test="add-item-button"
             >
               <i className="fa fa-plus" /> {t('Add Item')}
             </Button>
           )}
         </span>
-        <table className="table">
+        <table data-test="crud-table" className="table">
           {this.renderHeaderRow()}
           {this.renderTableBody()}
         </table>
