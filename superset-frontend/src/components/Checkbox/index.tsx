@@ -17,6 +17,11 @@
  * under the License.
  */
 import React from 'react';
+import { styled } from '@superset-ui/core';
+import {
+  CheckboxChecked,
+  CheckboxUnchecked,
+} from 'src/components/CheckboxIcons';
 
 interface CheckboxProps {
   checked: boolean;
@@ -24,25 +29,26 @@ interface CheckboxProps {
   style: object;
 }
 
+const Styles = styled.span`
+  &,
+  & svg {
+    vertical-align: top;
+  }
+`;
+
 export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
   return (
-    <span style={style}>
-      <i
-        role="button"
-        aria-label="Checkbox"
-        tabIndex={0}
-        className={`fa fa-check ${
-          checked ? 'text-primary' : 'text-transparent'
-        }`}
-        onClick={() => {
-          onChange(!checked);
-        }}
-        style={{
-          border: '1px solid #aaa',
-          borderRadius: '2px',
-          cursor: 'pointer',
-        }}
-      />
-    </span>
+    <Styles
+      style={style}
+      onClick={() => {
+        onChange(!checked);
+      }}
+      role="checkbox"
+      tabIndex={0}
+      aria-checked={checked}
+      aria-label="Checkbox"
+    >
+      {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
+    </Styles>
   );
 }
