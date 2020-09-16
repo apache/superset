@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
 Here's the source to the documentation hosted at
 <a href="https://superset.apache.org">superset.apache.org</a>
 
@@ -36,7 +37,7 @@ npm run start
 To publish, the static site that Gatsby generates needs to be pushed
 to the `asf-site` branch on the
 [apache/incubator-superset-site](https://github.com/apache/incubator-superset-site/)
-repository. No need to PR here, just `git push`!
+repository. No need to PR here, simply `git push`.
 
 ```bash
 # Get in the docs/ folder in the main repo
@@ -54,11 +55,11 @@ git checkout asf-site
 rm -rf *
 
 # copy the static site here
-cp -r ~/repos/incubator-superset/docs/public ./
+cp -r ~/repos/incubator-superset/docs/public/ ./
 
 # git push
 git add .
-git commit "{{ relevant commit msg }}"
+git commit -m "relevant commit msg"
 git push origin asf-site
 
 # SUCCESS - it should take minutes to take effect on superset.apache.org

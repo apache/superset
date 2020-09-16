@@ -170,7 +170,11 @@ class TableElement extends React.PureComponent {
         />
         {table.selectStar && (
           <CopyToClipboard
-            copyNode={<a className="fa fa-clipboard pull-left m-l-2" />}
+            copyNode={
+              <a aria-label="Copy">
+                <i aria-hidden className="fa fa-clipboard pull-left m-l-2" />
+              </a>
+            }
             text={table.selectStar}
             shouldShowText={false}
             tooltipText={t('Copy SELECT statement to the clipboard')}

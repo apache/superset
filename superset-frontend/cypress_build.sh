@@ -25,7 +25,8 @@ time superset load_test_users
 time superset load_examples --load-test-data
 time superset init
 echo "[completed python build steps]"
-flask run -p 8081 --with-threads --reload --debugger &
+PORT='8081'
+flask run -p $PORT --with-threads --reload --debugger &
 
 #block on the longer running javascript process
 time npm ci
@@ -35,6 +36,7 @@ echo "[completed js build steps]"
 #setup cypress
 cd cypress-base
 time npm ci
+export CYPRESS_BASE_URL="http://localhost:${PORT}"
 CYPRESS_PATH='cypress/integration/'${1}'/*'
 time npm run cypress run -- --spec "$CYPRESS_PATH" --record false --config video=false
 
