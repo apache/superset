@@ -706,6 +706,10 @@ npm run cypress run -- --spec cypress/integration/dashboard/index.test.js --conf
 
 # to open the cypress ui
 npm run cypress open
+
+# to point cypress to a url other than the default (http://localhost:8088) set the environment variable before running the script
+# e.g., CYPRESS_BASE_URL="http://localhost:9000"
+CYPRESS_BASE_URL=<your url> npm run cypress open
 ```
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset-frontend/cypress_build.sh).
