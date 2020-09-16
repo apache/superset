@@ -450,7 +450,9 @@ const Theme = () => {
 
             <ul className="databaseList">
               {Databases.map(
-                ({ title, href, imgName: imageName, width, height }) => (
+                ({
+                  title, href, imgName: imageName, width, height,
+                }) => (
                   <a
                     href={href}
                     target="_blank"
@@ -472,11 +474,14 @@ const Theme = () => {
             </ul>
             <span className="databaseSub">
               {' '}
-              ... and any other SQLAlchemy{' '}
+              ... and any other SQLAlchemy
+              {' '}
               <a href="https://superset.incubator.apache.org/installation.html#database-dependencies">
                 {' '}
-                compatible databases{' '}
-              </a>{' '}
+                compatible databases
+                {' '}
+              </a>
+              {' '}
             </span>
           </div>
         </div>
