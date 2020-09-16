@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 export const commonMenuData = {
   name: t('Data'),
@@ -37,7 +38,7 @@ export const commonMenuData = {
       name: 'Saved Queries',
       label: t('Saved Queries'),
       url: '/savedqueryview/list/',
-      usesRouter: true,
+      usesRouter: isFeatureEnabled(FeatureFlag.SIP_34_SAVED_QUERIES_UI),
     },
   ],
 };

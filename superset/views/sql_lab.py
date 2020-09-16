@@ -81,7 +81,7 @@ class SavedQueryView(
     def list(self) -> FlaskResponse:
         if not (
             app.config["ENABLE_REACT_CRUD_VIEWS"]
-            and feature_flag_manager.is_feature_enabled("SIP_34_DATABASE_UI")
+            and feature_flag_manager.is_feature_enabled("SIP_34_SAVED_QUERIES_UI")
         ):
             return super().list()
 
