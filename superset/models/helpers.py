@@ -310,11 +310,9 @@ class ImportMixin:
         self.created_by = None
         self.changed_by = None
         # flask global context might not exist (in cli or tests for example)
-        try:
-            if g.user:
-                self.owners = [g.user]
-        except Exception:  # pylint: disable=broad-except
-            self.owners = []
+        self.owners = []
+        if g and hasattr(g, "user"):
+            self.owners = [g.user]
 
     @property
     def params_dict(self) -> Dict[Any, Any]:
