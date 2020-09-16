@@ -18,11 +18,17 @@
  */
 import serializeActiveFilterValues from './serializeActiveFilterValues';
 
-export default function getDashboardUrl(pathname, filters = {}, hash = '') {
+export default function getDashboardUrl(
+  pathname,
+  filters = {},
+  hash = '',
+  standalone = false,
+) {
   // convert flattened { [id_column]: values } object
   // to nested filter object
   const obj = serializeActiveFilterValues(filters);
   const preselectFilters = encodeURIComponent(JSON.stringify(obj));
   const hashSection = hash ? `#${hash}` : '';
-  return `${pathname}?preselect_filters=${preselectFilters}${hashSection}`;
+  const standaloneParam = standalone ? '&standalone=true' : '';
+  return `${pathname}?preselect_filters=${preselectFilters}${standaloneParam}${hashSection}`;
 }

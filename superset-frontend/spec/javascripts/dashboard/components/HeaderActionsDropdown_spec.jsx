@@ -66,9 +66,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(SaveModal)).not.toExist();
     });
 
-    it('should render two MenuItems', () => {
+    it('should render four MenuItems', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(3);
+      expect(wrapper.find(MenuItem)).toHaveLength(4);
     });
 
     it('should render the RefreshIntervalModal', () => {
@@ -100,9 +100,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(SaveModal)).toExist();
     });
 
-    it('should render three MenuItems', () => {
+    it('should render four MenuItems', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(3);
+      expect(wrapper.find(MenuItem)).toHaveLength(4);
     });
 
     it('should render the RefreshIntervalModal', () => {
