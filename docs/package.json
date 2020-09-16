@@ -16,6 +16,7 @@
     "gatsby-dynamical-navigation": "^0.4.1",
     "gatsby-image": "^2.4.14",
     "gatsby-plugin-antd": "^2.2.0",
+    "gatsby-plugin-client-side-redirect": "^1.1.0",
     "gatsby-plugin-emotion": "^4.3.10",
     "gatsby-plugin-google-fonts": "^1.0.1",
     "gatsby-plugin-manifest": "^2.4.21",
