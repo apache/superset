@@ -33,7 +33,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Install dependencies
-    - name: npm install
       working-directory: ./superset-frontend
       run: |
         npm install
