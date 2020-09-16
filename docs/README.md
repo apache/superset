@@ -55,11 +55,11 @@ git checkout asf-site
 rm -rf *
 
 # copy the static site here
-cp -r ~/repos/incubator-superset/docs/public ./
+cp -r ~/repos/incubator-superset/docs/public/ ./
 
 # git push
 git add .
-git commit "{{ relevant commit msg }}"
+git commit -m "relevant commit msg"
 git push origin asf-site
 
 # SUCCESS - it should take minutes to take effect on superset.apache.org
