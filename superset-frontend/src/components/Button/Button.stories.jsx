@@ -17,18 +17,15 @@
  * under the License.
  */
 import React from 'react';
-import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
 import Button from './index';
 
 export default {
   title: 'Button',
   component: Button,
-  decorators: [withKnobs],
-  excludeStories: /.*Knob$/,
+  includeStories: ['ButtonGallery', 'InteractiveButton'],
 };
 
-export const buttonStyleKnob = {
+export const STYLES = {
   label: 'Types',
   options: {
     Primary: 'primary',
@@ -46,7 +43,7 @@ export const buttonStyleKnob = {
   // groupId: 'ButtonType',
 };
 
-export const buttonSizeKnob = {
+export const SIZES = {
   label: 'Sizes',
   options: {
     XS: 'xsmall',
@@ -76,7 +73,8 @@ export const buttonSizeKnob = {
 //   },
 //   defaultValue: null,
 // };
-const typeKnob = {
+
+const TYPES = {
   label: 'Type',
   options: {
     Submit: 'submit',
@@ -85,7 +83,7 @@ const typeKnob = {
   },
   defaultValue: null,
 };
-const targetKnob = {
+const TARGETS = {
   label: 'Target',
   options: {
     Blank: '_blank',
@@ -93,7 +91,7 @@ const targetKnob = {
   },
   defaultValue: null,
 };
-const hrefKnob = {
+const HREFS = {
   label: 'HREF',
   options: {
     Superset: 'http://https://superset.incubator.apache.org/',
@@ -104,18 +102,16 @@ const hrefKnob = {
 
 export const ButtonGallery = () => (
   <>
-    {Object.entries(buttonSizeKnob.options).map(([name, size]) => (
+    {Object.entries(SIZES.options).map(([name, size]) => (
       <div key={size}>
         <h4>{name}</h4>
-        {Object.values(buttonStyleKnob.options)
+        {Object.values(STYLES.options)
           .filter(o => o)
           .map(style => (
             <Button
-              disabled={boolean('Disabled', false)}
-              cta={boolean('CTA', false)}
               buttonStyle={style}
               buttonSize={size}
-              onClick={action('clicked')}
+              onClick={() => true}
               key={`${style}_${size}`}
             >
               {style}
@@ -126,43 +122,42 @@ export const ButtonGallery = () => (
   </>
 );
 
-export const InteractiveButton = () => (
-  <Button
-    disabled={boolean('Disabled', false)}
-    cta={boolean('CTA', false)}
-    buttonStyle={select(
-      buttonStyleKnob.label,
-      buttonStyleKnob.options,
-      buttonStyleKnob.defaultValue,
-      buttonStyleKnob.groupId,
-    )}
-    size={select(
-      buttonSizeKnob.label,
-      buttonSizeKnob.options,
-      buttonSizeKnob.defaultValue,
-      buttonSizeKnob.groupId,
-    )}
-    onClick={action('clicked')}
-    type={select(
-      typeKnob.label,
-      typeKnob.options,
-      typeKnob.defaultValue,
-      typeKnob.groupId,
-    )}
-    target={select(
-      targetKnob.label,
-      targetKnob.options,
-      targetKnob.defaultValue,
-      targetKnob.groupId,
-    )}
-    href={select(
-      hrefKnob.label,
-      hrefKnob.options,
-      hrefKnob.defaultValue,
-      hrefKnob.groupId,
-    )}
-    tooltip={boolean('Tooltip', false) === true ? 'This is a tooltip!' : null}
-  >
-    {text('Label', 'Button!')}
-  </Button>
-);
+export const InteractiveButton = args => {
+  const { label, ...btnArgs } = args;
+  return <Button {...btnArgs}>{label}</Button>;
+};
+
+InteractiveButton.args = {
+  buttonStyle: STYLES.defaultValue,
+  size: SIZES.defaultValue,
+  type: TYPES.defaultValue,
+  target: TARGETS.defaultValue,
+  href: HREFS.defaultValue,
+  label: 'Button!',
+};
+InteractiveButton.argTypes = {
+  buttonStyle: {
+    name: STYLES.label,
+    control: { type: 'select', options: Object.values(STYLES.options) },
+  },
+  size: {
+    name: SIZES.label,
+    control: { type: 'select', options: Object.values(SIZES.options) },
+  },
+  type: {
+    name: TYPES.label,
+    control: { type: 'select', options: Object.values(TYPES.options) },
+  },
+  target: {
+    name: TARGETS.label,
+    control: { type: 'select', options: Object.values(TARGETS.options) },
+  },
+  href: {
+    name: HREFS.label,
+    control: { type: 'select', options: Object.values(HREFS.options) },
+  },
+  onClick: { action: 'clicked' },
+  label: { name: 'Label', control: { type: 'text' } },
+};
+
+ButtonGallery.argTypes = { onClick: { action: 'clicked' } };
