@@ -25,8 +25,6 @@ assists people when migrating to a new version.
 
 * [10887](https://github.com/apache/incubator-superset/pull/10887): Breaking change: The custom cache backend changed in order to support the Flask-Caching factory method approach and thus must be registered as a custom type. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
 
-* [10794](https://github.com/apache/incubator-superset/pull/10794): Breaking change: `uuid` python package is not supported on Jinja2 anymore, only uuid functions are exposed eg: `uuid1`, `uuid3`, `uuid4`, `uuid5`.
-
 * [10674](https://github.com/apache/incubator-superset/pull/10674): Breaking change: PUBLIC_ROLE_LIKE_GAMMA was removed is favour of the new PUBLIC_ROLE_LIKE so it can be set it whatever role you want.
 
 * [10590](https://github.com/apache/incubator-superset/pull/10590): Breaking change: this PR will convert iframe chart into dashboard markdown component, and remove all `iframe`, `separator`, and `markup` slices (and support) from Superset. If you have important data in those slices, please backup manually.
@@ -40,6 +38,10 @@ assists people when migrating to a new version.
 * [10324](https://github.com/apache/incubator-superset/pull/10324): Facebook Prophet has been introduced as an optional dependency to add support for timeseries forecasting in the chart data API. To enable this feature, install Superset with the optional dependency `prophet` or directly `pip install fbprophet`.
 
 * [10320](https://github.com/apache/incubator-superset/pull/10320): References to blacklst/whitelist language have been replaced with more appropriate alternatives. All configs refencing containing `WHITE`/`BLACK` have been replaced with `ALLOW`/`DENY`. Affected config variables that need to be updated: `TIME_GRAIN_BLACKLIST`, `VIZ_TYPE_BLACKLIST`, `DRUID_DATA_SOURCE_BLACKLIST`.
+
+## 0.37.1
+
+* [10794](https://github.com/apache/incubator-superset/pull/10794): Breaking change: `uuid` python package is not supported on Jinja2 anymore, only uuid functions are exposed eg: `uuid1`, `uuid3`, `uuid4`, `uuid5`.
 
 ## 0.37.0
 
