@@ -54,31 +54,20 @@ const installationLinks = [
   ],
 ];
 
-const youtubeRefs = [
-  'https://www.youtube.com/embed/24XDOkGJrEY',
-  'https://www.youtube.com/embed/AqousXQ7YHw',
-  'https://www.youtube.com/embed/JGeIHrQYhIs',
-  'https://www.youtube.com/embed/z350Gbi463I',
-];
-
-const youtubeIds = [
+const youtubeVideos = [
   [
-    0,
     '24XDOkGJrEY',
     'The history and anatomy of Apache Superset',
   ],
   [
-    1,
     'AqousXQ7YHw',
     'Apache Superset for visualization and for data science',
   ],
   [
-    2,
     'JGeIHrQYhIs',
     'Apache Superset- Interactive Multi Tab Multiple Dashboards Samples',
   ],
   [
-    3,
     'z350Gbi463I',
     'Apache Superset - Interactive Sales Dashboard (Demo 1)',
   ],
@@ -104,7 +93,7 @@ const resourcesContainer = css`
 
 interface featureProps {
   title: string,
-  descr: Array,
+  links: string[][],
 }
 const LinkSection = ({ title, links }: featureProps) => (
   <div className="link-section">
@@ -126,11 +115,11 @@ const LinkSection = ({ title, links }: featureProps) => (
 
 const Resources = () => {
   const [showModal, setModal] = useState(false);
-  const [url, setUrl] = useState(null);
+  const [videoId, setVideoId] = useState(null);
   const [cardTitle, setCardTitle] = useState(null);
   const handleClose = () => {
     setModal(false);
-    setUrl(null);
+    setVideoId(null);
     setCardTitle(null);
   };
   return (
@@ -178,7 +167,7 @@ const Resources = () => {
               <iframe
                 width="560"
                 height="315"
-                src={youtubeRefs[url]}
+                src={`https://www.youtube.com/embed/${(youtubeVideos[videoId] && youtubeVideos[videoId][0])}`}
                 frameBorder="0"
                 allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -186,20 +175,23 @@ const Resources = () => {
             </Modal>
             <h2>Videos</h2>
             <Card>
-              {youtubeIds.map(([idx, ids, title]) => (
-                <Card.Grid
-                  onClick={() => {
-                    setModal(true);
-                    setUrl(idx);
-                    setCardTitle(title);
-                  }}
-                >
-                  <h4>{title}</h4>
-                  <img
-                    width="100%"
-                    alt="youtube vid"
-                    src={`http://img.youtube.com/vi/${ids}/maxresdefault.jpg`}
-                  />
+              {youtubeVideos.map(([id, title], idx) => (
+                <Card.Grid>
+                  <div
+                    role="button"
+                    onClick={() => {
+                      setModal(true);
+                      setVideoId(idx);
+                      setCardTitle(title);
+                    }}
+                  >
+                    <h4>{title}</h4>
+                    <img
+                      width="100%"
+                      alt="youtube vid"
+                      src={`http://img.youtube.com/vi/${id}/maxresdefault.jpg`}
+                    />
+                  </div>
                 </Card.Grid>
               ))}
             </Card>
