@@ -18,12 +18,11 @@
 """Unit tests for Superset"""
 import json
 import string
-from random import random
+
 
 import prison
 import pytest
 from pytest import mark
-from sqlalchemy import event
 from sqlalchemy.sql import func
 
 from superset import db, security_manager, appbuilder
@@ -36,7 +35,6 @@ from tests.base_tests import SupersetTestCase
 from tests.dashboards import dashboard_test_utils as dashboard_utils
 
 
-@pytest.mark.dashboardApi
 class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     resource_name = "dashboard"
 
@@ -70,7 +68,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         return get_random_string(8)
 
     def tearDown(self):
+        self.login("admin")
         dashboard_utils.delete_all_inserted_dashboards()
+        self.logout()
 
     def test_get_dashboard(self):
         """
@@ -901,9 +901,17 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             alpha2, password, "Alpha", email=f"{alpha2}@superset.org"
         )
 
-        dashboard = dashboard_utils.insert_dashboard(
-            self.random_title(), "slug1", [user_alpha1.id], published=True
+        existing_slice = (
+            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
         )
+        dashboard = dashboard_utils.insert_dashboard(
+            self.random_title(),
+            "slug1",
+            [user_alpha1.id],
+            slices=[existing_slice],
+            published=True,
+        )
+
         self.login(username=alpha2, password=password)
         dashboard_data = {
             "dashboard_title": self.random_title(),

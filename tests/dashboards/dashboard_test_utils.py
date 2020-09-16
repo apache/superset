@@ -19,7 +19,7 @@ from typing import List, Optional
 
 from superset import app, appbuilder, db, is_feature_enabled, security_manager
 from superset.constants import Security
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices, dashboard_user
 from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
@@ -112,29 +112,37 @@ def insert_dashboard(
     inserted_dashboards_ids.append(dashboard.id)
 
     if is_dashboard_level_access_enabled():
-        security_manager.add_permissions_views(dashboard.permission_view_pairs)
+        dashboard.add_permissions_views()
     return dashboard
 
 
 def delete_all_inserted_dashboards():
     try:
+        session = appbuilder.get_session
         for dashboard_id in inserted_dashboards_ids:
             try:
                 logger.info(f"deleting dashboard{dashboard_id}")
-                dashboard = (
-                    appbuilder.get_session.query(Dashboard)
-                    .filter_by(id=dashboard_id)
-                    .first()
-                )
+                dashboard = session.query(Dashboard).filter_by(id=dashboard_id).first()
                 if dashboard:
-                    security_manager.del_permissions_views(
-                        dashboard.permission_view_pairs
+                    if is_dashboard_level_access_enabled():
+                        dashboard.del_permissions_views()
+                    session.execute(
+                        dashboard_user.delete().where(
+                            dashboard_user.c.dashboard_id == dashboard.id
+                        )
                     )
-                    appbuilder.get_session.delete(dashboard)
-            except:
+                    session.execute(
+                        dashboard_slices.delete().where(
+                            dashboard_slices.c.dashboard_id == dashboard.id
+                        )
+                    )
+                    session.delete(dashboard)
+            except Exception as ex:
                 logger.error(f"failed to delete {dashboard_id}", exc_info=True)
+                raise ex
         if len(inserted_dashboards_ids) > 0:
-            appbuilder.get_session.commit()
+            session.commit()
             inserted_dashboards_ids.clear()
-    except:
+    except Exception as ex2:
         logger.error("delete_all_inserted_dashboards failed", exc_info=True)
+        raise ex2

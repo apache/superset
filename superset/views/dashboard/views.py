@@ -27,6 +27,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 import superset.models.core as models
 from superset import app, db, event_logger, security_manager
 from superset.constants import RouteMethod
+from superset.dashboards.security import is_dashboard_level_access_enabled
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
@@ -64,9 +65,9 @@ class DashboardModelView(
     @has_access
     def delete(self, pk: int) -> FlaskResponse:
         dash = db.session.query(models.Dashboard).filter_by(id=int(pk)).one()
-        permission_view_pairs = dash.permission_view_pairs
         redirect_url = super().delete(pk)
-        security_manager.del_permissions_views(permission_view_pairs)
+        if is_dashboard_level_access_enabled():
+            dash.del_permissions_views()
         return redirect_url
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
@@ -125,7 +126,8 @@ class Dashboard(BaseSupersetView):
 
         db.session.add(new_dashboard)
         db.session.commit()
-        security_manager.add_permissions_views(new_dashboard.permission_view_pairs)
+        if is_dashboard_level_access_enabled():
+            new_dashboard.add_permissions_views()
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
 

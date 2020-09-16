@@ -29,6 +29,7 @@ from superset.dashboards.commands.exceptions import (
     DashboardNotFoundError,
 )
 from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.security import is_dashboard_level_access_enabled
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.views.base import check_ownership
@@ -46,10 +47,9 @@ class BulkDeleteDashboardCommand(BaseCommand):
         self.validate()
         try:
             DashboardDAO.bulk_delete(self._models)
-            lists = map((lambda x: x.permission_view_pairs), self._models)
-            merged_lists = list(itertools.chain.from_iterable(lists))
-            security_manager.del_permissions_views(merged_lists)
-            return None
+            if self._models and is_dashboard_level_access_enabled():
+                for dash in self._models:
+                    dash.del_permissions_views()
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardBulkDeleteFailedError()

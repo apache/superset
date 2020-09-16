@@ -56,7 +56,6 @@ DASHBOARD_SLUG_OF_ACCESSIBLE_TABLE = "births"
 DEFAULT_DASHBOARD_SLUG_TO_TEST = "births"
 
 
-@pytest.mark.dashboard
 class TestDashboard(SupersetTestCase):
     def tearDown(self) -> None:
         self.logout()
@@ -201,7 +200,9 @@ class TestDashboard(SupersetTestCase):
         )
         self.login(username=ADMIN_USERNAME)
         dash_count_before_new = db.session.query(func.count(Dashboard.id)).first()[0]
-        post_new_dashboard_response = self.get_resp(NEW_DASHBOARD_URL,follow_redirects=False)
+        post_new_dashboard_response = self.get_resp(
+            NEW_DASHBOARD_URL, follow_redirects=False
+        )
         dash_count_after_new = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before_new + 1, dash_count_after_new)
 
@@ -356,7 +357,6 @@ class TestDashboard(SupersetTestCase):
         # post test
         self.get_resp(save_dash_url, data=dict(data=json.dumps(data_before_change)))
 
-    @pytest.mark.dashboard
     def test_save_dash_with_dashboard_title(self, username=ADMIN_USERNAME):
         # arrange
         dashboard_level_access_enabled = (
@@ -636,6 +636,7 @@ class TestDashboard(SupersetTestCase):
             .one()
         )
         # Make the births dash published so it can be seen
+        published_value_of_accessed_dashboard = dashboard_to_access.published
         dashboard_to_access.published = True
         url_of_the_accessed_dashboard = dashboard_to_access.url
         title_of_the_access_dashboard = dashboard_to_access.dashboard_title
@@ -646,7 +647,7 @@ class TestDashboard(SupersetTestCase):
             .filter_by(slug=the_not_accessed_dashboard_slug)
             .one()
         )
-
+        published_value_of_not_accessed_dashboard = dashboard_not_to_access.published
         dashboard_not_to_access.published = False
         url_of_not_accessed_dashboard = dashboard_not_to_access.url
         db.session.merge(dashboard_to_access)
@@ -683,9 +684,17 @@ class TestDashboard(SupersetTestCase):
             self.assertNotIn(url_of_not_accessed_dashboard, get_dashboards_response)
 
         finally:
-            dashboard_not_to_access.published = False
-            db.session.merge(dashboard_not_to_access)
-            db.session.commit()
+            do_commit = False
+            if published_value_of_not_accessed_dashboard:
+                dashboard_not_to_access.published = True
+                db.session.merge(dashboard_not_to_access)
+                do_commit = True
+            if not published_value_of_accessed_dashboard:
+                dashboard_to_access.published = False
+                db.session.merge(dashboard_to_access)
+                do_commit = True
+            if do_commit:
+                db.session.commit()
             self.revoke_public_access_to_table(table_to_access)
             self.revoke_access_to_all_dashboards(dashboard_level_access_enabled)
 

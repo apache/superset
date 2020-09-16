@@ -17,14 +17,11 @@
 # pylint: disable=too-few-public-methods
 """A set of constants and methods to manage permissions and security"""
 from __future__ import annotations
+
 import logging
 import re
 from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from superset.models.dashboard import Dashboard
 from flask import current_app, g
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.manager import SecurityManager
@@ -54,6 +51,10 @@ from superset.constants import RouteMethod, Security as SecurityConsts
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -894,27 +895,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             view_menu = self.__set_view_by_connection(connection, view_menu_name)
             self.__set_permission_view_by_connection(connection, permission, view_menu)
 
-    def add_permissions_views(
-        self, permission_view_pairs: List[Tuple[str, str]]
-    ) -> None:
-        for permission_name, view_menu_name in permission_view_pairs:
-            self.add_permission(permission_name)
-            self.add_view_menu(view_menu_name)
-            self.add_permission_view_menu(permission_name, view_menu_name)
-
-    def del_permissions_views(
-        self, permission_view_pairs: List[Tuple[str, str]]
-    ) -> None:
-        for permission_name, view_menu_name in permission_view_pairs:
-            permission_view_menu = self.find_permission_view_menu(
-                permission_name, view_menu_name
-            )
-            for role in self.get_session.query(self.role_model).all():
-                self.del_permission_role(role, permission_view_menu)
-            self.del_permission_view_menu(permission_name, view_menu_name)
-            self.del_permission(permission_name)
-            self.del_view_menu(view_menu_name)
-
     def __set_permission_by_connection(
         self, connection: Connection, permission_name: str
     ) -> Permission:
@@ -967,26 +947,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
         return None
 
-    def update_dashboard_permission(self, dashboard: Dashboard) -> None:
-        new_perm = dashboard.view_name
-        current_perm = self.find_view_menu_by_pattern(dashboard.id)
-        if not current_perm:
-            self.add_view_menu(new_perm)
-        elif new_perm != current_perm.name:
-            current_perm.name = new_perm
-            self.get_session().merge(current_perm)
-            self.get_session().commit()
+    def update_view_menu(self, view_menu: ViewMenu) -> None:
+        self.get_session.merge(view_menu)
+        self.get_session.commit()
 
-    def find_view_menu_by_pattern(self, dashboard_id: int) -> ViewMenu:
+    def find_view_menu_by_pattern(
+        self, pattern: str, is_regex: bool = False
+    ) -> List[ViewMenu]:
         """
             Finds and returns a ViewMenu by name
         """
-        results = self.get_session.query(self.viewmenu_model).filter(
-            ViewMenu.name.like(f"dashboard.%")
+        pattern_filter = (
+            ViewMenu.name.match(pattern) if is_regex else ViewMenu.name.like(pattern)
         )
-        regex = re.compile(rf"dashboard\.\[(.*)\]\(id:{dashboard_id}\)")
-        results = list(filter(lambda x: regex.match(x.name), results.all()))
-        return results[0] if len(results) else None
+        return self.get_session.query(self.viewmenu_model).filter(pattern_filter).all()
 
     def change_view_name_by_connection(
         self, connection: Connection, new_name: str, old_name: str
@@ -1148,3 +1122,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         except Exception as err:
             self.get_session.rollback()
             raise err
+
+    def del_all_roles_associations(self, permission_view: PermissionView) -> None:
+        self.get_session.execute(
+            assoc_permissionview_role.delete().where(
+                assoc_permissionview_role.c.permission_view_id == permission_view.id
+            )
+        )

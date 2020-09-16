@@ -29,6 +29,7 @@ from superset.dashboards.commands.exceptions import (
     DashboardNotFoundError,
 )
 from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.security import is_dashboard_level_access_enabled
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.views.base import check_ownership
@@ -46,7 +47,8 @@ class DeleteDashboardCommand(BaseCommand):
         self.validate()
         try:
             dashboard = DashboardDAO.delete(self._model)
-            security_manager.del_permissions_views(dashboard.permission_view_pairs)
+            if is_dashboard_level_access_enabled():
+                dashboard.del_permissions_views()
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardDeleteFailedError()

@@ -477,8 +477,8 @@ def load_birth_names(
     print("Creating a dashboard")
     dash = __configure_dash(slices)
 
-    if is_dashboard_level_access_enabled:
-        security_manager.add_permissions_views(dash.permission_view_pairs)
+    if is_dashboard_level_access_enabled():
+        dash.add_permissions_views()
 
 
 def __configure_dash(slices: List[Slice]) -> Dashboard:

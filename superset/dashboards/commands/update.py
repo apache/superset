@@ -33,6 +33,7 @@ from superset.dashboards.commands.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.security import is_dashboard_level_access_enabled
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.views.base import check_ownership
@@ -52,7 +53,8 @@ class UpdateDashboardCommand(BaseCommand):
         try:
             dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
-            security_manager.update_dashboard_permission(dashboard)
+            if is_dashboard_level_access_enabled():
+                dashboard.update_dashboard_view()
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardUpdateFailedError()

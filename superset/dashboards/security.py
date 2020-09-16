@@ -16,10 +16,7 @@
 # under the License.
 import logging
 import re
-from typing import Any, List, Optional, Set, Tuple, Type
-
-from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
+from typing import List, Optional, Set, Tuple
 
 from superset import security_manager
 from superset.constants import Security as SecurityConsts
@@ -55,6 +52,33 @@ class DashboardSecurityMixin:
     @property
     def permission_view_pairs(self) -> List[Tuple[str, str]]:
         return [(SecurityConsts.Dashboard.ACCESS_PERMISSION_NAME, self.view_name)]
+
+    def add_permissions_views(self) -> None:
+        for permission_name, view_menu_name in self.permission_view_pairs:
+            security_manager.add_permission_view_menu(permission_name, view_menu_name)
+
+    def update_dashboard_view(self) -> None:
+        new_perm = self.view_name
+        views = security_manager.find_view_menu_by_pattern(
+            f"dashboard.[%](id:{self.id})"  # type: ignore
+        )
+        if len(views) == 0:
+            security_manager.add_view_menu(new_perm)
+        elif new_perm != views[0].name:
+            current_view = views[0]
+            current_view.name = new_perm
+            security_manager.update_view_menu(current_view)
+
+    def del_permissions_views(self) -> None:
+        for permission_name, view_menu_name in self.permission_view_pairs:
+            permission_view_menu = security_manager.find_permission_view_menu(
+                permission_name, view_menu_name
+            )
+            security_manager.del_all_roles_associations(permission_view_menu)
+            security_manager.del_permission_view_menu(
+                permission_name, view_menu_name, cascade=False
+            )
+            security_manager.del_view_menu(view_menu_name)
 
 
 ID_REGEX_PATTERN = r"\(id:(?P<id>\d+)\)$"

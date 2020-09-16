@@ -68,6 +68,7 @@ from superset.connectors.sqla.models import (
     TableColumn,
 )
 from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.security import is_dashboard_level_access_enabled
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import (
     CertificateException,
@@ -1049,6 +1050,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         DashboardDAO.set_dash_metadata(dash, data, old_to_new_slice_ids)
         session.add(dash)
         session.commit()
+        if is_dashboard_level_access_enabled():
+            dash.add_permissions_views()
         dash_json = json.dumps(dash.data)
         session.close()
         return json_success(dash_json)
@@ -1067,7 +1070,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         DashboardDAO.set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
-        security_manager.update_dashboard_permission(dash)
+        if is_dashboard_level_access_enabled():
+            dash.update_dashboard_view()
         session.close()
         return json_success(json.dumps({"status": "SUCCESS"}))
 

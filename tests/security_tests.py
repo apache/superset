@@ -766,13 +766,6 @@ class TestRolePermission(SupersetTestCase):
                 )
             )
         )
-        from tests.dashboards.dashboard_test_utils import (
-            is_dashboard_level_access_enabled,
-        )
-
-        if is_dashboard_level_access_enabled():
-            for pv in self.get_dashboards_access_permission_views(edit_too=True):
-                self.assertTrue(security_manager._is_alpha_only(pv))
 
     def test_is_gamma_pvm(self):
         self.assertTrue(
