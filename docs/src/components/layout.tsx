@@ -96,7 +96,6 @@ const contentStyle = css`
     border-radius: 3px;
     max-width: 800px;
     width: 100%;
-    white-space: nowrap;
     overflow: auto;
   }
   p {

@@ -95,6 +95,7 @@ const titleContainer = css`
     margin-top: 20px;
     margin-bottom: 20px;
     width: 600px;
+    max-width: 100%;
     ${[mq[3]]} {
       width: 550px;
     }
@@ -199,9 +200,13 @@ const linkCarousel = css`
     display: flex;
     flex-direction: column;
     margin-bottom: 100px;
+    position: relative;
     .toggleBtns {
       display: flex;
       flex-direction: row;
+      /* ${[mq[0]]} {
+        flex-direction: column;
+      } */
       justify-content: center;
       .toggle {
         margin: 10px;
@@ -211,6 +216,21 @@ const linkCarousel = css`
         border-radius: 3px;
         padding: 16px;
         transition: all 0.25s;
+        overflow: visible;
+        ${[mq[0]]} {
+          > span {
+            display: none;
+            position: absolute;
+            bottom: 0px;
+            left: 50%;
+            width: 100%;
+            transform: translate(-50%, 100%);
+          }
+          h2 {
+            font-size: 14px;
+            margin: 0;
+          }
+        }
         &:hover {
           cursor: pointer;
           color: ${colors.primary.base};
@@ -219,6 +239,11 @@ const linkCarousel = css`
         &.active {
           background: red;
           background: #20a7c933;
+          ${[mq[0]]} {
+            > span {
+              display: block;
+            }
+          }
         }
       }
     }
@@ -267,8 +292,8 @@ const Theme = () => {
           <div css={titleContainer}>
             <img className="logo-horiz" src={logo} alt="logo-horiz" />
             <div className="info-text">
-              Apache Superset is a modern data
-              exploration and visualization platform
+              Apache Superset is a modern data exploration and visualization
+              platform
             </div>
             <div className="github-section">
               <span className="github-button">
@@ -347,7 +372,6 @@ const Theme = () => {
                   `}
                   />
                 </Col>
-
               </Row>
               <Row>
                 <Col sm={24} md={12}>
@@ -426,10 +450,13 @@ const Theme = () => {
 
             <ul className="databaseList">
               {Databases.map(
-                ({
-                  title, href, imgName: imageName, width, height,
-                }) => (
-                  <a href={href} target="_blank" key={imageName} rel="noreferrer">
+                ({ title, href, imgName: imageName, width, height }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    key={imageName}
+                    rel="noreferrer"
+                  >
                     <Image
                       {...{
                         imageName,
@@ -445,14 +472,11 @@ const Theme = () => {
             </ul>
             <span className="databaseSub">
               {' '}
-              ... and any other SQLAlchemy
-              {' '}
+              ... and any other SQLAlchemy{' '}
               <a href="https://superset.incubator.apache.org/installation.html#database-dependencies">
                 {' '}
-                compatible databases
-                {' '}
-              </a>
-              {' '}
+                compatible databases{' '}
+              </a>{' '}
             </span>
           </div>
         </div>
