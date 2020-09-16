@@ -304,12 +304,12 @@ The latest documentation and tutorial are available at https://superset.apache.o
 The site is written using the Gatsby framework and docz for the
 documentation subsection. Find out more about it in `docs/README.md`
 
-The source for the docs can be fround in 
-[/docs](https://github.com/apache/incubator-superset/tree/master/docs) subdirectory of the repository, 
+The source for the docs can be fround in
+[/docs](https://github.com/apache/incubator-superset/tree/master/docs) subdirectory of the repository,
 and are written in the MDX format. [MDX]
 (https://storybook.js.org/docs/react/api/mdx) is basically Markdown with the ability to sprinkle in JSX code.
 
-Rendering the docs is powered by [DocZ](https://www.docz.site/), 
+Rendering the docs is powered by [DocZ](https://www.docz.site/),
 which is built on top of [GatsbyJS](https://www.gatsbyjs.com/).
 
 #### DocZ Installation
