@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "run cypress against superset",
   "scripts": {
-    "cypress": "CYPRESS_BASE_URL=\"http://localhost:${npm_config_port:-8088}\" cypress",
+    "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true"
   },
   "author": "Apcahe",
