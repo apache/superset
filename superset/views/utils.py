@@ -213,7 +213,7 @@ def get_datasource_info(
     return datasource_id, datasource_type
 
 
-def get_database_ids(dashboard_id: int,) -> List[int]:
+def get_database_ids(dashboard_id: int) -> List[int]:
     """
     Find all database ids used by a given dashboard
 

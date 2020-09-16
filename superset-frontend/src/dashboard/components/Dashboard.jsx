@@ -167,14 +167,6 @@ class Dashboard extends React.PureComponent {
     window.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
-  stopPendingQueries() {
-    if (navigator && navigator.sendBeacon) {
-      navigator.sendBeacon(
-        `/superset/dashboard/${this.props.dashboardInfo.id}/stop/`,
-      );
-    }
-  }
-
   onVisibilityChange() {
     if (document.visibilityState === 'hidden') {
       // from visible to hidden
@@ -195,6 +187,14 @@ class Dashboard extends React.PureComponent {
   // return charts in array
   getAllCharts() {
     return Object.values(this.props.charts);
+  }
+
+  stopPendingQueries() {
+    if (navigator && navigator.sendBeacon) {
+      navigator.sendBeacon(
+        `/superset/dashboard/${this.props.dashboardInfo.id}/stop/`,
+      );
+    }
   }
 
   applyFilters() {
