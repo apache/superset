@@ -406,6 +406,7 @@ function ChartList(props: ChartListProps) {
             >
               {confirmDelete => (
                 <div
+                  data-test="delete-option"
                   role="button"
                   tabIndex={0}
                   className="action-button"
@@ -419,6 +420,7 @@ function ChartList(props: ChartListProps) {
         )}
         {canEdit && (
           <Menu.Item
+            data-test="edit-option"
             role="button"
             tabIndex={0}
             onClick={() => openChartEditModal(chart)}
@@ -453,7 +455,7 @@ function ChartList(props: ChartListProps) {
         actions={
           <ListViewCard.Actions>
             {renderFaveStar(chart.id)}
-            <Dropdown overlay={menu}>
+            <Dropdown data-test="dropdown-options" overlay={menu}>
               <Icon name="more-horiz" />
             </Dropdown>
           </ListViewCard.Actions>
