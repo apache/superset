@@ -45,7 +45,9 @@ describe('Visualization > Sankey', () => {
 
   it('should work', () => {
     verify(SANKEY_FORM_DATA);
-    cy.get('.chart-container svg g.node rect').should('have.length', 41);
+    cy.get('[data-test="chart-container"]')
+      .find('svg g.node rect')
+      .should('have.length', 41);
   });
 
   it('should work with filter', () => {
@@ -72,6 +74,8 @@ describe('Visualization > Sankey', () => {
         },
       ],
     });
-    cy.get('.chart-container svg g.node rect').should('have.length', 6);
+    cy.get('[data-test="chart-container"]')
+      .find('svg g.node rect')
+      .should('have.length', 6);
   });
 });

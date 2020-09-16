@@ -28,7 +28,9 @@ describe('Advanced analytics', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('.panel-title').contains('Advanced Analytics').click();
+    cy.get('[data-test="clickable-control-panel-section-title"]')
+      .contains('Advanced Analytics')
+      .click();
 
     cy.get('[data-test=time_compare]').find('.Select__control').click();
     cy.get('[data-test=time_compare]')
@@ -71,21 +73,21 @@ describe('Annotations', () => {
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=annotation_layers]').within(() => {
-      cy.get('button').click();
+      cy.get('[data-test="add-annotation-layer-button"]').click();
     });
 
-    cy.get('.popover-content').within(() => {
+    cy.get('[data-test="annotation-popover"]').within(() => {
       cy.get('[data-test=annotation-layer-name-header]')
         .siblings()
         .first()
         .within(() => {
-          cy.get('input').type('Goal line');
+          cy.get('[data-test="inline-name"]').type('Goal line');
         });
       cy.get('[data-test=annotation-layer-value-header]')
         .siblings()
         .first()
         .within(() => {
-          cy.get('input').type('y=1400000');
+          cy.get('[data-test="inline-name"]').type('y=1400000');
         });
       cy.get('button').contains('OK').click();
     });

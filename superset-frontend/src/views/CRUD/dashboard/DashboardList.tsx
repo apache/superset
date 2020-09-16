@@ -442,6 +442,7 @@ function DashboardList(props: DashboardListProps) {
             >
               {confirmDelete => (
                 <div
+                  data-test="dashboard-list-delete-option"
                   role="button"
                   tabIndex={0}
                   className="action-button"
@@ -464,6 +465,7 @@ function DashboardList(props: DashboardListProps) {
         )}
         {canEdit && (
           <Menu.Item
+            data-test="edit-option"
             role="button"
             tabIndex={0}
             onClick={() => openDashboardEditModal(dashboard)}

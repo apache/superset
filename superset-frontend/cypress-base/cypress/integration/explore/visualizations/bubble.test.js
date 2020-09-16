@@ -63,10 +63,9 @@ describe('Visualization > Bubble', () => {
   it.skip('should work', () => {
     verify(BUBBLE_FORM_DATA);
     // number of circles = 214 rows
-    cy.get('.chart-container svg .nv-point-clips circle').should(
-      'have.length',
-      214,
-    );
+    cy.get('[data-test="chart-container"]')
+      .find('svg .nv-point-clips circle')
+      .should('have.length', 214);
   });
 
   it('should work with filter', () => {
@@ -84,7 +83,8 @@ describe('Visualization > Bubble', () => {
         },
       ],
     });
-    cy.get('.chart-container svg .nv-point-clips circle')
+    cy.get('[data-test="chart-container"]')
+      .find('svg .nv-point-clips circle')
       .should('have.length', 8)
       .then(nodeList => {
         // Check that all circles have same color.

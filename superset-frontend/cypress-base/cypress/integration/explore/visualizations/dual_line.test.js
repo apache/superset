@@ -47,7 +47,9 @@ describe('Visualization > Dual Line', () => {
 
   it('should work', () => {
     verify(DUAL_LINE_FORM_DATA);
-    cy.get('.chart-container svg path.nv-line').should('have.length', 2);
+    cy.get('[data-test="chart-container"]')
+      .find('svg path.nv-line')
+      .should('have.length', 2);
   });
 
   it('should work with filter', () => {
@@ -65,6 +67,8 @@ describe('Visualization > Dual Line', () => {
         },
       ],
     });
-    cy.get('.chart-container svg path.nv-line').should('have.length', 2);
+    cy.get('[data-test="chart-container"]')
+      .find('svg path.nv-line')
+      .should('have.length', 2);
   });
 });

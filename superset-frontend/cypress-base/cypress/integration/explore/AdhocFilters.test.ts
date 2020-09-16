@@ -50,12 +50,12 @@ describe('AdhocFilters', () => {
   });
 
   it('Set simple adhoc filter', () => {
-    cy.get('#filter-edit-popover').within(() => {
+    cy.get('[data-test="filter-edit-popover"]').within(() => {
       cy.get('[data-test=adhoc-filter-simple-value]').within(() => {
         cy.get('.Select__control').click();
         cy.get('input[type=text]').focus().type('Any{enter}');
       });
-      cy.get('button').contains('Save').click();
+      cy.get('[data-test="adhoc-filter-edit-popover-save-button"]').click();
     });
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
@@ -77,12 +77,17 @@ describe('AdhocFilters', () => {
 
     cy.wait('@filterValues');
 
-    cy.get('#filter-edit-popover #adhoc-filter-edit-tabs-tab-SQL').click();
-    cy.get('#filter-edit-popover .ace_content').click();
-    cy.get('#filter-edit-popover .ace_text-input').type(
-      "'Amy' OR name = 'Bob'",
-    );
-    cy.get('#filter-edit-popover button').contains('Save').click();
+    cy.get('[data-test="filter-edit-popover"]')
+      .find('[data-test="adhoc-filter-edit-tabs"]')
+      .contains('Custom SQL')
+      .click();
+    cy.get('[data-test="filter-edit-popover"]').find('.ace_content').click();
+    cy.get('[data-test="filter-edit-popover"]')
+      .find('.ace_text-input')
+      .type("'Amy' OR name = 'Bob'");
+    cy.get('[data-test="filter-edit-popover"]')
+      .find('[data-test="adhoc-filter-edit-popover-save-button"]')
+      .click();
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({

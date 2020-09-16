@@ -271,6 +271,7 @@ class ChartHolder extends React.Component {
               {editMode && (
                 <HoverMenu position="top">
                   <DeleteComponentButton
+                    data-test="chart-delete-button"
                     onDelete={this.handleDeleteComponent}
                   />
                 </HoverMenu>

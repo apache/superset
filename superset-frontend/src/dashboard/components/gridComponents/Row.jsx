@@ -159,6 +159,7 @@ class Row extends React.PureComponent {
                 rowItems.length === 0 && 'grid-row--empty',
                 backgroundStyle.className,
               )}
+              data-test={`grid-row-${backgroundStyle.className}`}
             >
               {rowItems.map((componentId, itemIndex) => (
                 <DashboardComponent

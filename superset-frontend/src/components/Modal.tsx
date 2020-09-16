@@ -82,10 +82,15 @@ export default function Modal({
       <BaseModal.Body>{children}</BaseModal.Body>
       <BaseModal.Footer>
         <span className="float-right">
-          <Button onClick={onHide} cta>
+          <Button
+            data-test={`${title}-modal-cancel-button`}
+            onClick={onHide}
+            cta
+          >
             {t('Cancel')}
           </Button>
           <Button
+            data-test="delete-button"
             buttonStyle={primaryButtonType}
             disabled={disablePrimaryButton}
             onClick={onHandledPrimaryAction}

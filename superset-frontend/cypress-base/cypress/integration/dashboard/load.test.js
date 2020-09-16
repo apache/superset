@@ -51,7 +51,9 @@ describe('Dashboard load', () => {
           expect(responseBody).to.have.property('errors');
           expect(responseBody.errors.length).to.eq(0);
           const sliceId = responseBody.form_data.slice_id;
-          cy.get(`#chart-id-${sliceId}`).should('be.visible');
+          cy.get('[data-test="grid-content"]')
+            .find(`#chart-id-${sliceId}`)
+            .should('be.visible');
         }),
       );
     });

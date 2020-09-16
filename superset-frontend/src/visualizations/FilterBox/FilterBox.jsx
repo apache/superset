@@ -268,7 +268,10 @@ class FilterBox extends React.Component {
     if (showDateFilter) {
       return (
         <div className="row space-1">
-          <div className="col-lg-12 col-xs-12 filter-container">
+          <div
+            className="col-lg-12 col-xs-12 filter-container"
+            data-test="date-filter-container"
+          >
             {this.renderFilterBadge(chartId, TIME_RANGE, label)}
             <DateFilterControl
               name={TIME_RANGE}

@@ -90,6 +90,7 @@ export default class TextControl extends React.Component<
         <FormGroup controlId={this.state.controlId} bsSize="small">
           <FormControl
             type="text"
+            data-test="inline-name"
             placeholder={this.props.placeholder}
             onChange={this.onChange}
             onFocus={this.props.onFocus}

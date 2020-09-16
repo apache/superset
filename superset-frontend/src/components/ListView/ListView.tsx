@@ -280,8 +280,11 @@ function ListView<T extends object = any>({
   }, [bulkSelectEnabled, toggleAllRowsSelected]);
 
   return (
-    <ListViewStyles>
-      <div className={`superset-list-view ${className}`}>
+    <ListViewStyles fullHeight={fullHeight}>
+      <div
+        data-test="chart-list-view"
+        className={`superset-list-view ${className}`}
+      >
         <div className="header">
           <div className="header-left">
             {cardViewEnabled && (

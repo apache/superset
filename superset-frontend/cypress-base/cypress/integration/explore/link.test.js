@@ -40,13 +40,17 @@ describe('Test explore links', () => {
     cy.visitChartByName('Growth Rate');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('button#query').click();
-    cy.get('span').contains('View query').parent().click();
+    cy.get('[data-test="btn-group-results"]')
+      .find('[data-test="query-dropdown"]')
+      .click();
+    cy.get('[data-test="view-query-menu-item"]').click();
     cy.wait('@postJson').then(() => {
       cy.get('code');
     });
-    cy.get('.modal-header').within(() => {
-      cy.get('button.close').first().click({ force: true });
+    cy.get('[data-test="modal-header"]').within(() => {
+      cy.get('[data-test="modal-header-close-button"]')
+        .first()
+        .click({ force: true });
     });
   });
 
@@ -61,7 +65,8 @@ describe('Test explore links', () => {
     // explicitly wait for the url response
     cy.wait('@getShortUrl');
 
-    cy.get('#shorturl-popover [data-test="short-url"]')
+    cy.get('[data-test="shorturl-popover"]')
+      .find('[data-test="short-url"]')
       .invoke('text')
       .then(text => {
         cy.visit(text);
@@ -74,8 +79,8 @@ describe('Test explore links', () => {
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=embed-code-button]').click();
-    cy.get('#embed-code-popover').within(() => {
-      cy.get('textarea[name=embedCode]').contains('iframe');
+    cy.get('[data-test="embed-code-popover"]').within(() => {
+      cy.get('[data-test="embed-code-textarea"]').contains('iframe');
     });
   });
 
@@ -91,21 +96,27 @@ describe('Test explore links', () => {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.url().then(() => {
-      cy.get('button[data-target="#save_modal"]').click();
-      cy.get('.modal-content').within(() => {
-        cy.get('#saveas-radio').check();
-        cy.get('input[name=new_slice_name]').type(newChartName);
-        cy.get('button#btn_modal_save').click();
+      cy.get('[data-test="query-save-button"]').click();
+      cy.get('[data-test="save-modal-body"]').within(() => {
+        cy.get('[data-test="saveas-radio"]').check();
+        cy.get('[data-test="new-chart-name"]').type(newChartName);
       });
+
+      cy.get('[data-test="save-modal-footer"]')
+        .find('[data-test="btn-modal-save"]')
+        .click();
+
       cy.verifySliceSuccess({ waitAlias: '@postJson' });
       cy.visitChartByName(newChartName);
 
       // Overwriting!
-      cy.get('button[data-target="#save_modal"]').click();
-      cy.get('.modal-content').within(() => {
-        cy.get('#overwrite-radio').check();
-        cy.get('button#btn_modal_save').click();
+      cy.get('button[data-test="query-save-button"]').click();
+      cy.get('[data-test="save-modal-body"]').within(() => {
+        cy.get('[data-test="save-overwrite-radio"]').check();
       });
+      cy.get('[data-test="save-modal-footer"]')
+        .find('[data-test="btn-modal-save"]')
+        .click();
       cy.verifySliceSuccess({ waitAlias: '@postJson' });
       const query = {
         filters: [
@@ -131,16 +142,18 @@ describe('Test explore links', () => {
     cy.visitChartByName(chartName);
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('button[data-target="#save_modal"]').click();
-    cy.get('.modal-content').within(() => {
-      cy.get('#saveas-radio').check();
-      cy.get('input[name=new_slice_name]').click().clear().type(newChartName);
+    cy.get('[data-test="query-save-button"]').click();
+    cy.get('[data-test="save-modal-body"]').within(() => {
+      cy.get('[data-test="saveas-radio"]').check();
+      cy.get('[data-test="new-chart-name"]').click().clear().type(newChartName);
       // Add a new option using the "CreatableSelect" feature
       cy.get('#dashboard-creatable-select').type(
         `${dashboardTitle}{enter}{enter}`,
       );
-      cy.get('button#btn_modal_save').click();
     });
+    cy.get('[data-test="save-modal-footer"]')
+      .find('[data-test="btn-modal-save"]')
+      .click();
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
     let query = {
       filters: [
@@ -158,17 +171,19 @@ describe('Test explore links', () => {
     cy.visitChartByName(newChartName);
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('button[data-target="#save_modal"]').click();
-    cy.get('.modal-content').within(() => {
-      cy.get('#overwrite-radio').check();
+    cy.get('[data-test="query-save-button"]').click();
+    cy.get('[data-test="save-modal-body"]').within(() => {
+      cy.get('[data-test="save-overwrite-radio"]').check();
       cy.get('input[name=new_slice_name]').click().clear().type(newChartName);
       // This time around, typing the same dashboard name
       // will select the existing one
       cy.get('#dashboard-creatable-select').type(
         `${dashboardTitle}{enter}{enter}`,
       );
-      cy.get('button#btn_modal_save').click();
     });
+    cy.get('[data-test="save-modal-footer"]')
+      .find('[data-test="btn-modal-save"]')
+      .click();
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
     query = {
       filters: [

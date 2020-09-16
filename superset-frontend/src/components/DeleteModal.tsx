@@ -67,6 +67,7 @@ export default function DeleteModal({
       <StyleFormGroup>
         <FormLabel htmlFor="delete">{t('type "delete" to confirm')}</FormLabel>
         <FormControl
+          data-test="delete-modal-input"
           id="delete"
           type="text"
           bsSize="sm"

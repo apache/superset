@@ -61,7 +61,11 @@ export default function ExploreActionButtons({
   });
 
   return (
-    <div className="btn-group results" role="group">
+    <div
+      className="btn-group results"
+      role="group"
+      data-test="btn-group-results"
+    >
       {latestQueryFormData && (
         <URLShortLinkButton
           url={getExploreLongUrl(latestQueryFormData)}

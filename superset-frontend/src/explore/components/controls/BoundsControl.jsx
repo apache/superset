@@ -90,6 +90,7 @@ export default class BoundsControl extends React.Component {
           <Row>
             <Col xs={6}>
               <FormControl
+                data-test="min-bound"
                 type="text"
                 placeholder={t('Min')}
                 onChange={this.onMinChange}
@@ -99,6 +100,7 @@ export default class BoundsControl extends React.Component {
             <Col xs={6}>
               <FormControl
                 type="text"
+                data-test="max-bound"
                 placeholder={t('Max')}
                 onChange={this.onMaxChange}
                 value={this.state.minMax[1]}

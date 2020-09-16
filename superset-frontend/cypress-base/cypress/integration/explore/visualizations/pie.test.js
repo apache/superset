@@ -49,7 +49,9 @@ describe('Visualization > Pie', () => {
 
   it('should work with ad-hoc metric', () => {
     verify(PIE_FORM_DATA);
-    cy.get('.chart-container .pie canvas').should('have.length', 1);
+    cy.get('[data-test="chart-container"]')
+      .find('.pie canvas')
+      .should('have.length', 1);
   });
 
   it('should work with simple filter', () => {
@@ -67,6 +69,8 @@ describe('Visualization > Pie', () => {
         },
       ],
     });
-    cy.get('.chart-container .pie canvas').should('have.length', 1);
+    cy.get('[data-test="chart-container"]')
+      .find('.pie canvas')
+      .should('have.length', 1);
   });
 });

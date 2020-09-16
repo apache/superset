@@ -23,47 +23,47 @@ describe('Dashboard edit mode', () => {
     cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.get('.dashboard-header [data-test=edit-alt]').click();
+    cy.get('[data-test="dashboard-header"]')
+      .find('[data-test=edit-alt]')
+      .click();
   });
 
-  xit('remove, and add chart flow', () => {
+  it('remove, and add chart flow', () => {
     // wait for box plot to appear
-    cy.get('.grid-container .box_plot');
+    cy.get('[data-test="grid-container"]').find('.box_plot');
 
-    cy.get('.fa.fa-trash')
+    cy.get('[data-test="icon-button-span"]')
       .last()
       .then($el => {
         cy.wrap($el).invoke('show').click();
         // box plot should be gone
-        cy.get('.grid-container .box_plot').should('not.exist');
+        cy.get('[data-test="grid-container"]')
+          .find('.box_plot')
+          .should('not.exist');
       });
 
-    cy.get('.tabs-components .nav-tabs li a').contains('Charts').click();
+    cy.get('[data-test="tabs-component"]').children().siblings().last().click();
 
     // wait for tab-switching animation to complete
     cy.wait(1000);
 
     // find box plot is available from list
-    cy.get('.tabs-components')
-      .find('.chart-card-container')
-      .contains('Box plot');
+    cy.get('[data-test="card-title"]').contains('Box plot');
 
-    drag('.chart-card', 'Box plot').to(
+    drag('[data-test="card-title"]', 'Box plot').to(
       '.grid-row.background--transparent:last',
     );
 
     // add back to dashboard
-    cy.get('.grid-container .box_plot').should('be.exist');
+    cy.get('[data-test="grid-container"]').find('.box_plot').should('be.exist');
 
     // should show Save changes button
-    cy.get('.dashboard-header .button-container').contains('Save');
+    cy.get('[data-test="header-save-button"]').should('be.visible');
 
     // undo 2 steps
-    cy.get('.dashboard-header .undo-action').click().click();
+    cy.get('[data-test="undo-action"]').click();
 
     // no changes, can switch to view mode
-    cy.get('.dashboard-header .button-container')
-      .contains('Discard Changes')
-      .click();
+    cy.get('[data-test="discard-changes-button"]').click();
   });
 });

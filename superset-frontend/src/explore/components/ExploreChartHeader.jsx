@@ -131,7 +131,11 @@ export class ExploreChartHeader extends React.PureComponent {
       this.props.chart.chartStatus,
     );
     return (
-      <StyledHeader id="slice-header" className="clearfix panel-title-large">
+      <StyledHeader
+        id="slice-header"
+        className="clearfix panel-title-large"
+        ref
+      >
         <EditableTitle
           title={this.getSliceName()}
           canEdit={!this.props.slice || this.props.can_overwrite}
