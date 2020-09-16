@@ -59,6 +59,7 @@ class Alert(Model, AuditMixinNullable):
     id = Column(Integer, primary_key=True)
     label = Column(String(150), nullable=False)
     active = Column(Boolean, default=True, index=True)
+    # TODO(bkyryliuk): enforce minimal supported frequency
     crontab = Column(String(50), nullable=False)
 
     alert_type = Column(String(50))
@@ -66,7 +67,7 @@ class Alert(Model, AuditMixinNullable):
     recipients = Column(Text)
     slack_channel = Column(Text)
 
-    # TODO: implement log_retention
+    # TODO(bkyryliuk): implement log_retention
     log_retention = Column(Integer, default=90)
     grace_period = Column(Integer, default=60 * 60 * 24)
 
@@ -203,7 +204,8 @@ class Validator(Model, AuditMixinNullable):
             backref=backref("validators", cascade="all, delete-orphan"),
         )
 
-    def pretty_print(self) -> str:
+    @property
+    def pretty_config(self) -> str:
         """ String representing the comparison that will trigger a validator """
         config = json.loads(self.config)
 
