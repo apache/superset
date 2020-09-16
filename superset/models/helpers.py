@@ -19,6 +19,7 @@ import json
 import logging
 import re
 from datetime import datetime, timedelta
+from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, Optional, Set, Union
 
 import humanize
@@ -43,9 +44,7 @@ logger = logging.getLogger(__name__)
 def json_to_dict(json_str: str) -> Dict[Any, Any]:
     if json_str:
         val = re.sub(",[ \t\r\n]+}", "}", json_str)
-        val = re.sub(
-            ",[ \t\r\n]+\]", "]", val  # pylint: disable=anomalous-backslash-in-string
-        )
+        val = re.sub(",[ \t\r\n]+\\]", "]", val)
         return json.loads(val)
 
     return {}
@@ -426,7 +425,10 @@ class ExtraJSONMixin:
     def extra(self) -> Dict[str, Any]:
         try:
             return json.loads(self.extra_json)
-        except Exception:  # pylint: disable=broad-except
+        except (TypeError, JSONDecodeError) as exc:
+            logger.error(
+                "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
+            )
             return {}
 
     def set_extra_json(self, extras: Dict[str, Any]) -> None:
