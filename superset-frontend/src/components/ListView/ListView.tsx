@@ -284,7 +284,10 @@ function ListView<T extends object = any>({
 
   return (
     <ListViewStyles fullHeight={fullHeight}>
-      <div className={`superset-list-view ${className}`}>
+      <div
+        data-test={`${className}`}
+        className={`superset-list-view ${className}`}
+      >
         <div className="header">
           {cardViewEnabled && (
             <ViewModeToggle mode={viewingMode} setMode={setViewingMode} />

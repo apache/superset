@@ -26,24 +26,26 @@ describe('chart list view', () => {
     cy.get('[data-test="list-view"]').click();
   });
 
-  it.skip('should load rows', () => {
-    cy.get('.chart-list-view');
-    cy.get('table[role="table"]').should('be.visible');
+  it('should load rows', () => {
+    cy.get('[data-test="table"]').should('be.visible');
 
     // check chart list view header
-    cy.get('th[role="columnheader"]:nth-child(2)').contains('Chart');
-    cy.get('th[role="columnheader"]:nth-child(3)').contains(
-      'Visualization Type',
-    );
-    cy.get('th[role="columnheader"]:nth-child(4)').contains('Dataset');
-    cy.get('th[role="columnheader"]:nth-child(5)').contains('Modified By');
-    cy.get('th[role="columnheader"]:nth-child(6)').contains('Last Modified');
-    cy.get('th[role="columnheader"]:nth-child(7)').contains('Actions');
-    cy.get('.table-row').should('have.length', 25);
+    cy.get('[data-test="sort-header"]').eq(1).contains('Chart');
+    cy.get('[data-test="sort-header"]').eq(2).contains('Visualization Type');
+    cy.get('[data-test="sort-header"]').eq(3).contains('Dataset');
+    cy.get('[data-test="sort-header"]').eq(4).contains('Modified By');
+    cy.get('[data-test="sort-header"]').eq(5).contains('Last Modified');
+    cy.get('[data-test="sort-header"]').eq(6).contains('Actions');
+    cy.get('[data-test="table-row"]').should('have.length', 25);
   });
 
   it('should sort correctly', () => {
-    cy.get('th[role="columnheader"]:nth-child(2)').click();
-    cy.get('.table-row td:nth-child(2):eq(0)').contains('% Rural');
+    cy.get('[data-test="sort-header"]').eq(2).click();
+    cy.get('[data-test="sort-header"]').eq(2).click();
+    cy.get('[data-test="table-row"]')
+      .first()
+      .find('[data-test="row-cell"]')
+      .find('[data-test="cell-text"]')
+      .contains('% Rural');
   });
 });

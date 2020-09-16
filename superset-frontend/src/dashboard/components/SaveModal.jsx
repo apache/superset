@@ -193,7 +193,11 @@ class SaveModal extends React.PureComponent {
         }
         modalFooter={
           <div>
-            <Button buttonStyle="primary" onClick={this.saveDashboard}>
+            <Button
+              data-test="modal-save-button"
+              buttonStyle="primary"
+              onClick={this.saveDashboard}
+            >
               {t('Save')}
             </Button>
           </div>

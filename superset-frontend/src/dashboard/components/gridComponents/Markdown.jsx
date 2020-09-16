@@ -246,6 +246,7 @@ class Markdown extends React.PureComponent {
         }
         readOnly={false}
         onLoad={this.setEditor}
+        data-test="editor"
       />
     );
   }
@@ -341,6 +342,7 @@ class Markdown extends React.PureComponent {
                 <div
                   ref={dragSourceRef}
                   className="dashboard-component dashboard-component-chart-holder"
+                  data-test="dashboard-component-chart-holder"
                 >
                   {editMode && isEditing
                     ? this.renderEditMode()

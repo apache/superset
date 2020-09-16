@@ -30,27 +30,34 @@ describe('Dashboard edit markdown', () => {
     cy.get('script').then(nodes => {
       numScripts = nodes.length;
     });
-    cy.get('.dashboard-header [data-test=edit-alt]').click();
+    cy.get('[data-test="dashboard-header"]')
+      .find('[data-test="pencil"]')
+      .click();
     cy.get('script').then(nodes => {
       // load 5 new script chunks for css editor
       expect(nodes.length).to.greaterThan(numScripts);
       numScripts = nodes.length;
     });
-
+    cy.get('[data-test="grid-row-background--transparent"]')
+      .first()
+      .as('component-background-first');
     // add new markdown component
-    drag('.new-component', 'Markdown').to(
-      '.grid-row.background--transparent:first',
+    drag('[data-test="new-component"]', 'Markdown').to(
+      '@component-background-first',
     );
     cy.get('script').then(nodes => {
       // load more scripts for markdown editor
       expect(nodes.length).to.greaterThan(numScripts);
       numScripts = nodes.length;
     });
-
-    cy.contains('h3', '✨Markdown').click();
-    cy.get('.ace_content').contains(
-      'Click here to edit [markdown](https://bit.ly/1dQOfRK)',
-    );
+    cy.get('[data-test="dashboard-component-chart-holder"]')
+      .children()
+      .eq(2)
+      .should('have.text', '✨Markdown')
+      .click();
+    cy.get('[data-test="dashboard-component-chart-holder"]')
+      .find('.ace_content')
+      .contains('Click here to edit [markdown](https://bit.ly/1dQOfRK)');
 
     // entering edit mode does not add new scripts
     // (though scripts may still be removed by others)
@@ -58,7 +65,9 @@ describe('Dashboard edit markdown', () => {
       expect(nodes.length).to.most(numScripts);
     });
 
-    cy.get('.grid-row.background--transparent:first').click('right');
-    cy.get('.ace_content').should('not.exist');
+    cy.get('@component-background-first').click('right');
+    cy.get('[data-test="dashboard-component-chart-holder"]')
+      .find('.ace_content')
+      .should('not.exist');
   });
 });

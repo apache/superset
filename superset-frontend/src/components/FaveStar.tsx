@@ -52,6 +52,7 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
             href="#"
             onClick={this.onClick.bind(this)}
             className="fave-unfave-icon"
+            data-test="fave-unfave-icon"
           >
             <Icon
               name={

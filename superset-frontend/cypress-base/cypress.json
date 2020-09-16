@@ -1,7 +1,7 @@
 {
   "baseUrl": "http://localhost:8088",
   "chromeWebSecurity": false,
-  "defaultCommandTimeout": 5000,
+  "defaultCommandTimeout": 10000,
   "experimentalFetchPolyfill": true,
   "requestTimeout": 10000,
   "ignoreTestFiles": [
