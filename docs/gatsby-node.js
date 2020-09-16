@@ -610,3 +610,4 @@ exports.createPages = ({ actions }) => {
     isPermanent: true,
   });
 };
+
