@@ -26,11 +26,11 @@ import {
   Grid,
   ScrollSync,
   SortDirection,
+  SortDirectionType,
   SortIndicator,
   Table,
-  SortDirectionType,
 } from 'react-virtualized';
-import { t, getMultipleTextDimensions } from '@superset-ui/core';
+import { getMultipleTextDimensions, t } from '@superset-ui/core';
 
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
@@ -241,24 +241,22 @@ export default class FilterableTable extends PureComponent<
   }
 
   formatTableData(data: Record<string, unknown>[]): Datum[] {
-    const formattedData = data.map(row => {
+    return data.map(row => {
       const newRow = {};
-      for (const k in row) {
-        const val = row[k];
+      Object.entries(row).forEach(([key, val]) => {
         if (['string', 'number'].indexOf(typeof val) >= 0) {
-          newRow[k] = val;
+          newRow[key] = val;
         } else {
-          newRow[k] = val === null ? null : JSONbig.stringify(val);
+          newRow[key] = val === null ? null : JSONbig.stringify(val);
         }
-      }
+      });
       return newRow;
     });
-    return formattedData;
   }
 
   hasMatch(text: string, row: Datum) {
-    const values = [];
-    for (const key in row) {
+    const values: string[] = [];
+    Object.keys(row).forEach(key => {
       if (row.hasOwnProperty(key)) {
         const cellValue = row[key];
         if (typeof cellValue === 'string') {
@@ -270,7 +268,7 @@ export default class FilterableTable extends PureComponent<
           values.push(cellValue.toString());
         }
       }
-    }
+    });
     const lowerCaseText = text.toLowerCase();
     return values.some(v => v.includes(lowerCaseText));
   }
