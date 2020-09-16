@@ -189,6 +189,7 @@
     "@storybook/addon-knobs": "^6.0.13",
     "@storybook/addon-links": "^5.3.19",
     "@storybook/addons": "^5.3.19",
+    "@storybook/client-api": "^6.0.21",
     "@storybook/preset-typescript": "^3.0.0",
     "@storybook/react": "^6.0.13",
     "@svgr/webpack": "^5.4.0",
