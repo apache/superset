@@ -34,9 +34,3 @@ analyze:
     path: .
     options:
       requirements: ./requirements/base.txt
-  - name: docker
-    type: pip
-    target: .
-    path: .
-    options:
-      requirements: ./requirements/docker.txt
