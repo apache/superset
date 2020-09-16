@@ -238,6 +238,11 @@ def test_operator_validator(setup_database):
         operator_validator(alert1.sql_observer[0], '{"op": ">=", "threshold": 60}')
         is False
     )
+    # ensure that 0 threshold works
+    assert (
+        operator_validator(alert1.sql_observer[0], '{"op": ">=", "threshold": 0}')
+        is False
+    )
 
     # Test passing SQLObserver with result that doesn't pass a greater than threshold
     alert2 = create_alert(dbsession, "SELECT 55")
