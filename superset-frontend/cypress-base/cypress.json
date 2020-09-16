@@ -1,5 +1,5 @@
 {
-  "baseUrl": "http://localhost:8081",
+  "baseUrl": "http://localhost:8088",
   "chromeWebSecurity": false,
   "defaultCommandTimeout": 5000,
   "experimentalFetchPolyfill": true,
