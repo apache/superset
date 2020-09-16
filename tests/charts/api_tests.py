@@ -25,6 +25,7 @@ import prison
 import humanize
 from sqlalchemy.sql import func
 
+from superset.utils.core import get_example_database
 from tests.test_app import app
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager

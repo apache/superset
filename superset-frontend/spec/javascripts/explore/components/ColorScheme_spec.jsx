@@ -39,6 +39,6 @@ describe('ColorSchemeControl', () => {
   });
 
   it('renders a Creatable', () => {
-    expect(wrapper.find(Select)).toExist();
+    expect(wrapper.find(Select)).toHaveLength(1);
   });
 });
