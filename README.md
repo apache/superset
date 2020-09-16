@@ -82,8 +82,8 @@ enterprise-ready business intelligence web application. It is fast, lightweight,
 and loaded with options that make it easy for users of all skill sets to explore and visualize 
 their data, from simple pie charts to highly detailed deck.gl geospatial charts.
 
-[**Why Superset**](#why-superset) |	[**Why Superset**](#why-superset) |
-[**Supported Databases**](#supported-databases) |	[**Supported Databases**](#supported-databases) |
+[**Why Superset**](#why-superset) |	
+[**Supported Databases**](#supported-databases) | 
 
 ## Why Superset
 
