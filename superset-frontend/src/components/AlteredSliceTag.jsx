@@ -76,19 +76,17 @@ export default class AlteredSliceTag extends React.Component {
 
     const fdKeys = Object.keys(cfd);
     const diffs = {};
-    for (const fdKey of fdKeys) {
-      // Ignore values that are undefined/nonexisting in either
+    fdKeys.forEach(fdKey => {
       if (!ofd[fdKey] && !cfd[fdKey]) {
-        continue;
+        return;
       }
-      // Ignore obsolete legacy filters
       if (['filters', 'having', 'having_filters', 'where'].includes(fdKey)) {
-        continue;
+        return;
       }
       if (!this.isEqualish(ofd[fdKey], cfd[fdKey])) {
         diffs[fdKey] = { before: ofd[fdKey], after: cfd[fdKey] };
       }
-    }
+    });
     return diffs;
   }
 
@@ -149,7 +147,7 @@ export default class AlteredSliceTag extends React.Component {
   renderRows() {
     const { diffs } = this.state;
     const rows = [];
-    for (const key in diffs) {
+    Object.entries(diffs).forEach(([key, diff]) => {
       rows.push(
         <Tr key={key}>
           <Td
@@ -160,11 +158,11 @@ export default class AlteredSliceTag extends React.Component {
               key
             }
           />
-          <Td column="before">{this.formatValue(diffs[key].before, key)}</Td>
-          <Td column="after">{this.formatValue(diffs[key].after, key)}</Td>
+          <Td column="before">{this.formatValue(diff.before, key)}</Td>
+          <Td column="after">{this.formatValue(diff.after, key)}</Td>
         </Tr>,
       );
-    }
+    });
     return rows;
   }
 
