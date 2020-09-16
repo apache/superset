@@ -85,9 +85,9 @@ their data, from simple pie charts to highly detailed deck.gl geospatial charts.
 [**Why Superset**](#why-superset) |	[**Why Superset**](#why-superset) |
 [**Supported Databases**](#supported-databases) |	[**Supported Databases**](#supported-databases) |
 
-## Why Superset	## Why Superset
+## Why Superset
 
-Superset provides:	Superset provides:
+Superset provides:
 - A rich set of data visualizations out of the box
 - An easy-to-use interface for exploring and visualizing data
 - The ability to easily create and share dashboards
