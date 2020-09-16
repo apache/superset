@@ -18,6 +18,9 @@ under the License.
 -->
 ## Change Log
 
+### 0.37.1 (2020/09/05 17:28 +00:00)
+- [#10794](https://github.com/apache/incubator-superset/pull/10794) security: disallow uuid package on jinja1 (#10794) (@dpgaspar)
+
 ### 0.37.0 (2020/08/01 06:59 +00:00)
 - [#10450](https://github.com/apache/incubator-superset/pull/10450) fix: excel sheet upload is not working (#10450) (@pphszx)
 - [#10389](https://github.com/apache/incubator-superset/pull/10389) feat: support non-numeric columns in pivot table (#10389) (@villebro)
