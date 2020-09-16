@@ -14,13 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional, Union
-
 from croniter import croniter
 from flask_appbuilder import CompactCRUDMixin
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
-from wtforms import BooleanField, Form, StringField
 
 from superset.constants import RouteMethod
 from superset.models.alerts import (
@@ -30,9 +27,7 @@ from superset.models.alerts import (
     SQLObserver,
     Validator,
 )
-from superset.models.schedules import ScheduleType
 from superset.tasks.alerts.validator import check_validator
-from superset.tasks.schedules import schedule_alert_query
 from superset.utils import core as utils
 from superset.utils.core import get_email_address_str, markdown
 
@@ -47,6 +42,7 @@ class AlertLogModelView(
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AlertLog)
     include_route_methods = {RouteMethod.LIST} | {"show"}
+    base_order = ("dttm_start", "desc")
     list_columns = (
         "scheduled_dttm",
         "dttm_start",
@@ -60,6 +56,7 @@ class AlertObservationModelView(
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SQLObservation)
     include_route_methods = {RouteMethod.LIST} | {"show"}
+    base_order = ("dttm", "desc")
     list_title = _("List Observations")
     show_title = _("Show Observation")
     list_columns = (
@@ -130,8 +127,9 @@ class ValidatorInlineView(  # pylint: disable=too-many-ancestors
     add_columns = edit_columns
 
     list_columns = [
-        "validator_type",
         "alert.label",
+        "validator_type",
+        "pretty_config",
     ]
 
     label_columns = {
@@ -180,10 +178,6 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alert"
     include_route_methods = RouteMethod.CRUD_SET
-    _extra_data: Dict[str, Union[bool, Optional[str]]] = {
-        "test_alert": False,
-        "test_email_recipients": None,
-    }
 
     list_columns = (
         "label",
@@ -191,7 +185,20 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "last_eval_dttm",
         "last_state",
         "active",
-        "creator",
+        "owners",
+    )
+    show_columns = (
+        "label",
+        "active",
+        "crontab",
+        "owners",
+        "slice",
+        "recipients",
+        "slack_channel",
+        "log_retention",
+        "grace_period",
+        "last_eval_dttm",
+        "last_state",
     )
     order_columns = ["label", "last_eval_dttm", "last_state", "active"]
     add_columns = (
@@ -208,9 +215,6 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         # "dashboard",
         "log_retention",
         "grace_period",
-        "test_alert",
-        "test_email_recipients",
-        "test_slack_channel",
     )
     label_columns = {
         "log_retention": _("Log Retentions (days)"),
@@ -230,28 +234,6 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         ),
     }
 
-    add_form_extra_fields = {
-        "test_alert": BooleanField(
-            "Send Test Alert",
-            default=False,
-            description="If enabled, a test alert will be sent on the creation / update"
-            " of an active alert. All alerts after will be sent only if the SQL "
-            "statement defined above returns True.",
-        ),
-        "test_email_recipients": StringField(
-            "Test Email Recipients",
-            default=None,
-            description="List of recipients to send test email to. "
-            "If empty, an email will be sent to the original recipients.",
-        ),
-        "test_slack_channel": StringField(
-            "Test Slack Channel",
-            default=None,
-            description="A slack channel to send a test message to. "
-            "If empty, an alert will be sent to the original channel.",
-        ),
-    }
-    edit_form_extra_fields = add_form_extra_fields
     edit_columns = add_columns
     related_views = [
         AlertObservationModelView,
@@ -260,34 +242,11 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         SQLObserverInlineView,
     ]
 
-    def process_form(self, form: Form, is_created: bool) -> None:
-        email_recipients = None
-        if form.test_email_recipients.data:
-            email_recipients = get_email_address_str(form.test_email_recipients.data)
-
-        test_slack_channel = (
-            form.test_slack_channel.data.strip()
-            if form.test_slack_channel.data
-            else None
-        )
-
-        self._extra_data["test_alert"] = form.test_alert.data
-        self._extra_data["test_email_recipients"] = email_recipients
-        self._extra_data["test_slack_channel"] = test_slack_channel
-
     def pre_add(self, item: "AlertModelView") -> None:
         item.recipients = get_email_address_str(item.recipients)
 
         if not croniter.is_valid(item.crontab):
             raise SupersetException("Invalid crontab format")
-
-    def post_add(self, item: "AlertModelView") -> None:
-        if self._extra_data["test_alert"]:
-            recipients = self._extra_data["test_email_recipients"] or item.recipients
-            slack_channel = self._extra_data["test_slack_channel"] or item.slack_channel
-            args = (ScheduleType.alert, item.id)
-            kwargs = dict(recipients=recipients, slack_channel=slack_channel)
-            schedule_alert_query.apply_async(args=args, kwargs=kwargs)
 
     def post_update(self, item: "AlertModelView") -> None:
         self.post_add(item)
