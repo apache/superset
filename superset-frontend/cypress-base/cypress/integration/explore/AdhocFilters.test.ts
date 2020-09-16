@@ -64,7 +64,7 @@ describe('AdhocFilters', () => {
     });
   });
 
-  it('Set custom adhoc filter', () => {
+  xit('Set custom adhoc filter', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
