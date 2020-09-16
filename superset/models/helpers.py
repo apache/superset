@@ -88,6 +88,14 @@ class ImportMixin:
         return unique
 
     @classmethod
+    def parent_foreign_key_mappings(cls) -> Dict[str, str]:
+        """Get a mapping of foreign name to the local name of foreign keys"""
+        parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
+        if parent_rel:
+            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
+        return {}
+
+    @classmethod
     def export_schema(
         cls, recursive: bool = True, include_parent_ref: bool = False
     ) -> Dict[str, Any]:
@@ -133,7 +141,7 @@ class ImportMixin:
         """Import obj from a dictionary"""
         if sync is None:
             sync = []
-        parent_refs = cls._parent_foreign_key_mappings()
+        parent_refs = cls.parent_foreign_key_mappings()
         export_fields = set(cls.export_fields) | set(parent_refs.keys())
         new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
         unique_constrains = cls._unique_constrains()
@@ -215,9 +223,7 @@ class ImportMixin:
                 # If children should get synced, delete the ones that did not
                 # get updated.
                 if child in sync and not is_new_obj:
-                    back_refs = (
-                        child_class._parent_foreign_key_mappings()  # pylint: disable=protected-access
-                    )
+                    back_refs = child_class.parent_foreign_key_mappings()
                     delete_filters = [
                         getattr(child_class, k) == getattr(obj, back_refs.get(k))
                         for k in back_refs.keys()
