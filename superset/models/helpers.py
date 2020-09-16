@@ -323,11 +323,11 @@ class ImportMixin:
         return json_to_dict(self.template_params)  # type: ignore
 
 
-def _user_link(user: User) -> Union[Markup, str]:  # pylint: disable=no-self-use
-    if not user:
+def _user_link(_user: User) -> Union[Markup, str]:
+    if not _user:
         return ""
-    url = "/superset/profile/{}/".format(user.username)
-    return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ""))
+    url = "/superset/profile/{}/".format(_user.username)
+    return Markup('<a href="{}">{}</a>'.format(url, escape(_user) or ""))
 
 
 class AuditMixinNullable(AuditMixin):
