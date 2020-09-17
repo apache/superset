@@ -130,9 +130,7 @@ class QueryContext:
             if dtype.type == np.object_ and col in query_object.metrics:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    def get_data(
-        self, df: pd.DataFrame,
-    ) -> Union[str, List[Dict[str, Any]]]:  # pylint: disable=no-self-use
+    def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
         if self.result_format == utils.ChartDataResultFormat.CSV:
             include_index = not isinstance(df.index, pd.RangeIndex)
             result = df.to_csv(index=include_index, **config["CSV_EXPORT"])
