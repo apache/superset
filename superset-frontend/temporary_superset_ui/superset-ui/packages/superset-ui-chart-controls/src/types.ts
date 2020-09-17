@@ -60,13 +60,19 @@ export interface ColumnMeta extends AnyDict {
 }
 
 export interface DatasourceMeta {
+  id: number;
+  type: DatasourceType;
   columns: ColumnMeta[];
   metrics: Metric[];
-  type: DatasourceType;
+  column_format: Record<string, string>;
+  verbose_map: Record<string, string>;
   main_dttm_col: string;
-  time_grain_sqla: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
+  time_grain_sqla: [string, string][];
+  granularity_sqla: [string, string][];
+  datasource_name: string | null;
+  description: string | null;
 }
 
 export interface ControlPanelState {
