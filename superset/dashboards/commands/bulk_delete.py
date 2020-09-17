@@ -20,7 +20,6 @@ from typing import List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DeleteFailedError
 from superset.dashboards.commands.exceptions import (

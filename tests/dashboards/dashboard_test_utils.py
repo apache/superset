@@ -17,7 +17,7 @@
 import logging
 from typing import List, Optional
 
-from superset import app, appbuilder, db, is_feature_enabled, security_manager
+from superset import appbuilder, is_feature_enabled, security_manager
 from superset.constants import Security
 from superset.models.dashboard import Dashboard, dashboard_slices, dashboard_user
 from superset.models.slice import Slice

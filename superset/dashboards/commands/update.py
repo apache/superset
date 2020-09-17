@@ -21,7 +21,6 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.utils import populate_owners
 from superset.dao.exceptions import DAOUpdateFailedError

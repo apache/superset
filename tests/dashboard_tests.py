@@ -21,14 +21,13 @@ import re
 import unittest
 from random import random
 
-import pytest
 from flask import escape, url_for
+import pytest
 from pytest import mark
 from sqlalchemy import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
-from superset.dashboards.commands.create import CreateDashboardCommand
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

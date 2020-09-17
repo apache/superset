@@ -17,7 +17,7 @@
 import json
 import logging
 from copy import copy
-from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
@@ -38,7 +38,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, sessionmaker, subqueryload
-from sqlalchemy.orm.base import NEVER_SET, NO_VALUE
 from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
