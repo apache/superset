@@ -29,15 +29,16 @@ describe('SqlLab query tabs', () => {
       // add tab
       cy.get('[data-test="add-tab-icon"]').click();
       // wait until we find the new tab
-      cy.get('[data-test="sql-editor-tabs"]').children().eq(initialTabCount - 1).contains(
-        `Untitled Query ${initialTabCount + 1}`
-      );
-      cy.get('[data-test="sql-editor-tabs"]').children().eq(initialTabCount).contains(
-        `Untitled Query ${initialTabCount + 2}`
-      );
+      cy.get('[data-test="sql-editor-tabs"]')
+        .children()
+        .eq(initialTabCount - 1)
+        .contains(`Untitled Query ${initialTabCount + 1}`
+        );
+      cy.get('[data-test="sql-editor-tabs"]')
+        .children().eq(initialTabCount)
+        .contains(`Untitled Query ${initialTabCount + 2}`);
     });
   });
-
   it('allows you to close a tab', () => {
     cy.get('[data-test="sql-editor-tabs"]').children().then(tabListA => {
       const initialTabCount = tabListA.length;
