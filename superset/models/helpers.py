@@ -34,7 +34,7 @@ from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 from superset.utils.core import QueryStatus
@@ -66,10 +66,12 @@ class ImportMixin:
     # The names of the attributes
     # that are available for import and export
 
+    __mapper__: Mapper
+
     @classmethod
     def _parent_foreign_key_mappings(cls) -> Dict[str, str]:
         """Get a mapping of foreign name to the local name of foreign keys"""
-        parent_rel = cls.__mapper__.relationships.get(cls.export_parent)  # type: ignore
+        parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
         if parent_rel:
             return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
         return {}
@@ -94,9 +96,7 @@ class ImportMixin:
         """Export schema as a dictionary"""
         parent_excludes = set()
         if not include_parent_ref:
-            parent_ref = cls.__mapper__.relationships.get(  # type: ignore
-                cls.export_parent
-            )
+            parent_ref = cls.__mapper__.relationships.get(cls.export_parent)
             if parent_ref:
                 parent_excludes = {column.name for column in parent_ref.local_columns}
 
@@ -114,9 +114,7 @@ class ImportMixin:
         }
         if recursive:
             for column in cls.export_children:
-                child_class = cls.__mapper__.relationships[  # type: ignore
-                    column
-                ].argument.class_
+                child_class = cls.__mapper__.relationships[column].argument.class_
                 schema[column] = [
                     child_class.export_schema(
                         recursive=recursive, include_parent_ref=include_parent_ref
@@ -125,7 +123,8 @@ class ImportMixin:
         return schema
 
     @classmethod
-    def import_from_dict(  # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
+    def import_from_dict(
+        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         cls,
         session: Session,
         dict_rep: Dict[Any, Any],
@@ -207,9 +206,7 @@ class ImportMixin:
         # Recursively create children
         if recursive:
             for child in cls.export_children:
-                child_class = cls.__mapper__.relationships[  # type: ignore
-                    child
-                ].argument.class_
+                child_class = cls.__mapper__.relationships[child].argument.class_
                 added = []
                 for c_obj in new_children.get(child, []):
                     added.append(
@@ -246,9 +243,7 @@ class ImportMixin:
         cls = self.__class__
         parent_excludes = set()
         if recursive and not include_parent_ref:
-            parent_ref = cls.__mapper__.relationships.get(  # type: ignore
-                cls.export_parent
-            )
+            parent_ref = cls.__mapper__.relationships.get(cls.export_parent)
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
         dict_rep = {
@@ -334,7 +329,6 @@ def _user_link(user: User) -> Union[Markup, str]:  # pylint: disable=no-self-use
 
 
 class AuditMixinNullable(AuditMixin):
-
     """Altering the AuditMixin to use nullable fields
 
     Allows creating objects programmatically outside of CRUD
