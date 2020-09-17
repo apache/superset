@@ -17,9 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/esm/light';
-import sql from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
-import github from 'react-syntax-highlighter/dist/esm/styles/hljs/github';
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
+import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
+import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 
 import Link from '../../components/Link';
 import ModalTrigger from '../../components/ModalTrigger';
