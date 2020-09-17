@@ -107,13 +107,15 @@ export default function Modal({
         </span>
       }
       footer={[
-        <Button key="back" onClick={onHide}>
+        <Button key="back" onClick={onHide} cta>
           {t('Cancel')}
         </Button>,
         <Button
           key="submit"
+          buttonStyle={primaryButtonType}
           disabled={disablePrimaryButton}
           onClick={onHandledPrimaryAction}
+          cta
         >
           {primaryButtonName}
         </Button>,

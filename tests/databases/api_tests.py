@@ -500,6 +500,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["name"], "birth_names")
+        self.assertIsNone(response["comment"])
         self.assertTrue(len(response["columns"]) > 5)
         self.assertTrue(response.get("selectStar").startswith("SELECT"))
 

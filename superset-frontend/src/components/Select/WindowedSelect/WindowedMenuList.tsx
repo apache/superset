@@ -105,7 +105,7 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
   } = selectProps;
 
   // try get default option height from theme configs
-  let optionHeight = selectProps.optionHeight;
+  let { optionHeight } = selectProps;
   if (!optionHeight) {
     optionHeight = theme ? detectHeight(theme) : DEFAULT_OPTION_HEIGHT;
   }

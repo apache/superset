@@ -92,6 +92,7 @@ class TestCore(SupersetTestCase):
         self.assertIn("User confirmation needed", resp)
 
     def test_dashboard_endpoint(self):
+        self.login()
         resp = self.client.get("/superset/dashboard/-1/")
         assert resp.status_code == 404
 
@@ -190,6 +191,7 @@ class TestCore(SupersetTestCase):
         db.session.add(annotation)
         db.session.commit()
 
+        self.login()
         resp_annotations = json.loads(
             self.get_resp("annotationlayermodelview/api/read")
         )
@@ -562,6 +564,7 @@ class TestCore(SupersetTestCase):
         db.session.commit()
 
     def test_warm_up_cache(self):
+        self.login()
         slc = self.get_slice("Girls", db.session)
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
         self.assertEqual(
@@ -629,7 +632,7 @@ class TestCore(SupersetTestCase):
         assert "Dashboards" in self.get_resp("/dashboard/list/")
 
     def test_csv_endpoint(self):
-        self.login("admin")
+        self.login()
         sql = """
             SELECT name
             FROM birth_names
@@ -654,7 +657,7 @@ class TestCore(SupersetTestCase):
         self.logout()
 
     def test_extra_table_metadata(self):
-        self.login("admin")
+        self.login()
         example_db = utils.get_example_database()
         schema = "default" if example_db.backend in {"presto", "hive"} else "superset"
         self.get_json_resp(
@@ -695,7 +698,7 @@ class TestCore(SupersetTestCase):
         if utils.get_example_database().backend == "presto":
             # TODO: make it work for presto
             return
-        self.login("admin")
+        self.login()
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2017-01-01T00:00:00")
@@ -764,7 +767,7 @@ class TestCore(SupersetTestCase):
     def test_custom_templated_sql_json(self, sql_lab_mock, mock_dt) -> None:
         """Test sqllab receives macros expanded query."""
         mock_dt.utcnow = mock.Mock(return_value=datetime.datetime(1970, 1, 1))
-        self.login("admin")
+        self.login()
         sql = "SELECT '$DATE()' as test"
         resp = {
             "status": utils.QueryStatus.SUCCESS,
@@ -952,15 +955,8 @@ class TestCore(SupersetTestCase):
 
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
     @mock.patch("superset.views.core.results_backend")
-    @mock.patch("superset.views.core.db")
-    def test_display_limit(self, mock_superset_db, mock_results_backend):
-        query_mock = mock.Mock()
-        query_mock.sql = "SELECT *"
-        query_mock.database = 1
-        query_mock.schema = "superset"
-        mock_superset_db.session.query().filter_by().one_or_none.return_value = (
-            query_mock
-        )
+    def test_display_limit(self, mock_results_backend):
+        self.login()
 
         data = [{"col_0": i} for i in range(100)]
         payload = {
@@ -968,6 +964,21 @@ class TestCore(SupersetTestCase):
             "query": {"rows": 100},
             "data": data,
         }
+        # limit results to 1
+        expected_key = {"status": "success", "query": {"rows": 100}, "data": data}
+        limited_data = data[:1]
+        expected_limited = {
+            "status": "success",
+            "query": {"rows": 100},
+            "data": limited_data,
+            "displayLimitReached": True,
+        }
+
+        query_mock = mock.Mock()
+        query_mock.sql = "SELECT *"
+        query_mock.database = 1
+        query_mock.schema = "superset"
+
         # do not apply msgpack serialization
         use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
@@ -975,21 +986,16 @@ class TestCore(SupersetTestCase):
         compressed = utils.zlib_compress(serialized_payload)
         mock_results_backend.get.return_value = compressed
 
-        # get all results
-        result = json.loads(self.get_resp("/superset/results/key/"))
-        expected = {"status": "success", "query": {"rows": 100}, "data": data}
-        self.assertEqual(result, expected)
+        with mock.patch("superset.views.core.db") as mock_superset_db:
+            mock_superset_db.session.query().filter_by().one_or_none.return_value = (
+                query_mock
+            )
+            # get all results
+            result_key = json.loads(self.get_resp("/superset/results/key/"))
+            result_limited = json.loads(self.get_resp("/superset/results/key/?rows=1"))
 
-        # limit results to 1
-        limited_data = data[:1]
-        result = json.loads(self.get_resp("/superset/results/key/?rows=1"))
-        expected = {
-            "status": "success",
-            "query": {"rows": 100},
-            "data": limited_data,
-            "displayLimitReached": True,
-        }
-        self.assertEqual(result, expected)
+        self.assertEqual(result_key, expected_key)
+        self.assertEqual(result_limited, expected_limited)
 
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
 

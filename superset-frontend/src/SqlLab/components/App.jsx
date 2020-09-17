@@ -48,12 +48,14 @@ class App extends React.PureComponent {
       { trailing: false },
     );
   }
+
   componentDidMount() {
     /* eslint-disable react/no-did-mount-set-state */
     this.setState({ contentHeight: this.getHeight() });
     window.addEventListener('hashchange', this.onHashChanged.bind(this));
     window.addEventListener('resize', this.handleResize.bind(this));
   }
+
   componentDidUpdate() {
     if (
       this.props.localStorageUsageInKilobytes >=
@@ -64,13 +66,16 @@ class App extends React.PureComponent {
       );
     }
   }
+
   componentWillUnmount() {
     window.removeEventListener('hashchange', this.onHashChanged.bind(this));
     window.removeEventListener('resize', this.handleResize.bind(this));
   }
+
   onHashChanged() {
     this.setState({ hash: window.location.hash });
   }
+
   getHeight() {
     const warningEl = $('#navbar-warning');
     const tabsEl = $('.nav-tabs');
@@ -96,6 +101,7 @@ class App extends React.PureComponent {
       alertHeight
     }px`;
   }
+
   showLocalStorageUsageWarning(currentUsage) {
     this.props.actions.addDangerToast(
       t(
@@ -109,9 +115,11 @@ class App extends React.PureComponent {
       ),
     );
   }
+
   handleResize() {
     this.setState({ contentHeight: this.getHeight() });
   }
+
   render() {
     let content;
     if (this.state.hash) {

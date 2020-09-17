@@ -39,7 +39,6 @@ export interface MenuObjectProps {
 
 export default function MenuObject({
   label,
-  icon,
   childs,
   url,
   index,
@@ -57,7 +56,8 @@ export default function MenuObject({
       {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
         if (typeof child === 'string' && child === '-') {
           return <MenuItem key={`$${index1}`} divider />;
-        } else if (typeof child !== 'string') {
+        }
+        if (typeof child !== 'string') {
           return (
             <MenuItem
               key={`${child.label}`}

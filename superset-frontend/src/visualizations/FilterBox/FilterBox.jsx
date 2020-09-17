@@ -26,20 +26,20 @@ import { t, styled, SupersetClient } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 
-import DateFilterControl from '../../explore/components/controls/DateFilterControl';
-import ControlRow from '../../explore/components/ControlRow';
-import Control from '../../explore/components/Control';
-import controls from '../../explore/controls';
-import { getExploreUrl } from '../../explore/exploreUtils';
-import OnPasteSelect from '../../components/Select/OnPasteSelect';
-import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKey';
-import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import ControlRow from 'src/explore/components/ControlRow';
+import Control from 'src/explore/components/Control';
+import controls from 'src/explore/controls';
+import { getExploreUrl } from 'src/explore/exploreUtils';
+import OnPasteSelect from 'src/components/Select/OnPasteSelect';
+import { getDashboardFilterKey } from 'src/dashboard/util/getDashboardFilterKey';
+import { getFilterColorMap } from 'src/dashboard/util/dashboardFiltersColorMap';
 import {
   FILTER_CONFIG_ATTRIBUTES,
   FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
-} from '../../explore/constants';
-import FilterBadgeIcon from '../../components/FilterBadgeIcon';
+} from 'src/explore/constants';
+import FilterBadgeIcon from 'src/components/FilterBadgeIcon';
 
 import './FilterBox.less';
 
@@ -163,6 +163,7 @@ class FilterBox extends React.Component {
       this.props.onChange(selectedValues, false);
     });
   }
+
   changeFilter(filter, options) {
     const fltr = TIME_FILTER_MAP[filter] || filter;
     let vals = null;
@@ -320,6 +321,7 @@ class FilterBox extends React.Component {
     }
     return datasourceFilters;
   }
+
   renderSelect(filterConfig) {
     const { filtersChoices } = this.props;
     const { selectedValues } = this.state;

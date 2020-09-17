@@ -143,7 +143,7 @@ class Dashboard extends React.PureComponent {
     const { charts, dashboardState } = this.props;
     const { hasUnsavedChanges, editMode } = dashboardState;
 
-    const appliedFilters = this.appliedFilters;
+    const { appliedFilters } = this;
     const { activeFilters } = this.props;
     // do not apply filter when dashboard in edit mode
     if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
@@ -198,7 +198,7 @@ class Dashboard extends React.PureComponent {
   }
 
   applyFilters() {
-    const appliedFilters = this.appliedFilters;
+    const { appliedFilters } = this;
     const { activeFilters } = this.props;
 
     // refresh charts if a filter was removed, added, or changed

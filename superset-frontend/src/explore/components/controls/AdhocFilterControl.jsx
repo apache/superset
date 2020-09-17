@@ -104,7 +104,7 @@ export default class AdhocFilterControl extends React.Component {
         })
           .then(({ json }) => {
             if (json && json.partitions) {
-              const partitions = json.partitions;
+              const { partitions } = json;
               // for now only show latest_partition option
               // when table datasource has only 1 partition key.
               if (

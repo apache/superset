@@ -43,9 +43,11 @@ function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
         .domain([min, (max + min) / 2, max])
         .range([minColor, 'grey', maxColor]);
       return colorScale(value);
-    } else if (min !== null) {
+    }
+    if (min !== null) {
       return value >= min ? maxColor : minColor;
-    } else if (max !== null) {
+    }
+    if (max !== null) {
       return value < max ? maxColor : minColor;
     }
   }
@@ -121,7 +123,7 @@ class TimeTable extends React.PureComponent {
     if (column.timeRatio) {
       // Period ratio sparkline
       sparkData = [];
-      for (let i = column.timeRatio; i < entries.length; i++) {
+      for (let i = column.timeRatio; i < entries.length; i += 1) {
         const prevData = entries[i - column.timeRatio][valueField];
         if (prevData && prevData !== 0) {
           sparkData.push(entries[i][valueField] / prevData);

@@ -28,12 +28,14 @@ export enum FeatureFlag {
   SQLLAB_BACKEND_PERSISTENCE = 'SQLLAB_BACKEND_PERSISTENCE',
   THUMBNAILS = 'THUMBNAILS',
   STOP_DASHBOARD_PENDING_QUERIES = 'STOP_DASHBOARD_PENDING_QUERIES',
+  SIP_34_SAVED_QUERIES_UI = 'SIP_34_SAVED_QUERIES_UI',
 }
 
 export type FeatureFlagMap = {
   [key in FeatureFlag]?: boolean;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare global {
   interface Window {
     featureFlags: FeatureFlagMap;

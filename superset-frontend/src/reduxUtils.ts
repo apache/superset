@@ -160,8 +160,8 @@ export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
   if (arr1.length !== arr2.length) {
     return false;
   }
-  const length = arr1.length;
-  for (let i = 0; i < length; i++) {
+  const { length } = arr1;
+  for (let i = 0; i < length; i += 1) {
     if (arr1[i] !== arr2[i]) {
       return false;
     }

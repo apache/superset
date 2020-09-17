@@ -32,10 +32,12 @@ import { t } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import Label from 'src/components/Label';
+import TooltipWrapper from 'src/components/TooltipWrapper';
+
+import DatasourceModal from 'src/datasource/DatasourceModal';
+import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
+
 import ControlHeader from '../ControlHeader';
-import DatasourceModal from '../../../datasource/DatasourceModal';
-import ChangeDatasourceModal from '../../../datasource/ChangeDatasourceModal';
-import TooltipWrapper from '../../../components/TooltipWrapper';
 import './DatasourceControl.less';
 
 const propTypes = {
@@ -60,7 +62,6 @@ class DatasourceControl extends React.PureComponent {
     this.state = {
       showEditDatasourceModal: false,
       showChangeDatasourceModal: false,
-      menuExpanded: false,
     };
     this.onDatasourceSave = this.onDatasourceSave.bind(this);
     this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(
@@ -97,7 +98,7 @@ class DatasourceControl extends React.PureComponent {
   }
 
   renderDatasource() {
-    const datasource = this.props.datasource;
+    const { datasource } = this.props;
     return (
       <div className="m-t-10">
         <Well className="m-t-0">
@@ -171,7 +172,7 @@ class DatasourceControl extends React.PureComponent {
           <OverlayTrigger
             placement="right"
             overlay={
-              <Tooltip id={'toggle-datasource-tooltip'}>
+              <Tooltip id="toggle-datasource-tooltip">
                 {t('Expand/collapse datasource configuration')}
               </Tooltip>
             }
@@ -179,6 +180,7 @@ class DatasourceControl extends React.PureComponent {
             <a href="#">
               <i
                 role="button"
+                aria-label="Toggle datasource visibility"
                 tabIndex={0}
                 className={`fa fa-${
                   this.state.showDatasource ? 'minus' : 'plus'

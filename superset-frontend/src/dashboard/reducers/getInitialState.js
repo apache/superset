@@ -48,7 +48,7 @@ import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
-export default function (bootstrapData) {
+export default function getInitialState(bootstrapData) {
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };
@@ -171,8 +171,8 @@ export default function (bootstrapData) {
     // build DashboardFilters for interactive filter features
     if (slice.form_data.viz_type === 'filter_box') {
       const configs = getFilterConfigsFromFormdata(slice.form_data);
-      let columns = configs.columns;
-      const labels = configs.labels;
+      let { columns } = configs;
+      const { labels } = configs;
       if (preselectFilters[key]) {
         Object.keys(columns).forEach(col => {
           if (preselectFilters[key][col]) {

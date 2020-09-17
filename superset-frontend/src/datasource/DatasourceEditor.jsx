@@ -27,20 +27,22 @@ import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import EditableTitle from 'src/components/EditableTitle';
 
-import getClientErrorObject from '../utils/getClientErrorObject';
-import CheckboxControl from '../explore/components/controls/CheckboxControl';
-import TextControl from '../explore/components/controls/TextControl';
-import SelectControl from '../explore/components/controls/SelectControl';
-import TextAreaControl from '../explore/components/controls/TextAreaControl';
-import SelectAsyncControl from '../explore/components/controls/SelectAsyncControl';
-import SpatialControl from '../explore/components/controls/SpatialControl';
-import CollectionTable from '../CRUD/CollectionTable';
-import EditableTitle from '../components/EditableTitle';
-import Fieldset from '../CRUD/Fieldset';
-import Field from '../CRUD/Field';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 
-import withToasts from '../messageToasts/enhancers/withToasts';
+import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import TextControl from 'src/explore/components/controls/TextControl';
+import SelectControl from 'src/explore/components/controls/SelectControl';
+import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
+import SelectAsyncControl from 'src/explore/components/controls/SelectAsyncControl';
+import SpatialControl from 'src/explore/components/controls/SpatialControl';
+
+import CollectionTable from 'src/CRUD/CollectionTable';
+import Fieldset from 'src/CRUD/Fieldset';
+import Field from 'src/CRUD/Field';
+
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const DatasourceContainer = styled.div`
   .tab-content {
@@ -160,7 +162,7 @@ function ColumnCollectionTable({
                       database/column name level via the extra parameter.`)}
                 </div>
               }
-              control={<TextControl placeholder={'%y/%m/%d'} />}
+              control={<TextControl placeholder="%y/%m/%d" />}
             />
           </Fieldset>
         </FormContainer>
@@ -280,6 +282,7 @@ export class DatasourceEditor extends React.PureComponent {
     };
     this.props.onChange(datasource, this.state.errors);
   }
+
   onDatasourceChange(datasource) {
     this.setState({ datasource }, this.validateAndChange);
   }
@@ -406,7 +409,7 @@ export class DatasourceEditor extends React.PureComponent {
   validate(callback) {
     let errors = [];
     let dups;
-    const datasource = this.state.datasource;
+    const { datasource } = this.state;
 
     // Looking for duplicate column_name
     dups = this.findDuplicates(datasource.columns, obj => obj.column_name);
@@ -438,7 +441,7 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   renderSettingsFieldset() {
-    const datasource = this.state.datasource;
+    const { datasource } = this.state;
     return (
       <Fieldset
         title={t('Basic')}
@@ -531,7 +534,7 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   renderAdvancedFieldset() {
-    const datasource = this.state.datasource;
+    const { datasource } = this.state;
     return (
       <Fieldset
         title={t('Advanced')}

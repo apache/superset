@@ -33,7 +33,7 @@ import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import { getChartMetadataRegistry } from '@superset-ui/core';
 
 describe('exploreUtils', () => {
-  const location = window.location;
+  const { location } = window;
   const formData = {
     datasource: '1__table',
   };

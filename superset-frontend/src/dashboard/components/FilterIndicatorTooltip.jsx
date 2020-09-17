@@ -48,6 +48,7 @@ export default function FilterIndicatorTooltip({
 
       {clickIconHandler && (
         <i
+          aria-label="Icon"
           className="fa fa-pencil filter-edit"
           onClick={clickIconHandler}
           role="button"

@@ -50,9 +50,11 @@ export default class Field extends React.PureComponent {
     super(props);
     this.onChange = this.onChange.bind(this);
   }
+
   onChange(newValue) {
     this.props.onChange(this.props.fieldKey, newValue);
   }
+
   render() {
     const {
       compact,
