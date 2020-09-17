@@ -25,7 +25,7 @@ import pytest
 from pytest import mark
 from sqlalchemy.sql import func
 
-from superset import db, security_manager, appbuilder
+from superset import db, security_manager, appbuilder, app
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.views.base import generate_download_headers
@@ -68,10 +68,12 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         return get_random_string(8)
 
     def tearDown(self):
-        self.logout()
-        self.login("admin")
-        dashboard_utils.delete_all_inserted_dashboards()
-        self.logout()
+
+        with app.test_request_context():
+            self.logout()
+            self.login("admin")
+            dashboard_utils.delete_all_inserted_dashboards()
+            self.logout()
 
     def test_get_dashboard(self):
         """
