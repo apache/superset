@@ -73,7 +73,7 @@ export default function DeleteModal({
           onChange={(
             event: React.FormEvent<FormControl & FormControlProps>,
           ) => {
-            const targetValue = (event.currentTarget.value as string) ?? '';
+            const targetValue = (event.currentTarget?.value as string) ?? '';
             setDisableChange(targetValue.toUpperCase() !== 'DELETE');
           }}
         />

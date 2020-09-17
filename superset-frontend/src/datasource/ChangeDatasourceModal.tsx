@@ -117,7 +117,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const changeSearch = (
     event: React.FormEvent<FormControl & FormControlProps>,
   ) => {
-    setFilter((event.currentTarget.value as string) ?? '');
+    setFilter((event.currentTarget?.value as string) ?? '');
   };
 
   return (

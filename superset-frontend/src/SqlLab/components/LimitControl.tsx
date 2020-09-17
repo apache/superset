@@ -115,7 +115,7 @@ export default class LimitControl extends React.PureComponent<
                 event: React.FormEvent<FormControl & FormControlProps>,
               ) =>
                 this.setState({
-                  textValue: (event.currentTarget.value as string) ?? '',
+                  textValue: (event.currentTarget?.value as string) ?? '',
                 })
               }
             />

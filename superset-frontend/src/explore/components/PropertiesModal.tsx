@@ -177,7 +177,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 value={name}
                 onChange={(
                   event: React.FormEvent<FormControl & FormControlProps>,
-                ) => setName((event.currentTarget.value as string) ?? '')}
+                ) => setName((event.currentTarget?.value as string) ?? '')}
               />
             </FormGroup>
             <FormGroup>
@@ -191,7 +191,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 onChange={(
                   event: React.FormEvent<FormControl & FormControlProps>,
                 ) =>
-                  setDescription((event.currentTarget.value as string) ?? '')
+                  setDescription((event.currentTarget?.value as string) ?? '')
                 }
                 style={{ maxWidth: '100%' }}
               />
@@ -215,7 +215,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                   event: React.FormEvent<FormControl & FormControlProps>,
                 ) => {
                   const targetValue =
-                    (event.currentTarget.value as string) ?? '';
+                    (event.currentTarget?.value as string) ?? '';
                   setCacheTimeout(targetValue.replace(/[^0-9]/, ''));
                 }}
               />
