@@ -20,8 +20,7 @@ import React, { FunctionComponent, useState, useRef } from 'react';
 // @ts-ignore
 import { Table } from 'reactable-arc';
 import { Alert, FormControl, Modal } from 'react-bootstrap';
-import { SupersetClient } from '@superset-ui/connection';
-import { t } from '@superset-ui/translation';
+import { SupersetClient, t } from '@superset-ui/core';
 
 import getClientErrorObject from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';

@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { OverlayTrigger, Popover } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
-import { getCategoricalSchemeRegistry } from '@superset-ui/color';
+import { getCategoricalSchemeRegistry } from '@superset-ui/core';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
@@ -69,9 +69,11 @@ export default class ColorPickerControl extends React.Component {
     super(props);
     this.onChange = this.onChange.bind(this);
   }
+
   onChange(col) {
     this.props.onChange(col.rgb);
   }
+
   renderPopover() {
     const presetColors = getCategoricalSchemeRegistry()
       .get()
@@ -86,6 +88,7 @@ export default class ColorPickerControl extends React.Component {
       </Popover>
     );
   }
+
   render() {
     const c = this.props.value || { r: 0, g: 0, b: 0, a: 0 };
     const colStyle = {

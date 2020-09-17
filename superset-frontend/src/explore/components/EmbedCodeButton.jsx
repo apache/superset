@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 import CopyToClipboard from 'src/components/CopyToClipboard';
@@ -57,8 +57,7 @@ export default class EmbedCodeButton extends React.Component {
   }
 
   handleInputChange(e) {
-    const value = e.currentTarget.value;
-    const name = e.currentTarget.name;
+    const { value, name } = e.currentTarget;
     const data = {};
     data[name] = value;
     this.setState(data);
@@ -145,6 +144,7 @@ export default class EmbedCodeButton extends React.Component {
       </Popover>
     );
   }
+
   render() {
     return (
       <OverlayTrigger

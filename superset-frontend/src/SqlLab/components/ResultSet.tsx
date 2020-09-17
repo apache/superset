@@ -20,7 +20,7 @@ import React, { CSSProperties } from 'react';
 import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Loading from '../../components/Loading';
@@ -86,10 +86,12 @@ export default class ResultSet extends React.PureComponent<
       this,
     );
   }
+
   componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
   }
+
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
     // when new results comes in, save them locally and clear in store
     if (
@@ -110,9 +112,11 @@ export default class ResultSet extends React.PureComponent<
       this.fetchResults(nextProps.query);
     }
   }
+
   clearQueryResults(query: Query) {
     this.props.actions.clearQueryResults(query);
   }
+
   popSelectStar(tempSchema: string | null, tempTable: string) {
     const qe = {
       id: shortid.generate(),
@@ -123,20 +127,25 @@ export default class ResultSet extends React.PureComponent<
     };
     this.props.actions.addQueryEditor(qe);
   }
+
   toggleExploreResultsButton() {
     this.setState({
       showExploreResultsButton: !this.state.showExploreResultsButton,
     });
   }
+
   changeSearch(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({ searchText: event.target.value });
   }
+
   fetchResults(query: Query) {
     this.props.actions.fetchQueryResults(query, this.props.displayLimit);
   }
+
   reFetchQueryResults(query: Query) {
     this.props.actions.reFetchQueryResults(query);
   }
+
   reRunQueryIfSessionTimeoutErrorOnMount() {
     const { query } = this.props;
     if (
@@ -146,11 +155,12 @@ export default class ResultSet extends React.PureComponent<
       this.props.actions.runQuery(query, true);
     }
   }
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
-      let data = this.props.query.results.data;
+      let { data } = this.props.query.results;
       if (this.props.cache && this.props.query.cached) {
-        data = this.state.data;
+        ({ data } = this.state);
       }
       return (
         <div className="ResultSetControls">
@@ -198,8 +208,9 @@ export default class ResultSet extends React.PureComponent<
     }
     return <div className="noControls" />;
   }
+
   render() {
-    const query = this.props.query;
+    const { query } = this.props;
     const height = Math.max(
       0,
       this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height,
@@ -216,7 +227,8 @@ export default class ResultSet extends React.PureComponent<
 
     if (query.state === 'stopped') {
       return <Alert bsStyle="warning">Query was stopped</Alert>;
-    } else if (query.state === 'failed') {
+    }
+    if (query.state === 'failed') {
       return (
         <div className="result-set-error-message">
           <ErrorMessageWithStackTrace
@@ -227,7 +239,8 @@ export default class ResultSet extends React.PureComponent<
           />
         </div>
       );
-    } else if (query.state === 'success' && query.ctas) {
+    }
+    if (query.state === 'success' && query.ctas) {
       const { tempSchema, tempTable } = query;
       let object = 'Table';
       if (query.ctas_method === CtasEnum.VIEW) {
@@ -262,13 +275,14 @@ export default class ResultSet extends React.PureComponent<
           </Alert>
         </div>
       );
-    } else if (query.state === 'success' && query.results) {
-      const results = query.results;
+    }
+    if (query.state === 'success' && query.results) {
+      const { results } = query;
       let data;
       if (this.props.cache && query.cached) {
-        data = this.state.data;
+        ({ data } = this.state);
       } else if (results && results.data) {
-        data = results.data;
+        ({ data } = results);
       }
       if (data && data.length > 0) {
         const expandedColumns = results.expanded_columns
@@ -287,7 +301,8 @@ export default class ResultSet extends React.PureComponent<
             />
           </>
         );
-      } else if (data && data.length === 0) {
+      }
+      if (data && data.length === 0) {
         return (
           <Alert bsStyle="warning">{t('The query returned no data')}</Alert>
         );
@@ -310,7 +325,8 @@ export default class ResultSet extends React.PureComponent<
             {t('Fetch data preview')}
           </Button>
         );
-      } else if (query.resultsKey) {
+      }
+      if (query.resultsKey) {
         return (
           <Button
             buttonSize="sm"

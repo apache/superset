@@ -24,14 +24,15 @@ import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { initFeatureFlags } from 'src/featureFlags';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
 import ChartList from 'src/views/CRUD/chart/ChartList';
 import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
-import DatasourceList from 'src/views/CRUD/data/database/DatabaseList';
+import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
+import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
@@ -88,7 +89,12 @@ const App = () => (
               </Route>
               <Route path="/databaseview/list/">
                 <ErrorBoundary>
-                  <DatasourceList user={user} />
+                  <DatabaseList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/savedqueryview/list/">
+                <ErrorBoundary>
+                  <SavedQueryList user={user} />
                 </ErrorBoundary>
               </Route>
             </Switch>

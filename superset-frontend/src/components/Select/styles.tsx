@@ -18,7 +18,7 @@
  */
 import React, { CSSProperties } from 'react';
 import { css, SerializedStyles } from '@emotion/core';
-import { supersetTheme } from '@superset-ui/style';
+import { supersetTheme } from '@superset-ui/core';
 import {
   Styles,
   Theme,

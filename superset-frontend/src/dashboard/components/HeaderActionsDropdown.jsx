@@ -19,9 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient, t } from '@superset-ui/core';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
 
 import Icon from 'src/components/Icon';
 
@@ -225,6 +224,25 @@ class HeaderActionsDropdown extends React.PureComponent {
         {!editMode && (
           <MenuItem onClick={downloadAsImage('.dashboard', dashboardTitle)}>
             {t('Download as image')}
+          </MenuItem>
+        )}
+
+        {!editMode && (
+          <MenuItem
+            onClick={() => {
+              const hasStandalone = window.location.search.includes(
+                'standalone=true',
+              );
+              const url = getDashboardUrl(
+                window.location.pathname,
+                getActiveFilters(),
+                window.location.hash,
+                !hasStandalone,
+              );
+              window.location.replace(url);
+            }}
+          >
+            {t('Toggle FullScreen')}
           </MenuItem>
         )}
       </DropdownButton>

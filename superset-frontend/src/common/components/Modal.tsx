@@ -17,9 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
+import { styled, t } from '@superset-ui/core';
 import { Modal as BaseModal } from 'src/common/components';
-import { t } from '@superset-ui/translation';
 import Button from 'src/components/Button';
 
 interface ModalProps {
@@ -108,13 +107,15 @@ export default function Modal({
         </span>
       }
       footer={[
-        <Button key="back" onClick={onHide}>
+        <Button key="back" onClick={onHide} cta>
           {t('Cancel')}
         </Button>,
         <Button
           key="submit"
+          buttonStyle={primaryButtonType}
           disabled={disablePrimaryButton}
           onClick={onHandledPrimaryAction}
+          cta
         >
           {primaryButtonName}
         </Button>,

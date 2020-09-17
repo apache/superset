@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Table } from 'reactable-arc';
 import { Alert } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import Loading from '../../components/Loading';
@@ -61,7 +61,8 @@ class EstimateQueryCostButton extends React.PureComponent {
           {this.props.queryCostEstimate.error}
         </Alert>
       );
-    } else if (this.props.queryCostEstimate.completed) {
+    }
+    if (this.props.queryCostEstimate.completed) {
       return (
         <Table
           className="table cost-estimate"

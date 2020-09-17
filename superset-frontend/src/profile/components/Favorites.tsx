@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import moment from 'moment';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import TableLoader from '../../components/TableLoader';
 import { Slice } from '../types';
@@ -48,6 +48,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       />
     );
   }
+
   renderDashboardTable() {
     const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
@@ -66,6 +67,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       />
     );
   }
+
   render() {
     return (
       <div>

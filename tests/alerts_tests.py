@@ -112,37 +112,37 @@ def test_alert_observer(setup_database):
 
     # Test SQLObserver with int SQL return
     alert1 = create_alert(dbsession, "SELECT 55")
-    observe(alert1.id)
+    observe(alert1.id, dbsession)
     assert alert1.sql_observer[0].observations[-1].value == 55.0
     assert alert1.sql_observer[0].observations[-1].error_msg is None
 
     # Test SQLObserver with double SQL return
     alert2 = create_alert(dbsession, "SELECT 30.0 as wage")
-    observe(alert2.id)
+    observe(alert2.id, dbsession)
     assert alert2.sql_observer[0].observations[-1].value == 30.0
     assert alert2.sql_observer[0].observations[-1].error_msg is None
 
     # Test SQLObserver with NULL result
     alert3 = create_alert(dbsession, "SELECT null as null_result")
-    observe(alert3.id)
+    observe(alert3.id, dbsession)
     assert alert3.sql_observer[0].observations[-1].value is None
     assert alert3.sql_observer[0].observations[-1].error_msg is None
 
     # Test SQLObserver with empty SQL return
     alert4 = create_alert(dbsession, "SELECT first FROM test_table WHERE first = -1")
-    observe(alert4.id)
+    observe(alert4.id, dbsession)
     assert alert4.sql_observer[0].observations[-1].value is None
     assert alert4.sql_observer[0].observations[-1].error_msg is not None
 
     # Test SQLObserver with str result
     alert5 = create_alert(dbsession, "SELECT 'test_string' as string_value")
-    observe(alert5.id)
+    observe(alert5.id, dbsession)
     assert alert5.sql_observer[0].observations[-1].value is None
     assert alert5.sql_observer[0].observations[-1].error_msg is not None
 
     # Test SQLObserver with two row result
     alert6 = create_alert(dbsession, "SELECT first FROM test_table")
-    observe(alert6.id)
+    observe(alert6.id, dbsession)
     assert alert6.sql_observer[0].observations[-1].value is None
     assert alert6.sql_observer[0].observations[-1].error_msg is not None
 
@@ -150,7 +150,7 @@ def test_alert_observer(setup_database):
     alert7 = create_alert(
         dbsession, "SELECT first, second FROM test_table WHERE first = 1"
     )
-    observe(alert7.id)
+    observe(alert7.id, dbsession)
     assert alert7.sql_observer[0].observations[-1].value is None
     assert alert7.sql_observer[0].observations[-1].error_msg is not None
 
@@ -161,22 +161,22 @@ def test_evaluate_alert(mock_deliver_alert, setup_database):
 
     # Test error with Observer SQL statement
     alert1 = create_alert(dbsession, "$%^&")
-    evaluate_alert(alert1.id, alert1.label)
+    evaluate_alert(alert1.id, alert1.label, dbsession)
     assert alert1.logs[-1].state == AlertState.ERROR
 
     # Test error with alert lacking observer
     alert2 = dbsession.query(Alert).filter_by(label="No Observer").one()
-    evaluate_alert(alert2.id, alert2.label)
+    evaluate_alert(alert2.id, alert2.label, dbsession)
     assert alert2.logs[-1].state == AlertState.ERROR
 
     # Test pass on alert lacking validator
     alert3 = create_alert(dbsession, "SELECT 55")
-    evaluate_alert(alert3.id, alert3.label)
+    evaluate_alert(alert3.id, alert3.label, dbsession)
     assert alert3.logs[-1].state == AlertState.PASS
 
     # Test triggering successful alert
     alert4 = create_alert(dbsession, "SELECT 55", "not null", "{}")
-    evaluate_alert(alert4.id, alert4.label)
+    evaluate_alert(alert4.id, alert4.label, dbsession)
     assert mock_deliver_alert.call_count == 1
     assert alert4.logs[-1].state == AlertState.TRIGGER
 
@@ -214,17 +214,17 @@ def test_not_null_validator(setup_database):
 
     # Test passing SQLObserver with 'null' SQL result
     alert1 = create_alert(dbsession, "SELECT 0")
-    observe(alert1.id)
+    observe(alert1.id, dbsession)
     assert not_null_validator(alert1.sql_observer[0], "{}") is False
 
     # Test passing SQLObserver with empty SQL result
     alert2 = create_alert(dbsession, "SELECT first FROM test_table WHERE first = -1")
-    observe(alert2.id)
+    observe(alert2.id, dbsession)
     assert not_null_validator(alert2.sql_observer[0], "{}") is False
 
     # Test triggering alert with non-null SQL result
     alert3 = create_alert(dbsession, "SELECT 55")
-    observe(alert3.id)
+    observe(alert3.id, dbsession)
     assert not_null_validator(alert3.sql_observer[0], "{}") is True
 
 
@@ -233,15 +233,20 @@ def test_operator_validator(setup_database):
 
     # Test passing SQLObserver with empty SQL result
     alert1 = create_alert(dbsession, "SELECT first FROM test_table WHERE first = -1")
-    observe(alert1.id)
+    observe(alert1.id, dbsession)
     assert (
         operator_validator(alert1.sql_observer[0], '{"op": ">=", "threshold": 60}')
+        is False
+    )
+    # ensure that 0 threshold works
+    assert (
+        operator_validator(alert1.sql_observer[0], '{"op": ">=", "threshold": 0}')
         is False
     )
 
     # Test passing SQLObserver with result that doesn't pass a greater than threshold
     alert2 = create_alert(dbsession, "SELECT 55")
-    observe(alert2.id)
+    observe(alert2.id, dbsession)
     assert (
         operator_validator(alert2.sql_observer[0], '{"op": ">=", "threshold": 60}')
         is False
@@ -283,23 +288,23 @@ def test_validate_observations(setup_database):
 
     # Test False on alert with no validator
     alert1 = create_alert(dbsession, "SELECT 55")
-    assert validate_observations(alert1.id, alert1.label) is False
+    assert validate_observations(alert1.id, alert1.label, dbsession) is False
 
     # Test False on alert with no observations
     alert2 = create_alert(dbsession, "SELECT 55", "not null", "{}")
-    assert validate_observations(alert2.id, alert2.label) is False
+    assert validate_observations(alert2.id, alert2.label, dbsession) is False
 
     # Test False on alert that shouldnt be triggered
     alert3 = create_alert(dbsession, "SELECT 0", "not null", "{}")
-    observe(alert3.id)
-    assert validate_observations(alert3.id, alert3.label) is False
+    observe(alert3.id, dbsession)
+    assert validate_observations(alert3.id, alert3.label, dbsession) is False
 
     # Test True on alert that should be triggered
     alert4 = create_alert(
         dbsession, "SELECT 55", "operator", '{"op": "<=", "threshold": 60}'
     )
-    observe(alert4.id)
-    assert validate_observations(alert4.id, alert4.label) is True
+    observe(alert4.id, dbsession)
+    assert validate_observations(alert4.id, alert4.label, dbsession) is True
 
 
 @patch("superset.tasks.slack_util.WebClient.files_upload")
@@ -311,7 +316,7 @@ def test_deliver_alert_screenshot(
 ):
     dbsession = setup_database
     alert = create_alert(dbsession, "SELECT 55", "not null", "{}")
-    observe(alert.id)
+    observe(alert.id, dbsession)
 
     screenshot = read_fixture("sample.png")
     screenshot_mock.return_value = screenshot
@@ -322,7 +327,7 @@ def test_deliver_alert_screenshot(
         f"http://0.0.0.0:8080/superset/slice/{alert.slice_id}/",
     ]
 
-    deliver_alert(alert_id=alert.id)
+    deliver_alert(alert.id, dbsession)
     assert email_mock.call_args[1]["images"]["screenshot"] == screenshot
     assert file_upload_mock.call_args[1] == {
         "channels": alert.slack_channel,
@@ -330,7 +335,7 @@ def test_deliver_alert_screenshot(
         "initial_comment": f"\n*Triggered Alert: {alert.label} :redalert:*\n"
         f"*Query*:```{alert.sql_observer[0].sql}```\n"
         f"*Result*: {alert.observations[-1].value}\n"
-        f"*Reason*: {alert.observations[-1].value} {alert.validators[0].pretty_print()}\n"
+        f"*Reason*: {alert.observations[-1].value} {alert.validators[0].pretty_config}\n"
         f"<http://0.0.0.0:8080/alert/show/{alert.id}"
         f"|View Alert Details>\n<http://0.0.0.0:8080/superset/slice/{alert.slice_id}/"
         "|*Explore in Superset*>",

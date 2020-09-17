@@ -19,8 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ButtonGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
-import styled from '@superset-ui/style';
+import { t, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import Hotkeys from '../../components/Hotkeys';
@@ -126,7 +125,7 @@ export default function QueryAndSaveBtns({
             <OverlayTrigger
               placement="right"
               overlay={
-                <Tooltip id={'query-error-tooltip'}>{errorMessage}</Tooltip>
+                <Tooltip id="query-error-tooltip">{errorMessage}</Tooltip>
               }
             >
               <i className="fa fa-exclamation-circle text-danger fa-lg" />

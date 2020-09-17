@@ -21,11 +21,10 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Superset has deprecated support for Python ``2.*`` and supports
-only ``~=3.6`` to take advantage of the newer Python features and reduce
-the burden of supporting previous versions. We run our test suite
-against ``3.7``, with a subset of tests additionally being run against
-``3.6`` and ``3.8``.
+Superset supports Python versions ``>3.7`` to take advantage of the
+newer Python features and reduce the burden of supporting previous versions.
+We run our test suite against ``3.7``, with a subset of tests additionally
+also being run against ``3.8``.
 
 Cloud-native!
 -------------
@@ -156,9 +155,9 @@ the required dependencies are installed: ::
 
     sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev
 
-**Ubuntu 18.04** If you have python3.6 installed alongside with python2.7, as is default on **Ubuntu 18.04 LTS**, run this command also: ::
+**Ubuntu 20.04** the following command will ensure that the required dependencies are installed: ::
 
-    sudo apt-get install build-essential libssl-dev libffi-dev python3.6-dev python-pip libsasl2-dev libldap2-dev
+    sudo apt-get install build-essential libssl-dev libffi-dev python3-dev python3-pip libsasl2-dev libldap2-dev
 
 otherwise build for ``cryptography`` fails.
 

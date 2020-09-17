@@ -17,12 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import rison from 'rison';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
 
 import Label from 'src/components/Label';
 import FormLabel from 'src/components/FormLabel';
@@ -55,6 +53,7 @@ const propTypes = {
   onChange: PropTypes.func,
   clearable: PropTypes.bool,
   handleError: PropTypes.func.isRequired,
+  isDatabaseSelectEnabled: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -69,6 +68,7 @@ const defaultProps = {
   sqlLabMode: true,
   formMode: false,
   clearable: true,
+  isDatabaseSelectEnabled: true,
 };
 
 export default class TableSelector extends React.PureComponent {
@@ -315,6 +315,7 @@ export default class TableSelector extends React.PureComponent {
         optionRenderer={this.renderDatabaseOption}
         mutator={this.dbMutator}
         placeholder={t('Select a database')}
+        isDisabled={!this.props.isDatabaseSelectEnabled}
         autoSelect
       />,
     );

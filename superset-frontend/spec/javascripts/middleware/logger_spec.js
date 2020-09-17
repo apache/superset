@@ -17,7 +17,7 @@
  * under the License.
  */
 import sinon from 'sinon';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 import logger from 'src/middleware/loggerMiddleware';
 import { LOG_EVENT } from 'src/logger/actions';
 import { LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
@@ -81,7 +81,7 @@ describe('logger middleware', () => {
     clock.tick(2000);
 
     expect(SupersetClient.post.callCount).toBe(1);
-    const events = SupersetClient.post.getCall(0).args[0].postPayload.events;
+    const { events } = SupersetClient.post.getCall(0).args[0].postPayload;
     const mockEventdata = action.payload.eventData;
     const mockEventname = action.payload.eventName;
     expect(events[0]).toMatchObject({

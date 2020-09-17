@@ -43,6 +43,8 @@ const {
   devserverPort = 9000,
   measure = false,
   analyzeBundle = false,
+  analyzerPort = 8888,
+  nameChunks = false,
 } = parsedArgs;
 const isDevMode = mode !== 'production';
 
@@ -53,9 +55,12 @@ const output = {
 if (isDevMode) {
   output.filename = '[name].[hash:8].entry.js';
   output.chunkFilename = '[name].[hash:8].chunk.js';
-} else {
+} else if (nameChunks) {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
+} else {
+  output.filename = '[name].[chunkhash].entry.js';
+  output.chunkFilename = '[chunkhash].chunk.js';
 }
 
 const plugins = [
@@ -197,13 +202,63 @@ const config = {
     sideEffects: true,
     splitChunks: {
       chunks: 'all',
+      // increase minSize for devMode to 1000kb because of sourcemap
+      minSize: isDevMode ? 1000000 : 20000,
+      name: nameChunks,
       automaticNameDelimiter: '-',
       minChunks: 2,
       cacheGroups: {
-        default: false,
-        major: {
-          name: 'vendors-major',
-          test: /\/node_modules\/(brace|react|react-dom|@superset-ui\/translation|webpack.*|@babel.*)\//,
+        automaticNamePrefix: 'chunk',
+        // basic stable dependencies
+        vendors: {
+          priority: 50,
+          name: 'vendors',
+          test: new RegExp(
+            `/node_modules/(${[
+              'abortcontroller-polyfill',
+              'react',
+              'react-dom',
+              'prop-types',
+              'react-prop-types',
+              'prop-types-extra',
+              'redux',
+              'react-redux',
+              'react-hot-loader',
+              'react-select',
+              'react-sortable-hoc',
+              'react-virtualized',
+              'react-table',
+              'react-ace',
+              '@hot-loader.*',
+              'webpack.*',
+              '@?babel.*',
+              'lodash.*',
+              'antd',
+              '@ant-design.*',
+              '.*bootstrap',
+              'react-bootstrap-slider',
+              'moment',
+              'jquery',
+              'core-js.*',
+              '@emotion.*',
+              'd3',
+              'd3-(array|color|scale|interpolate|format|selection|collection|time|time-format)',
+            ].join('|')})/`,
+          ),
+        },
+        // bundle large libraries separately
+        mathjs: {
+          name: 'mathjs',
+          test: /\/node_modules\/mathjs\//,
+          priority: 30,
+          enforce: true,
+        },
+        // viz thumbnails are used in `addSlice` and `explore` page
+        thumbnail: {
+          name: 'thumbnail',
+          test: /thumbnail(Large)?\.png/i,
+          priority: 20,
+          enforce: true,
         },
       },
     },
@@ -299,7 +354,7 @@ const config = {
           },
         ],
       },
-      /* for css linking images */
+      /* for css linking images (and viz plugin thumbnails) */
       {
         test: /\.png$/,
         loader: 'url-loader',
@@ -404,7 +459,7 @@ if (isDevMode) {
 // Pass flag --analyzeBundle=true to enable
 // e.g. npm run build -- --analyzeBundle=true
 if (analyzeBundle) {
-  config.plugins.push(new BundleAnalyzerPlugin());
+  config.plugins.push(new BundleAnalyzerPlugin({ analyzerPort }));
 }
 
 // Speed measurement is disabled by default

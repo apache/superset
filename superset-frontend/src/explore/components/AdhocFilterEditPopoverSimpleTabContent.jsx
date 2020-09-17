@@ -20,8 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import { Select } from 'src/components/Select';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
@@ -61,11 +60,14 @@ const defaultProps = {
 function translateOperator(operator) {
   if (operator === OPERATORS['==']) {
     return 'equals';
-  } else if (operator === OPERATORS['!=']) {
+  }
+  if (operator === OPERATORS['!=']) {
     return 'not equal to';
-  } else if (operator === OPERATORS.LIKE) {
+  }
+  if (operator === OPERATORS.LIKE) {
     return 'like';
-  } else if (operator === OPERATORS['LATEST PARTITION']) {
+  }
+  if (operator === OPERATORS['LATEST PARTITION']) {
     return 'use latest_partition template';
   }
   return operator;
@@ -212,7 +214,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
   }
 
   refreshComparatorSuggestions() {
-    const datasource = this.props.datasource;
+    const { datasource } = this.props;
     const col = this.props.adhocFilter.subject;
     const having = this.props.adhocFilter.clause === CLAUSES.HAVING;
 

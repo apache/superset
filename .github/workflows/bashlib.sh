@@ -181,6 +181,7 @@ cypress-run-all() {
   # so errors can print to stderr.
   local flasklog="${HOME}/flask.log"
   local port=8081
+  export CYPRESS_BASE_URL="http://localhost:${port}"
 
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
@@ -189,7 +190,8 @@ cypress-run-all() {
 
   # Upload code coverage separately so each page can have separate flags
   # -c will clean existing coverage reports, -F means add flags
-  codecov -cF "cypress"
+  # || true to prevent CI failure on codecov upload
+  codecov -cF "cypress" || true
 
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
@@ -205,7 +207,9 @@ cypress-run-all() {
   local flaskProcessId=$!
 
   cypress-run "sqllab/*" "Backend persist"
-  codecov -cF "cypress"
+
+  # || true to prevent CI failure on codecov upload
+  codecov -cF "cypress" || true
 
   say "::group::Flask log for backend persist"
   cat "$flasklog"

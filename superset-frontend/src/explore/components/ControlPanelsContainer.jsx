@@ -22,8 +22,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
-import styled from '@superset-ui/style';
+import { t, styled } from '@superset-ui/core';
 
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
@@ -143,10 +142,12 @@ class ControlPanelsContainer extends React.Component {
               if (!controlItem) {
                 // When the item is invalid
                 return null;
-              } else if (React.isValidElement(controlItem)) {
+              }
+              if (React.isValidElement(controlItem)) {
                 // When the item is a React element
                 return controlItem;
-              } else if (controlItem.name && controlItem.config) {
+              }
+              if (controlItem.name && controlItem.config) {
                 return this.renderControl(controlItem);
               }
               return null;
@@ -199,6 +200,7 @@ class ControlPanelsContainer extends React.Component {
             {this.props.alert}
             <i
               role="button"
+              aria-label="Remove alert"
               tabIndex={0}
               className="fa fa-close pull-right"
               onClick={this.removeAlert}

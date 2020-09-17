@@ -21,8 +21,9 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import lazy_gettext as _
 
-from superset import db
+from superset import app, db
 from superset.constants import RouteMethod
+from superset.extensions import feature_flag_manager
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -74,6 +75,17 @@ class SavedQueryView(
         "pop_tab_link": _("Pop Tab Link"),
         "changed_on": _("Changed on"),
     }
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        if not (
+            app.config["ENABLE_REACT_CRUD_VIEWS"]
+            and feature_flag_manager.is_feature_enabled("SIP_34_SAVED_QUERIES_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
 
     def pre_add(self, item: "SavedQueryView") -> None:
         item.user = g.user

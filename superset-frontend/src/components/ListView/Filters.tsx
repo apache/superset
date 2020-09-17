@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, ReactNode } from 'react';
-import { styled, withTheme, SupersetThemeProps } from '@superset-ui/style';
+import { styled, withTheme, SupersetThemeProps } from '@superset-ui/core';
 
 import {
   Select,

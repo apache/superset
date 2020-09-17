@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
+import { t, styled } from '@superset-ui/core';
 import { Nav, Navbar, NavItem, MenuItem } from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
-import styled from '@superset-ui/style';
 import MenuObject, {
   MenuObjectProps,
   MenuObjectChildProps,
@@ -189,7 +188,7 @@ export function Menu({
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}
           {settings && settings.length && (
-            <NavDropdown id={`settings-dropdown`} title="Settings">
+            <NavDropdown id="settings-dropdown" title="Settings">
               {flatSettings.map((section, index) => {
                 if (section === '-') {
                   return (
@@ -200,7 +199,8 @@ export function Menu({
                       className="settings-divider"
                     />
                   );
-                } else if (section.isHeader) {
+                }
+                if (section.isHeader) {
                   return (
                     <MenuItem key={`${section.label}`} disabled>
                       {section.label}

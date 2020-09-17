@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
 import { isEqual, isEmpty } from 'lodash';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import TooltipWrapper from './TooltipWrapper';
 import ModalTrigger from './ModalTrigger';
 import { safeStringify } from '../utils/safeStringify';
@@ -36,7 +36,8 @@ function alterForComparison(value) {
   // for this purpose
   if (value === undefined || value === null || value === '') {
     return null;
-  } else if (typeof value === 'object') {
+  }
+  if (typeof value === 'object') {
     if (Array.isArray(value) && value.length === 0) {
       return null;
     }
@@ -100,9 +101,11 @@ export default class AlteredSliceTag extends React.Component {
     // or the value type
     if (value === undefined) {
       return 'N/A';
-    } else if (value === null) {
+    }
+    if (value === null) {
       return 'null';
-    } else if (
+    }
+    if (
       this.state.controlsMap[key] &&
       this.state.controlsMap[key].type === 'AdhocFilterControl'
     ) {
@@ -118,28 +121,33 @@ export default class AlteredSliceTag extends React.Component {
           return `${v.subject} ${v.operator} ${filterVal}`;
         })
         .join(', ');
-    } else if (
+    }
+    if (
       this.state.controlsMap[key] &&
       this.state.controlsMap[key].type === 'BoundsControl'
     ) {
       return `Min: ${value[0]}, Max: ${value[1]}`;
-    } else if (
+    }
+    if (
       this.state.controlsMap[key] &&
       this.state.controlsMap[key].type === 'CollectionControl'
     ) {
       return value.map(v => safeStringify(v)).join(', ');
-    } else if (typeof value === 'boolean') {
+    }
+    if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
-    } else if (value.constructor === Array) {
+    }
+    if (value.constructor === Array) {
       return value.length ? value.join(', ') : '[]';
-    } else if (typeof value === 'string' || typeof value === 'number') {
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
       return value;
     }
     return safeStringify(value);
   }
 
   renderRows() {
-    const diffs = this.state.diffs;
+    const { diffs } = this.state;
     const rows = [];
     for (const key in diffs) {
       rows.push(

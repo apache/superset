@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import ModalTrigger from '../../components/ModalTrigger';
 
@@ -41,7 +41,7 @@ export default class CodeModal extends React.PureComponent {
   }
 
   beforeOpen() {
-    let code = this.props.code;
+    let { code } = this.props;
     if (!code && this.props.codeCallback) {
       code = this.props.codeCallback();
     }

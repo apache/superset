@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import { Tabs as AntdTabs } from 'src/common/components';
 
 const StyledTabs = styled(AntdTabs)`
@@ -40,6 +40,7 @@ const StyledTabs = styled(AntdTabs)`
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     text-align: center;
     text-transform: uppercase;
+    user-select: none;
 
     .required {
       margin-left: ${({ theme }) => theme.gridUnit / 2}px;

@@ -26,7 +26,7 @@ import {
   OverlayTrigger,
   MenuItem,
 } from 'react-bootstrap';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
 
@@ -239,9 +239,7 @@ export default function Button(props: ButtonProps) {
     bsSize: props.buttonSize,
     placement: props.placement || 'top',
   };
-  const tooltip = props.tooltip;
-  const placement = props.placement;
-  const dropdownItems = props.dropdownItems;
+  const { tooltip, placement, dropdownItems } = props;
   delete buttonProps.tooltip;
   delete buttonProps.placement;
 

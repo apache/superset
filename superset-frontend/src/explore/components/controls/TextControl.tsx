@@ -18,10 +18,7 @@
  */
 import React from 'react';
 import { FormGroup, FormControl } from 'react-bootstrap';
-import {
-  legacyValidateNumber,
-  legacyValidateInteger,
-} from '@superset-ui/validator';
+import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import ControlHeader from '../ControlHeader';
 
 interface TextControlProps {
@@ -39,8 +36,9 @@ export default class TextControl extends React.Component<TextControlProps> {
     super(props);
     this.onChange = this.onChange.bind(this);
   }
+
   onChange(event: any) {
-    let value = event.target.value;
+    let { value } = event.target;
 
     // Validation & casting
     const errors = [];
@@ -62,6 +60,7 @@ export default class TextControl extends React.Component<TextControlProps> {
     }
     this.props.onChange(value, errors);
   }
+
   render() {
     const { value: rawValue } = this.props;
     const value =

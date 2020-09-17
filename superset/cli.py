@@ -35,6 +35,7 @@ from superset.app import create_app
 from superset.constants import Security as SecurityConsts
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
+from superset.utils.celery import session_scope
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
@@ -627,6 +628,11 @@ def alert() -> None:
     from superset.tasks.schedules import schedule_window
 
     click.secho("Processing one alert loop", fg="green")
-    schedule_window(
-        ScheduleType.alert, datetime.now() - timedelta(1000), datetime.now(), 6000
-    )
+    with session_scope(nullpool=True) as session:
+        schedule_window(
+            report_type=ScheduleType.alert,
+            start_at=datetime.now() - timedelta(1000),
+            stop_at=datetime.now(),
+            resolution=6000,
+            session=session,
+        )

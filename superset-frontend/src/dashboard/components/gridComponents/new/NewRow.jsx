@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import { ROW_TYPE } from '../../../util/componentTypes';
 import { NEW_ROW_ID } from '../../../util/constants';

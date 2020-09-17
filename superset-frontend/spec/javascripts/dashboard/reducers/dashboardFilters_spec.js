@@ -39,7 +39,7 @@ import {
 import { filterComponent } from '../fixtures/mockDashboardLayout';
 
 describe('dashboardFilters reducer', () => {
-  const form_data = sliceEntitiesForDashboard.slices[filterId].form_data;
+  const { form_data } = sliceEntitiesForDashboard.slices[filterId];
   const component = filterComponent;
   const directPathToFilter = (component.parents || []).slice();
   directPathToFilter.push(component.id);

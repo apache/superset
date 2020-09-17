@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Select from '../../../components/AsyncSelect';
 import ControlHeader from '../ControlHeader';
@@ -76,7 +76,7 @@ const SelectAsyncControl = props => {
         dataEndpoint={dataEndpoint}
         onChange={onSelectionChange}
         onAsyncError={errorMsg =>
-          this.props.addDangerToast(`${onAsyncErrorMessage}: ${errorMsg}`)
+          props.addDangerToast(`${onAsyncErrorMessage}: ${errorMsg}`)
         }
         mutator={mutator}
         multi={multi}

@@ -19,20 +19,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup, FormControl } from 'react-bootstrap';
+import { debounce } from 'lodash';
+import { t } from '@superset-ui/core';
+
 import Button from 'src/components/Button';
-
-import AceEditor from 'react-ace';
-import 'brace/mode/sql';
-import 'brace/mode/json';
-import 'brace/mode/html';
-import 'brace/mode/markdown';
-import 'brace/mode/javascript';
-import 'brace/theme/textmate';
-
-import { t } from '@superset-ui/translation';
+import { TextAreaEditor } from 'src/components/AsyncAceEditor';
+import ModalTrigger from 'src/components/ModalTrigger';
 
 import ControlHeader from '../ControlHeader';
-import ModalTrigger from '../../../components/ModalTrigger';
 
 const propTypes = {
   name: PropTypes.string,
@@ -65,26 +59,35 @@ const defaultProps = {
 };
 
 export default class TextAreaControl extends React.Component {
+  constructor() {
+    super();
+    this.onAceChangeDebounce = debounce(value => {
+      this.onAceChange(value);
+    }, 300);
+  }
+
   onControlChange(event) {
     this.props.onChange(event.target.value);
   }
+
   onAceChange(value) {
     this.props.onChange(value);
   }
+
   renderEditor(inModal = false) {
     const value = this.props.value || '';
+    const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
       return (
-        <AceEditor
+        <TextAreaEditor
           mode={this.props.language}
-          theme="textmate"
           style={{ border: '1px solid #CCC' }}
-          minLines={inModal ? 40 : this.props.minLines}
+          minLines={minLines}
           maxLines={inModal ? 1000 : this.props.maxLines}
-          onChange={this.onAceChange.bind(this)}
+          onChange={this.onAceChangeDebounce}
           width="100%"
+          height={`${minLines}em`}
           editorProps={{ $blockScrolling: true }}
-          enableLiveAutocompletion
           value={value}
           readOnly={this.props.readOnly}
         />
@@ -103,6 +106,7 @@ export default class TextAreaControl extends React.Component {
       </FormGroup>
     );
   }
+
   renderModalBody() {
     return (
       <div>
@@ -111,6 +115,7 @@ export default class TextAreaControl extends React.Component {
       </div>
     );
   }
+
   render() {
     const controlHeader = <ControlHeader {...this.props} />;
     return (

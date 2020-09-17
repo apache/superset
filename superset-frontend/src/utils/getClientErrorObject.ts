@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClientResponse } from '@superset-ui/connection';
-import { t } from '@superset-ui/translation';
+import { SupersetClientResponse, t } from '@superset-ui/core';
 import {
   SupersetError,
   ErrorTypeEnum,

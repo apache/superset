@@ -1,3 +1,4 @@
+# Python unit tests
 name: Python
 
 on: [push, pull_request]
@@ -48,28 +49,6 @@ jobs:
     - name: pre-commit
       run: pre-commit run --all-files
 
-  docs:
-    runs-on: ubuntu-18.04
-    strategy:
-      matrix:
-        python-version: [3.7]
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Setup Python
-      uses: actions/setup-python@v2.1.1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
-      with:
-        run: |
-          apt-get-install
-          pip-upgrade
-          pip install -r requirements/documentation.txt
-    - name: Build documentation
-      run: sphinx-build -b html docs _build/html -W
-
   babel-extract:
     runs-on: ubuntu-18.04
     strategy:
@@ -88,7 +67,7 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
-            pip install -r requirements/documentation.txt
+            pip install -r requirements/base.txt
       - name: Test babel extraction
         run: flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _,__,t,tn,tct
 
@@ -213,8 +192,7 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-        # run unit tests in multiple version just for fun
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.7, 3.8]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.superset_test_config

@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/connection';
-import { getTimeFormatter, TimeFormats } from '@superset-ui/time-format';
+import {
+  SupersetClient,
+  getTimeFormatter,
+  TimeFormats,
+} from '@superset-ui/core';
 import getClientErrorObject from './getClientErrorObject';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
@@ -90,13 +93,17 @@ export function supersetURL(rootUrl, getParams = {}) {
 export function optionLabel(opt) {
   if (opt === null) {
     return NULL_STRING;
-  } else if (opt === '') {
+  }
+  if (opt === '') {
     return '<empty string>';
-  } else if (opt === true) {
+  }
+  if (opt === true) {
     return '<true>';
-  } else if (opt === false) {
+  }
+  if (opt === false) {
     return '<false>';
-  } else if (typeof opt !== 'string' && opt.toString) {
+  }
+  if (typeof opt !== 'string' && opt.toString) {
     return opt.toString();
   }
   return opt;
@@ -116,7 +123,7 @@ export function optionFromValue(opt) {
 
 export function prepareCopyToClipboardTabularData(data) {
   let result = '';
-  for (let i = 0; i < data.length; ++i) {
+  for (let i = 0; i < data.length; i += 1) {
     result += `${Object.values(data[i]).join('\t')}\n`;
   }
   return result;

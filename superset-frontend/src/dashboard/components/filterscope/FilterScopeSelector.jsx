@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import buildFilterScopeTreeEntry from '../../util/buildFilterScopeTreeEntry';
 import getFilterScopeNodesTree from '../../util/getFilterScopeNodesTree';
@@ -303,7 +303,7 @@ export default class FilterScopeSelector extends React.PureComponent {
 
     const allFilterFieldScopes = this.allfilterFields.reduce(
       (map, filterKey) => {
-        const nodes = filterScopeMap[filterKey].nodes;
+        const { nodes } = filterScopeMap[filterKey];
         const checkedChartIds = filterScopeMap[filterKey].checked;
 
         return {

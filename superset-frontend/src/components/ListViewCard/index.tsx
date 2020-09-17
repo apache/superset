@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
 import ImageLoader from './ImageLoader';

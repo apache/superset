@@ -18,7 +18,7 @@
  */
 /* eslint global-require: 0 */
 import $ from 'jquery';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 import getClientErrorObject, {
   ClientErrorObject,
 } from '../utils/getClientErrorObject';
@@ -75,7 +75,7 @@ export default function setupApp() {
         url: ev.currentTarget.href,
         parseMethod: null,
       }).then(() => {
-        location.reload();
+        window.location.reload();
       });
     });
   });

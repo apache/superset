@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 
 import * as Actions from '../actions/sqlLab';
 
@@ -36,17 +36,21 @@ class QueryAutoRefresh extends React.PureComponent {
       offline: props.offline,
     };
   }
+
   UNSAFE_componentWillMount() {
     this.startTimer();
   }
+
   componentDidUpdate(prevProps) {
     if (prevProps.offline !== this.state.offline) {
       this.props.actions.setUserOffline(this.state.offline);
     }
   }
+
   componentWillUnmount() {
     this.stopTimer();
   }
+
   shouldCheckForQueries() {
     // if there are started or running queries, this method should return true
     const { queries } = this.props;
@@ -58,15 +62,18 @@ class QueryAutoRefresh extends React.PureComponent {
       q => isQueryRunning(q) && now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
     );
   }
+
   startTimer() {
     if (!this.timer) {
       this.timer = setInterval(this.stopwatch.bind(this), QUERY_UPDATE_FREQ);
     }
   }
+
   stopTimer() {
     clearInterval(this.timer);
     this.timer = null;
   }
+
   stopwatch() {
     // only poll /superset/queries/ if there are started or running queries
     if (this.shouldCheckForQueries()) {
@@ -89,6 +96,7 @@ class QueryAutoRefresh extends React.PureComponent {
       this.setState({ offline: false });
     }
   }
+
   render() {
     return null;
   }

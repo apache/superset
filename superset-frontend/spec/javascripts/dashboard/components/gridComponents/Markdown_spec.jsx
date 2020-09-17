@@ -20,9 +20,9 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
-import AceEditor from 'react-ace';
 import ReactMarkdown from 'react-markdown';
 
+import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 import Markdown from 'src/dashboard/components/gridComponents/Markdown';
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -105,23 +105,23 @@ describe('Markdown', () => {
 
   it('should render an Markdown when NOT focused', () => {
     const wrapper = setup();
-    expect(wrapper.find(AceEditor)).not.toExist();
+    expect(wrapper.find(MarkdownEditor)).not.toExist();
     expect(wrapper.find(ReactMarkdown)).toExist();
   });
 
   it('should render an AceEditor when focused and editMode=true and editorMode=edit', () => {
     const wrapper = setup({ editMode: true });
-    expect(wrapper.find(AceEditor)).not.toExist();
+    expect(wrapper.find(MarkdownEditor)).not.toExist();
     expect(wrapper.find(ReactMarkdown)).toExist();
     wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
-    expect(wrapper.find(AceEditor)).toExist();
+    expect(wrapper.find(MarkdownEditor)).toExist();
     expect(wrapper.find(ReactMarkdown)).not.toExist();
   });
 
   it('should render a ReactMarkdown when focused and editMode=true and editorMode=preview', () => {
     const wrapper = setup({ editMode: true });
     wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
-    expect(wrapper.find(AceEditor)).toExist();
+    expect(wrapper.find(MarkdownEditor)).toExist();
     expect(wrapper.find(ReactMarkdown)).not.toExist();
 
     // we can't call setState on Markdown bc it's not the root component, so call
@@ -131,7 +131,7 @@ describe('Markdown', () => {
     wrapper.update();
 
     expect(wrapper.find(ReactMarkdown)).toExist();
-    expect(wrapper.find(AceEditor)).not.toExist();
+    expect(wrapper.find(MarkdownEditor)).not.toExist();
   });
 
   it('should call updateComponents when editMode changes from edit => preview, and there are markdownSource changes', () => {
@@ -148,7 +148,7 @@ describe('Markdown', () => {
     dropdown.prop('onChange')('edit');
     // because we can't call setState on Markdown, change it through the editor
     // then go back to preview mode to invoke updateComponents
-    const editor = wrapper.find(AceEditor);
+    const editor = wrapper.find(MarkdownEditor);
     editor.prop('onChange')('new markdown!');
     dropdown.prop('onChange')('preview');
     expect(updateComponents.callCount).toBe(1);

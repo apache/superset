@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps } from '@superset-ui/core';
 import { chart } from 'src/chart/chartReducer';
 
 export type ChartReducerInitialState = typeof chart;

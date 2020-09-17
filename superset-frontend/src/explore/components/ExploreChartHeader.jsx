@@ -20,8 +20,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import styled from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
+import { styled, t } from '@superset-ui/core';
 
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';

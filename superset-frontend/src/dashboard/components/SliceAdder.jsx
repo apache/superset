@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 import { List } from 'react-virtualized';
 import SearchInput, { createFilter } from 'react-search-input';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
@@ -71,7 +71,8 @@ class SliceAdder extends React.Component {
     return (a, b) => {
       if (a[attr] < b[attr]) {
         return -1 * desc;
-      } else if (a[attr] > b[attr]) {
+      }
+      if (a[attr] > b[attr]) {
         return 1 * desc;
       }
       return 0;

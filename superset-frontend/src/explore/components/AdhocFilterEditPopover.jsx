@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, Tab, Tabs } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import { ThemeProvider } from '@superset-ui/style';
+import { ThemeProvider } from '@superset-ui/core';
 
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
@@ -192,6 +192,7 @@ export default class AdhocFilterEditPopover extends React.Component {
             </Button>
             <i
               role="button"
+              aria-label="Resize"
               tabIndex={0}
               onMouseDown={this.onDragDown}
               className="fa fa-expand edit-popover-resize text-muted"

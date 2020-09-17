@@ -14,11 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 from flask import Markup
+from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 
 from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import SupersetException
 from superset.views.base import SupersetModelView
+
+
+class BS3TextFieldROWidget(  # pylint: disable=too-few-public-methods
+    BS3TextFieldWidget
+):
+    """
+    Custom read only text field widget.
+    """
+
+    def __call__(self, field: Any, **kwargs: Any) -> Markup:
+        kwargs["readonly"] = "true"
+        return super().__call__(field, **kwargs)
 
 
 class DatasourceModelView(SupersetModelView):

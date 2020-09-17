@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import React from 'react';
 import Icon from 'src/components/Icon';
 
@@ -53,13 +53,13 @@ const commonStyles = `
   cursor: pointer;
 `;
 const SearchIcon = styled(Icon)`
-  ${commonStyles}
+  ${commonStyles};
   top: 1px;
   left: 2px;
 `;
 
 const ClearIcon = styled(Icon)`
-  ${commonStyles}
+  ${commonStyles};
   right: 0px;
   top: 1px;
 `;

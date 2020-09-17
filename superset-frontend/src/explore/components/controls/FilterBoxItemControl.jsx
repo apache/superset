@@ -19,9 +19,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { OverlayTrigger, Popover } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
-
+import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+
 import FormRow from '../../../components/FormRow';
 import SelectControl from './SelectControl';
 import CheckboxControl from './CheckboxControl';
@@ -95,9 +95,11 @@ export default class FilterBoxItemControl extends React.Component {
     this.onChange = this.onChange.bind(this);
     this.onControlChange = this.onControlChange.bind(this);
   }
+
   onChange() {
     this.props.onChange(this.state);
   }
+
   onControlChange(attr, value) {
     let typedValue = value;
     const { column: selectedColumnName, multiple } = this.state;
@@ -114,18 +116,21 @@ export default class FilterBoxItemControl extends React.Component {
         if (type === 'BOOLEAN') {
           typedValue = value === 'true';
         } else if (INTEGRAL_TYPES.has(type)) {
-          typedValue = isNaN(value) ? null : parseInt(value, 10);
+          typedValue = Number.isNaN(Number(value)) ? null : parseInt(value, 10);
         } else if (DECIMAL_TYPES.has(type)) {
-          typedValue = isNaN(value) ? null : parseFloat(value);
+          typedValue = Number.isNaN(Number(value)) ? null : parseFloat(value);
         }
       }
     }
     this.setState({ [attr]: typedValue }, this.onChange);
   }
+
   setType() {}
+
   textSummary() {
     return this.state.column || 'N/A';
   }
+
   renderForm() {
     return (
       <div>
@@ -257,6 +262,7 @@ export default class FilterBoxItemControl extends React.Component {
       </div>
     );
   }
+
   renderPopover() {
     return (
       <Popover id="ts-col-popo" title={t('Filter Configuration')}>
@@ -264,6 +270,7 @@ export default class FilterBoxItemControl extends React.Component {
       </Popover>
     );
   }
+
   render() {
     return (
       <span>

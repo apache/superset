@@ -26,9 +26,9 @@ import {
   Popover,
 } from 'react-bootstrap';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/translation';
-
+import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 
@@ -102,29 +102,39 @@ export default class TimeSeriesColumnControl extends React.Component {
     this.state = state;
     this.onChange = this.onChange.bind(this);
   }
+
   onChange() {
     this.props.onChange(this.state);
   }
+
   onSelectChange(attr, opt) {
     this.setState({ [attr]: opt.value }, this.onChange);
   }
+
   onTextInputChange(attr, event) {
     this.setState({ [attr]: event.target.value }, this.onChange);
   }
+
   onCheckboxChange(attr, value) {
     this.setState({ [attr]: value }, this.onChange);
   }
+
   onBoundsChange(bounds) {
     this.setState({ bounds }, this.onChange);
   }
+
   onYAxisBoundsChange(yAxisBounds) {
     this.setState({ yAxisBounds }, this.onChange);
   }
+
   setType() {}
+
   textSummary() {
     return `${this.state.label}`;
   }
+
   edit() {}
+
   formRow(label, tooltip, ttLabel, control) {
     return (
       <Row style={{ marginTop: '5px' }}>
@@ -140,6 +150,7 @@ export default class TimeSeriesColumnControl extends React.Component {
       </Row>
     );
   }
+
   renderPopover() {
     return (
       <Popover id="ts-col-popo" title="Column Configuration">
@@ -297,6 +308,7 @@ export default class TimeSeriesColumnControl extends React.Component {
       </Popover>
     );
   }
+
   render() {
     return (
       <span>

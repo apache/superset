@@ -29,7 +29,7 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
 import { mockStore } from '../../fixtures/mockStore';
-import { sliceId } from '../../fixtures/mockSliceEntities';
+import { sliceId } from '../../fixtures/mockChartQueries';
 import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';
 import WithDragDropContext from '../../helpers/WithDragDropContext';
 

@@ -26,7 +26,7 @@ Superset
 [![Coverage Status](https://codecov.io/github/apache/incubator-superset/coverage.svg?branch=master)](https://codecov.io/github/apache/incubator-superset)
 [![PyPI](https://img.shields.io/pypi/pyversions/apache-superset.svg?maxAge=2592000)](https://pypi.python.org/pypi/apache-superset)
 [![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://join.slack.com/t/apache-superset/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ)
-[![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.incubator.apache.org)
+[![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.apache.org)
 [![Dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset-frontend)](https://david-dm.org/apache/incubator-superset?path=superset-frontend)
 
 <img
@@ -120,12 +120,12 @@ SQL toolkit that is compatible with most databases. Here are some of the major d
 </p>
 
 A complete list of supported databases can be found
-[here](https://superset.incubator.apache.org/#databases).
+[here](https://superset.incubator.apache.org/docs/databases/installing-database-drivers).
 
 
 ## Installation and Configuration
 
-[See in the documentation](https://superset.incubator.apache.org/installation.html)
+[See in the documentation](https://superset.incubator.apache.org/docs/installation/installing-superset-using-docker-compose)
 
 
 ## Get Involved

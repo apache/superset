@@ -24,7 +24,7 @@ import {
   DASHBOARD_VERSION_KEY,
 } from './constants';
 
-export default function () {
+export default function getEmptyLayout() {
   return {
     [DASHBOARD_VERSION_KEY]: 'v2',
     [DASHBOARD_ROOT_ID]: {

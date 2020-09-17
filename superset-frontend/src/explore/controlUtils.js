@@ -17,7 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { expandControlConfig } from '@superset-ui/chart-controls';
 import * as SECTIONS from './controlPanels/sections';
 
@@ -34,7 +34,7 @@ export function getFormDataFromControls(controlsState) {
 }
 
 export function validateControl(control, processedState) {
-  const validators = control.validators;
+  const { validators } = control;
   const validationErrors = [];
   if (validators && validators.length > 0) {
     validators.forEach(f => {
@@ -88,7 +88,7 @@ export const getControlConfig = memoizeOne(function getControlConfig(
 
 function handleMissingChoice(control) {
   // If the value is not valid anymore based on choices, clear it
-  const value = control.value;
+  const { value } = control;
   if (
     control.type === 'SelectControl' &&
     !control.freeForm &&
@@ -100,7 +100,8 @@ function handleMissingChoice(control) {
     if (control.multi && value.length > 0) {
       alteredControl.value = value.filter(el => choiceValues.indexOf(el) > -1);
       return alteredControl;
-    } else if (!control.multi && choiceValues.indexOf(value) < 0) {
+    }
+    if (!control.multi && choiceValues.indexOf(value) < 0) {
       alteredControl.value = null;
       return alteredControl;
     }
