@@ -129,7 +129,7 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
     tooltip: {
       trigger: 'axis',
       confine: true,
-      formatter: (params, ticket, callback) => {
+      formatter: params => {
         // @ts-ignore
         const rows = [`${smartDateVerboseFormatter(params[0].value[0])}`];
         // @ts-ignore
@@ -144,10 +144,7 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
             }),
           );
         });
-        setTimeout(() => {
-          callback(ticket, rows.join('<br />'));
-        }, 50);
-        return 'loading';
+        return rows.join('<br />');
       },
     },
     legend: {
