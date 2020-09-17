@@ -202,7 +202,7 @@ class QueryContext:
         )
         return cache_key
 
-    def get_df_payload(  # pylint: disable=too-many-locals,too-many-statements
+    def get_df_payload(  # pylint: disable=too-many-statements
         self, query_obj: QueryObject, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
