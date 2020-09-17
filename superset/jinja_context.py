@@ -213,13 +213,13 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         extra_cache_keys: Optional[List[Any]] = None,
         **kwargs: Any,
     ) -> None:
-        self.database = database
-        self.query = query
-        self.schema = None
+        self._database = database
+        self._query = query
+        self._schema = None
         if query and query.schema:
             self.schema = query.schema
         elif table:
-            self.schema = table.schema
+            self._schema = table.schema
 
         extra_cache = ExtraCache(extra_cache_keys)
 
@@ -289,8 +289,8 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         table_name, schema = self._schema_table(table_name, self.schema)
-        return cast(PrestoEngineSpec, self.database.db_engine_spec).latest_partition(
-            table_name, schema, self.database
+        return cast(PrestoEngineSpec, self._database.db_engine_spec).latest_partition(
+            table_name, schema, self._database
         )[1]
 
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
@@ -299,9 +299,9 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         return cast(
-            PrestoEngineSpec, self.database.db_engine_spec
+            PrestoEngineSpec, self._database.db_engine_spec
         ).latest_sub_partition(
-            table_name=table_name, schema=schema, database=self.database, **kwargs
+            table_name=table_name, schema=schema, database=self._database, **kwargs
         )
 
     latest_partition = first_latest_partition
