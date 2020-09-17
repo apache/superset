@@ -1,4 +1,4 @@
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 
 const Pill = styled.div`
   display: inline-block;
@@ -9,21 +9,26 @@ const Pill = styled.div`
   padding: 0 8px;
   font-size: 14px;
   font-weight: normal;
-  
+
   &:hover {
     cursor: pointer;
     filter: brightness(3);
   }
-  
+
   svg {
     vertical-align: text-top;
   }
 `;
 
+interface TitleProps {
+  bold?: boolean;
+  color?: string;
+}
+
 const Title = styled.span`
-  color: ${({ color }) => color || 'auto'};
+  color: ${({ color }: TitleProps) => color || 'auto'};
   font-weight: ${({ bold }) => (bold ? '600' : 'auto')};
-  
+
   & > .anticon * {
     color: ${({ color }) => color || 'auto'};
   }
@@ -46,7 +51,7 @@ const Item = styled.button`
   white-space: nowrap;
   position: relative;
   outline: none;
-  
+
   &::-moz-focus-inner {
     border: 0;
   }
@@ -70,7 +75,7 @@ const Panel = styled.div`
   min-width: 200px;
   max-width: 400px;
   overflow-x: hidden;
-    
+
   * {
     color: #fff;
   }

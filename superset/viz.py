@@ -345,12 +345,6 @@ class BaseViz:
         merge_extra_filters(self.form_data)
         utils.split_adhoc_filters_into_base_filters(self.form_data)
 
-        filters = self.form_data.get("filters")
-        filter_columns = [flt.get("col") for flt in filters]
-        columns = set(self.datasource.column_names)
-        self.applied_filters = [{"column": col} for col in filter_columns if col in columns]
-        self.rejected_filters = [{"reason": "not_in_datasource", "column": col} for col in filter_columns if col not in columns]
-
     def query_obj(self) -> QueryObjectDict:
         """Building a query object"""
         form_data = self.form_data
@@ -488,8 +482,13 @@ class BaseViz:
         if "df" in payload:
             del payload["df"]
 
-        payload["applied_filters"] = self.applied_filters
-        payload["rejected_filters"] = self.rejected_filters
+        filters = self.form_data.get("filters")
+        filter_columns = [flt.get("col") for flt in filters]
+        columns = set(self.datasource.column_names)
+        payload["applied_filters"] = [{"column": col} for col in filter_columns if col in columns]
+        payload["rejected_filters"] = [{"reason": "not_in_datasource", "column": col} for col in filter_columns if col not in columns]
+        logger.info(payload["applied_filters"])
+        logger.info(payload["rejected_filters"])
 
         return payload
 

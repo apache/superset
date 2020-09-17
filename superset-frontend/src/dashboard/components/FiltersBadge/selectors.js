@@ -1,5 +1,5 @@
-import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { isNil, get } from 'lodash';
+import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { TIME_FILTER_MAP } from '../../../visualizations/FilterBox/FilterBox';
 
 export const UNSET = 'UNSET';
@@ -10,33 +10,6 @@ const TIME_GRANULARITY_FIELDS = new Set([
   TIME_FILTER_MAP.granularity,
   TIME_FILTER_MAP.time_grain_sqla,
 ]);
-
-/*
-if (isDateFilter && TIME_GRANULARITY_FIELDS.includes(name)) {
-    const timeGranularityConfig =
-      (name === TIME_FILTER_MAP.time_grain_sqla
-        ? datasource.time_grain_sqla
-        : datasource.granularity) || [];
-    const timeGranularityDisplayMapping = timeGranularityConfig.reduce(
-      (map, [key, value]) => ({
-        ...map,
-        [key]: value,
-      }),
-      {},
-    );
-
-    indicator.values = indicator.values.map(
-      value => timeGranularityDisplayMapping[value] || value,
-    );
-  }
-
-  if (isEmpty(indicator.values)) {
-    indicators[1].push(indicator);
-  } else {
-    indicators[0].push(indicator);
-  }
-});
- */
 
 const selectIndicatorValue = (columnKey, filter, datasource) => {
   if (
@@ -68,40 +41,33 @@ const selectIndicatorValue = (columnKey, filter, datasource) => {
   return [].concat(filter.columns[columnKey]);
 };
 
-const selectIndicatorStatus = (columnKey, filter, chart) => {
-  if (
-    isNil(filter.columns[columnKey]) ||
-    (filter.isDateFilter && filter.columns[columnKey] === 'No filter') ||
-    (Array.isArray(filter.columns[columnKey]) &&
-      filter.columns[columnKey].length === 0)
-  ) {
-    return UNSET;
-  }
-
-  if (get(chart, 'queryResponse.rejected_filters', []).includes(columnKey)) {
-    return INCOMPATIBLE;
-  }
-
-  return APPLIED;
-};
-
 const selectIndicatorsForChartFromFilter = (
   chartId,
   filter,
   filterDataSource,
-  chart,
+  appliedColumns,
+  rejectedColumns,
 ) => {
+  // filters can be applied (if the filter is compatible with the datasource)
+  // or rejected (if the filter is incompatible)
+  // or the status can be unknown (if the filter has calculated parameters that we can't analyze)
+  const getStatus = column => {
+    if (appliedColumns.has(column)) return APPLIED;
+    if (rejectedColumns.has(column)) return INCOMPATIBLE;
+    return UNSET;
+  };
+
   return Object.keys(filter.columns)
-    .filter(key =>
-      getChartIdsInFilterScope({ filterScope: filter.scopes[key] }).includes(
+    .filter(column =>
+      getChartIdsInFilterScope({ filterScope: filter.scopes[column] }).includes(
         chartId,
       ),
     )
-    .map(key => ({
-      id: key,
-      name: filter.labels[key] || key,
-      value: selectIndicatorValue(key, filter, filterDataSource),
-      status: selectIndicatorStatus(key, filter, chart),
+    .map(column => ({
+      id: column,
+      name: filter.labels[column] || column,
+      value: selectIndicatorValue(column, filter, filterDataSource),
+      status: getStatus(column),
       path: filter.directPathToFilter,
     }));
 };
@@ -112,6 +78,19 @@ export const selectIndicatorsForChart = (
   datasources,
   charts,
 ) => {
+  const chart = charts[chartId];
+  // for now we only need to know which columns are compatible/incompatible,
+  // so grab the columns from the applied/rejected filters
+  const appliedColumns = new Set(
+    get(chart, 'queryResponse.applied_filters', []).map(
+      filter => filter.column,
+    ),
+  );
+  const rejectedColumns = new Set(
+    get(chart, 'queryResponse.rejected_filters', []).map(
+      filter => filter.column,
+    ),
+  );
   return Object.values(filters)
     .filter(filter => filter.chartId !== chartId)
     .reduce(
@@ -121,7 +100,8 @@ export const selectIndicatorsForChart = (
             chartId,
             filter,
             datasources[filter.datasourceId] || {},
-            charts[chartId],
+            appliedColumns,
+            rejectedColumns,
           ),
         ),
       [],

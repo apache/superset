@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
 import json
 from enum import Enum
 from typing import Any, Dict, Hashable, List, Optional, Type, Union
@@ -30,7 +29,6 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.models.slice import Slice
 from superset.typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
-logger = logging.getLogger(__name__)
 METRIC_FORM_DATA_PARAMS = [
     "metric",
     "metrics",

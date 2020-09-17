@@ -1,33 +1,62 @@
 import React from 'react';
+import {
+  SearchOutlined,
+  MinusCircleFilled,
+  CheckCircleFilled,
+  ExclamationCircleFilled,
+} from '@ant-design/icons';
 import { Collapse } from '../../../common/components/index';
-import { SearchOutlined, MinusCircleFilled, CheckCircleFilled, ExclamationCircleFilled } from '@ant-design/icons';
 import S from './Styles';
+import { APPLIED, INCOMPATIBLE, UNSET } from './selectors';
 
-const Indicator = ({ indicator: { name, value = [], path }, onClick }) => (
+export type Indicator = {
+  id: string;
+  name: string;
+  value: string[];
+  status: typeof APPLIED | typeof UNSET | typeof INCOMPATIBLE;
+  path: string;
+};
+
+export interface IndicatorProps {
+  indicator: Indicator;
+  onClick: (path: string) => void;
+}
+
+const Indicator = ({
+  indicator: { name, value = [], path },
+  onClick,
+}: IndicatorProps) => (
   <S.Item onClick={() => onClick(path)}>
     <S.ItemIcon>
       <SearchOutlined />
     </S.ItemIcon>
     <S.Title bold>{name.toUpperCase()}</S.Title>
-    {value.length ? `: ${[].concat(value).join(', ')}` : ''}
+    {value.length ? `: ${value.join(', ')}` : ''}
   </S.Item>
 );
+
+export interface DetailsPanelProps {
+  appliedIndicators: Indicator[];
+  incompatibleIndicators: Indicator[];
+  unsetIndicators: Indicator[];
+  onHighlightFilterSource: (path: string) => void;
+}
 
 const DetailsPanel = ({
   appliedIndicators = [],
   incompatibleIndicators = [],
   unsetIndicators = [],
   onHighlightFilterSource,
-}) => {
-  const total = appliedIndicators.length + incompatibleIndicators.length + unsetIndicators.length;
+}: DetailsPanelProps) => {
+  const total =
+    appliedIndicators.length +
+    incompatibleIndicators.length +
+    unsetIndicators.length;
   return (
     <S.Panel>
       <div>{`${total} Scoped Filters`}</div>
       <S.Reset>
-        <Collapse
-          ghost
-          defaultActiveKey={['applied', 'incompatible']}
-        >
+        <Collapse ghost defaultActiveKey={['applied', 'incompatible']}>
           {appliedIndicators.length ? (
             <Collapse.Panel
               key="applied"
