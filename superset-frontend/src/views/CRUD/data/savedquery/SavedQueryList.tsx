@@ -16,29 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
-export const commonMenuData = {
-  name: t('Data'),
-  children: [
-    {
-      name: 'Datasets',
-      label: t('Datasets'),
-      url: '/tablemodelview/list/',
-      usesRouter: true,
-    },
-    {
-      name: 'Databases',
-      label: t('Databases'),
-      url: '/databaseview/list/',
-      usesRouter: true,
-    },
-    {
-      name: 'Saved Queries',
-      label: t('Saved Queries'),
-      url: '/savedqueryview/list/',
-      usesRouter: isFeatureEnabled(FeatureFlag.SIP_34_SAVED_QUERIES_UI),
-    },
-  ],
-};
+import React from 'react';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import { commonMenuData } from 'src/views/CRUD/data/common';
+
+interface SavedQueryListProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+}
+
+function SavedQueryList({
+  addDangerToast,
+  addSuccessToast,
+}: SavedQueryListProps) {
+  const menuData: SubMenuProps = {
+    activeChild: 'Saved Queries',
+    ...commonMenuData,
+  };
+
+  return (
+    <>
+      <SubMenu {...menuData} />
+    </>
+  );
+}
+
+export default withToasts(SavedQueryList);
