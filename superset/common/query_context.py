@@ -124,9 +124,7 @@ class QueryContext:
         }
 
     @staticmethod
-    def df_metrics_to_num(  # pylint: disable=no-self-use
-        df: pd.DataFrame, query_object: QueryObject
-    ) -> None:
+    def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in query_object.metrics:
