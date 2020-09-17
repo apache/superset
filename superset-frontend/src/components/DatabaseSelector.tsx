@@ -215,6 +215,7 @@ export default function DatabaseSelector({
 
     return renderSelectRow(
       <SupersetAsyncSelect
+        data-test="select-database"
         dataEndpoint={`/api/v1/database/?q=${queryParams}`}
         onChange={(db: any) => changeDataBase(db)}
         onAsyncError={() =>
