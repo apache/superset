@@ -426,7 +426,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    def data(self) -> Response:  # pylint: disable=too-many-return-statements
+    def data(self) -> Response:
         """
         Takes a query context constructed in the client and returns payload
         data response for the given query.
@@ -480,10 +480,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
             if query.get("error"):
                 return self.response_400(message=f"Error: {query['error']}")
         result_format = query_context.result_format
+
+        response = self.response_400(
+            message=f"Unsupported result_format: {result_format}"
+        )
+
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
             result = payload[0]["data"]
-            return CsvResponse(
+            response = CsvResponse(
                 result,
                 status=200,
                 headers=generate_download_headers("csv"),
@@ -496,9 +501,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            return resp
+            response = resp
 
-        return self.response_400(message=f"Unsupported result_format: {result_format}")
+        return response
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()
