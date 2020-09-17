@@ -262,10 +262,8 @@ class Database(
         return cls.get_password_masked_url(sqlalchemy_url)
 
     @classmethod
-    def get_password_masked_url(
-        cls, url: URL  # pylint: disable=redefined-outer-name
-    ) -> URL:
-        url_copy = deepcopy(url)
+    def get_password_masked_url(cls, masked_url: URL) -> URL:
+        url_copy = deepcopy(masked_url)
         if url_copy.password is not None:
             url_copy.password = PASSWORD_MASK
         return url_copy
@@ -279,19 +277,17 @@ class Database(
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_effective_user(
-        self,
-        url: URL,  # pylint: disable=redefined-outer-name
-        user_name: Optional[str] = None,
+        self, object_url: URL, user_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.
-        :param url: SQL Alchemy URL object
+        :param object_url: SQL Alchemy URL object
         :param user_name: Default username
         :return: The effective username
         """
         effective_username = None
         if self.impersonate_user:
-            effective_username = url.username
+            effective_username = object_url.username
             if user_name:
                 effective_username = user_name
             elif (
