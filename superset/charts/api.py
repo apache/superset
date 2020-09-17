@@ -246,7 +246,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    def put(self, pk: int) -> Response:  # pylint: disable=arguments-differ
+    def put(self, pk: int) -> Response:
         """Changes a Chart
         ---
         put:
