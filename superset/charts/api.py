@@ -246,9 +246,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    def put(  # pylint: disable=too-many-return-statements, arguments-differ
-        self, pk: int
-    ) -> Response:
+    def put(self, pk: int) -> Response:
         """Changes a Chart
         ---
         put:
@@ -291,6 +289,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -298,26 +297,29 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
         try:
             changed_model = UpdateChartCommand(g.user, pk, item).run()
-            return self.response(200, id=changed_model.id, result=item)
+            response = self.response(200, id=changed_model.id, result=item)
         except ChartNotFoundError:
-            return self.response_404()
+            response = self.response_404()
         except ChartForbiddenError:
-            return self.response_403()
+            response = self.response_403()
         except ChartInvalidError as ex:
-            return self.response_422(message=ex.normalized_messages())
+            response = self.response_422(message=ex.normalized_messages())
         except ChartUpdateFailedError as ex:
             logger.error(
                 "Error updating model %s: %s", self.__class__.__name__, str(ex)
             )
-            return self.response_422(message=str(ex))
+            response = self.response_422(message=str(ex))
+
+        return response
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
     @safe
     @statsd_metrics
-    def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
+    def delete(self, pk: int) -> Response:
         """Deletes a Chart
         ---
         delete:
@@ -367,9 +369,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
-    def bulk_delete(
-        self, **kwargs: Any
-    ) -> Response:  # pylint: disable=arguments-differ
+    def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Charts
         ---
         delete:
@@ -424,7 +424,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    def data(self) -> Response:  # pylint: disable=too-many-return-statements
+    def data(self) -> Response:
         """
         Takes a query context constructed in the client and returns payload
         data response for the given query.
@@ -478,10 +478,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
             if query.get("error"):
                 return self.response_400(message=f"Error: {query['error']}")
         result_format = query_context.result_format
+
+        response = self.response_400(
+            message=f"Unsupported result_format: {result_format}"
+        )
+
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
             result = payload[0]["data"]
-            return CsvResponse(
+            response = CsvResponse(
                 result,
                 status=200,
                 headers=generate_download_headers("csv"),
@@ -494,9 +499,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            return resp
+            response = resp
 
-        return self.response_400(message=f"Unsupported result_format: {result_format}")
+        return response
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()
