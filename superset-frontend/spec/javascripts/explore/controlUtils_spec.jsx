@@ -17,19 +17,20 @@
  * under the License.
  */
 
-import React from 'react';
-import {
-  getChartControlPanelRegistry,
-  ColumnOption,
-  t,
-} from '@superset-ui/core';
+import { getChartControlPanelRegistry, t } from '@superset-ui/core';
 import {
   getControlConfig,
   getControlState,
   getFormDataFromControls,
   applyMapStateToPropsToControl,
   getAllControlsState,
+  findControlItem,
 } from 'src/explore/controlUtils';
+import {
+  controlPanelSectionsChartOptions,
+  controlPanelSectionsChartOptionsOnlyColorScheme,
+  controlPanelSectionsChartOptionsTable,
+} from 'spec/javascripts/explore/fixtures';
 
 describe('controlUtils', () => {
   const state = {
@@ -43,56 +44,10 @@ describe('controlUtils', () => {
   beforeAll(() => {
     getChartControlPanelRegistry()
       .registerValue('test-chart', {
-        controlPanelSections: [
-          {
-            label: t('Chart Options'),
-            expanded: true,
-            controlSetRows: [
-              [
-                'color_scheme',
-                {
-                  name: 'rose_area_proportion',
-                  config: {
-                    type: 'CheckboxControl',
-                    label: t('Use Area Proportions'),
-                    description: t(
-                      'Check if the Rose Chart should use segment area instead of ' +
-                        'segment radius for proportioning',
-                    ),
-                    default: false,
-                    renderTrigger: true,
-                  },
-                },
-              ],
-              [
-                {
-                  name: 'stacked_style',
-                  config: {
-                    type: 'SelectControl',
-                    label: t('Stacked Style'),
-                    renderTrigger: true,
-                    choices: [
-                      ['stack', 'stack'],
-                      ['stream', 'stream'],
-                      ['expand', 'expand'],
-                    ],
-                    default: 'stack',
-                    description: '',
-                  },
-                },
-              ],
-            ],
-          },
-        ],
+        controlPanelSections: controlPanelSectionsChartOptions,
       })
       .registerValue('test-chart-override', {
-        controlPanelSections: [
-          {
-            label: t('Chart Options'),
-            expanded: true,
-            controlSetRows: [['color_scheme']],
-          },
-        ],
+        controlPanelSections: controlPanelSectionsChartOptionsOnlyColorScheme,
         controlOverrides: {
           color_scheme: {
             label: t('My beautiful colors'),
@@ -100,40 +55,7 @@ describe('controlUtils', () => {
         },
       })
       .registerValue('table', {
-        controlPanelSections: [
-          {
-            label: t('Chart Options'),
-            expanded: true,
-            controlSetRows: [
-              [
-                'metric',
-                'metrics',
-                {
-                  name: 'all_columns',
-                  config: {
-                    type: 'SelectControl',
-                    queryField: 'columns',
-                    multi: true,
-                    label: t('Columns'),
-                    default: [],
-                    description: t('Columns to display'),
-                    optionRenderer: c => <ColumnOption column={c} showType />,
-                    valueRenderer: c => <ColumnOption column={c} />,
-                    valueKey: 'column_name',
-                    allowAll: true,
-                    mapStateToProps: stateRef => ({
-                      options: stateRef.datasource
-                        ? stateRef.datasource.columns
-                        : [],
-                    }),
-                    commaChoosesOption: false,
-                    freeForm: true,
-                  },
-                },
-              ],
-            ],
-          },
-        ],
+        controlPanelSections: controlPanelSectionsChartOptionsTable,
       });
   });
 
@@ -285,6 +207,40 @@ describe('controlUtils', () => {
         metric: 'metrics',
         metrics: 'metrics',
       });
+    });
+  });
+
+  describe('findControlItem', () => {
+    it('find control as a string', () => {
+      const controlItem = findControlItem(
+        controlPanelSectionsChartOptions,
+        'color_scheme',
+      );
+      expect(controlItem).toEqual('color_scheme');
+    });
+
+    it('find control as a control object', () => {
+      let controlItem = findControlItem(
+        controlPanelSectionsChartOptions,
+        'rose_area_proportion',
+      );
+      expect(controlItem.name).toEqual('rose_area_proportion');
+      expect(controlItem).toHaveProperty('config');
+
+      controlItem = findControlItem(
+        controlPanelSectionsChartOptions,
+        'stacked_style',
+      );
+      expect(controlItem.name).toEqual('stacked_style');
+      expect(controlItem).toHaveProperty('config');
+    });
+
+    it('returns null when key is not found', () => {
+      const controlItem = findControlItem(
+        controlPanelSectionsChartOptions,
+        'non_existing_key',
+      );
+      expect(controlItem).toBeNull();
     });
   });
 });

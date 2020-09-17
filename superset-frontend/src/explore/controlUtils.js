@@ -51,7 +51,7 @@ export function validateControl(control, processedState) {
 /**
  * Find control item from control panel config.
  */
-function findControlItem(controlPanelSections, controlKey) {
+export function findControlItem(controlPanelSections, controlKey) {
   return (
     controlPanelSections
       .map(section => section.controlSetRows)
