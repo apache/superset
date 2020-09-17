@@ -298,6 +298,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "CLIENT_CACHE": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_DASHBOARD_ETAG_HEADER": False,
+    "ENABLE_TEMPLATE_PROCESSING": False,
     "KV_STORE": False,
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
