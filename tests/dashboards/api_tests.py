@@ -68,6 +68,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         return get_random_string(8)
 
     def tearDown(self):
+        self.logout()
         self.login("admin")
         dashboard_utils.delete_all_inserted_dashboards()
         self.logout()
