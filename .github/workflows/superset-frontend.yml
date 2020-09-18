@@ -1,6 +1,12 @@
 name: Frontend
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
 
 jobs:
   build:
@@ -25,18 +31,3 @@ jobs:
       working-directory: ./superset-frontend
       run: |
         bash <(curl -s https://codecov.io/bash) -cF javascript
-
-  docs:
-    name: build
-    runs-on: ubuntu-18.04
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Install dependencies
-      working-directory: ./superset-frontend
-      run: |
-        npm install
-    - name: gatsby build
-      working-directory: ./superset-frontend
-      run: |
-        npm run build
