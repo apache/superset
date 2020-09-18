@@ -16,8 +16,6 @@
 # under the License.
 # pylint: disable=too-few-public-methods
 """A set of constants and methods to manage permissions and security"""
-from __future__ import annotations
-
 import logging
 import re
 from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKING, Union
