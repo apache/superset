@@ -30,7 +30,7 @@ from superset.models.dashboard import Dashboard
 logger = logging.getLogger(__name__)
 
 
-class InitDashboardLevelAccessCommand:
+class InitDashboardLevelAccessCommand:  # pylint:disable=too-few-public-methods
     def __init__(self) -> None:
         self.__access_all_dashboards_permission_view = None
         self.__session = db.session
@@ -42,10 +42,11 @@ class InitDashboardLevelAccessCommand:
 
     def __create_all_dashboards_permissions(self) -> None:
         logger.info("start create_all_dashboards_permissions")
-        self.__access_all_dashboards_permission_view = security_manager.add_permission_view_menu(
-            SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
-            SecurityConsts.AllDashboard.VIEW_NAME,
-        )
+        self.__access_all_dashboards_permission_view = \
+            security_manager.add_permission_view_menu(
+                SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
+                SecurityConsts.AllDashboard.VIEW_NAME,
+            )
         logger.info("done create_all_dashboards_permissions")
 
     def __add_all_dashboards_permissions_to_permitted_roles(self) -> None:

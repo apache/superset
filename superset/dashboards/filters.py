@@ -83,7 +83,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
 
-    def apply_dashboard_level_access_filter(self, query: Query, value: Any) -> Query:
+    def apply_dashboard_level_access_filter(self, query: Query) -> Query:
         owner_ids_query = self.apply_owner_id_query()
         permitted_dashboards = self.apply_permission_filter()
         query = query.filter(
@@ -96,15 +96,15 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         )
         return query
 
-    def apply_dashboard_filter_based_on_datasources_permissions(
-        self, query: Query, value: Any
-    ) -> Query:
+    @classmethod
+    def apply_dashboard_filter_based_on_datasources_permissions(cls,
+                                                                query: Query) -> Query:
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         published_dash_query = (
             db.session.query(Dashboard.id)
-            .join(Dashboard.slices)
-            .filter(
+                .join(Dashboard.slices)
+                .filter(
                 and_(
                     Dashboard.published == True,  # pylint: disable=singleton-comparison
                     or_(
@@ -145,7 +145,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if is_user_admin():
             return query
         if is_dashboard_level_access_enabled():
-            return self.apply_dashboard_level_access_filter(query, value)
-        return self.apply_dashboard_filter_based_on_datasources_permissions(
-            query, value
+            return self.apply_dashboard_level_access_filter(query)
+        return DashboardFilter.apply_dashboard_filter_based_on_datasources_permissions(
+            query
         )
