@@ -26,7 +26,7 @@ from pytest import mark
 from sqlalchemy.sql import func
 
 from superset import db, security_manager, appbuilder, app
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_user
 from superset.models.slice import Slice
 from superset.views.base import generate_download_headers
 
@@ -70,7 +70,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     def tearDown(self):
 
         with app.test_request_context():
-            self.logout()
+            try:
+                self.logout()
+            except
             self.login("admin")
             dashboard_utils.delete_all_inserted_dashboards()
             self.logout()
@@ -466,10 +468,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
-        # appbuilder.get_session.delete(dashboard)
-        appbuilder.get_session.delete(user_alpha1)
-        appbuilder.get_session.delete(user_alpha2)
-        appbuilder.get_session.commit()
+
+    def delete_user(self, user):
+        # appbuilder.get_session.execute(
+        #     dashboard_user.delete().where(
+        #         dashboard_user.c.dashboard_id == dashboard.id
+        #     ))
+        # appbuilder.get_session.delete(user)
+        pass
 
     def test_delete_bulk_dashboard_not_owned(self):
         """
@@ -527,13 +533,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"message": "Forbidden"}
         self.assertEqual(response, expected_response)
-
-        # for dashboard in dashboards:
-        #     appbuilder.get_session.delete(dashboard)
-        # appbuilder.get_session.delete(owned_dashboard)
-        appbuilder.get_session.delete(user_alpha1)
-        appbuilder.get_session.delete(user_alpha2)
-        appbuilder.get_session.commit()
 
     def test_create_dashboard(self):
         """
@@ -760,11 +759,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             slice.owners = []
             appbuilder.get_session.commit()
 
-        # Rollback changes
-        appbuilder.get_session.delete(user_alpha1)
-        appbuilder.get_session.delete(user_alpha2)
-        appbuilder.get_session.commit()
-
     @pytest.mark.update_name_error
     def test_update_partial_dashboard(self):
         """
@@ -923,8 +917,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.put_assert_metric(uri, dashboard_data, "put")
         self.assertEqual(rv.status_code, 403)
-        appbuilder.get_session.delete(user_alpha1)
-        appbuilder.get_session.delete(user_alpha2)
         appbuilder.get_session.commit()
 
     def test_export(self):
