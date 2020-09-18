@@ -1,0 +1,30 @@
+name: Docs
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+  pull_request:
+    paths:
+      - 'docs/**'
+
+jobs:
+  docs:
+    name: build
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Install dependencies
+    - name: npm install
+      working-directory: ./docs
+      run: |
+        npm install
+    - name: lint
+      working-directory: ./docs
+      run: |
+        npm run lint
+    - name: gatsby build
+      working-directory: ./docs
+      run: |
+        npm run build
