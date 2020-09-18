@@ -25,7 +25,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
-from superset import app, db, event_logger, security_manager
+from superset import app, db, event_logger
 from superset.constants import RouteMethod
 from superset.dashboards.security import is_dashboard_level_access_enabled
 from superset.typing import FlaskResponse

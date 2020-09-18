@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 dashboard_level_access_enabled = None
 
 
-def is_dashboard_level_access_enabled() -> bool:
-    global dashboard_level_access_enabled
+def is_dashboard_level_access_enabled() -> bool:  # pylint:disable=invalid-name
+    global dashboard_level_access_enabled  # pylint:disable=global-statement
     if dashboard_level_access_enabled is None:
         from superset import is_feature_enabled
 

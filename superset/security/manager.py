@@ -53,10 +53,6 @@ from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName
 
 if TYPE_CHECKING:
-    from superset.models.dashboard import Dashboard
-
-
-if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
     from superset.connectors.druid.models import DruidCluster
@@ -847,8 +843,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
-    def set_perm(  # pylint: disable=no-self-use,unused-argument
-        self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
+    def set_perm(
+        self, mapper: Mapper,  # pylint: disable=no-self-use,unused-argument
+        connection: Connection, target: "BaseDatasource"
     ) -> None:
         """
         Set the datasource permissions.
@@ -1125,7 +1122,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def del_all_roles_associations(self, permission_view: PermissionView) -> None:
         self.get_session.execute(
-            assoc_permissionview_role.delete().where(
-                assoc_permissionview_role.c.permission_view_id == permission_view.id
-            )
+            assoc_permissionview_role  # pylint: disable=no-value-for-parameter
+            .delete()
+            .where(assoc_permissionview_role.c.permission_view_id == permission_view.id)
         )
