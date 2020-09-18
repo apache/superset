@@ -18,14 +18,15 @@
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
-from flask import flash, Markup, redirect
+from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
+from flask_appbuilder.widgets import ListWidget
 from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
@@ -241,10 +242,19 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     edit_form_extra_fields = add_form_extra_fields
 
 
+class RowLevelSecurityListWidget(ListWidget):
+    template = "superset/models/rls/list.html"
+
+    def __init__(self, **kwargs: Any):
+        kwargs["appbuilder"] = current_app.appbuilder
+        super().__init__(**kwargs)
+
+
 class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
     SupersetModelView, DeleteMixin
 ):
     datamodel = SQLAInterface(models.RowLevelSecurityFilter)
+    list_widget = RowLevelSecurityListWidget
 
     list_title = _("Row level security filter")
     show_title = _("Show Row level security filter")
@@ -260,7 +270,7 @@ class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
         "creator",
         "modified",
     ]
-    order_columns = ["filter_type", "tables", "group_key", "clause", "modified"]
+    order_columns = ["filter_type", "group_key", "clause", "modified"]
     edit_columns = ["filter_type", "tables", "roles", "group_key", "clause"]
     show_columns = edit_columns
     search_columns = ("filter_type", "tables", "roles", "group_key", "clause")

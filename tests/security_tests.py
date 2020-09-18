@@ -1021,6 +1021,8 @@ class TestRowLevelSecurity(SupersetTestCase):
         to_dttm=None,
         extras={},
     )
+    GAMMA_FILTER_REGEX = re.compile(r"'[A,B,Q]%'")
+    BASE_FILTER_REGEX = re.compile(r"'boy'")
 
     def setUp(self):
         session = db.session
@@ -1118,27 +1120,33 @@ class TestRowLevelSecurity(SupersetTestCase):
         tbl = self.get_table_by_name("birth_names")
         sql = tbl.get_query_str(self.query_obj)
 
-        # establish that groupings are properly applied
+        # establish that both regular and base filters are present
+        assert self.GAMMA_FILTER_REGEX.search(sql)
+        assert self.BASE_FILTER_REGEX.search(sql)
+
+        # establish that they are grouped together correctly with ANDs, ORs
+        # and parens in the correct place (only look for unique bits in the
+        # filters to make the regex simpler)
         assert re.search(
-            r"\(\s*\(\s*name\s+like\s+'A%'\s+or\s+name\s+like\s+'B%'\s*\)\s+"
-            r"OR\s+\(\s*name\s+like\s+'Q%'\)\s*\)\s+AND\s+\(gender\s+=\s+'boy'\);",
-            sql,
-            re.IGNORECASE,
+            r"\(\s*\(.*'A%'.*\).*OR.*'Q%'\s*\)\s*\)\s+AND\s+\(.*'boy'\s*\)",
+            sql.replace("\n", " "),  # remove newlines to make simpler regex
         )
 
     def test_rls_filter_alters_alpha_birth_names_query(self):
         g.user = self.get_user(username="alpha")
         tbl = self.get_table_by_name("birth_names")
         sql = tbl.get_query_str(self.query_obj)
-        assert "name like 'A%' or name like 'B%'" not in sql
-        assert "name like 'Q%'" not in sql
+
+        # gamma's filters should not be present query
+        assert not self.GAMMA_FILTER_REGEX.search(sql)
         # base query should be present
-        assert "gender = 'boy'" in sql
+        assert self.BASE_FILTER_REGEX.search(sql)
 
     def test_rls_filter_doesnt_alter_admin_birth_names_query(self):
         g.user = self.get_user(username="admin")
         tbl = self.get_table_by_name("birth_names")
         sql = tbl.get_query_str(self.query_obj)
-        assert "name like 'A%' or name like 'B%'" not in sql
-        assert "name like 'Q%'" not in sql
-        assert "gender = 'boy'" not in sql
+
+        # no filters are applied for admin user
+        assert not self.GAMMA_FILTER_REGEX.search(sql)
+        assert not self.BASE_FILTER_REGEX.search(sql)
