@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ComponentType, FunctionComponent } from 'react';
+import React, { ComponentType, FunctionComponent, ReactElement } from 'react';
 import Select, {
   Props as SelectProps,
   OptionTypeBase,
@@ -47,8 +47,11 @@ export function MenuList<OptionType extends OptionTypeBase>({
 }) {
   const { windowThreshold = DEFAULT_WINDOW_THRESHOLD } = props.selectProps;
   if (Array.isArray(children) && children.length > windowThreshold) {
-    // @ts-ignore
-    return <WindowedMenuList {...props}>{children}</WindowedMenuList>;
+    return (
+      <WindowedMenuList {...props}>
+        {children as ReactElement[]}
+      </WindowedMenuList>
+    );
   }
   return <DefaultMenuList {...props}>{children}</DefaultMenuList>;
 }
