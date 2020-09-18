@@ -14,7 +14,7 @@
     "shortid": "^2.2.15"
   },
   "devDependencies": {
-    "cypress": "4.9.0",
+    "cypress": "5.0.0",
     "eslint-plugin-cypress": "^2.11.1"
   }
 }

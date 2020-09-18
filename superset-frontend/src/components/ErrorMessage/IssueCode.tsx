@@ -28,7 +28,7 @@ export default function IssueCode({ code, message }: IssueCodeProps) {
     <>
       {message}{' '}
       <a
-        href={`https://superset.apache.org/issue_code_reference.html#issue-${code}`}
+        href={`https://superset.apache.org/docs/miscellaneous/issue-codes#issue-${code}`}
         rel="noopener noreferrer"
         target="_blank"
       >

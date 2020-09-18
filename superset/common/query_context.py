@@ -124,17 +124,13 @@ class QueryContext:
         }
 
     @staticmethod
-    def df_metrics_to_num(  # pylint: disable=no-self-use
-        df: pd.DataFrame, query_object: QueryObject
-    ) -> None:
+    def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in query_object.metrics:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    def get_data(
-        self, df: pd.DataFrame,
-    ) -> Union[str, List[Dict[str, Any]]]:  # pylint: disable=no-self-use
+    def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
         if self.result_format == utils.ChartDataResultFormat.CSV:
             include_index = not isinstance(df.index, pd.RangeIndex)
             result = df.to_csv(index=include_index, **config["CSV_EXPORT"])
@@ -204,7 +200,7 @@ class QueryContext:
         )
         return cache_key
 
-    def get_df_payload(  # pylint: disable=too-many-locals,too-many-statements
+    def get_df_payload(  # pylint: disable=too-many-statements
         self, query_obj: QueryObject, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""

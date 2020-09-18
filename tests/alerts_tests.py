@@ -238,6 +238,11 @@ def test_operator_validator(setup_database):
         operator_validator(alert1.sql_observer[0], '{"op": ">=", "threshold": 60}')
         is False
     )
+    # ensure that 0 threshold works
+    assert (
+        operator_validator(alert1.sql_observer[0], '{"op": ">=", "threshold": 0}')
+        is False
+    )
 
     # Test passing SQLObserver with result that doesn't pass a greater than threshold
     alert2 = create_alert(dbsession, "SELECT 55")
@@ -330,7 +335,7 @@ def test_deliver_alert_screenshot(
         "initial_comment": f"\n*Triggered Alert: {alert.label} :redalert:*\n"
         f"*Query*:```{alert.sql_observer[0].sql}```\n"
         f"*Result*: {alert.observations[-1].value}\n"
-        f"*Reason*: {alert.observations[-1].value} {alert.validators[0].pretty_print()}\n"
+        f"*Reason*: {alert.observations[-1].value} {alert.validators[0].pretty_config}\n"
         f"<http://0.0.0.0:8080/alert/show/{alert.id}"
         f"|View Alert Details>\n<http://0.0.0.0:8080/superset/slice/{alert.slice_id}/"
         "|*Explore in Superset*>",
