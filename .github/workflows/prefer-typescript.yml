@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Get changed files
         id: changed
-        uses: trilom/file-changes-action@master
+        uses: trilom/file-changes-action@v1.2.4
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 
@@ -21,7 +21,9 @@ jobs:
           js_files_added() {
             jq -r '
               map(
-                select((endswith(".js") or endswith(".jsx"))
+                select(
+                  endswith(".js") or endswith(".jsx")
+                )
               ) | join("\n")
             ' ${HOME}/files_added.json
           }
