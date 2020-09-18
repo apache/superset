@@ -23,34 +23,35 @@ describe('Dashboard edit mode', () => {
     cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
+    cy.route('POST', '/superset/explore_json/*?dashboard_id=1').as('worldMap');
     cy.get('.dashboard-header [data-test=pencil]').click();
   });
 
   it('remove, and add chart flow', () => {
-    // wait for box plot to appear
-    cy.get('.grid-container .box_plot');
-
-    cy.get('.fa.fa-trash')
-      .last()
+    // wait for world map to appear
+    cy.wait('@worldMap');
+    cy.get('.world_map', { timeout: 60000 })
+      .should('have.length', 1)
+      .parents('.dashboard-component')
+      .should('have.length', 1)
       .then($el => {
-        cy.wrap($el).invoke('show').click();
-        // box plot should be gone
-        cy.get('.grid-container .box_plot').should('not.exist');
+        cy.wrap($el).invoke('show').find('.hover-menu .fa.fa-trash').click();
+        // world map should be gone
+        cy.get('.grid-container .world_map').should('not.exist');
       });
 
-    cy.get('.tabs-components .nav-tabs li a').contains('Charts').click();
+    cy.get('.tabs-components .nav-tabs li a')
+      .contains('Charts')
+      .should('have.length', 1)
+      .click();
 
-    // find box plot is available from list
-    cy.get('.tabs-components')
-      .find('.chart-card-container')
-      .contains('Box plot');
+    // find world map is available from list
+    cy.get('.tabs-components').find('.chart-card-container').contains('Rural');
 
-    drag('.chart-card', 'Box plot').to(
-      '.grid-row.background--transparent:last',
-    );
+    drag('.chart-card', 'Rural').to('.grid-row.background--transparent:first');
 
     // add back to dashboard
-    cy.get('.grid-container .box_plot').should('be.exist');
+    cy.get('.grid-container .world_map').should('be.exist');
 
     // should show Save changes button
     cy.get('.dashboard-header .button-container').contains('Save');
