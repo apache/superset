@@ -21,9 +21,18 @@ import { t, SupersetClient } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import ListView, { FetchDataConfig } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import ListViewCard from 'src/components/ListViewCard';
 import { Dashboard } from 'src/types/bootstrapTypes';
+import { Dropdown, Menu } from 'src/common/components';
+import Icon from 'src/components/Icon';
+import Label from 'src/components/Label';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 3;
+
+//const canEdit = hasPerm('can_edit');
+//const canDelete = hasPerm('can_delete');
+//const canExport = hasPerm('can_mulexport');
 
 interface DashboardTableProps {
   addDangerToast: (message: string) => void;
@@ -101,6 +110,16 @@ class DashboardTable extends React.PureComponent<
     };
   }
 
+  componentDidMount() {
+    console.log('component did mount!!!');
+    this.fetchDataDebounced({
+      pageSize: PAGE_SIZE,
+      pageIndex: 0,
+      sortBy: this.initialSort,
+      filters: [],
+    });
+  }
+
   componentDidUpdate(prevProps: DashboardTableProps) {
     if (prevProps.search !== this.props.search) {
       this.fetchDataDebounced({
@@ -132,19 +151,91 @@ class DashboardTable extends React.PureComponent<
           : [],
       );
 
+    /*const { dashboardFilter, user} = this.props;
+    const filters = [];
+
+    if (dashboardFilter === "Mine") {
+      filters.push[{
+        {
+          col: "owners.id", // API does not allow filter by owner id
+          opr: "eq",
+          value: user.id
+        }
+      }];
+    } else {
+      filter.push[{
+        {
+          col: "favorite", // API currently can't filter by favorite
+          opr: "eq",
+          value: true
+        }
+      }];
+    }*/
+
+    /*const menu = (
+      <Menu>
+        {canDelete && (
+          <Menu.Item>
+            <ConfirmStatusChange
+              title={t('Please Confirm')}
+              description={
+                <>
+                  {t('Are you sure you want to delete')}{' '}
+                </>
+              }
+              onConfirm={() => handleDashboardDelete(dashboard)}
+            >
+              {confirmDelete => (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={confirmDelete}
+                >
+                  <ListViewCard.MenuIcon name="trash" /> Delete
+                </div>
+              )}
+            </ConfirmStatusChange>
+          </Menu.Item>
+        )}
+        {canExport && (
+          <Menu.Item
+            role="button"
+            tabIndex={0}
+            onClick={() => handleBulkDashboardExport([dashboard])}
+          >
+            <ListViewCard.MenuIcon name="share" /> Export
+          </Menu.Item>
+        )}
+        {canEdit && (
+          <Menu.Item
+            role="button"
+            tabIndex={0}
+            onClick={() => openDashboardEditModal(dashboard)}
+          >
+            <ListViewCard.MenuIcon name="pencil" /> Edit
+          </Menu.Item>
+        )}
+      </Menu>
+    ); */
+
+    console.log('sortBy', sortBy);
     const queryParams = JSON.stringify({
       order_column: sortBy[0].id,
       order_direction: sortBy[0].desc ? 'desc' : 'asc',
       page: pageIndex,
       page_size: pageSize,
+      //filters,
       ...(filterExps.length ? { filters: filterExps } : {}),
     });
-
+    console.log('hello!!!');
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
       .then(({ json }) => {
+        console.log('json', json);
         this.setState({ dashboards: json.result, dashboard_count: json.count });
+        console.log('this.state', this.state);
       })
       .catch(response => {
         if (response.status === 401) {
@@ -168,15 +259,16 @@ class DashboardTable extends React.PureComponent<
 
   render() {
     return (
-      <ListView
-        columns={this.columns}
-        data={this.state.dashboards}
-        count={this.state.dashboard_count}
-        pageSize={PAGE_SIZE}
-        fetchData={this.fetchData}
-        loading={this.state.loading}
-        initialSort={this.initialSort}
-      />
+      <div>
+        {this.state.dashboards.map(e => (
+          <ListViewCard
+            title={e.dashboard_title}
+            loading={this.state.loading}
+            titleRight={<Label>{e.published ? 'published' : 'draft'}</Label>}
+            description={t('Last modified %s', e.changed_on_delta_humanized)}
+          />
+        ))}
+      </div>
     );
   }
 }

@@ -31,6 +31,7 @@ import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
 import RecentActivity from 'src/profile/components/RecentActivity';
 import Favorites from 'src/profile/components/Favorites';
+import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
 
 const { Panel } = Collapse;
@@ -68,7 +69,7 @@ export default function Welcome({ user }: WelcomeProps) {
     StringParam,
     'all',
   );
-
+  const [dashboardFilter, setDashboardFilter] = useState('Favorite');
   const [searchQuery, setSearchQuery] = useSyncQueryState(
     'search',
     StringParam,
@@ -91,8 +92,9 @@ export default function Welcome({ user }: WelcomeProps) {
     <Collapse defaultActiveKey={['1']}>
       <Panel header={t('Recents')} key="1">
         <SubMenu
-          activeChild="Datasets"
-          name={''}
+          activeChild="Viewed"
+          name=""
+          // eslint-disable-next-line react/no-children-prop
           children={[
             {
               name: 'Viewed',
@@ -115,6 +117,23 @@ export default function Welcome({ user }: WelcomeProps) {
       </Panel>
 
       <Panel header={t('Dashboards')} key="2">
+      <SubMenu
+          activeChild={dashboardFilter}
+          name=""
+          // eslint-disable-next-line react/no-children-prop
+          children={[
+            {
+              name: 'Favorite',
+              label: t('Favorite'),
+              onClick: () => setDashboardFilter('Favorite'),
+            },
+            {
+              name: 'Mine',
+              label: t('Mine'),
+              onClick: () => setDashboardFilter('Mine'),
+            },
+          ]}
+        />
         <FormControl
           type="text"
           bsSize="sm"
@@ -123,11 +142,11 @@ export default function Welcome({ user }: WelcomeProps) {
           // @ts-ignore React bootstrap types aren't quite right here
           onChange={e => setSearchQuery(e.currentTarget.value)}
         />
-        <DashboardTable search={searchQuery} />
+        <DashboardTable search={searchQuery} filter={dashboardFilter} />
       </Panel>
 
       <Panel header={t('Saved Queries')} key="3" >
-        Stuff here!
+        <SavedQueries />
       </Panel>
       <Panel header={t('Charts')} key="4" >
         Stuff here!
