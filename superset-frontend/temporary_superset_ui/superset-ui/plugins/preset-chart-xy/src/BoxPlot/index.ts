@@ -20,6 +20,9 @@ import { ChartPlugin } from '@superset-ui/core';
 import createMetadata from './createMetadata';
 import transformProps from './transformProps';
 import controlPanel from './controlPanel';
+import configureEncodable from '../configureEncodable';
+
+configureEncodable();
 
 export default class BoxPlotChartPlugin extends ChartPlugin {
   constructor() {
