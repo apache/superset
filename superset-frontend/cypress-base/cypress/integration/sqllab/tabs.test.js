@@ -32,29 +32,31 @@ describe('SqlLab query tabs', () => {
       cy.get('[data-test="sql-editor-tabs"]')
         .children()
         .eq(initialTabCount - 1)
-        .contains(`Untitled Query ${initialTabCount + 1}`
-        );
+        .contains(`Untitled Query ${initialTabCount + 1}`);
       cy.get('[data-test="sql-editor-tabs"]')
-        .children().eq(initialTabCount)
+        .children()
+        .eq(initialTabCount)
         .contains(`Untitled Query ${initialTabCount + 2}`);
     });
   });
   it('allows you to close a tab', () => {
-    cy.get('[data-test="sql-editor-tabs"]').children().then(tabListA => {
-      const initialTabCount = tabListA.length;
+    cy.get('[data-test="sql-editor-tabs"]')
+      .children()
+      .then(tabListA => {
+        const initialTabCount = tabListA.length;
 
-      // open the tab dropdown to remove
-      cy.get('[data-test="dropdown-toggle-button"]').click({
-        force: true,
+        // open the tab dropdown to remove
+        cy.get('[data-test="dropdown-toggle-button"]').click({
+          force: true,
+        });
+
+        // first item is close
+        cy.get('[data-test="close-tab-menu-option"]').click();
+
+        cy.get('[data-test="sql-editor-tabs"]').should(
+          'have.length',
+          initialTabCount - 1,
+        );
       });
-
-      // first item is close
-      cy.get('[data-test="close-tab-menu-option"]').click();
-
-      cy.get('[data-test="sql-editor-tabs"]').should(
-        'have.length',
-        initialTabCount - 1,
-      );
-    });
   });
 });
