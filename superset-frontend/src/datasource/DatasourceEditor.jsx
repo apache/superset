@@ -246,7 +246,7 @@ const defaultProps = {
   onChange: () => {},
 };
 
-export class DatasourceEditor extends React.PureComponent {
+class DatasourceEditor extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

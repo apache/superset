@@ -40,7 +40,7 @@ import Hotkeys from 'src/components/Hotkeys';
 
 import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
-import SouthPane from './SouthPane';
+import ConnectedSouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
 import ScheduleQueryButton from './ScheduleQueryButton';
 import EstimateQueryCostButton from './EstimateQueryCostButton';
@@ -389,7 +389,7 @@ class SqlEditor extends React.PureComponent {
           />
           {this.renderEditorBottomBar(hotkeys)}
         </div>
-        <SouthPane
+        <ConnectedSouthPane
           editorQueries={this.props.editorQueries}
           latestQueryId={this.props.latestQuery && this.props.latestQuery.id}
           dataPreviewQueries={this.props.dataPreviewQueries}

@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 import { styled, logging, t } from '@superset-ui/core';
 
 import ExploreChartPanel from './ExploreChartPanel';
-import ControlPanelsContainer from './ControlPanelsContainer';
+import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreLongUrl } from '../exploreUtils';
@@ -352,7 +352,7 @@ class ExploreViewContainer extends React.Component {
             errorMessage={this.renderErrorMessage()}
             datasourceType={this.props.datasource_type}
           />
-          <ControlPanelsContainer
+          <ConnectedControlPanelsContainer
             actions={this.props.actions}
             form_data={this.props.form_data}
             controls={this.props.controls}
@@ -415,8 +415,6 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(actions, dispatch),
   };
 }
-
-export { ExploreViewContainer };
 
 export default connect(
   mapStateToProps,
