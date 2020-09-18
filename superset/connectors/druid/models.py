@@ -1400,7 +1400,7 @@ class DruidDatasource(Model, BaseDatasource):
                 if df is None:
                     df = pd.DataFrame()
                 qry["filter"] = self._add_filter_from_pre_query_data(
-                    df, pre_qry["dimensions"], qry["filter"]
+                    df, pre_qry["dimensions"], filters
                 )
                 qry["limit_spec"] = None
             if row_limit:

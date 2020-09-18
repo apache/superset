@@ -313,7 +313,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
-    "SIP_34_DATABASE_UI": False,
     # stop pending queries when user close/reload dashboard in browser
     "STOP_DASHBOARD_PENDING_QUERIES": False,
 }
