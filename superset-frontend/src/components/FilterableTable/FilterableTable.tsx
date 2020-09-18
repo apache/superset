@@ -174,8 +174,9 @@ export default class FilterableTable extends PureComponent<
   }
 
   componentDidMount() {
-    if (this.container.current)
+    if (this.container.current) {
       this.fitTableToWidthIfNeeded(this.container.current);
+    }
   }
 
   getDatum(list: List<Datum>, index: number) {
@@ -292,8 +293,8 @@ export default class FilterableTable extends PureComponent<
     this.setState({ sortBy, sortDirection });
   }
 
-  fitTableToWidthIfNeeded() {
-    const containerWidth = this.container.current?.clientWidth ?? 0;
+  fitTableToWidthIfNeeded(currentContainer: HTMLDivElement) {
+    const containerWidth = currentContainer.clientWidth;
     if (this.totalTableWidth < containerWidth) {
       // fit table width if content doesn't fill the width of the container
       this.totalTableWidth = containerWidth;
