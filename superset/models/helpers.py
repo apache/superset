@@ -427,11 +427,7 @@ class ExtraJSONMixin:
             return json.loads(self.extra_json)
         except (TypeError, JSONDecodeError) as exc:
             logger.error(
-                "Unable to load an extra JSON: %r. "
-                "Leaving empty. Extra JSON content: %d",
-                exc,
-                self.extra_json,
-                exc_info=True,
+                "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
             )
             return {}
 
