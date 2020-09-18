@@ -50,7 +50,7 @@ class InitDashboardLevelAccessCommand:  # pylint:disable=too-few-public-methods
         logger.info("done create_all_dashboards_permissions")
 
     @staticmethod
-    def create_pmv() -> security_manager.permissionview_model:
+    def create_pmv() -> PermissionView:
         return security_manager.add_permission_view_menu(
             SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
             SecurityConsts.AllDashboard.VIEW_NAME,
