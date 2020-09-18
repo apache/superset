@@ -128,7 +128,6 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export { ExploreCtasResultsButton };
 export default connect(
   mapStateToProps,
   mapDispatchToProps,

@@ -19,7 +19,7 @@
 
 import memoize from 'lodash/memoize';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
-import controls from '../explore/controls';
+import { controls } from '../explore/controls';
 
 const getControlsForVizType = memoize(vizType => {
   const controlsMap = {};

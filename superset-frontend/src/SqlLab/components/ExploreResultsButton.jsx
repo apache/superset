@@ -253,7 +253,6 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export { ExploreResultsButton };
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
