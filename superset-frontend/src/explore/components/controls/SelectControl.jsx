@@ -103,7 +103,7 @@ export default class SelectControl extends React.PureComponent {
     if (opt) {
       if (this.props.multi) {
         optionValue = [];
-        for (const o of opt) {
+        opt.forEach(o => {
           // select all options
           if (o.meta === true) {
             this.props.onChange(
@@ -114,7 +114,7 @@ export default class SelectControl extends React.PureComponent {
             return;
           }
           optionValue.push(o[this.props.valueKey] || o);
-        }
+        });
       } else if (opt.meta === true) {
         return;
       } else {
