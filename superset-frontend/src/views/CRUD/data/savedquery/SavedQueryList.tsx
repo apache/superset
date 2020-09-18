@@ -16,33 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 
-interface CheckboxProps {
-  checked: boolean;
-  onChange: (val?: boolean) => {};
-  style: object;
+import React from 'react';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import { commonMenuData } from 'src/views/CRUD/data/common';
+
+interface SavedQueryListProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
 }
 
-export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
+function SavedQueryList({
+  addDangerToast,
+  addSuccessToast,
+}: SavedQueryListProps) {
+  const menuData: SubMenuProps = {
+    activeChild: 'Saved Queries',
+    ...commonMenuData,
+  };
+
   return (
-    <span style={style}>
-      <i
-        role="button"
-        aria-label="Checkbox"
-        tabIndex={0}
-        className={`fa fa-check ${
-          checked ? 'text-primary' : 'text-transparent'
-        }`}
-        onClick={() => {
-          onChange(!checked);
-        }}
-        style={{
-          border: '1px solid #aaa',
-          borderRadius: '2px',
-          cursor: 'pointer',
-        }}
-      />
-    </span>
+    <>
+      <SubMenu {...menuData} />
+    </>
   );
 }
+
+export default withToasts(SavedQueryList);

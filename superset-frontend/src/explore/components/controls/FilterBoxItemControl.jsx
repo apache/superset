@@ -116,9 +116,9 @@ export default class FilterBoxItemControl extends React.Component {
         if (type === 'BOOLEAN') {
           typedValue = value === 'true';
         } else if (INTEGRAL_TYPES.has(type)) {
-          typedValue = Number.isNaN(value) ? null : parseInt(value, 10);
+          typedValue = Number.isNaN(Number(value)) ? null : parseInt(value, 10);
         } else if (DECIMAL_TYPES.has(type)) {
-          typedValue = Number.isNaN(value) ? null : parseFloat(value);
+          typedValue = Number.isNaN(Number(value)) ? null : parseFloat(value);
         }
       }
     }

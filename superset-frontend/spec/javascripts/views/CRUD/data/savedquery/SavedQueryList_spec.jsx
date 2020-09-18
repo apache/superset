@@ -17,20 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-import ControlSetRow from 'src/explore/components/ControlRow';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
+import { styledMount as mount } from 'spec/helpers/theming';
+import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
+import SubMenu from 'src/components/Menu/SubMenu';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
-describe('ControlSetRow', () => {
-  it('renders a single row with one element', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toExist();
+// store needed for withToasts(DatabaseList)
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+
+describe('SavedQueryList', () => {
+  const wrapper = mount(<SavedQueryList />, { context: { store } });
+
+  beforeAll(async () => {
+    await waitForComponentToPaint(wrapper);
   });
-  it('renders a single row with two elements', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />, <a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toHaveLength(2);
+
+  it('renders', () => {
+    expect(wrapper.find(SavedQueryList)).toExist();
+  });
+
+  it('renders a SubMenu', () => {
+    expect(wrapper.find(SubMenu)).toExist();
   });
 });

@@ -67,10 +67,10 @@ export default class BoundsControl extends React.Component {
   onChange() {
     const mm = this.state.minMax;
     const errors = [];
-    if (mm[0] && Number.isNaN(mm[0])) {
+    if (mm[0] && Number.isNaN(Number(mm[0]))) {
       errors.push(t('`Min` value should be numeric or empty'));
     }
-    if (mm[1] && Number.isNaN(mm[1])) {
+    if (mm[1] && Number.isNaN(Number(mm[1]))) {
       errors.push(t('`Max` value should be numeric or empty'));
     }
     if (errors.length === 0) {

@@ -28,13 +28,9 @@ analyze:
     type: npm
     target: superset-frontend
     path: superset-frontend
-  - name: docs
-    type: pip
-    target: docs
-    path: docs
-  - name: .
+  - name: base
     type: pip
     target: .
     path: .
     options:
-      requirements: ./requirements/testing.txt
+      requirements: ./requirements/base.txt

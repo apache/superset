@@ -27,6 +27,12 @@ module.exports = {
   env: {
     browser: true,
   },
+  settings: {
+    'import/resolver': 'webpack',
+    react: {
+      version: 'detect',
+    },
+  },
   plugins: ['prettier', 'react'],
   overrides: [
     {
@@ -38,8 +44,13 @@ module.exports = {
     },
     {
       files: ['webpack*.js'],
-      rules: {
-        'import/no-extraneous-dependencies': 0,
+      env: {
+        node: true,
+      },
+      settings: {
+        'import/resolver': {
+          node: {},
+        },
       },
     },
     {
@@ -79,7 +90,6 @@ module.exports = {
         'import/no-named-as-default-member': 0,
         'import/prefer-default-export': 0,
         indent: 0,
-        'jsx-a11y/anchor-has-content': 0,
         'jsx-a11y/anchor-is-valid': 0, // disabled temporarily
         'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
         'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
@@ -194,7 +204,6 @@ module.exports = {
     'import/no-named-as-default': 0,
     'import/prefer-default-export': 0,
     indent: 0,
-    'jsx-a11y/anchor-has-content': 0,
     'jsx-a11y/anchor-is-valid': 0, // disabled temporarily
     'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
@@ -240,11 +249,5 @@ module.exports = {
     'react/require-default-props': 0,
     'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',
-  },
-  settings: {
-    'import/resolver': 'webpack',
-    react: {
-      version: 'detect',
-    },
   },
 };

@@ -16,29 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import React from 'react';
+import { styled } from '@superset-ui/core';
+import {
+  CheckboxChecked,
+  CheckboxUnchecked,
+} from 'src/components/CheckboxIcons';
 
-export const commonMenuData = {
-  name: t('Data'),
-  children: [
-    {
-      name: 'Datasets',
-      label: t('Datasets'),
-      url: '/tablemodelview/list/',
-      usesRouter: true,
-    },
-    {
-      name: 'Databases',
-      label: t('Databases'),
-      url: '/databaseview/list/',
-      usesRouter: true,
-    },
-    {
-      name: 'Saved Queries',
-      label: t('Saved Queries'),
-      url: '/savedqueryview/list/',
-      usesRouter: isFeatureEnabled(FeatureFlag.SIP_34_SAVED_QUERIES_UI),
-    },
-  ],
-};
+interface CheckboxProps {
+  checked: boolean;
+  onChange: (val?: boolean) => {};
+  style: object;
+}
+
+const Styles = styled.span`
+  &,
+  & svg {
+    vertical-align: top;
+  }
+`;
+
+export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
+  return (
+    <Styles
+      style={style}
+      onClick={() => {
+        onChange(!checked);
+      }}
+      role="checkbox"
+      tabIndex={0}
+      aria-checked={checked}
+      aria-label="Checkbox"
+    >
+      {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
+    </Styles>
+  );
+}
