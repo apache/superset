@@ -169,5 +169,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export { App };
 export default connect(mapStateToProps, mapDispatchToProps)(App);

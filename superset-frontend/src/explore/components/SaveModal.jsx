@@ -250,5 +250,4 @@ function mapStateToProps({ explore, saveModal }) {
   };
 }
 
-export { SaveModal };
 export default connect(mapStateToProps, () => ({}))(SaveModal);

@@ -25,7 +25,7 @@ import {
 } from 'src/SqlLab/constants';
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import LimitControl from 'src/SqlLab/components/LimitControl';
-import SouthPane from 'src/SqlLab/components/SouthPane';
+import ConnectedSouthPane from 'src/SqlLab/components/SouthPane';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 
@@ -64,15 +64,15 @@ describe('SqlEditor', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
     expect(wrapper.find(AceEditorWrapper)).toExist();
   });
-  it('render an SouthPane', () => {
+  it('render a SouthPane', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
-    expect(wrapper.find(SouthPane)).toExist();
+    expect(wrapper.find(ConnectedSouthPane)).toExist();
   });
   it('does not overflow the editor window', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
     const totalSize =
       parseFloat(wrapper.find(AceEditorWrapper).props().height) +
-      wrapper.find(SouthPane).props().height +
+      wrapper.find(ConnectedSouthPane).props().height +
       SQL_TOOLBAR_HEIGHT +
       SQL_EDITOR_GUTTER_MARGIN * 2 +
       SQL_EDITOR_GUTTER_HEIGHT;
@@ -83,7 +83,7 @@ describe('SqlEditor', () => {
     wrapper.setState({ height: 450 });
     const totalSize =
       parseFloat(wrapper.find(AceEditorWrapper).props().height) +
-      wrapper.find(SouthPane).props().height +
+      wrapper.find(ConnectedSouthPane).props().height +
       SQL_TOOLBAR_HEIGHT +
       SQL_EDITOR_GUTTER_MARGIN * 2 +
       SQL_EDITOR_GUTTER_HEIGHT;

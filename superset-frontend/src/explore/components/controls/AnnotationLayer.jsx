@@ -34,8 +34,9 @@ import SelectControl from './SelectControl';
 import TextControl from './TextControl';
 import CheckboxControl from './CheckboxControl';
 
-import ANNOTATION_TYPES, {
+import {
   ANNOTATION_SOURCE_TYPES,
+  ANNOTATION_TYPES,
   ANNOTATION_TYPES_METADATA,
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
