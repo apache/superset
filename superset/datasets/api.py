@@ -1,4 +1,4 @@
-# Licensed to the Apache Software Foundation (ASF) under one
+#  Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
 # regarding copyright ownership.  The ASF licenses this file
@@ -207,7 +207,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
-            logger.error(
+            logger.info(
                 "Error creating model %s: %s", self.__class__.__name__, str(ex)
             )
             return self.response_422(message=str(ex))
@@ -276,7 +276,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
         except DatasetUpdateFailedError as ex:
-            logger.error(
+            logger.info(
                 "Error updating model %s: %s", self.__class__.__name__, str(ex)
             )
             response = self.response_422(message=str(ex))
@@ -326,7 +326,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetForbiddenError:
             return self.response_403()
         except DatasetDeleteFailedError as ex:
-            logger.error(
+            logger.info(
                 "Error deleting model %s: %s", self.__class__.__name__, str(ex)
             )
             return self.response_422(message=str(ex))
@@ -428,7 +428,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetForbiddenError:
             return self.response_403()
         except DatasetRefreshFailedError as ex:
-            logger.error(
+            logger.info(
                 "Error refreshing dataset %s: %s", self.__class__.__name__, str(ex)
             )
             return self.response_422(message=str(ex))
