@@ -22,6 +22,7 @@ import React, {
   Component,
   FunctionComponent,
   RefObject,
+  ReactElement,
 } from 'react';
 import {
   ListChildComponentProps,
@@ -53,10 +54,15 @@ export type WindowedMenuListProps = {
  * If may also be `Component<GroupProps<OptionType>>[]` but we are not supporting
  * grouped options just yet.
  */
+
+type MenuListPropsChildren<OptionType> =
+  | Component<OptionProps<OptionType>>[]
+  | ReactElement[];
+
 export type MenuListProps<
   OptionType extends OptionTypeBase
 > = MenuListComponentProps<OptionType> & {
-  children: Component<OptionProps<OptionType>>[];
+  children: MenuListPropsChildren<OptionType>;
   // theme is not present with built-in @types/react-select, but is actually
   // available via CommonProps.
   theme?: ThemeConfig;
@@ -68,7 +74,7 @@ const DEFAULT_OPTION_HEIGHT = 30;
 /**
  * Get the index of the last selected option.
  */
-function getLastSelected(children: Component<any>[]) {
+function getLastSelected(children: MenuListPropsChildren<any>) {
   return Array.isArray(children)
     ? children.findIndex(
         ({ props: { isFocused = false } = {} }) => isFocused,
