@@ -70,9 +70,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     def tearDown(self):
 
         with app.test_request_context():
-            try:
-                self.logout()
-            except
+            self.logout()
             self.login("admin")
             dashboard_utils.delete_all_inserted_dashboards()
             self.logout()
