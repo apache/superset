@@ -101,7 +101,6 @@ module.exports = {
         'no-multi-spaces': 0,
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
-        'no-restricted-syntax': 0,
         'no-restricted-imports': [
           'error',
           {
@@ -215,7 +214,6 @@ module.exports = {
     'no-multi-spaces': 0,
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
-    'no-restricted-syntax': 0,
     'no-restricted-imports': [
       'error',
       {

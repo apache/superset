@@ -110,10 +110,9 @@ class TableElement extends React.PureComponent {
           />
         );
       }
-      let latest = [];
-      for (const k in table.partitions.latest) {
-        latest.push(`${k}=${table.partitions.latest[k]}`);
-      }
+      let latest = Object.entries(table.partitions.latest).map(
+        ([key, value]) => `${key}=${value}`,
+      );
       latest = latest.join('/');
       header = (
         <Well bsSize="small">
