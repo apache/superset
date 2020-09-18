@@ -51,22 +51,19 @@ export function validateControl(control, processedState) {
 /**
  * Find control item from control panel config.
  */
-function findControlItem(controlPanelSections, controlKey) {
-  for (const section of controlPanelSections) {
-    for (const controlArr of section.controlSetRows) {
-      for (const control of controlArr) {
-        if (controlKey === control) return control;
-        if (
-          control !== null &&
-          typeof control === 'object' &&
-          control.name === controlKey
-        ) {
-          return control;
-        }
-      }
-    }
-  }
-  return null;
+export function findControlItem(controlPanelSections, controlKey) {
+  return (
+    controlPanelSections
+      .map(section => section.controlSetRows)
+      .flat(2)
+      .find(
+        control =>
+          controlKey === control ||
+          (control !== null &&
+            typeof control === 'object' &&
+            control.name === controlKey),
+      ) ?? null
+  );
 }
 
 export const getControlConfig = memoizeOne(function getControlConfig(
