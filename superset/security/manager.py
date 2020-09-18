@@ -844,8 +844,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
     def set_perm(
-        self, mapper: Mapper,  # pylint: disable=no-self-use,unused-argument
-        connection: Connection, target: "BaseDatasource"
+        self,
+        mapper: Mapper,  # pylint: disable=no-self-use,unused-argument
+        connection: Connection,
+        target: "BaseDatasource",
     ) -> None:
         """
         Set the datasource permissions.
@@ -1122,7 +1124,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def del_all_roles_associations(self, permission_view: PermissionView) -> None:
         self.get_session.execute(
-            assoc_permissionview_role  # pylint: disable=no-value-for-parameter
-            .delete()
-            .where(assoc_permissionview_role.c.permission_view_id == permission_view.id)
+            assoc_permissionview_role.delete().where(  # pylint: disable=no-value-for-parameter
+                assoc_permissionview_role.c.permission_view_id == permission_view.id
+            )
         )

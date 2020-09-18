@@ -97,14 +97,15 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query
 
     @classmethod
-    def apply_dashboard_filter_based_on_datasources_permissions(cls,
-                                                                query: Query) -> Query:
+    def apply_dashboard_filter_based_on_datasources_permissions(
+        cls, query: Query
+    ) -> Query:
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         published_dash_query = (
             db.session.query(Dashboard.id)
-                .join(Dashboard.slices)
-                .filter(
+            .join(Dashboard.slices)
+            .filter(
                 and_(
                     Dashboard.published == True,  # pylint: disable=singleton-comparison
                     or_(

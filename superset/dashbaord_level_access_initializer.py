@@ -42,11 +42,10 @@ class InitDashboardLevelAccessCommand:  # pylint:disable=too-few-public-methods
 
     def __create_all_dashboards_permissions(self) -> None:
         logger.info("start create_all_dashboards_permissions")
-        self.__access_all_dashboards_permission_view = \
-            security_manager.add_permission_view_menu(
-                SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
-                SecurityConsts.AllDashboard.VIEW_NAME,
-            )
+        self.__access_all_dashboards_permission_view = security_manager.add_permission_view_menu(
+            SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
+            SecurityConsts.AllDashboard.VIEW_NAME,
+        )
         logger.info("done create_all_dashboards_permissions")
 
     def __add_all_dashboards_permissions_to_permitted_roles(self) -> None:
