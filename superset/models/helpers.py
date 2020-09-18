@@ -322,11 +322,11 @@ class ImportMixin:
         return json_to_dict(self.template_params)  # type: ignore
 
 
-def _user_link(_user: User) -> Union[Markup, str]:
-    if not _user:
+def _user_link(user: User) -> Union[Markup, str]:
+    if not user:
         return ""
-    url = "/superset/profile/{}/".format(_user.username)
-    return Markup('<a href="{}">{}</a>'.format(url, escape(_user) or ""))
+    url = "/superset/profile/{}/".format(user.username)
+    return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ""))
 
 
 class AuditMixinNullable(AuditMixin):
@@ -427,7 +427,11 @@ class ExtraJSONMixin:
             return json.loads(self.extra_json)
         except (TypeError, JSONDecodeError) as exc:
             logger.error(
-                "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
+                "Unable to load an extra JSON: %r. "
+                "Leaving empty. Extra JSON content: %d",
+                exc,
+                self.extra_json,
+                exc_info=True,
             )
             return {}
 
