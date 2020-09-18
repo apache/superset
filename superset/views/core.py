@@ -1425,7 +1425,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/dashboard/<dashboard_id>/stop/", methods=["POST"])
+    @expose("/dashboard/<int:dashboard_id>/stop/", methods=["POST"])
     def stop_dashboard_queries(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1437,7 +1437,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             for dbid in database_ids:
                 mydb = db.session.query(models.Database).get(dbid)
                 if mydb:
-                    mydb.db_engine_spec.stop_queries(username, dashboard_id)
+                    mydb.db_engine_spec.stop_queries(username, int(dashboard_id))
 
         return Response(status=200)
 

@@ -33,6 +33,7 @@ from sqlalchemy.exc import ArgumentError
 
 import tests.test_app
 from superset import app, db, security_manager
+from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import CertificateException, SupersetException
 from superset.models.core import Database, Log
 from superset.models.dashboard import Dashboard
@@ -46,6 +47,7 @@ from superset.utils.core import (
     get_form_data_token,
     get_iterable,
     get_email_address_list,
+    get_example_database,
     get_or_create_db,
     get_since_until,
     get_stacktrace,
@@ -1142,9 +1144,74 @@ class TestUtils(SupersetTestCase):
         dash_id = world_health.id
         database_ids = get_database_ids(dash_id)
         assert len(database_ids) == 1
+        assert database_ids == [get_example_database().id]
 
-        world_slice = (
-            db.session.query(Slice).filter_by(slice_name="World's Population").one()
-        )
-        database_id = world_slice.datasource.database.id
-        assert database_ids == [database_id]
+    def test_get_database_ids_empty_dash(self) -> None:
+        # test dash with no slice
+        dashboard = Dashboard(dashboard_title="no slices", id=101, slices=[])
+        with patch("superset.db.session.query") as mock_query:
+            mock_query.return_value.filter_by.return_value.one.return_value = dashboard
+            database_ids = get_database_ids(dashboard.id)
+            assert database_ids == []
+
+    def test_get_database_ids_multiple_databases(self) -> None:
+        # test dash with 2 databases
+        datasource_1 = Mock()
+        datasource_1.type = "table"
+        datasource_1.datasource_name = "table_datasource_1"
+        datasource_1.database = Mock()
+
+        datasource_2 = Mock()
+        datasource_2.type = "table"
+        datasource_2.datasource_name = "table_datasource_2"
+        datasource_2.database = Mock()
+
+        slices = [
+            Slice(
+                datasource_id=datasource_1.id,
+                datasource_type=datasource_1.type,
+                datasource_name=datasource_1.datasource_name,
+                slice_name="slice_name_1",
+            ),
+            Slice(
+                datasource_id=datasource_2.id,
+                datasource_type=datasource_2.type,
+                datasource_name=datasource_2.datasource_name,
+                slice_name="slice_name_2",
+            ),
+        ]
+        dashboard = Dashboard(dashboard_title="with 2 slices", id=102, slices=slices)
+        with patch("superset.db.session.query") as mock_query:
+            mock_query.return_value.filter_by.return_value.one.return_value = dashboard
+            mock_query.return_value.filter_by.return_value.first.side_effect = [
+                datasource_1,
+                datasource_2,
+            ]
+            database_ids = get_database_ids(dashboard.id)
+            self.assertCountEqual(
+                database_ids, [datasource_1.database.id, datasource_2.database.id]
+            )
+
+    def test_get_database_ids_druid(self) -> None:
+        druid_datasource = Mock()
+        druid_datasource.type = "druid"
+        druid_datasource.datasource_name = "druid_datasource_1"
+        druid_datasource.cluster = Mock()
+
+        slices = [
+            Slice(
+                datasource_id=druid_datasource.id,
+                datasource_type=druid_datasource.type,
+                datasource_name=druid_datasource.datasource_name,
+                slice_name="slice_name_1",
+            ),
+        ]
+        dashboard = Dashboard(dashboard_title="druid dash", id=103, slices=slices)
+        with patch("superset.db.session.query") as mock_query:
+            mock_query.return_value.filter_by.return_value.one.return_value = dashboard
+            mock_query.return_value.filter_by.return_value.first.return_value = (
+                druid_datasource
+            )
+            database_ids = get_database_ids(dashboard.id)
+            # druid slice has no database id
+            assert database_ids == []

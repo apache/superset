@@ -222,21 +222,20 @@ def get_database_ids(dashboard_id: int) -> List[int]:
     """
     dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
     slices = dashboard.slices
-    datasource_ids = set()
-    database_ids = set()
+    datasource_ids: Set[int] = set()
+    database_ids: Set[int] = set()
 
     for slc in slices:
-        datasource_type = slc.datasource.type
-        datasource_id = slc.datasource.id
-
-        if datasource_id and datasource_type:
-            ds_class = ConnectorRegistry.sources.get(datasource_type)
-            datasource = db.session.query(ds_class).filter_by(id=datasource_id).one()
-            if datasource and datasource_id not in datasource_ids:
-                datasource_ids.add(datasource_id)
-                database = datasource.database
-                if database:
-                    database_ids.add(database.id)
+        datasource = slc.datasource
+        if (
+            datasource
+            and datasource.type == "table"
+            and datasource.id not in datasource_ids
+        ):
+            datasource_ids.add(datasource.id)
+            database = datasource.database
+            if database:
+                database_ids.add(database.id)
 
     return list(database_ids)
 

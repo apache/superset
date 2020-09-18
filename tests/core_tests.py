@@ -1251,7 +1251,7 @@ class TestCore(SupersetTestCase):
 
             self.assertTrue(is_feature_enabled("STOP_DASHBOARD_PENDING_QUERIES"))
             self.assertEqual(resp.status_code, 200)
-            mock_stop_queries.assert_called_once()
+            mock_stop_queries.assert_called_once_with(username, dashboard.id)
 
 
 if __name__ == "__main__":
