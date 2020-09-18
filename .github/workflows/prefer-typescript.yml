@@ -2,8 +2,6 @@ name: Prefer TypeScript
 
 on:
   pull_request:
-    paths-ignore:
-      - 'docs/**'
     branches:
       - master
 
