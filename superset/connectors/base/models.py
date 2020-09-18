@@ -410,7 +410,7 @@ class BaseDatasource(
         fkmany: List[Column],
         fkmany_class: Type[Union["BaseColumn", "BaseMetric"]],
         key_attr: str,
-    ) -> List[Column]:  # pylint: disable=too-many-locals
+    ) -> List[Column]:
         """Update ORM one-to-many list from object list
 
         Used for syncing metrics and columns using the same code"""
