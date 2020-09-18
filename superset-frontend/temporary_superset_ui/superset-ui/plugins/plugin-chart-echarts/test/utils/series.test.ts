@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extractGroupbyLabel, extractTimeseriesSeries } from '../../src/utils/series';
+import { getNumberFormatter, getTimeFormatter } from '@superset-ui/core';
+import {
+  extractGroupbyLabel,
+  extractTimeseriesSeries,
+  formatSeriesName,
+} from '../../src/utils/series';
 
 describe('extractTimeseriesSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {
@@ -60,20 +65,56 @@ describe('extractTimeseriesSeries', () => {
 
 describe('extractGroupbyLabel', () => {
   it('should join together multiple groupby labels', () => {
-    expect(extractGroupbyLabel({ a: 'abc', b: 'qwerty' }, ['a', 'b'])).toEqual('abc, qwerty');
+    expect(extractGroupbyLabel({ datum: { a: 'abc', b: 'qwerty' }, groupby: ['a', 'b'] })).toEqual(
+      'abc, qwerty',
+    );
   });
 
   it('should handle a single groupby', () => {
-    expect(extractGroupbyLabel({ xyz: 'qqq' }, ['xyz'])).toEqual('qqq');
+    expect(extractGroupbyLabel({ datum: { xyz: 'qqq' }, groupby: ['xyz'] })).toEqual('qqq');
   });
 
   it('should handle mixed types', () => {
     expect(
-      extractGroupbyLabel({ strcol: 'abc', intcol: 123, floatcol: 0.123 }, [
-        'strcol',
-        'intcol',
-        'floatcol',
-      ]),
-    ).toEqual('abc, 123, 0.123');
+      extractGroupbyLabel({
+        datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
+        groupby: ['strcol', 'intcol', 'floatcol', 'boolcol'],
+      }),
+    ).toEqual('abc, 123, 0.123, true');
+  });
+});
+
+describe('formatSeriesName', () => {
+  const numberFormatter = getNumberFormatter();
+  const timeFormatter = getTimeFormatter();
+  it('should handle missing values properly', () => {
+    expect(formatSeriesName(undefined)).toEqual('<NULL>');
+    expect(formatSeriesName(null)).toEqual('<NULL>');
+  });
+
+  it('should handle string values properly', () => {
+    expect(formatSeriesName('abc XYZ!')).toEqual('abc XYZ!');
+  });
+
+  it('should handle boolean values properly', () => {
+    expect(formatSeriesName(true)).toEqual('true');
+  });
+
+  it('should use default formatting for numeric values without formatter', () => {
+    expect(formatSeriesName(12345678.9)).toEqual('12345678.9');
+  });
+
+  it('should use numberFormatter for numeric values when formatter is provided', () => {
+    expect(formatSeriesName(12345678.9, { numberFormatter })).toEqual('12.3M');
+  });
+
+  it('should use default formatting for for date values without formatter', () => {
+    expect(formatSeriesName(new Date('2020-09-11'))).toEqual('2020-09-11T00:00:00.000Z');
+  });
+
+  it('should use timeFormatter for date values when formatter is provided', () => {
+    expect(formatSeriesName(new Date('2020-09-11'), { timeFormatter })).toEqual(
+      '2020-09-11 00:00:00',
+    );
   });
 });

@@ -17,13 +17,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, TimeseriesDataRecord } from '@superset-ui/core';
+import {
+  DataRecord,
+  DataRecordValue,
+  NumberFormatter,
+  TimeFormatter,
+  TimeseriesDataRecord,
+} from '@superset-ui/core';
+import { NULL_STRING } from '../constants';
 
 export function extractTimeseriesSeries(
   data: TimeseriesDataRecord[],
 ): echarts.EChartOption.Series[] {
   if (data.length === 0) return [];
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   const rows = data.map(datum => ({
     ...datum,
     __timestamp: datum.__timestamp || datum.__timestamp === 0 ? new Date(datum.__timestamp) : null,
@@ -39,7 +45,43 @@ export function extractTimeseriesSeries(
     }));
 }
 
-export function extractGroupbyLabel(datum: DataRecord, groupby: string[]): string {
-  // TODO: apply formatting to dates and numbers
-  return groupby.map(val => `${datum[val]}`).join(', ');
+export function formatSeriesName(
+  name: DataRecordValue | undefined,
+  {
+    numberFormatter,
+    timeFormatter,
+  }: {
+    numberFormatter?: NumberFormatter;
+    timeFormatter?: TimeFormatter;
+  } = {},
+): string {
+  if (name === undefined || name === null) {
+    return NULL_STRING;
+  }
+  if (typeof name === 'number') {
+    return numberFormatter ? numberFormatter(name) : name.toString();
+  }
+  if (typeof name === 'boolean') {
+    return name.toString();
+  }
+  if (name instanceof Date) {
+    return timeFormatter ? timeFormatter(name) : name.toISOString();
+  }
+  return name;
+}
+
+export function extractGroupbyLabel({
+  datum,
+  groupby,
+  numberFormatter,
+  timeFormatter,
+}: {
+  datum: DataRecord;
+  groupby: string[];
+  numberFormatter?: NumberFormatter;
+  timeFormatter?: TimeFormatter;
+}): string {
+  return groupby
+    .map(val => formatSeriesName(datum[val], { numberFormatter, timeFormatter }))
+    .join(', ');
 }

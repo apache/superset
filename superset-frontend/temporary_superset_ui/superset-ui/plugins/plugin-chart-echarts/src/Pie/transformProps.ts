@@ -72,12 +72,12 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   } = formData as PieChartFormData;
   const { label: metricLabel } = convertMetric(metric);
 
-  const keys = data.map(datum => extractGroupbyLabel(datum, groupby));
+  const keys = data.map(datum => extractGroupbyLabel({ datum, groupby }));
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
 
   const transformedData = data.map(datum => {
-    const name = extractGroupbyLabel(datum, groupby);
+    const name = extractGroupbyLabel({ datum, groupby });
     return {
       value: datum[metricLabel],
       name,
