@@ -213,17 +213,17 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         extra_cache_keys: Optional[List[Any]] = None,
         **kwargs: Any,
     ) -> None:
-        self.database = database
-        self.query = query
-        self.schema = None
+        self._database = database
+        self._query = query
+        self._schema = None
         if query and query.schema:
-            self.schema = query.schema
+            self._schema = query.schema
         elif table:
-            self.schema = table.schema
+            self._schema = table.schema
 
         extra_cache = ExtraCache(extra_cache_keys)
 
-        self.context = {
+        self._context = {
             "url_param": extra_cache.url_param,
             "current_user_id": extra_cache.current_user_id,
             "current_username": extra_cache.current_username,
@@ -231,11 +231,11 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
             "filter_values": filter_values,
             "form_data": {},
         }
-        self.context.update(kwargs)
-        self.context.update(jinja_base_context)
+        self._context.update(kwargs)
+        self._context.update(jinja_base_context)
         if self.engine:
-            self.context[self.engine] = self
-        self.env = SandboxedEnvironment()
+            self._context[self.engine] = self
+        self._env = SandboxedEnvironment()
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
@@ -244,8 +244,8 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        template = self.env.from_string(sql)
-        kwargs.update(self.context)
+        template = self._env.from_string(sql)
+        kwargs.update(self._context)
         return template.render(kwargs)
 
 
@@ -288,20 +288,20 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
 
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
-        table_name, schema = self._schema_table(table_name, self.schema)
-        return cast(PrestoEngineSpec, self.database.db_engine_spec).latest_partition(
-            table_name, schema, self.database
+        table_name, schema = self._schema_table(table_name, self._schema)
+        return cast(PrestoEngineSpec, self._database.db_engine_spec).latest_partition(
+            table_name, schema, self._database
         )[1]
 
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
-        table_name, schema = self._schema_table(table_name, self.schema)
+        table_name, schema = self._schema_table(table_name, self._schema)
 
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         return cast(
-            PrestoEngineSpec, self.database.db_engine_spec
+            PrestoEngineSpec, self._database.db_engine_spec
         ).latest_sub_partition(
-            table_name=table_name, schema=schema, database=self.database, **kwargs
+            table_name=table_name, schema=schema, database=self._database, **kwargs
         )
 
     latest_partition = first_latest_partition
