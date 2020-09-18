@@ -32,7 +32,9 @@ logger = logging.getLogger(__name__)
 
 class InitDashboardLevelAccessCommand:  # pylint:disable=too-few-public-methods
     def __init__(self) -> None:
-        self.__access_all_dashboards_permission_view = None
+        self.__access_all_dashboards_permission_view = (  # pylint:disable=invalid-name
+            None
+        )
         self.__session = db.session
 
     def run(self) -> None:
@@ -40,15 +42,23 @@ class InitDashboardLevelAccessCommand:  # pylint:disable=too-few-public-methods
         self.__add_all_dashboards_permissions_to_permitted_roles()
         self.__create_permissions_for_current_dashboards()
 
-    def __create_all_dashboards_permissions(self) -> None:
+    def __create_all_dashboards_permissions(  # pylint:disable=invalid-name
+        self,
+    ) -> None:
         logger.info("start create_all_dashboards_permissions")
-        self.__access_all_dashboards_permission_view = security_manager.add_permission_view_menu(
+        self.__access_all_dashboards_permission_view = self.create_pmv()
+        logger.info("done create_all_dashboards_permissions")
+
+    @staticmethod
+    def create_pmv() -> security_manager.permissionview_model:
+        return security_manager.add_permission_view_menu(
             SecurityConsts.AllDashboard.ACCESS_PERMISSION_NAME,
             SecurityConsts.AllDashboard.VIEW_NAME,
         )
-        logger.info("done create_all_dashboards_permissions")
 
-    def __add_all_dashboards_permissions_to_permitted_roles(self) -> None:
+    def __add_all_dashboards_permissions_to_permitted_roles(  # pylint:disable=invalid-name
+        self,
+    ) -> None:
         logger.info("start add_all_dashboards_permissions_to_permitted_roles")
         roles = (
             self.__session.query(Role)
@@ -67,7 +77,9 @@ class InitDashboardLevelAccessCommand:  # pylint:disable=too-few-public-methods
         self.__session.commit()
         logger.info("done add_all_dashboards_permissions_to_permitted_roles")
 
-    def __create_permissions_for_current_dashboards(self) -> None:
+    def __create_permissions_for_current_dashboards(  # pylint:disable=invalid-name
+        self,
+    ) -> None:
         logger.info("start create_permissions_for_current_dashboards")
         dashboards = self.__session.query(Dashboard).all()
         for dashboard in dashboards:
