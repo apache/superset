@@ -345,7 +345,7 @@ npm run clean
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/docs/installation/installing-from -scratch) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 
 Ensure Python versions >3.7, Then proceed with:
 

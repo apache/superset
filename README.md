@@ -74,20 +74,6 @@ deck.gl geospatial charts.
 ## Why Superset
 
 Superset provides:
-
-Viewed
-
-A modern, enterprise-ready business intelligence web application.	Apache Superset (Incubating) is a modern,
-enterprise-ready business intelligence web application. It is fast, lightweight, intuitive,
-and loaded with options that make it easy for users of all skill sets to explore and visualize
-their data, from simple pie charts to highly detailed deck.gl geospatial charts.
-
-[**Why Superset**](#why-superset) |
-[**Supported Databases**](#supported-databases) |
-
-## Why Superset
-
-Superset provides:
 - A rich set of data visualizations out of the box
 - An easy-to-use interface for exploring and visualizing data
 - The ability to easily create and share dashboards
@@ -113,7 +99,6 @@ Superset is also cloud-native in the sense that it is flexible and lets you choo
 - caching layer (Memcached, Redis, etc),
 
 Superset also works well with services like NewRelic, StatsD and DataDog, and has the ability to run analytic workloads against most popular database technologies.
-
 
 ## Supported Databases
 
