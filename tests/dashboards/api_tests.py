@@ -33,6 +33,7 @@ from superset.views.base import generate_download_headers
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
 from tests.dashboards import dashboard_test_utils as dashboard_utils
+from tests.dashboards.dashboard_test_utils import set_dashboard_level_access
 
 
 class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
@@ -56,7 +57,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     def random_slug(self):
         return f"slug{self.random_str()}"
 
-    def random_str(self):
+    @staticmethod
+    def random_str():
         def get_random_string(length):
             import random
 
@@ -125,7 +127,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test info
         """
         self.login(username="admin")
-        uri = f"api/v1/dashboard/_info"
+        uri = "api/v1/dashboard/_info"
         rv = self.get_assert_metric(uri, "info")
         self.assertEqual(rv.status_code, 200)
 
@@ -162,7 +164,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         admin = self.get_user("admin")
         start_changed_on = datetime.now()
-        dashboard = dashboard_utils.insert_dashboard(
+        dashboard_utils.insert_dashboard(
             self.random_title(), self.random_slug(), [admin.id]
         )
 
@@ -182,10 +184,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             humanize.naturaltime(datetime.now() - start_changed_on),
         )
 
-        # rollback changes
-        # appbuilder.get_session.delete(dashboard)
-        # appbuilder.get_session.commit()
-
     def test_get_dashboards_filter(self):
         """
         Dashboard API: Test get dashboards filter
@@ -193,7 +191,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
         title = self.random_title()
-        dashboard = dashboard_utils.insert_dashboard(
+        dashboard_utils.insert_dashboard(
             title, self.random_slug(), [admin.id, gamma.id]
         )
 
@@ -225,10 +223,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test get dashboards custom filter
         """
         admin = self.get_user("admin")
-        dashboard1 = dashboard_utils.insert_dashboard("foo_a", "ZY_bar", [admin.id])
-        dashboard2 = dashboard_utils.insert_dashboard("zy_foo", "slug1", [admin.id])
-        dashboard3 = dashboard_utils.insert_dashboard("foo_b", "slug1zy_", [admin.id])
-        dashboard4 = dashboard_utils.insert_dashboard("bar", "foo", [admin.id])
+        dashboard_utils.insert_dashboard("foo_a", "ZY_bar", [admin.id])
+        dashboard_utils.insert_dashboard("zy_foo", "slug1", [admin.id])
+        dashboard_utils.insert_dashboard("foo_b", "slug1zy_", [admin.id])
+        dashboard_utils.insert_dashboard("bar", "foo", [admin.id])
 
         arguments = {
             "filters": [
@@ -265,20 +263,13 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 0)
 
-        # rollback changes
-        # appbuilder.get_session.delete(dashboard1)
-        # appbuilder.get_session.delete(dashboard2)
-        # appbuilder.get_session.delete(dashboard3)
-        # appbuilder.get_session.delete(dashboard4)
-        # appbuilder.get_session.commit()
-
     def test_get_dashboards_no_data_access(self):
         """
         Dashboard API: Test get dashboards no data access
         """
         admin = self.get_user("admin")
         title = f"title{self.random_str()}"
-        dashboard = dashboard_utils.insert_dashboard(title, "slug1", [admin.id])
+        dashboard_utils.insert_dashboard(title, "slug1", [admin.id])
 
         self.login(username="gamma")
         arguments = {
@@ -290,18 +281,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(0, data["count"])
 
-        # rollback changes
-        # appbuilder.get_session.delete(dashboard)
-        # appbuilder.get_session.commit()
-
-    @mark.skipif(
-        not dashboard_utils.is_dashboard_level_access_enabled(),
-        reason="DashboardLevelAccess flag is not disable",
-    )
     def test_delete_dashboard_with_dashboard_level_access(self):
         """
         Dashboard API: Test delete
         """
+        set_dashboard_level_access(True)
         admin_id = self.get_user("admin").id
         dashboard = dashboard_utils.insert_dashboard(
             f"title{self.random_str()}", "slug1", [admin_id]
@@ -316,15 +300,13 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model, None)
         dashboard_utils.assert_permissions_were_deleted(self, dashboard)
         dashboard_utils.clean_dashboard_matching_roles()
+        set_dashboard_level_access(False)
 
-    @mark.skipif(
-        dashboard_utils.is_dashboard_level_access_enabled(),
-        reason="deprecated test, when DashboardLevelAccess flag is enabled",
-    )
     def test_delete_dashboard(self):
         """
         Dashboard API: Test delete
         """
+        set_dashboard_level_access(False)
         admin_id = self.get_user("admin").id
         dashboard_id = dashboard_utils.insert_dashboard(
             f"title{self.random_str()}", "slug1", [admin_id]

@@ -17,7 +17,12 @@
 import logging
 from typing import List, Optional
 
-from superset import appbuilder, is_feature_enabled, security_manager
+from superset import (
+    appbuilder,
+    feature_flag_manager,
+    is_feature_enabled,
+    security_manager,
+)
 from superset.constants import Security
 from superset.models.dashboard import Dashboard, dashboard_slices, dashboard_user
 from superset.models.slice import Slice
@@ -76,6 +81,12 @@ def is_dashboard_level_access_enabled():
     return is_feature_enabled(Security.DASHBOARD_LEVEL_ACCESS_FEATURE)
 
 
+def set_dashboard_level_access(enabled: bool):
+    feature_flag_manager._feature_flags[
+        Security.DASHBOARD_LEVEL_ACCESS_FEATURE
+    ] = enabled
+
+
 inserted_dashboards_ids = []
 
 
@@ -127,7 +138,7 @@ def delete_all_inserted_dashboards():
                     if is_dashboard_level_access_enabled():
                         dashboard.del_permissions_views()
                     session.execute(
-                        dashboard_user.delete().where(
+                        dashboard_user.delete().where(  # pylint:disable=no-value-for-parameter
                             dashboard_user.c.dashboard_id == dashboard.id
                         )
                     )
