@@ -1,5 +1,5 @@
 # Python unit tests
-name: Python
+name: Python Dashboard Level Access
 
 on: [push, pull_request]
 
