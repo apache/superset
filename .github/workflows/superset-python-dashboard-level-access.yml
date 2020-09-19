@@ -1,5 +1,5 @@
 # Python unit tests
-name: Feature Flag -  Dashboard Level Access
+name: Feature Flag - Dashboard Level Access
 
 on: [push, pull_request]
 
@@ -215,7 +215,7 @@ jobs:
       run: |
         bash <(curl -s https://codecov.io/bash) -cF python
 
-  test-sqlite§
+  test-sqlite:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
