@@ -27,11 +27,7 @@ import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
-from superset.utils import feature_flag_manager
-from tests.dashboards.dashboard_test_utils import (
-    is_dashboard_level_access_enabled,
-    set_dashboard_level_access,
-)
+from tests.dashboards.dashboard_test_utils import is_dashboard_level_access_enabled
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -514,8 +510,11 @@ class TestRolePermission(SupersetTestCase):
         self.assertIsNotNone(vm)
         delete_schema_perm("[examples].[2]")
 
+    @pytest.mark.skipif(
+        is_dashboard_level_access_enabled(),
+        reason="with dashboard level access access to dashboard does not directly dependent on schema access",
+    )
     def test_gamma_user_schema_access_to_dashboards(self):
-        set_dashboard_level_access(False)
         self.login(username="gamma")
         data = str(self.client.get("api/v1/dashboard/").data)
         self.assertIn("/superset/dashboard/world_health/", data)

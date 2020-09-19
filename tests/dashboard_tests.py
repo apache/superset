@@ -31,7 +31,6 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from tests.dashboards.dashboard_test_utils import set_dashboard_level_access
 
 from .base_tests import SupersetTestCase
 from .dashboards import dashboard_test_utils as dashboard_utils
@@ -698,11 +697,14 @@ class TestDashboard(SupersetTestCase):
             self.revoke_public_access_to_table(table_to_access)
             self.revoke_access_to_all_dashboards(dashboard_level_access_enabled)
 
+    @mark.skipif(
+        not dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="DashboardLevelAccess flag is not disable",
+    )
     def test_get_dashboards__users_without_dashboard_permissions_can_not_view_published_dashboards(
         self,
     ):
         # arrange
-        set_dashboard_level_access(True)
         accessed_table_name = "energy_usage"
         accessed_table = (
             db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
@@ -738,13 +740,15 @@ class TestDashboard(SupersetTestCase):
             self.assertNotIn(published_dash.url, get_dashboards_response)
         finally:
             self.revoke_public_access_to_table(accessed_table)
-            set_dashboard_level_access(False)
 
+    @mark.skipif(
+        not dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="DashboardLevelAccess flag is not disable",
+    )
     def test_get_dashboards__users_with_all_dashboard_access_can_view_published_dashboard(
         self,
     ):
         # arrange
-        set_dashboard_level_access(True)
         accessed_table_name = "energy_usage"
         accessed_table = (
             db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
@@ -782,7 +786,6 @@ class TestDashboard(SupersetTestCase):
         finally:
             self.revoke_public_access_to_table(accessed_table)
             self.revoke_access_to_all_dashboards()
-            set_dashboard_level_access(False)
 
     def test_get_dashboards__users_can_view_permitted_dashboard(self):
         # arrange
@@ -875,9 +878,12 @@ class TestDashboard(SupersetTestCase):
             published=published,
         )
 
+    @mark.skipif(
+        not dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="DashboardLevelAccess flag is not disable",
+    )
     def test_get_dashboards__users_without_dashboard_permission(self):
         # arrange
-        set_dashboard_level_access(True)
         accessed_table_name = "energy_usage"
         accessed_table = (
             db.session.query(SqlaTable).filter_by(table_name=accessed_table_name).one()
@@ -944,9 +950,6 @@ class TestDashboard(SupersetTestCase):
         self.assertIn(my_owned_dashboard.url, get_dashboards_response)
         self.assertNotIn(not_my_owned_dashboard.url, get_dashboards_response)
 
-        # rollback
-        set_dashboard_level_access(False)
-
     def test_get_dashboards__owners_can_view_empty_dashboard(self):
         # arrange
         dash = db.session.query(Dashboard).filter_by(slug="empty_dashboard").first()
@@ -970,9 +973,12 @@ class TestDashboard(SupersetTestCase):
         # assert
         self.assertNotIn(dashboard_url, get_dashboards_response)
 
+    @mark.skipif(
+        dashboard_utils.is_dashboard_level_access_enabled(),
+        reason="with dashboard level access favorite by itself will not permit access to the dashboard",
+    )
     def test_get_dashboards__users_can_view_favorites_dashboards(self):
         # arrange
-        set_dashboard_level_access(False)
         user = security_manager.find_user("gamma")
         fav_dash_slug = f"my_favorite_dash_{random()}"
         regular_dash_slug = f"regular_dash_{random()}"
