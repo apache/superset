@@ -12,7 +12,7 @@ jobs:
           python-version: [3.8]
       env:
         PYTHONPATH: ${{ github.workspace }}
-        SUPERSET_CONFIG: tests.superset_test_config
+        SUPERSET_CONFIG: tests.superset_test_config_dashboard_level_access
         REDIS_PORT: 16379
         SUPERSET__SQLALCHEMY_DATABASE_URI:
           postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
@@ -59,7 +59,7 @@ jobs:
         run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
         run: |
-          export SUPERSET_CONFIG=./tests/superset_test_config_dashboard_level_access
+          ./scripts/python_tests.sh
       - name: Upload code coverage
         run: |
           bash <(curl -s https://codecov.io/bash) -cF python
