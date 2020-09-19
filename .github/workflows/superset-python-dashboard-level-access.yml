@@ -1,0 +1,255 @@
+# Python unit tests
+name: Python
+
+on: [push, pull_request]
+
+jobs:
+  test-postgres-presto:
+      runs-on: ubuntu-18.04
+      strategy:
+        matrix:
+          # run unit tests in multiple version just for fun
+          python-version: [3.8]
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+        SUPERSET_CONFIG: tests.superset_test_config
+        REDIS_PORT: 16379
+        SUPERSET__SQLALCHEMY_DATABASE_URI:
+          postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+        SUPERSET__SQLALCHEMY_EXAMPLES_URI:
+          presto://localhost:15433/memory/default
+      services:
+        postgres:
+          image: postgres:10-alpine
+          env:
+            POSTGRES_USER: superset
+            POSTGRES_PASSWORD: superset
+          ports:
+            # Use custom ports for services to avoid accidentally connecting to
+            # GitHub action runner's default installations
+            - 15432:5432
+        presto:
+          image: prestosql/presto:339
+          env:
+            POSTGRES_USER: superset
+            POSTGRES_PASSWORD: superset
+          ports:
+            # Use custom ports for services to avoid accidentally connecting to
+            # GitHub action runner's default installations
+            - 15433:8080
+        redis:
+          image: redis:5-alpine
+          ports:
+            - 16379:6379
+      steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2.1.1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        uses: apache-superset/cached-dependencies@b90713b
+        with:
+          run: |
+            apt-get-install
+            pip-upgrade
+            pip install -r requirements/testing.txt
+            setup-postgres
+      - name: Run celery
+        run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+      - name: Python unit tests (PostgreSQL)
+        run: |
+          export SUPERSET_CONFIG=./tests/superset_test_config_dashboard_level_access & ./scripts/python_tests.sh
+      - name: Upload code coverage
+        run: |
+          bash <(curl -s https://codecov.io/bash) -cF python
+
+  test-postgres-hive:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        # run unit tests in multiple version just for fun
+        python-version: [3.7, 3.8]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI:
+        postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: hive://localhost:10000/default
+      UPLOAD_FOLDER: /tmp/.superset/uploads/
+    services:
+      postgres:
+        image: postgres:10-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          # Use custom ports for services to avoid accidentally connecting to
+          # GitHub action runner's default installations
+          - 15432:5432
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Create csv upload directory
+      run: sudo mkdir -p /tmp/.superset/uploads
+    - name: Give write access to the csv upload directory
+      run: sudo chown -R $USER:$USER /tmp/.superset
+    - name: Start hadoop and hive
+      run: docker-compose -f scripts/databases/hive/docker-compose.yml up -d
+    - name: Setup Python
+      uses: actions/setup-python@v2.1.1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
+          setup-postgres
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+    - name: Python unit tests (PostgreSQL)
+      run: |
+        export SUPERSET_CONFIG=./tests/superset_test_config_dashboard_level_access & ./scripts/python_tests.sh
+    - name: Upload code coverage
+      run: |
+        bash <(curl -s https://codecov.io/bash) -cF python
+
+  test-postgres:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI:
+        postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+    services:
+      postgres:
+        image: postgres:10-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          # Use custom ports for services to avoid accidentally connecting to
+          # GitHub action runner's default installations
+          - 15432:5432
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.1.1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
+          setup-postgres
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+    - name: Python unit tests (PostgreSQL)
+      run: |
+        export SUPERSET_CONFIG=./tests/superset_test_config_dashboard_level_access & ./scripts/python_tests.sh
+    - name: Upload code coverage
+      run: |
+        bash <(curl -s https://codecov.io/bash) -cF python
+
+  test-mysql:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.7]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 13306:3306
+      redis:
+        image: redis:5-alpine
+        options: --entrypoint redis-server
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.1.1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
+          setup-mysql
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+    - name: Python unit tests (MySQL)
+      run: |
+        export SUPERSET_CONFIG=./tests/superset_test_config_dashboard_level_access & ./scripts/python_tests.sh
+    - name: Upload code coverage
+      run: |
+        bash <(curl -s https://codecov.io/bash) -cF python
+
+  test-sqlite:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.7]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        sqlite:///${{ github.workspace }}/.temp/unittest.db
+    services:
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.1.1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/testing.txt
+          mkdir ${{ github.workspace }}/.temp
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+    - name: Python unit tests (SQLite)
+      run: |
+        export SUPERSET_CONFIG=./tests/superset_test_config_dashboard_level_access & ./scripts/python_tests.sh
+    - name: Upload code coverage
+      run: |
+        bash <(curl -s https://codecov.io/bash) -cF python
