@@ -18,13 +18,9 @@
  */
 import React from 'react';
 import { css } from '@emotion/core';
-import { Card, List } from 'antd';
 import { useStaticQuery, graphql } from 'gatsby';
-import { GithubOutlined } from '@ant-design/icons';
-import SEO from '../components/seo';
-import Layout from '../components/layout';
-import { pmc } from '../resources/data';
 import Gallery from 'react-grid-gallery';
+import Layout from '../components/layout';
 
 const galleryStyle = css`
   padding-top: 100px;
@@ -38,20 +34,27 @@ const galleryStyle = css`
   }
 `;
 
+const imageMeta = {
+  'bank_dash.png': { caption: "World's Bank Dashboard" },
+  'sqllab.png': { caption: 'SQL Lab' },
+  'chord_diagram.png': { caption: 'Explore' },
+
+};
+
 const GalleryPage = () => {
   const data = useStaticQuery(graphql`
     query {
-      allImages: allFile(filter: {relativeDirectory: {eq: "src/images/gallery"}}) {
+      allImages: allFile(filter: {extension: {eq: "png"}, relativeDirectory: {regex: "/gallery/"}})  {
         edges {
           node {
             thumb: childImageSharp {
-              fixed(height: 400) {
+              fixed(height: 500) {
                 ...GatsbyImageSharpFixed
                 originalName
               }
             }
             full: childImageSharp {
-              fixed(height: 1200) {
+              fixed(height: 1600) {
                 ...GatsbyImageSharpFixed
                 originalName
               }
@@ -61,23 +64,39 @@ const GalleryPage = () => {
       }
     }
   `);
-  console.log(data.allImages.edges);
-  const images = data.allImages.edges.map(img => img.node).filter(o => o).map(img => ({
-    src: img.full.fixed.src,
-    thumbnail: img.thumb.fixed.src,
-    caption: 'Dashboard',
-  }));
-  console.log("IMAG", images);
+  const imagesMap = {};
+  data.allImages.edges.map((img) => img.node).forEach((img) => {
+    imagesMap[img.thumb.fixed.originalName] = {
+      src: img.full.fixed.src,
+      thumbnail: img.thumb.fixed.src,
+      caption: img.thumb.fixed.originalName,
+      img,
+    };
+  });
+
+  const augmentedImages = [];
+  Object.keys(imageMeta).forEach((originalName) => {
+    const img = imagesMap[originalName];
+    delete imagesMap[originalName];
+    augmentedImages.push({
+      ...img,
+      ...imageMeta[originalName],
+    });
+  });
+  Object.values(imagesMap).forEach((img) => {
+    augmentedImages.push(img);
+  });
   return (
     <Layout>
-        <div css={galleryStyle}>
-          <Gallery
-            images={[...images]}
-            margin={10}
-            rowHeight={250}
-            enableImageSelection={false}
-          />
-        </div>
-    </Layout>);
+      <div css={galleryStyle}>
+        <Gallery
+          images={augmentedImages}
+          margin={10}
+          rowHeight={250}
+          enableImageSelection={false}
+        />
+      </div>
+    </Layout>
+  );
 };
 export default GalleryPage;

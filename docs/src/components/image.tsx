@@ -27,7 +27,9 @@ interface Props {
   otherProps?: any;
 }
 
-const Image = ({ imageName, width, height, ...otherProps }: Props) => {
+const Image = ({
+  imageName, width, height, ...otherProps
+}: Props) => {
   const data = useStaticQuery(graphql`
     query {
       logoSm: file(relativePath: { eq: "src/images/s.png" }) {
@@ -82,7 +84,6 @@ const Image = ({ imageName, width, height, ...otherProps }: Props) => {
     }
   `);
 
-  const imgStyle = width && height ? { width, height } : {};
   return <Img fixed={data[imageName]?.childImageSharp?.fixed} {...otherProps} />;
 };
 
