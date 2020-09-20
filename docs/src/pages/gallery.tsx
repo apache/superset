@@ -23,22 +23,31 @@ import Gallery from 'react-grid-gallery';
 import Layout from '../components/layout';
 
 const galleryStyle = css`
-  padding-top: 100px;
   margin-bottom: 25px;
+  padding-top: 100px;
   padding-left: 50px;
   padding-right: 50px;
   text-align: center;
+  .ReactGridGallery_tile-viewport {
+    overflow: visible !important;
+  }
   .ReactGridGallery img {
-    border: 1px solid #AAA;
-    //box-shadow: 0px 0px 2px 10px black;
+    box-shadow: 0px 0px 3px 1px #AAA;
   }
 `;
 
+// This defines the ordering of the images in the gallery
+// and allows to add metadata to images.
 const imageMeta = {
-  'bank_dash.png': { caption: "World's Bank Dashboard" },
+  'worldbank_dashboard.png': { caption: "World's Bank Dashboard" },
   'sqllab.png': { caption: 'SQL Lab' },
+  'explore.png': { caption: 'Explore!' },
+  'visualizations.png': { caption: 'Visualizations' },
   'chord_diagram.png': { caption: 'Explore' },
-
+  'deck_scatter.png': { caption: 'Geospatial Scatterplot' },
+  'deck_polygon.png': { caption: 'Geospatial Polygon' },
+  'deck_arc.png': { caption: 'Geospatial Arc' },
+  'deck_path.png': { caption: 'Geospatial Path' },
 };
 
 const GalleryPage = () => {
@@ -48,7 +57,7 @@ const GalleryPage = () => {
         edges {
           node {
             thumb: childImageSharp {
-              fixed(height: 500) {
+              fixed(height: 350) {
                 ...GatsbyImageSharpFixed
                 originalName
               }
@@ -69,8 +78,7 @@ const GalleryPage = () => {
     imagesMap[img.thumb.fixed.originalName] = {
       src: img.full.fixed.src,
       thumbnail: img.thumb.fixed.src,
-      caption: img.thumb.fixed.originalName,
-      img,
+      // caption: img.thumb.fixed.originalName,
     };
   });
 
@@ -92,7 +100,7 @@ const GalleryPage = () => {
         <Gallery
           images={augmentedImages}
           margin={10}
-          rowHeight={250}
+          rowHeight={200}
           enableImageSelection={false}
         />
       </div>

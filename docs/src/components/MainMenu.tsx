@@ -78,11 +78,11 @@ const MenuItems = ({ mode, toggleDrawer }: menuProps) => {
   }
   return (
     <Menu mode={mode} selectedKeys={getCurrentPath()}>
-      <Menu.Item key="gallery" style={leftStyle} className="menu-lg">
-        <Link to="/gallery">Gallery</Link>
-      </Menu.Item>
       <Menu.Item key="docsintro" style={leftStyle} className="menu-lg">
         <Link to="/docs/intro">Documentation</Link>
+      </Menu.Item>
+      <Menu.Item key="gallery" style={leftStyle} className="menu-lg">
+        <Link to="/gallery">Gallery</Link>
       </Menu.Item>
       <Menu.Item key="community" style={leftStyle} className="menu-lg">
         <Link to="/community">Community</Link>
