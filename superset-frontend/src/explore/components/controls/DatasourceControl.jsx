@@ -189,6 +189,7 @@ class DatasourceControl extends React.PureComponent {
               className=""
               bsSize="sm"
               id="datasource_menu"
+              data-test="datasource-menu"
             >
               <MenuItem eventKey="3" onClick={this.toggleChangeDatasourceModal}>
                 {t('Change Datasource')}
@@ -204,7 +205,11 @@ class DatasourceControl extends React.PureComponent {
                 </MenuItem>
               )}
               {this.props.isEditable && (
-                <MenuItem eventKey="3" onClick={this.toggleEditDatasourceModal}>
+                <MenuItem
+                  data-test="edit-datasource"
+                  eventKey="3"
+                  onClick={this.toggleEditDatasourceModal}
+                >
                   {t('Edit Datasource')}
                 </MenuItem>
               )}

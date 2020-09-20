@@ -82,6 +82,7 @@ class AdhocMetricOption extends React.PureComponent {
     return (
       <div
         className="metric-option"
+        data-test="metric-option"
         onMouseDownCapture={e => e.stopPropagation()}
       >
         <OverlayTrigger

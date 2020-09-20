@@ -115,6 +115,7 @@ export default function QueryAndSaveBtns({
             data-toggle="modal"
             disabled={saveButtonDisabled}
             onClick={onSave}
+            data-test="save-button"
           >
             <i className="fa fa-plus-circle" /> Save
           </Button>

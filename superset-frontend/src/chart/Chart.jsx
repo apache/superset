@@ -201,7 +201,10 @@ class Chart extends React.PureComponent {
         showMessage={false}
       >
         <Styles className="chart-container">
-          <div className={`slice_container ${isFaded ? ' faded' : ''}`}>
+          <div
+            className={`slice_container ${isFaded ? ' faded' : ''}`}
+            data-test="slice-container"
+          >
             <ChartRenderer {...this.props} data-test={this.props.vizType} />
           </div>
 
