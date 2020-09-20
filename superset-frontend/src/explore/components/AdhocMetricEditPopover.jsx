@@ -116,9 +116,10 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onLabelChange(e) {
+    const label = e.target.value;
     this.setState(prevState => ({
       adhocMetric: prevState.adhocMetric.duplicateWith({
-        label: e.target.value,
+        label,
         hasCustomLabel: true,
       }),
     }));
