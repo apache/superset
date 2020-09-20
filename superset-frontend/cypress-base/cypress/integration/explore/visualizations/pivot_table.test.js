@@ -66,9 +66,15 @@ describe('Visualization > Pivot Table', () => {
 
   it('should work with single groupby', () => {
     verify(PIVOT_TABLE_FORM_DATA);
-    cy.get('.chart-container tr:eq(0) th:eq(1)').contains('sum__num');
-    cy.get('.chart-container tr:eq(1) th:eq(0)').contains('state');
-    cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(0) th:eq(1)')
+      .contains('sum__num');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(1) th:eq(0)')
+      .contains('state');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(2) th:eq(0)')
+      .contains('name');
   });
 
   it('should work with more than one groupby', () => {
@@ -76,10 +82,18 @@ describe('Visualization > Pivot Table', () => {
       ...PIVOT_TABLE_FORM_DATA,
       groupby: ['name', 'gender'],
     });
-    cy.get('.chart-container tr:eq(0) th:eq(2)').contains('sum__num');
-    cy.get('.chart-container tr:eq(1) th:eq(1)').contains('state');
-    cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
-    cy.get('.chart-container tr:eq(2) th:eq(1)').contains('gender');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(0) th:eq(2)')
+      .contains('sum__num');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(1) th:eq(1)')
+      .contains('state');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(2) th:eq(0)')
+      .contains('name');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(2) th:eq(1)')
+      .contains('gender');
   });
 
   it('should work with multiple metrics', () => {
@@ -87,21 +101,35 @@ describe('Visualization > Pivot Table', () => {
       ...PIVOT_TABLE_FORM_DATA,
       metrics: ['sum__num', TEST_METRIC],
     });
-    cy.get('.chart-container tr:eq(0) th:eq(1)').contains('sum__num');
-    cy.get('.chart-container tr:eq(0) th:eq(2)').contains('SUM(sum_boys)');
-    cy.get('.chart-container tr:eq(1) th:eq(0)').contains('state');
-    cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(0) th:eq(1)')
+      .contains('sum__num');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(0) th:eq(2)')
+      .contains('SUM(sum_boys)');
+    cy.get('[data-test="chart-container"]').find('th:eq(0)').contains('state');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(2) th:eq(0)')
+      .contains('name');
   });
 
-  it('should work with multiple groupby and multiple metrics', () => {
+  it.only('should work with multiple groupby and multiple metrics', () => {
     verify({
       ...PIVOT_TABLE_FORM_DATA,
       groupby: ['name', 'gender'],
       metrics: ['sum__num', TEST_METRIC],
     });
-    cy.get('.chart-container tr:eq(0) th:eq(2)').contains('sum__num');
-    cy.get('.chart-container tr:eq(0) th:eq(3)').contains('SUM(sum_boys)');
-    cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
-    cy.get('.chart-container tr:eq(2) th:eq(1)').contains('gender');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(0) th:eq(2)')
+      .contains('sum__num');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(0) th:eq(3)')
+      .contains('SUM(sum_boys)');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(2) th:eq(0)')
+      .contains('name');
+    cy.get('[data-test="chart-container"]')
+      .find('tr:eq(2) th:eq(1)')
+      .contains('gender');
   });
 });

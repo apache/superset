@@ -63,10 +63,16 @@ describe('Visualization > Table', () => {
       metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
     });
     // when format with smart_date, time column use format by granularity
-    cy.get('.chart-container td:nth-child(1)').contains('2008 Q1');
+    cy.get('[data-test="chart-container"]')
+      .find('td:nth-child(1)')
+      .contains('2008 Q1');
     // other column with timestamp use raw timestamp
-    cy.get('.chart-container td:nth-child(3)').contains('2008-01-01T00:00:00');
-    cy.get('.chart-container td:nth-child(4)').contains('other');
+    cy.get('[data-test="chart-container"]')
+      .find('td:nth-child(3)')
+      .contains('2008-01-01T00:00:00');
+    cy.get('[data-test="chart-container"]')
+      .find('td:nth-child(4)')
+      .contains('other');
   });
 
   it('Format with table_timestamp_format', () => {
@@ -79,15 +85,23 @@ describe('Visualization > Table', () => {
       metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
     });
     // time column and MAX(ds) metric column both use UTC time
-    cy.get('.chart-container td:nth-child(1)').contains('2008-01-01 00:00');
-    cy.get('.chart-container td:nth-child(3)').contains('2008-01-01 00:00');
-    cy.get('.chart-container td')
+    cy.get('[data-test="chart-container"]')
+      .find('td:nth-child(1)')
+      .contains('2008-01-01 00:00');
+    cy.get('[data-test="chart-container"]')
+      .find('td:nth-child(3)')
+      .contains('2008-01-01 00:00');
+    cy.get('[data-test="chart-container"]')
+      .find('td')
       .contains('2008-01-01 08:00')
       .should('not.exist');
     // time column should not use time granularity when timestamp format is set
-    cy.get('.chart-container td').contains('2008 Q1').should('not.exist');
+    cy.get('[data-test="chart-container"]')
+      .find('td')
+      .contains('2008 Q1')
+      .should('not.exist');
     // other num numeric metric column should stay as string
-    cy.get('.chart-container td').contains('other');
+    cy.get('[data-test="chart-container"]').find('td').contains('other');
   });
 
   it('Test table with groupby', () => {
@@ -120,10 +134,18 @@ describe('Visualization > Table', () => {
   });
 
   it('Handle sorting correctly', () => {
-    cy.get('.chart-container th').contains('name').click();
-    cy.get('.chart-container td:nth-child(2):eq(0)').contains('Aaron');
-    cy.get('.chart-container th').contains('Time').click().click();
-    cy.get('.chart-container td:nth-child(1):eq(0)').contains('2008');
+    cy.get('[data-test="chart-container"]').find('th').contains('name').click();
+    cy.get('[data-test="chart-container"]')
+      .find('td:nth-child(2):eq(0)')
+      .contains('Aaron');
+    cy.get('[data-test="chart-container"]')
+      .find('th')
+      .contains('Time')
+      .click()
+      .click();
+    cy.get('[data-test="chart-container"]')
+      .find('td:nth-child(1):eq(0)')
+      .contains('2008');
   });
 
   it('Test table with percent metrics and groupby', () => {

@@ -46,7 +46,9 @@ describe('AdhocMetrics', () => {
     cy.get('[data-test="AdhocMetricEditTitle#input"]').type(metricName);
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
-    cy.get('.metrics-select .metric-option').contains(metricName);
+    cy.get('[data-test="metrics"]')
+      .find('[data-test="metric-option"]')
+      .contains(metricName);
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
@@ -70,12 +72,16 @@ describe('AdhocMetrics', () => {
     cy.get('[data-test=metrics]').find('.option-label').last().click();
 
     // add custom SQL
-    cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
-    cy.get('#metrics-edit-popover').find('.ace_content').click();
-    cy.get('#metrics-edit-popover')
+    cy.get('[data-test="adhoc-metric-edit-tabs"]')
+      .contains('Custom SQL')
+      .click();
+    cy.get('[data-test="metrics-edit-popover"]')
       .find('.ace_text-input')
       .type('/COUNT(DISTINCT name)', { force: true });
-    cy.get('#metrics-edit-popover').find('button').contains('Save').click();
+    cy.get('[data-test="metrics-edit-popover"]')
+      .find('[data-test="AdhocMetricEdit#save"]')
+      .contains('Save')
+      .click();
 
     cy.get('button[data-test="run-query-button"]').click();
 
@@ -88,19 +94,24 @@ describe('AdhocMetrics', () => {
   });
 
   it('Switch from custom sql tabs to simple', () => {
-    cy.get('[data-test=metrics]').within(() => {
-      cy.get('.Select__dropdown-indicator').click();
-      cy.get('input[type=text]').type('sum_girls{enter}');
-    });
-
-    cy.get('#metrics-edit-popover').within(() => {
-      cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
+    cy.visitChartByName('Num Births Trend');
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.get('[data-test=metrics]')
+      .find('.Select__control input')
+      .type('sum_girls{enter}', { force: true });
+    cy.get('[data-test="metrics-edit-popover"]').within(() => {
+      cy.get('[data-test="adhoc-metric-edit-tabs"]')
+        .contains('Custom SQL')
+        .click();
       cy.get('.ace_identifier').contains('sum_girls');
       cy.get('.ace_content').click();
-      cy.get('.ace_text-input').type('{selectall}{backspace}SUM(num)');
-      cy.get('#adhoc-metric-edit-tabs-tab-SIMPLE').click();
+      cy.get('.ace_text-input').type('{selectall}{backspace}SUM(num)', {
+        force: true,
+      });
+
+      cy.get('[data-test="adhoc-metric-edit-tabs"]').contains('Simple').click();
       cy.get('.Select__single-value').contains(/^num$/);
-      cy.get('button').contains('Save').click();
+      cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
     });
 
     cy.get('button[data-test="run-query-button"]').click();
@@ -114,10 +125,11 @@ describe('AdhocMetrics', () => {
   });
 
   it('Typing starts with aggregate function name', () => {
+    cy.visitChartByName('Num Births Trend');
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
     // select column "num"
     cy.get('[data-test=metrics]').within(() => {
-      cy.get('.Select__dropdown-indicator').click();
-      cy.get('.Select__control input[type=text]').type('avg(');
+      cy.get('.Select__control input').type('avg()', { force: true });
       cy.get('.Select__option').contains('ds');
       cy.get('.Select__option').contains('name');
       cy.get('.Select__option').contains('sum_boys').click();

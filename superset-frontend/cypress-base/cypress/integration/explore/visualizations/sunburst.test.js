@@ -45,7 +45,9 @@ describe('Visualization > Sunburst', () => {
   it('should work without secondary metric', () => {
     verify(SUNBURST_FORM_DATA);
     // There should be 7 visible arcs + 1 hidden
-    cy.get('.chart-container svg g#arcs path').should('have.length', 8);
+    cy.get('[data-test="chart-container"]')
+      .find('svg g#arcs path')
+      .should('have.length', 8);
   });
 
   it('should work with secondary metric', () => {
@@ -53,7 +55,9 @@ describe('Visualization > Sunburst', () => {
       ...SUNBURST_FORM_DATA,
       secondary_metric: 'sum__SP_RUR_TOTL',
     });
-    cy.get('.chart-container svg g#arcs path').should('have.length', 8);
+    cy.get('[data-test="chart-container"]')
+      .find('svg g#arcs path')
+      .should('have.length', 8);
   });
 
   it('should work with multiple groupbys', () => {
@@ -61,7 +65,9 @@ describe('Visualization > Sunburst', () => {
       ...SUNBURST_FORM_DATA,
       groupby: ['region', 'country_name'],
     });
-    cy.get('.chart-container svg g#arcs path').should('have.length', 117);
+    cy.get('[data-test="chart-container"]')
+      .find('svg g#arcs path')
+      .should('have.length', 117);
   });
 
   it('should work with filter', () => {
@@ -79,6 +85,8 @@ describe('Visualization > Sunburst', () => {
         },
       ],
     });
-    cy.get('.chart-container svg g#arcs path').should('have.length', 3);
+    cy.get('[data-test="chart-container"]')
+      .find('svg g#arcs path')
+      .should('have.length', 3);
   });
 });

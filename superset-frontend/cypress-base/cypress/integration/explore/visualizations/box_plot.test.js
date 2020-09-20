@@ -45,7 +45,9 @@ describe('Visualization > Box Plot', () => {
 
   it('should work', () => {
     verify(BOX_PLOT_FORM_DATA);
-    cy.get('.chart-container svg rect.vx-boxplot-box').should('have.length', 7);
+    cy.get('[data-test="chart-container"]')
+      .find('svg rect.vx-boxplot-box')
+      .should('have.length', 7);
   });
 
   it('should work with filter', () => {
@@ -63,6 +65,8 @@ describe('Visualization > Box Plot', () => {
         },
       ],
     });
-    cy.get('.chart-container svg rect.vx-boxplot-box').should('have.length', 1);
+    cy.get('[data-test="chart-container"]')
+      .find('svg rect.vx-boxplot-box')
+      .should('have.length', 1);
   });
 });

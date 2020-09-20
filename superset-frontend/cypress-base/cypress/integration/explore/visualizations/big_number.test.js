@@ -55,9 +55,9 @@ describe('Visualization > Big Number with Trendline', () => {
 
   it('should work', () => {
     verify(BIG_NUMBER_FORM_DATA);
-    cy.get('.chart-container .header-line');
-    cy.get('.chart-container .subheader-line');
-    cy.get('.chart-container svg path.vx-linepath');
+    cy.get('[data-test="chart-container"]').find('.header-line');
+    cy.get('[data-test="chart-container"]').find('.subheader-line');
+    cy.get('[data-test="chart-container"]').find('svg path.vx-linepath');
   });
 
   it('should work without subheader', () => {
@@ -65,9 +65,11 @@ describe('Visualization > Big Number with Trendline', () => {
       ...BIG_NUMBER_FORM_DATA,
       compare_lag: null,
     });
-    cy.get('.chart-container .header-line');
-    cy.get('.chart-container .subheader-line').should('not.exist');
-    cy.get('.chart-container svg path.vx-linepath');
+    cy.get('[data-test="chart-container"]').find('.header-line');
+    cy.get('[data-test="chart-container"]')
+      .find('.subheader-line')
+      .should('not.exist');
+    cy.get('[data-test="chart-container"]').find('svg path.vx-linepath');
   });
 
   it('should not render trendline when hidden', () => {
@@ -75,8 +77,8 @@ describe('Visualization > Big Number with Trendline', () => {
       ...BIG_NUMBER_FORM_DATA,
       show_trend_line: false,
     });
-    cy.get('.chart-container .header-line');
-    cy.get('.chart-container .subheader-line');
-    cy.get('.chart-container svg').should('not.exist');
+    cy.get('[data-test="chart-container"]').find('.header-line');
+    cy.get('[data-test="chart-container"]').find('.subheader-line');
+    cy.get('[data-test="chart-container"]').find('svg').should('not.exist');
   });
 });

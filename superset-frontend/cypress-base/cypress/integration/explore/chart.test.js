@@ -46,6 +46,6 @@ describe('No Results', () => {
     cy.wait('@getJson').then(async xhr => {
       expect(xhr.status).to.eq(200);
     });
-    cy.get('div.chart-container').contains('No Results');
+    cy.get('[data-test="chart-container"]').contains('No Results');
   });
 });

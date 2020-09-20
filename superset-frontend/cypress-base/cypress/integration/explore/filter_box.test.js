@@ -35,6 +35,9 @@ describe('Edit FilterBox Chart', () => {
   it('should work with default date filter', () => {
     verify(VIZ_DEFAULTS);
     // Filter box should default to having a date filter with no filter selected
-    cy.get('div.filter_box').contains('No filter');
+    cy.get('div.filter_box')
+      .find('[data-test="date-filter-container"]')
+      .find('[data-test="popover-trigger"]')
+      .contains('No filter');
   });
 });

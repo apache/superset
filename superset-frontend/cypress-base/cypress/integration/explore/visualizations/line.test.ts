@@ -30,42 +30,65 @@ describe('Visualization > Line', () => {
   it('should show validator error when no metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.get('.alert-warning').contains(`"Metrics" cannot be empty`);
+    cy.get('[data-test="alert-warning"]').contains(`"Metrics" cannot be empty`);
   });
 
   it('should preload mathjs', () => {
+    const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Add Annotation Layer').scrollIntoView().click();
+    cy.get('[data-test="add-annotation-layer-button"]')
+      .scrollIntoView()
+      .click();
     // should not load additional mathjs
     cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Layer Configuration');
+    cy.get('[data-test="popover-title"]').contains('Layer Configuration');
   });
 
   it('should not show validator error when metric added', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.get('.alert-warning').contains(`"Metrics" cannot be empty`);
-    cy.get('.text-danger').contains('Metrics');
-    cy.get('.metrics-select .Select__input input:eq(0)')
-      .focus()
+    cy.get('[data-test="alert-warning"]').contains(`"Metrics" cannot be empty`);
+    cy.get('[data-test="metrics-header"]')
+      .find('.text-danger')
+      .contains('Metrics');
+    cy.get('[data-test="metrics-header"]')
+
+      .siblings()
+      .last()
       .type('SUM(num){enter}');
-    cy.get('.text-danger').should('not.exist');
-    cy.get('.alert-warning').should('not.exist');
+    cy.get('[data-test="metrics-header"]')
+      .find('.text-danger')
+      .should('not.exist');
+    cy.get('[data-test="alert-warning"]').should('not.exist');
   });
 
   it('should allow negative values in Y bounds', () => {
-    cy.get('#controlSections-tab-display').click();
-    cy.get('span').contains('Y Axis Bounds').scrollIntoView();
-    cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 });
-    cy.get('.alert-warning').should('not.exist');
+    const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.get('[data-test="metrics-header"]')
+      .siblings()
+      .last()
+      .type('SUM(num){enter}');
+    cy.get('[data-test="control-tabs"]').children().last().click();
+    cy.get('[data-test="y_axis_bounds"]').scrollIntoView();
+    cy.get('[data-test="min-bound"]').type('-0.1', { delay: 100 });
+    cy.get('[data-test="alert-warning"]').should('not.exist');
   });
 
   it('should allow type to search color schemes', () => {
-    cy.get('#controlSections-tab-display').click();
-    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="text"]')
+    const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.get('[data-test="metrics-header"]')
+      .siblings()
+      .last()
+      .type('SUM(num){enter}');
+    cy.get('[data-test="control-tabs"]').children().last().click();
+    cy.get('[data-test="color_scheme"]').scrollIntoView();
+    cy.get('[data-test="color_scheme"]')
+      .find('input[type="text"]')
       .focus()
-      .type('air{enter}');
+      .type('air{enter}', { force: true });
     cy.get('input[name="select-color_scheme"]').should(
       'have.value',
       'bnbColors',
@@ -277,7 +300,7 @@ describe('Visualization > Line', () => {
       },
     );
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
-    cy.get('.slice_container').within(() => {
+    cy.get('[data-test="slice-container"]').within(() => {
       cy.get('.nv-event-annotation-layer-0')
         .children()
         .should('have.length', 44);

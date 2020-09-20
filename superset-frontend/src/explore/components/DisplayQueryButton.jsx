@@ -238,6 +238,7 @@ export class DisplayQueryButton extends React.PureComponent {
     return (
       <DropdownButton
         noCaret
+        data-test="query-dropdown"
         title={
           <span>
             <i className="fa fa-bars" />
@@ -265,7 +266,9 @@ export class DisplayQueryButton extends React.PureComponent {
         <ModalTrigger
           isMenuItem
           animation={animation}
-          triggerNode={<span>{t('View query')}</span>}
+          triggerNode={
+            <span data-test="view-query-menu-item">{t('View query')}</span>
+          }
           modalTitle={t('View query')}
           bsSize="large"
           beforeOpen={() => this.beforeOpen('query')}
