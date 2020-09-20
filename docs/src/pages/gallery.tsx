@@ -19,49 +19,18 @@
 import React from 'react';
 import { css } from '@emotion/core';
 import { Card, List } from 'antd';
+import { useStaticQuery, graphql } from 'gatsby';
 import { GithubOutlined } from '@ant-design/icons';
 import SEO from '../components/seo';
 import Layout from '../components/layout';
 import { pmc } from '../resources/data';
 import Gallery from 'react-grid-gallery';
 
-const IMG_URL_BASE = 'https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/';
-
-const IMAGES = [
-{
-  src: IMG_URL_BASE + 'bank_dash.png',
-  thumbnail: IMG_URL_BASE + 'bank_dash.png',
-  caption: 'Dashboard',
-},
-{
-  src: '/images/explorer.png',
-},
-{
-  src: IMG_URL_BASE + 'sqllab.png',
-  thumbnail: IMG_URL_BASE + 'sqllab.png',
-},
-{
-  src: IMG_URL_BASE + 'deckgl_dash.png',
-  thumbnail: IMG_URL_BASE + 'deckgl_dash.png',
-},
-{
-  src: IMG_URL_BASE + 'visualizations.png',
-  thumbnail: IMG_URL_BASE + 'visualizations.png',
-},
-{
-  src: '/images/gallery/deck_scatter.png',
-},
-];
-
-const enhancedImages = IMAGES.map(img => {
-  img.thumbnail = img.thumbnail || img.src;
-  return img;
-});
 const galleryStyle = css`
   padding-top: 100px;
   margin-bottom: 25px;
-  //width: 1200px;
-  //margin: 0 auto;
+  padding-left: 50px;
+  padding-right: 50px;
   text-align: center;
   .ReactGridGallery img {
     border: 1px solid #AAA;
@@ -69,17 +38,46 @@ const galleryStyle = css`
   }
 `;
 
-const GalleryPage = () => (
-  <Layout>
-      <div css={galleryStyle}>
-        <Gallery
-          images={[...enhancedImages, ...enhancedImages]}
-          margin={10}
-          rowHeight={250}
-          enableImageSelection={false}
-        />
-      </div>
-  </Layout>
-);
-
+const GalleryPage = () => {
+  const data = useStaticQuery(graphql`
+    query {
+      allImages: allFile(filter: {relativeDirectory: {eq: "src/images/gallery"}}) {
+        edges {
+          node {
+            thumb: childImageSharp {
+              fixed(height: 400) {
+                ...GatsbyImageSharpFixed
+                originalName
+              }
+            }
+            full: childImageSharp {
+              fixed(height: 1200) {
+                ...GatsbyImageSharpFixed
+                originalName
+              }
+            }
+          }
+        }
+      }
+    }
+  `);
+  console.log(data.allImages.edges);
+  const images = data.allImages.edges.map(img => img.node).filter(o => o).map(img => ({
+    src: img.full.fixed.src,
+    thumbnail: img.thumb.fixed.src,
+    caption: 'Dashboard',
+  }));
+  console.log("IMAG", images);
+  return (
+    <Layout>
+        <div css={galleryStyle}>
+          <Gallery
+            images={[...images]}
+            margin={10}
+            rowHeight={250}
+            enableImageSelection={false}
+          />
+        </div>
+    </Layout>);
+};
 export default GalleryPage;

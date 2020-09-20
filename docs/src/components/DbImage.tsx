@@ -30,27 +30,23 @@ const DbImage = ({
 }: Props) => {
   const data = useStaticQuery(graphql`
     query {
-      allImages: allImageSharp (filter: {fixed: {originalName: {regex: "/databases/"}}}) {
+      allImages: allFile(filter: {relativeDirectory: {eq: "src/images/databases"}}) {
         edges {
           node {
-            fixed(height: 50) {
-              ...GatsbyImageSharpFixed
-              originalName
+            childImageSharp {
+              fixed(height: 50) {
+                ...GatsbyImageSharpFixed
+                originalName
+              }
             }
           }
         }
       }
     }
   `);
-
-  console.log("CACA");
-  data.allImages.edges.forEach(n => {
-    console.log(n.node);
-  });
-  const filter = data.allImages.edges.filter(
-    (n) => n.node.fixed.originalName === imageName,
-  );
-  return <Img fixed={filter[0]?.node?.fixed} />;
+  const images = data.allImages.edges.map(img => img.node?.childImageSharp?.fixed);
+  const filter = images.filter(img => img?.originalName === imageName);
+  return <Img fixed={filter[0]} />;
 };
 
 export default DbImage;
