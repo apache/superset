@@ -1040,9 +1040,7 @@ def backend() -> str:
 
 
 def is_adhoc_metric(metric: Metric) -> bool:
-    if isinstance(metric, dict):
-        return True
-    return False
+    return isinstance(metric, dict)
 
 
 def get_metric_name(metric: Metric) -> str:
