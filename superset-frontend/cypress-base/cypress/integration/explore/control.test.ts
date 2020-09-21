@@ -48,6 +48,7 @@ describe('Datasource control', () => {
     });
 
     // create new metric
+    cy.get('a[role="tab"]').contains('Metrics').click();
     cy.get('button').contains('Add Item', { timeout: 10000 }).click();
     cy.get('input[value="<new metric>"]').click();
     cy.get('input[value="<new metric>"]')
