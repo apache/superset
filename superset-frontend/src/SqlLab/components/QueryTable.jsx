@@ -213,20 +213,20 @@ class QueryTable extends React.PureComponent {
       })
       .reverse();
     return (
-      <div className="QueryTable">
-        <DataTable
-          tableClassName="table table-condensed"
-          columns={this.props.columns.map(column => ({
-            accessor: column,
-            Header: () => <th>{column}</th>,
-            Cell: ({ value }) => <td>{value}</td>,
-          }))}
-          data={data}
-          pageSize={10}
-          maxPageItemCount={9}
-          searchInput={false}
-        />
-      </div>
+      <DataTable
+        tableClassName="table table-condensed"
+        columns={this.props.columns.map(column => ({
+          accessor: column,
+          Header: () => <th>{column}</th>,
+          Cell: ({ value }) => <td>{value}</td>,
+        }))}
+        data={data}
+        pageSize={10}
+        maxPageItemCount={9}
+        searchInput={false}
+        height="100%"
+        sticky
+      />
     );
   }
 }
