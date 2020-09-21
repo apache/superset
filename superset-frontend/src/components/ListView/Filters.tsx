@@ -137,11 +137,8 @@ function SelectFilter({
           defaultOptions
           themeConfig={filterSelectTheme}
           stylesConfig={filterSelectStyles}
-          // @ts-ignore
           value={selectedOption}
-          // @ts-ignore
           onChange={onChange}
-          // @ts-ignore
           loadOptions={fetchAndFormatSelects}
           placeholder={emptyLabel}
           clearable={false}
