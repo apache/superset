@@ -259,14 +259,14 @@ class DateFilterControl extends React.Component {
     const closeCalendar =
       (key === 'since' && this.state.sinceViewMode === 'days') ||
       (key === 'until' && this.state.untilViewMode === 'days');
-    this.setState({
+    this.setState(prevState => ({
       type: TYPES.CUSTOM_START_END,
       [key]: typeof value === 'string' ? value : value.format(MOMENT_FORMAT),
-      showSinceCalendar: this.state.showSinceCalendar && !closeCalendar,
-      showUntilCalendar: this.state.showUntilCalendar && !closeCalendar,
-      sinceViewMode: closeCalendar ? 'days' : this.state.sinceViewMode,
-      untilViewMode: closeCalendar ? 'days' : this.state.untilViewMode,
-    });
+      showSinceCalendar: prevState.showSinceCalendar && !closeCalendar,
+      showUntilCalendar: prevState.showUntilCalendar && !closeCalendar,
+      sinceViewMode: closeCalendar ? 'days' : prevState.sinceViewMode,
+      untilViewMode: closeCalendar ? 'days' : prevState.untilViewMode,
+    }));
   }
 
   setTypeCustomRange() {
