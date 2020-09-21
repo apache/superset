@@ -68,16 +68,22 @@ describe('DateFilterControl', () => {
     expect(overlayWrapper.find(Popover)).toExist();
   });
 
-  it.skip('opens and closes', () => {
-    const label = wrapper.find(Label).first();
+  it('calls open/close methods on trigger click', () => {
+    const open = jest.fn();
+    const close = jest.fn();
+    const props = {
+      ...defaultProps,
+      onOpenDateFilterControl: open,
+      onCloseDateFilterControl: close,
+    };
+    const testWrapper = mount(<DateFilterControl {...props} />);
+    const label = testWrapper.find(Label).first();
+
     label.simulate('click');
-    setTimeout(() => {
-      expect(wrapper.find(Popover)).toExist();
-      expect(wrapper.find('.ok')).first().simulate('click');
-      setTimeout(() => {
-        expect(wrapper.find(Popover)).not.toExist();
-      }, 10);
-    }, 10);
+    expect(open).toBeCalled();
+    expect(close).not.toBeCalled();
+    label.simulate('click');
+    expect(close).toBeCalled();
   });
 
   it('renders two tabs in popover', () => {
