@@ -19,11 +19,16 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import DataTable from '@superset-ui/plugin-chart-table/lib/DataTable';
+import * as useMountedMemo from '@superset-ui/plugin-chart-table/lib/DataTable/utils/useMountedMemo';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 
 import { dataTableProps } from 'spec/javascripts/sqllab/fixtures';
 
 describe('QueryTable', () => {
+  // hack for mocking hook that implements sticky behaviour of DataTable
+  jest
+    .spyOn(useMountedMemo, 'default')
+    .mockImplementation(() => ({ width: 100, height: 100 }));
   const mockedProps = {
     ...dataTableProps,
     displayLimit: 10000,
