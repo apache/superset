@@ -1021,11 +1021,24 @@ class TestRowLevelSecurity(SupersetTestCase):
         to_dttm=None,
         extras={},
     )
-    GAMMA_FILTER_REGEX = re.compile(r"'[A,B,Q]%'")
-    BASE_FILTER_REGEX = re.compile(r"'boy'")
+    NAME_AB_ROLE = "NameAB"
+    NAME_Q_ROLE = "NameQ"
+    NAMES_A_REGEX = re.compile(r"name like 'A%'")
+    NAMES_B_REGEX = re.compile(r"name like 'B%'")
+    NAMES_Q_REGEX = re.compile(r"name like 'Q%'")
+    BASE_FILTER_REGEX = re.compile(r"gender = 'boy'")
 
     def setUp(self):
         session = db.session
+
+        # Create roles
+        security_manager.add_role(self.NAME_AB_ROLE)
+        security_manager.add_role(self.NAME_Q_ROLE)
+        gamma_user = security_manager.find_user(username="gamma")
+        gamma_user.roles.append(security_manager.find_role(self.NAME_AB_ROLE))
+        gamma_user.roles.append(security_manager.find_role(self.NAME_Q_ROLE))
+        self.create_user_with_roles("NoRlsRoleUser", ["Gamma"])
+        session.commit()
 
         # Create regular RowLevelSecurityFilter (energy_usage, unicode_test)
         self.rls_entry1 = RowLevelSecurityFilter()
@@ -1051,7 +1064,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry2.filter_type = "Regular"
         self.rls_entry2.clause = "name like 'A%' or name like 'B%'"
         self.rls_entry2.group_key = "name"
-        self.rls_entry2.roles.append(security_manager.find_role("Gamma"))
+        self.rls_entry2.roles.append(security_manager.find_role("NameAB"))
         db.session.add(self.rls_entry2)
 
         # Create Regular RowLevelSecurityFilter (birth_names name starts with Q)
@@ -1064,7 +1077,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry3.filter_type = "Regular"
         self.rls_entry3.clause = "name like 'Q%'"
         self.rls_entry3.group_key = "name"
-        self.rls_entry3.roles.append(security_manager.find_role("Gamma"))
+        self.rls_entry3.roles.append(security_manager.find_role("NameQ"))
         db.session.add(self.rls_entry3)
 
         # Create Base RowLevelSecurityFilter (birth_names boys)
@@ -1088,6 +1101,9 @@ class TestRowLevelSecurity(SupersetTestCase):
         session.delete(self.rls_entry2)
         session.delete(self.rls_entry3)
         session.delete(self.rls_entry4)
+        session.delete(security_manager.find_role("NameAB"))
+        session.delete(security_manager.find_role("NameQ"))
+        session.delete(self.get_user("NoRlsRoleUser"))
         session.commit()
 
     def test_rls_filter_alters_energy_query(self):
@@ -1120,25 +1136,22 @@ class TestRowLevelSecurity(SupersetTestCase):
         tbl = self.get_table_by_name("birth_names")
         sql = tbl.get_query_str(self.query_obj)
 
-        # establish that both regular and base filters are present
-        assert self.GAMMA_FILTER_REGEX.search(sql)
-        assert self.BASE_FILTER_REGEX.search(sql)
-
-        # establish that they are grouped together correctly with ANDs, ORs
-        # and parens in the correct place (only look for unique bits in the
-        # filters to make the regex simpler)
-        assert re.search(
-            r"\(\s*\(.*'A%'.*\).*OR.*'Q%'\s*\)\s*\)\s+AND\s+\(.*'boy'\s*\)",
-            sql.replace("\n", " "),  # remove newlines to make simpler regex
+        # establish that the filters are grouped together correctly with
+        # ANDs, ORs and parens in the correct place
+        assert (
+            "WHERE ((name like 'A%'\n        or name like 'B%')\n       OR (name like 'Q%'))\n  AND (gender = 'boy');"
+            in sql
         )
 
-    def test_rls_filter_alters_alpha_birth_names_query(self):
-        g.user = self.get_user(username="alpha")
+    def test_rls_filter_alters_no_role_user_birth_names_query(self):
+        g.user = self.get_user(username="NoRlsRoleUser")
         tbl = self.get_table_by_name("birth_names")
         sql = tbl.get_query_str(self.query_obj)
 
         # gamma's filters should not be present query
-        assert not self.GAMMA_FILTER_REGEX.search(sql)
+        assert not self.NAMES_A_REGEX.search(sql)
+        assert not self.NAMES_B_REGEX.search(sql)
+        assert not self.NAMES_Q_REGEX.search(sql)
         # base query should be present
         assert self.BASE_FILTER_REGEX.search(sql)
 
@@ -1148,5 +1161,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         sql = tbl.get_query_str(self.query_obj)
 
         # no filters are applied for admin user
-        assert not self.GAMMA_FILTER_REGEX.search(sql)
+        assert not self.NAMES_A_REGEX.search(sql)
+        assert not self.NAMES_B_REGEX.search(sql)
+        assert not self.NAMES_Q_REGEX.search(sql)
         assert not self.BASE_FILTER_REGEX.search(sql)

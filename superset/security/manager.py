@@ -46,7 +46,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.utils.core import DatasourceName
+from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -1015,14 +1015,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             regular_filter_roles = (
                 self.get_session.query(RLSFilterRoles.c.rls_filter_id)
                 .join(RowLevelSecurityFilter)
-                .filter(RowLevelSecurityFilter.filter_type == "Regular")
+                .filter(
+                    RowLevelSecurityFilter.filter_type
+                    == RowLevelSecurityFilterType.REGULAR
+                )
                 .filter(RLSFilterRoles.c.role_id.in_(user_roles))
                 .subquery()
             )
             base_filter_roles = (
                 self.get_session.query(RLSFilterRoles.c.rls_filter_id)
                 .join(RowLevelSecurityFilter)
-                .filter(RowLevelSecurityFilter.filter_type == "Base")
+                .filter(
+                    RowLevelSecurityFilter.filter_type
+                    == RowLevelSecurityFilterType.BASE
+                )
                 .filter(RLSFilterRoles.c.role_id.in_(user_roles))
                 .subquery()
             )
@@ -1041,11 +1047,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .filter(
                     or_(
                         and_(
-                            RowLevelSecurityFilter.filter_type == "Regular",
+                            RowLevelSecurityFilter.filter_type
+                            == RowLevelSecurityFilterType.REGULAR,
                             RowLevelSecurityFilter.id.in_(regular_filter_roles),
                         ),
                         and_(
-                            RowLevelSecurityFilter.filter_type == "Base",
+                            RowLevelSecurityFilter.filter_type
+                            == RowLevelSecurityFilterType.BASE,
                             RowLevelSecurityFilter.id.notin_(base_filter_roles),
                         ),
                     )
