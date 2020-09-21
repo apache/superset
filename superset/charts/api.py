@@ -461,6 +461,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             json_body = json.loads(request.form["form_data"])
         else:
             return self.response_400(message="Request is not JSON")
+
+        # from request get QueryContext object
         try:
             query_context = ChartDataQueryContextSchema().load(json_body)
         except KeyError:
@@ -469,20 +471,21 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(
                 message=_("Request is incorrect: %(error)s", error=error.messages)
             )
+
+        # ACL control
         try:
             query_context.raise_for_access()
         except SupersetSecurityException:
             return self.response_401()
+
+        # get all query payload
         payload = query_context.get_payload()
         for query in payload:
             if query.get("error"):
                 return self.response_400(message=f"Error: {query['error']}")
+
         result_format = query_context.result_format
-
-        response = self.response_400(
-            message=f"Unsupported result_format: {result_format}"
-        )
-
+        response = None
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
             result = payload[0]["data"]
@@ -497,9 +500,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             response_data = simplejson.dumps(
                 {"result": payload}, default=json_int_dttm_ser, ignore_nan=True
             )
-            resp = make_response(response_data, 200)
-            resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            response = resp
+            response = make_response(response_data, 200)
+            response.headers["Content-Type"] = "application/json; charset=utf-8"
 
         return response
 
