@@ -261,7 +261,7 @@ class QueryContext:
             except QueryObjectValidationError as ex:
                 error_message = str(ex)
                 status = utils.QueryStatus.FAILED
-            except KeyError as ex:
+            except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
                 if not error_message:
                     error_message = str(ex)
