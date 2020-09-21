@@ -816,7 +816,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         groupby: Optional[List[str]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[Dict[str, Any]]
-        ] = None,  # pylint: disable=bad-whitespace
+        ] = None,
         is_timeseries: bool = True,
         timeseries_limit: int = 15,
         timeseries_limit_metric: Optional[Metric] = None,
