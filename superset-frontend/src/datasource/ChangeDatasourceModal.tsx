@@ -114,7 +114,9 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     searchRef = ref;
   };
 
-  const changeSearch = (event: React.FormEvent<FormControl & FormControlProps>) => {
+  const changeSearch = (
+    event: React.FormEvent<FormControl & FormControlProps>,
+  ) => {
     const filterValue = event.target.value;
     setFilter(filterValue);
     setFilteredDatasources(
@@ -159,7 +161,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             data={filter ? filteredDatasources : datasources}
             pageSize={20}
             searchInput={false}
-            height="auto"
+            sticky
           />
         )}
       </Modal.Body>

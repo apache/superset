@@ -24,6 +24,7 @@ import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import * as useMountedMemo from '@superset-ui/plugin-chart-table/lib/DataTable/utils/useMountedMemo';
 import { act } from 'react-dom/test-utils';
 
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
@@ -67,6 +68,11 @@ async function mountAndWait(props = mockedProps) {
 }
 
 describe('ChangeDatasourceModal', () => {
+  // hack for mocking hook that implements sticky behaviour of DataTable
+  jest
+    .spyOn(useMountedMemo, 'default')
+    .mockImplementation(() => ({ width: 100, height: 100 }));
+
   let wrapper;
 
   beforeEach(async () => {
