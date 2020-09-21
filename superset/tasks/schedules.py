@@ -214,7 +214,7 @@ def get_reports_user(session: Session) -> "User":
             func.lower(security_manager.user_model.username)
             == func.lower(config["EMAIL_REPORTS_USER"])
         )
-        .one_or_none()
+        .one()
     )
 
 
