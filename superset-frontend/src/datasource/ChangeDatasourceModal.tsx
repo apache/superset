@@ -17,8 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useRef } from 'react';
-// @ts-ignore
-import { Table } from 'reactable-arc';
+import DataTable from '@superset-ui/plugin-chart-table/lib/DataTable';
 import { Alert, FormControl, FormControlProps, Modal } from 'react-bootstrap';
 import { SupersetClient, t } from '@superset-ui/core';
 
@@ -49,7 +48,8 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   show,
 }) => {
   const [datasources, setDatasources] = useState<any>(null);
-  const [filter, setFilter] = useState<any>(undefined);
+  const [filteredDatasources, setFilteredDatasources] = useState<any>(null);
+  const [filter, setFilter] = useState<any>('');
   const [loading, setLoading] = useState(true);
   let searchRef = useRef<HTMLInputElement>(null);
 
@@ -114,10 +114,16 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     searchRef = ref;
   };
 
-  const changeSearch = (
-    event: React.FormEvent<FormControl & FormControlProps>,
-  ) => {
-    setFilter((event.currentTarget?.value as string) ?? '');
+  const changeSearch = (event: React.FormEvent<FormControl & FormControlProps>) => {
+    const filterValue = event.target.value;
+    setFilter(filterValue);
+    setFilteredDatasources(
+      datasources?.filter((datasource: any) =>
+        TABLE_FILTERABLE.some(field =>
+          datasource[field]?.includes(filterValue),
+        ),
+      ),
+    );
   };
 
   return (
@@ -129,7 +135,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         <Alert bsStyle="warning">
           <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
         </Alert>
-        <div>
+        <div style={{ marginBottom: '1rem' }}>
           <FormControl
             inputRef={ref => {
               setSearchRef(ref);
@@ -143,14 +149,17 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         </div>
         {loading && <Loading />}
         {datasources && (
-          <Table
-            columns={TABLE_COLUMNS}
-            className="table table-condensed"
-            data={datasources}
-            itemsPerPage={20}
-            filterable={TABLE_FILTERABLE}
-            filterBy={filter}
-            hideFilterInput
+          <DataTable
+            tableClassName="table table-condensed"
+            columns={TABLE_COLUMNS.map(column => ({
+              accessor: column,
+              Header: () => <th>{column}</th>,
+              Cell: ({ value }) => <td>{value}</td>,
+            }))}
+            data={filter ? filteredDatasources : datasources}
+            pageSize={20}
+            searchInput={false}
+            height="auto"
           />
         )}
       </Modal.Body>
