@@ -333,7 +333,7 @@ export default class AnnotationLayer extends React.PureComponent {
       annotation.color =
         annotation.color === AUTOMATIC_COLOR ? null : annotation.color;
       this.props.addAnnotationLayer(annotation);
-      this.setState({ isNew: false, oldName: this.state.name });
+      this.setState(prevState => ({ isNew: false, oldName: prevState.name }));
     }
   }
 

@@ -278,7 +278,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   toggleLeftBar() {
-    this.setState({ hideLeftBar: !this.state.hideLeftBar });
+    this.setState(prevState => ({ hideLeftBar: !prevState.hideLeftBar }));
   }
 
   render() {

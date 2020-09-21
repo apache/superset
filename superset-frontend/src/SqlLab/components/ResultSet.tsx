@@ -129,9 +129,9 @@ export default class ResultSet extends React.PureComponent<
   }
 
   toggleExploreResultsButton() {
-    this.setState({
-      showExploreResultsButton: !this.state.showExploreResultsButton,
-    });
+    this.setState(prevState => ({
+      showExploreResultsButton: !prevState.showExploreResultsButton,
+    }));
   }
 
   changeSearch(event: React.ChangeEvent<HTMLInputElement>) {

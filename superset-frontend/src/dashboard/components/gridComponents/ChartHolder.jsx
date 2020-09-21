@@ -163,7 +163,7 @@ class ChartHolder extends React.Component {
   }
 
   handleToggleFullSize() {
-    this.setState(() => ({ isFullSize: !this.state.isFullSize }));
+    this.setState(prevState => ({ isFullSize: !prevState.isFullSize }));
   }
 
   render() {

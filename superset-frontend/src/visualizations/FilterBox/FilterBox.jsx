@@ -176,16 +176,21 @@ class FilterBox extends React.Component {
         vals = options;
       }
     }
-    const selectedValues = {
-      ...this.state.selectedValues,
-      [fltr]: vals,
-    };
 
-    this.setState({ selectedValues, hasChanged: true }, () => {
-      if (this.props.instantFiltering) {
-        this.props.onChange({ [fltr]: vals }, false);
-      }
-    });
+    this.setState(
+      prevState => ({
+        selectedValues: {
+          ...prevState.selectedValues,
+          [fltr]: vals,
+        },
+        hasChanged: true,
+      }),
+      () => {
+        if (this.props.instantFiltering) {
+          this.props.onChange({ [fltr]: vals }, false);
+        }
+      },
+    );
   }
 
   /**
