@@ -17,19 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import SyntaxHighlighter, {
-  registerLanguage,
-  // @ts-ignore
-} from 'react-syntax-highlighter/dist/light';
-// @ts-ignore
-import sql from 'react-syntax-highlighter/dist/languages/hljs/sql';
-// @ts-ignore
-import github from 'react-syntax-highlighter/dist/styles/hljs/github';
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
+import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
+import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 
 import Link from '../../components/Link';
 import ModalTrigger from '../../components/ModalTrigger';
 
-registerLanguage('sql', sql);
+SyntaxHighlighter.registerLanguage('sql', sql);
 
 interface ShowSQLProps {
   sql: string;

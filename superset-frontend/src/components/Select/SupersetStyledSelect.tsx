@@ -224,8 +224,11 @@ function styled<
     // Handle onPaste event
     if (onPaste) {
       const Input = components.Input || defaultComponents.Input;
-      // @ts-ignore (needed for passing `onPaste`)
-      components.Input = props => <Input {...props} onPaste={onPaste} />;
+      components.Input = props => (
+        <div onPaste={onPaste}>
+          <Input {...props} />
+        </div>
+      );
     }
     // for CreaTable
     if (SelectComponent === WindowedCreatableSelect) {
