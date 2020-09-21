@@ -232,9 +232,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    def put(  # pylint: disable=too-many-return-statements, arguments-differ
-        self, pk: int
-    ) -> Response:
+    def put(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Changes a Dashboard
         ---
         put:
@@ -286,18 +284,19 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             changed_model = UpdateDashboardCommand(g.user, pk, item).run()
-            return self.response(200, id=changed_model.id, result=item)
+            response = self.response(200, id=changed_model.id, result=item)
         except DashboardNotFoundError:
-            return self.response_404()
+            response = self.response_404()
         except DashboardForbiddenError:
-            return self.response_403()
+            response = self.response_403()
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardUpdateFailedError as ex:
             logger.error(
                 "Error updating model %s: %s", self.__class__.__name__, str(ex)
             )
-            return self.response_422(message=str(ex))
+            response = self.response_422(message=str(ex))
+        return response
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
