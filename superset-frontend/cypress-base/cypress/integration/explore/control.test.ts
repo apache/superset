@@ -24,18 +24,16 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
 
-  before(() => {
-    cy.server();
-    cy.login();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
-  });
-
   it('should allow edit datasource', () => {
     let numScripts = 0;
 
+    cy.login();
+    cy.server();
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
     cy.get('#datasource_menu').click();
 
     cy.get('script').then(nodes => {
