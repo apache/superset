@@ -50,7 +50,7 @@ A modern, enterprise-ready business intelligence web application.
 
 **Gallery**
 
-<kbd><a href="https://superset.apache.org/gallery"><img title="Gallery" src="https://raw.githubusercontent.com/apache/incubator-superset/gallery_readme/superset-frontend/images/screenshots/gallery.png"></a></kbd><br/>
+<kbd><a href="https://superset.apache.org/gallery"><img title="Gallery" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/gallery.png"></a></kbd><br/>
 
 **View Dashboards**
 
