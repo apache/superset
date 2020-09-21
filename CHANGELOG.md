@@ -18,7 +18,11 @@ under the License.
 -->
 ## Change Log
 
-### 0.37.2 (2020/09/16 07:49 +00:00)
+### 0.37.2 (2020/09/21 11:45 +00:00)
+- [#10964](https://github.com/apache/incubator-superset/pull/10964) fix: simply is_adhoc_metric (#10964) (@villebro)
+- [#10934](https://github.com/apache/incubator-superset/pull/10934) fix(jinja): make context attrs private on SQL templates (#10934) (@dpgaspar)
+- [#10931](https://github.com/apache/incubator-superset/pull/10931) fix(legacy-druid): undefined filter key (#10931) (@villebro)
+- [#10451](https://github.com/apache/incubator-superset/pull/10451) fix(chart-data-api): assert referenced columns are present in datasource (#10451) (@villebro)
 - [#10816](https://github.com/apache/incubator-superset/pull/10816) fix(sql-lab): relax column name restrictions (#10816) (@villebro)
 - [#10814](https://github.com/apache/incubator-superset/pull/10814) fix: ColorSchemeControl should not use CreatableSelect (#10814) (@ktmud)
 - [#10805](https://github.com/apache/incubator-superset/pull/10805) Fix: Include RLS filters for cache keys (#10805) (@gtg472b)
