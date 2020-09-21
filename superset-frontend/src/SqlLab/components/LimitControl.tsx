@@ -17,7 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { FormGroup, FormControl, Overlay, Popover } from 'react-bootstrap';
+import {
+  FormGroup,
+  FormControl,
+  Overlay,
+  Popover,
+  FormControlProps,
+} from 'react-bootstrap';
 import Button from 'src/components/Button';
 import { t, styled } from '@superset-ui/core';
 
@@ -105,9 +111,12 @@ export default class LimitControl extends React.PureComponent<
               value={textValue}
               placeholder={t(`Max: ${this.props.maxRow}`)}
               bsSize="small"
-              // @ts-ignore
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                this.setState({ textValue: event.target.value })
+              onChange={(
+                event: React.FormEvent<FormControl & FormControlProps>,
+              ) =>
+                this.setState({
+                  textValue: (event.currentTarget?.value as string) ?? '',
+                })
               }
             />
           </FormGroup>
