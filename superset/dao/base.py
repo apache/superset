@@ -39,11 +39,11 @@ class BaseDAO:
     """
     Child classes need to state the Model class so they don't need to implement basic
     create, update and delete methods
-    """  # pylint: disable=pointless-string-statement
+    """
     base_filter: Optional[BaseFilter] = None
     """
     Child classes can register base filtering to be aplied to all filter methods
-    """  # pylint: disable=pointless-string-statement
+    """
 
     @classmethod
     def find_by_id(cls, model_id: int) -> Model:
