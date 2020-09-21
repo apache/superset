@@ -45,7 +45,7 @@ const Styles = styled.span`
 export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
   return (
     <Styles
-      className={checked ? 'primary': 'grayscale'}
+      className={checked ? 'primary' : 'grayscale'}
       style={style}
       onClick={() => {
         onChange(!checked);
