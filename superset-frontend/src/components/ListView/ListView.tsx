@@ -56,8 +56,24 @@ const ListViewStyles = styled.div<ListViewStylesProps>`
       ${({ fullHeight }) =>
         !fullHeight &&
         css`
-          overflow: scroll;
+          overflow: auto;
           max-height: 64vh;
+
+          &::-webkit-scrollbar {
+            -webkit-appearance: none;
+            &:vertical {
+              width: 7px;
+            }
+            &:horizontal {
+              height: 7px;
+            }
+          }
+
+          &::-webkit-scrollbar-thumb {
+            border-radius: 4px;
+            background-color: rgba(0, 0, 0, 0.5);
+            -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+          }
         `};
     }
   }
