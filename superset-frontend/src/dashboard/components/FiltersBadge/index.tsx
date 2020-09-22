@@ -25,7 +25,7 @@ const mapDispatchToProps = (dispatch: Dispatch<any>) => {
 };
 
 interface FiltersBadgeProps {
-  chartId: string;
+  chartId: number;
 }
 
 const mapStateToProps = (

@@ -56,9 +56,7 @@ describe('FiltersBadge', () => {
       },
       dashboardFilters,
     });
-    const wrapper = shallow(
-      <FiltersBadge {...{ store }} chartId={`${sliceId}`} />,
-    );
+    const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
     expect(wrapper.dive().type()).toEqual(null);
   });
 
@@ -75,9 +73,7 @@ describe('FiltersBadge', () => {
       },
       dashboardFilters,
     });
-    const wrapper = shallow(
-      <FiltersBadge {...{ store }} chartId={`${sliceId}`} />,
-    );
+    const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
     expect(wrapper.dive().find('Popover')).toExist();
     expect(wrapper.dive().find('.indicator-count')).toHaveText('1');
     expect(wrapper.dive().find('WarningFilled')).not.toExist();
@@ -96,9 +92,7 @@ describe('FiltersBadge', () => {
       },
       dashboardFilters,
     });
-    const wrapper = shallow(
-      <FiltersBadge {...{ store }} chartId={`${sliceId}`} />,
-    );
+    const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
     expect(wrapper.dive().find('Popover')).toExist();
     expect(wrapper.dive().find('.indicator-count')).toHaveText('1');
     // antd components are often wrapped in ForwardRef which means we can't

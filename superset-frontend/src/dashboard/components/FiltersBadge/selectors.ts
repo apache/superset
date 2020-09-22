@@ -12,7 +12,7 @@ const TIME_GRANULARITY_FIELDS = new Set([
 ]);
 
 type Filter = {
-  chartId: string;
+  chartId: number;
   columns: { [key: string]: string | string[] };
   scopes: { [key: string]: any };
   labels: { [key: string]: string };
@@ -30,11 +30,13 @@ const selectIndicatorValue = (
   filter: Filter,
   datasource: Datasource,
 ): string[] => {
+  const values = filter.columns[columnKey];
+  const arrValues = Array.isArray(values) ? values : [values];
+
   if (
-    isNil(filter.columns[columnKey]) ||
-    (filter.isDateFilter && filter.columns[columnKey] === 'No filter') ||
-    (Array.isArray(filter.columns[columnKey]) &&
-      filter.columns[columnKey].length === 0)
+    isNil(values) ||
+    (filter.isDateFilter && values === 'No filter') ||
+    arrValues.length === 0
   ) {
     return [];
   }
@@ -52,16 +54,14 @@ const selectIndicatorValue = (
       {},
     );
 
-    return ([] as string[])
-      .concat(filter.columns[columnKey])
-      .map(value => timeGranularityMap[value] || value);
+    return arrValues.map(value => timeGranularityMap[value] || value);
   }
 
-  return ([] as string[]).concat(filter.columns[columnKey]);
+  return arrValues;
 };
 
 const selectIndicatorsForChartFromFilter = (
-  chartId: string,
+  chartId: number,
   filter: Filter,
   filterDataSource: Datasource,
   appliedColumns: Set<string>,
@@ -92,7 +92,7 @@ const selectIndicatorsForChartFromFilter = (
 };
 
 export const selectIndicatorsForChart = (
-  chartId: string,
+  chartId: number,
   filters: Filter[],
   datasources: { [key: string]: Datasource },
   charts: any,
