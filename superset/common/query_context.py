@@ -224,7 +224,7 @@ class QueryContext:
                     status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
-                except Exception as ex:  # pylint: disable=broad-except
+                except KeyError as ex:
                     logger.exception(ex)
                     logger.error(
                         "Error reading cache: %s", utils.error_msg_from_exception(ex)

@@ -36,6 +36,7 @@ import GitHubButton from 'react-github-btn';
 import { Databases } from '../resources/data';
 import Layout from '../components/layout';
 import Image from '../components/image';
+import DbImage from '../components/DbImage';
 import 'antd/dist/antd.css';
 import SEO from '../components/seo';
 import logo from '../images/superset-logo-horiz-apache.svg';
@@ -179,7 +180,7 @@ const integrationSection = css`
     font-size: 18px;
   }
 
-  .databaseList {
+  .database-list {
     margin-top: 100px;
     list-style-type: none;
     padding: 0px;
@@ -448,7 +449,7 @@ const Theme = () => {
           <div css={integrationSection}>
             <h2 css={secondaryHeading}>Supported Databases</h2>
 
-            <ul className="databaseList">
+            <ul className="database-list">
               {Databases.map(
                 ({
                   title, href, imgName: imageName, width, height,
@@ -459,10 +460,9 @@ const Theme = () => {
                     key={imageName}
                     rel="noreferrer"
                   >
-                    <Image
+                    <DbImage
                       {...{
                         imageName,
-                        type: 'db',
                         width,
                         height,
                         alt: title,

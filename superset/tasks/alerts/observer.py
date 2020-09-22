@@ -48,7 +48,7 @@ def observe(alert_id: int, session: Session) -> Optional[str]:
 
     error_msg = validate_observer_result(df, alert.id, alert.label)
 
-    if not error_msg and df.to_records()[0][1] is not None:
+    if not error_msg and not df.empty and df.to_records()[0][1] is not None:
         value = float(df.to_records()[0][1])
 
     observation = SQLObservation(
@@ -74,9 +74,9 @@ def validate_observer_result(
     Returns an error message if the result is invalid.
     """
     try:
-        assert (
-            not sql_result.empty
-        ), f"Observer for alert <{alert_id}:{alert_label}> returned no rows"
+        if sql_result.empty:
+            # empty results are used for the not null validator
+            return None
 
         rows = sql_result.to_records()
 

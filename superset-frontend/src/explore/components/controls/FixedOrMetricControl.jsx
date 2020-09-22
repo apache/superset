@@ -90,10 +90,9 @@ export default class FixedOrMetricControl extends React.Component {
   }
 
   toggle() {
-    const expanded = !this.state.expanded;
-    this.setState({
-      expanded,
-    });
+    this.setState(prevState => ({
+      expanded: !prevState.expanded,
+    }));
   }
 
   render() {

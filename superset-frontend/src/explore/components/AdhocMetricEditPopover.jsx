@@ -88,40 +88,41 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onColumnChange(column) {
-    this.setState({
-      adhocMetric: this.state.adhocMetric.duplicateWith({
+    this.setState(prevState => ({
+      adhocMetric: prevState.adhocMetric.duplicateWith({
         column,
         expressionType: EXPRESSION_TYPES.SIMPLE,
       }),
-    });
+    }));
   }
 
   onAggregateChange(aggregate) {
     // we construct this object explicitly to overwrite the value in the case aggregate is null
-    this.setState({
-      adhocMetric: this.state.adhocMetric.duplicateWith({
+    this.setState(prevState => ({
+      adhocMetric: prevState.adhocMetric.duplicateWith({
         aggregate,
         expressionType: EXPRESSION_TYPES.SIMPLE,
       }),
-    });
+    }));
   }
 
   onSqlExpressionChange(sqlExpression) {
-    this.setState({
-      adhocMetric: this.state.adhocMetric.duplicateWith({
+    this.setState(prevState => ({
+      adhocMetric: prevState.adhocMetric.duplicateWith({
         sqlExpression,
         expressionType: EXPRESSION_TYPES.SQL,
       }),
-    });
+    }));
   }
 
   onLabelChange(e) {
-    this.setState({
-      adhocMetric: this.state.adhocMetric.duplicateWith({
-        label: e.target.value,
+    const label = e.target.value;
+    this.setState(prevState => ({
+      adhocMetric: prevState.adhocMetric.duplicateWith({
+        label,
         hasCustomLabel: true,
       }),
-    });
+    }));
   }
 
   onDragDown(e) {

@@ -25,7 +25,7 @@ const NotFoundPage = () => (
   <Layout>
     <SEO title="404: Not found" />
     <h1>NOT FOUND</h1>
-    <p>Sorry, you've requested a page that does not exist.</p>
+    <p>Sorry, you&apos;ve requested a page that does not exist.</p>
   </Layout>
 );
 

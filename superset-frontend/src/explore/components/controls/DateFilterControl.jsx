@@ -128,22 +128,23 @@ function getStateFromSeparator(value) {
 
 function getStateFromCommonTimeFrame(value) {
   const units = `${value.split(' ')[1]}s`;
+  let sinceMoment;
+
+  if (value === 'No filter') {
+    sinceMoment = '';
+  } else if (units === 'years') {
+    sinceMoment = moment().utc().startOf(units).subtract(1, units);
+  } else {
+    sinceMoment = moment().utc().startOf('day').subtract(1, units);
+  }
+
   return {
     tab: TABS.DEFAULTS,
     type: TYPES.DEFAULTS,
     common: value,
-    since:
-      value === 'No filter'
-        ? ''
-        : moment()
-            .utc()
-            .startOf('day')
-            .subtract(1, units)
-            .format(MOMENT_FORMAT),
+    since: sinceMoment === '' ? '' : sinceMoment.format(MOMENT_FORMAT),
     until:
-      value === 'No filter'
-        ? ''
-        : moment().utc().startOf('day').format(MOMENT_FORMAT),
+      sinceMoment === '' ? '' : sinceMoment.add(1, units).format(MOMENT_FORMAT),
   };
 }
 
@@ -259,14 +260,14 @@ class DateFilterControl extends React.Component {
     const closeCalendar =
       (key === 'since' && this.state.sinceViewMode === 'days') ||
       (key === 'until' && this.state.untilViewMode === 'days');
-    this.setState({
+    this.setState(prevState => ({
       type: TYPES.CUSTOM_START_END,
       [key]: typeof value === 'string' ? value : value.format(MOMENT_FORMAT),
-      showSinceCalendar: this.state.showSinceCalendar && !closeCalendar,
-      showUntilCalendar: this.state.showUntilCalendar && !closeCalendar,
-      sinceViewMode: closeCalendar ? 'days' : this.state.sinceViewMode,
-      untilViewMode: closeCalendar ? 'days' : this.state.untilViewMode,
-    });
+      showSinceCalendar: prevState.showSinceCalendar && !closeCalendar,
+      showUntilCalendar: prevState.showUntilCalendar && !closeCalendar,
+      sinceViewMode: closeCalendar ? 'days' : prevState.sinceViewMode,
+      untilViewMode: closeCalendar ? 'days' : prevState.untilViewMode,
+    }));
   }
 
   setTypeCustomRange() {
@@ -396,7 +397,6 @@ class DateFilterControl extends React.Component {
     ));
     const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => {
       const nextState = getStateFromCommonTimeFrame(timeFrame);
-
       const timeRange = buildTimeRangeString(nextState.since, nextState.until);
 
       return (

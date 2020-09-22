@@ -38,6 +38,8 @@ export type FeatureFlagMap = {
 declare global {
   interface Window {
     featureFlags: FeatureFlagMap;
+    $: any;
+    jQuery: any;
   }
 }
 
