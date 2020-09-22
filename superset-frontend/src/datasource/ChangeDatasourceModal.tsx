@@ -117,7 +117,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const changeSearch = (
     event: React.FormEvent<FormControl & FormControlProps>,
   ) => {
-    const filterValue = event.target.value;
+    const filterValue = event.currentTarget.value;
     setFilter(filterValue);
     setFilteredDatasources(
       datasources?.filter((datasource: any) =>
@@ -129,7 +129,13 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   };
 
   return (
-    <Modal show={show} onHide={onHide} onEnter={onEnterModal} bsSize="large">
+    <Modal
+      show={show}
+      onHide={onHide}
+      onEnter={onEnterModal}
+      bsSize="large"
+      className="modal-fullscreen"
+    >
       <Modal.Header closeButton>
         <Modal.Title>{t('Select a datasource')}</Modal.Title>
       </Modal.Header>
@@ -151,18 +157,21 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         </div>
         {loading && <Loading />}
         {datasources && (
-          <DataTable
-            tableClassName="table table-condensed"
-            columns={TABLE_COLUMNS.map(column => ({
-              accessor: column,
-              Header: () => <th>{column}</th>,
-              Cell: ({ value }) => <td>{value}</td>,
-            }))}
-            data={filter ? filteredDatasources : datasources}
-            pageSize={20}
-            searchInput={false}
-            sticky
-          />
+          <div className="flex-1 sticky-table">
+            <DataTable
+              tableClassName="table table-condensed"
+              columns={TABLE_COLUMNS.map(column => ({
+                accessor: column,
+                Header: () => <th>{column}</th>,
+                Cell: ({ value }) => <td>{value}</td>,
+              }))}
+              data={filter ? filteredDatasources : datasources}
+              pageSize={20}
+              searchInput={false}
+              sticky
+              height="100%"
+            />
+          </div>
         )}
       </Modal.Body>
     </Modal>
