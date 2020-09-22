@@ -22,21 +22,13 @@ import readResponseBlob from '../utils/readResponseBlob';
 const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
 
 Cypress.Commands.add('login', () => {
-  // fetch CSRF token with GET before the POST
-  cy.request('/login')
-    .its('body')
-    .then(body => {
-      const $html = Cypress.$(body);
-      const csrf = $html.find('input[name=csrf_token]').val();
-      cy.request({
-        method: 'POST',
-        url: '/login/',
-        body: { username: 'admin', password: 'admin' },
-        headers: { 'X-CSRFToken': csrf },
-      }).then(response => {
-        expect(response.status).to.eq(200);
-      });
-    });
+  cy.request({
+    method: 'POST',
+    url: '/login/',
+    body: { username: 'admin', password: 'general' },
+  }).then(response => {
+    expect(response.status).to.eq(200);
+  });
 });
 
 Cypress.Commands.add('visitChartByName', name => {

@@ -82,7 +82,7 @@ describe('Dashboard save action', () => {
       .should('not.be.visible');
   });
 
-  it('should save after edit', () => {
+  xit('should save after edit', () => {
     cy.get('.dashboard-grid', { timeout: 50000 }) // wait for 50 secs to load dashboard
       .then(() => {
         const dashboardTitle = `Test dashboard [${shortid.generate()}]`;
