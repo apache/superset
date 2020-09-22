@@ -33,7 +33,7 @@ apache_superset.egg-info
 .*csv
 # Generated doc files
 env/*
-docs/README.md
+docs/README*
 docs/.htaccess*
 _build/*
 _static/*
