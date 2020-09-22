@@ -59,9 +59,9 @@ const selectIndicatorsForChartFromFilter = (
 
   return Object.keys(filter.columns)
     .filter(column =>
-      getChartIdsInFilterScope({ filterScope: filter.scopes[column] }).includes(
-        chartId,
-      ),
+      getChartIdsInFilterScope({
+        filterScope: filter.scopes[column],
+      }).includes(chartId),
     )
     .map(column => ({
       id: column,

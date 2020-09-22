@@ -487,8 +487,6 @@ class BaseViz:
         columns = set(self.datasource.column_names)
         payload["applied_filters"] = [{"column": col} for col in filter_columns if col in columns]
         payload["rejected_filters"] = [{"reason": "not_in_datasource", "column": col} for col in filter_columns if col not in columns]
-        logger.info(payload["applied_filters"])
-        logger.info(payload["rejected_filters"])
 
         return payload
 

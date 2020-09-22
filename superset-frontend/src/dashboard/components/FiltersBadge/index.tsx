@@ -1,9 +1,10 @@
 import React from 'react';
-import { connect, Dispatch, MapStateToProps } from 'react-redux';
+import { connect, Dispatch } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { WarningFilled } from '@ant-design/icons';
+import { useTheme } from '@superset-ui/core';
 import { ReactComponent as FilterIcon } from 'images/icons/filter.svg';
-import { Popover, Icon, Collapse } from '../../../common/components';
+import { Popover, Icon } from 'src/common/components';
 import DetailsPanel, { Indicator } from './DetailsPanel';
 import S from './Styles';
 import { setDirectPathToChild } from '../../actions/dashboardState';
@@ -23,13 +24,13 @@ const mapDispatchToProps = (dispatch: Dispatch<any>) => {
   );
 };
 
-interface IndexProps {
+interface FiltersBadgeProps {
   chartId: string;
 }
 
 const mapStateToProps = (
   { datasources, dashboardFilters, charts }: any,
-  { chartId }: IndexProps,
+  { chartId }: FiltersBadgeProps,
 ) => {
   const indicators = selectIndicatorsForChart(
     chartId,
@@ -44,13 +45,14 @@ const mapStateToProps = (
   };
 };
 
-const Index = ({
+const FiltersBadge = ({
   indicators,
   onHighlightFilterSource,
 }: {
   indicators: Indicator[];
   onHighlightFilterSource: (path: string) => void;
 }) => {
+  const theme = useTheme();
   const appliedIndicators = indicators.filter(
     indicator => indicator.status === APPLIED,
   );
@@ -78,15 +80,16 @@ const Index = ({
         }
         placement="bottomRight"
         trigger="click"
-        color="rgba(0, 0, 0, 0.8)"
       >
         <S.Pill>
           <Icon component={FilterIcon} />{' '}
-          {appliedIndicators.length + incompatibleIndicators.length}
+          <span className="indicator-count">
+            {appliedIndicators.length + incompatibleIndicators.length}
+          </span>
           {incompatibleIndicators.length ? (
-            <span>
+            <span className="rejected-indicators">
               {' '}
-              <WarningFilled style={{ color: '#FBC700' }} />
+              <WarningFilled style={{ color: theme.colors.warning.base }} />
             </span>
           ) : null}
         </S.Pill>
@@ -95,4 +98,4 @@ const Index = ({
   );
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(Index);
+export default connect(mapStateToProps, mapDispatchToProps)(FiltersBadge);

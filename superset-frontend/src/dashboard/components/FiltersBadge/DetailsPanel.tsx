@@ -1,11 +1,12 @@
 import React from 'react';
+import { useTheme } from '@superset-ui/core';
 import {
   SearchOutlined,
   MinusCircleFilled,
   CheckCircleFilled,
   ExclamationCircleFilled,
 } from '@ant-design/icons';
-import { Collapse } from '../../../common/components/index';
+import { Collapse } from 'src/common/components/index';
 import S from './Styles';
 import { APPLIED, INCOMPATIBLE, UNSET } from './selectors';
 
@@ -48,6 +49,7 @@ const DetailsPanel = ({
   unsetIndicators = [],
   onHighlightFilterSource,
 }: DetailsPanelProps) => {
+  const theme = useTheme();
   const total =
     appliedIndicators.length +
     incompatibleIndicators.length +
@@ -61,7 +63,7 @@ const DetailsPanel = ({
             <Collapse.Panel
               key="applied"
               header={
-                <S.Title color="#59C189">
+                <S.Title color={theme.colors.success.base}>
                   <CheckCircleFilled />
                   {` Applied (${appliedIndicators.length})`}
                 </S.Title>
@@ -82,7 +84,7 @@ const DetailsPanel = ({
             <Collapse.Panel
               key="incompatible"
               header={
-                <S.Title color="#FBC700">
+                <S.Title color={theme.colors.alert.base}>
                   <ExclamationCircleFilled />
                   {` Incompatible (${incompatibleIndicators.length})`}
                 </S.Title>
@@ -102,7 +104,7 @@ const DetailsPanel = ({
           <Collapse.Panel
             key="unset"
             header={
-              <S.Title color="#B2B2B2">
+              <S.Title color={theme.colors.grayscale.dark1}>
                 <MinusCircleFilled />
                 {` Unset (${unsetIndicators.length})`}
               </S.Title>

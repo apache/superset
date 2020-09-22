@@ -71,14 +71,9 @@ const Indent = styled.div`
 `;
 
 const Panel = styled.div`
-  color: #fff;
   min-width: 200px;
   max-width: 400px;
   overflow-x: hidden;
-
-  * {
-    color: #fff;
-  }
 `;
 
 const S = {
