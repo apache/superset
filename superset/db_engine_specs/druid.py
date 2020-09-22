@@ -23,10 +23,8 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
-        TableColumn,
-    )
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.connectors.sqla.models import TableColumn
+    from superset.models.core import Database
 
 logger = logging.getLogger()
 

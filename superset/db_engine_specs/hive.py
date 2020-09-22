@@ -41,7 +41,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.models.core import Database
 
 QueryStatus = utils.QueryStatus
 config = app.config
@@ -111,7 +111,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def patch(cls) -> None:
-        from pyhive import hive  # pylint: disable=no-name-in-module
+        from pyhive import hive
         from TCLIService import (
             constants as patched_constants,
             TCLIService as patched_TCLIService,
@@ -263,7 +263,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if tt == utils.TemporalType.TIMESTAMP:
-            return f"""CAST('{dttm.isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""  # pylint: disable=line-too-long
+            return f"""CAST('{dttm
+                .isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""
         return None
 
     @classmethod
@@ -325,7 +326,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         cls, cursor: Any, query: Query, session: Session
     ) -> None:
         """Updates progress information"""
-        from pyhive import hive  # pylint: disable=no-name-in-module
+        from pyhive import hive
 
         unfinished_states = (
             hive.ttypes.TOperationState.INITIALIZED_STATE,

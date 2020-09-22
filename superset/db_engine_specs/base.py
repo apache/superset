@@ -59,10 +59,8 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
-        TableColumn,
-    )
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.connectors.sqla.models import TableColumn
+    from superset.models.core import Database
 
 logger = logging.getLogger()
 
