@@ -43,20 +43,25 @@ export default class Timer extends React.PureComponent {
     };
     this.stopwatch = this.stopwatch.bind(this);
   }
+
   UNSAFE_componentWillMount() {
     this.startTimer();
   }
+
   componentWillUnmount() {
     this.stopTimer();
   }
+
   startTimer() {
     if (!this.timer) {
       this.timer = setInterval(this.stopwatch, 30);
     }
   }
+
   stopTimer() {
     this.timer = clearInterval(this.timer);
   }
+
   stopwatch() {
     if (this.props && this.props.startTime) {
       const endDttm = this.props.endTime || now();
@@ -69,6 +74,7 @@ export default class Timer extends React.PureComponent {
       }
     }
   }
+
   render() {
     if (this.props && this.props.isRunning) {
       this.startTimer();
