@@ -902,16 +902,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return label_mutated
 
     @classmethod
-    def get_sqla_column_type(cls, type_: str) -> Optional[TypeEngine]:
+    def get_sqla_column_type(cls, type_: Optional[str]) -> Optional[TypeEngine]:
         """
         Return a sqlalchemy native column type that corresponds to the column type
         defined in the data source (return None to use default type inferred by
-        SQLAlchemy). Override `_column_type_mappings` for specific needs
+        SQLAlchemy). Override `column_type_mappings` for specific needs
         (see MSSQL for example of NCHAR/NVARCHAR handling).
 
         :param type_: Column type returned by inspector
         :return: SqlAlchemy column type
         """
+        if not type_:
+            return None
         for regex, sqla_type in cls.column_type_mappings:
             match = regex.match(type_)
             if match:
