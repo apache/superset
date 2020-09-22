@@ -28,6 +28,8 @@ const footerStyle = css`
   text-align: center;
   color: #ccc;
   padding: 10px;
+  height: 100%;
+  width: 100%;
 `;
 
 const copyrightStyle = css`

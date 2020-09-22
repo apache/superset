@@ -82,14 +82,6 @@ export function getShortUrl(longUrl) {
     );
 }
 
-export function supersetURL(rootUrl, getParams = {}) {
-  const url = new URL(rootUrl, window.location.origin);
-  for (const k in getParams) {
-    url.searchParams.set(k, getParams[k]);
-  }
-  return url.href;
-}
-
 export function optionLabel(opt) {
   if (opt === null) {
     return NULL_STRING;

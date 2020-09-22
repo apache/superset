@@ -174,7 +174,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return [row[0] for row in results]
 
     @classmethod
-    def _create_column_info(cls, name: str, data_type: str) -> Dict[str, Any]:
+    def _create_column_info(
+        cls, name: str, data_type: types.TypeEngine
+    ) -> Dict[str, Any]:
         """
         Create column info object
         :param name: column name
@@ -265,8 +267,11 @@ class PrestoEngineSpec(BaseEngineSpec):
                         # overall structural data type
                         column_type = cls.get_sqla_column_type(field_info[1])
                         if column_type is None:
-                            raise NotImplementedError(
-                                _("Unknown column type: %(col)s", col=field_info[1])
+                            column_type = types.String()
+                            logger.info(
+                                "Did not recognize type %s of column %s",
+                                field_info[1],
+                                field_info[0],
                             )
                         if field_info[1] == "array" or field_info[1] == "row":
                             stack.append((field_info[0], field_info[1]))
@@ -381,8 +386,11 @@ class PrestoEngineSpec(BaseEngineSpec):
             # otherwise column is a basic data type
             column_type = cls.get_sqla_column_type(column.Type)
             if column_type is None:
-                raise NotImplementedError(
-                    _("Unknown column type: %(col)s", col=column_type)
+                column_type = types.String()
+                logger.info(
+                    "Did not recognize type %s of column %s",
+                    str(column.Type),
+                    str(column.Column),
                 )
             column_info = cls._create_column_info(column.Column, column_type)
             column_info["nullable"] = getattr(column, "Null", True)

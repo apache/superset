@@ -34,8 +34,9 @@ import SelectControl from './SelectControl';
 import TextControl from './TextControl';
 import CheckboxControl from './CheckboxControl';
 
-import ANNOTATION_TYPES, {
+import {
   ANNOTATION_SOURCE_TYPES,
+  ANNOTATION_TYPES,
   ANNOTATION_TYPES_METADATA,
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
@@ -332,7 +333,7 @@ export default class AnnotationLayer extends React.PureComponent {
       annotation.color =
         annotation.color === AUTOMATIC_COLOR ? null : annotation.color;
       this.props.addAnnotationLayer(annotation);
-      this.setState({ isNew: false, oldName: this.state.name });
+      this.setState(prevState => ({ isNew: false, oldName: prevState.name }));
     }
   }
 

@@ -22,14 +22,13 @@ import Img from 'gatsby-image';
 
 interface Props {
   imageName?: string;
-  type?: string;
   width?: string;
   height?: string;
   otherProps?: any;
 }
 
 const Image = ({
-  imageName, type, width, height, ...otherProps
+  imageName, width, height, ...otherProps
 }: Props) => {
   const data = useStaticQuery(graphql`
     query {
@@ -82,30 +81,10 @@ const Image = ({
           }
         }
       }
-
-      getAllImages: allImageSharp {
-        edges {
-          node {
-            fixed(height: 50) {
-              ...GatsbyImageSharpFixed
-              originalName
-            }
-          }
-        }
-      }
     }
   `);
 
-  const filter = data.getAllImages.edges.filter(
-    (n) => n.node.fixed.originalName === imageName,
-  );
-  const imgStyle = width && height ? { width, height } : {};
-
-  return type === 'db' ? (
-    <Img fixed={filter[0]?.node?.fixed} style={imgStyle} imgStyle={imgStyle} />
-  ) : (
-    <Img fixed={data[imageName]?.childImageSharp?.fixed} {...otherProps} />
-  );
+  return <Img fixed={data[imageName]?.childImageSharp?.fixed} {...otherProps} />;
 };
 
 export default Image;

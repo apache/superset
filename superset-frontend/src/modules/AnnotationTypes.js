@@ -77,5 +77,3 @@ export function applyNativeColumns(annotation) {
   }
   return annotation;
 }
-
-export default ANNOTATION_TYPES;

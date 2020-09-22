@@ -19,7 +19,7 @@
 import React, { FunctionComponent, useState, useRef } from 'react';
 // @ts-ignore
 import { Table } from 'reactable-arc';
-import { Alert, FormControl, Modal } from 'react-bootstrap';
+import { Alert, FormControl, FormControlProps, Modal } from 'react-bootstrap';
 import { SupersetClient, t } from '@superset-ui/core';
 
 import getClientErrorObject from '../utils/getClientErrorObject';
@@ -114,8 +114,10 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     searchRef = ref;
   };
 
-  const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilter(event.target.value);
+  const changeSearch = (
+    event: React.FormEvent<FormControl & FormControlProps>,
+  ) => {
+    setFilter((event.currentTarget?.value as string) ?? '');
   };
 
   return (
@@ -136,7 +138,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             bsSize="sm"
             value={filter}
             placeholder={t('Search / Filter')}
-            // @ts-ignore
             onChange={changeSearch}
           />
         </div>

@@ -173,12 +173,9 @@ class TabbedSqlEditors extends React.PureComponent {
   UNSAFE_componentWillReceiveProps(nextProps) {
     const nextActiveQeId =
       nextProps.tabHistory[nextProps.tabHistory.length - 1];
-    const queriesArray = [];
-    for (const id in nextProps.queries) {
-      if (nextProps.queries[id].sqlEditorId === nextActiveQeId) {
-        queriesArray.push(nextProps.queries[id]);
-      }
-    }
+    const queriesArray = Object.values(nextProps.queries).filter(
+      query => query.sqlEditorId === nextActiveQeId,
+    );
     if (!areArraysShallowEqual(queriesArray, this.state.queriesArray)) {
       this.setState({ queriesArray });
     }
@@ -281,7 +278,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   toggleLeftBar() {
-    this.setState({ hideLeftBar: !this.state.hideLeftBar });
+    this.setState(prevState => ({ hideLeftBar: !prevState.hideLeftBar }));
   }
 
   render() {
@@ -315,6 +312,7 @@ class TabbedSqlEditors extends React.PureComponent {
         <>
           {isSelected && (
             <DropdownButton
+              data-test="dropdown-toggle-button"
               bsSize="small"
               id={`ddbtn-tab-${i}`}
               title={' '}
@@ -324,6 +322,7 @@ class TabbedSqlEditors extends React.PureComponent {
                 className="close-btn"
                 eventKey="1"
                 onClick={() => this.removeQueryEditor(qe)}
+                data-test="close-tab-menu-option"
               >
                 <div className="icon-container">
                   <i className="fa fa-close" />
@@ -399,12 +398,13 @@ class TabbedSqlEditors extends React.PureComponent {
         onSelect={this.handleSelect.bind(this)}
         id="a11y-query-editor-tabs"
         className="SqlEditorTabs"
+        data-test="sql-editor-tabs"
       >
         {editors}
         <Tab
           title={
             <div>
-              <i className="fa fa-plus-circle" />
+              <i data-test="add-tab-icon" className="fa fa-plus-circle" />
               &nbsp;
             </div>
           }
@@ -441,7 +441,5 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(Actions, dispatch),
   };
 }
-
-export { TabbedSqlEditors };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);

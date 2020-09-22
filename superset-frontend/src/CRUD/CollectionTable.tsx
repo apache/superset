@@ -150,12 +150,12 @@ export default class CRUDCollection extends React.PureComponent<
 
   toggleExpand(id: any) {
     this.onCellChange(id, '__expanded', false);
-    this.setState({
+    this.setState(prevState => ({
       expandedColumns: {
-        ...this.state.expandedColumns,
-        [id]: !this.state.expandedColumns[id],
+        ...prevState.expandedColumns,
+        [id]: !prevState.expandedColumns[id],
       },
-    });
+    }));
   }
 
   renderHeaderRow() {

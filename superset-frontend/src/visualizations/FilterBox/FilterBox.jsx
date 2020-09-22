@@ -29,7 +29,7 @@ import FormLabel from 'src/components/FormLabel';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlRow from 'src/explore/components/ControlRow';
 import Control from 'src/explore/components/Control';
-import controls from 'src/explore/controls';
+import { controls } from 'src/explore/controls';
 import { getExploreUrl } from 'src/explore/exploreUtils';
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 import { getDashboardFilterKey } from 'src/dashboard/util/getDashboardFilterKey';
@@ -176,16 +176,21 @@ class FilterBox extends React.Component {
         vals = options;
       }
     }
-    const selectedValues = {
-      ...this.state.selectedValues,
-      [fltr]: vals,
-    };
 
-    this.setState({ selectedValues, hasChanged: true }, () => {
-      if (this.props.instantFiltering) {
-        this.props.onChange({ [fltr]: vals }, false);
-      }
-    });
+    this.setState(
+      prevState => ({
+        selectedValues: {
+          ...prevState.selectedValues,
+          [fltr]: vals,
+        },
+        hasChanged: true,
+      }),
+      () => {
+        if (this.props.instantFiltering) {
+          this.props.onChange({ [fltr]: vals }, false);
+        }
+      },
+    );
   }
 
   /**

@@ -22,7 +22,7 @@ import { ParentSize } from '@vx/responsive';
 import { styled } from '@superset-ui/core';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
-import ExploreChartHeader from './ExploreChartHeader';
+import ConnectedExploreChartHeader from './ExploreChartHeader';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -110,7 +110,7 @@ class ExploreChartPanel extends React.PureComponent {
     }
 
     const header = (
-      <ExploreChartHeader
+      <ConnectedExploreChartHeader
         actions={this.props.actions}
         addHistory={this.props.addHistory}
         can_overwrite={this.props.can_overwrite}
