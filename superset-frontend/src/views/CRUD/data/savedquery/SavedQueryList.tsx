@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import React, { useMemo } from 'react';
+import { Popover } from 'src/common/components';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
@@ -35,6 +36,19 @@ interface SavedQueryListProps {
 }
 
 type SavedQueryObject = {};
+
+const StyledTableLabel = styled.div`
+  .count {
+    margin-left: 5px;
+    color: ${({ theme }) => theme.colors.primary.base};
+    text-decoration: underline;
+    cursor: pointer;
+  }
+`;
+
+const StyledPopoverItem = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark2};
+`;
 
 function SavedQueryList({
   addDangerToast,
@@ -87,11 +101,44 @@ function SavedQueryList({
           },
         }: any) => {
           const names = tables.map((table: any) => table.table);
+          const main = names.shift();
 
-          return names.join(', ');
+          if (names.length) {
+            return (
+              <StyledTableLabel>
+                <span>{main}</span>
+                <Popover
+                  placement="right"
+                  title={t('TABLES')}
+                  trigger="click"
+                  content={
+                    <>
+                      {names.map((name: string) => (
+                        <StyledPopoverItem>{name}</StyledPopoverItem>
+                      ))}
+                    </>
+                  }
+                >
+                  <span className="count">(+{names.length})</span>
+                </Popover>
+              </StyledTableLabel>
+            );
+          }
+
+          return main;
         },
         accessor: 'sql_tables',
         Header: t('Tables'),
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { created_on: createdOn },
+          },
+        }: any) => createdOn,
+        Header: t('Created On'),
+        accessor: 'created_on',
       },
       {
         Cell: ({
