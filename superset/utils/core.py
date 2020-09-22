@@ -1547,3 +1547,8 @@ class PostProcessingContributionOrientation(str, Enum):
 class AdhocMetricExpressionType(str, Enum):
     SIMPLE = "SIMPLE"
     SQL = "SQL"
+
+
+class RowLevelSecurityFilterType(str, Enum):
+    REGULAR = "Regular"
+    BASE = "Base"
