@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Label from 'src/components/Label';
 
 import { now, fDuration } from '../modules/dates';
@@ -35,42 +35,31 @@ export default function Timer({
   status = 'success',
 }: TimerProps) {
   const [clockStr, setClockStr] = useState('');
-  const [timer, setTimer] = useState<NodeJS.Timeout>();
+  const timer = useRef<NodeJS.Timeout>();
 
   const stopTimer = () => {
-    if (timer) {
-      clearInterval(timer);
-      setTimer(undefined);
+    if (timer.current) {
+      clearInterval(timer.current);
+      timer.current = undefined;
     }
-  };
-
-  const stopwatch = () => {
-    if (startTime) {
-      const endDttm = endTime || now();
-      if (startTime < endDttm) {
-        setClockStr(fDuration(startTime, endDttm));
-      }
-      if (!isRunning) {
-        stopTimer();
-      }
-    }
-  };
-
-  const startTimer = () => {
-    setTimer(setInterval(stopwatch, 30));
   };
 
   useEffect(() => {
     if (isRunning) {
-      startTimer();
+      timer.current = setInterval(() => {
+        if (startTime) {
+          const endDttm = endTime || now();
+          if (startTime < endDttm) {
+            setClockStr(fDuration(startTime, endDttm));
+          }
+          if (!isRunning) {
+            stopTimer();
+          }
+        }
+      }, 30);
     }
-  }, [isRunning]);
-
-  useEffect(() => {
-    return () => {
-      stopTimer();
-    };
-  });
+    return stopTimer;
+  }, [endTime, isRunning, startTime]);
 
   return (
     <Label id="timer" bsStyle={status}>
