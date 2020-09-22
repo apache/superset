@@ -35,6 +35,7 @@ repos:
     rev: v3.2.0
     hooks:
       - id: check-docstring-first
+      - id: check-added-large-files
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements
