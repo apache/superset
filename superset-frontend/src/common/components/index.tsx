@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Popover, Skeleton } from 'antd';
+import { Skeleton } from 'antd';
 
 /*
   Antd is exported from here so we can override components with Emotion as needed.

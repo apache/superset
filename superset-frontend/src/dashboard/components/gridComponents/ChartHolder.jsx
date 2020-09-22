@@ -19,7 +19,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import FilterIndicators from '../../containers/FilterIndicators';
 import Chart from '../../containers/Chart';
 import AnchorLink from '../../../components/AnchorLink';
 import DeleteComponentButton from '../DeleteComponentButton';
@@ -265,9 +264,6 @@ class ChartHolder extends React.Component {
                 handleToggleFullSize={this.handleToggleFullSize}
                 isFullSize={this.state.isFullSize}
               />
-              {!editMode && (
-                <FilterIndicators chartId={component.meta.chartId} />
-              )}
               {editMode && (
                 <HoverMenu position="top">
                   <DeleteComponentButton
