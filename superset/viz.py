@@ -1644,57 +1644,6 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     pivot_fill_value = 0
 
 
-class DistributionPieViz(NVD3Viz):
-
-    """Annoy visualization snobs with this controversial pie chart"""
-
-    viz_type = "pie"
-    verbose_name = _("Distribution - NVD3 - Pie Chart")
-    is_timeseries = False
-
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        def _label_aggfunc(labels: pd.Series) -> str:
-            """
-            Convert a single or multi column label into a single label, replacing
-            null values with `NULL_STRING` and joining multiple columns together
-            with a comma. Examples:
-
-            >>> _label_aggfunc(pd.Series(["abc"]))
-            'abc'
-            >>> _label_aggfunc(pd.Series([1]))
-            '1'
-            >>> _label_aggfunc(pd.Series(["abc", "def"]))
-            'abc, def'
-            >>> # note: integer floats are stripped of decimal digits
-            >>> _label_aggfunc(pd.Series([0.1, 2.0, 0.3]))
-            '0.1, 2, 0.3'
-            >>> _label_aggfunc(pd.Series([1, None, "abc", 0.8], dtype="object"))
-            '1, <NULL>, abc, 0.8'
-            """
-            label_list: List[str] = []
-            for label in labels:
-                if isinstance(label, str):
-                    label_recast = label
-                elif label is None or isinstance(label, float) and math.isnan(label):
-                    label_recast = NULL_STRING
-                elif isinstance(label, float) and label.is_integer():
-                    label_recast = str(int(label))
-                else:
-                    label_recast = str(label)
-                label_list.append(label_recast)
-
-            return ", ".join(label_list)
-
-        if df.empty:
-            return None
-        metric = self.metric_labels[0]
-        df = pd.DataFrame(
-            {"x": df[self.groupby].agg(func=_label_aggfunc, axis=1), "y": df[metric]}
-        )
-        df.sort_values(by="y", ascending=False, inplace=True)
-        return df.to_dict(orient="records")
-
-
 class HistogramViz(BaseViz):
 
     """Histogram"""
@@ -1751,7 +1700,7 @@ class HistogramViz(BaseViz):
         return chart_data
 
 
-class DistributionBarViz(DistributionPieViz):
+class DistributionBarViz(BaseViz):
 
     """A good old bar chart"""
 
