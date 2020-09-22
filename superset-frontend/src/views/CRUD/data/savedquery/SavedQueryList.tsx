@@ -17,28 +17,186 @@
  * under the License.
  */
 
-import React from 'react';
+import { t } from '@superset-ui/core';
+import React, { useMemo } from 'react';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import ListView, { Filters } from 'src/components/ListView';
+import TooltipWrapper from 'src/components/TooltipWrapper';
+import Icon from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
+
+const PAGE_SIZE = 25;
 
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
 
+type SavedQueryObject = {};
+
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
 }: SavedQueryListProps) {
+  const {
+    state: { loading, resourceCount: queryCount, resourceCollection: queries },
+    hasPerm,
+    fetchData,
+    // refreshData, //TODO: add back later when editing?
+  } = useListViewResource<SavedQueryObject>(
+    'saved_query',
+    t('saved_queries'),
+    addDangerToast,
+  );
+
+  const canCreate = hasPerm('can_add');
+  const canEdit = hasPerm('can_edit');
+  const canDelete = hasPerm('can_delete');
+
   const menuData: SubMenuProps = {
     activeChild: 'Saved Queries',
     ...commonMenuData,
   };
 
+  const initialSort = [{ id: 'label', desc: true }];
+  const columns = useMemo(
+    () => [
+      {
+        accessor: 'label',
+        Header: t('Name'),
+      },
+      {
+        accessor: 'database',
+        Header: t('Database'),
+        Cell: ({
+          row: {
+            original: { database },
+          },
+        }: any) => `${database.database_name}`,
+      },
+      {
+        accessor: 'schema',
+        Header: t('Schema'),
+      },
+      {
+        Cell: ({
+          row: {
+            original: { sql_tables: tables },
+          },
+        }: any) => {
+          const names = tables.map((table: any) => table.table);
+
+          return names.join(', ');
+        },
+        accessor: 'sql_tables',
+        Header: t('Tables'),
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => changedOn,
+        Header: t('Modified'),
+        accessor: 'changed_on_delta_humanized',
+      },
+      {
+        Cell: ({ row: { original } }: any) => {
+          const handleEdit = () => {}; // handleQueryEdit(original);
+          const handleDelete = () => {}; // openQueryDeleteModal(original);
+          if (!canEdit && !canDelete) {
+            return null;
+          }
+          return (
+            <span className="actions">
+              {canEdit && (
+                <TooltipWrapper
+                  label="edit-action"
+                  tooltip={t('Edit')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icon name="pencil" />
+                  </span>
+                </TooltipWrapper>
+              )}
+              {canDelete && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  data-test="database-delete"
+                  onClick={handleDelete}
+                >
+                  <TooltipWrapper
+                    label="delete-action"
+                    tooltip={t('Delete database')}
+                    placement="bottom"
+                  >
+                    <Icon name="trash" />
+                  </TooltipWrapper>
+                </span>
+              )}
+            </span>
+          );
+        },
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
+      },
+    ],
+    [canDelete, canCreate],
+  );
+
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Database'),
+        id: 'database',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'All',
+        selects: [],
+      },
+      {
+        Header: t('Schema'),
+        id: 'schema',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'All',
+        selects: [],
+      },
+      {
+        Header: t('Search'),
+        id: 'label',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [],
+  );
+
   return (
     <>
       <SubMenu {...menuData} />
+      <ListView<SavedQueryObject>
+        className="saved_query-list-view"
+        columns={columns}
+        count={queryCount}
+        data={queries}
+        fetchData={fetchData}
+        filters={filters}
+        initialSort={initialSort}
+        loading={loading}
+        pageSize={PAGE_SIZE}
+      />
     </>
   );
 }
