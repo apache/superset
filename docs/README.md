@@ -46,3 +46,14 @@ git push origin asf-site
 
 # SUCCESS - it should take minutes to take effect on superset.apache.org
 ```
+
+## Contributing Screenshots to the Gallery
+
+We welcome the addition of screenshots to our gallery. All you have to do is
+to drop high
+resolution images (ideally retina quality)
+[here](https://github.com/apache/incubator-superset/tree/master/docs/src/images/gallery)
+and Gatsby does all the work of creating thumbnails for the
+[gallery](https://superset.apache.org/gallery/) at build time.
+Ordering, captions and tags can be defined
+[in this file](https://github.com/apache/incubator-superset/blob/master/docs/src/pages/gallery.tsx#L41).
