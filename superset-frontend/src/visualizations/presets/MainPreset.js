@@ -51,12 +51,14 @@ import {
   DualLineChartPlugin,
   LineChartPlugin,
   LineMultiChartPlugin,
-  PieChartPlugin,
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { LegacyBoxPlotChartPlugin } from '@superset-ui/preset-chart-xy';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
-import { EchartsTimeseriesChartPlugin } from '@superset-ui/plugin-chart-echarts';
+import {
+  EchartsPieChartPlugin,
+  EchartsTimeseriesChartPlugin,
+} from '@superset-ui/plugin-chart-echarts';
 
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
@@ -92,7 +94,7 @@ export default class MainPreset extends Preset {
         new PairedTTestChartPlugin().configure({ key: 'paired_ttest' }),
         new ParallelCoordinatesChartPlugin().configure({ key: 'para' }),
         new PartitionChartPlugin().configure({ key: 'partition' }),
-        new PieChartPlugin().configure({ key: 'pie' }),
+        new EchartsPieChartPlugin().configure({ key: 'pie' }),
         new PivotTableChartPlugin().configure({ key: 'pivot_table' }),
         new RoseChartPlugin().configure({ key: 'rose' }),
         new SankeyChartPlugin().configure({ key: 'sankey' }),
