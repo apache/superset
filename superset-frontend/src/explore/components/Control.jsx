@@ -68,12 +68,15 @@ export default class Control extends React.PureComponent {
     this.onMouseEnter = this.setHover.bind(this, true);
     this.onMouseLeave = this.setHover.bind(this, false);
   }
+
   onChange(value, errors) {
     this.props.actions.setControlValue(this.props.name, value, errors);
   }
+
   setHover(hovered) {
     this.setState({ hovered });
   }
+
   render() {
     const { type, hidden } = this.props;
     if (!type) return null;

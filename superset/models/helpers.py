@@ -19,10 +19,9 @@ import json
 import logging
 import re
 from datetime import datetime, timedelta
+from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, Optional, Set, Union
 
-# isort and pylint disagree, isort should win
-# pylint: disable=ungrouped-imports
 import humanize
 import pandas as pd
 import pytz
@@ -34,7 +33,7 @@ from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 from superset.utils.core import QueryStatus
@@ -45,9 +44,7 @@ logger = logging.getLogger(__name__)
 def json_to_dict(json_str: str) -> Dict[Any, Any]:
     if json_str:
         val = re.sub(",[ \t\r\n]+}", "}", json_str)
-        val = re.sub(
-            ",[ \t\r\n]+\]", "]", val  # pylint: disable=anomalous-backslash-in-string
-        )
+        val = re.sub(",[ \t\r\n]+\\]", "]", val)
         return json.loads(val)
 
     return {}
@@ -66,10 +63,12 @@ class ImportMixin:
     # The names of the attributes
     # that are available for import and export
 
+    __mapper__: Mapper
+
     @classmethod
     def _parent_foreign_key_mappings(cls) -> Dict[str, str]:
         """Get a mapping of foreign name to the local name of foreign keys"""
-        parent_rel = cls.__mapper__.relationships.get(cls.export_parent)  # type: ignore
+        parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
         if parent_rel:
             return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
         return {}
@@ -88,15 +87,21 @@ class ImportMixin:
         return unique
 
     @classmethod
+    def parent_foreign_key_mappings(cls) -> Dict[str, str]:
+        """Get a mapping of foreign name to the local name of foreign keys"""
+        parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
+        if parent_rel:
+            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
+        return {}
+
+    @classmethod
     def export_schema(
         cls, recursive: bool = True, include_parent_ref: bool = False
     ) -> Dict[str, Any]:
         """Export schema as a dictionary"""
         parent_excludes = set()
         if not include_parent_ref:
-            parent_ref = cls.__mapper__.relationships.get(  # type: ignore
-                cls.export_parent
-            )
+            parent_ref = cls.__mapper__.relationships.get(cls.export_parent)
             if parent_ref:
                 parent_excludes = {column.name for column in parent_ref.local_columns}
 
@@ -114,9 +119,7 @@ class ImportMixin:
         }
         if recursive:
             for column in cls.export_children:
-                child_class = cls.__mapper__.relationships[  # type: ignore
-                    column
-                ].argument.class_
+                child_class = cls.__mapper__.relationships[column].argument.class_
                 schema[column] = [
                     child_class.export_schema(
                         recursive=recursive, include_parent_ref=include_parent_ref
@@ -125,7 +128,8 @@ class ImportMixin:
         return schema
 
     @classmethod
-    def import_from_dict(  # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
+    def import_from_dict(
+        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         cls,
         session: Session,
         dict_rep: Dict[Any, Any],
@@ -136,7 +140,7 @@ class ImportMixin:
         """Import obj from a dictionary"""
         if sync is None:
             sync = []
-        parent_refs = cls._parent_foreign_key_mappings()
+        parent_refs = cls.parent_foreign_key_mappings()
         export_fields = set(cls.export_fields) | set(parent_refs.keys())
         new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
         unique_constrains = cls._unique_constrains()
@@ -207,9 +211,7 @@ class ImportMixin:
         # Recursively create children
         if recursive:
             for child in cls.export_children:
-                child_class = cls.__mapper__.relationships[  # type: ignore
-                    child
-                ].argument.class_
+                child_class = cls.__mapper__.relationships[child].argument.class_
                 added = []
                 for c_obj in new_children.get(child, []):
                     added.append(
@@ -220,9 +222,7 @@ class ImportMixin:
                 # If children should get synced, delete the ones that did not
                 # get updated.
                 if child in sync and not is_new_obj:
-                    back_refs = (
-                        child_class._parent_foreign_key_mappings()  # pylint: disable=protected-access
-                    )
+                    back_refs = child_class.parent_foreign_key_mappings()
                     delete_filters = [
                         getattr(child_class, k) == getattr(obj, back_refs.get(k))
                         for k in back_refs.keys()
@@ -246,9 +246,7 @@ class ImportMixin:
         cls = self.__class__
         parent_excludes = set()
         if recursive and not include_parent_ref:
-            parent_ref = cls.__mapper__.relationships.get(  # type: ignore
-                cls.export_parent
-            )
+            parent_ref = cls.__mapper__.relationships.get(cls.export_parent)
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
         dict_rep = {
@@ -311,11 +309,9 @@ class ImportMixin:
         self.created_by = None
         self.changed_by = None
         # flask global context might not exist (in cli or tests for example)
-        try:
-            if g.user:
-                self.owners = [g.user]
-        except Exception:  # pylint: disable=broad-except
-            self.owners = []
+        self.owners = []
+        if g and hasattr(g, "user"):
+            self.owners = [g.user]
 
     @property
     def params_dict(self) -> Dict[Any, Any]:
@@ -326,7 +322,7 @@ class ImportMixin:
         return json_to_dict(self.template_params)  # type: ignore
 
 
-def _user_link(user: User) -> Union[Markup, str]:  # pylint: disable=no-self-use
+def _user_link(user: User) -> Union[Markup, str]:
     if not user:
         return ""
     url = "/superset/profile/{}/".format(user.username)
@@ -334,7 +330,6 @@ def _user_link(user: User) -> Union[Markup, str]:  # pylint: disable=no-self-use
 
 
 class AuditMixinNullable(AuditMixin):
-
     """Altering the AuditMixin to use nullable fields
 
     Allows creating objects programmatically outside of CRUD
@@ -430,7 +425,10 @@ class ExtraJSONMixin:
     def extra(self) -> Dict[str, Any]:
         try:
             return json.loads(self.extra_json)
-        except Exception:  # pylint: disable=broad-except
+        except (TypeError, JSONDecodeError) as exc:
+            logger.error(
+                "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
+            )
             return {}
 
     def set_extra_json(self, extras: Dict[str, Any]) -> None:

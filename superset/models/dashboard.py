@@ -17,6 +17,7 @@
 import json
 import logging
 from copy import copy
+from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
 from urllib import parse
 
@@ -62,8 +63,9 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(mapper: Mapper, connection: Connection, target: "Dashboard") -> None:
-    # pylint: disable=unused-argument
+def copy_dashboard(
+    _mapper: Mapper, connection: Connection, target: "Dashboard"
+) -> None:
     dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
@@ -153,6 +155,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @property
     def url(self) -> str:
+        url = f"/superset/dashboard/{self.slug or self.id}/"
         if self.json_metadata:
             # add default_filters to the preselect_filters of dashboard
             json_metadata = json.loads(self.json_metadata)
@@ -165,9 +168,14 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                         return "/superset/dashboard/{}/?preselect_filters={}".format(
                             self.slug or self.id, filters
                         )
-                except Exception:  # pylint: disable=broad-except
-                    pass
-        return f"/superset/dashboard/{self.slug or self.id}/"
+                except (TypeError, JSONDecodeError) as exc:
+                    logger.error(
+                        "Unable to parse json for url: %r. Returning default url.",
+                        exc,
+                        exc_info=True,
+                    )
+                    return url
+        return url
 
     @property
     def datasources(self) -> Set[Optional["BaseDatasource"]]:
@@ -191,7 +199,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     @property
     def digest(self) -> str:
         """
-            Returns a MD5 HEX digest that makes this dashboard unique
+        Returns a MD5 HEX digest that makes this dashboard unique
         """
         unique_string = f"{self.position_json}.{self.css}.{self.json_metadata}"
         return utils.md5_hex(unique_string)
@@ -199,8 +207,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     @property
     def thumbnail_url(self) -> str:
         """
-            Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
-            if the dashboard has changed
+        Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
+        if the dashboard has changed
         """
         return f"/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
 
@@ -252,18 +260,18 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     ) -> int:
         """Imports the dashboard from the object to the database.
 
-         Once dashboard is imported, json_metadata field is extended and stores
-         remote_id and import_time. It helps to decide if the dashboard has to
-         be overridden or just copies over. Slices that belong to this
-         dashboard will be wired to existing tables. This function can be used
-         to import/export dashboards between multiple superset instances.
-         Audit metadata isn't copied over.
+        Once dashboard is imported, json_metadata field is extended and stores
+        remote_id and import_time. It helps to decide if the dashboard has to
+        be overridden or just copies over. Slices that belong to this
+        dashboard will be wired to existing tables. This function can be used
+        to import/export dashboards between multiple superset instances.
+        Audit metadata isn't copied over.
         """
 
         def alter_positions(
             dashboard: Dashboard, old_to_new_slc_id_dict: Dict[int, int]
         ) -> None:
-            """ Updates slice_ids in the position json.
+            """Updates slice_ids in the position json.
 
             Sample position_json data:
             {
@@ -478,8 +486,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         )
 
 
-def event_after_dashboard_changed(  # pylint: disable=unused-argument
-    mapper: Mapper, connection: Connection, target: Dashboard
+def event_after_dashboard_changed(
+    _mapper: Mapper, _connection: Connection, target: Dashboard
 ) -> None:
     url = get_url_path("Superset.dashboard", dashboard_id_or_slug=target.id)
     cache_dashboard_thumbnail.delay(url, target.digest, force=True)

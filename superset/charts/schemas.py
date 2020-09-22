@@ -71,6 +71,10 @@ datasource_id_description = (
     "A complete datasource identification needs `datasouce_id` "
     "and `datasource_type`."
 )
+datasource_uid_description = (
+    "The uid of the dataset/datasource this new chart will use. "
+    "A complete datasource identification needs `datasouce_uid` "
+)
 datasource_type_description = (
     "The type of dataset/datasource identified on `datasource_id`."
 )

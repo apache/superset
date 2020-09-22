@@ -18,16 +18,14 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter, {
-  registerLanguage,
-} from 'react-syntax-highlighter/dist/light';
-import sql from 'react-syntax-highlighter/dist/languages/hljs/sql';
-import github from 'react-syntax-highlighter/dist/styles/hljs/github';
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
+import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
+import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { t } from '@superset-ui/core';
 
 import ModalTrigger from '../../components/ModalTrigger';
 
-registerLanguage('sql', sql);
+SyntaxHighlighter.registerLanguage('sql', sql);
 
 const defaultProps = {
   maxWidth: 50,
@@ -50,6 +48,7 @@ class HighlightedSql extends React.Component {
       modalBody: null,
     };
   }
+
   shrinkSql() {
     const ssql = this.props.sql || '';
     let lines = ssql.split('\n');
@@ -66,6 +65,7 @@ class HighlightedSql extends React.Component {
       })
       .join('\n');
   }
+
   triggerNode() {
     const shownSql = this.props.shrink
       ? this.shrinkSql(this.props.sql)
@@ -76,6 +76,7 @@ class HighlightedSql extends React.Component {
       </SyntaxHighlighter>
     );
   }
+
   generateModal() {
     let rawSql;
     if (this.props.rawSql && this.props.rawSql !== this.props.sql) {
@@ -100,6 +101,7 @@ class HighlightedSql extends React.Component {
       ),
     });
   }
+
   render() {
     return (
       <ModalTrigger

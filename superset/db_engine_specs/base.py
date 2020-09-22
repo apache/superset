@@ -656,6 +656,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sorted(views)
 
     @classmethod
+    def get_table_comment(
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
+    ) -> Optional[str]:
+        """
+        Get comment of table from a given schema and table
+
+        :param inspector: SqlAlchemy Inspector instance
+        :param table_name: Table name
+        :param schema: Schema name. If omitted, uses default schema for database
+        :return: comment of table
+        """
+        comment = None
+        try:
+            comment = inspector.get_table_comment(table_name, schema)
+            comment = comment.get("text") if isinstance(comment, dict) else None
+        except NotImplementedError:
+            # It's expected that some dialects don't implement the comment method
+            pass
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error("Unexpected error while fetching table comment")
+            logger.exception(ex)
+        return comment
+
+    @classmethod
     def get_columns(
         cls, inspector: Inspector, table_name: str, schema: Optional[str]
     ) -> List[Dict[str, Any]]:
@@ -878,16 +902,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return label_mutated
 
     @classmethod
-    def get_sqla_column_type(cls, type_: str) -> Optional[TypeEngine]:
+    def get_sqla_column_type(cls, type_: Optional[str]) -> Optional[TypeEngine]:
         """
         Return a sqlalchemy native column type that corresponds to the column type
         defined in the data source (return None to use default type inferred by
-        SQLAlchemy). Override `_column_type_mappings` for specific needs
+        SQLAlchemy). Override `column_type_mappings` for specific needs
         (see MSSQL for example of NCHAR/NVARCHAR handling).
 
         :param type_: Column type returned by inspector
         :return: SqlAlchemy column type
         """
+        if not type_:
+            return None
         for regex, sqla_type in cls.column_type_mappings:
             match = regex.match(type_)
             if match:

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { List } from 'immutable';
-// @ts-ignore
 import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import JSONTree from 'react-json-tree';
@@ -26,11 +25,11 @@ import {
   Grid,
   ScrollSync,
   SortDirection,
+  SortDirectionType,
   SortIndicator,
   Table,
-  SortDirectionType,
 } from 'react-virtualized';
-import { t, getMultipleTextDimensions } from '@superset-ui/core';
+import { getMultipleTextDimensions, t } from '@superset-ui/core';
 
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
@@ -123,6 +122,18 @@ export default class FilterableTable extends PureComponent<
     expandedColumns: [],
   };
 
+  list: List<Datum>;
+
+  complexColumns: Record<string, boolean>;
+
+  widthsForColumnsByKey: Record<string, number>;
+
+  totalTableWidth: number;
+
+  totalTableHeight: number;
+
+  container: React.RefObject<HTMLDivElement>;
+
   constructor(props: FilterableTableProps) {
     super(props);
     this.list = List(this.formatTableData(props.data));
@@ -173,15 +184,12 @@ export default class FilterableTable extends PureComponent<
     const PADDING = 40; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
     const cellContent = [].concat(
-      ...this.props.orderedColumnKeys.map(key =>
-        this.list
-          .map((data: Datum) =>
-            this.getCellContent({ cellData: data[key], columnKey: key }),
-          )
-          // @ts-ignore
-          .push(key)
-          .toJS(),
-      ),
+      ...this.props.orderedColumnKeys.map(key => {
+        const cellContentList = this.list.map((data: Datum) =>
+          this.getCellContent({ cellData: data[key], columnKey: key }),
+        ) as List<string | JSX.Element>;
+        return cellContentList.push(key).toJS();
+      }),
     );
 
     const colWidths = getMultipleTextDimensions({
@@ -211,7 +219,7 @@ export default class FilterableTable extends PureComponent<
   }: {
     cellData: CellDataType;
     columnKey: string;
-  }) {
+  }): string | JSX.Element {
     if (cellData === null) {
       return <i className="text-muted">NULL</i>;
     }
@@ -228,32 +236,23 @@ export default class FilterableTable extends PureComponent<
     return this.complexColumns[columnKey] ? truncated : content;
   }
 
-  list: List<Datum>;
-  complexColumns: Record<string, boolean>;
-  widthsForColumnsByKey: Record<string, number>;
-  totalTableWidth: number;
-  totalTableHeight: number;
-  container: React.RefObject<HTMLDivElement>;
-
   formatTableData(data: Record<string, unknown>[]): Datum[] {
-    const formattedData = data.map(row => {
+    return data.map(row => {
       const newRow = {};
-      for (const k in row) {
-        const val = row[k];
+      Object.entries(row).forEach(([key, val]) => {
         if (['string', 'number'].indexOf(typeof val) >= 0) {
-          newRow[k] = val;
+          newRow[key] = val;
         } else {
-          newRow[k] = val === null ? null : JSONbig.stringify(val);
+          newRow[key] = val === null ? null : JSONbig.stringify(val);
         }
-      }
+      });
       return newRow;
     });
-    return formattedData;
   }
 
   hasMatch(text: string, row: Datum) {
-    const values = [];
-    for (const key in row) {
+    const values: string[] = [];
+    Object.keys(row).forEach(key => {
       if (row.hasOwnProperty(key)) {
         const cellValue = row[key];
         if (typeof cellValue === 'string') {
@@ -265,7 +264,7 @@ export default class FilterableTable extends PureComponent<
           values.push(cellValue.toString());
         }
       }
-    }
+    });
     const lowerCaseText = text.toLowerCase();
     return values.some(v => v.includes(lowerCaseText));
   }
@@ -289,7 +288,7 @@ export default class FilterableTable extends PureComponent<
   }
 
   fitTableToWidthIfNeeded() {
-    const containerWidth = this.container.current!.clientWidth;
+    const containerWidth = this.container.current?.clientWidth ?? 0;
     if (this.totalTableWidth < containerWidth) {
       // fit table width if content doesn't fill the width of the container
       this.totalTableWidth = containerWidth;
@@ -323,12 +322,15 @@ export default class FilterableTable extends PureComponent<
       if (aValue === bValue) {
         // equal items sort equally
         return 0;
-      } else if (aValue === null) {
+      }
+      if (aValue === null) {
         // nulls sort after anything else
         return 1;
-      } else if (bValue === null) {
+      }
+      if (bValue === null) {
         return -1;
-      } else if (descending) {
+      }
+      if (descending) {
         return aValue < bValue ? 1 : -1;
       }
       return aValue < bValue ? -1 : 1;

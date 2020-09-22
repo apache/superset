@@ -30,7 +30,7 @@ describe('Dashboard load', () => {
 
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const slices = bootstrapData.dashboard_data.slices;
+      const { slices } = bootstrapData.dashboard_data;
       // then define routes and create alias for each requests
       slices.forEach(slice => {
         const alias = `getJson_${slice.slice_id}`;

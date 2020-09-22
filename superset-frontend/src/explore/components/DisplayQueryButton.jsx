@@ -20,14 +20,12 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter, {
-  registerLanguage,
-} from 'react-syntax-highlighter/light';
-import htmlSyntax from 'react-syntax-highlighter/languages/hljs/htmlbars';
-import markdownSyntax from 'react-syntax-highlighter/languages/hljs/markdown';
-import sqlSyntax from 'react-syntax-highlighter/languages/hljs/sql';
-import jsonSyntax from 'react-syntax-highlighter/languages/hljs/json';
-import github from 'react-syntax-highlighter/styles/hljs/github';
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
+import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
+import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
+import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
+import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
+import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import {
   DropdownButton,
   MenuItem,
@@ -40,11 +38,11 @@ import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import getClientErrorObject from '../../utils/getClientErrorObject';
-import CopyToClipboard from './../../components/CopyToClipboard';
+import CopyToClipboard from '../../components/CopyToClipboard';
 import { getChartDataRequest } from '../../chart/chartAction';
 import downloadAsImage from '../../utils/downloadAsImage';
 import Loading from '../../components/Loading';
-import ModalTrigger from './../../components/ModalTrigger';
+import ModalTrigger from '../../components/ModalTrigger';
 import RowCountLabel from './RowCountLabel';
 import {
   applyFormattingToTabularData,
@@ -53,10 +51,10 @@ import {
 import PropertiesModal from './PropertiesModal';
 import { sliceUpdated } from '../actions/exploreActions';
 
-registerLanguage('markdown', markdownSyntax);
-registerLanguage('html', htmlSyntax);
-registerLanguage('sql', sqlSyntax);
-registerLanguage('json', jsonSyntax);
+SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
+SyntaxHighlighter.registerLanguage('html', htmlSyntax);
+SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
+SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
 const propTypes = {
   onOpenInEditor: PropTypes.func,
@@ -90,6 +88,7 @@ export class DisplayQueryButton extends React.PureComponent {
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
   }
+
   beforeOpen(resultType) {
     this.setState({ isLoading: true });
 
@@ -118,24 +117,31 @@ export class DisplayQueryButton extends React.PureComponent {
         });
       });
   }
+
   changeFilterText(event) {
     this.setState({ filterText: event.target.value });
   }
+
   redirectSQLLab() {
     this.props.onOpenInEditor(this.props.latestQueryFormData);
   }
+
   openPropertiesModal() {
     this.setState({ isPropertiesModalOpen: true });
   }
+
   closePropertiesModal() {
     this.setState({ isPropertiesModalOpen: false });
   }
+
   renderQueryModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
-    } else if (this.state.error) {
+    }
+    if (this.state.error) {
       return <pre>{this.state.error}</pre>;
-    } else if (this.state.query) {
+    }
+    if (this.state.query) {
       return (
         <div>
           <CopyToClipboard
@@ -155,12 +161,15 @@ export class DisplayQueryButton extends React.PureComponent {
     }
     return null;
   }
+
   renderResultsModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
-    } else if (this.state.error) {
+    }
+    if (this.state.error) {
       return <pre>{this.state.error}</pre>;
-    } else if (this.state.data) {
+    }
+    if (this.state.data) {
       if (this.state.data.length === 0) {
         return 'No data';
       }
@@ -168,6 +177,7 @@ export class DisplayQueryButton extends React.PureComponent {
     }
     return null;
   }
+
   renderDataTable(data) {
     return (
       <div style={{ overflow: 'auto' }}>
@@ -209,16 +219,20 @@ export class DisplayQueryButton extends React.PureComponent {
       </div>
     );
   }
+
   renderSamplesModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
-    } else if (this.state.error) {
+    }
+    if (this.state.error) {
       return <pre>{this.state.error}</pre>;
-    } else if (this.state.data) {
+    }
+    if (this.state.data) {
       return this.renderDataTable(this.state.data);
     }
     return null;
   }
+
   render() {
     const { animation, chartHeight, slice } = this.props;
     return (

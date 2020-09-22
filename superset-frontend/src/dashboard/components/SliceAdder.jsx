@@ -71,7 +71,8 @@ class SliceAdder extends React.Component {
     return (a, b) => {
       if (a[attr] < b[attr]) {
         return -1 * desc;
-      } else if (a[attr] > b[attr]) {
+      }
+      if (a[attr] > b[attr]) {
         return 1 * desc;
       }
       return 0;
@@ -134,23 +135,23 @@ class SliceAdder extends React.Component {
   }
 
   searchUpdated(searchTerm) {
-    this.setState({
+    this.setState(prevState => ({
       searchTerm,
       filteredSlices: this.getFilteredSortedSlices(
         searchTerm,
-        this.state.sortBy,
+        prevState.sortBy,
       ),
-    });
+    }));
   }
 
   handleSelect(sortBy) {
-    this.setState({
+    this.setState(prevState => ({
       sortBy,
       filteredSlices: this.getFilteredSortedSlices(
-        this.state.searchTerm,
+        prevState.searchTerm,
         sortBy,
       ),
-    });
+    }));
   }
 
   rowRenderer({ key, index, style }) {

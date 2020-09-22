@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import { Nav, Navbar, MenuItem } from 'react-bootstrap';
 import Button, { OnClickHandler } from 'src/components/Button';
@@ -31,16 +32,29 @@ const StyledHeader = styled.header`
   }
   .navbar-nav {
     li {
-      a {
+      a,
+      div {
         font-size: ${({ theme }) => theme.typography.sizes.s}px;
-        padding: ${({ theme }) => theme.gridUnit * 2}px;
+        padding: ${({ theme }) => theme.gridUnit * 2}px 0;
         margin: ${({ theme }) => theme.gridUnit * 2}px;
         color: ${({ theme }) => theme.colors.secondary.dark1};
+
+        a {
+          margin: 0;
+          padding: ${({ theme }) => theme.gridUnit * 4}px;
+        }
+      }
+
+      &.no-router a {
+        padding: ${({ theme }) => theme.gridUnit * 2}px
+          ${({ theme }) => theme.gridUnit * 4}px;
       }
     }
 
     li.active > a,
-    li > a:hover {
+    li.active > div,
+    li > a:hover,
+    li > div:hover {
       background-color: ${({ theme }) => theme.colors.secondary.light4};
       border-bottom: none;
       border-radius: 4px;
@@ -52,6 +66,7 @@ type MenuChild = {
   label: string;
   name: string;
   url: string;
+  usesRouter?: boolean;
 };
 
 export interface SubMenuProps {
@@ -66,9 +81,23 @@ export interface SubMenuProps {
   name: string;
   children?: MenuChild[];
   activeChild?: MenuChild['name'];
+  /* If usesRouter is true, a react-router <Link> component will be used instead of href.
+   *  ONLY set usesRouter to true if SubMenu is wrapped in a react-router <Router>;
+   *  otherwise, a 'You should not use <Link> outside a <Router>' error will be thrown */
+  usesRouter?: boolean;
 }
 
 const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
+  let hasHistory = true;
+
+  // If no parent <Router> component exists, useHistory throws an error
+  try {
+    useHistory();
+  } catch (err) {
+    // If error is thrown, we know not to use <Link> in render
+    hasHistory = false;
+  }
+
   return (
     <StyledHeader>
       <Navbar inverse fluid role="navigation">
@@ -77,15 +106,31 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
         </Navbar.Header>
         <Nav>
           {props.children &&
-            props.children.map(child => (
-              <MenuItem
-                active={child.name === props.activeChild}
-                key={`${child.label}`}
-                href={child.url}
-              >
-                {child.label}
-              </MenuItem>
-            ))}
+            props.children.map(child => {
+              if ((props.usesRouter || hasHistory) && !!child.usesRouter) {
+                return (
+                  <li
+                    className={child.name === props.activeChild ? 'active' : ''}
+                    key={`${child.label}`}
+                  >
+                    <div>
+                      <Link to={child.url}>{child.label}</Link>
+                    </div>
+                  </li>
+                );
+              }
+
+              return (
+                <MenuItem
+                  className="no-router"
+                  active={child.name === props.activeChild}
+                  key={`${child.label}`}
+                  href={child.url}
+                >
+                  {child.label}
+                </MenuItem>
+              );
+            })}
         </Nav>
         <Nav className="navbar-right">
           {props.secondaryButton && (

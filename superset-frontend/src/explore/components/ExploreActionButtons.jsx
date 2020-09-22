@@ -23,7 +23,7 @@ import { t } from '@superset-ui/core';
 
 import URLShortLinkButton from '../../components/URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
-import DisplayQueryButton from './DisplayQueryButton';
+import ConnectedDisplayQueryButton from './DisplayQueryButton';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
 
 const propTypes = {
@@ -100,7 +100,7 @@ export default function ExploreActionButtons({
           <i className="fa fa-file-text-o" /> .csv
         </a>
       )}
-      <DisplayQueryButton
+      <ConnectedDisplayQueryButton
         chartHeight={chartHeight}
         queryResponse={queryResponse}
         latestQueryFormData={latestQueryFormData}

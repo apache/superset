@@ -36,7 +36,8 @@ function alterForComparison(value) {
   // for this purpose
   if (value === undefined || value === null || value === '') {
     return null;
-  } else if (typeof value === 'object') {
+  }
+  if (typeof value === 'object') {
     if (Array.isArray(value) && value.length === 0) {
       return null;
     }
@@ -75,19 +76,17 @@ export default class AlteredSliceTag extends React.Component {
 
     const fdKeys = Object.keys(cfd);
     const diffs = {};
-    for (const fdKey of fdKeys) {
-      // Ignore values that are undefined/nonexisting in either
+    fdKeys.forEach(fdKey => {
       if (!ofd[fdKey] && !cfd[fdKey]) {
-        continue;
+        return;
       }
-      // Ignore obsolete legacy filters
       if (['filters', 'having', 'having_filters', 'where'].includes(fdKey)) {
-        continue;
+        return;
       }
       if (!this.isEqualish(ofd[fdKey], cfd[fdKey])) {
         diffs[fdKey] = { before: ofd[fdKey], after: cfd[fdKey] };
       }
-    }
+    });
     return diffs;
   }
 
@@ -100,9 +99,11 @@ export default class AlteredSliceTag extends React.Component {
     // or the value type
     if (value === undefined) {
       return 'N/A';
-    } else if (value === null) {
+    }
+    if (value === null) {
       return 'null';
-    } else if (
+    }
+    if (
       this.state.controlsMap[key] &&
       this.state.controlsMap[key].type === 'AdhocFilterControl'
     ) {
@@ -118,30 +119,35 @@ export default class AlteredSliceTag extends React.Component {
           return `${v.subject} ${v.operator} ${filterVal}`;
         })
         .join(', ');
-    } else if (
+    }
+    if (
       this.state.controlsMap[key] &&
       this.state.controlsMap[key].type === 'BoundsControl'
     ) {
       return `Min: ${value[0]}, Max: ${value[1]}`;
-    } else if (
+    }
+    if (
       this.state.controlsMap[key] &&
       this.state.controlsMap[key].type === 'CollectionControl'
     ) {
       return value.map(v => safeStringify(v)).join(', ');
-    } else if (typeof value === 'boolean') {
+    }
+    if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
-    } else if (value.constructor === Array) {
+    }
+    if (value.constructor === Array) {
       return value.length ? value.join(', ') : '[]';
-    } else if (typeof value === 'string' || typeof value === 'number') {
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
       return value;
     }
     return safeStringify(value);
   }
 
   renderRows() {
-    const diffs = this.state.diffs;
+    const { diffs } = this.state;
     const rows = [];
-    for (const key in diffs) {
+    Object.entries(diffs).forEach(([key, diff]) => {
       rows.push(
         <Tr key={key}>
           <Td
@@ -152,11 +158,11 @@ export default class AlteredSliceTag extends React.Component {
               key
             }
           />
-          <Td column="before">{this.formatValue(diffs[key].before, key)}</Td>
-          <Td column="after">{this.formatValue(diffs[key].after, key)}</Td>
+          <Td column="before">{this.formatValue(diff.before, key)}</Td>
+          <Td column="after">{this.formatValue(diff.after, key)}</Td>
         </Tr>,
       );
-    }
+    });
     return rows;
   }
 

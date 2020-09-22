@@ -226,6 +226,25 @@ class HeaderActionsDropdown extends React.PureComponent {
             {t('Download as image')}
           </MenuItem>
         )}
+
+        {!editMode && (
+          <MenuItem
+            onClick={() => {
+              const hasStandalone = window.location.search.includes(
+                'standalone=true',
+              );
+              const url = getDashboardUrl(
+                window.location.pathname,
+                getActiveFilters(),
+                window.location.hash,
+                !hasStandalone,
+              );
+              window.location.replace(url);
+            }}
+          >
+            {t('Toggle FullScreen')}
+          </MenuItem>
+        )}
       </DropdownButton>
     );
   }

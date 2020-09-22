@@ -100,6 +100,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       () => {
         refreshData();
         addSuccessToast(t('Deleted: %s', dbName));
+
+        // Close delete modal
+        setDatabaseCurrentlyDeleting(null);
       },
       createErrorHandler(errMsg =>
         addDangerToast(t('There was an issue deleting %s: %s', dbName, errMsg)),
@@ -107,7 +110,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     );
   }
 
+  function handleDatabaseEdit(database: DatabaseObject) {
+    // Set database and open modal
+    setCurrentDatabase(database);
+    setDatabaseModalOpen(true);
+  }
+
   const canCreate = hasPerm('can_add');
+  const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
   const menuData: SubMenuProps = {
@@ -224,12 +234,29 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
+          const handleEdit = () => handleDatabaseEdit(original);
           const handleDelete = () => openDatabaseDeleteModal(original);
-          if (!canDelete) {
+          if (!canEdit && !canDelete) {
             return null;
           }
           return (
             <span className="actions">
+              {canEdit && (
+                <TooltipWrapper
+                  label="edit-action"
+                  tooltip={t('Edit')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icon name="pencil" />
+                  </span>
+                </TooltipWrapper>
+              )}
               {canDelete && (
                 <span
                   role="button"
@@ -308,7 +335,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         show={databaseModalOpen}
         onHide={() => setDatabaseModalOpen(false)}
         onDatabaseAdd={() => {
-          /* TODO: add database logic here */
+          refreshData();
         }}
       />
       {databaseCurrentlyDeleting && (

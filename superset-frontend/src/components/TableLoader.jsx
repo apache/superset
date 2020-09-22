@@ -22,7 +22,7 @@ import { Table, Tr, Td } from 'reactable-arc';
 import { t, SupersetClient } from '@superset-ui/core';
 
 import withToasts from '../messageToasts/enhancers/withToasts';
-import Loading from '../components/Loading';
+import Loading from './Loading';
 import '../../stylesheets/reactable-pagination.less';
 
 const propTypes = {

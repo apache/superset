@@ -66,6 +66,7 @@ export default class FixedOrMetricControl extends React.Component {
       metricValue: type === controlTypes.metric ? value : null,
     };
   }
+
   onChange() {
     this.props.onChange({
       type: this.state.type,
@@ -75,21 +76,23 @@ export default class FixedOrMetricControl extends React.Component {
           : this.state.metricValue,
     });
   }
+
   setType(type) {
     this.setState({ type }, this.onChange);
   }
+
   setFixedValue(fixedValue) {
     this.setState({ fixedValue }, this.onChange);
   }
+
   setMetric(metricValue) {
     this.setState({ metricValue }, this.onChange);
   }
 
   toggle() {
-    const expanded = !this.state.expanded;
-    this.setState({
-      expanded,
-    });
+    this.setState(prevState => ({
+      expanded: !prevState.expanded,
+    }));
   }
 
   render() {

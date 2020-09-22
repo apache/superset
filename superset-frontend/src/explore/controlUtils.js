@@ -34,7 +34,7 @@ export function getFormDataFromControls(controlsState) {
 }
 
 export function validateControl(control, processedState) {
-  const validators = control.validators;
+  const { validators } = control;
   const validationErrors = [];
   if (validators && validators.length > 0) {
     validators.forEach(f => {
@@ -51,22 +51,19 @@ export function validateControl(control, processedState) {
 /**
  * Find control item from control panel config.
  */
-function findControlItem(controlPanelSections, controlKey) {
-  for (const section of controlPanelSections) {
-    for (const controlArr of section.controlSetRows) {
-      for (const control of controlArr) {
-        if (controlKey === control) return control;
-        if (
-          control !== null &&
-          typeof control === 'object' &&
-          control.name === controlKey
-        ) {
-          return control;
-        }
-      }
-    }
-  }
-  return null;
+export function findControlItem(controlPanelSections, controlKey) {
+  return (
+    controlPanelSections
+      .map(section => section.controlSetRows)
+      .flat(2)
+      .find(
+        control =>
+          controlKey === control ||
+          (control !== null &&
+            typeof control === 'object' &&
+            control.name === controlKey),
+      ) ?? null
+  );
 }
 
 export const getControlConfig = memoizeOne(function getControlConfig(
@@ -88,7 +85,7 @@ export const getControlConfig = memoizeOne(function getControlConfig(
 
 function handleMissingChoice(control) {
   // If the value is not valid anymore based on choices, clear it
-  const value = control.value;
+  const { value } = control;
   if (
     control.type === 'SelectControl' &&
     !control.freeForm &&
@@ -100,7 +97,8 @@ function handleMissingChoice(control) {
     if (control.multi && value.length > 0) {
       alteredControl.value = value.filter(el => choiceValues.indexOf(el) > -1);
       return alteredControl;
-    } else if (!control.multi && choiceValues.indexOf(value) < 0) {
+    }
+    if (!control.multi && choiceValues.indexOf(value) < 0) {
       alteredControl.value = null;
       return alteredControl;
     }

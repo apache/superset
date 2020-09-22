@@ -578,7 +578,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             driver_name = make_url(item.get("sqlalchemy_uri")).drivername
             return self.response(
                 400,
-                message=_(f"Could not load database driver: {driver_name}"),
+                message=_("Could not load database driver: {}").format(driver_name),
                 driver_name=driver_name,
             )
         except DatabaseSecurityUnsafeError as ex:

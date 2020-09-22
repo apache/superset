@@ -160,7 +160,7 @@ const metrics = {
     return metric ? [metric] : null;
   },
   mapStateToProps: state => {
-    const datasource = state.datasource;
+    const { datasource } = state;
     return {
       columns: datasource ? datasource.columns : [],
       savedMetrics: datasource ? datasource.metrics : [],
@@ -501,4 +501,3 @@ export const controls = {
     }),
   },
 };
-export default controls;

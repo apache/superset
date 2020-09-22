@@ -127,6 +127,7 @@ class SupersetAppInitializer:
         #
         # pylint: disable=too-many-locals
         # pylint: disable=too-many-statements
+        from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.connectors.druid.views import (
             Druid,
@@ -145,7 +146,7 @@ class SupersetAppInitializer:
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
-        from superset.queries.savedqueries.api import SavedQueryRestApi
+        from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import (
             AlertLogModelView,
@@ -196,6 +197,7 @@ class SupersetAppInitializer:
         #
         # Setup API views
         #
+        appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
@@ -261,8 +263,8 @@ class SupersetAppInitializer:
         if self.config["ENABLE_ROW_LEVEL_SECURITY"]:
             appbuilder.add_view(
                 RowLevelSecurityFiltersModelView,
-                "Row Level Security Filters",
-                label=__("Row level security filters"),
+                "Row Level Security",
+                label=__("Row level security"),
                 category="Security",
                 category_label=__("Security"),
                 icon="fa-lock",

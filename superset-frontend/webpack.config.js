@@ -55,9 +55,12 @@ const output = {
 if (isDevMode) {
   output.filename = '[name].[hash:8].entry.js';
   output.chunkFilename = '[name].[hash:8].chunk.js';
-} else {
+} else if (nameChunks) {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
+} else {
+  output.filename = '[name].[chunkhash].entry.js';
+  output.chunkFilename = '[chunkhash].chunk.js';
 }
 
 const plugins = [
@@ -75,7 +78,7 @@ const plugins = [
       //   }
       // }
       const entryFiles = {};
-      for (const [entry, chunks] of Object.entries(entrypoints)) {
+      Object.entries(entrypoints).forEach(([entry, chunks]) => {
         entryFiles[entry] = {
           css: chunks
             .filter(x => x.endsWith('.css'))
@@ -84,7 +87,8 @@ const plugins = [
             .filter(x => x.endsWith('.js'))
             .map(x => path.join(output.publicPath, x)),
         };
-      }
+      });
+
       return {
         ...seed,
         entrypoints: entryFiles,
@@ -199,6 +203,8 @@ const config = {
     sideEffects: true,
     splitChunks: {
       chunks: 'all',
+      // increase minSize for devMode to 1000kb because of sourcemap
+      minSize: isDevMode ? 1000000 : 20000,
       name: nameChunks,
       automaticNameDelimiter: '-',
       minChunks: 2,
@@ -214,6 +220,8 @@ const config = {
               'react',
               'react-dom',
               'prop-types',
+              'react-prop-types',
+              'prop-types-extra',
               'redux',
               'react-redux',
               'react-hot-loader',
@@ -221,6 +229,7 @@ const config = {
               'react-sortable-hoc',
               'react-virtualized',
               'react-table',
+              'react-ace',
               '@hot-loader.*',
               'webpack.*',
               '@?babel.*',
@@ -228,20 +237,17 @@ const config = {
               'antd',
               '@ant-design.*',
               '.*bootstrap',
+              'react-bootstrap-slider',
               'moment',
               'jquery',
               'core-js.*',
               '@emotion.*',
-              'd3.*',
+              'd3',
+              'd3-(array|color|scale|interpolate|format|selection|collection|time|time-format)',
             ].join('|')})/`,
           ),
         },
         // bundle large libraries separately
-        brace: {
-          name: 'brace',
-          test: /\/node_modules\/(brace|react-ace)\//,
-          priority: 40,
-        },
         mathjs: {
           name: 'mathjs',
           test: /\/node_modules\/mathjs\//,
@@ -425,7 +431,7 @@ if (isDevMode) {
 
   // find all the symlinked plugins and use their source code for imports
   let hasSymlink = false;
-  for (const [pkg, version] of Object.entries(packageConfig.dependencies)) {
+  Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
     const srcPath = `./node_modules/${pkg}/src`;
     if (/superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
       console.log(
@@ -436,7 +442,7 @@ if (isDevMode) {
       config.resolve.alias[`${pkg}$`] = `${pkg}/src`;
       hasSymlink = true;
     }
-  }
+  });
   if (hasSymlink) {
     console.log(''); // pure cosmetic new line
   }

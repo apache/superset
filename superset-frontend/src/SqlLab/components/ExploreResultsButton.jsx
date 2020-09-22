@@ -52,8 +52,9 @@ class ExploreResultsButton extends React.PureComponent {
       this,
     );
   }
+
   onClick() {
-    const timeout = this.props.timeout;
+    const { timeout } = this.props;
     const msg = this.renderInvalidColumnMessage();
     if (Math.round(this.getQueryDuration()) > timeout) {
       this.dialog.show({
@@ -85,8 +86,9 @@ class ExploreResultsButton extends React.PureComponent {
       this.visualize();
     }
   }
+
   getColumns() {
-    const props = this.props;
+    const { props } = this;
     if (
       props.query &&
       props.query.results &&
@@ -96,11 +98,13 @@ class ExploreResultsButton extends React.PureComponent {
     }
     return [];
   }
+
   getQueryDuration() {
     return moment
       .duration(this.props.query.endDttm - this.props.query.startDttm)
       .asSeconds();
   }
+
   getInvalidColumns() {
     const re1 = /__\d+$/; // duplicate column name pattern
     const re2 = /^__timestamp/i; // reserved temporal column alias
@@ -109,6 +113,7 @@ class ExploreResultsButton extends React.PureComponent {
       .map(col => col.name)
       .filter(col => re1.test(col) || re2.test(col));
   }
+
   datasourceName() {
     const { query } = this.props;
     const uniqueId = shortid.generate();
@@ -119,6 +124,7 @@ class ExploreResultsButton extends React.PureComponent {
     }
     return datasourceName;
   }
+
   buildVizOptions() {
     const { schema, sql, dbId, templateParams } = this.props.query;
     return {
@@ -130,6 +136,7 @@ class ExploreResultsButton extends React.PureComponent {
       columns: this.getColumns(),
     };
   }
+
   visualize() {
     this.props.actions
       .createDatasource(this.buildVizOptions())
@@ -158,6 +165,7 @@ class ExploreResultsButton extends React.PureComponent {
         );
       });
   }
+
   renderTimeoutWarning() {
     return (
       <Alert bsStyle="warning">
@@ -181,6 +189,7 @@ class ExploreResultsButton extends React.PureComponent {
       </Alert>
     );
   }
+
   renderInvalidColumnMessage() {
     const invalidColumns = this.getInvalidColumns();
     if (invalidColumns.length === 0) {
@@ -200,6 +209,7 @@ class ExploreResultsButton extends React.PureComponent {
       </div>
     );
   }
+
   render() {
     const allowsSubquery =
       this.props.database && this.props.database.allows_subquery;
@@ -243,7 +253,6 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export { ExploreResultsButton };
 export default connect(
   mapStateToProps,
   mapDispatchToProps,

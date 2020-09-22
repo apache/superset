@@ -43,8 +43,6 @@ class QuerySearch extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      userLoading: false,
-      userOptions: [],
       databaseId: null,
       userId: null,
       searchText: null,
@@ -156,7 +154,7 @@ class QuerySearch extends React.PureComponent {
 
   userMutator(data) {
     const options = [];
-    for (let i = 0; i < data.pks.length; i++) {
+    for (let i = 0; i < data.pks.length; i += 1) {
       options.push({
         value: data.pks[i],
         label: this.userLabel(data.result[i]),

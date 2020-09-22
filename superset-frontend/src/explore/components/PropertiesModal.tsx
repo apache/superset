@@ -23,10 +23,9 @@ import {
   Col,
   FormControl,
   FormGroup,
-  // @ts-ignore
+  FormControlProps,
 } from 'react-bootstrap';
 import Button from 'src/components/Button';
-// @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
@@ -59,21 +58,6 @@ export type WrapperProps = InternalProps & {
   show: boolean;
   animation?: boolean; // for the modal
 };
-
-export default function PropertiesModalWrapper({
-  show,
-  onHide,
-  animation,
-  slice,
-  onSave,
-}: WrapperProps) {
-  // The wrapper is a separate component so that hooks only run when the modal opens
-  return (
-    <Modal show={show} onHide={onHide} animation={animation} bsSize="large">
-      <PropertiesModal slice={slice} onHide={onHide} onSave={onSave} />
-    </Modal>
-  );
-}
 
 function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   const [submitting, setSubmitting] = useState(false);
@@ -191,10 +175,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={name}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setName(event.target.value)
-                }
+                onChange={(
+                  event: React.FormEvent<FormControl & FormControlProps>,
+                ) => setName((event.currentTarget?.value as string) ?? '')}
               />
             </FormGroup>
             <FormGroup>
@@ -205,9 +188,10 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setDescription(event.target.value)
+                onChange={(
+                  event: React.FormEvent<FormControl & FormControlProps>,
+                ) =>
+                  setDescription((event.currentTarget?.value as string) ?? '')
                 }
                 style={{ maxWidth: '100%' }}
               />
@@ -227,10 +211,13 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={cacheTimeout}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
-                }
+                onChange={(
+                  event: React.FormEvent<FormControl & FormControlProps>,
+                ) => {
+                  const targetValue =
+                    (event.currentTarget?.value as string) ?? '';
+                  setCacheTimeout(targetValue.replace(/[^0-9]/, ''));
+                }}
               />
               <p className="help-block">
                 {t(
@@ -277,5 +264,20 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
         <Dialog ref={errorDialog} />
       </Modal.Footer>
     </form>
+  );
+}
+
+export default function PropertiesModalWrapper({
+  show,
+  onHide,
+  animation,
+  slice,
+  onSave,
+}: WrapperProps) {
+  // The wrapper is a separate component so that hooks only run when the modal opens
+  return (
+    <Modal show={show} onHide={onHide} animation={animation} bsSize="large">
+      <PropertiesModal slice={slice} onHide={onHide} onSave={onSave} />
+    </Modal>
   );
 }

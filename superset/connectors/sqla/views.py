@@ -18,9 +18,9 @@
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Union
+from typing import Any, cast, Dict, List, Union
 
-from flask import flash, Markup, redirect
+from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.fieldwidgets import Select2Widget
@@ -41,6 +41,7 @@ from superset.views.base import (
     DatasourceFilter,
     DeleteMixin,
     ListWidgetWithCheckboxes,
+    SupersetListWidget,
     SupersetModelView,
     validate_sqlatable,
     YamlExportMixin,
@@ -241,30 +242,73 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     edit_form_extra_fields = add_form_extra_fields
 
 
+class RowLevelSecurityListWidget(
+    SupersetListWidget
+):  # pylint: disable=too-few-public-methods
+    template = "superset/models/rls/list.html"
+
+    def __init__(self, **kwargs: Any):
+        kwargs["appbuilder"] = current_app.appbuilder
+        super().__init__(**kwargs)
+
+
 class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
     SupersetModelView, DeleteMixin
 ):
     datamodel = SQLAInterface(models.RowLevelSecurityFilter)
+
+    list_widget = cast(SupersetListWidget, RowLevelSecurityListWidget)
 
     list_title = _("Row level security filter")
     show_title = _("Show Row level security filter")
     add_title = _("Add Row level security filter")
     edit_title = _("Edit Row level security filter")
 
-    list_columns = ["tables", "roles", "clause", "creator", "modified"]
-    order_columns = ["tables", "clause", "modified"]
-    edit_columns = ["tables", "roles", "clause"]
+    list_columns = [
+        "filter_type",
+        "tables",
+        "roles",
+        "group_key",
+        "clause",
+        "creator",
+        "modified",
+    ]
+    order_columns = ["filter_type", "group_key", "clause", "modified"]
+    edit_columns = ["filter_type", "tables", "roles", "group_key", "clause"]
     show_columns = edit_columns
-    search_columns = ("tables", "roles", "clause")
+    search_columns = ("filter_type", "tables", "roles", "group_key", "clause")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
     description_columns = {
+        "filter_type": _(
+            "Regular filters add where clauses to queries if a user belongs to a "
+            "role referenced in the filter. Base filters apply filters to all queries "
+            "except the roles defined in the filter, and can be used to define what "
+            "users can see if no RLS filters within a filter group apply to them."
+        ),
         "tables": _("These are the tables this filter will be applied to."),
-        "roles": _("These are the roles this filter will be applied to."),
+        "roles": _(
+            "For regular filters, these are the roles this filter will be "
+            "applied to. For base filters, these are the roles that the "
+            "filter DOES NOT apply to, e.g. Admin if admin should see all "
+            "data."
+        ),
+        "group_key": _(
+            "Filters with the same group key will be ORed together within the group, "
+            "while different filter groups will be ANDed together. Undefined group "
+            "keys are treated as unique groups, i.e. are not grouped together. "
+            "For example, if a table has three filters, of which two are for "
+            "departments Finance and Marketing (group key = 'department'), and one "
+            "refers to the region Europe (group key = 'region'), the filter clause "
+            "would apply the filter (department = 'Finance' OR department = "
+            "'Marketing') AND (region = 'Europe')."
+        ),
         "clause": _(
             "This is the condition that will be added to the WHERE clause. "
             "For example, to only return rows for a particular client, "
-            "you might put in: client_id = 9"
+            "you might define a regular filter with the clause `client_id = 9`. To "
+            "display no rows unless a user belongs to a RLS filter role, a base "
+            "filter can be created with the clause `1 = 0` (always false)."
         ),
     }
     label_columns = {

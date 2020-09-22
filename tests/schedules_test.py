@@ -171,7 +171,7 @@ class TestSchedules(SupersetTestCase):
         mock_driver_class.return_value = mock_driver
         mock_driver.find_elements_by_id.side_effect = [True, False]
 
-        create_webdriver()
+        create_webdriver(db.session)
         mock_driver.add_cookie.assert_called_once()
 
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
