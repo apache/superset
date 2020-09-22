@@ -48,7 +48,7 @@ class AthenaEngineSpec(BaseEngineSpec):
             return f"from_iso8601_date('{dttm.date().isoformat()}')"
         if tt == utils.TemporalType.TIMESTAMP:
             datetime_formatted = dttm.isoformat(timespec="microseconds")
-            return f"""from_iso8601_timestamp('{datetime_formatted}') """
+            return f"""from_iso8601_timestamp('{datetime_formatted}')"""
         return None
 
     @classmethod
