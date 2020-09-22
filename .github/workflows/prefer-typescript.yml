@@ -32,6 +32,7 @@ jobs:
       - if: steps.check.outputs.js_files_added
         name: Add Comment to PR
         uses: unsplash/comment-on-pr@master
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
