@@ -297,6 +297,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
+    "ENABLE_DASHBOARD_ETAG_HEADER": False,
     "KV_STORE": False,
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails

@@ -17,7 +17,6 @@
 # pylint: disable=comparison-with-callable
 import logging
 import re
-from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
 from typing import Any, cast, Dict, List, Optional, Union
@@ -26,7 +25,17 @@ from urllib import parse
 import backoff
 import pandas as pd
 import simplejson as json
-from flask import abort, flash, g, Markup, redirect, render_template, request, Response
+from flask import (
+    abort,
+    flash,
+    g,
+    make_response,
+    Markup,
+    redirect,
+    render_template,
+    request,
+    Response,
+)
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -114,11 +123,15 @@ from superset.views.utils import (
     _deserialize_results_payload,
     apply_display_max_row_limit,
     bootstrap_user_data,
+    check_dashboard_perms,
     check_datasource_perms,
     check_slice_perms,
     get_cta_schema_name,
+    get_dashboard,
     get_dashboard_extra_filters,
+    get_dashboard_latest_changed_on,
     get_datasource_info,
+    get_datasources_from_dashboard,
     get_form_data,
     get_viz,
     is_owner,
@@ -1585,42 +1598,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(json.dumps({"published": dash.published}))
 
     @has_access
+    @etag_cache(
+        0,
+        check_perms=check_dashboard_perms,
+        check_latest_changed_on=get_dashboard_latest_changed_on,
+    )
     @expose("/dashboard/<dashboard_id_or_slug>/")
     def dashboard(  # pylint: disable=too-many-locals
         self, dashboard_id_or_slug: str
     ) -> FlaskResponse:
         """Server side rendering for a dashboard"""
-        session = db.session()
-        qry = session.query(Dashboard)
-        if dashboard_id_or_slug.isdigit():
-            qry = qry.filter_by(id=int(dashboard_id_or_slug))
-        else:
-            qry = qry.filter_by(slug=dashboard_id_or_slug)
-
-        dash = qry.one_or_none()
-        if not dash:
-            abort(404)
-
-        datasources = defaultdict(list)
-        for slc in dash.slices:
-            datasource = slc.datasource
-            if datasource:
-                datasources[datasource].append(slc)
-
-        if config["ENABLE_ACCESS_REQUEST"]:
-            for datasource in datasources:
-                if datasource and not security_manager.can_access_datasource(
-                    datasource
-                ):
-                    flash(
-                        __(
-                            security_manager.get_datasource_access_error_msg(datasource)
-                        ),
-                        "danger",
-                    )
-                    return redirect(
-                        "superset/request_access/?" f"dashboard_id={dash.id}&"
-                    )
+        dash = get_dashboard(dashboard_id_or_slug)
+        datasources = get_datasources_from_dashboard(dash)
 
         # Filter out unneeded fields from the datasource payload
         datasources_payload = {
@@ -1661,7 +1650,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if is_feature_enabled("REMOVE_SLICE_LEVEL_LABEL_COLORS"):
             # dashboard metadata has dashboard-level label_colors,
             # so remove slice-level label_colors from its form_data
-            for slc in dashboard_data.get("slices"):
+            for slc in dashboard_data.get("slices") or []:
                 form_data = slc.get("form_data")
                 form_data.pop("label_colors", None)
 
@@ -1695,15 +1684,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 json.dumps(bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser)
             )
 
-        return self.render_template(
-            "superset/dashboard.html",
-            entry="dashboard",
-            standalone_mode=standalone_mode,
-            title=dash.dashboard_title,
-            custom_css=dashboard_data.get("css"),
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
-            ),
+        return make_response(
+            self.render_template(
+                "superset/dashboard.html",
+                entry="dashboard",
+                standalone_mode=standalone_mode,
+                title=dash.dashboard_title,
+                custom_css=dashboard_data.get("css"),
+                bootstrap_data=json.dumps(
+                    bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                ),
+            )
         )
 
     @api

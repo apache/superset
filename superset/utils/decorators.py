@@ -15,15 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Iterator, Optional
 
 from contextlib2 import contextmanager
 from flask import request
 from werkzeug.wrappers.etag import ETagResponseMixin
 
-from superset import app, cache
+from superset import app, cache, is_feature_enabled
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.dates import now_as_float
 
@@ -32,6 +32,10 @@ from superset.utils.dates import now_as_float
 # to specify a "far future" date.
 FAR_FUTURE = 365 * 24 * 60 * 60  # 1 year in seconds
 logger = logging.getLogger(__name__)
+
+
+def is_dashboard_request(kwargs: Any) -> bool:
+    return kwargs.get("dashboard_id_or_slug") is not None
 
 
 @contextmanager
@@ -46,7 +50,11 @@ def stats_timing(stats_key: str, stats_logger: BaseStatsLogger) -> Iterator[floa
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def etag_cache(max_age: int, check_perms: Callable[..., Any]) -> Callable[..., Any]:
+def etag_cache(
+    max_age: int,
+    check_perms: Callable[..., Any],
+    check_latest_changed_on: Optional[Callable[..., Any]] = None,
+) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.
 
@@ -72,6 +80,12 @@ def etag_cache(max_age: int, check_perms: Callable[..., Any]) -> Callable[..., A
             if request.method == "POST":
                 return f(*args, **kwargs)
 
+            # if it is dashboard request but feature is not eabled,
+            # do not use cache
+            is_dashboard = is_dashboard_request(kwargs)
+            if is_dashboard and not is_feature_enabled("ENABLE_DASHBOARD_ETAG_HEADER"):
+                return f(*args, **kwargs)
+
             response = None
             if cache:
                 try:
@@ -89,13 +103,25 @@ def etag_cache(max_age: int, check_perms: Callable[..., Any]) -> Callable[..., A
                         raise
                     logger.exception("Exception possibly due to cache backend.")
 
+            # if cache is stale?
+            if check_latest_changed_on:
+                latest_changed_on = check_latest_changed_on(*args, **kwargs)
+                if response and response.last_modified:
+                    latest_record = response.last_modified.replace(
+                        tzinfo=timezone.utc
+                    ).astimezone(tz=None)
+                    if latest_changed_on.timestamp() > latest_record.timestamp():
+                        response = None
+
             # if no response was cached, compute it using the wrapped function
             if response is None:
                 response = f(*args, **kwargs)
 
                 # add headers for caching: Last Modified, Expires and ETag
                 response.cache_control.public = True
-                response.last_modified = datetime.utcnow()
+                response.last_modified = (
+                    latest_changed_on if is_dashboard else datetime.utcnow()
+                )
                 expiration = max_age if max_age != 0 else FAR_FUTURE
                 response.expires = response.last_modified + timedelta(
                     seconds=expiration
