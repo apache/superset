@@ -62,9 +62,6 @@ describe('DashboardBuilder', () => {
     dashboardLayout,
     deleteTopLevelTabs() {},
     editMode: false,
-    showBuilderPane() {},
-    setColorSchemeAndUnsavedChanges() {},
-    colorScheme: undefined,
     handleComponentDrop() {},
     setDirectPathToChild: sinon.spy(),
   };
