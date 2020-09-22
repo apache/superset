@@ -39,10 +39,9 @@ const propTypes = {
   compact: PropTypes.bool,
 };
 const defaultProps = {
-  controlProps: {},
   onChange: () => {},
   compact: false,
-  desc: null,
+  description: null,
 };
 
 export default class Field extends React.PureComponent {
