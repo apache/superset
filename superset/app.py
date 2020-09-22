@@ -261,8 +261,8 @@ class SupersetAppInitializer:
         if self.config["ENABLE_ROW_LEVEL_SECURITY"]:
             appbuilder.add_view(
                 RowLevelSecurityFiltersModelView,
-                "Row Level Security Filters",
-                label=__("Row level security filters"),
+                "Row Level Security",
+                label=__("Row level security"),
                 category="Security",
                 category_label=__("Security"),
                 icon="fa-lock",
