@@ -95,6 +95,11 @@ function SavedQueryList({
         accessor: 'database',
         hidden: true,
         disableSortBy: true,
+        Cell: ({
+          row: {
+            original: { database },
+          },
+        }: any) => `${database.database_name}`,
       },
       {
         accessor: 'schema',
