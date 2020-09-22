@@ -511,3 +511,6 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
         sqla_type = PrestoEngineSpec.get_sqla_column_type("integer")
         assert isinstance(sqla_type, types.Integer)
+
+        sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
+        assert sqla_type is None
