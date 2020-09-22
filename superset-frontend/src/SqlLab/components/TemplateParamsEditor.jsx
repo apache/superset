@@ -33,8 +33,6 @@ const propTypes = {
 };
 
 const defaultProps = {
-  label: null,
-  description: null,
   onChange: () => {},
   code: '{}',
 };

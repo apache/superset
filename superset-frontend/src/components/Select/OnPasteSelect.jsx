@@ -81,12 +81,12 @@ export default class OnPasteSelect extends React.Component {
 }
 
 OnPasteSelect.propTypes = {
-  separator: PropTypes.array.isRequired,
+  separator: PropTypes.array,
   selectWrap: PropTypes.elementType,
   selectRef: PropTypes.func,
   onChange: PropTypes.func.isRequired,
-  valueKey: PropTypes.string.isRequired,
-  labelKey: PropTypes.string.isRequired,
+  valueKey: PropTypes.string,
+  labelKey: PropTypes.string,
   options: PropTypes.array,
   isMulti: PropTypes.bool,
   value: PropTypes.any,

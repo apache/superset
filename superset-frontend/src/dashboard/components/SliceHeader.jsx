@@ -53,7 +53,6 @@ const propTypes = {
 const defaultProps = {
   innerRef: null,
   forceRefresh: () => ({}),
-  removeSlice: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
