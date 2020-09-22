@@ -269,11 +269,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                         if column_type is None:
                             column_type = types.String()
                             logger.info(
-                                "Did not recognize type {} of column {}".format(
-                                    # pylint: disable=logging-format-interpolation
-                                    field_info[1],
-                                    field_info[0],
-                                )
+                                "Did not recognize type %s of column %s",
+                                field_info[1],
+                                field_info[0],
                             )
                         if field_info[1] == "array" or field_info[1] == "row":
                             stack.append((field_info[0], field_info[1]))
@@ -390,11 +388,9 @@ class PrestoEngineSpec(BaseEngineSpec):
             if column_type is None:
                 column_type = types.String()
                 logger.info(
-                    "Did not recognize type {} of column {}".format(
-                        # pylint: disable=logging-format-interpolation
-                        column.Type,
-                        column.Column,
-                    )
+                    "Did not recognize type %s of column %s",
+                    str(column.Type),
+                    str(column.Column),
                 )
             column_info = cls._create_column_info(column.Column, column_type)
             column_info["nullable"] = getattr(column, "Null", True)
