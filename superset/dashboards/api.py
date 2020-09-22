@@ -157,6 +157,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners",
         "published",
         "slug",
+        "changed_by"
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
