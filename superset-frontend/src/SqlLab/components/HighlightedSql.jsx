@@ -18,14 +18,16 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
+import SyntaxHighlighter, {
+  registerLanguage,
+} from 'react-syntax-highlighter/dist/light';
+import sql from 'react-syntax-highlighter/dist/languages/hljs/sql';
+import github from 'react-syntax-highlighter/dist/styles/hljs/github';
 import { t } from '@superset-ui/core';
 
 import ModalTrigger from '../../components/ModalTrigger';
 
-SyntaxHighlighter.registerLanguage('sql', sql);
+registerLanguage('sql', sql);
 
 const defaultProps = {
   maxWidth: 50,

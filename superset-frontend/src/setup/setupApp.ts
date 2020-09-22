@@ -82,7 +82,9 @@ export default function setupApp() {
 
   // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function
+  // @ts-ignore
   window.$ = $;
+  // @ts-ignore
   window.jQuery = $;
   require('bootstrap');
 

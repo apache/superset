@@ -17,6 +17,7 @@
  * under the License.
  */
 import { List } from 'immutable';
+// @ts-ignore
 import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import JSONTree from 'react-json-tree';
@@ -184,12 +185,15 @@ export default class FilterableTable extends PureComponent<
     const PADDING = 40; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
     const cellContent = [].concat(
-      ...this.props.orderedColumnKeys.map(key => {
-        const cellContentList = this.list.map((data: Datum) =>
-          this.getCellContent({ cellData: data[key], columnKey: key }),
-        ) as List<string | JSX.Element>;
-        return cellContentList.push(key).toJS();
-      }),
+      ...this.props.orderedColumnKeys.map(key =>
+        this.list
+          .map((data: Datum) =>
+            this.getCellContent({ cellData: data[key], columnKey: key }),
+          )
+          // @ts-ignore
+          .push(key)
+          .toJS(),
+      ),
     );
 
     const colWidths = getMultipleTextDimensions({
@@ -219,7 +223,7 @@ export default class FilterableTable extends PureComponent<
   }: {
     cellData: CellDataType;
     columnKey: string;
-  }): string | JSX.Element {
+  }) {
     if (cellData === null) {
       return <i className="text-muted">NULL</i>;
     }

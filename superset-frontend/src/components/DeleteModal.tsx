@@ -18,7 +18,7 @@
  */
 import { t, styled } from '@superset-ui/core';
 import React, { useState } from 'react';
-import { FormGroup, FormControl, FormControlProps } from 'react-bootstrap';
+import { FormGroup, FormControl } from 'react-bootstrap';
 import Modal from 'src/components/Modal';
 import FormLabel from 'src/components/FormLabel';
 
@@ -70,12 +70,10 @@ export default function DeleteModal({
           id="delete"
           type="text"
           bsSize="sm"
-          onChange={(
-            event: React.FormEvent<FormControl & FormControlProps>,
-          ) => {
-            const targetValue = (event.currentTarget?.value as string) ?? '';
-            setDisableChange(targetValue.toUpperCase() !== 'DELETE');
-          }}
+          // @ts-ignore
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            setDisableChange(event.target.value.toUpperCase() !== 'DELETE')
+          }
         />
       </StyleFormGroup>
     </Modal>

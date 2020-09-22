@@ -16,16 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
-import {
-  Panel,
-  Row,
-  Col,
-  Tabs,
-  Tab,
-  FormControl,
-  FormControlProps,
-} from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Panel, Row, Col, Tabs, Tab, FormControl } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
@@ -69,23 +61,12 @@ export default function Welcome({ user }: WelcomeProps) {
     '',
   );
 
-  const onFormControlChange = useCallback(
-    (e: React.FormEvent<FormControl & FormControlProps>) => {
-      const { value } = e.currentTarget;
-      setSearchQuery((value as string) ?? '');
-    },
-    [],
-  );
-
-  const onTabsSelect = useCallback((e: any) => {
-    setActiveTab(e as string);
-  }, []);
-
   return (
     <div className="container welcome">
       <Tabs
         activeKey={activeTab}
-        onSelect={onTabsSelect}
+        // @ts-ignore React bootstrap types aren't quite right here
+        onSelect={setActiveTab}
         id="uncontrolled-tab-example"
       >
         <Tab eventKey="all" title={t('Dashboards')}>
@@ -102,7 +83,8 @@ export default function Welcome({ user }: WelcomeProps) {
                     style={{ marginTop: '25px' }}
                     placeholder="Search"
                     value={searchQuery}
-                    onChange={onFormControlChange}
+                    // @ts-ignore React bootstrap types aren't quite right here
+                    onChange={e => setSearchQuery(e.currentTarget.value)}
                   />
                 </Col>
               </Row>

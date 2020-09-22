@@ -23,9 +23,10 @@ import {
   Col,
   FormControl,
   FormGroup,
-  FormControlProps,
+  // @ts-ignore
 } from 'react-bootstrap';
 import Button from 'src/components/Button';
+// @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
@@ -175,9 +176,10 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={name}
-                onChange={(
-                  event: React.FormEvent<FormControl & FormControlProps>,
-                ) => setName((event.currentTarget?.value as string) ?? '')}
+                // @ts-ignore
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setName(event.target.value)
+                }
               />
             </FormGroup>
             <FormGroup>
@@ -188,10 +190,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
-                onChange={(
-                  event: React.FormEvent<FormControl & FormControlProps>,
-                ) =>
-                  setDescription((event.currentTarget?.value as string) ?? '')
+                // @ts-ignore
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setDescription(event.target.value)
                 }
                 style={{ maxWidth: '100%' }}
               />
@@ -211,13 +212,10 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={cacheTimeout}
-                onChange={(
-                  event: React.FormEvent<FormControl & FormControlProps>,
-                ) => {
-                  const targetValue =
-                    (event.currentTarget?.value as string) ?? '';
-                  setCacheTimeout(targetValue.replace(/[^0-9]/, ''));
-                }}
+                // @ts-ignore
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
+                }
               />
               <p className="help-block">
                 {t(

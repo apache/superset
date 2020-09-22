@@ -20,12 +20,14 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
-import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
-import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
+import SyntaxHighlighter, {
+  registerLanguage,
+} from 'react-syntax-highlighter/light';
+import htmlSyntax from 'react-syntax-highlighter/languages/hljs/htmlbars';
+import markdownSyntax from 'react-syntax-highlighter/languages/hljs/markdown';
+import sqlSyntax from 'react-syntax-highlighter/languages/hljs/sql';
+import jsonSyntax from 'react-syntax-highlighter/languages/hljs/json';
+import github from 'react-syntax-highlighter/styles/hljs/github';
 import {
   DropdownButton,
   MenuItem,
@@ -51,10 +53,10 @@ import {
 import PropertiesModal from './PropertiesModal';
 import { sliceUpdated } from '../actions/exploreActions';
 
-SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
-SyntaxHighlighter.registerLanguage('html', htmlSyntax);
-SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
-SyntaxHighlighter.registerLanguage('json', jsonSyntax);
+registerLanguage('markdown', markdownSyntax);
+registerLanguage('html', htmlSyntax);
+registerLanguage('sql', sqlSyntax);
+registerLanguage('json', jsonSyntax);
 
 const propTypes = {
   onOpenInEditor: PropTypes.func,
