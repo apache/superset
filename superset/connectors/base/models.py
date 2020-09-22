@@ -29,6 +29,7 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.models.slice import Slice
 from superset.typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
+
 METRIC_FORM_DATA_PARAMS = [
     "metric",
     "metrics",

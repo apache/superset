@@ -173,8 +173,8 @@ class BaseViz:
 
         self.process_metrics()
 
-        self.applied_filters = []
-        self.rejected_filters = []
+        self.applied_filters: List[Dict[str, str]] = []
+        self.rejected_filters: List[Dict[str, str]] = []
 
     def process_metrics(self) -> None:
         # metrics in TableViz is order sensitive, so metric_dict should be
@@ -482,11 +482,17 @@ class BaseViz:
         if "df" in payload:
             del payload["df"]
 
-        filters = self.form_data.get("filters")
+        filters = self.form_data.get("filters", [])
         filter_columns = [flt.get("col") for flt in filters]
         columns = set(self.datasource.column_names)
-        payload["applied_filters"] = [{"column": col} for col in filter_columns if col in columns]
-        payload["rejected_filters"] = [{"reason": "not_in_datasource", "column": col} for col in filter_columns if col not in columns]
+        payload["applied_filters"] = [
+            {"column": col} for col in filter_columns if col in columns
+        ]
+        payload["rejected_filters"] = [
+            {"reason": "not_in_datasource", "column": col}
+            for col in filter_columns
+            if col not in columns
+        ]
 
         return payload
 

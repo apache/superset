@@ -11,7 +11,25 @@ const TIME_GRANULARITY_FIELDS = new Set([
   TIME_FILTER_MAP.time_grain_sqla,
 ]);
 
-const selectIndicatorValue = (columnKey, filter, datasource) => {
+type Filter = {
+  chartId: string;
+  columns: { [key: string]: string | string[] };
+  scopes: { [key: string]: any };
+  labels: { [key: string]: string };
+  isDateFilter: boolean;
+  directPathToFilter: string[];
+  datasourceId: string;
+};
+
+type Datasource = {
+  time_grain_sqla?: [string, string][];
+  granularity?: [string, string][];
+};
+const selectIndicatorValue = (
+  columnKey: string,
+  filter: Filter,
+  datasource: Datasource,
+): string[] => {
   if (
     isNil(filter.columns[columnKey]) ||
     (filter.isDateFilter && filter.columns[columnKey] === 'No filter') ||
@@ -33,25 +51,26 @@ const selectIndicatorValue = (columnKey, filter, datasource) => {
       }),
       {},
     );
-    return []
+
+    return ([] as string[])
       .concat(filter.columns[columnKey])
       .map(value => timeGranularityMap[value] || value);
   }
 
-  return [].concat(filter.columns[columnKey]);
+  return ([] as string[]).concat(filter.columns[columnKey]);
 };
 
 const selectIndicatorsForChartFromFilter = (
-  chartId,
-  filter,
-  filterDataSource,
-  appliedColumns,
-  rejectedColumns,
+  chartId: string,
+  filter: Filter,
+  filterDataSource: Datasource,
+  appliedColumns: Set<string>,
+  rejectedColumns: Set<string>,
 ) => {
   // filters can be applied (if the filter is compatible with the datasource)
   // or rejected (if the filter is incompatible)
   // or the status can be unknown (if the filter has calculated parameters that we can't analyze)
-  const getStatus = column => {
+  const getStatus = (column: string) => {
     if (appliedColumns.has(column)) return APPLIED;
     if (rejectedColumns.has(column)) return INCOMPATIBLE;
     return UNSET;
@@ -73,22 +92,22 @@ const selectIndicatorsForChartFromFilter = (
 };
 
 export const selectIndicatorsForChart = (
-  chartId,
-  filters,
-  datasources,
-  charts,
+  chartId: string,
+  filters: Filter[],
+  datasources: { [key: string]: Datasource },
+  charts: any,
 ) => {
   const chart = charts[chartId];
   // for now we only need to know which columns are compatible/incompatible,
   // so grab the columns from the applied/rejected filters
-  const appliedColumns = new Set(
+  const appliedColumns: Set<string> = new Set(
     get(chart, 'queryResponse.applied_filters', []).map(
-      filter => filter.column,
+      (filter: any) => filter.column,
     ),
   );
-  const rejectedColumns = new Set(
+  const rejectedColumns: Set<string> = new Set(
     get(chart, 'queryResponse.rejected_filters', []).map(
-      filter => filter.column,
+      (filter: any) => filter.column,
     ),
   );
   return Object.values(filters)
@@ -104,6 +123,6 @@ export const selectIndicatorsForChart = (
             rejectedColumns,
           ),
         ),
-      [],
+      [] as any[],
     );
 };
