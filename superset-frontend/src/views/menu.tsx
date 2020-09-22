@@ -19,15 +19,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import Menu from 'src/components/Menu/Menu';
 
-const container = document.getElementById('app');
-const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
-const bootstrap = JSON.parse(bootstrapJson);
-const menu = { ...bootstrap.common.menu_data };
 const app = (
   <ThemeProvider theme={supersetTheme}>
-    <Menu data={menu} />
   </ThemeProvider>
 );
 ReactDOM.render(app, document.getElementById('app-menu'));

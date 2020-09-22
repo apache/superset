@@ -26,7 +26,6 @@ import { QueryParamProvider } from 'use-query-params';
 import { initFeatureFlags } from 'src/featureFlags';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
 import ChartList from 'src/views/CRUD/chart/ChartList';
@@ -46,7 +45,6 @@ setupPlugins();
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
 const user = { ...bootstrap.user };
-const menu = { ...bootstrap.common.menu_data };
 const common = { ...bootstrap.common };
 initFeatureFlags(bootstrap.common.feature_flags);
 
@@ -64,7 +62,6 @@ const App = () => (
       <FlashProvider common={common}>
         <Router>
           <QueryParamProvider ReactRouterRoute={Route}>
-            <Menu data={menu} />
             <Switch>
               <Route path="/superset/welcome/">
                 <ErrorBoundary>
