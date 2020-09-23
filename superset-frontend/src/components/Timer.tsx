@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { styled } from '@superset-ui/core';
 import Label from 'src/components/Label';
 
 import { now, fDuration } from '../modules/dates';
@@ -27,6 +28,11 @@ interface TimerProps {
   startTime?: number;
   status?: string;
 }
+
+const TimerLabel = styled(Label)`
+  width: 80px;
+  text-align: right;
+`;
 
 export default function Timer({
   endTime,
@@ -61,9 +67,5 @@ export default function Timer({
     return stopTimer;
   }, [endTime, isRunning, startTime]);
 
-  return (
-    <Label id="timer" bsStyle={status}>
-      {clockStr}
-    </Label>
-  );
+  return <TimerLabel bsStyle={status}>{clockStr}</TimerLabel>;
 }
