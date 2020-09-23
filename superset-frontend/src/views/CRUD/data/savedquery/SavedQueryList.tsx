@@ -19,6 +19,11 @@
 
 import { t, styled } from '@superset-ui/core';
 import React, { useMemo } from 'react';
+import {
+  createFetchRelated,
+  createFetchDistinct,
+  createErrorHandler,
+} from 'src/views/CRUD/utils';
 import { Popover } from 'src/common/components';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -82,13 +87,13 @@ function SavedQueryList({
         Header: t('Name'),
       },
       {
-        accessor: 'database',
+        accessor: 'database.database_name',
         Header: t('Database'),
-        Cell: ({
-          row: {
-            original: { database },
-          },
-        }: any) => `${database.database_name}`,
+      },
+      {
+        accessor: 'database',
+        hidden: true,
+        disableSortBy: true,
       },
       {
         accessor: 'schema',
@@ -236,9 +241,19 @@ function SavedQueryList({
         Header: t('Database'),
         id: 'database',
         input: 'select',
-        operator: 'eq',
+        operator: 'rel_o_m',
         unfilteredLabel: 'All',
-        selects: [],
+        fetchSelects: createFetchRelated(
+          'saved_query',
+          'database',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+        ),
+        paginate: true,
       },
       {
         Header: t('Schema'),
@@ -246,7 +261,14 @@ function SavedQueryList({
         input: 'select',
         operator: 'eq',
         unfilteredLabel: 'All',
-        selects: [],
+        fetchSelects: createFetchDistinct(
+          'saved_query',
+          'schema',
+          createErrorHandler(errMsg =>
+            t('An error occurred while fetching schema values: %s', errMsg),
+          ),
+        ),
+        paginate: true,
       },
       {
         Header: t('Search'),
