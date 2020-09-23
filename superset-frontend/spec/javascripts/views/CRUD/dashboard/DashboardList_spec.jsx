@@ -70,7 +70,7 @@ fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 describe('DashboardList', () => {
   const isFeatureEnabledMock = jest
     .spyOn(featureFlags, 'isFeatureEnabled')
-    .mockImplementation(feature => feature === 'THUMBNAILS');
+    .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
 
   afterAll(() => {
     isFeatureEnabledMock.restore();
