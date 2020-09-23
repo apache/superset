@@ -56,7 +56,8 @@ class MySQLEngineSpec(BaseEngineSpec):
         if tt == utils.TemporalType.DATE:
             return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
         if tt == utils.TemporalType.DATETIME:
-            return f"""STR_TO_DATE('{dttm.isoformat(sep=" ", timespec="microseconds")}', '%Y-%m-%d %H:%i:%s.%f')"""  # pylint: disable=line-too-long
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
+            return f"""STR_TO_DATE('{datetime_formatted}', '%Y-%m-%d %H:%i:%s.%f')"""
         return None
 
     @classmethod
@@ -70,7 +71,7 @@ class MySQLEngineSpec(BaseEngineSpec):
     def get_datatype(cls, type_code: Any) -> Optional[str]:
         if not cls.type_code_map:
             # only import and store if needed at least once
-            import MySQLdb  # pylint: disable=import-error
+            import MySQLdb
 
             ft = MySQLdb.constants.FIELD_TYPE
             cls.type_code_map = {
@@ -94,6 +95,6 @@ class MySQLEngineSpec(BaseEngineSpec):
         try:
             if isinstance(ex.args, tuple) and len(ex.args) > 1:
                 message = ex.args[1]
-        except Exception:  # pylint: disable=broad-except
+        except (AttributeError, KeyError):
             pass
         return message

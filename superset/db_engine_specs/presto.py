@@ -53,7 +53,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.models.core import Database
 
 QueryStatus = utils.QueryStatus
 config = app.config
