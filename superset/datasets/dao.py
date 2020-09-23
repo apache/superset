@@ -79,7 +79,7 @@ class DatasetDAO(BaseDAO):
             database.get_table(table_name, schema=schema)
             return True
         except SQLAlchemyError as ex:  # pragma: no cover
-            logger.error("Got an error %s validating table: %s", str(ex), table_name)
+            logger.warning("Got an error %s validating table: %s", str(ex), table_name)
             return False
 
     @staticmethod
