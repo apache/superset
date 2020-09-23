@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Union
 
 import geohash as geohash_lib
 import numpy as np
@@ -25,30 +25,37 @@ from geopy.point import Point
 from pandas import DataFrame, NamedAgg, Series, Timestamp
 
 from superset.exceptions import QueryObjectValidationError
-from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
-
-ALLOWLIST_NUMPY_FUNCTIONS = (
-    "average",
-    "argmin",
-    "argmax",
-    "cumsum",
-    "cumprod",
-    "max",
-    "mean",
-    "median",
-    "nansum",
-    "nanmin",
-    "nanmax",
-    "nanmean",
-    "nanmedian",
-    "min",
-    "percentile",
-    "prod",
-    "product",
-    "std",
-    "sum",
-    "var",
+from superset.utils.core import (
+    DTTM_ALIAS,
+    PostProcessingBoxplotWhiskerType,
+    PostProcessingContributionOrientation,
 )
+
+NUMPY_FUNCTIONS = {
+    "average": np.average,
+    "argmin": np.argmin,
+    "argmax": np.argmax,
+    "count": np.ma.count,
+    "count_nonzero": np.count_nonzero,
+    "cumsum": np.cumsum,
+    "cumprod": np.cumprod,
+    "max": np.max,
+    "mean": np.mean,
+    "median": np.median,
+    "nansum": np.nansum,
+    "nanmin": np.nanmin,
+    "nanmax": np.nanmax,
+    "nanmean": np.nanmean,
+    "nanmedian": np.nanmedian,
+    "nanpercentile": np.nanpercentile,
+    "min": np.min,
+    "percentile": np.percentile,
+    "prod": np.prod,
+    "product": np.product,
+    "std": np.std,
+    "sum": np.sum,
+    "var": np.var,
+}
 
 DENYLIST_ROLLING_FUNCTIONS = (
     "count",
@@ -161,13 +168,17 @@ def _get_aggregate_funcs(
                 _("Operator undefined for aggregator: %(name)s", name=name,)
             )
         operator = agg_obj["operator"]
-        if operator not in ALLOWLIST_NUMPY_FUNCTIONS or not hasattr(np, operator):
-            raise QueryObjectValidationError(
-                _("Invalid numpy function: %(operator)s", operator=operator,)
-            )
-        func = getattr(np, operator)
-        options = agg_obj.get("options", {})
-        agg_funcs[name] = NamedAgg(column=column, aggfunc=partial(func, **options))
+        if callable(operator):
+            aggfunc = operator
+        else:
+            func = NUMPY_FUNCTIONS.get(operator)
+            if not func:
+                raise QueryObjectValidationError(
+                    _("Invalid numpy function: %(operator)s", operator=operator,)
+                )
+            options = agg_obj.get("options", {})
+            aggfunc = partial(func, **options)
+        agg_funcs[name] = NamedAgg(column=column, aggfunc=aggfunc)
 
     return agg_funcs
 
@@ -693,3 +704,104 @@ def prophet(  # pylint: disable=too-many-arguments
                 target_df = target_df.assign(**{new_column: fit_df[new_column]})
     target_df.reset_index(level=0, inplace=True)
     return target_df.rename(columns={"ds": DTTM_ALIAS})
+
+
+def boxplot(
+    df: DataFrame,
+    groupby: List[str],
+    metrics: List[str],
+    whisker_type: PostProcessingBoxplotWhiskerType,
+    percentiles: Optional[
+        Union[List[Union[int, float]], Tuple[Union[int, float], Union[int, float]]]
+    ] = None,
+) -> DataFrame:
+    """
+    Calculate boxplot statistics. For each metric, the operation creates eight
+    new columns with the column name suffixed with the following values:
+
+    - `__mean`: the mean
+    - `__median`: the median
+    - `__high`: the maximum value excluding outliers (see whisker type)
+    - `__low`: the minimum value excluding outliers (see whisker type)
+    - `__q1`: the median
+    - `__q1`: the first quartile (25th percentile)
+    - `__q3`: the third quartile (75th percentile)
+    - `__count`: count of observations
+    - `__outliers`: the values that fall outside the minimum/maximum value
+                    (see whisker type)
+
+    :param df: DataFrame containing all-numeric data (temporal column ignored)
+    :param groupby: The categories to group by (x-axis)
+    :param metrics: The metrics for which to calculate the distribution
+    :param whisker_type: The confidence level type
+    :return: DataFrame with boxplot statistics per groupby
+    """
+
+    def quartile1(series: Series) -> float:
+        return np.nanpercentile(series, 25)
+
+    def quartile3(series: Series) -> float:
+        return np.nanpercentile(series, 75)
+
+    if whisker_type == PostProcessingBoxplotWhiskerType.TUKEY:
+
+        def whisker_high(series: Series) -> float:
+            upper_outer_lim = quartile3(series) + 1.5 * (
+                quartile3(series) - quartile1(series)
+            )
+            return series[series <= upper_outer_lim].max()
+
+        def whisker_low(series: Series) -> float:
+            lower_outer_lim = quartile1(series) - 1.5 * (
+                quartile3(series) - quartile1(series)
+            )
+            return series[series >= lower_outer_lim].min()
+
+    elif whisker_type == PostProcessingBoxplotWhiskerType.PERCENTILE:
+        if (
+            not isinstance(percentiles, (list, tuple))
+            or len(percentiles) != 2
+            or not isinstance(percentiles[0], (int, float))
+            or not isinstance(percentiles[1], (int, float))
+            or percentiles[0] >= percentiles[1]
+        ):
+
+            raise QueryObjectValidationError(
+                _(
+                    "percentiles must be a list or tuple with two numeric values, "
+                    "of which the first is lower than the second value"
+                )
+            )
+        low, high = percentiles[0], percentiles[1]
+
+        def whisker_high(series: Series) -> float:
+            return np.nanpercentile(series, high)
+
+        def whisker_low(series: Series) -> float:
+            return np.nanpercentile(series, low)
+
+    else:
+        whisker_high = np.max
+        whisker_low = np.min
+
+    def outliers(series: Series) -> Set[float]:
+        above = series[series > whisker_high(series)]
+        below = series[series < whisker_low(series)]
+        return above.tolist() + below.tolist()
+
+    operators: Dict[str, Callable[[Any], Any]] = {
+        "mean": np.mean,
+        "median": np.median,
+        "high": whisker_high,
+        "low": whisker_low,
+        "q1": quartile1,
+        "q3": quartile3,
+        "count": np.ma.count,
+        "outliers": outliers,
+    }
+    aggregates: Dict[str, Dict[str, Union[str, Callable[..., Any]]]] = {
+        f"{metric}__{operator_name}": {"column": metric, "operator": operator}
+        for operator_name, operator in operators.items()
+        for metric in metrics
+    }
+    return aggregate(df, groupby=groupby, aggregates=aggregates)

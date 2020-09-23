@@ -27,7 +27,7 @@ from superset.utils import pandas_postprocessing as proc
 from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
 
 from .base_tests import SupersetTestCase
-from .fixtures.dataframes import categories_df, lonlat_df, timeseries_df, prophet_df
+from .fixtures.dataframes import categories_df, lonlat_df, names_df, timeseries_df, prophet_df
 
 AGGREGATES_SINGLE = {"idx_nulls": {"operator": "sum"}}
 AGGREGATES_MULTIPLE = {
@@ -607,3 +607,103 @@ class TestPostProcessing(SupersetTestCase):
             periods=10,
             confidence_interval=0.8,
         )
+
+    def test_boxplot_tukey(self):
+        df = proc.boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type='tukey',
+            metrics=["cars"],
+        )
+        columns = {column for column in df.columns}
+        assert columns == {
+            "cars__mean",
+            "cars__median",
+            "cars__q1",
+            "cars__q3",
+            "cars__high",
+            "cars__low",
+            "cars__count",
+            "cars__outliers",
+            "region",
+        }
+        assert len(df) == 4
+
+    def test_boxplot_min_max(self):
+        df = proc.boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type='min/max',
+            metrics=["cars"],
+        )
+        columns = {column for column in df.columns}
+        assert columns == {
+            "cars__mean",
+            "cars__median",
+            "cars__q1",
+            "cars__q3",
+            "cars__high",
+            "cars__low",
+            "cars__count",
+            "cars__outliers",
+            "region",
+        }
+        assert len(df) == 4
+
+    def test_boxplot_percentile(self):
+        df = proc.boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type='percentile',
+            metrics=["cars"],
+            percentiles=[1, 99],
+        )
+        columns = {column for column in df.columns}
+        assert columns == {
+            "cars__mean",
+            "cars__median",
+            "cars__q1",
+            "cars__q3",
+            "cars__high",
+            "cars__low",
+            "cars__count",
+            "cars__outliers",
+            "region",
+        }
+        assert len(df) == 4
+
+    def test_boxplot_percentile_incorrect_params(self):
+        with pytest.raises(QueryObjectValidationError):
+            proc.boxplot(
+                df=names_df,
+                groupby=["region"],
+                whisker_type='percentile',
+                metrics=["cars"],
+            )
+
+        with pytest.raises(QueryObjectValidationError):
+            proc.boxplot(
+                df=names_df,
+                groupby=["region"],
+                whisker_type='percentile',
+                metrics=["cars"],
+                percentiles=[10]
+            )
+
+        with pytest.raises(QueryObjectValidationError):
+            proc.boxplot(
+                df=names_df,
+                groupby=["region"],
+                whisker_type='percentile',
+                metrics=["cars"],
+                percentiles=[90, 10]
+            )
+
+        with pytest.raises(QueryObjectValidationError):
+            proc.boxplot(
+                df=names_df,
+                groupby=["region"],
+                whisker_type='percentile',
+                metrics=["cars"],
+                percentiles=[10, 90, 10]
+            )
