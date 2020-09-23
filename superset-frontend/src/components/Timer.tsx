@@ -20,7 +20,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import Label from 'src/components/Label';
 
-import { now, fDuration } from '../modules/dates';
+import { now, fDuration } from 'src/modules/dates';
 
 interface TimerProps {
   endTime?: number;
