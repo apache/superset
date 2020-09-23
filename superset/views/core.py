@@ -2471,7 +2471,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         query = db.session.query(Query)
         if security_manager.can_access_all_queries():
-            search_user_id = int(request.args.get("user_id"))
+            search_user_id = request.args.get("user_id")
         elif (
             request.args.get("user_id") is not None
             and int(request.args.get("user_id")) != g.user.get_user_id()
