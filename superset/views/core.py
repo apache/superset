@@ -2474,7 +2474,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             search_user_id = request.args.get("user_id")
         elif (
             request.args.get("user_id") is not None
-            and int(request.args.get("user_id")) != g.user.get_user_id()
+            and request.args.get("user_id") != str(g.user.get_user_id())
         ):
             return Response(status=403, mimetype="application/json")
         else:
