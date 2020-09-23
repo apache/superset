@@ -46,7 +46,7 @@ describe('SqlLab query panel', () => {
     cy.route({
       method: 'POST',
       url: '/superset/sql_json/',
-      delay: 2000,
+      delay: 1000,
       response: () => sampleResponse,
     }).as('mockSQLResponse');
 
@@ -62,8 +62,8 @@ describe('SqlLab query panel', () => {
 
     cy.get('#js-sql-toolbar button:eq(0)').eq(0).click();
 
-    // wait for 200 milliseconds
-    cy.wait(200);
+    // wait for 300 milliseconds
+    cy.wait(300);
 
     // started timer
     cy.get('.sql-toolbar .label-success').then(node => {
@@ -77,7 +77,7 @@ describe('SqlLab query panel', () => {
     // timer is increasing
     cy.get('.sql-toolbar .label-success').then(node => {
       const newClockTime = parseClockStr(node);
-      expect(newClockTime).greaterThan(clockTime);
+      expect(newClockTime).greaterThan(0.9);
       clockTime = newClockTime;
     });
 
@@ -85,16 +85,10 @@ describe('SqlLab query panel', () => {
     cy.get('#js-sql-toolbar button:eq(0)').eq(0).click();
 
     // should restart the timer
-    cy.get('.sql-toolbar .label-success').then(node => {
-      const newClockTime = parseClockStr(node);
-      expect(newClockTime).lessThan(clockTime);
-      clockTime = newClockTime;
-    });
-
+    cy.get('.sql-toolbar .label-success').contains('00:00:00');
     cy.wait('@mockSQLResponse');
-
     cy.get('.sql-toolbar .label-success').then(node => {
-      expect(parseClockStr(node)).greaterThan(1.9);
+      expect(parseClockStr(node)).greaterThan(0.9);
     });
   });
 
