@@ -18,12 +18,13 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Table, Thead, Td, Th, Tr } from 'reactable-arc';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import ModalTrigger from 'src/components/ModalTrigger';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import ListView from 'src/components/ListView';
+import TableCollection from 'src/components/ListView/TableCollection';
 
 const defaultProps = {
   origFormData: {
@@ -112,6 +113,28 @@ const expectedDiffs = {
   },
 };
 
+const expectedRows = [
+  {
+    control: 'Fake Filters',
+    before: 'a == hello',
+    after: 'b in [hello, my, name]',
+  },
+  {
+    control: 'Value bounds',
+    before: 'Min: 10, Max: 20',
+    after: 'Min: 15, Max: 16',
+  },
+  {
+    control: 'Fake Collection Control',
+    before: '{"1":"a","b":["6","g"]}',
+    after: '{"1":"a","b":[9,"15"],"t":"gggg"}',
+  },
+  { control: 'bool', before: 'false', after: 'true' },
+  { control: 'gucci', before: '1, 2, 3, 4', after: 'a, b, c, d' },
+  { control: 'never', before: 5, after: 10 },
+  { control: 'ever', before: '{"a":"b","c":"d"}', after: '{"x":"y","z":"z"}' },
+];
+
 const fakePluginControls = {
   controlPanelSections: [
     {
@@ -149,6 +172,9 @@ const fakePluginControls = {
   ],
 };
 
+const getTableWrapperFromModalBody = modalBody =>
+  modalBody.find(ListView).shallow().find(TableCollection).shallow();
+
 describe('AlteredSliceTag', () => {
   let wrapper;
   let props;
@@ -165,7 +191,7 @@ describe('AlteredSliceTag', () => {
   it('correctly determines form data differences', () => {
     const diffs = wrapper.instance().getDiffs(props);
     expect(diffs).toEqual(expectedDiffs);
-    expect(wrapper.instance().state.diffs).toEqual(expectedDiffs);
+    expect(wrapper.instance().state.rows).toEqual(expectedRows);
     expect(wrapper.instance().state.hasDiffs).toBe(true);
   });
 
@@ -175,29 +201,30 @@ describe('AlteredSliceTag', () => {
       currentFormData: props.origFormData,
     };
     wrapper = shallow(<AlteredSliceTag {...props} />);
-    expect(wrapper.instance().state.diffs).toEqual({});
+    expect(wrapper.instance().state.rows).toEqual([]);
     expect(wrapper.instance().state.hasDiffs).toBe(false);
     expect(wrapper.instance().render()).toBeNull();
   });
 
-  it('sets new diffs when receiving new props', () => {
+  it('sets new rows when receiving new props', () => {
     const newProps = {
       currentFormData: { ...props.currentFormData },
       origFormData: { ...props.origFormData },
     };
     newProps.currentFormData.beta = 10;
     wrapper = shallow(<AlteredSliceTag {...props} />);
-    wrapper.instance().UNSAFE_componentWillReceiveProps(newProps);
-    const newDiffs = wrapper.instance().state.diffs;
-    const expectedBeta = { before: undefined, after: 10 };
-    expect(newDiffs.beta).toEqual(expectedBeta);
+    const wrapperInstance = wrapper.instance();
+    wrapperInstance.UNSAFE_componentWillReceiveProps(newProps);
+    const newDiffs = wrapperInstance.getDiffs(newProps);
+    const expectedNewRows = wrapperInstance.getRowsFromDiffs(newDiffs);
+    expect(wrapperInstance.state.rows).toEqual(expectedNewRows);
   });
 
   it('does not set new state when props are the same', () => {
-    const currentDiff = wrapper.instance().state.diffs;
+    const currentRows = wrapper.instance().state.rows;
     wrapper.instance().UNSAFE_componentWillReceiveProps(props);
     // Check equal references
-    expect(wrapper.instance().state.diffs).toBe(currentDiff);
+    expect(wrapper.instance().state.rows).toBe(currentRows);
   });
 
   it('renders a ModalTrigger', () => {
@@ -218,24 +245,26 @@ describe('AlteredSliceTag', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      expect(modalBody.find(Table)).toHaveLength(1);
+      expect(modalBody.find(ListView)).toHaveLength(1);
     });
 
-    it('renders a Thead', () => {
+    it('renders a thead', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      expect(modalBody.find(Thead)).toHaveLength(1);
+      expect(
+        getTableWrapperFromModalBody(modalBody).find('thead'),
+      ).toHaveLength(1);
     });
 
-    it('renders Th', () => {
+    it('renders th', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      const th = modalBody.find(Th);
+      const th = getTableWrapperFromModalBody(modalBody).find('th');
       expect(th).toHaveLength(3);
-      ['control', 'before', 'after'].forEach((v, i) => {
-        expect(th.get(i).props.column).toBe(v);
+      ['Control', 'Before', 'After'].forEach((v, i) => {
+        expect(th.find('span').get(i).props.children[0]).toBe(v);
       });
     });
 
@@ -243,29 +272,32 @@ describe('AlteredSliceTag', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      const tr = modalBody.find(Tr);
-      expect(tr).toHaveLength(7);
+      const tr = getTableWrapperFromModalBody(modalBody).find('tr');
+      expect(tr).toHaveLength(8);
     });
 
-    it('renders the correct number of Td', () => {
+    it('renders the correct number of td', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      const td = modalBody.find(Td);
+      const td = getTableWrapperFromModalBody(modalBody).find('td');
       expect(td).toHaveLength(21);
       ['control', 'before', 'after'].forEach((v, i) => {
-        expect(td.get(i).props.column).toBe(v);
+        expect(td.find('Cell').get(0).props.columns[i].id).toBe(v);
       });
     });
   });
 
   describe('renderRows', () => {
-    it('returns an array of rows with one Tr and three Td', () => {
-      const rows = wrapper.instance().renderRows();
-      expect(rows).toHaveLength(7);
-      const fakeRow = shallow(<div>{rows[0]}</div>);
-      expect(fakeRow.find(Tr)).toHaveLength(1);
-      expect(fakeRow.find(Td)).toHaveLength(3);
+    it('returns an array of rows with one tr and three td', () => {
+      const modalBody = shallow(
+        <div>{wrapper.instance().renderModalBody()}</div>,
+      );
+      const rows = getTableWrapperFromModalBody(modalBody).find('tr');
+      expect(rows).toHaveLength(8);
+      const fakeRow = shallow(<div>{rows.get(1)}</div>);
+      expect(fakeRow.find('tr')).toHaveLength(1);
+      expect(fakeRow.find('td')).toHaveLength(3);
     });
   });
 
