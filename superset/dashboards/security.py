@@ -18,7 +18,7 @@ import logging
 import re
 from typing import List, Optional, Set, Tuple
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.constants import Security as SecurityConsts
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,8 @@ class DashboardSecurityMixin:
         elif new_perm != views[0].name:
             current_view = views[0]
             current_view.name = new_perm
-            security_manager.update_view_menu(current_view)
+            db.session.merge(current_view)
+            db.session.commit()
 
     def del_permissions_views(self) -> None:
         for permission_name, view_menu_name in self.permission_view_pairs:

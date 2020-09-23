@@ -26,7 +26,6 @@ from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
     assoc_user_role,
-    Permission,
     PermissionView,
     ViewMenu,
 )
@@ -841,11 +840,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
-    def set_perm(
-        self,
-        mapper: Mapper,  # pylint: disable=no-self-use,unused-argument
-        connection: Connection,
-        target: "BaseDatasource",
+    def set_perm(  # pylint: disable=no-self-use,unused-argument
+        self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
     ) -> None:
         """
         Set the datasource permissions.
@@ -879,74 +875,43 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             pvm_names.append(("datasource_access", target.get_perm()))
             if target.schema:
                 pvm_names.append(("schema_access", target.get_schema_perm()))
-        self.set_permissions_views(connection, pvm_names)
 
-    def set_permissions_views(
-        self, connection: Connection, permission_view_pairs: List[Tuple[str, str]]
-    ) -> None:
         # TODO(bogdan): modify slice permissions as well.
-        for permission_name, view_menu_name in permission_view_pairs:
-            permission = self.__set_permission_by_connection(
-                connection, permission_name
-            )
-            view_menu = self.__set_view_by_connection(connection, view_menu_name)
-            self.__set_permission_view_by_connection(connection, permission, view_menu)
-
-    def __set_permission_by_connection(
-        self, connection: Connection, permission_name: str
-    ) -> Permission:
-        permission = self.find_permission(permission_name)
-        if not permission:
-            permission_table = (
-                self.permission_model.__table__  # pylint: disable=no-member
-            )
-            connection.execute(permission_table.insert().values(name=permission_name))
+        for permission_name, view_menu_name in pvm_names:
             permission = self.find_permission(permission_name)
-        return permission
+            view_menu = self.find_view_menu(view_menu_name)
+            pv = None
 
-    def __set_view_by_connection(
-        self, connection: Connection, view_name: str
-    ) -> ViewMenu:
-        view_menu = self.find_view_menu(view_name)
-        if not view_menu:
-            view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-            connection.execute(view_menu_table.insert().values(name=view_name))
-            view_menu = self.find_view_menu(view_name)
-        return view_menu
-
-    def __set_permission_view_by_connection(  # pylint: disable=C0103
-        self, connection: Connection, permission: Permission, view: ViewMenu
-    ) -> PermissionView:
-        pv = self.__find_permission_view_menu_by_instances(permission, view)
-        if not pv and permission and view:
-            permission_view_table = (
-                self.permissionview_model.__table__  # pylint: disable=no-member
-            )
-            connection.execute(
-                permission_view_table.insert().values(
-                    permission_id=permission.id, view_menu_id=view.id
+            if not permission:
+                permission_table = (
+                    self.permission_model.__table__  # pylint: disable=no-member
                 )
-            )
-            pv = self.__find_permission_view_menu_by_instances(permission, view)
-        return pv
+                connection.execute(
+                    permission_table.insert().values(name=permission_name)
+                )
+                permission = self.find_permission(permission_name)
+            if not view_menu:
+                view_menu_table = (
+                    self.viewmenu_model.__table__  # pylint: disable=no-member
+                )
+                connection.execute(view_menu_table.insert().values(name=view_menu_name))
+                view_menu = self.find_view_menu(view_menu_name)
 
-    def __find_permission_view_menu_by_instances(  # pylint: disable=C0103
-        self, permission: Permission, view_menu: ViewMenu
-    ) -> Optional[PermissionView]:
-        """
-            Finds and returns a PermissionView by permission and view_menu
-        """
-        if permission and view_menu:
-            return (
-                self.get_session.query(self.permissionview_model)
-                .filter_by(permission=permission, view_menu=view_menu)
-                .one_or_none()
-            )
-        return None
-
-    def update_view_menu(self, view_menu: ViewMenu) -> None:
-        self.get_session.merge(view_menu)
-        self.get_session.commit()
+            if permission and view_menu:
+                pv = (
+                    self.get_session.query(self.permissionview_model)
+                    .filter_by(permission=permission, view_menu=view_menu)
+                    .first()
+                )
+            if not pv and permission and view_menu:
+                permission_view_table = (
+                    self.permissionview_model.__table__  # pylint: disable=no-member
+                )
+                connection.execute(
+                    permission_view_table.insert().values(
+                        permission_id=permission.id, view_menu_id=view_menu.id
+                    )
+                )
 
     def find_view_menu_by_pattern(
         self, pattern: str, is_regex: bool = False
@@ -958,16 +923,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ViewMenu.name.match(pattern) if is_regex else ViewMenu.name.like(pattern)
         )
         return self.get_session.query(self.viewmenu_model).filter(pattern_filter).all()
-
-    def change_view_name_by_connection(
-        self, connection: Connection, new_name: str, old_name: str
-    ) -> None:
-        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-        connection.execute(
-            view_menu_table.update()
-            .where(view_menu_table.c.name == old_name)
-            .values(name=new_name)
-        )
 
     def raise_for_access(  # pylint: disable=too-many-arguments,too-many-branches
         self,
@@ -1131,24 +1086,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ids = [f.id for f in self.get_rls_filters(table)]
         ids.sort()  # Combinations rather than permutations
         return ids
-
-    def del_role(self, name: str) -> bool:
-        """
-            Deletes a Role from the backend
-
-            :param name:
-                name of the Role
-        """
-        role = self.find_role(name)
-        if not role:
-            return False
-        try:
-            self.get_session.delete(role)
-            self.get_session.commit()
-            return True
-        except Exception as err:
-            self.get_session.rollback()
-            raise err
 
     def del_all_roles_associations(self, permission_view: PermissionView) -> None:
         self.get_session.execute(

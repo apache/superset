@@ -63,9 +63,28 @@ def assign_dashboard_permissions_to_multiple_roles(dashboard):
         logger.warning("permission view not found")
 
 
+def del_role(name: str) -> bool:
+    """
+        Deletes a Role from the backend
+
+        :param name:
+            name of the Role
+    """
+    role = security_manager.find_role(name)
+    if not role:
+        return False
+    try:
+        appbuilder.get_session.delete(role)
+        appbuilder.get_session.commit()
+        return True
+    except Exception as err:
+        appbuilder.get_session.rollback()
+        raise err
+
+
 def clean_dashboard_matching_roles():
     for i in range(number_of_roles):
-        security_manager.del_role(dashboard_permission_role_pattern(i))
+        del_role(dashboard_permission_role_pattern(i))
 
 
 def dashboard_permission_role_pattern(i):
