@@ -25,24 +25,24 @@ describe('No Results', () => {
     cy.route('POST', '/superset/explore_json/**').as('getJson');
   });
 
-  const formData = {
-    ...FORM_DATA_DEFAULTS,
-    metrics: [NUM_METRIC],
-    viz_type: 'line',
-    adhoc_filters: [
-      {
-        expressionType: 'SIMPLE',
-        subject: 'state',
-        operator: 'in',
-        comparator: ['Fake State'],
-        clause: 'WHERE',
-        sqlExpression: null,
-      },
-    ],
-  };
-
   it('No results message shows up', () => {
-    cy.visitChartByParams(formData);
+    const formData = {
+      ...FORM_DATA_DEFAULTS,
+      metrics: [NUM_METRIC],
+      viz_type: 'line',
+      adhoc_filters: [
+        {
+          expressionType: 'SIMPLE',
+          subject: 'state',
+          operator: 'in',
+          comparator: ['Fake State'],
+          clause: 'WHERE',
+          sqlExpression: null,
+        },
+      ],
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.wait('@getJson').then(async xhr => {
       expect(xhr.status).to.eq(200);
     });

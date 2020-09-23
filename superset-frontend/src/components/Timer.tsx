@@ -43,14 +43,14 @@ export default function Timer({
   const [clockStr, setClockStr] = useState('');
   const timer = useRef<NodeJS.Timeout>();
 
-  const stopTimer = () => {
-    if (timer.current) {
-      clearInterval(timer.current);
-      timer.current = undefined;
-    }
-  };
-
   useEffect(() => {
+    const stopTimer = () => {
+      if (timer.current) {
+        clearInterval(timer.current);
+        timer.current = undefined;
+      }
+    };
+
     if (isRunning) {
       timer.current = setInterval(() => {
         if (startTime) {

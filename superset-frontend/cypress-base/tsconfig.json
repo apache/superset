@@ -6,7 +6,6 @@
     "types": ["cypress"],
     "allowJs": true,
     "noEmit": true,
-    "esModuleInterop": true
   },
   "files": ["cypress/support/index.d.ts"],
   "include": ["node_modules/cypress", "cypress/**/*.ts"]
