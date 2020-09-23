@@ -20,7 +20,6 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session, subqueryload
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from collections import OrderedDict
 
     from superset.connectors.base.models import BaseDatasource
