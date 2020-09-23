@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { styled } from '@superset-ui/core';
 import Label from 'src/components/Label';
 
-import { now, fDuration } from '../modules/dates';
+import { now, fDuration } from 'src/modules/dates';
 
 interface TimerProps {
   endTime?: number;
@@ -28,6 +29,11 @@ interface TimerProps {
   status?: string;
 }
 
+const TimerLabel = styled(Label)`
+  width: 80px;
+  text-align: right;
+`;
+
 export default function Timer({
   endTime,
   isRunning,
@@ -35,46 +41,31 @@ export default function Timer({
   status = 'success',
 }: TimerProps) {
   const [clockStr, setClockStr] = useState('');
-  const [timer, setTimer] = useState<NodeJS.Timeout>();
-
-  const stopTimer = () => {
-    if (timer) {
-      clearInterval(timer);
-      setTimer(undefined);
-    }
-  };
-
-  const stopwatch = () => {
-    if (startTime) {
-      const endDttm = endTime || now();
-      if (startTime < endDttm) {
-        setClockStr(fDuration(startTime, endDttm));
-      }
-      if (!isRunning) {
-        stopTimer();
-      }
-    }
-  };
-
-  const startTimer = () => {
-    setTimer(setInterval(stopwatch, 30));
-  };
+  const timer = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    if (isRunning) {
-      startTimer();
-    }
-  }, [isRunning]);
-
-  useEffect(() => {
-    return () => {
-      stopTimer();
+    const stopTimer = () => {
+      if (timer.current) {
+        clearInterval(timer.current);
+        timer.current = undefined;
+      }
     };
-  });
 
-  return (
-    <Label id="timer" bsStyle={status}>
-      {clockStr}
-    </Label>
-  );
+    if (isRunning) {
+      timer.current = setInterval(() => {
+        if (startTime) {
+          const endDttm = endTime || now();
+          if (startTime < endDttm) {
+            setClockStr(fDuration(startTime, endDttm));
+          }
+          if (!isRunning) {
+            stopTimer();
+          }
+        }
+      }, 30);
+    }
+    return stopTimer;
+  }, [endTime, isRunning, startTime]);
+
+  return <TimerLabel bsStyle={status}>{clockStr}</TimerLabel>;
 }

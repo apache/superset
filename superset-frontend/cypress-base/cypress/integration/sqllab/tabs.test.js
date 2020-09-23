@@ -39,6 +39,7 @@ describe('SqlLab query tabs', () => {
         .contains(`Untitled Query ${initialTabCount + 2}`);
     });
   });
+
   it('allows you to close a tab', () => {
     cy.get('[data-test="sql-editor-tabs"]')
       .children()
