@@ -151,17 +151,31 @@ function SavedQueryList({
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => {}; // handleQueryEdit(original);
+          const handlePreview = () => {}; // openQueryPreviewModal(original); // TODO: open preview modal
+          const handleEdit = () => {}; // handleQueryEdit(original); // TODO: navigate to sql editor with selected query open
+          const handleCopy = () => {}; // TODO: copy link to clipboard
           const handleDelete = () => {}; // openQueryDeleteModal(original);
-          if (!canEdit && !canDelete) {
-            return null;
-          }
+
           return (
             <span className="actions">
+              <TooltipWrapper
+                label="preview-action"
+                tooltip={t('Query preview')}
+                placement="bottom"
+              >
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={handlePreview}
+                >
+                  <Icon name="binoculars" />
+                </span>
+              </TooltipWrapper>
               {canEdit && (
                 <TooltipWrapper
                   label="edit-action"
-                  tooltip={t('Edit')}
+                  tooltip={t('Edit query')}
                   placement="bottom"
                 >
                   <span
@@ -174,6 +188,20 @@ function SavedQueryList({
                   </span>
                 </TooltipWrapper>
               )}
+              <TooltipWrapper
+                label="copy-action"
+                tooltip={t('Copy query URL')}
+                placement="bottom"
+              >
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={handleCopy}
+                >
+                  <Icon name="clipboard" />
+                </span>
+              </TooltipWrapper>
               {canDelete && (
                 <span
                   role="button"
@@ -184,7 +212,7 @@ function SavedQueryList({
                 >
                   <TooltipWrapper
                     label="delete-action"
-                    tooltip={t('Delete database')}
+                    tooltip={t('Delete query')}
                     placement="bottom"
                   >
                     <Icon name="trash" />
