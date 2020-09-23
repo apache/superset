@@ -57,7 +57,6 @@ import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_phys
 import { ReactComponent as DatasetVirtualGreyscaleIcon } from 'images/icons/dataset_virtual_greyscale.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
 import { ReactComponent as DownloadIcon } from 'images/icons/download.svg';
-import { ReactComponent as DropdownArrowIcon } from 'images/icons/dropdown-arrow.svg';
 import { ReactComponent as EditAltIcon } from 'images/icons/edit_alt.svg';
 import { ReactComponent as EditIcon } from 'images/icons/edit.svg';
 import { ReactComponent as EmailIcon } from 'images/icons/email.svg';
@@ -175,7 +174,6 @@ type IconName =
   | 'dataset-virtual-greyscale'
   | 'dataset-virtual'
   | 'download'
-  | 'dropdown-arrow'
   | 'edit-alt'
   | 'edit'
   | 'email'
@@ -296,7 +294,6 @@ export const iconsRegistry: Record<
   'dataset-virtual-greyscale': DatasetVirtualGreyscaleIcon ,
   'dataset-virtual': DatasetVirtualIcon,
   'download': DownloadIcon ,
-  'dropdown-arrow': DropdownArrowIcon,
   "edit-alt": EditAltIcon,
   'edit': EditIcon ,
   'email': EmailIcon ,
