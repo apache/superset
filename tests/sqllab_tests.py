@@ -263,6 +263,7 @@ class TestSqlLab(SupersetTestCase):
         user_ids = {k["userId"] for k in data}
         self.assertEqual(set([user_id]), user_ids)
 
+        self.login("gamma_sqllab")
         user_id = security_manager.find_user("gamma_sqllab").id
         resp = self.get_resp("/superset/search_queries?user_id={}".format(user_id))
         data = json.loads(resp)
