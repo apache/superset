@@ -81,7 +81,7 @@ class DashboardDAO(BaseDAO):
             raise ex
 
     @staticmethod
-    def set_dash_metadata(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    def set_dash_metadata(
         dashboard: Dashboard,
         data: Dict[Any, Any],
         old_to_new_slice_ids: Optional[Dict[int, int]] = None,
