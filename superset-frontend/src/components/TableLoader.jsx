@@ -68,7 +68,7 @@ class TableLoader extends React.PureComponent {
     });
   };
 
-  fetchData = ({ sortBy }) => {
+  fetchOrSortData = ({ sortBy }) => {
     const { dataEndpoint, mutator } = this.props;
 
     if (this.state.data.length > 0 && sortBy.length > 0) {
@@ -116,7 +116,7 @@ class TableLoader extends React.PureComponent {
         data={this.state.data}
         count={this.state.data.length}
         pageSize={50}
-        fetchData={this.fetchData}
+        fetchData={this.fetchOrSortData}
         loading={this.state.isLoading}
       />
     );
