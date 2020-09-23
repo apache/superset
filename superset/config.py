@@ -31,6 +31,8 @@ from datetime import date
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 
 from cachelib.base import BaseCache
+from cachelib.redis import RedisCache
+
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
@@ -151,7 +153,7 @@ SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h"
 # The SQLAlchemy connection string.
 # SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
-SQLALCHEMY_DATABASE_URI = 'postgresql://superset:superset@localhost/superset'
+SQLALCHEMY_DATABASE_URI = 'postgresql://superset:superset@db/superset'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -295,14 +297,14 @@ LANGUAGES = {
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
 DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
-    "CLIENT_CACHE": False,
+    "CLIENT_CACHE": True, #False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "KV_STORE": False,
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
     "REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD": True,
-    "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
+    "REMOVE_SLICE_LEVEL_LABEL_COLORS": True, #False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,
@@ -359,8 +361,22 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # IMG_SIZE = (300, 200, True)
 
 CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
-CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
-TABLE_NAMES_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+#CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+#TABLE_NAMES_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+
+CACHE_CONFIG = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': CACHE_DEFAULT_TIMEOUT,
+    'CACHE_KEY_PREFIX': 'superset_results',
+    'CACHE_REDIS_URL': 'redis://redis:6379/0',
+}
+
+TABLE_NAMES_CACHE_CONFIG = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': CACHE_DEFAULT_TIMEOUT,
+    'CACHE_KEY_PREFIX': 'superset_tables',
+    'CACHE_REDIS_URL': 'redis://redis:6379/0',
+}
 
 # CORS Options
 ENABLE_CORS = False
@@ -526,7 +542,16 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "email_reports.schedule_hourly": {
             "task": "email_reports.schedule_hourly",
             "schedule": crontab(minute=1, hour="*"),
-        }
+        },
+        'cache-warmup-hourly': {
+            'task': 'cache-warmup',
+            'schedule': crontab(minute=0, hour='*'),  # hourly
+            'kwargs': {
+                'strategy_name': 'top_n_dashboards',
+                'top_n': 5,
+                'since': '7 days ago',
+            },
+        },
     }
 
 
@@ -595,7 +620,9 @@ SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
 
 # If enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
-RESULTS_BACKEND: Optional[BaseCache] = None
+#RESULTS_BACKEND: Optional[BaseCache] = None
+RESULTS_BACKEND: Optional[BaseCache] = RedisCache(
+    host='redis', port=6379, key_prefix='superset_results')
 
 # Use PyArrow and MessagePack for async query results serialization,
 # rather than JSON. This feature requires additional testing from the
