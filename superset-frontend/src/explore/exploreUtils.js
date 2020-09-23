@@ -223,7 +223,7 @@ export const getLegacyEndpointType = ({ resultType, resultFormat }) => {
   return resultFormat === 'csv' ? resultFormat : resultType;
 };
 
-export function postForm(url, payload, target = '_blank') {
+export function postForm(url, payload, target = '_self') {
   if (!url) {
     return;
   }
