@@ -437,13 +437,12 @@ class Header extends React.PureComponent {
             />
           )}
 
-          {!editMode && (
+          {!editMode && userCanEdit && (
             <span
               role="button"
               tabIndex={0}
               className="action-button"
               onClick={this.toggleEditMode}
-              disabled={!userCanEdit}
             >
               <Icon name="pencil" />
             </span>
