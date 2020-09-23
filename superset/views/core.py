@@ -2469,14 +2469,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         :returns: Response with list of sql query dicts
         """
-        query = db.session.query(Query)
         if security_manager.can_access_all_queries():
             search_user_id = request.args.get("user_id")
-        elif (
-            request.args.get("user_id") is not None
-            and request.args.get("user_id") != g.user.get_user_id()
-        ):
-            return Response(status=403, mimetype="application/json")
+        elif request.args.get("user_id") is not None:
+            try:
+                search_user_id = int(cast(int, request.args.get("user_id")))
+            except ValueError:
+                return Response(status=400, mimetype="application/json")
+            if search_user_id != g.user.get_user_id():
+                return Response(status=403, mimetype="application/json")
         else:
             search_user_id = g.user.get_user_id()
         database_id = request.args.get("database_id")
@@ -2486,6 +2487,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         from_time = request.args.get("from")
         to_time = request.args.get("to")
 
+        query = db.session.query(Query)
         if search_user_id:
             # Filter on user_id
             query = query.filter(Query.user_id == search_user_id)
@@ -2500,7 +2502,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if search_text:
             # Filter on search text
-            query = query.filter(Query.sql.like("%{}%".format(search_text)))
+            query = query.filter(Query.sql.like(f"%{search_text}%"))
 
         if from_time:
             query = query.filter(Query.start_time > int(from_time))
