@@ -31,6 +31,7 @@ import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
 import RecentActivity from 'src/profile/components/RecentActivity';
 import Favorites from 'src/profile/components/Favorites';
+import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
 
@@ -60,7 +61,7 @@ function useSyncQueryState(
 }
 
 function ding(e: any) {
-  console.log('event',e);
+  console.log('event', e);
 }
 
 export default function Welcome({ user }: WelcomeProps) {
@@ -70,24 +71,13 @@ export default function Welcome({ user }: WelcomeProps) {
     'all',
   );
   const [dashboardFilter, setDashboardFilter] = useState('Favorite');
+  const [chartFilter, setChartFilter] = useState('Favorite');
   const [searchQuery, setSearchQuery] = useSyncQueryState(
     'search',
     StringParam,
     '',
   );
-
-  const onFormControlChange = useCallback(
-    (e: React.FormEvent<FormControl & FormControlProps>) => {
-      const { value } = e.currentTarget;
-      setSearchQuery((value as string) ?? '');
-    },
-    [],
-  );
-
-  const onTabsSelect = useCallback((e: any) => {
-    setActiveTab(e as string);
-  }, []);
-
+  console.log('user', user);
   return (
     <Collapse defaultActiveKey={['1']}>
       <Panel header={t('Recents')} key="1">
@@ -117,7 +107,7 @@ export default function Welcome({ user }: WelcomeProps) {
       </Panel>
 
       <Panel header={t('Dashboards')} key="2">
-      <SubMenu
+        <SubMenu
           activeChild={dashboardFilter}
           name=""
           // eslint-disable-next-line react/no-children-prop
@@ -142,74 +132,53 @@ export default function Welcome({ user }: WelcomeProps) {
           // @ts-ignore React bootstrap types aren't quite right here
           onChange={e => setSearchQuery(e.currentTarget.value)}
         />
-        <DashboardTable search={searchQuery} filter={dashboardFilter} />
+        <DashboardTable
+          search={searchQuery}
+          dashboardFilter={dashboardFilter}
+          user={user}
+        />
       </Panel>
 
-      <Panel header={t('Saved Queries')} key="3" >
+      <Panel header={t('Saved Queries')} key="3">
+        <SubMenu
+          activeChild={dashboardFilter}
+          name=""
+          // eslint-disable-next-line react/no-children-prop
+          children={[
+            {
+              name: 'Favorite',
+              label: t('Favorite'),
+              onClick: () => setChartFilter('Favorite'),
+            },
+            {
+              name: 'Mine',
+              label: t('Mine'),
+              onClick: () => setChartFilter('Mine'),
+            },
+          ]}
+        />
         <SavedQueries />
       </Panel>
-      <Panel header={t('Charts')} key="4" >
-        Stuff here!
+      <Panel header={t('Charts')} key="4">
+        <SubMenu
+          activeChild={chartFilter}
+          name=""
+          // eslint-disable-next-line react/no-children-prop
+          children={[
+            {
+              name: 'Favorite',
+              label: t('Favorite'),
+              onClick: () => setChartFilter('Favorite'),
+            },
+            {
+              name: 'Mine',
+              label: t('Mine'),
+              onClick: () => setChartFilter('Mine'),
+            },
+          ]}
+        />
+        <ChartTable chartFilter={chartFilter} user={user} />
       </Panel>
     </Collapse>
-    /*
-    <div className="container welcome">
-      <Tabs
-        activeKey={activeTab}
-        onSelect={onTabsSelect}
-        id="uncontrolled-tab-example"
-      >
-        <Tab eventKey="all" title={t('Dashboards')}>
-          <Panel>
-            <Panel.Body>
-              <Row>
-                <Col md={8}>
-                  <h2>{t('Dashboards')}</h2>
-                </Col>
-                <Col md={4}>
-                  <FormControl
-                    type="text"
-                    bsSize="sm"
-                    style={{ marginTop: '25px' }}
-                    placeholder="Search"
-                    value={searchQuery}
-                    onChange={onFormControlChange}
-                  />
-                </Col>
-              </Row>
-              <hr />
-              <DashboardTable search={searchQuery} />
-            </Panel.Body>
-          </Panel>
-        </Tab>
-        <Tab eventKey="recent" title={t('Recently Viewed')}>
-          <Panel>
-            <Panel.Body>
-              <Row>
-                <Col md={8}>
-                  <h2>{t('Recently Viewed')}</h2>
-                </Col>
-              </Row>
-              <hr />
-              <RecentActivity user={user} />
-            </Panel.Body>
-          </Panel>
-        </Tab>
-        <Tab eventKey="favorites" title={t('Favorites')}>
-          <Panel>
-            <Panel.Body>
-              <Row>
-                <Col md={8}>
-                  <h2>{t('Favorites')}</h2>
-                </Col>
-              </Row>
-              <hr />
-              <Favorites user={user} />
-            </Panel.Body>
-          </Panel>
-        </Tab>
-      </Tabs>
-    </div>
-    */
   );
 }

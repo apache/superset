@@ -32,15 +32,11 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DashboardCard from '../dashboard/DashboardCard';
 const PAGE_SIZE = 3;
 
-// const canEdit = hasPerm('can_edit');
-// const canDelete = hasPerm('can_delete');
-// const canExport = hasPerm('can_mulexport');
-
-interface DashboardTableProps {
+interface ChartTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
   search: string;
-  dashboardFilter?: string;
+  chartFilter?: string;
   user?: User;
 }
 
@@ -50,6 +46,7 @@ interface Dashboard {
   changed_on_delta_humanized: string;
   changed_by: string;
   dashboard_title: string;
+  slice_name: string;
   id: number;
   published: boolean;
   url: string;
@@ -58,9 +55,9 @@ interface Dashboard {
   loading: boolean;
 }
 
-interface DashboardTableState {
-  dashboards: Dashboard[];
-  dashboard_count: number;
+interface ChartTableState {
+  charts: Dashboard[];
+  chart_count: number;
   loading: boolean;
 }
 
@@ -74,28 +71,23 @@ export interface FetchDataConfig {
   filters: FilterValue[];
 }
 
-function DashboardTable({
-  dashboardFilter,
+function ChartTable({
+  chartFilter,
   user,
   addDangerToast,
   addSuccessToast,
-  search,
-}: DashboardTableProps) {
+}: ChartTableProps) {
   const {
-    state: { loading, resourceCollection: dashboards, bulkSelectEnabled },
+    state: { loading, resourceCollection: charts, bulkSelectEnabled },
     hasPerm,
     refreshData,
     fetchData,
-  } = useListViewResource<Dashboard>(
-    'dashboard',
-    t('dashboard'),
-    addDangerToast,
-  );
-  console.log('dashboardFilter', dashboardFilter);
+  } = useListViewResource<Dashboard>('chart', t('chart'), addDangerToast);
+  console.log('dashboardFilter', chartFilter);
   const getFilters = () => {
     const filters = [];
 
-    if (dashboardFilter === 'Mine') {
+    if (chartFilter === 'Mine') {
       filters.push({
         id: 'owners',
         operator: 'rel_m_m',
@@ -108,13 +100,15 @@ function DashboardTable({
         value: true,
       });
     }
-    filters.concat([
+    // Do we need search?
+    /* filters.concat([
       {
         id: 'dashboard_title',
         operator: 'ct',
         value: search,
       },
     ]);
+    */
     return filters;
   };
 
@@ -130,11 +124,11 @@ function DashboardTable({
       ],
       filters: getFilters(),
     });
-  }, [dashboardFilter]);
-
+  }, [chartFilter]);
+  console.log("----charts: ", charts);
   return (
     <div>
-      {dashboards.map(e => (
+      {charts.map(e => (
         <DashboardCard
           {...{
             dashboard: e,
@@ -144,10 +138,11 @@ function DashboardTable({
             addDangerToast,
             addSuccessToast,
           }}
+          isChart
         />
       ))}
     </div>
   );
 }
 
-export default withToasts(DashboardTable);
+export default withToasts(ChartTable);

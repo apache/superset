@@ -29,32 +29,43 @@ class SavedQueries extends React.PureComponent {
       queries: [],
     };
   }
-  componentDidMount(){
+  componentDidMount() {
     this.fetchData();
   }
-  fetchData = () => {
+  fetchData = async () => {
     try {
-      const { json } = SupersetClient.get({
+      const ids = [];
+      const { json } = await SupersetClient.get({
         endpoint: `/api/v1/query/`,
       });
+      /*(json.ids.forEach(id => {
+        const { json } = SupersetClient.get({
+          endpoint: `/api/v1/query/${id}`,
+        });
+        console.log('data', json);
+      });*/
+      console.log('json.result', json);
       this.setState({ queries: json.result });
     } catch (e) {
       return console.log(e);
     }
   };
   render() {
+    console.log('q', this.state.queries)
     return (
       <div>
         {this.state.queries.map(q => (
           <ListViewCard
-            title={q.database_name}
+            title={q.database.database_name}
+            rows={q.rows}
             loading={false}
             description={t('Last run ', q.end_time)}
+            showImg={false}
           />
         ))}
       </div>
-    )
+    );
   }
 }
 
-export default SavedQueries; 
+export default SavedQueries;

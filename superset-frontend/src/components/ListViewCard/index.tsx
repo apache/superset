@@ -152,6 +152,8 @@ interface CardProps {
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
   actions: React.ReactNode;
+  showImg: boolean;
+  rows?: number | string;
 }
 
 function ListViewCard({
@@ -166,31 +168,40 @@ function ListViewCard({
   actions,
   loading,
   imgPosition = 'top',
+  showImg = true,
+  rows,
 }: CardProps) {
   return (
     <StyledCard
       data-test="styled-card"
       cover={
-        <Cover>
-          <a href={url}>
-            <div className="gradient-container">
-              <ImageLoader
-                src={imgURL}
-                fallback={imgFallbackURL}
-                isLoading={loading}
-                position={imgPosition}
-              />
-            </div>
-          </a>
-          <CoverFooter className="cover-footer">
-            {!loading && coverLeft && (
-              <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
-            )}
-            {!loading && coverRight && (
-              <CoverFooterRight>{coverRight}</CoverFooterRight>
-            )}
-          </CoverFooter>
-        </Cover>
+        showImg ? (
+          <Cover>
+            <a href={url}>
+              <div className="gradient-container">
+                <ImageLoader
+                  src={imgURL}
+                  fallback={imgFallbackURL}
+                  isLoading={loading}
+                  position={imgPosition}
+                />
+              </div>
+            </a>
+            <CoverFooter className="cover-footer">
+              {!loading && coverLeft && (
+                <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
+              )}
+              {!loading && coverRight && (
+                <CoverFooterRight>{coverRight}</CoverFooterRight>
+              )}
+            </CoverFooter>
+          </Cover>
+        ) : (
+          <>
+            <div>Rows</div>
+            <div>{rows}</div>
+          </>
+        )
       }
     >
       {loading && (
