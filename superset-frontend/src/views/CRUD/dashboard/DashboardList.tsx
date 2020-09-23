@@ -526,7 +526,9 @@ function DashboardList(props: DashboardListProps) {
                 pageSize={PAGE_SIZE}
                 renderCard={renderCard}
                 defaultViewMode={
-                  isFeatureEnabled(FeatureFlag.THUMBNAILS) ? 'card' : 'table'
+                  isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
+                    ? 'card'
+                    : 'table'
                 }
               />
             </>
