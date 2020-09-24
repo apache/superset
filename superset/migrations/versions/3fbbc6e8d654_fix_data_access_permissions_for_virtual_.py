@@ -63,6 +63,7 @@ def upgrade():
     )
     orphaned_faulty_view_menus = []
     for faulty_view_menu in faulty_view_menus:
+        # Get the dataset id from the view_menu name
         match_ds_id = re.match("\[None\]\.\[.*\]\(id:(.*)\)", faulty_view_menu.name)
         if match_ds_id:
             try:
@@ -81,10 +82,12 @@ def upgrade():
                     .filter(ViewMenu.name == new_view_menu)
                     .one_or_none()
                 )
-                # A permission with the right name already exists,
+                # A view_menu permission with the right name already exists,
                 # so delete the faulty one later
                 if existing_view_menu:
                     orphaned_faulty_view_menus.append(existing_view_menu)
+                # No view_menu permission with this name exists
+                # so safely change this one
                 else:
                     faulty_view_menu.name = new_view_menu
     # Commit all possible changes
@@ -92,6 +95,7 @@ def upgrade():
         session.commit()
     except SQLAlchemyError:
         session.rollback()
+
     # Delete all orphaned faulty permissions
     for orphaned_faulty_view_menu in orphaned_faulty_view_menus:
         pvm = (
@@ -105,7 +109,9 @@ def upgrade():
             for role in roles:
                 if pvm in role.permissions:
                     role.permissions.remove(pvm)
+            # Now it's safe to remove the pvm pair
             session.delete(pvm)
+        # finally remove the orphaned view_menu permission
         session.delete(orphaned_faulty_view_menu)
 
     try:
