@@ -113,6 +113,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "changed_by_url",
         "changed_on_utc",
         "changed_on_delta_humanized",
+        "created_by.first_name",
+        "created_by.id",
+        "created_by.last_name",
         "dashboard_title",
         "owners.id",
         "owners.username",
@@ -121,10 +124,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
-        "dashboard_title",
-        "changed_on_delta_humanized",
-        "published",
         "changed_by.first_name",
+        "changed_on_delta_humanized",
+        "created_by.first_name",
+        "dashboard_title",
+        "published",
     ]
 
     add_columns = [
@@ -138,7 +142,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     ]
     edit_columns = add_columns
 
-    search_columns = ("dashboard_title", "slug", "owners", "published")
+    search_columns = ("dashboard_title", "slug", "owners", "published", "created_by")
     search_filters = {"dashboard_title": [DashboardTitleOrSlugFilter]}
     base_order = ("changed_on", "desc")
 
@@ -152,9 +156,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners": ("first_name", "asc"),
     }
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    allowed_rel_fields = {"owners"}
+    allowed_rel_fields = {"owners", "created_by"}
 
     openapi_spec_tag = "Dashboards"
     apispec_parameter_schemas = {

@@ -51,6 +51,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_title: str,
         slug: Optional[str],
         owners: List[int],
+        created_by=None,
         slices: Optional[List[Slice]] = None,
         position_json: str = "",
         css: str = "",
@@ -71,6 +72,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             json_metadata=json_metadata,
             slices=slices,
             published=published,
+            created_by=created_by,
         )
         db.session.add(dashboard)
         db.session.commit()
@@ -81,7 +83,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test get dashboard
         """
         admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        dashboard = self.insert_dashboard("title", "slug1", [admin.id], admin)
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.get_assert_metric(uri, "get")
@@ -91,6 +93,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "changed_by_name": "",
             "changed_by_url": "",
             "charts": [],
+            "created_by": {"id": 1, "first_name": "admin", "last_name": "user",},
             "id": dashboard.id,
             "css": "",
             "dashboard_title": "title",
