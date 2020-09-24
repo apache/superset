@@ -55,6 +55,7 @@ interface Dashboard {
   url: string;
   thumbnail_url: string;
   owners: Owner[];
+  created_by: object;
 }
 
 function DashboardList(props: DashboardListProps) {
@@ -195,24 +196,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Title'),
         accessor: 'dashboard_title',
       },
-      {
-        Cell: ({
-          row: {
-            original: { owners },
-          },
-        }: any) => (
-          <ExpandableList
-            items={owners.map(
-              ({ first_name: firstName, last_name: lastName }: any) =>
-                `${firstName} ${lastName}`,
-            )}
-            display={2}
-          />
-        ),
-        Header: t('Owners'),
-        accessor: 'owners',
-        disableSortBy: true,
-      },
+
       {
         Cell: ({
           row: {
@@ -250,6 +234,35 @@ function DashboardList(props: DashboardListProps) {
       {
         accessor: 'slug',
         hidden: true,
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { created_by: createdBy },
+          },
+        }: any) =>
+          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+        Header: t('Created By'),
+        accessor: 'created_by',
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { owners },
+          },
+        }: any) => (
+          <ExpandableList
+            items={owners.map(
+              ({ first_name: firstName, last_name: lastName }: any) =>
+                `${firstName} ${lastName}`,
+            )}
+            display={2}
+          />
+        ),
+        Header: t('Owners'),
+        accessor: 'owners',
         disableSortBy: true,
       },
       {
@@ -329,7 +342,27 @@ function DashboardList(props: DashboardListProps) {
         createErrorHandler(errMsg =>
           props.addDangerToast(
             t(
-              'An error occurred while fetching chart owner values: %s',
+              'An error occurred while fetching dashboard owner values: %s',
+              errMsg,
+            ),
+          ),
+        ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Created By'),
+      id: 'created_by',
+      input: 'select',
+      operator: 'rel_o_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchRelated(
+        'dashboard',
+        'created_by',
+        createErrorHandler(errMsg =>
+          props.addDangerToast(
+            t(
+              'An error occurred while fetching dashboard created by values: %s',
               errMsg,
             ),
           ),
