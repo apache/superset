@@ -342,7 +342,7 @@ function DashboardList(props: DashboardListProps) {
         createErrorHandler(errMsg =>
           props.addDangerToast(
             t(
-              'An error occurred while fetching chart owner values: %s',
+              'An error occurred while fetching dashboard owner values: %s',
               errMsg,
             ),
           ),
@@ -362,7 +362,7 @@ function DashboardList(props: DashboardListProps) {
         createErrorHandler(errMsg =>
           props.addDangerToast(
             t(
-              'An error occurred while fetching chart dataset values: %s',
+              'An error occurred while fetching dashboard created by values: %s',
               errMsg,
             ),
           ),
