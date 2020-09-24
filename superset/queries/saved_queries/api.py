@@ -32,7 +32,7 @@ from superset.queries.saved_queries.commands.exceptions import (
     SavedQueryBulkDeleteFailedError,
     SavedQueryNotFoundError,
 )
-from superset.queries.saved_queries.filters import SavedQueryFilter
+from superset.queries.saved_queries.filters import SavedQueryFilter, SavedQueryAllTextFilter
 from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
@@ -92,6 +92,8 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "database.database_name",
     ]
+
+    search_filters = {"label": [SavedQueryAllTextFilter]}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
