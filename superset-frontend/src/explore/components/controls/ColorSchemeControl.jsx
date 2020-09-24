@@ -35,8 +35,8 @@ const propTypes = {
   choices: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.array),
     PropTypes.func,
-  ]),
-  schemes: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
+  ]).isRequired,
+  schemes: PropTypes.oneOfType([PropTypes.object, PropTypes.func]).isRequired,
   isLinear: PropTypes.bool,
 };
 
