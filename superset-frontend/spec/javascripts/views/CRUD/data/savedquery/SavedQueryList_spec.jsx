@@ -24,9 +24,9 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
-// import Filters from 'src/components/ListView/Filters';
+import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-// import { act } from 'react-dom/test-utils';
+import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
@@ -98,5 +98,25 @@ describe('SavedQueryList', () => {
 
   it('renders a ListView', () => {
     expect(wrapper.find(ListView)).toExist();
+  });
+
+  it('fetches saved queries', () => {
+    const callsQ = fetchMock.calls(/saved_query\/\?q/);
+    expect(callsQ).toHaveLength(1);
+    expect(callsQ[0][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/saved_query/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+    );
+  });
+
+  it('searches', async () => {
+    const filtersWrapper = wrapper.find(Filters);
+    act(() => {
+      filtersWrapper.find('[name="label"]').first().props().onSubmit('fooo');
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/saved_query/?q=(filters:!((col:label,opr:ct,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 });

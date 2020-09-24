@@ -79,7 +79,7 @@ function SavedQueryList({
     ...commonMenuData,
   };
 
-  const initialSort = [{ id: 'label', desc: true }];
+  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const columns = useMemo(
     () => [
       {
