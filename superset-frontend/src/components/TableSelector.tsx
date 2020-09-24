@@ -268,15 +268,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     return (
       <DatabaseSelector
         dbId={dbId}
-        schema={currentSchema}
-        onSchemaChange={onSchemaChange}
-        onDbChange={onDbChange}
-        onSchemasLoad={onSchemasLoad}
+        formMode={formMode}
         getDbList={getDbList}
         getTableList={fetchTables}
-        formMode={formMode}
-        onChange={onSelectionChange}
         handleError={handleError}
+        onChange={onSelectionChange}
+        onDbChange={onDbChange}
+        onSchemaChange={onSchemaChange}
+        onSchemasLoad={onSchemasLoad}
+        schema={currentSchema}
+        sqlLabMode={sqlLabMode}
       />
     );
   }

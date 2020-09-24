@@ -56,13 +56,15 @@ const DatabaseSelectorWrapper = styled.div`
 
 interface DatabaseSelectorProps {
   dbId: number;
-  schema?: string;
-  onSchemaChange?: (arg0?: any) => {};
-  onDbChange?: (db: any) => void;
-  onSchemasLoad?: (schemas: Array<object>) => void;
+  formMode?: boolean;
   getDbList?: (arg0: any) => {};
   getTableList?: (dbId: number, schema: string, force: boolean) => {};
-  formMode: boolean;
+  handleError: (msg: string) => void;
+  onDbChange?: (db: any) => void;
+  onSchemaChange?: (arg0?: any) => {};
+  onSchemasLoad?: (schemas: Array<object>) => void;
+  schema?: string;
+  sqlLabMode?: boolean;
   onChange?: ({
     dbId,
     schema,
@@ -71,20 +73,20 @@ interface DatabaseSelectorProps {
     schema?: string;
     tableName?: string;
   }) => void;
-  handleError: (msg: string) => void;
 }
 
 export default function DatabaseSelector({
   dbId,
-  schema,
-  onSchemaChange,
-  onDbChange,
-  onSchemasLoad,
+  formMode = false,
   getDbList,
   getTableList,
-  formMode,
-  onChange,
   handleError,
+  onChange,
+  onDbChange,
+  onSchemaChange,
+  onSchemasLoad,
+  schema,
+  sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [currentDbId, setCurrentDbId] = useState(dbId);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
@@ -200,7 +202,7 @@ export default function DatabaseSelector({
       order_direction: 'asc',
       page: 0,
       page_size: -1,
-      ...(formMode
+      ...(formMode || !sqlLabMode
         ? {}
         : {
             filters: [

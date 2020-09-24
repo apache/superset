@@ -126,7 +126,6 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
           handleError={addDangerToast}
           onChange={onChange}
           schema={currentSchema}
-          sqlLabMode={false}
           tableName={currentTableName}
         />
       </TableSelectorContainer>
