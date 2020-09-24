@@ -268,7 +268,7 @@ class TestSavedQueryApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_saved_queries")
     def test_get_list_custom_filter_description_saved_query(self):
         """
-        Saved Query API: Test get list and custom filter (desription) saved query
+        Saved Query API: Test get list and custom filter (description) saved query
         """
         self.login(username="admin")
         admin = self.get_user("admin")
