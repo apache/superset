@@ -33,6 +33,10 @@ const propTypes = {
   placement: PropTypes.string,
 };
 
+const defaultProps = {
+  hotkeys: [],
+};
+
 export default class Hotkeys extends React.PureComponent {
   componentDidMount() {
     this.props.hotkeys.forEach(keyConfig => {
@@ -82,3 +86,4 @@ export default class Hotkeys extends React.PureComponent {
 }
 
 Hotkeys.propTypes = propTypes;
+Hotkeys.defaultProps = defaultProps;

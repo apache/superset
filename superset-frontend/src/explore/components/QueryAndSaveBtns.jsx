@@ -37,6 +37,7 @@ const propTypes = {
 const defaultProps = {
   onStop: () => {},
   onSave: () => {},
+  disabled: false,
 };
 
 // Prolly need to move this to a global context
