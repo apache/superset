@@ -55,7 +55,6 @@ from superset.utils.dashboard_filter_scopes_converter import (
 from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from superset.connectors.base.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -255,8 +254,11 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return {}
 
     @classmethod
-    def import_obj(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-        cls, dashboard_to_import: "Dashboard", import_time: Optional[int] = None,
+    def import_obj(
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+        cls,
+        dashboard_to_import: "Dashboard",
+        import_time: Optional[int] = None,
     ) -> int:
         """Imports the dashboard from the object to the database.
 
