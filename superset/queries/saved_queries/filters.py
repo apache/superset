@@ -43,6 +43,7 @@ class SavedQueryAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-met
             )
         )
 
+
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
         """
