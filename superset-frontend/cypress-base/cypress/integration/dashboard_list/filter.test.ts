@@ -18,7 +18,7 @@
  */
 import { DASHBOARD_LIST } from './dashboard_list.helper';
 
-describe('dashboard filters', () => {
+describe('dashboard filters card view', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
@@ -36,14 +36,63 @@ describe('dashboard filters', () => {
     cy.get('.ant-card').should('not.exist');
   });
 
+  it('should filter by created by correctly', () => {
+    // filter by created by
+    cy.get('.Select__control').eq(1).click();
+    cy.get('.Select__menu').contains('alpha user').click();
+    cy.get('.ant-card').should('not.exist');
+    cy.get('.Select__control').eq(1).click();
+    cy.get('.Select__menu').contains('gamma user').click();
+    cy.get('.ant-card').should('not.exist');
+  });
+
   it('should filter by published correctly', () => {
     // filter by published
-    cy.get('.Select__control').eq(1).click();
+    cy.get('.Select__control').eq(2).click();
     cy.get('.Select__menu').contains('Published').click();
     cy.get('.ant-card').should('have.length', 2);
     cy.get('.ant-card').first().contains('USA Births Names').should('exist');
-    cy.get('.Select__control').eq(1).click();
-    cy.get('.Select__control').eq(1).type('unpub{enter}');
+    cy.get('.Select__control').eq(2).click();
+    cy.get('.Select__control').eq(2).type('unpub{enter}');
     cy.get('.ant-card').should('have.length', 2);
+  });
+});
+
+describe('dashboard filters list view', () => {
+  beforeEach(() => {
+    cy.login();
+    cy.server();
+    cy.visit(DASHBOARD_LIST);
+  });
+
+  it('should filter by owners correctly', () => {
+    // filter by owners
+    cy.get('.Select__control').first().click();
+    cy.get('.Select__menu').contains('alpha user').click();
+    cy.get('.table-row').should('not.exist');
+    cy.get('.Select__control').first().click();
+    cy.get('.Select__menu').contains('gamma user').click();
+    cy.get('.table-row').should('not.exist');
+  });
+
+  it('should filter by created by correctly', () => {
+    // filter by created by
+    cy.get('.Select__control').eq(1).click();
+    cy.get('.Select__menu').contains('alpha user').click();
+    cy.get('.table-row').should('not.exist');
+    cy.get('.Select__control').eq(1).click();
+    cy.get('.Select__menu').contains('gamma user').click();
+    cy.get('.table-row').should('not.exist');
+  });
+
+  it('should filter by published correctly', () => {
+    // filter by published
+    cy.get('.Select__control').eq(2).click();
+    cy.get('.Select__menu').contains('Published').click();
+    cy.get('.table-row').should('have.length', 2);
+    cy.get('.table-row').first().contains('USA Births Names').should('exist');
+    cy.get('.Select__control').eq(2).click();
+    cy.get('.Select__control').eq(2).type('unpub{enter}');
+    cy.get('.table-row').should('have.length', 2);
   });
 });
