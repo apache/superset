@@ -21,8 +21,6 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow, mount } from 'enzyme';
 
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Checkbox from 'src/components/Checkbox';
@@ -50,10 +48,7 @@ describe('CheckboxControl', () => {
   });
 
   it('Checks the box when the label is clicked', () => {
-    const fullComponent = mount(<CheckboxControl {...defaultProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
+    const fullComponent = mount(<CheckboxControl {...defaultProps} />);
 
     const spy = sinon.spy(fullComponent.instance(), 'onChange');
 
