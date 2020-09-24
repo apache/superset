@@ -32,7 +32,10 @@ from superset.queries.saved_queries.commands.exceptions import (
     SavedQueryBulkDeleteFailedError,
     SavedQueryNotFoundError,
 )
-from superset.queries.saved_queries.filters import SavedQueryFilter, SavedQueryAllTextFilter
+from superset.queries.saved_queries.filters import (
+    SavedQueryAllTextFilter,
+    SavedQueryFilter,
+)
 from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
