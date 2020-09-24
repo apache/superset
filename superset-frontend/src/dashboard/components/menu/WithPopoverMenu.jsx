@@ -35,6 +35,7 @@ const defaultProps = {
   children: null,
   disableClick: false,
   onChangeFocus: null,
+  onPressDelete() {},
   menuItems: [],
   isFocused: false,
   shouldFocus: (event, container) =>
