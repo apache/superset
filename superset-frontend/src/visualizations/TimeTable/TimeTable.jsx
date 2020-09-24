@@ -20,14 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
-import { Table, Thead, Th, Tr, Td } from 'reactable-arc';
 import { formatNumber, formatTime } from '@superset-ui/core';
 import {
   InfoTooltipWithTrigger,
   MetricOption,
 } from '@superset-ui/chart-controls';
 import moment from 'moment';
-
+import ListView from 'src/components/ListView';
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
 import './TimeTable.less';
@@ -136,32 +135,26 @@ class TimeTable extends React.PureComponent {
     }
 
     return (
-      <Td
-        column={column.key}
-        key={column.key}
-        value={sparkData[sparkData.length - 1]}
-      >
-        <SparklineCell
-          width={parseInt(column.width, 10) || 300}
-          height={parseInt(column.height, 10) || 50}
-          data={sparkData}
-          ariaLabel={`spark-${valueField}`}
-          numberFormat={column.d3format}
-          yAxisBounds={column.yAxisBounds}
-          showYAxis={column.showYAxis}
-          renderTooltip={({ index }) => (
+      <SparklineCell
+        width={parseInt(column.width, 10) || 300}
+        height={parseInt(column.height, 10) || 50}
+        data={sparkData}
+        ariaLabel={`spark-${valueField}`}
+        numberFormat={column.d3format}
+        yAxisBounds={column.yAxisBounds}
+        showYAxis={column.showYAxis}
+        renderTooltip={({ index }) => (
+          <div>
+            <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
             <div>
-              <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
-              <div>
-                {formatTime(
-                  column.dateFormat,
-                  moment.utc(entries[index].time).toDate(),
-                )}
-              </div>
+              {formatTime(
+                column.dateFormat,
+                moment.utc(entries[index].time).toDate(),
+              )}
             </div>
-          )}
-        />
-      </Td>
+          </div>
+        )}
+      />
     );
   }
 
@@ -204,10 +197,9 @@ class TimeTable extends React.PureComponent {
     const color = colorFromBounds(v, column.bounds);
 
     return (
-      <Td
-        column={column.key}
+      <td
         key={column.key}
-        value={v}
+        data-value={v}
         style={
           color && {
             boxShadow: `inset 0px -2.5px 0px 0px ${color}`,
@@ -222,81 +214,67 @@ class TimeTable extends React.PureComponent {
             <FormattedNumber num={v} format={column.d3format} />
           </div>
         )}
-      </Td>
-    );
-  }
-
-  renderRow(row, entries, reversedEntries) {
-    const { columnConfigs } = this.props;
-    const valueField = row.label || row.metric_name;
-    const leftCell = this.renderLeftCell(row);
-
-    return (
-      <Tr key={leftCell}>
-        <Td column="metric" data={leftCell}>
-          {leftCell}
-        </Td>
-        {columnConfigs.map(c =>
-          c.colType === 'spark'
-            ? this.renderSparklineCell(valueField, c, entries)
-            : this.renderValueCell(valueField, c, reversedEntries),
-        )}
-      </Tr>
+      </td>
     );
   }
 
   render() {
-    const {
-      className,
-      height,
-      data,
-      columnConfigs,
-      rowType,
-      rows,
-    } = this.props;
+    const { className, height, data, columnConfigs, rows } = this.props;
 
     const entries = Object.keys(data)
       .sort()
       .map(time => ({ ...data[time], time }));
     const reversedEntries = entries.concat().reverse();
 
-    const defaultSort =
-      rowType === 'column' && columnConfigs.length
-        ? {
-            column: columnConfigs[0].key,
-            direction: 'desc',
-          }
-        : false;
-
     return (
       <div className={`time-table ${className}`} style={{ height }}>
-        <Table
-          className="table table-no-hover"
-          defaultSort={defaultSort}
-          sortBy={defaultSort}
-          sortable={columnConfigs.map(c => c.key)}
-        >
-          <Thead>
-            <Th column="metric">Metric</Th>
-            {columnConfigs.map((c, i) => (
-              <Th
-                key={c.key}
-                column={c.key}
-                width={c.colType === 'spark' ? '1%' : null}
-              >
-                {c.label}{' '}
-                {c.tooltip && (
-                  <InfoTooltipWithTrigger
-                    tooltip={c.tooltip}
-                    label={`tt-col-${i}`}
-                    placement="top"
-                  />
-                )}
-              </Th>
-            ))}
-          </Thead>
-          {rows.map(row => this.renderRow(row, entries, reversedEntries))}
-        </Table>
+        <ListView
+          columns={[
+            { accessor: 'metric', Header: 'Metric' },
+            ...columnConfigs.map((columnConfig, i) => ({
+              accessor: columnConfig.key,
+              width: columnConfig.colType === 'spark' ? '1%' : null,
+              Header: () => (
+                <>
+                  {columnConfig.label}{' '}
+                  {columnConfig.tooltip && (
+                    <InfoTooltipWithTrigger
+                      tooltip={columnConfig.tooltip}
+                      label={`tt-col-${i}`}
+                      placement="top"
+                    />
+                  )}
+                </>
+              ),
+              Cell: ({ row }) => {
+                const cellValue = row.original;
+                const valueField = cellValue.label || cellValue.metric_name;
+                if (columnConfig.colType === 'spark') {
+                  return this.renderSparklineCell(
+                    valueField,
+                    columnConfig,
+                    entries,
+                  );
+                }
+                return this.renderValueCell(
+                  valueField,
+                  columnConfig,
+                  reversedEntries,
+                );
+              },
+            })),
+          ]}
+          data={rows.map(row => ({
+            metric: this.renderLeftCell(row),
+            ...row,
+          }))}
+          count={0}
+          initialSort={[{ id: 'metric', desc: true }]}
+          fetchData={() => {}}
+          loading={false}
+          sticky={false}
+          fullHeight
+        />
       </div>
     );
   }

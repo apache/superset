@@ -30,14 +30,19 @@ interface TableCollectionProps {
   rows: TableInstance['rows'];
   columns: TableInstance['column'][];
   loading: boolean;
+  sticky: boolean;
 }
 
-const Table = styled.table`
+interface TableProps {
+  sticky: boolean;
+}
+
+const Table = styled.table<TableProps>`
   border-collapse: separate;
 
   th {
     background: ${({ theme }) => theme.colors.grayscale.light5};
-    position: sticky;
+    position: ${({ sticky }) => sticky && 'sticky'};
     top: 0;
 
     &:first-of-type {
@@ -199,9 +204,10 @@ export default function TableCollection({
   columns,
   rows,
   loading,
+  sticky,
 }: TableCollectionProps) {
   return (
-    <Table {...getTableProps()} className="table table-hover">
+    <Table {...getTableProps()} sticky={sticky} className="table table-hover">
       <thead>
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
