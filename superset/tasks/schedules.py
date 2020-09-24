@@ -34,7 +34,7 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
-from urllib.error import URLError  # pylint: disable=ungrouped-imports
+from urllib.error import URLError
 
 import croniter
 import simplejson as json
@@ -72,7 +72,6 @@ from superset.utils.urls import get_url_path
 # pylint: disable=too-few-public-methods
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from flask_appbuilder.security.sqla.models import User
     from werkzeug.datastructures import TypeConversionDict
 
@@ -485,8 +484,8 @@ def deliver_slice(  # pylint: disable=too-many-arguments
     bind=True,
     soft_time_limit=config["EMAIL_ASYNC_TIME_LIMIT_SEC"],
 )
-def schedule_email_report(  # pylint: disable=unused-argument
-    task: Task,
+def schedule_email_report(
+    _task: Task,
     report_type: ScheduleType,
     schedule_id: int,
     recipients: Optional[str] = None,
@@ -541,8 +540,8 @@ def schedule_email_report(  # pylint: disable=unused-argument
     retry_kwargs={"max_retries": 5},
     retry_backoff=True,
 )
-def schedule_alert_query(  # pylint: disable=unused-argument
-    task: Task,
+def schedule_alert_query(
+    _task: Task,
     report_type: ScheduleType,
     schedule_id: int,
     recipients: Optional[str] = None,
