@@ -30,14 +30,8 @@ interface CheckboxProps {
 }
 
 const Styles = styled.span`
-  cursor: pointer;
-  &.primary {
-    color: ${({ theme }) => theme.colors.primary.base};
-  }
-  &.grayscale {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
-  }
-  svg {
+  &,
+  & svg {
     vertical-align: top;
   }
 `;
@@ -45,7 +39,6 @@ const Styles = styled.span`
 export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
   return (
     <Styles
-      className={checked ? 'primary' : 'grayscale'}
       style={style}
       onClick={() => {
         onChange(!checked);
