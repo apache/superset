@@ -42,17 +42,28 @@ def upgrade():
     Only fixes permissions that still have an associated dataset (fetch by id)
     and replaces them with the current (correct) permission name
     """
-    from flask_appbuilder.security.sqla.models import ViewMenu
+    from flask_appbuilder.security.sqla.models import (
+        ViewMenu,
+        PermissionView,
+        Role,
+        Permission,
+    )
     from superset.connectors.sqla.models import SqlaTable
 
     bind = op.get_bind()
     session = orm.Session(bind=bind)
 
-    faulty_perms = (
-        session.query(ViewMenu).filter(ViewMenu.name.ilike("[None].%(id:%)")).all()
+    faulty_view_menus = (
+        session.query(ViewMenu)
+        .join(PermissionView)
+        .join(Permission)
+        .filter(ViewMenu.name.ilike("[None].[%](id:%)"))
+        .filter(Permission.name == "datasource_access")
+        .all()
     )
-    for faulty_perm in faulty_perms:
-        match_ds_id = re.match("\[None\]\.\[.*\]\(id:(.*)\)", faulty_perm.name)
+    orphaned_faulty_view_menus = []
+    for faulty_view_menu in faulty_view_menus:
+        match_ds_id = re.match("\[None\]\.\[.*\]\(id:(.*)\)", faulty_view_menu.name)
         if match_ds_id:
             try:
                 dataset_id = int(match_ds_id.group(1))
@@ -60,7 +71,43 @@ def upgrade():
                 continue
             dataset = session.query(SqlaTable).get(dataset_id)
             if dataset:
-                faulty_perm.name = dataset.get_perm()
+                try:
+                    new_view_menu = dataset.get_perm()
+                except Exception:
+                    # This can fail on differing SECRET_KEYS
+                    return
+                existing_view_menu = (
+                    session.query(ViewMenu)
+                    .filter(ViewMenu.name == new_view_menu)
+                    .one_or_none()
+                )
+                # A permission with the right name already exists,
+                # so delete the faulty one later
+                if existing_view_menu:
+                    orphaned_faulty_view_menus.append(existing_view_menu)
+                else:
+                    faulty_view_menu.name = new_view_menu
+    # Commit all possible changes
+    try:
+        session.commit()
+    except SQLAlchemyError:
+        session.rollback()
+    # Delete all orphaned faulty permissions
+    for orphaned_faulty_view_menu in orphaned_faulty_view_menus:
+        pvm = (
+            session.query(PermissionView)
+            .filter(PermissionView.view_menu == orphaned_faulty_view_menu)
+            .one_or_none()
+        )
+        if pvm:
+            # Removes orphaned pvm from all roles
+            roles = session.query(Role).filter(Role.permissions.contains(pvm)).all()
+            for role in roles:
+                if pvm in role.permissions:
+                    role.permissions.remove(pvm)
+            session.delete(pvm)
+        session.delete(orphaned_faulty_view_menu)
+
     try:
         session.commit()
     except SQLAlchemyError:
