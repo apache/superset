@@ -136,7 +136,7 @@ class ImportMixin:
         parent: Optional[Any] = None,
         recursive: bool = True,
         sync: Optional[List[str]] = None,
-    ) -> Any:  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+    ) -> Any:
         """Import obj from a dictionary"""
         if sync is None:
             sync = []
