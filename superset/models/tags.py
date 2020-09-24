@@ -29,10 +29,10 @@ from sqlalchemy.orm.mapper import Mapper
 from superset.models.helpers import AuditMixinNullable
 
 if TYPE_CHECKING:
-    from superset.models.core import FavStar  # pylint: disable=unused-import
-    from superset.models.dashboard import Dashboard  # pylint: disable=unused-import
-    from superset.models.slice import Slice  # pylint: disable=unused-import
-    from superset.models.sql_lab import Query  # pylint: disable=unused-import
+    from superset.models.core import FavStar
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.models.sql_lab import Query
 
 Session = sessionmaker(autoflush=False)
 
@@ -136,11 +136,10 @@ class ObjectUpdater:
     @classmethod
     def after_insert(
         cls,
-        mapper: Mapper,
+        _mapper: Mapper,
         connection: Connection,
         target: Union["Dashboard", "FavStar", "Slice"],
     ) -> None:
-        # pylint: disable=unused-argument
         session = Session(bind=connection)
 
         # add `owner:` tags
@@ -158,11 +157,10 @@ class ObjectUpdater:
     @classmethod
     def after_update(
         cls,
-        mapper: Mapper,
+        _mapper: Mapper,
         connection: Connection,
         target: Union["Dashboard", "FavStar", "Slice"],
     ) -> None:
-        # pylint: disable=unused-argument
         session = Session(bind=connection)
 
         # delete current `owner:` tags
@@ -188,11 +186,10 @@ class ObjectUpdater:
     @classmethod
     def after_delete(
         cls,
-        mapper: Mapper,
+        _mapper: Mapper,
         connection: Connection,
         target: Union["Dashboard", "FavStar", "Slice"],
     ) -> None:
-        # pylint: disable=unused-argument
         session = Session(bind=connection)
 
         # delete row from `tagged_objects`
@@ -234,9 +231,8 @@ class QueryUpdater(ObjectUpdater):
 class FavStarUpdater:
     @classmethod
     def after_insert(
-        cls, mapper: Mapper, connection: Connection, target: "FavStar"
+        cls, _mapper: Mapper, connection: Connection, target: "FavStar"
     ) -> None:
-        # pylint: disable=unused-argument
         session = Session(bind=connection)
         name = "favorited_by:{0}".format(target.user_id)
         tag = get_tag(name, session, TagTypes.favorited_by)
@@ -251,9 +247,8 @@ class FavStarUpdater:
 
     @classmethod
     def after_delete(
-        cls, mapper: Mapper, connection: Connection, target: "FavStar"
+        cls, _mapper: Mapper, connection: Connection, target: "FavStar"
     ) -> None:
-        # pylint: disable=unused-argument
         session = Session(bind=connection)
         name = "favorited_by:{0}".format(target.user_id)
         query = (
