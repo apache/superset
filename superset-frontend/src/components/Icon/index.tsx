@@ -348,7 +348,7 @@ export const iconsRegistry: Record<
   'placeholder': PlaceholderIcon ,
   'plus-large': PlusLargeIcon ,
   'plus-small': PlusSmallIcon ,
-  'plus-solid': PlusSmallIcon ,
+  'plus-solid': PlusSolidIcon ,
   'plus': PlusIcon ,
   'refresh': RefreshIcon ,
   search: SearchIcon,
