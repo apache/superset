@@ -37,6 +37,10 @@ const propTypes = {
   templateParams: PropTypes.string,
 };
 
+const defaultProps = {
+  vizRequest: {},
+};
+
 class ExploreCtasResultsButton extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -109,6 +113,7 @@ class ExploreCtasResultsButton extends React.PureComponent {
   }
 }
 ExploreCtasResultsButton.propTypes = propTypes;
+ExploreCtasResultsButton.defaultProps = defaultProps;
 
 function mapStateToProps({ sqlLab, common }) {
   return {

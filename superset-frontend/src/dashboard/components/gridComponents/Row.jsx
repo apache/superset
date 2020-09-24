@@ -56,6 +56,10 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
 };
 
+const defaultProps = {
+  rowHeight: null,
+};
+
 class Row extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -188,5 +192,6 @@ class Row extends React.PureComponent {
 }
 
 Row.propTypes = propTypes;
+Row.defaultProps = defaultProps;
 
 export default Row;

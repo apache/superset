@@ -24,13 +24,13 @@ import { getCategoricalSchemeRegistry, t } from '@superset-ui/core';
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
 
 const propTypes = {
-  onChange: PropTypes.func,
+  onChange: PropTypes.func.isRequired,
   colorScheme: PropTypes.string,
 };
 
 const defaultProps = {
-  onChange: () => {},
   colorScheme: undefined,
+  onChange: () => {},
 };
 
 class ColorSchemeControlWrapper extends React.PureComponent {
