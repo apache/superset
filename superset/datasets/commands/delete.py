@@ -53,11 +53,12 @@ class DeleteDatasetCommand(BaseCommand):
                 if self._model
                 else None
             )
+
             if view_menu:
                 permission_views = (
                     db.session.query(security_manager.permissionview_model)
-                        .filter_by(view_menu=view_menu)
-                        .all()
+                    .filter_by(view_menu=view_menu)
+                    .all()
                 )
 
                 for permission_view in permission_views:
