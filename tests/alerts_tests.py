@@ -154,6 +154,27 @@ def test_alert_observer(setup_database):
     assert alert7.sql_observer[0].observations[-1].value is None
     assert alert7.sql_observer[0].observations[-1].error_msg is not None
 
+    # Test multiline SQLObserver
+    alert8 = create_alert(
+        dbsession,
+        """
+        -- comment
+        SELECT
+            1 -- comment
+        FROM test_table
+            WHERE first = 1
+        """,
+    )
+    observe(alert8.id, dbsession)
+    assert alert8.sql_observer[0].observations[-1].value == 1.0
+    assert alert8.sql_observer[0].observations[-1].error_msg is None
+
+    # Test jinja
+    alert9 = create_alert(dbsession, "SELECT {{ 2 }}")
+    observe(alert9.id, dbsession)
+    assert alert9.sql_observer[0].observations[-1].value == 2.0
+    assert alert9.sql_observer[0].observations[-1].error_msg is None
+
 
 @patch("superset.tasks.schedules.deliver_alert")
 def test_evaluate_alert(mock_deliver_alert, setup_database):
