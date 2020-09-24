@@ -16,3 +16,5 @@
 # specific language governing permissions and limitations
 # under the License.
 -e file:.
+pyrsistent>=0.16.1,<0.17
+importlib-metadata>=1.7.0, <2

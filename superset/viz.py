@@ -2963,23 +2963,25 @@ class PartitionViz(NVD3TimeSeriesViz):
                 for m in levels[0].index
             ]
         if level == 1:
+            metric_level = levels[1][metric]
             return [
                 {
                     "name": i,
-                    "val": levels[1][metric][i],
+                    "val": metric_level[i],
                     "children": self.nest_values(levels, 2, metric, [i]),
                 }
-                for i in levels[1][metric].index
+                for i in metric_level.index
             ]
         if level >= len(levels):
             return []
+        dim_level = levels[level][metric][[dims[0]]]
         return [
             {
                 "name": i,
-                "val": levels[level][metric][dims][i],
+                "val": dim_level[i],
                 "children": self.nest_values(levels, level + 1, metric, dims + [i]),
             }
-            for i in levels[level][metric][dims].index
+            for i in dim_level.index
         ]
 
     def nest_procs(
