@@ -45,7 +45,7 @@ const IconBlack = styled(Icon)`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
 
-function BooleanDisplay(value: any) {
+function BooleanDisplay({ value }: { value: Boolean }) {
   return value ? <IconBlack name="check" /> : <IconBlack name="cancel-x" />;
 }
 
