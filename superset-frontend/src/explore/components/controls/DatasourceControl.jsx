@@ -169,7 +169,7 @@ class DatasourceControl extends React.PureComponent {
             trigger={['hover']}
           >
             <DropdownButton
-              title={<Icon name="more" className="m-l-5" />}
+              title={<Icon name="more-horiz" className="m-l-5" />}
               className=""
               bsSize="sm"
               id="datasource_menu"
