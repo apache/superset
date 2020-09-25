@@ -274,7 +274,7 @@ function SavedQueryList({
         Header: t('Search'),
         id: 'label',
         input: 'search',
-        operator: 'ct',
+        operator: 'all_text',
       },
     ],
     [],
