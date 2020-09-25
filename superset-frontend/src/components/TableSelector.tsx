@@ -101,6 +101,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   formMode = false,
   getDbList,
   handleError,
+  isDatabaseSelectEnabled = true,
   onChange,
   onDbChange,
   onSchemaChange,
@@ -278,6 +279,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         onSchemasLoad={onSchemasLoad}
         schema={currentSchema}
         sqlLabMode={sqlLabMode}
+        isDatabaseSelectEnabled={isDatabaseSelectEnabled}
       />
     );
   }

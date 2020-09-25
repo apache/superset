@@ -60,6 +60,7 @@ interface DatabaseSelectorProps {
   getDbList?: (arg0: any) => {};
   getTableList?: (dbId: number, schema: string, force: boolean) => {};
   handleError: (msg: string) => void;
+  isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: any) => void;
   onSchemaChange?: (arg0?: any) => {};
   onSchemasLoad?: (schemas: Array<object>) => void;
@@ -81,6 +82,7 @@ export default function DatabaseSelector({
   getDbList,
   getTableList,
   handleError,
+  isDatabaseSelectEnabled = true,
   onChange,
   onDbChange,
   onSchemaChange,
@@ -236,6 +238,7 @@ export default function DatabaseSelector({
         mutator={dbMutator}
         placeholder={t('Select a database')}
         autoSelect
+        isDisabled={!isDatabaseSelectEnabled}
       />,
       null,
     );

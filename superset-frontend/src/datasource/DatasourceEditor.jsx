@@ -699,6 +699,7 @@ class DatasourceEditor extends React.PureComponent {
                       onTableChange={table => {
                         this.onDatasourcePropChange('table_name', table);
                       }}
+                      isDatabaseSelectEnabled={false}
                     />
                   }
                   description={t(
