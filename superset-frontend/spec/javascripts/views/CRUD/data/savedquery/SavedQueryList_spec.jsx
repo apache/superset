@@ -116,7 +116,7 @@ describe('SavedQueryList', () => {
     await waitForComponentToPaint(wrapper);
 
     expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/saved_query/?q=(filters:!((col:label,opr:ct,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/saved_query/?q=(filters:!((col:label,opr:all_text,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 });
