@@ -321,18 +321,7 @@ def get_dashboard(dashboard_id_or_slug: str,) -> Dashboard:
     return dashboard
 
 
-def get_datasources_from_dashboard(
-    dashboard: Dashboard,
-) -> DefaultDict[Any, List[Any]]:
-    datasources = defaultdict(list)
-    for slc in dashboard.slices:
-        datasource = slc.datasource
-        if datasource:
-            datasources[datasource].append(slc)
-    return datasources
-
-
-def get_dashboard_latest_changed_on(_self: Any, dashboard_id_or_slug: str) -> datetime:
+def get_dashboard_changedon_dt(_self: Any, dashboard_id_or_slug: str) -> datetime:
     """
     Get latest changed datetime for a dashboard. The change could be dashboard
     metadata change, or any of its slice data change.
@@ -343,7 +332,8 @@ def get_dashboard_latest_changed_on(_self: Any, dashboard_id_or_slug: str) -> da
     dash = get_dashboard(dashboard_id_or_slug)
     dash_changed_on = dash.changed_on
     slices_changed_on = max([s.changed_on for s in dash.slices])
-    return max(dash_changed_on, slices_changed_on)
+    # drop microseconds in datetime to match with last_modified header
+    return max(dash_changed_on, slices_changed_on).replace(microsecond=0)
 
 
 def get_dashboard_extra_filters(
@@ -547,7 +537,7 @@ def check_dashboard_perms(_self: Any, dashboard_id_or_slug: str) -> None:
     """
 
     dash = get_dashboard(dashboard_id_or_slug)
-    datasources = get_datasources_from_dashboard(dash)
+    datasources = list(dash.datasources)
     if app.config["ENABLE_ACCESS_REQUEST"]:
         for datasource in datasources:
             if datasource and not security_manager.can_access_datasource(datasource):

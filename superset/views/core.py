@@ -17,6 +17,7 @@
 # pylint: disable=comparison-with-callable
 import logging
 import re
+from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
 from typing import Any, cast, Dict, List, Optional, Union
@@ -128,10 +129,9 @@ from superset.views.utils import (
     check_slice_perms,
     get_cta_schema_name,
     get_dashboard,
+    get_dashboard_changedon_dt,
     get_dashboard_extra_filters,
-    get_dashboard_latest_changed_on,
     get_datasource_info,
-    get_datasources_from_dashboard,
     get_form_data,
     get_viz,
     is_owner,
@@ -1601,7 +1601,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @etag_cache(
         0,
         check_perms=check_dashboard_perms,
-        check_latest_changed_on=get_dashboard_latest_changed_on,
+        get_last_modified=get_dashboard_changedon_dt,
+        skip=lambda _self, dashboard_id_or_slug: not is_feature_enabled(
+            "ENABLE_DASHBOARD_ETAG_HEADER"
+        ),
     )
     @expose("/dashboard/<dashboard_id_or_slug>/")
     def dashboard(  # pylint: disable=too-many-locals
@@ -1609,14 +1612,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         """Server side rendering for a dashboard"""
         dash = get_dashboard(dashboard_id_or_slug)
-        datasources = get_datasources_from_dashboard(dash)
 
+        slices_by_datasources = defaultdict(list)
+        for slc in dash.slices:
+            datasource = slc.datasource
+            if datasource:
+                slices_by_datasources[datasource].append(slc)
         # Filter out unneeded fields from the datasource payload
         datasources_payload = {
             datasource.uid: datasource.data_for_slices(slices)
             if is_feature_enabled("REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD")
             else datasource.data
-            for datasource, slices in datasources.items()
+            for datasource, slices in slices_by_datasources.items()
         }
 
         dash_edit_perm = check_ownership(
