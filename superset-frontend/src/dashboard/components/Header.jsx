@@ -103,7 +103,7 @@ const defaultProps = {
 const StyledDashboardHeader = styled.div`
   button,
   .fave-unfave-icon {
-    margin-left: 8px;
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
 
@@ -444,7 +444,7 @@ class Header extends React.PureComponent {
               className="action-button"
               onClick={this.toggleEditMode}
             >
-              <Icon name="pencil" />
+              <Icon name="edit-alt" />
             </span>
           )}
 

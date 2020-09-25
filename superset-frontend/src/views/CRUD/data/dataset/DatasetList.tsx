@@ -271,7 +271,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   className="action-button"
                   href={original.explore_url}
                 >
-                  <Icon name="compass" />
+                  <Icon name="nav-explore" />
                 </a>
               </TooltipWrapper>
               {canDelete && (
@@ -303,7 +303,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icon name="pencil" />
+                    <Icon name="edit-alt" />
                   </span>
                 </TooltipWrapper>
               )}

@@ -67,7 +67,7 @@ export const SupersetIcon = () => {
       {Object.keys(iconsRegistry)
         .sort()
         .map(iconName => (
-          <IconBlock>
+          <IconBlock key={iconName}>
             <Icon
               name={iconName}
               key={iconName}

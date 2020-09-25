@@ -30,7 +30,7 @@ describe('Dashboard edit markdown', () => {
     cy.get('script').then(nodes => {
       numScripts = nodes.length;
     });
-    cy.get('.dashboard-header [data-test=pencil]').click();
+    cy.get('.dashboard-header [data-test=edit-alt]').click();
     cy.get('script').then(nodes => {
       // load 5 new script chunks for css editor
       expect(nodes.length).to.greaterThan(numScripts);

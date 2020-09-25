@@ -315,7 +315,7 @@ function DashboardList(props: DashboardListProps) {
                   className="action-button"
                   onClick={handleEdit}
                 >
-                  <Icon name="pencil" />
+                  <Icon name="edit-alt" />
                 </span>
               )}
             </span>
@@ -453,7 +453,7 @@ function DashboardList(props: DashboardListProps) {
             tabIndex={0}
             onClick={() => openDashboardEditModal(dashboard)}
           >
-            <ListViewCard.MenuIcon name="pencil" /> Edit
+            <ListViewCard.MenuIcon name="edit-alt" /> Edit
           </Menu.Item>
         )}
       </Menu>
@@ -487,7 +487,7 @@ function DashboardList(props: DashboardListProps) {
           <ListViewCard.Actions>
             {renderFaveStar(dashboard.id)}
             <Dropdown overlay={menu}>
-              <Icon name="more" />
+              <Icon name="more-horiz" />
             </Dropdown>
           </ListViewCard.Actions>
         }
