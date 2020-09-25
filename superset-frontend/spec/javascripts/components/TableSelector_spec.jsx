@@ -104,7 +104,6 @@ describe('TableSelector', () => {
         });
       });
       await waitForComponentToPaint(wrapper);
-      wrapper.update();
       expect(fetchMock.calls(FETCH_SCHEMAS_ENDPOINT)).toHaveLength(1);
     });
 
@@ -122,29 +121,26 @@ describe('TableSelector', () => {
       wrapper.update();
       expect(fetchMock.calls(FETCH_SCHEMAS_ENDPOINT)).toHaveLength(1);
 
-      act(() => {
-        expect(
-          wrapper.find('[name="select-schema"]').first().props().options,
-        ).toEqual([
-          { value: 'main', label: 'main', title: 'main' },
-          { value: 'erf', label: 'erf', title: 'erf' },
-          { value: 'superset', label: 'superset', title: 'superset' },
-        ]);
-      });
+      expect(
+        wrapper.find('[name="select-schema"]').first().props().options,
+      ).toEqual([
+        { value: 'main', label: 'main', title: 'main' },
+        { value: 'erf', label: 'erf', title: 'erf' },
+        { value: 'superset', label: 'superset', title: 'superset' },
+      ]);
     });
 
-    it('should clear table options', () => {
+    it('should clear table options', async () => {
       act(() => {
-        wrapper
-          .find('[name="async-select-table"]')
-          .first()
-          .props()
-          .loadOptions()
-          .then(data => {
-            expect(data).toEqual({ options: [] });
-          });
+        wrapper.find('[data-test="select-database"]').first().props().onChange({
+          id: 1,
+          database_name: 'main',
+        });
       });
-      return Promise.resolve();
+      await waitForComponentToPaint(wrapper);
+      const props = wrapper.find('[name="async-select-table"]').first().props();
+      expect(props.isDisabled).toBe(true);
+      expect(props.value).toEqual([]);
     });
   });
 
@@ -152,12 +148,6 @@ describe('TableSelector', () => {
     beforeEach(async () => {
       fetchMock.get(FETCH_SCHEMAS_ENDPOINT, schemaOptions, {
         overwriteRoutes: true,
-      });
-      act(() => {
-        wrapper.find('[data-test="select-database"]').first().props().onChange({
-          id: 1,
-          database_name: 'main',
-        });
       });
     });
 
@@ -167,6 +157,13 @@ describe('TableSelector', () => {
     it('should fetch table', async () => {
       fetchMock.get(GET_TABLE_NAMES_ENDPOINT, { overwriteRoutes: true });
       act(() => {
+        wrapper.find('[data-test="select-database"]').first().props().onChange({
+          id: 1,
+          database_name: 'main',
+        });
+      });
+      await waitForComponentToPaint(wrapper);
+      act(() => {
         wrapper
           .find('[name="select-schema"]')
           .first()
@@ -174,7 +171,6 @@ describe('TableSelector', () => {
           .onChange(selectedSchema);
       });
       await waitForComponentToPaint(wrapper);
-      wrapper.update();
       expect(fetchMock.calls(GET_TABLE_NAMES_ENDPOINT)).toHaveLength(1);
     });
 
@@ -183,6 +179,13 @@ describe('TableSelector', () => {
         overwriteRoutes: true,
       });
       act(() => {
+        wrapper.find('[data-test="select-database"]').first().props().onChange({
+          id: 1,
+          database_name: 'main',
+        });
+      });
+      await waitForComponentToPaint(wrapper);
+      act(() => {
         wrapper
           .find('[name="select-schema"]')
           .first()
@@ -190,19 +193,12 @@ describe('TableSelector', () => {
           .onChange(selectedSchema);
       });
       await waitForComponentToPaint(wrapper);
-      wrapper.update();
       expect(
         wrapper.find('[name="select-schema"]').first().props().value[0],
       ).toEqual(selectedSchema);
       expect(fetchMock.calls(GET_TABLE_NAMES_ENDPOINT)).toHaveLength(1);
-
-      act(() => {
-        const { options } = wrapper
-          .find('[name="select-table"]')
-          .first()
-          .props();
-        expect({ options }).toEqual(tables);
-      });
+      const { options } = wrapper.find('[name="select-table"]').first().props();
+      expect({ options }).toEqual(tables);
     });
   });
 
@@ -211,6 +207,9 @@ describe('TableSelector', () => {
       fetchMock.get(GET_TABLE_NAMES_ENDPOINT, tables, {
         overwriteRoutes: true,
       });
+    });
+
+    it('should change table value', async () => {
       act(() => {
         wrapper
           .find('[name="select-schema"]')
@@ -219,10 +218,6 @@ describe('TableSelector', () => {
           .onChange(selectedSchema);
       });
       await waitForComponentToPaint(wrapper);
-      wrapper.update();
-    });
-
-    it('should change table value', async () => {
       act(() => {
         wrapper
           .find('[name="select-table"]')
@@ -231,7 +226,6 @@ describe('TableSelector', () => {
           .onChange(selectedTable);
       });
       await waitForComponentToPaint(wrapper);
-      wrapper.update();
       expect(
         wrapper.find('[name="select-table"]').first().props().value[0],
       ).toEqual(selectedTable);
@@ -240,38 +234,45 @@ describe('TableSelector', () => {
     it('should call onTableChange with schema from table object', async () => {
       act(() => {
         wrapper
+          .find('[name="select-schema"]')
+          .first()
+          .props()
+          .onChange(selectedSchema);
+      });
+      await waitForComponentToPaint(wrapper);
+      act(() => {
+        wrapper
           .find('[name="select-table"]')
           .first()
           .props()
           .onChange(selectedTable);
       });
       await waitForComponentToPaint(wrapper);
-      wrapper.update();
       expect(mockedProps.onTableChange.getCall(0).args[0]).toBe('birth_names');
       expect(mockedProps.onTableChange.getCall(0).args[1]).toBe('main');
     });
   });
 
   describe('getTableNamesBySubStr', () => {
-    beforeEach(() => {
-      wrapper.setProps({ schema: 'main' });
-    });
     afterEach(fetchMock.resetHistory);
     afterAll(fetchMock.reset);
 
-    it('should handle empty', () =>
+    it('should handle empty', async () => {
       act(() => {
         wrapper
           .find('[name="async-select-table"]')
           .first()
           .props()
-          .loadOptions()
-          .then(data => {
-            expect(data).toEqual({ options: [] });
-          });
-      }));
+          .loadOptions();
+      });
+      await waitForComponentToPaint(wrapper);
+      const props = wrapper.find('[name="async-select-table"]').first().props();
+      expect(props.isDisabled).toBe(true);
+      expect(props.value).toEqual([]);
+    });
 
-    it('should handle table name', () => {
+    it('should handle table name', async () => {
+      wrapper.setProps({ schema: 'main' });
       fetchMock.get(GET_TABLE_ENDPOINT, tables, {
         overwriteRoutes: true,
       });
@@ -280,13 +281,10 @@ describe('TableSelector', () => {
           .find('[name="async-select-table"]')
           .first()
           .props()
-          .loadOptions()
-          .then(data => {
-            expect(fetchMock.calls(GET_TABLE_ENDPOINT)).toHaveLength(1);
-            expect(data).toEqual(tables);
-          });
+          .loadOptions();
       });
-      return Promise.resolve();
+      await waitForComponentToPaint(wrapper);
+      expect(fetchMock.calls(GET_TABLE_ENDPOINT)).toHaveLength(1);
     });
   });
 });
