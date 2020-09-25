@@ -35,7 +35,7 @@ import '../stylesheets/buttons.less';
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
-  show: PropTypes.bool.isRequired,
+  show: PropTypes.bool,
   onHide: PropTypes.func,
   colorScheme: PropTypes.object,
   setColorSchemeAndUnsavedChanges: PropTypes.func,

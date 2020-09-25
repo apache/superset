@@ -25,7 +25,7 @@ import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import Button from 'src/components/Button';
-import { exploreChart } from '../../explore/exploreUtils';
+import { exploreChart } from 'src/explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
 
 const propTypes = {
@@ -35,10 +35,6 @@ const propTypes = {
   dbId: PropTypes.number.isRequired,
   errorMessage: PropTypes.string,
   templateParams: PropTypes.string,
-};
-
-const defaultProps = {
-  vizRequest: {},
 };
 
 class ExploreCtasResultsButton extends React.PureComponent {
@@ -113,7 +109,6 @@ class ExploreCtasResultsButton extends React.PureComponent {
   }
 }
 ExploreCtasResultsButton.propTypes = propTypes;
-ExploreCtasResultsButton.defaultProps = defaultProps;
 
 function mapStateToProps({ sqlLab, common }) {
   return {

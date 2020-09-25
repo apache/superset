@@ -69,7 +69,6 @@ const propTypes = {
 };
 
 const defaultProps = {
-  children: null,
   renderTabContent: true,
   renderHoverMenu: true,
   availableColumnCount: 0,
