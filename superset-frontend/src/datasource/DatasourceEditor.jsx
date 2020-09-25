@@ -524,7 +524,7 @@ class DatasourceEditor extends React.PureComponent {
         <Field
           fieldKey="owners"
           label={t('Owners')}
-          description={t('Owners of the datasource')}
+          description={t('Owners of the dataset')}
           control={
             <SelectAsyncControl
               dataEndpoint="/users/api/read"

@@ -95,7 +95,7 @@ export default class AddSliceContainer extends React.PureComponent<
           </Panel.Heading>
           <Panel.Body>
             <div>
-              <p>{t('Choose a datasource')}</p>
+              <p>{t('Choose a dataset')}</p>
               <div style={styleSelectContainer}>
                 <Select
                   clearable={false}
@@ -116,7 +116,7 @@ export default class AddSliceContainer extends React.PureComponent<
               </div>
               <span className="text-muted">
                 {t(
-                  'If the datasource you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
+                  'If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
                 )}{' '}
                 <a
                   href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"

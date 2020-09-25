@@ -28,7 +28,7 @@ export const druidTimeSeries = {
 };
 
 export const datasourceAndVizType = {
-  label: t('Datasource & Chart Type'),
+  label: t('Dataset & Chart Type'),
   expanded: true,
   controlSetRows: [
     ['datasource'],

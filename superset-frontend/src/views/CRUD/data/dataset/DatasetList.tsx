@@ -352,7 +352,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           'database',
           createErrorHandler(errMsg =>
             t(
-              'An error occurred while fetching dataset datasource values: %s',
+              'An error occurred while fetching datasets: %s',
               errMsg,
             ),
           ),
