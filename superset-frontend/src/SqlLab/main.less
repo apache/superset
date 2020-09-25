@@ -423,7 +423,9 @@ div.tablePopover {
   font-family: @font-family-monospace;
 
   &.ace_autocomplete {
-    width: 520px;
+    // Use !important because Ace Editor applies extra CSS at the last second
+    // when opening the autocomplete.
+    width: 520px !important;
   }
 }
 
