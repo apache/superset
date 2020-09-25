@@ -48,6 +48,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         slice_name: str,
         owners: List[int],
         datasource_id: int,
+        created_by = None,
         datasource_type: str = "table",
         description: Optional[str] = None,
         viz_type: Optional[str] = None,
@@ -71,6 +72,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             viz_type=viz_type,
             params=params,
             cache_timeout=cache_timeout,
+            created_by=created_by,
         )
         db.session.add(slice)
         db.session.commit()
@@ -80,8 +82,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test delete
         """
-        admin_id = self.get_user("admin").id
-        chart_id = self.insert_chart("name", [admin_id], 1).id
+        admin = self.get_user("admin")
+        chart_id = self.insert_chart("name", [admin.id], 1, admin).id
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
         rv = self.delete_assert_metric(uri, "delete")
@@ -255,17 +257,18 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test create chart
         """
-        admin_id = self.get_user("admin").id
+        admin = self.get_user("admin")
         chart_data = {
             "slice_name": "name1",
             "description": "description1",
-            "owners": [admin_id],
+            "owners": [admin.id],
             "viz_type": "viz_type1",
             "params": "1234",
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
             "dashboards": [1, 2],
+            "created_by": admin,
         }
         self.login(username="admin")
         uri = f"api/v1/chart/"
@@ -365,7 +368,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
 
-        chart_id = self.insert_chart("title", [admin.id], 1).id
+        chart_id = self.insert_chart("title", [admin.id], 1, admin).id
         birth_names_table_id = SupersetTestCase.get_table_by_name("birth_names").id
         chart_data = {
             "slice_name": "title1_changed",
@@ -394,6 +397,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")
         self.assertEqual(model.datasource_name, "birth_names")
+        self.assertEqual(model.created_by, admin)
         self.assertIn(related_dashboard, model.dashboards)
         db.session.delete(model)
         db.session.commit()
