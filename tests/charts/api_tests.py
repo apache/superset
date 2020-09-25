@@ -48,7 +48,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         slice_name: str,
         owners: List[int],
         datasource_id: int,
-        created_by = None,
+        created_by=None,
         datasource_type: str = "table",
         description: Optional[str] = None,
         viz_type: Optional[str] = None,
@@ -906,7 +906,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
 
     def test_chart_data_with_invalid_datasource(self):
-        """Chart data API: Test chart data query with invalid schema"""
+        """
+        Chart data API: Test chart data query with invalid schema
+        """
         self.login(username="admin")
         table = self.get_table_by_name("birth_names")
         payload = get_query_context(table.name, table.id, table.type)
@@ -915,7 +917,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
 
     def test_chart_data_with_invalid_enum_value(self):
-        """Chart data API: Test chart data query with invalid enum value"""
+        """
+        Chart data API: Test chart data query with invalid enum value
+        """
         self.login(username="admin")
         table = self.get_table_by_name("birth_names")
         payload = get_query_context(table.name, table.id, table.type)
