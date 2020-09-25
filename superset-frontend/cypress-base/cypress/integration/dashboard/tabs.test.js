@@ -91,6 +91,25 @@ describe('Dashboard tabs', () => {
     });
   });
 
+  it('should switch active tab on click', () => {
+    cy.wait('@filterRequest');
+    cy.wait('@treemapRequest');
+
+    cy.get('.dashboard-component-tabs')
+      .first()
+      .find('ul.nav.nav-tabs li')
+      .first()
+      .as('firstTab')
+      .last()
+      .as('lastTab');
+
+    cy.get('@firstTab').click().should('have.class', 'active');
+    cy.get('@secondTab').should('not.have.class', 'active');
+
+    cy.get('@secondTab').click().should('have.class', 'active');
+    cy.get('@firstTab').should('not.have.class', 'active');
+  });
+
   it('should load charts when tab is visible', () => {
     // landing in first tab, should see 2 charts
     cy.wait('@filterRequest');
