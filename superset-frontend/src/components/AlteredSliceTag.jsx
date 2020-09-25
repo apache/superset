@@ -71,7 +71,7 @@ export default class AlteredSliceTag extends React.Component {
     }));
   }
 
-  getRowsFromDiffs(diffs, controlsMap = this.state.controlsMap) {
+  getRowsFromDiffs(diffs, controlsMap) {
     return Object.entries(diffs).map(([key, diff]) => ({
       control: (controlsMap[key] && controlsMap[key].label) || key,
       before: this.formatValue(diff.before, key, controlsMap),

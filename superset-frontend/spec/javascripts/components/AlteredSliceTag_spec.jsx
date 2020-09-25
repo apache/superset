@@ -68,17 +68,19 @@ describe('AlteredSliceTag', () => {
   });
 
   it('sets new rows when receiving new props', () => {
+    const testRows = ['testValue'];
+    const getRowsFromDiffsStub = jest
+      .spyOn(AlteredSliceTag.prototype, 'getRowsFromDiffs')
+      .mockReturnValueOnce(testRows);
     const newProps = {
       currentFormData: { ...props.currentFormData },
       origFormData: { ...props.origFormData },
     };
-    newProps.currentFormData.beta = 10;
     wrapper = shallow(<AlteredSliceTag {...props} />);
     const wrapperInstance = wrapper.instance();
     wrapperInstance.UNSAFE_componentWillReceiveProps(newProps);
-    const newDiffs = wrapperInstance.getDiffs(newProps);
-    const expectedNewRows = wrapperInstance.getRowsFromDiffs(newDiffs);
-    expect(wrapperInstance.state.rows).toEqual(expectedNewRows);
+    expect(getRowsFromDiffsStub).toHaveBeenCalled();
+    expect(wrapperInstance.state.rows).toEqual(testRows);
   });
 
   it('does not set new state when props are the same', () => {
