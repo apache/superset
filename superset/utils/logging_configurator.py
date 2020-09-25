@@ -46,10 +46,8 @@ class DefaultLoggingConfigurator(LoggingConfigurator):
             superset_logger.setLevel(logging.DEBUG)
         else:
             # In production mode, add log handler to sys.stderr.
-            superset_logger.addHandler(
-                logging.StreamHandler()
-            )  # pylint: disable=no-member
-            superset_logger.setLevel(logging.INFO)  # pylint: disable=no-member
+            superset_logger.addHandler(logging.StreamHandler())
+            superset_logger.setLevel(logging.INFO)
 
         logging.getLogger("pyhive.presto").setLevel(logging.INFO)
 
