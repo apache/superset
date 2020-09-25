@@ -26,12 +26,11 @@ from superset.utils.webdriver import WebDriverProxy, WindowSize
 logger = logging.getLogger(__name__)
 
 try:
-    from PIL import Image  # pylint: disable=import-error
+    from PIL import Image
 except ModuleNotFoundError:
     logger.info("No PIL installation found")
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from flask_appbuilder.security.sqla.models import User
     from flask_caching import Cache
 
