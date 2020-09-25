@@ -310,7 +310,6 @@ class DashboardEncoder(json.JSONEncoder):
         super().__init__(*args, **kwargs)
         self.sort_keys = True
 
-    # pylint: disable=E0202
     def default(self, o: Any) -> Dict[Any, Any]:
         try:
             vals = {k: v for k, v in o.__dict__.items() if k != "_sa_instance_state"}
