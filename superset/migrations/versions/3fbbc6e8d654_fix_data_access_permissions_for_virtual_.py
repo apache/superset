@@ -188,12 +188,12 @@ def upgrade():
                 # A view_menu permission with the right name already exists,
                 # so delete the faulty one later
                 if existing_view_menu:
-                    orphaned_faulty_view_menus.append(existing_view_menu)
+                    orphaned_faulty_view_menus.append(faulty_view_menu)
                 # No view_menu permission with this name exists
                 # so safely change this one
                 else:
                     faulty_view_menu.name = new_view_menu
-    # Commit all possible changes
+    # Commit all view_menu updates
     try:
         session.commit()
     except SQLAlchemyError:
