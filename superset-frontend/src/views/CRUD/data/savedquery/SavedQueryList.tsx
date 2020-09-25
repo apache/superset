@@ -19,6 +19,7 @@
 
 import { t, styled } from '@superset-ui/core';
 import React, { useMemo } from 'react';
+import moment from 'moment';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -141,7 +142,22 @@ function SavedQueryList({
           row: {
             original: { created_on: createdOn },
           },
-        }: any) => createdOn,
+        }: any) => {
+          const date = new Date(createdOn);
+          const utc = new Date(
+            Date.UTC(
+              date.getFullYear(),
+              date.getMonth(),
+              date.getDate(),
+              date.getHours(),
+              date.getMinutes(),
+              date.getSeconds(),
+              date.getMilliseconds(),
+            ),
+          );
+
+          return moment(utc).fromNow();
+        },
         Header: t('Created On'),
         accessor: 'created_on',
       },
