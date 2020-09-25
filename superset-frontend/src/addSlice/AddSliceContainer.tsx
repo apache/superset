@@ -96,7 +96,7 @@ export default class AddSliceContainer extends React.PureComponent<
           <Panel.Body>
             <div>
               <p>{t('Choose a datasource')}</p>
-              <p>
+              <div style={{ marginBottom: '10px' }}>
                 <div style={styleSelectWidth}>
                   <Select
                     clearable={false}
@@ -116,7 +116,7 @@ export default class AddSliceContainer extends React.PureComponent<
                     width={600}
                   />
                 </div>
-              </p>
+              </div>
               <span className="text-muted">
                 {t(
                   'If the datasource you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
