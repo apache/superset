@@ -140,7 +140,7 @@ describe('TableSelector', () => {
       await waitForComponentToPaint(wrapper);
       const props = wrapper.find('[name="async-select-table"]').first().props();
       expect(props.isDisabled).toBe(true);
-      expect(props.value).toEqual([]);
+      expect(props.value).toEqual(undefined);
     });
   });
 
@@ -227,8 +227,8 @@ describe('TableSelector', () => {
       });
       await waitForComponentToPaint(wrapper);
       expect(
-        wrapper.find('[name="select-table"]').first().props().value[0],
-      ).toEqual(selectedTable);
+        wrapper.find('[name="select-table"]').first().props().value,
+      ).toEqual('birth_names');
     });
 
     it('should call onTableChange with schema from table object', async () => {
@@ -268,7 +268,7 @@ describe('TableSelector', () => {
       await waitForComponentToPaint(wrapper);
       const props = wrapper.find('[name="async-select-table"]').first().props();
       expect(props.isDisabled).toBe(true);
-      expect(props.value).toEqual([]);
+      expect(props.value).toEqual('');
     });
 
     it('should handle table name', async () => {

@@ -292,7 +292,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       tableSelectDisabled = true;
     }
     const options = tableOptions;
-    const value = options.filter(({ value }) => value === currentTableName);
     let select = null;
     if (currentSchema && !formMode) {
       select = (
@@ -304,7 +303,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           autosize={false}
           onChange={changeTable}
           options={options}
-          value={value}
+          // @ts-ignore
+          value={currentTableName}
           optionRenderer={renderTableOption}
         />
       );
@@ -318,7 +318,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           autosize={false}
           onChange={changeTable}
           options={options}
-          value={value}
+          // @ts-ignore
+          value={currentTableName}
           optionRenderer={renderTableOption}
         />
       );
@@ -330,7 +331,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           isDisabled={tableSelectDisabled}
           autosize={false}
           onChange={changeTable}
-          value={value}
+          // @ts-ignore
+          value={currentTableName}
           loadOptions={getTableNamesBySubStr}
           optionRenderer={renderTableOption}
         />
