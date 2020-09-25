@@ -48,6 +48,9 @@ from superset.typing import FlaskResponse
 from superset.utils.core import pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
+import json
+import urllib.request
+
 logger = logging.getLogger(__name__)
 
 
@@ -97,7 +100,6 @@ class SupersetAppInitializer:
         """
         Called after any other init tasks
         """
-
 
     def configure_celery(self) -> None:
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
@@ -510,10 +512,10 @@ class SupersetAppInitializer:
         self.configure_middlewares()
         self.configure_cache()
         self.configure_jinja_context()
-        self.setup_embedded_login()
 
         with self.flask_app.app_context():  # type: ignore
             self.init_app_in_ctx()
+            self.setup_embedded_login()
 
         self.post_init()
 
@@ -643,14 +645,37 @@ class SupersetAppInitializer:
 
             if user_key:
 
-                # get the user_id by jwt -> email -> id
-                User = appbuilder.security_manager_class.user_model
-                user = db.session.query(User).filter_by(id=user_key).first()
+                base = os.environ["SUPERSET_LOGIN_JWT_API"]
+                print('URL:', base)
+                if not base:
+                    return ''
 
-                if user:
-                    login_user(user)
-                    next_url = request.args.get('next')
-                    return redirect(next_url)
+                url = f"{base}/api/user/me"
+                hdr = {'Authorization': 'Bearer ' + user_key}
+
+                req = urllib.request.Request(url, headers=hdr)
+                response = urllib.request.urlopen(req)
+                data = json.loads(response.read().decode('utf-8'))
+                print(data)
+
+                if response.getcode() != 200:
+                    print('response code', response.getcode)
+                    return ''
+
+                email = data['email']
+                user = appbuilder.sm.find_user(email=email)
+                if not user:
+                    print('creating user', email)
+                    role = appbuilder.sm.find_role('Admin')
+                    user = appbuilder.sm.add_user(email, email, email, email, role)
+                    print('new user created')
+                else:
+                    print('user found: ', email)
+
+                print('logging in:', user.email)
+                login_user(user)
+                next_url = request.args.get('next')
+                return redirect(next_url)
 
             return ''
 

@@ -57,6 +57,8 @@ services:
     container_name: superset_app
     command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
     restart: unless-stopped
+    environment:
+      - SUPERSET_LOGIN_JWT_API=${SUPERSET_LOGIN_JWT_API}
     ports:
       - 8088:8088
     depends_on: *superset-depends-on
