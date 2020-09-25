@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Resizable from 're-resizable';
+import { Resizable } from 're-resizable';
 import cx from 'classnames';
 
 import ResizableHandle from './ResizableHandle';
