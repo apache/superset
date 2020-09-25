@@ -551,7 +551,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     @property
     def database_name(self) -> str:
-        return self.database.database_name
+        return self.database.name
 
     @classmethod
     def get_datasource_by_name(
