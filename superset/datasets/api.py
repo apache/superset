@@ -276,9 +276,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
         except DatasetUpdateFailedError as ex:
-            logger.info(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
-            )
+            logger.info("Error updating model %s: %s", self.__class__.__name__, str(ex))
             response = self.response_422(message=str(ex))
         return response
 
@@ -326,9 +324,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetForbiddenError:
             return self.response_403()
         except DatasetDeleteFailedError as ex:
-            logger.info(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
-            )
+            logger.info("Error deleting model %s: %s", self.__class__.__name__, str(ex))
             return self.response_422(message=str(ex))
 
     @expose("/export/", methods=["GET"])
