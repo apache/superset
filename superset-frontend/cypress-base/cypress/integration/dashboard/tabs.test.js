@@ -98,16 +98,13 @@ describe('Dashboard tabs', () => {
     cy.get('.dashboard-component-tabs')
       .first()
       .find('ul.nav.nav-tabs li')
-      .first()
-      .as('firstTab')
-      .last()
-      .as('lastTab');
+      .as('tabs');
 
-    cy.get('@firstTab').click().should('have.class', 'active');
-    cy.get('@lastTab').should('not.have.class', 'active');
+    cy.get('@tabs').first().click().should('have.class', 'active');
+    cy.get('@tabs').last().should('not.have.class', 'active');
 
-    cy.get('@lastTab').click().should('have.class', 'active');
-    cy.get('@firstTab').should('not.have.class', 'active');
+    cy.get('@tabs').last().click().should('have.class', 'active');
+    cy.get('@tabs').first().should('not.have.class', 'active');
   });
 
   it('should load charts when tab is visible', () => {
