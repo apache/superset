@@ -55,7 +55,7 @@ export interface Filter {
     | 'title_or_slug'
     | 'name_or_description'
     | 'all_text'
-    | 'all_text_chart';
+    | 'chart_all_text';
   input?: 'text' | 'textarea' | 'select' | 'checkbox' | 'search';
   unfilteredLabel?: string;
   selects?: SelectOption[];

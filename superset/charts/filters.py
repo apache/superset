@@ -28,7 +28,7 @@ from superset.views.base import BaseFilter
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("All Text")
-    arg_name = "all_text_chart"
+    arg_name = "chart_all_text"
 
     def apply(self, query: Query, value: Any) -> Query:
         if not value:

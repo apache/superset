@@ -600,7 +600,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         chart5 = self.insert_chart("bar", [admin.id], 1, description="foo")
 
         arguments = {
-            "filters": [{"col": "slice_name", "opr": "all_text_chart", "value": "zy_"}],
+            "filters": [{"col": "slice_name", "opr": "chart_all_text", "value": "zy_"}],
             "order_column": "slice_name",
             "order_direction": "asc",
             "keys": ["none"],
@@ -629,7 +629,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {"col": "slice_name", "opr": "all_text_chart", "value": "energy",}
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
