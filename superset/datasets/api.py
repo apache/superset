@@ -207,7 +207,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
-            logger.info(
+            logger.error(
                 "Error creating model %s: %s", self.__class__.__name__, str(ex)
             )
             return self.response_422(message=str(ex))
