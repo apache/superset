@@ -46,11 +46,5 @@ describe('chart list view', () => {
   it('should sort correctly', () => {
     cy.get('th[role="columnheader"]:nth-child(2)').click();
     cy.get('.table-row td:nth-child(2):eq(0)').contains('% Rural');
-    cy.get('th[role="columnheader"]:nth-child(3)').click();
-    cy.get('.table-row td:nth-child(2):eq(0)').contains("World's Pop Growth");
-    cy.get('th[role="columnheader"]:nth-child(4)').click();
-    cy.get('.table-row td:nth-child(2):eq(0)').contains('Energy Sankey');
-    cy.get('th[role="columnheader"]:nth-child(5)').click();
-    cy.get('.table-row td:nth-child(2):eq(0)').contains('Energy Sankey');
   });
 });
