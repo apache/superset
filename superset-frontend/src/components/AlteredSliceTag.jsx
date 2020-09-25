@@ -138,7 +138,7 @@ export default class AlteredSliceTag extends React.Component {
     if (value === null) {
       return 'null';
     }
-    if (controlsMap[key] && controlsMap[key].type === 'AdhocFilterControl') {
+    if (controlsMap[key]?.type === 'AdhocFilterControl') {
       if (!value.length) {
         return '[]';
       }
