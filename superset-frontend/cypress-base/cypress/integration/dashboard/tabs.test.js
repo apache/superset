@@ -104,9 +104,9 @@ describe('Dashboard tabs', () => {
       .as('lastTab');
 
     cy.get('@firstTab').click().should('have.class', 'active');
-    cy.get('@secondTab').should('not.have.class', 'active');
+    cy.get('@lastTab').should('not.have.class', 'active');
 
-    cy.get('@secondTab').click().should('have.class', 'active');
+    cy.get('@lastTab').click().should('have.class', 'active');
     cy.get('@firstTab').should('not.have.class', 'active');
   });
 
