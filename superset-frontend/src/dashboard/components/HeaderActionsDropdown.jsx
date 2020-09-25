@@ -146,7 +146,7 @@ class HeaderActionsDropdown extends React.PureComponent {
 
     return (
       <DropdownButton
-        title={<Icon name="more" />}
+        title={<Icon name="more-horiz" />}
         noCaret
         id="save-dash-split-button"
         bsSize="small"
