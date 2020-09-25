@@ -294,7 +294,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={
         <h4>
-          <StyledIcon name="databases" />
+          <StyledIcon name="database" />
           {isEditMode ? t('Edit Database') : t('Add Database')}
         </h4>
       }

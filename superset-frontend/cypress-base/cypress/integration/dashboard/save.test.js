@@ -53,7 +53,7 @@ describe('Dashboard save action', () => {
     cy.get('.grid-container .box_plot', { timeout: 5000 }); // wait for 5 secs
 
     // remove box_plot chart from dashboard
-    cy.get('.dashboard-header [data-test=pencil]').click();
+    cy.get('.dashboard-header [data-test=edit-alt]').click();
     cy.get('.fa.fa-trash').last().trigger('click', { force: true });
     cy.get('.grid-container .box_plot').should('not.exist');
 
@@ -64,7 +64,7 @@ describe('Dashboard save action', () => {
 
     // go back to view mode
     cy.wait('@saveRequest');
-    cy.get('.dashboard-header [data-test=pencil]').click();
+    cy.get('.dashboard-header [data-test=edit-alt]').click();
     cy.get('.grid-container .box_plot').should('not.exist');
   });
 });
