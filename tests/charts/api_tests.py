@@ -63,16 +63,16 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             datasource_type, datasource_id, db.session
         )
         slice = Slice(
-            slice_name=slice_name,
+            cache_timeout=cache_timeout,
+            created_by=created_by,
             datasource_id=datasource.id,
             datasource_name=datasource.name,
             datasource_type=datasource.type,
-            owners=obj_owners,
             description=description,
-            viz_type=viz_type,
+            owners=obj_owners,
             params=params,
-            cache_timeout=cache_timeout,
-            created_by=created_by,
+            slice_name=slice_name,
+            viz_type=viz_type,
         )
         db.session.add(slice)
         db.session.commit()
@@ -82,8 +82,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test delete
         """
-        admin = self.get_user("admin")
-        chart_id = self.insert_chart("name", [admin.id], 1, admin).id
+        admin_id = self.get_user("admin").id
+        chart_id = self.insert_chart("name", [admin_id], 1).id
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
         rv = self.delete_assert_metric(uri, "delete")
@@ -95,12 +95,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test delete bulk
         """
-        admin_id = self.get_user("admin").id
+        admin = self.get_user("admin")
         chart_count = 4
         chart_ids = list()
         for chart_name_index in range(chart_count):
             chart_ids.append(
-                self.insert_chart(f"title{chart_name_index}", [admin_id], 1).id
+                self.insert_chart(f"title{chart_name_index}", [admin.id], 1, admin).id
             )
         self.login(username="admin")
         argument = chart_ids
@@ -257,18 +257,17 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test create chart
         """
-        admin = self.get_user("admin")
+        admin_id = self.get_user("admin").id
         chart_data = {
             "slice_name": "name1",
             "description": "description1",
-            "owners": [admin.id],
+            "owners": [admin_id],
             "viz_type": "viz_type1",
             "params": "1234",
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
             "dashboards": [1, 2],
-            "created_by": admin,
         }
         self.login(username="admin")
         uri = f"api/v1/chart/"
@@ -387,6 +386,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
         related_dashboard = db.session.query(Dashboard).get(1)
+        self.assertEqual(model.created_by, admin)
         self.assertEqual(model.slice_name, "title1_changed")
         self.assertEqual(model.description, "description1")
         self.assertIn(admin, model.owners)
@@ -397,7 +397,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")
         self.assertEqual(model.datasource_name, "birth_names")
-        self.assertEqual(model.created_by, admin)
         self.assertIn(related_dashboard, model.dashboards)
         db.session.delete(model)
         db.session.commit()
