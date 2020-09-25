@@ -80,6 +80,46 @@ function SavedQueryList({
     ...commonMenuData,
   };
 
+  // Action methods
+  const openInSqlLab = function (id: number) {
+    window.open(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`);
+  };
+
+  const copyQueryLink = function (id: number) {
+    const selection = document.getSelection();
+    selection.removeAllRanges();
+    document.activeElement.blur();
+    const range = document.createRange();
+    const span = document.createElement('span');
+    span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
+    span.style.all = 'unset';
+    span.style.position = 'fixed';
+    span.style.top = 0;
+    span.style.clip = 'rect(0, 0, 0, 0)';
+    span.style.whiteSpace = 'pre';
+
+    document.body.appendChild(span);
+    range.selectNode(span);
+    selection.addRange(range);
+
+    try {
+      if (!document.execCommand('copy')) {
+        throw new Error(t('Not successful'));
+      }
+    } catch (err) {
+      addDangerToast(t('Sorry, your browser does not support copying.'));
+    }
+
+    document.body.removeChild(span);
+    if (selection.removeRange) {
+      selection.removeRange(range);
+    } else {
+      selection.removeAllRanges();
+    }
+
+    addSuccessToast(t('Link Copied!'));
+  };
+
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const columns = useMemo(
     () => [
@@ -178,8 +218,12 @@ function SavedQueryList({
       {
         Cell: ({ row: { original } }: any) => {
           const handlePreview = () => {}; // openQueryPreviewModal(original); // TODO: open preview modal
-          const handleEdit = () => {}; // handleQueryEdit(original); // TODO: navigate to sql editor with selected query open
-          const handleCopy = () => {}; // TODO: copy link to clipboard
+          const handleEdit = () => {
+            openInSqlLab(original.id);
+          };
+          const handleCopy = () => {
+            copyQueryLink(original.id);
+          };
           const handleDelete = () => {}; // openQueryDeleteModal(original);
 
           return (
