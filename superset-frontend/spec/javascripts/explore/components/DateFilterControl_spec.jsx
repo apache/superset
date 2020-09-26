@@ -20,7 +20,7 @@
 import React from 'react';
 import { Tab, Tabs, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 
 import Label from 'src/components/Label';
 import Popover from 'src/components/Popover';
@@ -47,7 +47,6 @@ describe('DateFilterControl', () => {
 
   beforeEach(() => {
     wrapper = mount(<DateFilterControl {...defaultProps} />);
-    console.log("BEFORE", wrapper);
   });
 
   it('renders', () => {
@@ -61,13 +60,6 @@ describe('DateFilterControl', () => {
 
   it('renders an Popover', () => {
     expect(wrapper.find(Popover)).toExist();
-  });
-
-  it('renders a popover', () => {
-    const { Popover } = wrapper.find(Popover).first().props();
-    const popoverWrapper = mount(popover);
-
-    expect(popoverWrapper.find(Popover)).toExist();
   });
 
   it('calls open/close methods on trigger click', () => {
@@ -112,12 +104,12 @@ describe('DateFilterControl', () => {
     const defaultTab = popoverInstance.find(Tab).first();
     const radioTrigger = defaultTab.find(Popover);
 
+
     expect(radioTrigger).toExist();
     expect(radioTrigger).toHaveLength(6);
   });
 
   it('renders the correct time range in tooltip', () => {
-    console.log("BODY", wrapper);
     wrapper = mount(<DateFilterControl {...defaultProps} />);
     const { popover } = wrapper.find(Popover).first().props();
     const popoverWrapper = mount(popover);
