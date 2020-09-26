@@ -18,15 +18,17 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, OverlayTrigger, Popover } from 'react-bootstrap';
+import { Row, Col, OverlayTrigger } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
+import Popover from 'src/components/Popover';
 import PopoverSection from 'src/components/PopoverSection';
 import Checkbox from 'src/components/Checkbox';
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
+import { withTheme } from '@superset-ui/core';
 
 const spatialTypes = {
   latlong: 'latlong',
@@ -47,7 +49,7 @@ const defaultProps = {
   choices: [],
 };
 
-export default class SpatialControl extends React.Component {
+class SpatialControl extends React.Component {
   constructor(props) {
     super(props);
     const v = props.value || {};
@@ -65,6 +67,7 @@ export default class SpatialControl extends React.Component {
       geohashCol: v.geohashCol || defaultCol,
       value: null,
       errors: [],
+      popoverVisible: false,
     };
     this.toggleCheckbox = this.toggleCheckbox.bind(this);
     this.onChange = this.onChange.bind(this);
@@ -164,9 +167,8 @@ export default class SpatialControl extends React.Component {
     );
   }
 
-  renderPopover() {
+  renderPopoverContent() {
     return (
-      <Popover id="filter-popover">
         <div style={{ width: '300px' }}>
           <PopoverSection
             title={t('Longitude & Latitude columns')}
@@ -225,7 +227,6 @@ export default class SpatialControl extends React.Component {
             </Button>
           </div>
         </div>
-      </Popover>
     );
   }
 
@@ -233,17 +234,9 @@ export default class SpatialControl extends React.Component {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <OverlayTrigger
-          animation={this.props.animation}
-          container={document.body}
-          trigger="click"
-          rootClose
-          ref="trigger"
-          placement="right"
-          overlay={this.renderPopover()}
-        >
+        <Popover content={this.renderPopoverContent()} trigger="click" placement="right">
           <Label className="pointer">{this.renderLabelContent()}</Label>
-        </OverlayTrigger>
+        </Popover>
       </div>
     );
   }
@@ -251,3 +244,4 @@ export default class SpatialControl extends React.Component {
 
 SpatialControl.propTypes = propTypes;
 SpatialControl.defaultProps = defaultProps;
+export default withTheme(SpatialControl);
