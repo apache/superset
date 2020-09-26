@@ -19,7 +19,6 @@
 import { mainMetric } from 'src/modules/utils';
 
 describe('utils', () => {
-
   describe('mainMetric', () => {
     it('is null when no options', () => {
       expect(mainMetric([])).toBeUndefined();

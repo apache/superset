@@ -17,8 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { formatSelectOptions } from 'src/modules/utils';
+import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import {
   filterNulls,
   autozoom,
