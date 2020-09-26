@@ -165,8 +165,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         addSuccessToast(t('Connection looks good!'));
       })
       .catch(response =>
-        getClientErrorObject(response).then((error) => {
-          addDangerToast(t('ERROR: Connection failed. ') + error?.message || '');
+        getClientErrorObject(response).then(error => {
+          addDangerToast(
+            t('ERROR: Connection failed. ') + error?.message || '',
+          );
         }),
       );
   };
