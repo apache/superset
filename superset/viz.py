@@ -342,8 +342,8 @@ class BaseViz:
         merge_extra_filters(self.form_data)
         utils.split_adhoc_filters_into_base_filters(self.form_data)
         # Normalize various filters, and then remove the original filters
-        self.form_data.pop('adhoc_filters', None)
-        self.form_data.pop('extra_filters', None)
+        self.form_data.pop("adhoc_filters", None)
+        self.form_data.pop("extra_filters", None)
 
     def query_obj(self) -> QueryObjectDict:
         """Building a query object"""
