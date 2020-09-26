@@ -21,10 +21,8 @@ import React from 'react';
 import Popover from '.';
 
 describe('Popover', () => {
-
   // test the basic component
   it('renders the base component (no onClick)', () => {
     expect(React.isValidElement(<Popover />)).toBe(true);
   });
-
 });

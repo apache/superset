@@ -19,7 +19,6 @@
 import React from 'react';
 import Popover from './index';
 
-
 export const PopoverGallery = () => (
   <>
     <h4>Interactive</h4>

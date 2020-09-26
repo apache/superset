@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, OverlayTrigger } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/core';
+import { t, withTheme } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import Popover from 'src/components/Popover';
@@ -28,7 +28,6 @@ import PopoverSection from 'src/components/PopoverSection';
 import Checkbox from 'src/components/Checkbox';
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
-import { withTheme } from '@superset-ui/core';
 
 const spatialTypes = {
   latlong: 'latlong',
@@ -72,6 +71,7 @@ class SpatialControl extends React.Component {
     this.toggleCheckbox = this.toggleCheckbox.bind(this);
     this.onChange = this.onChange.bind(this);
     this.renderReverseCheckbox = this.renderReverseCheckbox.bind(this);
+    this.togglePopover = this.togglePopover.bind(this);
   }
 
   componentDidMount() {
@@ -109,10 +109,6 @@ class SpatialControl extends React.Component {
 
   setType(type) {
     this.setState({ type }, this.onChange);
-  }
-
-  close() {
-    this.refs.trigger.hide();
   }
 
   toggleCheckbox() {
@@ -167,66 +163,70 @@ class SpatialControl extends React.Component {
     );
   }
 
+  togglePopover() {
+    this.setState(prevState => ({ popoverVisible: !prevState.popoverVisible }));
+  }
+
   renderPopoverContent() {
     return (
-        <div style={{ width: '300px' }}>
-          <PopoverSection
-            title={t('Longitude & Latitude columns')}
-            isSelected={this.state.type === spatialTypes.latlong}
-            onSelect={this.setType.bind(this, spatialTypes.latlong)}
+      <div style={{ width: '300px' }}>
+        <PopoverSection
+          title={t('Longitude & Latitude columns')}
+          isSelected={this.state.type === spatialTypes.latlong}
+          onSelect={this.setType.bind(this, spatialTypes.latlong)}
+        >
+          <Row>
+            <Col md={6}>
+              Longitude
+              {this.renderSelect('lonCol', spatialTypes.latlong)}
+            </Col>
+            <Col md={6}>
+              Latitude
+              {this.renderSelect('latCol', spatialTypes.latlong)}
+            </Col>
+          </Row>
+        </PopoverSection>
+        <PopoverSection
+          title={t('Delimited long & lat single column')}
+          info={t(
+            'Multiple formats accepted, look the geopy.points ' +
+              'Python library for more details',
+          )}
+          isSelected={this.state.type === spatialTypes.delimited}
+          onSelect={this.setType.bind(this, spatialTypes.delimited)}
+        >
+          <Row>
+            <Col md={6}>
+              {t('Column')}
+              {this.renderSelect('lonlatCol', spatialTypes.delimited)}
+            </Col>
+            <Col md={6}>{this.renderReverseCheckbox()}</Col>
+          </Row>
+        </PopoverSection>
+        <PopoverSection
+          title={t('Geohash')}
+          isSelected={this.state.type === spatialTypes.geohash}
+          onSelect={this.setType.bind(this, spatialTypes.geohash)}
+        >
+          <Row>
+            <Col md={6}>
+              Column
+              {this.renderSelect('geohashCol', spatialTypes.geohash)}
+            </Col>
+            <Col md={6}>{this.renderReverseCheckbox()}</Col>
+          </Row>
+        </PopoverSection>
+        <div className="clearfix">
+          <Button
+            buttonSize="small"
+            className="float-left ok"
+            buttonStyle="primary"
+            onClick={this.togglePopover}
           >
-            <Row>
-              <Col md={6}>
-                Longitude
-                {this.renderSelect('lonCol', spatialTypes.latlong)}
-              </Col>
-              <Col md={6}>
-                Latitude
-                {this.renderSelect('latCol', spatialTypes.latlong)}
-              </Col>
-            </Row>
-          </PopoverSection>
-          <PopoverSection
-            title={t('Delimited long & lat single column')}
-            info={t(
-              'Multiple formats accepted, look the geopy.points ' +
-                'Python library for more details',
-            )}
-            isSelected={this.state.type === spatialTypes.delimited}
-            onSelect={this.setType.bind(this, spatialTypes.delimited)}
-          >
-            <Row>
-              <Col md={6}>
-                {t('Column')}
-                {this.renderSelect('lonlatCol', spatialTypes.delimited)}
-              </Col>
-              <Col md={6}>{this.renderReverseCheckbox()}</Col>
-            </Row>
-          </PopoverSection>
-          <PopoverSection
-            title={t('Geohash')}
-            isSelected={this.state.type === spatialTypes.geohash}
-            onSelect={this.setType.bind(this, spatialTypes.geohash)}
-          >
-            <Row>
-              <Col md={6}>
-                Column
-                {this.renderSelect('geohashCol', spatialTypes.geohash)}
-              </Col>
-              <Col md={6}>{this.renderReverseCheckbox()}</Col>
-            </Row>
-          </PopoverSection>
-          <div className="clearfix">
-            <Button
-              buttonSize="small"
-              className="float-left ok"
-              buttonStyle="primary"
-              onClick={this.close.bind(this)}
-            >
-              Ok
-            </Button>
-          </div>
+            Ok
+          </Button>
         </div>
+      </div>
     );
   }
 
@@ -234,8 +234,14 @@ class SpatialControl extends React.Component {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <Popover content={this.renderPopoverContent()} trigger="click" placement="right">
-          <Label className="pointer">{this.renderLabelContent()}</Label>
+        <Popover
+          content={this.renderPopoverContent()}
+          placement="right"
+          visible={this.state.popoverVisible}
+        >
+          <Label className="pointer" onClick={this.togglePopover}>
+            {this.renderLabelContent()}
+          </Label>
         </Popover>
       </div>
     );

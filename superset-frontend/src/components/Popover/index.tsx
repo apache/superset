@@ -24,13 +24,8 @@ export interface PopoverProps {
   children?: React.ReactNode;
 }
 
-const SupersetPopover = styled(AntdPopover)`
+const SupersetPopover = styled(AntdPopover)``;
 
-`;
-
-export default function Popover({
-  children,
-  ...popoverProps
-}: PopoverProps) {
+export default function Popover({ children, ...popoverProps }: PopoverProps) {
   return <SupersetPopover {...popoverProps}>{children}</SupersetPopover>;
 }
