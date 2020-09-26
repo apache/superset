@@ -166,7 +166,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       })
       .catch(response =>
         getClientErrorObject(response).then((error) => {
-          addDangerToast(t('ERROR: Connection failed. ') + error?.message || '',
+          addDangerToast(t('ERROR: Connection failed. ') + error?.message || '');
         }),
       );
   };
@@ -552,7 +552,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 checked={db ? !!db.impersonate_user : false}
                 onChange={onInputChange}
               />
-              <div>{t('Impersonate Logged In User (Presto & Hive')}</div>
+              <div>{t('Impersonate Logged In User (Presto & Hive)')}</div>
               <InfoTooltipWithTrigger
                 label="impersonate"
                 tooltip={t(
