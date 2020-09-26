@@ -1,4 +1,5 @@
 # Note: these patterns are applied to single files or directories, not full paths
+docs/README.md
 .gitignore
 .gitattributes
 .gitkeep
