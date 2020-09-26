@@ -202,7 +202,7 @@ class DatasourceControl extends React.PureComponent {
           </OverlayTrigger>
           <TooltipWrapper
             label="change-datasource"
-            tooltip={t('Click to change the dataset')}
+            tooltip={t('More dataset related options')}
             trigger={['hover']}
           >
             <DropdownButton
