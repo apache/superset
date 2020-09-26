@@ -28,7 +28,7 @@ import {
   Tooltip,
   Well,
 } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import TooltipWrapper from 'src/components/TooltipWrapper';
@@ -56,6 +56,22 @@ const defaultProps = {
   value: null,
   isEditable: true,
 };
+
+const Styles = styled.div`
+  #datasource_menu {
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+    box-shadow: none;
+    &:active {
+      box-shadow: none;
+    }
+  }
+  .btn-group .open .dropdown-toggle {
+    box-shadow: none;
+    &.button-default {
+      background: none;
+    }
+  }
+`;
 
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
@@ -140,7 +156,7 @@ class DatasourceControl extends React.PureComponent {
     } = this.state;
     const { datasource, onChange, value } = this.props;
     return (
-      <div className="DatasourceControl">
+      <Styles className="DatasourceControl">
         <ControlHeader {...this.props} />
         <div>
           <OverlayTrigger
@@ -169,7 +185,7 @@ class DatasourceControl extends React.PureComponent {
             trigger={['hover']}
           >
             <DropdownButton
-              title={<Icon name="more-horiz" className="m-l-5" />}
+              title={<Icon name="more-horiz" />}
               className=""
               bsSize="sm"
               id="datasource_menu"
@@ -210,7 +226,7 @@ class DatasourceControl extends React.PureComponent {
           show={showChangeDatasourceModal}
           onChange={onChange}
         />
-      </div>
+      </Styles>
     );
   }
 }
