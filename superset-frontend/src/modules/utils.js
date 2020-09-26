@@ -17,41 +17,6 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import $ from 'jquery';
-
-/**
- * Sets the body and title content of a modal, and shows it. Assumes HTML for modal exists and that
- * it handles closing (i.e., works with bootstrap)
- *
- * @param {object} options object of the form
- *  {
- *    title: {string},
- *    body: {string},
- *    modalSelector: {string, default: '.misc-modal' },
- *    titleSelector: {string, default: '.misc-modal .modal-title' },
- *    bodySelector:  {string, default: '.misc-modal .modal-body' },
- *   }
- */
-export function showModal(options) {
-  /* eslint no-param-reassign: 0 */
-  options.modalSelector = options.modalSelector || '.misc-modal';
-  options.titleSelector = options.titleSelector || '.misc-modal .modal-title';
-  options.bodySelector = options.bodySelector || '.misc-modal .modal-body';
-  $(options.titleSelector).html(options.title || '');
-  $(options.bodySelector).html(options.body || '');
-  $(options.modalSelector).modal('show');
-}
-
-export function formatSelectOptionsForRange(start, end) {
-  // outputs array of arrays
-  // formatSelectOptionsForRange(1, 5)
-  // returns [[1,1], [2,2], [3,3], [4,4], [5,5]]
-  const options = [];
-  for (let i = start; i <= end; i += 1) {
-    options.push([i, i.toString()]);
-  }
-  return options;
-}
 
 export function formatSelectOptions(options) {
   return options.map(opt => [opt, opt.toString()]);

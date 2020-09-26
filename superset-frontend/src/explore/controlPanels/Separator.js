@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { formatSelectOptions } from '../../modules/utils';
+import { formatSelectOptions } from 'src/modules/utils';
 
 export default {
   controlPanelSections: [

@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
-import { formatSelectOptions } from '../../modules/utils';
+import { formatSelectOptions } from 'src/modules/utils';
 import {
   filterNulls,
   autozoom,
