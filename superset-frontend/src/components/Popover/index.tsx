@@ -17,8 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { Popover as AntdPopover } from 'antd';
 import { styled } from '@superset-ui/core';
+import { Popover as AntdPopover } from 'src/common/components/';
 
 export interface PopoverProps {
   children?: React.ReactNode;
@@ -30,7 +30,7 @@ const SupersetPopover = styled(AntdPopover)``;
 
 export default function Popover({
   children,
-  content
+  content,
   placement,
   ...extraProps
 }: PopoverProps) {

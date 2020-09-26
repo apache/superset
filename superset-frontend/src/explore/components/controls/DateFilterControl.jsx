@@ -248,15 +248,6 @@ class DateFilterControl extends React.Component {
     }
   }
 
-  togglePopover() {
-    this.setState(prevState => {
-      if (!prevState.popoverVisible) {
-        this.close();
-      }
-      return { popoverVisible: !prevState.popoverVisible };
-    });
-  }
-
   setCustomRange(key, value) {
     const updatedState = { ...this.state, [key]: value };
     const combinedValue = [
@@ -287,6 +278,15 @@ class DateFilterControl extends React.Component {
 
   setTypeCustomStartEnd() {
     this.setState({ type: TYPES.CUSTOM_START_END });
+  }
+
+  togglePopover() {
+    this.setState(prevState => {
+      if (!prevState.popoverVisible) {
+        this.close();
+      }
+      return { popoverVisible: !prevState.popoverVisible };
+    });
   }
 
   changeTab() {

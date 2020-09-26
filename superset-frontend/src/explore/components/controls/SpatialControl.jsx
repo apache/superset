@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, OverlayTrigger } from 'react-bootstrap';
+import { Row, Col } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import { t, withTheme } from '@superset-ui/core';
 
@@ -118,6 +118,10 @@ class SpatialControl extends React.Component {
     );
   }
 
+  togglePopover() {
+    this.setState(prevState => ({ popoverVisible: !prevState.popoverVisible }));
+  }
+
   renderLabelContent() {
     if (this.state.errors.length > 0) {
       return 'N/A';
@@ -161,10 +165,6 @@ class SpatialControl extends React.Component {
         />
       </span>
     );
-  }
-
-  togglePopover() {
-    this.setState(prevState => ({ popoverVisible: !prevState.popoverVisible }));
   }
 
   renderPopoverContent() {

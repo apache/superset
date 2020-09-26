@@ -150,6 +150,7 @@ export default class EmbedCodeButton extends React.Component {
           placement="bottom"
           trigger="click"
           title={t('Embed')}
+          onClick={this.getCopyUrl}
         >
           <span className="btn btn-default btn-sm" data-test="embed-code-button">
             <i className="fa fa-code" />

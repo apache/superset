@@ -83,9 +83,9 @@ describe('LimitControl', () => {
   it('resets and closes', () => {
     const value = 100;
     wrapper = shallow(factory({ ...defaultProps, value }));
-    wrapper.find(Label).first().simulate('click');
+    const popoverContent = wrapper.instance().renderPopover();
     expect(wrapper.state().textValue).toEqual(value.toString());
-    wrapper.find('.reset').simulate('click');
+    popoverContent.wrapperfind('.cancel').simulate('click');
     expect(wrapper.state().textValue).toEqual(
       defaultProps.defaultQueryLimit.toString(),
     );

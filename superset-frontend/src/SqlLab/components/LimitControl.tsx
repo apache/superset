@@ -121,7 +121,7 @@ export default class LimitControl extends React.PureComponent<
           </Button>
           <Button
             buttonSize="small"
-            className="float-right reset"
+            className="float-right cancel"
             onClick={this.setValueAndClose.bind(
               this,
               this.props.defaultQueryLimit.toString(),
@@ -136,15 +136,15 @@ export default class LimitControl extends React.PureComponent<
 
   render() {
     return (
-        <Popover
-          content={this.renderPopover()}
-          placement="top"
-          visible={this.state.showOverlay}
-        >
-          <Label onClick={this.handleToggle}>
-            LIMIT {this.props.value || this.props.maxRow}
-          </Label>
-        </Popover>
+      <Popover
+        content={this.renderPopover()}
+        placement="top"
+        visible={this.state.showOverlay}
+      >
+        <Label onClick={this.handleToggle}>
+          LIMIT {this.props.value || this.props.maxRow}
+        </Label>
+      </Popover>
     );
   }
 }

@@ -18,11 +18,12 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { OverlayTrigger, Popover, Tab, Tabs, Radio } from 'react-bootstrap';
+import { Tab, Tabs, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { mount } from 'enzyme';
 
 import Label from 'src/components/Label';
+import Popover from 'src/components/Popover';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -46,6 +47,7 @@ describe('DateFilterControl', () => {
 
   beforeEach(() => {
     wrapper = mount(<DateFilterControl {...defaultProps} />);
+    console.log("BEFORE", wrapper);
   });
 
   it('renders', () => {
@@ -57,15 +59,15 @@ describe('DateFilterControl', () => {
     expect(controlHeader).toHaveLength(1);
   });
 
-  it('renders an OverlayTrigger', () => {
-    expect(wrapper.find(OverlayTrigger)).toExist();
+  it('renders an Popover', () => {
+    expect(wrapper.find(Popover)).toExist();
   });
 
   it('renders a popover', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
+    const { Popover } = wrapper.find(Popover).first().props();
+    const popoverWrapper = mount(popover);
 
-    expect(overlayWrapper.find(Popover)).toExist();
+    expect(popoverWrapper.find(Popover)).toExist();
   });
 
   it('calls open/close methods on trigger click', () => {
@@ -87,38 +89,40 @@ describe('DateFilterControl', () => {
   });
 
   it('renders two tabs in popover', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
-    const popover = overlayWrapper.find(Popover).first();
+    const { popover } = wrapper.find(Popover).first().props();
+    const popoverWrapper = mount(popover);
+    const popoverContent = popoverWrapper.instance().renderPopover();
 
     expect(popover.find(Tabs)).toExist();
     expect(popover.find(Tab)).toHaveLength(2);
   });
 
   it('renders default time options', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
-    const defaultTab = overlayWrapper.find(Tab).first();
+    const { popover } = wrapper.find(Popover).first().props();
+    const popoverWrapper = mount(popover);
+    const defaultTab = popoverWrapper.find(Tab).first();
 
     expect(defaultTab.find(Radio)).toExist();
     expect(defaultTab.find(Radio)).toHaveLength(6);
   });
 
   it('renders tooltips over timeframe options', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
-    const defaultTab = overlayWrapper.find(Tab).first();
-    const radioTrigger = defaultTab.find(OverlayTrigger);
+    const { popover } = wrapper.find(Popover).first().props();
+    const popoverInstance = mount(popover).instance();
+    const defaultTab = popoverInstance.find(Tab).first();
+    const radioTrigger = defaultTab.find(Popover);
 
     expect(radioTrigger).toExist();
     expect(radioTrigger).toHaveLength(6);
   });
 
   it('renders the correct time range in tooltip', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
-    const defaultTab = overlayWrapper.find(Tab).first();
-    const triggers = defaultTab.find(OverlayTrigger);
+    console.log("BODY", wrapper);
+    wrapper = mount(<DateFilterControl {...defaultProps} />);
+    const { popover } = wrapper.find(Popover).first().props();
+    const popoverWrapper = mount(popover);
+    const defaultTab = popoverWrapper.find(Tab).first();
+    const triggers = defaultTab.find(Popover);
 
     const expectedLabels = {
       'Last day': '2020-09-06 < col < 2020-09-07',
@@ -130,10 +134,10 @@ describe('DateFilterControl', () => {
     };
 
     triggers.forEach(trigger => {
-      const { props } = trigger.props().overlay;
+      const { props } = trigger.props().popover;
       const label = props.id.split('tooltip-')[1];
 
-      expect(trigger.props().overlay.props.children).toEqual(
+      expect(trigger.props().popover.props.children).toEqual(
         expectedLabels[label],
       );
     });

@@ -96,7 +96,8 @@ export default class ViewportControl extends React.Component {
 
   render() {
     return (
-      <div>
+      <>
+        <ControlHeader {...this.props} />
         <Popover
           content={this.renderPopover()}
           placement="right"
@@ -105,7 +106,7 @@ export default class ViewportControl extends React.Component {
         >
           <Label className="pointer">{this.renderLabel()}</Label>
         </Popover>
-      </div>
+      </>
     );
   }
 }
