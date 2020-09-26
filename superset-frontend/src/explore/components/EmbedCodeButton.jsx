@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
+import Popover from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getExploreLongUrl, getURIDirectory } from '../exploreUtils';
 import { getShortUrl } from '../../utils/common';
@@ -83,7 +83,6 @@ export default class EmbedCodeButton extends React.Component {
   renderPopover() {
     const html = this.generateEmbedHTML();
     return (
-      <Popover id="embed-code-popover">
         <div>
           <div className="row">
             <div className="col-sm-10">
@@ -141,26 +140,23 @@ export default class EmbedCodeButton extends React.Component {
             </div>
           </div>
         </div>
-      </Popover>
     );
   }
 
   render() {
     return (
-      <OverlayTrigger
-        trigger="click"
-        rootClose
-        placement="left"
-        onEnter={this.getCopyUrl}
-        overlay={this.renderPopover()}
-      >
-        <span className="btn btn-default btn-sm" data-test="embed-code-button">
-          <i className="fa fa-code" />
-          &nbsp;
-        </span>
-      </OverlayTrigger>
+        <Popover
+          content={this.renderPopover()}
+          placement="bottom"
+          trigger="click"
+          title={t('Embed')}
+        >
+          <span className="btn btn-default btn-sm" data-test="embed-code-button">
+            <i className="fa fa-code" />
+            &nbsp;
+          </span>
+        </Popover>
     );
   }
 }
-
 EmbedCodeButton.propTypes = propTypes;

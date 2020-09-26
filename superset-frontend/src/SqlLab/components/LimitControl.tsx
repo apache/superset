@@ -136,7 +136,6 @@ export default class LimitControl extends React.PureComponent<
 
   render() {
     return (
-      <div>
         <Popover
           content={this.renderPopover()}
           placement="top"
@@ -146,7 +145,6 @@ export default class LimitControl extends React.PureComponent<
             LIMIT {this.props.value || this.props.maxRow}
           </Label>
         </Popover>
-      </div>
     );
   }
 }
