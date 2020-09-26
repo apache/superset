@@ -131,7 +131,9 @@ export default function ErrorAlert({
       </div>
       {isExpandable ? (
         <div className="error-body">
-          <p className={subtitleAsMonospace ? 'monospace' : null}>{subtitle}</p>
+          <p className={subtitleAsMonospace ? 'monospace' : undefined}>
+            {subtitle}
+          </p>
           {body && (
             <>
               {!isBodyExpanded && (
