@@ -166,7 +166,7 @@ class Chart extends React.PureComponent {
     return (
       <ErrorMessageWithStackTrace
         error={error}
-        message={chartAlert || queryResponse?.message}
+        subtitle={chartAlert || queryResponse?.message}
         link={queryResponse ? queryResponse.link : null}
         source={dashboardId ? 'dashboard' : 'explore'}
         stackTrace={chartStackTrace}

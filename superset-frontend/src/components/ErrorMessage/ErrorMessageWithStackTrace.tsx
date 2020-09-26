@@ -24,16 +24,20 @@ import { SupersetError, ErrorSource } from './types';
 import ErrorAlert from './ErrorAlert';
 
 type Props = {
+  title?: string;
   error?: SupersetError;
   link?: string;
-  message?: string;
+  subtitle?: string;
+  subtitleAsMonospace?: boolean;
   stackTrace?: string;
   source?: ErrorSource;
 };
 
 export default function ErrorMessageWithStackTrace({
+  title = t('Unexpected Error'),
   error,
-  message,
+  subtitle,
+  subtitleAsMonospace = false,
   link,
   stackTrace,
   source,
@@ -51,9 +55,10 @@ export default function ErrorMessageWithStackTrace({
   return (
     <ErrorAlert
       level="warning"
-      title={t('Unexpected Error')}
-      subtitle={message}
-      copyText={message}
+      title={title}
+      subtitle={subtitle}
+      subtitleAsMonospace={subtitleAsMonospace}
+      copyText={subtitle}
       source={source}
       body={
         link || stackTrace ? (

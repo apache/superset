@@ -55,7 +55,7 @@ export default class ErrorBoundary extends React.Component {
       if (this.props.showMessage) {
         return (
           <ErrorMessageWithStackTrace
-            message={message}
+            subtitle={message}
             stackTrace={info ? info.componentStack : null}
           />
         );

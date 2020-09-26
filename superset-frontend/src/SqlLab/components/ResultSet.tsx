@@ -232,9 +232,11 @@ export default class ResultSet extends React.PureComponent<
       return (
         <div className="result-set-error-message">
           <ErrorMessageWithStackTrace
+            title={t('Database Error')}
             error={query?.errors?.[0]}
-            message={query.errorMessage || undefined}
+            subtitle={query.errorMessage || undefined}
             link={query.link}
+            subtitleAsMonospace
             source="sqllab"
           />
         </div>

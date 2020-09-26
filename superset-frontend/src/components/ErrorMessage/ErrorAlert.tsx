@@ -40,6 +40,11 @@ const ErrorAlertDiv = styled.div<{ level: ErrorLevel }>`
     justify-content: space-between;
   }
 
+  .monospace {
+    font-family: monospace;
+    white-space: pre;
+  }
+
   .error-body {
     padding-top: ${({ theme }) => theme.gridUnit}px;
     padding-left: ${({ theme }) => 8 * theme.gridUnit}px;
@@ -88,6 +93,7 @@ interface ErrorAlertProps {
   copyText?: string;
   level: ErrorLevel;
   source?: ErrorSource;
+  subtitleAsMonospace?: boolean;
   subtitle: ReactNode;
   title: ReactNode;
 }
@@ -97,6 +103,7 @@ export default function ErrorAlert({
   copyText,
   level,
   source = 'dashboard',
+  subtitleAsMonospace = false,
   subtitle,
   title,
 }: ErrorAlertProps) {
@@ -124,7 +131,7 @@ export default function ErrorAlert({
       </div>
       {isExpandable ? (
         <div className="error-body">
-          <p>{subtitle}</p>
+          <p className={subtitleAsMonospace ? 'monospace' : null}>{subtitle}</p>
           {body && (
             <>
               {!isBodyExpanded && (
