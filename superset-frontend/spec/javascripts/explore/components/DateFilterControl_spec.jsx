@@ -28,7 +28,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 
 // Mock moment.js to use a specific date
 jest.mock('moment', () => {
-  const testDate = new Date('09/07/2020');
+  const testDate = new Date('2020-09-07');
 
   return () => jest.requireActual('moment')(testDate);
 });
