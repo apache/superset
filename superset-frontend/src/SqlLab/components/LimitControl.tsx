@@ -17,11 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import {
-  FormGroup,
-  FormControl,
-  FormControlProps,
-} from 'react-bootstrap';
+import { FormGroup, FormControl, FormControlProps } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import { t, styled } from '@superset-ui/core';
 
@@ -56,7 +52,6 @@ export default class LimitControl extends React.PureComponent<
       textValue: (value || defaultQueryLimit).toString(),
       showOverlay: false,
     };
-    this.handleHide = this.handleHide.bind(this);
     this.handleToggle = this.handleToggle.bind(this);
     this.submitAndClose = this.submitAndClose.bind(this);
   }
@@ -85,10 +80,6 @@ export default class LimitControl extends React.PureComponent<
     this.setState(prevState => ({ showOverlay: !prevState.showOverlay }));
   }
 
-  handleHide() {
-    this.setState({ showOverlay: false });
-  }
-
   renderPopover() {
     const { textValue } = this.state;
     const isValid = this.isValidLimit(textValue);
@@ -98,48 +89,48 @@ export default class LimitControl extends React.PureComponent<
         ? t(' and not greater than %s', this.props.maxRow)
         : '');
     return (
-        <StyledPopoverContent>
-          <ControlHeader
-            label={t('Row limit')}
-            validationErrors={!isValid ? [errorMsg] : []}
+      <StyledPopoverContent>
+        <ControlHeader
+          label={t('Row limit')}
+          validationErrors={!isValid ? [errorMsg] : []}
+        />
+        <FormGroup>
+          <FormControl
+            type="text"
+            value={textValue}
+            placeholder={t(`Max: ${this.props.maxRow}`)}
+            bsSize="small"
+            onChange={(
+              event: React.FormEvent<FormControl & FormControlProps>,
+            ) =>
+              this.setState({
+                textValue: (event.currentTarget?.value as string) ?? '',
+              })
+            }
           />
-          <FormGroup>
-            <FormControl
-              type="text"
-              value={textValue}
-              placeholder={t(`Max: ${this.props.maxRow}`)}
-              bsSize="small"
-              onChange={(
-                event: React.FormEvent<FormControl & FormControlProps>,
-              ) =>
-                this.setState({
-                  textValue: (event.currentTarget?.value as string) ?? '',
-                })
-              }
-            />
-          </FormGroup>
-          <div className="clearfix">
-            <Button
-              buttonSize="small"
-              buttonStyle="primary"
-              className="float-right ok"
-              disabled={!isValid}
-              onClick={this.submitAndClose}
-            >
-              {t('Ok')}
-            </Button>
-            <Button
-              buttonSize="small"
-              className="float-right reset"
-              onClick={this.setValueAndClose.bind(
-                this,
-                this.props.defaultQueryLimit.toString(),
-              )}
-            >
-              {t('Cancel')}
-            </Button>
-          </div>
-        </StyledPopoverContent>
+        </FormGroup>
+        <div className="clearfix">
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
+            className="float-right ok"
+            disabled={!isValid}
+            onClick={this.submitAndClose}
+          >
+            {t('Ok')}
+          </Button>
+          <Button
+            buttonSize="small"
+            className="float-right reset"
+            onClick={this.setValueAndClose.bind(
+              this,
+              this.props.defaultQueryLimit.toString(),
+            )}
+          >
+            {t('Cancel')}
+          </Button>
+        </div>
+      </StyledPopoverContent>
     );
   }
 
@@ -148,8 +139,7 @@ export default class LimitControl extends React.PureComponent<
       <div>
         <Popover
           content={this.renderPopover()}
-          placement="right"
-          onHide={this.handleHide}
+          placement="top"
           visible={this.state.showOverlay}
         >
           <Label onClick={this.handleToggle}>

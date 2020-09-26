@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { OverlayTrigger, Popover } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
+import Popover from 'src/components/Popover';
 import FormRow from '../../../components/FormRow';
 import SelectControl from './SelectControl';
 import CheckboxControl from './CheckboxControl';
@@ -265,9 +265,7 @@ export default class FilterBoxItemControl extends React.Component {
 
   renderPopover() {
     return (
-      <Popover id="ts-col-popo" title={t('Filter Configuration')}>
-        <div style={STYLE_WIDTH}>{this.renderForm()}</div>
-      </Popover>
+      <div style={STYLE_WIDTH}>{this.renderForm()}</div>
     );
   }
 
@@ -275,20 +273,18 @@ export default class FilterBoxItemControl extends React.Component {
     return (
       <span>
         {this.textSummary()}{' '}
-        <OverlayTrigger
-          container={document.body}
-          trigger="click"
-          rootClose
-          ref="trigger"
+        <Popover
+          content={this.renderPopover()}
           placement="right"
-          overlay={this.renderPopover()}
+          title={t('Filter Configuration')}
+          visible={this.state.popoverVisible}
         >
           <InfoTooltipWithTrigger
             icon="edit"
             className="text-primary"
             label="edit-ts-column"
           />
-        </OverlayTrigger>
+        </Popover>
       </span>
     );
   }

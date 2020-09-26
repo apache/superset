@@ -22,10 +22,21 @@ import { styled } from '@superset-ui/core';
 
 export interface PopoverProps {
   children?: React.ReactNode;
+  content: React.ReactNode;
+  placement?: string;
 }
 
 const SupersetPopover = styled(AntdPopover)``;
 
-export default function Popover({ children, ...popoverProps }: PopoverProps) {
-  return <SupersetPopover {...popoverProps}>{children}</SupersetPopover>;
+export default function Popover({
+  children,
+  content
+  placement,
+  ...extraProps
+}: PopoverProps) {
+  return (
+    <SupersetPopover content={content} placement={placement} {...extraProps}>
+      {children}
+    </SupersetPopover>
+  );
 }
