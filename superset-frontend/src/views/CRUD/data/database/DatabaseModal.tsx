@@ -21,6 +21,7 @@ import { styled, t, SupersetClient } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
@@ -163,11 +164,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       .then(() => {
         addSuccessToast(t('Connection looks good!'));
       })
-      .catch(() => {
-        addDangerToast(
-          t('ERROR: Connection failed, please check your connection settings'),
-        );
-      });
+      .catch(response =>
+        getClientErrorObject(response).then((error) => {
+          addDangerToast(t('ERROR: Connection failed. ') + error?.message || '',
+        }),
+      );
   };
 
   // Functions
