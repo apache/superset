@@ -20,14 +20,13 @@ import React from 'react';
 import {
   FormGroup,
   FormControl,
-  Overlay,
-  Popover,
   FormControlProps,
 } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import { t, styled } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
+import Popover from 'src/components/Popover';
 import ControlHeader from '../../explore/components/ControlHeader';
 
 export interface LimitControlProps {
@@ -99,7 +98,6 @@ export default class LimitControl extends React.PureComponent<
         ? t(' and not greater than %s', this.props.maxRow)
         : '');
     return (
-      <Popover id="sqllab-limit-results">
         <StyledPopoverContent>
           <ControlHeader
             label={t('Row limit')}
@@ -124,7 +122,7 @@ export default class LimitControl extends React.PureComponent<
             <Button
               buttonSize="small"
               buttonStyle="primary"
-              className="float-right ok m-l-5"
+              className="float-right ok"
               disabled={!isValid}
               onClick={this.submitAndClose}
             >
@@ -142,25 +140,22 @@ export default class LimitControl extends React.PureComponent<
             </Button>
           </div>
         </StyledPopoverContent>
-      </Popover>
     );
   }
 
   render() {
     return (
       <div>
-        <Label onClick={this.handleToggle}>
-          LIMIT {this.props.value || this.props.maxRow}
-        </Label>
-        <Overlay
-          rootClose
-          show={this.state.showOverlay}
-          onHide={this.handleHide}
+        <Popover
+          content={this.renderPopover()}
           placement="right"
-          target={this}
+          onHide={this.handleHide}
+          visible={this.state.showOverlay}
         >
-          {this.renderPopover()}
-        </Overlay>
+          <Label onClick={this.handleToggle}>
+            LIMIT {this.props.value || this.props.maxRow}
+          </Label>
+        </Popover>
       </div>
     );
   }
