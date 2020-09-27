@@ -146,7 +146,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     ]
     edit_columns = add_columns
 
-    search_columns = ("id", "dashboard_title", "slug", "owners", "published", "created_by")
+    search_columns = (
+        "created_by",
+        "dashboard_title",
+        "id",
+        "owners",
+        "published",
+        "slug",
+    )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [DashboardFavoriteFilter],
