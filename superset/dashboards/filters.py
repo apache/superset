@@ -26,9 +26,10 @@ from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter, get_user_roles
+from superset.views.base_api import BaseFavoriteFilter
 
 
-class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class DashboardTitleOrSlugFilter(BaseFilter):
     name = _("Title or Slug")
     arg_name = "title_or_slug"
 
@@ -44,24 +45,15 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
         )
 
 
-class DashboardFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class DashboardFavoriteFilter(BaseFavoriteFilter):
     """
     Custom filter for the GET list that filters all dashboards that a user has favored
     """
 
     name = _("Is favorite")
     arg_name = "dashboard_is_fav"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        # If anonymous user filter nothing
-        if security_manager.current_user is None:
-            return query
-        users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
-            and_(FavStar.user_id == g.user.id, FavStar.class_name == "Dashboard",)
-        )
-        if value:
-            return query.filter(and_(Dashboard.id.in_(users_favorite_dash_query),))
-        return query.filter(and_(~Dashboard.id.in_(users_favorite_dash_query),))
+    class_name = "Dashboard"
+    model = Dashboard
 
 
 class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods

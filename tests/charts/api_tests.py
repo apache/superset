@@ -24,12 +24,14 @@ from unittest import mock
 import humanize
 import prison
 import pytest
+from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from superset.utils.core import get_example_database
 from tests.test_app import app
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
+from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import core as utils
@@ -38,6 +40,7 @@ from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
 
 CHART_DATA_URI = "api/v1/chart/data"
+CHARTS_FIXTURE_COUNT = 10
 
 
 class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
@@ -75,6 +78,30 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.add(slice)
         db.session.commit()
         return slice
+
+    @pytest.fixture()
+    def create_charts(self):
+        with self.create_app().app_context():
+            charts = []
+            admin = self.get_user("admin")
+            for cx in range(CHARTS_FIXTURE_COUNT - 1):
+                charts.append(self.insert_chart(f"name{cx}", [admin.id], 1))
+            fav_charts = []
+            for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
+                fav_star = FavStar(
+                    user_id=admin.id, class_name="Slice", obj_id=charts[cx].id
+                )
+                db.session.add(fav_star)
+                db.session.commit()
+                fav_charts.append(fav_star)
+            yield charts
+
+            # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
+            for fav_chart in fav_charts:
+                db.session.delete(fav_chart)
+            db.session.commit()
 
     def test_delete_chart(self):
         """
@@ -639,6 +666,39 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(chart3)
         db.session.delete(chart4)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_charts")
+    def test_get_dashboards_favorite_filter(self):
+        """
+        Dashboard API: Test get charts favorite filter
+        """
+        admin = self.get_user("admin")
+        users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
+            and_(FavStar.user_id == admin.id, FavStar.class_name == "Slice",)
+        )
+        expected_models = (
+            db.session.query(Dashboard)
+            .filter(and_(Dashboard.id.in_(users_favorite_dash_query),))
+            .order_by(Dashboard.dashboard_title.asc())
+            .all()
+        )
+
+        arguments = {
+            "filters": [{"col": "id", "opr": "chart_is_fav", "value": True}],
+            "order_column": "slice_name",
+            "order_direction": "asc",
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data["count"], len(expected_models))
+
+        for i, expected_model in enumerate(expected_models):
+            assert expected_model.dashboard_title == data["result"][i]["slice_name"]
 
     def test_get_charts_page(self):
         """

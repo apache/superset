@@ -23,6 +23,7 @@ from sqlalchemy.orm.query import Query
 from superset import security_manager
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter
+from superset.views.base_api import BaseFavoriteFilter
 
 
 class ChartNameOrDescriptionFilter(
@@ -41,6 +42,17 @@ class ChartNameOrDescriptionFilter(
                 Slice.description.ilike(ilike_value),
             )
         )
+
+
+class ChartFavoriteFilter(BaseFavoriteFilter):
+    """
+    Custom filter for the GET list that filters all charts that a user has favored
+    """
+
+    name = _("Is favorite")
+    arg_name = "chart_is_fav"
+    class_name = "Slice"
+    model = Slice
 
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
