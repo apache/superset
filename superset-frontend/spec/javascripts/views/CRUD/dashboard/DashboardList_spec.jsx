@@ -70,7 +70,7 @@ fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 describe('DashboardList', () => {
   const isFeatureEnabledMock = jest
     .spyOn(featureFlags, 'isFeatureEnabled')
-    .mockImplementation(feature => feature === 'THUMBNAILS');
+    .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
 
   afterAll(() => {
     isFeatureEnabledMock.restore();
@@ -118,12 +118,12 @@ describe('DashboardList', () => {
 
   it('edits', () => {
     expect(wrapper.find(PropertiesModal)).not.toExist();
-    wrapper.find('[data-test="pencil"]').first().simulate('click');
+    wrapper.find('[data-test="edit-alt"]').first().simulate('click');
     expect(wrapper.find(PropertiesModal)).toExist();
   });
 
   it('card view edits', () => {
-    wrapper.find('[data-test="pencil"]').last().simulate('click');
+    wrapper.find('[data-test="edit-alt"]').last().simulate('click');
     expect(wrapper.find(PropertiesModal)).toExist();
   });
 

@@ -493,3 +493,8 @@ export const query = {
   ctas: false,
   cached: false,
 };
+
+export const dataTableProps = {
+  columns: ['dbId', 'sql'],
+  queries,
+};

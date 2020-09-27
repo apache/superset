@@ -78,7 +78,7 @@ fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 describe('ChartList', () => {
   const isFeatureEnabledMock = jest
     .spyOn(featureFlags, 'isFeatureEnabled')
-    .mockImplementation(feature => feature === 'THUMBNAILS');
+    .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
 
   afterAll(() => {
     isFeatureEnabledMock.restore();
@@ -125,7 +125,7 @@ describe('ChartList', () => {
 
   it('edits', () => {
     expect(wrapper.find(PropertiesModal)).not.toExist();
-    wrapper.find('[data-test="pencil"]').first().simulate('click');
+    wrapper.find('[data-test="edit-alt"]').first().simulate('click');
     expect(wrapper.find(PropertiesModal)).toExist();
   });
 

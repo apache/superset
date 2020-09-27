@@ -59,7 +59,6 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
                   ? 'favorite-selected'
                   : 'favorite-unselected'
               }
-              viewBox="0 0 16 15"
               width={this.props.width || 20}
               height={this.props.height || 'auto'}
             />
@@ -78,7 +77,6 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
           name={
             this.props.isStarred ? 'favorite-selected' : 'favorite-unselected'
           }
-          viewBox="0 0 16 15"
           width={this.props.width || 20}
           height={this.props.height || 'auto'}
         />

@@ -160,12 +160,7 @@ export default class CRUDCollection extends React.PureComponent<
 
   renderHeaderRow() {
     const cols = this.effectiveTableColumns();
-    const {
-      allowAddItem,
-      allowDeletes,
-      expandFieldset,
-      extraButtons,
-    } = this.props;
+    const { allowDeletes, expandFieldset, extraButtons } = this.props;
     return (
       <thead>
         <tr>
@@ -174,15 +169,8 @@ export default class CRUDCollection extends React.PureComponent<
             <th key={col}>{this.getLabel(col)}</th>
           ))}
           {extraButtons}
-          {allowDeletes && !allowAddItem && (
+          {allowDeletes && (
             <th key="delete-item" aria-label="Delete" className="tiny-cell" />
-          )}
-          {allowAddItem && (
-            <th key="add-item">
-              <Button buttonStyle="primary" onClick={this.onAddItem}>
-                <i className="fa fa-plus" /> {t('Add Item')}
-              </Button>
-            </th>
           )}
         </tr>
       </thead>
@@ -293,6 +281,17 @@ export default class CRUDCollection extends React.PureComponent<
   render() {
     return (
       <div className="CRUD">
+        <span className="float-right m-t-10 m-r-10">
+          {this.props.allowAddItem && (
+            <Button
+              buttonSize="sm"
+              buttonStyle="primary"
+              onClick={this.onAddItem}
+            >
+              <i className="fa fa-plus" /> {t('Add Item')}
+            </Button>
+          )}
+        </span>
         <table className="table">
           {this.renderHeaderRow()}
           {this.renderTableBody()}

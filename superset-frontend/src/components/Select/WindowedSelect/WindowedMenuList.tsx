@@ -21,8 +21,8 @@ import React, {
   useEffect,
   Component,
   FunctionComponent,
-  RefObject,
   ReactElement,
+  RefObject,
 } from 'react';
 import {
   ListChildComponentProps,
@@ -106,9 +106,11 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
   } = props;
   const {
     // Expose react-window VariableSizeList instance and HTML elements
-    windowListRef = useRef(null),
+    windowListRef: windowListRef_,
     windowListInnerRef,
   } = selectProps;
+  const defaultWindowListRef = useRef<WindowedList>(null);
+  const windowListRef = windowListRef_ || defaultWindowListRef;
 
   // try get default option height from theme configs
   let { optionHeight } = selectProps;
@@ -118,7 +120,6 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
 
   const itemCount = children.length;
   const totalHeight = optionHeight * itemCount;
-  const listRef: RefObject<WindowedList> = windowListRef || useRef(null);
 
   const Row: FunctionComponent<ListChildComponentProps> = ({
     data,
@@ -130,10 +131,10 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
 
   useEffect(() => {
     const lastSelected = getLastSelected(children);
-    if (listRef.current && lastSelected) {
-      listRef.current.scrollToItem(lastSelected);
+    if (windowListRef.current && lastSelected) {
+      windowListRef.current.scrollToItem(lastSelected);
     }
-  }, [children]);
+  }, [children, windowListRef]);
 
   return (
     <WindowedList
@@ -145,7 +146,7 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
         },
         className,
       )}
-      ref={listRef}
+      ref={windowListRef}
       outerRef={innerRef}
       innerRef={windowListInnerRef}
       height={Math.min(totalHeight, maxHeight)}
