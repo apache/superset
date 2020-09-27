@@ -44,7 +44,7 @@ class ChartNameOrDescriptionFilter(
         )
 
 
-class ChartFavoriteFilter(BaseFavoriteFilter):
+class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all charts that a user has favored
     """

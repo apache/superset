@@ -16,7 +16,6 @@
 # under the License.
 from typing import Any
 
-from flask import g
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
@@ -29,7 +28,7 @@ from superset.views.base import BaseFilter, get_user_roles
 from superset.views.base_api import BaseFavoriteFilter
 
 
-class DashboardTitleOrSlugFilter(BaseFilter):
+class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("Title or Slug")
     arg_name = "title_or_slug"
 
@@ -45,7 +44,9 @@ class DashboardTitleOrSlugFilter(BaseFilter):
         )
 
 
-class DashboardFavoriteFilter(BaseFavoriteFilter):
+class DashboardFavoriteFilter(
+    BaseFavoriteFilter
+):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all dashboards that a user has favored
     """

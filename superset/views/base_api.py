@@ -21,7 +21,7 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, 
 from apispec import APISpec
 from apispec.exceptions import DuplicateComponentNameError
 from flask import Blueprint, g, Response
-from flask_appbuilder import AppBuilder, Model, ModelRestApi
+from flask_appbuilder import AppBuilder, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
@@ -91,7 +91,7 @@ class RelatedFieldFilter:
         self.filter_class = filter_class
 
 
-class BaseFavoriteFilter(BaseFilter):
+class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     Base Custom filter for the GET list that filters all dashboards, slices
     that a user has favored or not

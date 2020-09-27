@@ -668,7 +668,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.commit()
 
     @pytest.mark.usefixtures("create_charts")
-    def test_get_dashboards_favorite_filter(self):
+    def test_get_charts_favorite_filter(self):
         """
         Dashboard API: Test get charts favorite filter
         """
@@ -677,9 +677,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             and_(FavStar.user_id == admin.id, FavStar.class_name == "Slice",)
         )
         expected_models = (
-            db.session.query(Dashboard)
-            .filter(and_(Dashboard.id.in_(users_favorite_dash_query),))
-            .order_by(Dashboard.dashboard_title.asc())
+            db.session.query(Slice)
+            .filter(and_(Slice.id.in_(users_favorite_dash_query),))
+            .order_by(Slice.slice_name.asc())
             .all()
         )
 
@@ -698,7 +698,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(data["count"], len(expected_models))
 
         for i, expected_model in enumerate(expected_models):
-            assert expected_model.dashboard_title == data["result"][i]["slice_name"]
+            assert expected_model.slice_name == data["result"][i]["slice_name"]
 
     def test_get_charts_page(self):
         """
