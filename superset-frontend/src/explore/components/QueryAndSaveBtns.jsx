@@ -74,7 +74,7 @@ export default function QueryAndSaveBtns({
   chartIsStale,
   errorMessage,
 }) {
-  let qryButtonStyle = 'secondary';
+  let qryButtonStyle = 'tertiary';
   if (errorMessage) {
     qryButtonStyle = 'danger';
   } else if (chartIsStale) {
@@ -109,7 +109,7 @@ export default function QueryAndSaveBtns({
         <ButtonGroup className="query-and-save">
           {qryOrStopButton}
           <Button
-            buttonStyle="secondary"
+            buttonStyle="tertiary"
             buttonSize="small"
             data-target="#save_modal"
             data-toggle="modal"

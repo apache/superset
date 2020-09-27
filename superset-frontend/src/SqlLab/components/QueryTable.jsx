@@ -19,17 +19,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { Table } from 'reactable-arc';
 import { ProgressBar, Well } from 'react-bootstrap';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
+import DataTable from '@superset-ui/plugin-chart-table/lib/DataTable';
 
 import Button from 'src/components/Button';
+import { fDuration } from 'src/modules/dates';
 import Link from '../../components/Link';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
-import { fDuration } from '../../modules/dates';
 import QueryStateLabel from './QueryStateLabel';
 
 const propTypes = {
@@ -213,14 +213,20 @@ class QueryTable extends React.PureComponent {
       })
       .reverse();
     return (
-      <div className="QueryTable">
-        <Table
-          columns={this.props.columns}
-          className="table table-condensed"
-          data={data}
-          itemsPerPage={50}
-        />
-      </div>
+      <DataTable
+        tableClassName="table table-condensed"
+        columns={this.props.columns.map(column => ({
+          accessor: column,
+          Header: () => <th>{column}</th>,
+          Cell: ({ value }) => <td>{value}</td>,
+        }))}
+        data={data}
+        pageSize={10}
+        maxPageItemCount={9}
+        searchInput={false}
+        height="100%"
+        sticky
+      />
     );
   }
 }

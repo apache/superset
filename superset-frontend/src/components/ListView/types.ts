@@ -53,7 +53,8 @@ export interface Filter {
     | 'rel_m_m'
     | 'rel_o_m'
     | 'title_or_slug'
-    | 'name_or_description';
+    | 'name_or_description'
+    | 'all_text';
   input?: 'text' | 'textarea' | 'select' | 'checkbox' | 'search';
   unfilteredLabel?: string;
   selects?: SelectOption[];

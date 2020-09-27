@@ -25,7 +25,7 @@ from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.models.core import Database
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):

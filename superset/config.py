@@ -146,9 +146,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
 # Your App secret key
-SECRET_KEY = (
-    "\2\1thisismyscretkey\1\2\e\y\y\h"  # pylint: disable=anomalous-backslash-in-string
-)
+SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h"
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -309,8 +307,15 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
+    "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     "DASHBOARD_LEVEL_ACCESS": False,
 }
+
+# Set the default view to card/grid view if thumbnail support is enabled.
+# Setting LISTVIEW_DEFAULT_CARD_VIEW to False will force the default view to
+# always be the table layout
+if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
+    DEFAULT_FEATURE_FLAGS["LISTVIEW_DEFAULT_CARD_VIEW"] = True
 
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}

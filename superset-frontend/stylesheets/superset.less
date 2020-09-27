@@ -20,7 +20,7 @@
 @import './less/variables.less';
 @import './less/index.less';
 
-@datasource-sql-expression-width: 450px;
+@datasource-sql-expression-width: 315px;
 
 .alert.alert-danger > .debugger {
   color: @danger;
@@ -91,11 +91,6 @@ input[type='checkbox'] {
 .header span.label {
   margin-left: 5px;
   margin-right: 5px;
-}
-
-#timer {
-  width: 80px;
-  text-align: right;
 }
 
 .notbtn {
@@ -229,6 +224,7 @@ table.table-no-hover tr:hover {
   font-family: @font-family-monospace;
   display: inline-block;
   min-width: @datasource-sql-expression-width;
+  width: 100%;
 }
 
 .editable-title.datasource-sql-expression input {
@@ -365,9 +361,6 @@ table.table-no-hover tr:hover {
 }
 
 /** table on both sides of the gap **/
-.panel .table-responsive {
-  padding: 0 1%;
-}
 @media screen and (max-width: 767px) {
   .panel .table-responsive {
     width: 98%;
@@ -527,17 +520,6 @@ g.annotation-container {
 
 tr.reactable-column-header th.reactable-header-sortable {
   padding-right: 17px;
-}
-
-.fave-unfave-icon {
-  .fa-star-o,
-  .fa-star {
-    &,
-    &:hover,
-    &:active {
-      color: @almost-black;
-    }
-  }
 }
 
 .metric-edit-popover-label-input {

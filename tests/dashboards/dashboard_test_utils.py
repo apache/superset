@@ -102,6 +102,7 @@ def insert_dashboard(
     dashboard_title: str,
     slug: Optional[str],
     owners: List[int],
+    created_by=None,
     slices: Optional[List[Slice]] = None,
     position_json: str = "",
     css: str = "",
@@ -122,6 +123,7 @@ def insert_dashboard(
         json_metadata=json_metadata,
         slices=slices,
         published=published,
+        created_by=created_by,
     )
     appbuilder.get_session.add(dashboard)
     appbuilder.get_session.commit()

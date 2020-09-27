@@ -18,27 +18,33 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Table } from 'reactable-arc';
+import DataTable from '@superset-ui/plugin-chart-table/lib/DataTable';
+import * as useMountedMemo from '@superset-ui/plugin-chart-table/lib/DataTable/utils/useMountedMemo';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 
-import { queries } from './fixtures';
+import { dataTableProps } from 'spec/javascripts/sqllab/fixtures';
 
 describe('QueryTable', () => {
+  // hack for mocking hook that implements sticky behaviour of DataTable
+  jest
+    .spyOn(useMountedMemo, 'default')
+    .mockImplementation(() => ({ width: 100, height: 100 }));
   const mockedProps = {
-    queries,
+    ...dataTableProps,
+    displayLimit: 10000,
   };
   it('is valid', () => {
-    expect(React.isValidElement(<QueryTable />)).toBe(true);
+    expect(React.isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
   });
   it('is valid with props', () => {
     expect(React.isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
   });
   it('renders a proper table', () => {
     const wrapper = shallow(<QueryTable {...mockedProps} />);
-    expect(wrapper.find(Table)).toExist();
-    expect(wrapper.find(Table).shallow().find('table')).toExist();
-    expect(wrapper.find(Table).shallow().find('table').find('Tr')).toHaveLength(
-      2,
-    );
+    expect(wrapper.find(DataTable)).toExist();
+    expect(wrapper.find(DataTable).shallow().find('table')).toExist();
+    expect(
+      wrapper.find(DataTable).shallow().find('tbody').find('tr'),
+    ).toHaveLength(2);
   });
 });

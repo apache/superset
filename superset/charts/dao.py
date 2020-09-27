@@ -25,7 +25,6 @@ from superset.extensions import db
 from superset.models.slice import Slice
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from superset.connectors.base.models import BaseDatasource
 
 logger = logging.getLogger(__name__)

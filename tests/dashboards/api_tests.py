@@ -83,7 +83,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         expected_title = self.random_title()
         expected_slug = self.random_slug()
         dashboard = dashboard_utils.insert_dashboard(
-            expected_title, expected_slug, [admin.id]
+            expected_title, expected_slug, [admin.id], admin
         )
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -94,6 +94,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "changed_by_name": "",
             "changed_by_url": "",
             "charts": [],
+            "created_by": {"id": 1, "first_name": "admin", "last_name": "user",},
             "id": dashboard.id,
             "css": "",
             "dashboard_title": expected_title,
@@ -133,7 +134,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Dashboard API: Test get dashboard not found
         """
-        max_id = appbuilder.get_session.query(func.max(Dashboard.id)).scalar()
+        max_id = db.session.query(func.max(Dashboard.id)).scalar()
         self.login(username="admin")
         uri = f"api/v1/dashboard/{max_id + 1}"
         rv = self.get_assert_metric(uri, "get")
@@ -162,7 +163,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         admin = self.get_user("admin")
         start_changed_on = datetime.now()
-        dashboard = dashboard_utils.insert_dashboard(
+        dashboard_utils.insert_dashboard(
             self.random_title(), self.random_slug(), [admin.id]
         )
 
@@ -181,10 +182,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             data["result"][0]["changed_on_delta_humanized"],
             humanize.naturaltime(datetime.now() - start_changed_on),
         )
-
-        # rollback changes
-        # appbuilder.get_session.delete(dashboard)
-        # appbuilder.get_session.commit()
 
     def test_get_dashboards_filter(self):
         """
@@ -265,13 +262,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 0)
 
-        # rollback changes
-        # appbuilder.get_session.delete(dashboard1)
-        # appbuilder.get_session.delete(dashboard2)
-        # appbuilder.get_session.delete(dashboard3)
-        # appbuilder.get_session.delete(dashboard4)
-        # appbuilder.get_session.commit()
-
     def test_get_dashboards_no_data_access(self):
         """
         Dashboard API: Test get dashboards no data access
@@ -289,10 +279,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(0, data["count"])
-
-        # rollback changes
-        # appbuilder.get_session.delete(dashboard)
-        # appbuilder.get_session.commit()
 
     @mark.skipif(
         not dashboard_utils.is_dashboard_level_access_enabled(),
@@ -312,7 +298,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 200)
-        model = appbuilder.get_session.query(Dashboard).get(dashboard_id)
+        model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
         dashboard_utils.assert_permissions_were_deleted(self, dashboard)
         dashboard_utils.clean_dashboard_matching_roles()
@@ -333,7 +319,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 200)
-        model = appbuilder.get_session.query(Dashboard).get(dashboard_id)
+        model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
 
     def test_delete_bulk_dashboards(self):
@@ -360,7 +346,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
         self.assertEqual(response, expected_response)
         for dashboard_id in dashboard_ids:
-            model = appbuilder.get_session.query(Dashboard).get(dashboard_id)
+            model = db.session.query(Dashboard).get(dashboard_id)
             self.assertEqual(model, None)
 
     def test_delete_bulk_dashboards_bad_request(self):
@@ -408,7 +394,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 200)
-        model = appbuilder.get_session.query(Dashboard).get(dashboard_id)
+        model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
 
     def test_delete_bulk_dashboard_admin_not_owned(self):
@@ -437,7 +423,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(response, expected_response)
 
         for dashboard_id in dashboard_ids:
-            model = appbuilder.get_session.query(Dashboard).get(dashboard_id)
+            model = db.session.query(Dashboard).get(dashboard_id)
             self.assertEqual(model, None)
 
     def test_delete_dashboard_not_owned(self):
@@ -451,9 +437,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            appbuilder.get_session.query(Slice)
-            .filter_by(slice_name="Girl Name Cloud")
-            .first()
+            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
         )
         dashboard = dashboard_utils.insert_dashboard(
             f"title{self.random_str()}",
@@ -467,14 +451,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
 
-    def delete_user(self, user):
-        # appbuilder.get_session.execute(
-        #     dashboard_user.delete().where(
-        #         dashboard_user.c.dashboard_id == dashboard.id
-        #     ))
-        # appbuilder.get_session.delete(user)
-        pass
-
     def test_delete_bulk_dashboard_not_owned(self):
         """
         Dashboard API: Test delete bulk try not owned
@@ -486,9 +462,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            appbuilder.get_session.query(Slice)
-            .filter_by(slice_name="Girl Name Cloud")
-            .first()
+            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
         )
 
         dashboard_count = 4
@@ -551,7 +525,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(uri, dashboard_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
-        model = appbuilder.get_session.query(Dashboard).get(data.get("id"))
+        model = db.session.query(Dashboard).get(data.get("id"))
         if dashboard_utils.is_dashboard_level_access_enabled():
             dashboard_utils.assert_permission_was_created(self, model)
 
@@ -564,10 +538,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 201)
-        data = json.loads(rv.data.decode("utf-8"))
-        model = appbuilder.get_session.query(Dashboard).get(data.get("id"))
-        # appbuilder.get_session.delete(model)
-        # appbuilder.get_session.commit()
 
     def test_create_dashboard_empty(self):
         """
@@ -578,20 +548,12 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 201)
-        # data = json.loads(rv.data.decode("utf-8"))
-        # model = appbuilder.get_session.query(Dashboard).get(data.get("id"))
-        # appbuilder.get_session.delete(model)
-        # appbuilder.get_session.commit()
 
         dashboard_data = {"dashboard_title": ""}
         self.login(username="admin")
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 201)
-        # data = json.loads(rv.data.decode("utf-8"))
-        # model = appbuilder.get_session.query(Dashboard).get(data.get("id"))
-        # appbuilder.get_session.delete(model)
-        # appbuilder.get_session.commit()
 
     def test_create_dashboard_validate_title(self):
         """
@@ -633,9 +595,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"message": {"slug": ["Length must be between 1 and 255."]}}
         self.assertEqual(response, expected_response)
-
-        # appbuilder.get_session.delete(dashboard)
-        # appbuilder.get_session.commit()
 
     def test_create_dashboard_validate_owners(self):
         """
@@ -697,7 +656,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_data_clone[title_field] = self.random_title()
         rv = self.put_assert_metric(uri, dashboard_data_clone, "put")
         self.assertEqual(rv.status_code, 200)
-        model = appbuilder.get_session.query(Dashboard).get(dashboard_id)
+        model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model.dashboard_title, dashboard_data_clone[title_field])
         self.assertEqual(model.slug, dashboard_data_clone["slug"])
         self.assertEqual(model.position_json, dashboard_data_clone["position_json"])
@@ -723,16 +682,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         admin = self.get_user("admin")
         slices = []
         slices.append(
-            appbuilder.get_session.query(Slice)
-            .filter_by(slice_name="Girl Name Cloud")
-            .first()
+            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
         )
-        slices.append(
-            appbuilder.get_session.query(Slice).filter_by(slice_name="Trends").first()
-        )
-        slices.append(
-            appbuilder.get_session.query(Slice).filter_by(slice_name="Boys").first()
-        )
+        slices.append(db.session.query(Slice).filter_by(slice_name="Trends").first())
+        slices.append(db.session.query(Slice).filter_by(slice_name="Boys").first())
 
         dashboard = dashboard_utils.insert_dashboard(
             self.random_title(), self.random_slug(), [admin.id], slices=slices,
@@ -746,18 +699,15 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         # verify slices owners include alpha1 and alpha2 users
         slices_ids = [slice.id for slice in slices]
         # Refetch Slices
-        slices = (
-            appbuilder.get_session.query(Slice).filter(Slice.id.in_(slices_ids)).all()
-        )
+        slices = db.session.query(Slice).filter(Slice.id.in_(slices_ids)).all()
         for slice in slices:
             self.assertIn(user_alpha1, slice.owners)
             self.assertIn(user_alpha2, slice.owners)
             self.assertIn(admin, slice.owners)
             # Revert owners on slice
             slice.owners = []
-            appbuilder.get_session.commit()
+            db.session.commit()
 
-    @pytest.mark.update_name_error
     def test_update_partial_dashboard(self):
         """
         Dashboard API: Test update partial
@@ -781,7 +731,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.put(uri, json={"slug": new_slug})
         self.assertEqual(rv.status_code, 200)
 
-        model = appbuilder.get_session.query(Dashboard).get(dashboard_id)
+        model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
         self.assertEqual(model.dashboard_title, changed_title)
         self.assertEqual(model.slug, new_slug)
@@ -803,13 +753,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.put(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 200)
 
-        model = appbuilder.get_session.query(Dashboard).get(dashboard.id)
+        model = db.session.query(Dashboard).get(dashboard.id)
         self.assertEqual(model.published, True)
         self.assertEqual(model.slug, slug)
         self.assertIn(admin, model.owners)
         self.assertIn(gamma, model.owners)
-        # appbuilder.get_session.delete(model)
-        # appbuilder.get_session.commit()
 
     def test_update_dashboard_new_owner(self):
         """
@@ -825,7 +773,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 200)
-        model = appbuilder.get_session.query(Dashboard).get(dashboard_id)
+        model = db.session.query(Dashboard).get(dashboard_id)
         self.assertIn(admin, model.owners)
         for slc in model.slices:
             self.assertIn(admin, slc.owners)
@@ -843,7 +791,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 200)
-        model = appbuilder.get_session.query(Dashboard).get(dashboard_id)
+        model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model.dashboard_title, "title1_changed")
         self.assertEqual(model.slug, "slug1-changed")
 
@@ -880,7 +828,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.put(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 200)
 
-    @pytest.mark.update_name_error
     def test_update_dashboard_not_owned(self):
         """
         Dashboard API: Test update dashboard not owned
@@ -915,7 +862,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.put_assert_metric(uri, dashboard_data, "put")
         self.assertEqual(rv.status_code, 403)
-        appbuilder.get_session.commit()
 
     def test_export(self):
         """

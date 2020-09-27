@@ -34,17 +34,15 @@ describe('Timer', () => {
     wrapper = mount(<Timer {...mockedProps} />);
   });
 
-  it('is a valid element', () => {
+  it('renders correctly', () => {
     expect(React.isValidElement(<Timer {...mockedProps} />)).toBe(true);
+    expect(wrapper.find('span').hasClass('label-warning')).toBe(true);
   });
 
-  it('useEffect starts timer after 30ms and sets state of clockStr', async () => {
+  it('should start timer and sets clockStr', async () => {
+    expect.assertions(2);
     expect(wrapper.find('span').text()).toBe('');
     await new Promise(r => setTimeout(r, 35));
     expect(wrapper.find('span').text()).not.toBe('');
-  });
-
-  it('renders a span with the correct class', () => {
-    expect(wrapper.find('span').hasClass('label-warning')).toBe(true);
   });
 });

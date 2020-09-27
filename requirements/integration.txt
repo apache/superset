@@ -10,7 +10,7 @@ cfgv==3.2.0               # via pre-commit
 click==7.1.2              # via pip-compile-multi, pip-tools
 distlib==0.3.1            # via virtualenv
 filelock==3.0.12          # via tox, virtualenv
-identify==1.5.0           # via pre-commit
+identify==1.5.4           # via pre-commit
 importlib-metadata==1.7.0  # via pluggy, pre-commit, tox, virtualenv
 nodeenv==1.5.0            # via pre-commit
 packaging==20.4           # via tox
@@ -26,7 +26,7 @@ toml==0.10.1              # via pre-commit, tox
 toposort==1.5             # via pip-compile-multi
 tox==3.20.0               # via -r requirements/integration.in
 virtualenv==20.0.31       # via pre-commit, tox
-zipp==3.1.0               # via importlib-metadata
+zipp==3.2.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip

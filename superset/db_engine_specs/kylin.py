@@ -47,5 +47,6 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if tt == utils.TemporalType.TIMESTAMP:
-            return f"""CAST('{dttm.isoformat(sep=" ", timespec="seconds")}' AS TIMESTAMP)"""  # pylint: disable=line-too-long
+            datetime_fomatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""CAST('{datetime_fomatted}' AS TIMESTAMP)"""
         return None

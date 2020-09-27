@@ -111,7 +111,7 @@ export default function ErrorAlert({
         <LeftSideContent>
           <Icon
             className="icon"
-            name={level === 'error' ? 'error' : 'warning'}
+            name={level === 'error' ? 'error-solid' : 'warning-solid'}
             color={supersetTheme.colors[level].base}
           />
           <strong>{title}</strong>
@@ -162,7 +162,7 @@ export default function ErrorAlert({
             <LeftSideContent>
               <Icon
                 className="icon"
-                name={level === 'error' ? 'error' : 'warning'}
+                name={level === 'error' ? 'error-solid' : 'warning-solid'}
                 color={supersetTheme.colors[level].base}
               />
               <div className="title">{title}</div>
