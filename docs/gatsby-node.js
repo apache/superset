@@ -609,4 +609,29 @@ exports.createPages = ({ actions }) => {
     toPath: '/docs/intro',
     isPermanent: true,
   });
+  createRedirect({
+    fromPath: '/tutorial.html',
+    toPath: '/docs/creating-charts-dashboards/first-dashboard',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/tutorial.html#connecting-to-a-new-database',
+    toPath: '/docs/creating-charts-dashboards/first-dashboard',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/tutorial.html#adding-a-new-table',
+    toPath: '/docs/creating-charts-dashboards/first-dashboard',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/tutorial.html#exploring-your-data',
+    toPath: '/docs/creating-charts-dashboards/first-dashboard',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/tutorial.html#creating-a-slice-and-dashboard',
+    toPath: '/docs/creating-charts-dashboards/first-dashboard',
+    isPermanent: true,
+  });
 };

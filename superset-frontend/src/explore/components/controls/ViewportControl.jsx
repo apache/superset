@@ -37,7 +37,7 @@ export const DEFAULT_VIEWPORT = {
 const PARAMS = ['longitude', 'latitude', 'zoom', 'bearing', 'pitch'];
 
 const propTypes = {
-  onChange: PropTypes.func,
+  onChange: PropTypes.func.isRequired,
   value: PropTypes.shape({
     longitude: PropTypes.number,
     latitude: PropTypes.number,

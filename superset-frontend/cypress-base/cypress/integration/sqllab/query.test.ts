@@ -16,43 +16,80 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import shortid from 'shortid';
+import * as shortid from 'shortid';
 import { selectResultsTab, assertSQLLabResultsAreEqual } from './sqllab.helper';
+
+function parseClockStr(node: JQuery) {
+  return Number.parseFloat(node.text().replace(/:/g, ''));
+}
 
 describe('SqlLab query panel', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
     cy.visit('/superset/sqllab');
-
-    cy.route('POST', '/superset/sql_json/').as('sqlLabQuery');
   });
 
   it.skip('supports entering and running a query', () => {
     // row limit has to be < ~10 for us to be able to determine how many rows
     // are fetched below (because React _Virtualized_ does not render all rows)
-    const rowLimit = 3;
+    let clockTime = 0;
+
+    const sampleResponse = {
+      status: 'success',
+      data: [{ '?column?': 1 }],
+      columns: [{ name: '?column?', type: 'INT', is_date: false }],
+      selected_columns: [{ name: '?column?', type: 'INT', is_date: false }],
+      expanded_columns: [],
+    };
+
+    cy.route({
+      method: 'POST',
+      url: '/superset/sql_json/',
+      delay: 1000,
+      response: () => sampleResponse,
+    }).as('mockSQLResponse');
+
+    cy.get('.TableSelector .Select:eq(0)').click();
+    cy.get('.TableSelector .Select:eq(0) input[type=text]')
+      .focus()
+      .type('{enter}');
 
     cy.get('#brace-editor textarea')
-      .clear({ force: true })
-      .type(
-        `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
-        { force: true },
-      );
-    cy.get('#js-sql-toolbar button').eq(0).click();
+      .focus()
+      .clear()
+      .type(`{selectall}{backspace}SELECT 1`);
 
-    cy.wait('@sqlLabQuery');
+    cy.get('#js-sql-toolbar button:eq(0)').eq(0).click();
 
-    selectResultsTab()
-      .eq(0) // ensures results tab in case preview tab exists
-      .then(tableNodes => {
-        const [header, bodyWrapper] = tableNodes[0].childNodes;
-        const body = bodyWrapper.childNodes[0];
-        const expectedColCount = header.childNodes.length;
-        const expectedRowCount = body.childNodes.length;
-        expect(expectedColCount).to.equal(4);
-        expect(expectedRowCount).to.equal(rowLimit);
-      });
+    // wait for 300 milliseconds
+    cy.wait(300);
+
+    // started timer
+    cy.get('.sql-toolbar .label-success').then(node => {
+      clockTime = parseClockStr(node);
+      // should be longer than 0.2s
+      expect(clockTime).greaterThan(0.2);
+    });
+
+    cy.wait('@mockSQLResponse');
+
+    // timer is increasing
+    cy.get('.sql-toolbar .label-success').then(node => {
+      const newClockTime = parseClockStr(node);
+      expect(newClockTime).greaterThan(0.9);
+      clockTime = newClockTime;
+    });
+
+    // rerun the query
+    cy.get('#js-sql-toolbar button:eq(0)').eq(0).click();
+
+    // should restart the timer
+    cy.get('.sql-toolbar .label-success').contains('00:00:00');
+    cy.wait('@mockSQLResponse');
+    cy.get('.sql-toolbar .label-success').then(node => {
+      expect(parseClockStr(node)).greaterThan(0.9);
+    });
   });
 
   it.skip('successfully saves a query', () => {
@@ -64,7 +101,7 @@ describe('SqlLab query panel', () => {
     const savedQueryTitle = `CYPRESS TEST QUERY ${shortid.generate()}`;
 
     // we will assert that the results of the query we save, and the saved query are the same
-    let initialResultsTable = null;
+    let initialResultsTable: HTMLElement | null = null;
     let savedQueryResultsTable = null;
 
     cy.get('#brace-editor textarea')

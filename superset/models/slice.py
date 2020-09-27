@@ -42,7 +42,6 @@ else:
     from superset.viz import BaseViz, viz_types  # type: ignore
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from superset.connectors.base.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -333,8 +332,7 @@ class Slice(
         return f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{self.id}%7D"
 
 
-def set_related_perm(mapper: Mapper, connection: Connection, target: Slice) -> None:
-    # pylint: disable=unused-argument
+def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
     src_class = target.cls_model
     id_ = target.datasource_id
     if id_:
@@ -344,8 +342,8 @@ def set_related_perm(mapper: Mapper, connection: Connection, target: Slice) -> N
             target.schema_perm = ds.schema_perm
 
 
-def event_after_chart_changed(  # pylint: disable=unused-argument
-    mapper: Mapper, connection: Connection, target: Slice
+def event_after_chart_changed(
+    _mapper: Mapper, _connection: Connection, target: Slice
 ) -> None:
     url = get_url_path("Superset.slice", slice_id=target.id, standalone="true")
     cache_chart_thumbnail.delay(url, target.digest, force=True)

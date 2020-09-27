@@ -115,7 +115,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       show={show}
       title={
         <>
-          <StyledIcon name="warning" />
+          <StyledIcon name="warning-solid" />
           {t('Add Dataset')}
         </>
       }

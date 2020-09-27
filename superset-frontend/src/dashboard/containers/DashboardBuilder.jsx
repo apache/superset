@@ -21,6 +21,7 @@ import { connect } from 'react-redux';
 import DashboardBuilder from '../components/DashboardBuilder';
 
 import {
+  setColorSchemeAndUnsavedChanges,
   showBuilderPane,
   setDirectPathToChild,
   setMountedTab,
@@ -34,7 +35,9 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState }) {
   return {
     dashboardLayout: undoableLayout.present,
     editMode: dashboardState.editMode,
+    showBuilderPane: dashboardState.showBuilderPane,
     directPathToChild: dashboardState.directPathToChild,
+    colorScheme: dashboardState.colorScheme,
   };
 }
 
@@ -44,6 +47,7 @@ function mapDispatchToProps(dispatch) {
       deleteTopLevelTabs,
       handleComponentDrop,
       showBuilderPane,
+      setColorSchemeAndUnsavedChanges,
       setDirectPathToChild,
       setMountedTab,
     },

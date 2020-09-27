@@ -54,6 +54,9 @@ const propTypes = {
   dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
+  showBuilderPane: PropTypes.func.isRequired,
+  colorScheme: PropTypes.string,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   setDirectPathToChild: PropTypes.func.isRequired,
@@ -61,7 +64,9 @@ const propTypes = {
 };
 
 const defaultProps = {
+  showBuilderPane: false,
   directPathToChild: [],
+  colorScheme: undefined,
 };
 
 class DashboardBuilder extends React.Component {
@@ -150,7 +155,14 @@ class DashboardBuilder extends React.Component {
   }
 
   render() {
-    const { handleComponentDrop, dashboardLayout, editMode } = this.props;
+    const {
+      handleComponentDrop,
+      dashboardLayout,
+      editMode,
+      showBuilderPane,
+      setColorSchemeAndUnsavedChanges,
+      colorScheme,
+    } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
@@ -260,6 +272,9 @@ class DashboardBuilder extends React.Component {
           {editMode && (
             <BuilderComponentPane
               topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
+              showBuilderPane={showBuilderPane}
+              setColorSchemeAndUnsavedChanges={setColorSchemeAndUnsavedChanges}
+              colorScheme={colorScheme}
             />
           )}
         </div>

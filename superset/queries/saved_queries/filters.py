@@ -17,10 +17,31 @@
 from typing import Any
 
 from flask import g
+from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
+from sqlalchemy import or_
+from sqlalchemy.orm.query import Query
 
 from superset.models.sql_lab import SavedQuery
 from superset.views.base import BaseFilter
+
+
+class SavedQueryAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("All Text")
+    arg_name = "all_text"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+        ilike_value = f"%{value}%"
+        return query.filter(
+            or_(
+                SavedQuery.schema.ilike(ilike_value),
+                SavedQuery.label.ilike(ilike_value),
+                SavedQuery.description.ilike(ilike_value),
+                SavedQuery.sql.ilike(ilike_value),
+            )
+        )
 
 
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods

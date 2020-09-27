@@ -32,7 +32,10 @@ from superset.queries.saved_queries.commands.exceptions import (
     SavedQueryBulkDeleteFailedError,
     SavedQueryNotFoundError,
 )
-from superset.queries.saved_queries.filters import SavedQueryFilter
+from superset.queries.saved_queries.filters import (
+    SavedQueryAllTextFilter,
+    SavedQueryFilter,
+)
 from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
@@ -93,6 +96,8 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "database.database_name",
     ]
 
+    search_filters = {"label": [SavedQueryAllTextFilter]}
+
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
     }
@@ -117,9 +122,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
-    def bulk_delete(
-        self, **kwargs: Any
-    ) -> Response:  # pylint: disable=arguments-differ
+    def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Saved Queries
         ---
         delete:
