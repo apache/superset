@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { t, styled } from '@superset-ui/core';
-import React, { useMemo } from 'react';
+import { SupersetClient, t, styled } from '@superset-ui/core';
+import React, { useState, useMemo } from 'react';
 import moment from 'moment';
 import {
   createFetchRelated,
@@ -30,6 +30,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import ListView, { Filters } from 'src/components/ListView';
+import DeleteModal from 'src/components/DeleteModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
@@ -41,7 +42,10 @@ interface SavedQueryListProps {
   addSuccessToast: (msg: string) => void;
 }
 
-type SavedQueryObject = {};
+type SavedQueryObject = {
+  id: number;
+  label: string;
+};
 
 const StyledTableLabel = styled.div`
   .count {
@@ -64,12 +68,17 @@ function SavedQueryList({
     state: { loading, resourceCount: queryCount, resourceCollection: queries },
     hasPerm,
     fetchData,
-    // refreshData, //TODO: add back later when editing?
+    refreshData,
   } = useListViewResource<SavedQueryObject>(
     'saved_query',
     t('saved_queries'),
     addDangerToast,
   );
+
+  const [
+    queryCurrentlyDeleting,
+    setQueryCurrentlyDeleting,
+  ] = useState<SavedQueryObject | null>(null);
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
@@ -119,6 +128,21 @@ function SavedQueryList({
 
       addSuccessToast(t('Link Copied!'));
     }
+  };
+
+  const handleQueryDelete = ({ id, label }: SavedQueryObject) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/saved_query/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        setQueryCurrentlyDeleting(null);
+        addSuccessToast(t('Deleted: %s', label));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(t('There was an issue deleting %s: %s', label, errMsg)),
+      ),
+    );
   };
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -225,7 +249,7 @@ function SavedQueryList({
           const handleCopy = () => {
             copyQueryLink(original.id);
           };
-          const handleDelete = () => {}; // openQueryDeleteModal(original);
+          const handleDelete = () => setQueryCurrentlyDeleting(original); // openQueryDeleteModal(original);
 
           return (
             <span className="actions">
@@ -349,6 +373,21 @@ function SavedQueryList({
   return (
     <>
       <SubMenu {...menuData} />
+      {queryCurrentlyDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete the selected saved queries.',
+          )}
+          onConfirm={() => {
+            if (queryCurrentlyDeleting) {
+              handleQueryDelete(queryCurrentlyDeleting);
+            }
+          }}
+          onHide={() => setQueryCurrentlyDeleting(null)}
+          open
+          title={t('Delete Query?')}
+        />
+      )}
       <ListView<SavedQueryObject>
         className="saved_query-list-view"
         columns={columns}
