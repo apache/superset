@@ -19,6 +19,7 @@
 
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
+import rison from 'rison';
 import moment from 'moment';
 import {
   createFetchRelated,
@@ -28,8 +29,9 @@ import {
 import { Popover } from 'src/common/components';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import ListView, { Filters } from 'src/components/ListView';
+import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
@@ -65,9 +67,15 @@ function SavedQueryList({
   addSuccessToast,
 }: SavedQueryListProps) {
   const {
-    state: { loading, resourceCount: queryCount, resourceCollection: queries },
+    state: {
+      loading,
+      resourceCount: queryCount,
+      resourceCollection: queries,
+      bulkSelectEnabled,
+    },
     hasPerm,
     fetchData,
+    toggleBulkSelect,
     refreshData,
   } = useListViewResource<SavedQueryObject>(
     'saved_query',
@@ -88,6 +96,13 @@ function SavedQueryList({
     activeChild: 'Saved Queries',
     ...commonMenuData,
   };
+
+  if (canDelete) {
+    menuData.secondaryButton = {
+      name: t('Bulk Select'),
+      onClick: toggleBulkSelect,
+    };
+  }
 
   // Action methods
   const openInSqlLab = function (id: number) {
@@ -141,6 +156,24 @@ function SavedQueryList({
       },
       createErrorHandler(errMsg =>
         addDangerToast(t('There was an issue deleting %s: %s', label, errMsg)),
+      ),
+    );
+  };
+
+  const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/saved_query/?q=${rison.encode(
+        queriesToDelete.map(({ id }) => id),
+      )}`,
+    }).then(
+      ({ json = {} }) => {
+        refreshData();
+        addSuccessToast(json.message);
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting the selected queries: %s', errMsg),
+        ),
       ),
     );
   };
@@ -388,17 +421,77 @@ function SavedQueryList({
           title={t('Delete Query?')}
         />
       )}
-      <ListView<SavedQueryObject>
-        className="saved_query-list-view"
-        columns={columns}
-        count={queryCount}
-        data={queries}
-        fetchData={fetchData}
-        filters={filters}
-        initialSort={initialSort}
-        loading={loading}
-        pageSize={PAGE_SIZE}
-      />
+      <ConfirmStatusChange
+        title={t('Please confirm')}
+        description={t('Are you sure you want to delete the selected queries?')}
+        onConfirm={handleBulkQueryDelete}
+      >
+        {confirmDelete => {
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
+          return (
+            <ListView<SavedQueryObject>
+              className="saved_query-list-view"
+              columns={columns}
+              count={queryCount}
+              data={queries}
+              fetchData={fetchData}
+              filters={filters}
+              initialSort={initialSort}
+              loading={loading}
+              pageSize={PAGE_SIZE}
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={toggleBulkSelect}
+              renderBulkSelectCopy={selected => {
+                const { virtualCount, physicalCount } = selected.reduce(
+                  (acc, e) => {
+                    if (e.original.kind === 'physical') acc.physicalCount += 1;
+                    else if (e.original.kind === 'virtual')
+                      acc.virtualCount += 1;
+                    return acc;
+                  },
+                  { virtualCount: 0, physicalCount: 0 },
+                );
+
+                if (!selected.length) {
+                  return t('0 Selected');
+                }
+                if (virtualCount && !physicalCount) {
+                  return t(
+                    '%s Selected (Virtual)',
+                    selected.length,
+                    virtualCount,
+                  );
+                }
+                if (physicalCount && !virtualCount) {
+                  return t(
+                    '%s Selected (Physical)',
+                    selected.length,
+                    physicalCount,
+                  );
+                }
+
+                return t(
+                  '%s Selected (%s Physical, %s Virtual)',
+                  selected.length,
+                  physicalCount,
+                  virtualCount,
+                );
+              }}
+            />
+          );
+        }}
+      </ConfirmStatusChange>
     </>
   );
 }
