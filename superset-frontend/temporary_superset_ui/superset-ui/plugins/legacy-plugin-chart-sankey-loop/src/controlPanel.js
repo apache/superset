@@ -16,26 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
-import controlPanel from './controlPanel';
+import { t } from '@superset-ui/core';
 
-const metadata = new ChartMetadata({
-  credits: ['https://github.com/ricklupton/d3-sankey-diagram'],
-  description: '',
-  name: t('Sankey Diagram with Loops'),
-  thumbnail,
-  useLegacyApi: true,
-});
-
-export default class SankeyChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./ReactSankeyLoop.js'),
-      metadata,
-      transformProps,
-      controlPanel,
-    });
-  }
-}
+export default {
+  controlPanelSections: [
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [['groupby'], ['metric'], ['adhoc_filters'], ['row_limit']],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [['color_scheme', 'label_colors']],
+    },
+  ],
+  controlOverrides: {
+    groupby: {
+      label: t('Source / Target'),
+      description: t('Choose a source and a target'),
+    },
+  },
+};
