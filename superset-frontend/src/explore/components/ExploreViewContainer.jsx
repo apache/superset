@@ -188,7 +188,7 @@ class ExploreViewContainer extends React.Component {
       return `${this.props.forcedHeight}px`;
     }
     const navHeight = this.props.standalone ? 0 : 90;
-    return `${window.innerHeight - navHeight}px`;
+    return `${window.innerHeight-20}px`; // Removed nav height since there is no Nav - navHeight
   }
 
   handleKeydown(event) {

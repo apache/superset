@@ -23,7 +23,6 @@ import cx from 'classnames';
 import { ParentSize } from '@vx/responsive';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 
 import BuilderComponentPane from './BuilderComponentPane';
@@ -172,11 +171,11 @@ class DashboardBuilder extends React.Component {
     const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
 
     return (
-      <StickyContainer
+      <div
         className={cx('dashboard', editMode && 'dashboard--editing')}
       >
-        <Sticky>
-          {({ style }) => (
+        <div>
+          {//({ style }) => (
             <DragDroppable
               component={dashboardRoot}
               parentComponent={null}
@@ -187,7 +186,7 @@ class DashboardBuilder extends React.Component {
               editMode={editMode}
               // you cannot drop on/displace tabs if they already exist
               disableDragdrop={!!topLevelTabs}
-              style={{ zIndex: 100, ...style }}
+              //style={{ zIndex: 100, ...style }}
             >
               {({ dropIndicatorProps }) => (
                 <div>
@@ -219,8 +218,9 @@ class DashboardBuilder extends React.Component {
                 </div>
               )}
             </DragDroppable>
-          )}
-        </Sticky>
+          //)
+        }
+        </div>
 
         <div className="dashboard-content">
           <div className="grid-container">
@@ -279,7 +279,7 @@ class DashboardBuilder extends React.Component {
           )}
         </div>
         <ToastPresenter />
-      </StickyContainer>
+      </div>
     );
   }
 }

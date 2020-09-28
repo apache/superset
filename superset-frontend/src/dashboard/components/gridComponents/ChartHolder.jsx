@@ -37,7 +37,7 @@ import {
   GRID_GUTTER_SIZE,
 } from '../../util/constants';
 
-const CHART_MARGIN = 32;
+const CHART_MARGIN = 40;
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -208,6 +208,12 @@ class ChartHolder extends React.Component {
     }
 
     return (
+
+      <div className={`slice-${
+                  (component.meta.sliceNameOverride ||
+                  component.meta.sliceName).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() 
+                }`}>
+
       <DragDroppable
         component={component}
         parentComponent={parentComponent}
@@ -281,6 +287,9 @@ class ChartHolder extends React.Component {
           </ResizableContainer>
         )}
       </DragDroppable>
+
+       </div>
+
     );
   }
 }

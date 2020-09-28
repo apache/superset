@@ -1,0 +1,398 @@
+// Stemly 0.1
+// 
+// --------------------------------------------------
+
+body, text, input, p, h1, h2, h3, h4, h5, h6, form {
+  font-family: 'DM Sans', Helvetica, Arial !important;
+}
+
+body {
+  background-color: @gray-bg !important;
+}
+
+hr {
+  border-top: 1px solid @brand-secondary-light4;
+}
+
+.btn-sm, .btn-group-sm > .btn {
+  padding: 5px 10px !important;
+  font-size: @font-size-m !important;
+}
+
+a, .primary {
+  color: #0059E8 !important;
+}
+
+.btn-primary {
+  color: #fff !important;
+  background-color: #0059E8 !important;
+  border-color: #0059E8 !important;
+  border-radius: 6px;
+}
+
+.btn-secondary {
+  color: #0059E8 !important;
+  background-color: #C3C3C3;
+  border-radius: 6px;
+}
+
+.btn-default {
+  border-radius: 6px;
+}
+
+.dashboard {
+
+  .btn-default {
+    color: #0059E8 !important;
+  }
+
+  .button-container {
+    .btn-default, .btn-secondary, .btn-primary  {
+      font-size: @font-size-m !important;
+    }
+  }
+
+  .btn-default, .btn-secondary, .btn-primary  {
+    text-transform: capitalize;
+  }
+
+  .dashboard-content {
+    border-top: 1px solid @brand-secondary-light4;
+    margin: 0 20px 20px 20px;
+  }
+
+  .grid-container {
+    margin: 20px 0 0 0 !important;
+  }
+
+  .chart-header {
+    position: relative;
+    font-size: @font-size-l !important;
+    font-weight: @font-weight-normal !important;
+    padding: 20px !important;
+    border-bottom: 1px solid @brand-secondary-light4;
+    margin-bottom: 0px !important;
+  }
+
+  .chart-header .dropdown.btn-group {
+      right: 20px !important;
+  }
+
+  .dashboard-component-chart-holder {
+    width: 100%;
+    height: 100%;
+    color: @gray-dark;
+    background-color: @lightest;
+    position: relative;
+    padding: 0px !important;
+    border: 1px solid @brand-secondary-light4;
+    border-radius: 6px;
+
+  }
+
+  .dashboard-component-chart-holder .filter-indicator-group, .dashboard-filter-indicators-container .filter-indicator-group {
+    box-shadow: none !important;
+  }
+  .dashboard-filter-indicators-container .filter-indicator-group {
+     box-shadow: none !important;
+  }
+
+  .dashboard-component-tabs {
+    box-shadow: none !important;
+    padding-left: 0px !important;
+    margin: 0px !important;
+  }
+
+  .dashboard-component-tabs .editable-title {
+      margin-right: 0px !important;
+  }
+
+  .dashboard-markdown .dashboard-component-chart-holder {
+    padding: 20px !important;
+  }
+
+  .dashboard-markdown h1, .dashboard-markdown  .h1, .dashboard-markdown  h2, .dashboard-markdown  .h2, .dashboard-markdown  h3, .dashboard-markdown .h3 {
+    margin-top: 0px !important;
+    font-weight: @font-weight-normal !important;
+  }
+
+  .dashboard-chart {
+    padding: 20px;
+  }
+
+  .grid-column > :not(:only-child):not(.hover-menu):not(:last-child) {
+    margin-bottom: 20px;
+  }
+
+  .navbar {
+      -webkit-box-shadow: none;
+      -moz-box-shadow: none;
+      box-shadow: none;
+      margin-bottom: 20px;
+  }
+
+  .dashboard-component-tabs {
+      background-color: @gray-bg !important;  
+  }
+
+  .nav-tabs > li > a {
+    margin-top: 0px !important;
+  }
+
+  .background--white .dashboard-component-header, .dashboard-component-header.background--white, .dashboard-component-tabs .dashboard-component-header, .dashboard-component-tabs .dashboard-component-divider {
+    padding: 20px !important;
+    border: 1px solid @brand-secondary-light4;
+    border-radius: 6px; 
+  }
+
+  .btn-default:active:hover, .btn-default.active:hover, .open > .dropdown-toggle.btn-default:hover, .btn-default:active:focus, .btn-default.active:focus, .open > .dropdown-toggle.btn-default:focus, .btn-default:active.focus, .btn-default.active.focus, .open > .dropdown-toggle.btn-default.focus {
+    color: @gray-dark;
+      -webkit-box-shadow: none !important;
+      box-shadow: none !important;
+  }
+
+
+/*
+
+Header
+
+*/
+
+  .dashboard-header {
+
+    margin: 0 20px 0 20px !important;
+    padding: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+
+    .btn-default {
+        background-color: transparent !important;
+    }
+
+    .btn-group.open .dropdown-toggle {
+        -webkit-box-shadow: none !important;
+        box-shadow: none !important;
+    }
+
+
+    .dashboard-component-header {
+    	padding: 42px 0 42px 0 !important; 
+    	color: @brand-primary-dark3 !important;
+    }
+
+    .dashboard-component-header span {
+    	font-size: @font-size-xxl;
+      font-weight: @font-weight-bold;
+    }
+
+    .dashboard-component-header .publish {
+        margin-left: 10px;
+    }
+
+    .dashboard-component-header .publish button {
+        font-size: 14px !important;
+        font-weight: @font-weight-normal !important;
+        background-color: @brand-secondary-light4 !important;
+        border-radius: 4px !important;
+        border: none !important;
+        color: @brand-secondary-dark1 !important;
+    }
+
+  }
+
+
+
+
+  .dashboard-component-tabs {
+
+    .nav-tabs {
+      margin-left: 20px;
+      margin-right: 20px;
+    }
+
+    .nav-tabs li a {
+        margin-top: 0px !important;
+        color: @brand-secondary-dark1;
+        font-weight: @font-weight-normal;
+        font-size: 14px;
+    }
+
+    .grid-container .nav-tabs li a {
+        margin-top: 12px !important;
+    }
+
+    .nav-tabs>li.active>a, .nav-tabs>li.active>a:focus, .nav-tabs>li.active>a:active, .nav-tabs>li.active>a:hover {
+        background: @brand-secondary-light5;    
+    }
+
+    .nav-tabs>li>a, .nav-tabs>li>a:focus, .nav-tabs>li>a:active, .nav-tabs>li>a:hover {
+        background: @brand-secondary-light5;    
+    }
+
+    .nav-tabs li.active>a {
+        font-weight: 500;
+        color: @link;
+    }
+
+    .nav-tabs li.active>a:after {
+        background: @link !important;
+    }
+
+    .nav-tabs > li {
+        margin: 0 30px 0 0 !important;
+    }
+
+    .nav-tabs > li > a {
+        padding: 0px 0 12px 0 !important;
+    }
+
+  }
+
+  /* gutters between rows */
+  .grid-content > div:not(:only-child):not(:last-child):not(.empty-droptarget) {
+    margin-bottom: 20px !important;
+  }
+
+  .grid-content .dashboard-component-tabs .nav-tabs {
+    margin: 0 0 20px 0;
+    border-bottom: 1px solid @brand-secondary-light4;
+  }
+
+  .dashboard-grid .dashboard-component-tabs {
+      padding-left: 0px !important;
+      margin: 0 !important;
+  }
+
+  .table-bordered>tbody>tr>td, .table-bordered>tbody>tr>th, .table-bordered>tfoot>tr>td, .table-bordered>tfoot>tr>th, .table-bordered>thead>tr>td, .table-bordered>thead>tr>th, .table-bordered {
+      border: 1px solid @brand-secondary-light4;
+  }
+
+
+  .dot {
+      background-color: @brand-secondary-dark1;
+  }
+
+  .sankey-tooltip {
+      margin-top: -50px;
+      background-color: transparent !important;
+  }
+
+  .dashboard-component-divider {
+    padding: 0 !important;
+  }
+
+  .dashboard-component-divider:after {
+    background-color: @brand-secondary-light4 !important;
+  }
+
+  /*
+
+  Stemly Filter styling
+  Applies when you set the slice title statring "Filter"
+
+  */
+
+  .grid-content div[class^='slice-filter'], .grid-content div[class*=' slice-filter']{
+    
+    .chart-header {
+      display: none;
+    }
+    .dashboard-component-chart-holder {
+      background-color: @brand-secondary-light4;
+      border: none;
+    }
+    .filter-badge-container {
+      display: none;
+    }
+
+    .filter_box {
+      padding: 0 0 !important;
+    }
+
+    .filter_box > div {
+      
+      width: auto;
+      display: flex;
+      align-items: flex-start;
+
+      row-gap: 20px;
+      column-gap: 20px;
+
+    }
+
+    .filter_box .btn-primary {
+      margin-top: 28px;
+      font-size: @font-size-s;
+      align-items: bottom;
+    }
+
+    .space-1, .col-xs-1, .col-sm-1, .col-md-1, .col-lg-1, .col-xs-2, .col-sm-2, .col-md-2, .col-lg-2, .col-xs-3, .col-sm-3, .col-md-3, .col-lg-3, .col-xs-4, .col-sm-4, .col-md-4, .col-lg-4, .col-xs-5, .col-sm-5, .col-md-5, .col-lg-5, .col-xs-6, .col-sm-6, .col-md-6, .col-lg-6, .col-xs-7, .col-sm-7, .col-md-7, .col-lg-7, .col-xs-8, .col-sm-8, .col-md-8, .col-lg-8, .col-xs-9, .col-sm-9, .col-md-9, .col-lg-9, .col-xs-10, .col-sm-10, .col-md-10, .col-lg-10, .col-xs-11, .col-sm-11, .col-md-11, .col-lg-11, .col-xs-12, .col-sm-12, .col-md-12, .col-lg-12 {
+      padding: 0px !important;
+      margin: 0px !important;
+    }
+
+    .filter-container, .row {
+      
+      width: 100% !important;
+
+      padding-left: 0px !important;
+      padding-right: 0px !important;
+      margin-right: 0px !important;
+      margin-left: 0px !important;
+
+    }
+
+    .filter_box label, .filter_box .label {
+      margin: 0 0 8px 0 !important;
+      display: inline-block;
+    }
+
+    .filter-container .label {
+      border-radius: 6px !important;
+      padding: 9.5px !important;
+      font-weight: @font-weight-normal !important;
+      text-transform: uppercase !important;
+      font-size: @font-size-s !important;
+    }
+
+    button {
+      clear: both;
+      display: block;
+    }
+
+  }
+
+}
+
+/*
+
+Explore - /superset/explore/
+
+*/
+
+#explore-container {
+  
+  padding: 20px 0 0 20px !important;
+
+  .control-pane {
+    padding: 0px !important;  
+  }
+
+}
+/*
+
+SQL Lab - /superset/sqllab
+
+*/
+
+.SqlLab {
+  
+  padding: 20px !important;
+
+  .SqlEditor {
+    padding: 20px !important;
+    border: 1px solid @brand-secondary-light4;
+    border-radius: 6px;    
+  }
+
+}

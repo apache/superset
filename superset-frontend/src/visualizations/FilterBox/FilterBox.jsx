@@ -379,7 +379,7 @@ class FilterBox extends React.Component {
         loadOptions={this.debounceLoadOptions(key)}
         defaultOptions={this.transformOptions(data)}
         key={key}
-        placeholder={t('Type or Select [%s]', label)}
+        placeholder={t('Type or Select', label)} // Removed: Type or Select [%s]
         isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
         isClearable={filterConfig[FILTER_CONFIG_ATTRIBUTES.CLEARABLE]}
         value={value}

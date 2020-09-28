@@ -276,11 +276,11 @@ table,
 }
 
 .label {
-  border-radius: 21px;
+  border-radius: 6px;
   padding: 0.35em 0.8em 0.35em;
   font-weight: @font-weight-normal;
   text-transform: uppercase;
-  font-size: @font-size-s;
+  font-size: @font-size-m;
 }
 .label-default:hover {
   background-color: darken(@label-default-bg, 5%);
@@ -326,7 +326,7 @@ label {
 
   &-default {
     .panel-heading {
-      padding: 15px 15px 0 15px;
+      padding: 20px 20px 0 20px;
       background-color: transparent;
     }
 
@@ -353,7 +353,7 @@ label {
 
   &-primary {
     .panel-heading {
-      padding: 15px 15px 0 15px;
+      padding: 20px 20px 0 20px;
       background-color: transparent;
     }
 
@@ -481,8 +481,9 @@ a {
   cursor: pointer;
 }
 
-.control-label {
+.control-label, .filter-container label {
   text-transform: uppercase;
-  color: @gray;
+  color: @brand-secondary-dark1;
   font-size: @font-size-s;
+  font-weight: 700 !important;
 }

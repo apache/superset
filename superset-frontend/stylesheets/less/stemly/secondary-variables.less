@@ -1,22 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-// Forked Cosmo 3.3.7
+// Stemly 0.1
 // Variables
 // --------------------------------------------------
 
@@ -92,9 +74,9 @@
 // ## Define common padding and border radius sizes and more. Values based on 14px text and 1.428 line-height (~20px to start).
 
 @padding-base-vertical: 10px;
-@padding-base-horizontal: 18px;
+@padding-base-horizontal: 20px;
 
-@padding-large-vertical: 18px;
+@padding-large-vertical: 20px;
 @padding-large-horizontal: 30px;
 
 @padding-small-vertical: 5px;
@@ -107,8 +89,8 @@
 @line-height-small: 1.5;
 
 @border-radius-base: @border-radius-normal;
-@border-radius-large: 4px;
-@border-radius-small: 4px;
+@border-radius-large: @border-radius-normal; // 4px
+@border-radius-small: @border-radius-normal; // 4px
 
 // ** Global color for active items (e.g., navs or dropdowns).
 @component-active-color: @lightest; // superset-var
@@ -125,7 +107,7 @@
 // ## Customizes the `.table` component with basic values, each used across all table variations.
 
 // ** Padding for `<th>`s and `<td>`s.
-@table-cell-padding: 8px;
+@table-cell-padding: 10px;
 // ** Padding for cells in `.table-condensed`.
 @table-condensed-cell-padding: 5px;
 
@@ -220,7 +202,7 @@
 );
 
 // ** `.form-group` margin
-@form-group-margin-bottom: 16px;
+@form-group-margin-bottom: 20px;
 
 @legend-color: @text-color;
 @legend-border-color: @gray-bg;
@@ -325,7 +307,7 @@
 // ## Define your custom responsive grid.
 
 // ** Number of columns in the grid.
-@grid-columns: 12;
+@grid-columns: 4;
 // ** Padding between columns. Gets divided in half for the left and right.
 @grid-gutter-width: 20px;
 // Navbar collapse
@@ -418,7 +400,7 @@
 // ##
 
 // === Shared nav styles
-@nav-link-padding: 10px 15px;
+@nav-link-padding: 10px 20px;
 @nav-link-hover-bg: @gray-lighter;
 
 @nav-disabled-link-color: @bs-gray-light;
@@ -585,7 +567,7 @@
 @modal-inner-padding: 20px;
 
 // ** Padding applied to the modal title
-@modal-title-padding: 15px;
+@modal-title-padding: 20px;
 // ** Modal title line-height
 @modal-title-line-height: @line-height-base;
 
@@ -613,7 +595,7 @@
 //
 // ## Define alert colors, border radius, and padding.
 
-@alert-padding: 15px;
+@alert-padding: 20px;
 @alert-border-radius: @border-radius-base;
 @alert-link-font-weight: bold;
 
@@ -693,8 +675,8 @@
 // ##
 
 @panel-bg: @lightest; // superset-var
-@panel-body-padding: 15px;
-@panel-heading-padding: 10px 15px;
+@panel-body-padding: 20px;
+@panel-heading-padding: 10px 20px;
 @panel-footer-padding: @panel-heading-padding;
 @panel-border-radius: @border-radius-base;
 
@@ -774,7 +756,7 @@
 // ##
 
 @breadcrumb-padding-vertical: 8px;
-@breadcrumb-padding-horizontal: 15px;
+@breadcrumb-padding-horizontal: 20px;
 // ** Breadcrumb background color
 @breadcrumb-bg: @gray-bg; // superset-var
 // ** Breadcrumb text color

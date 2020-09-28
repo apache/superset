@@ -1,21 +1,7 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// Stemly 0.1
+// Superset Variables
+// --------------------------------------------------
+
 
 /************************************************************************/
 /* COLORS                                                               */
@@ -24,65 +10,74 @@
 /* component styles. This will allow us to more easily adjust theming   */
 /************************************************************************/
 
-@primary-color: #20a7c9;
+// Primary
+
+@primary-color: #0059E8;
 @indicator-color: @primary-color;
 
-@brand-primary-dark1: #1a85a0;
-@brand-primary-dark2: #156378;
-@brand-primary-light1: #79cade;
-@brand-primary-light2: #a5dae9;
-@brand-primary-light3: #d2edf4;
-@brand-primary-light4: #e9f6f9;
-@brand-primary-light5: #f3f8fa;
+@brand-primary-dark1: #004CC6;
+@brand-primary-dark2: #0041AA;
+@brand-primary-dark3: #101D42;
 
-@brand-secondary: #444e7c;
-@brand-secondary-dark1: #363e63;
-@brand-secondary-dark2: #282e4a;
-@brand-secondary-dark3: #1b1f31;
-@brand-secondary-light1: #8e94b0;
-@brand-secondary-light2: #b4b8ca;
-@brand-secondary-light3: #d9dbe4;
-@brand-secondary-light4: #eceef2;
-@brand-secondary-light5: #f5f5f8;
+@brand-primary-light1: #4586EE;
+@brand-primary-light2: #6EA0F2;
+@brand-primary-light3: #96BBF5;
+@brand-primary-light4: #BFD5F9;
+@brand-primary-light5: #E7EFFC;
 
-@almost-black: #263238;
-@gray-dark: #484848;
-@gray-light: #cfd8dc;
-@gray: #879399;
-@gray-bg: #f5f5f5;
-@gray-heading: #a3a3a3;
-@menu-hover: #f2f3f5;
+// Secondary
+
+@brand-secondary: #929292;
+
+@brand-secondary-dark1: #727272;
+@brand-secondary-dark2: #515151;
+@brand-secondary-dark3: #252525;
+
+@brand-secondary-light1: #B1B1B1;
+@brand-secondary-light2: #C3C3C3;
+@brand-secondary-light3: #D5D5D5;
+@brand-secondary-light4: #ECECEC;
+@brand-secondary-light5: #F9F9F9;
+
+@almost-black: #252525;
+@gray-dark: #727272;
+@gray-light: #CECECE;
+@gray: #929292;
+@gray-bg: #F9F9F9;
+@gray-heading: #727272;
+@menu-hover: #CECECE;
 @lightest: #ffffff;
 @darkest: #000000;
 
 /**************************** text-specific *****************************/
-@link: #1985a0;
+@link: #0059E8;
 @link-hover: darken(@link, @colorstop-one);
 
 /***************************** status colors ****************************/
-@info: #66bcfe;
-@info-dark1: #4d8cbe;
-@info-dark2: #315e7e;
-@info-light1: #b3defe;
-@info-light2: #eff8fe;
 
-@danger: #e04355;
-@danger-dark1: #a7323f;
-@danger-dark2: #6f212a;
-@danger-light1: #efa1aa;
-@danger-light2: #faedee;
+@info: #0059E8;
+@info-dark1: shade(@info, @colorstop-one);
+@info-dark2: shade(@info, @colorstop-two);
+@info-light1: tint(@info, @colorstop-one);
+@info-light2: tint(@info, @colorstop-two);
 
-@success: #5ac189;
-@success-dark1: #439066;
-@success-dark2: #2b6144;
-@success-light1: #ace1c4;
-@success-light2: #eef8f3;
+@danger: #E53D00;
+@danger-dark1: shade(@danger, @colorstop-one);
+@danger-dark2: shade(@danger, @colorstop-two);
+@danger-light1: tint(@danger, @colorstop-one);
+@danger-light2: tint(@danger, @colorstop-two);
 
-@warning: #fcc700;
-@warning-dark1: #bc9501;
-@warning-dark2: #7d6300;
-@warning-light1: #fde380;
-@warning-light2: #fef9e6;
+@success: #89AD07;
+@success-dark1: shade(@success, @colorstop-one);
+@success-dark2: shade(@success, @colorstop-two);
+@success-light1: tint(@success, @colorstop-one);
+@success-light2: tint(@success, @colorstop-two);
+
+@warning: #F3C804;
+@warning-dark1: shade(@success, @colorstop-one);
+@warning-dark2: shade(@success, @colorstop-two);
+@warning-light1: tint(@success, @colorstop-one);
+@warning-light2: tint(@success, @colorstop-two);
 
 /* general component effects */
 @shadow-highlight: @primary-color;
@@ -166,8 +161,8 @@
 /************************************************************************/
 
 // *************************** Weights **********************************
-@font-weight-light: 200;
-@font-weight-normal: 400;
+@font-weight-light: 400;
+@font-weight-normal: 500;
 @font-weight-bold: 700;
 
 // ***************************** Font Sizes *****************************
@@ -179,7 +174,7 @@
 @font-size-m: @font-size-base;
 @font-size-l: 16px;
 @font-size-xl: 21px;
-@font-size-xxl: 28px;
+@font-size-xxl: 26px;
 
 // **************************** Line Heights ****************************
 @line-height-base: 1.4;
@@ -212,20 +207,13 @@
 /* TRANSITIONS                                                          */
 /* Timing and easings presets used in CSS transitions                   */
 /************************************************************************/
-@timing-normal: 0.3s;
+@timing-normal: 0.2s;
 
 /************************************************************************/
 /* BORDER RADII                                                         */
 /* Standard border-radius settings                                      */
 /************************************************************************/
-@border-radius-normal: 4px;
-@border-radius-large: (@border-radius-normal * 2);
+@border-radius-normal: 6px;
+@border-radius-large: @border-radius-normal; // (@border-radius-normal * 2);
 
-/************************************************************************/
-/* BOOTSTRAP/BOOTSWATCH/COSMO                                           */
-/* These are the legacy Cosmo theme overrides to Bootswatch's           */
-/* overrides to Bootstrap. We should consolidate/deprecate these        */
-/* in favor of custom/reusable CSS wherever possible                    */
-/************************************************************************/
-
-@import '../less/stemly/variables.less';
+@import './stemly/secondary-variables.less';
