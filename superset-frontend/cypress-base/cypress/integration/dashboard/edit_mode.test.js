@@ -40,6 +40,9 @@ describe('Dashboard edit mode', () => {
 
     cy.get('.tabs-components .nav-tabs li a').contains('Charts').click();
 
+    // wait for tab-switching animation to complete
+    cy.wait(1000);
+
     // find box plot is available from list
     cy.get('.tabs-components')
       .find('.chart-card-container')
