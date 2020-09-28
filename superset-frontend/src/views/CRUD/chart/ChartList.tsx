@@ -364,7 +364,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Search'),
       id: 'slice_name',
       input: 'search',
-      operator: 'name_or_description',
+      operator: 'chart_all_text',
     },
   ];
 
