@@ -40,7 +40,7 @@ export type AddSliceContainerState = {
   visType: string;
 };
 
-const styleSelectWidth = { width: 600 };
+const styleSelectContainer = { width: 600, marginBottom: '10px' };
 
 export default class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
@@ -96,26 +96,23 @@ export default class AddSliceContainer extends React.PureComponent<
           <Panel.Body>
             <div>
               <p>{t('Choose a datasource')}</p>
-              <div style={{ marginBottom: '10px' }}>
-                <div style={styleSelectWidth}>
-                  <Select
-                    clearable={false}
-                    ignoreAccents={false}
-                    name="select-datasource"
-                    onChange={this.changeDatasource}
-                    options={this.props.datasources}
-                    placeholder={t('Choose a datasource')}
-                    style={styleSelectWidth}
-                    value={
-                      this.state.datasourceValue
-                        ? {
-                            value: this.state.datasourceValue,
-                          }
-                        : undefined
-                    }
-                    width={600}
-                  />
-                </div>
+              <div style={styleSelectContainer}>
+                <Select
+                  clearable={false}
+                  ignoreAccents={false}
+                  name="select-datasource"
+                  onChange={this.changeDatasource}
+                  options={this.props.datasources}
+                  placeholder={t('Choose a datasource')}
+                  value={
+                    this.state.datasourceValue
+                      ? {
+                          value: this.state.datasourceValue,
+                        }
+                      : undefined
+                  }
+                  width={600}
+                />
               </div>
               <span className="text-muted">
                 {t(
