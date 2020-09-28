@@ -37,9 +37,7 @@ from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 
 if TYPE_CHECKING:
-    from superset.jinja_context import (  # pylint: disable=unused-import
-        BaseTemplateProcessor,
-    )
+    from superset.jinja_context import BaseTemplateProcessor
 
 
 class JinjaContextManager:

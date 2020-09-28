@@ -2365,7 +2365,7 @@ class BaseDeckGLViz(BaseViz):
             return None
         try:
             p = Point(s)
-            return (p.latitude, p.longitude)  # pylint: disable=no-member
+            return (p.latitude, p.longitude)
         except Exception:
             raise SpatialException(_("Invalid spatial point encountered: %s" % s))
 
