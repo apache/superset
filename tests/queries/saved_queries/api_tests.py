@@ -33,7 +33,7 @@ from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
 
 
-SAVED_QUERIES_FIXTURE_COUNT = 5
+SAVED_QUERIES_FIXTURE_COUNT = 10
 
 
 class TestSavedQueryApi(SupersetTestCase):
@@ -326,9 +326,9 @@ class TestSavedQueryApi(SupersetTestCase):
         self.login(username="admin")
         uri = f"api/v1/saved_query/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], len(expected_models))
+        assert rv.status_code == 200
+        assert len(expected_models) == data["count"]
 
         for i, expected_model in enumerate(expected_models):
             assert expected_model.label == data["result"][i]["label"]
@@ -336,7 +336,12 @@ class TestSavedQueryApi(SupersetTestCase):
         # Test not favorite saves queries
         expected_models = (
             db.session.query(SavedQuery)
-            .filter(and_(~SavedQuery.id.in_(users_favorite_query)))
+            .filter(
+                and_(
+                    ~SavedQuery.id.in_(users_favorite_query),
+                    SavedQuery.created_by == admin,
+                )
+            )
             .order_by(SavedQuery.label.asc())
             .all()
         )
