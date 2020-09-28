@@ -16,16 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Tabs as AntdTabs } from 'src/common/components';
 import { css } from '@emotion/core';
+import isPropValid from '@emotion/is-prop-valid';
+import Icon from '../../components/Icon';
 
 interface TabsProps {
   inModal?: boolean;
   fullWidth?: boolean;
 }
 
-const StyledTabs = styled(AntdTabs)<TabsProps>`
+const notForwardedProps = ['fullWidth', 'inModal'];
+
+const StyledTabs = styled(AntdTabs, {
+  shouldForwardProp: prop =>
+    isPropValid(prop) && !notForwardedProps.includes(prop),
+})<TabsProps>`
   ${props =>
     props.inModal &&
     css`
@@ -58,7 +66,9 @@ const StyledTabs = styled(AntdTabs)<TabsProps>`
         `};
 
   .ant-tabs-tab-btn {
+    display: flex;
     flex: 1 1 auto;
+    align-items: center;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     text-align: center;
     text-transform: uppercase;
@@ -85,4 +95,35 @@ Tabs.defaultProps = {
   fullWidth: true,
 };
 
+const StyledEditableTabs = styled(StyledTabs)`
+  .ant-tabs-content-holder {
+    background: white;
+  }
+
+  & > .ant-tabs-nav {
+    margin-bottom: 0;
+  }
+
+  .ant-tabs-tab-remove {
+    padding-top: 0;
+    padding-bottom: 0;
+    height: 24px;
+  }
+`;
+
+const EditableTabs = Object.assign(StyledEditableTabs, {
+  TabPane: StyledTabPane,
+});
+
+EditableTabs.defaultProps = {
+  type: 'editable-card',
+};
+
+EditableTabs.TabPane.defaultProps = {
+  closeIcon: (
+    <Icon role="button" tabIndex={0} cursor="pointer" name="cancel-x" />
+  ),
+};
+
 export default Tabs;
+export { EditableTabs };
