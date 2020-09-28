@@ -20,8 +20,8 @@
 
 #datasource_menu {
   border-radius: @border-radius-normal;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding: 0px;
+  border: none;
 }
 
 #datasource_menu .caret {
@@ -32,6 +32,17 @@
   top: -8px;
 }
 
-#datasource_menu + ul {
-  margin-top: 26px;
+#datasource_menu .caret {
+  display: none;
+}
+#datasource_menu:hover {
+  background-color: transparent;
+}
+.DatasourceControl svg {
+  vertical-align: middle;
+  color: @brand-primary;
+  cursor: pointer;
+}
+.DatasourceControl .angle {
+  color: @brand-primary;
 }
