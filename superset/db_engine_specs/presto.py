@@ -730,10 +730,10 @@ class PrestoEngineSpec(BaseEngineSpec):
             )
 
             if not latest_parts:
-                latest_parts = tuple([None] * len(col_names))  # type: ignore
+                latest_parts = tuple([None] * len(col_names))
             metadata["partitions"] = {
                 "cols": cols,
-                "latest": dict(zip(col_names, latest_parts)),  # type: ignore
+                "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": pql,
             }
 
@@ -925,6 +925,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
+    @cache.memoize(timeout=60)
     def latest_partition(
         cls,
         table_name: str,
