@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
 import { isEqual, isEmpty } from 'lodash';
+import ListView from 'src/components/ListView';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { t } from '@superset-ui/core';
 import TooltipWrapper from './TooltipWrapper';
@@ -53,10 +53,10 @@ export default class AlteredSliceTag extends React.Component {
   constructor(props) {
     super(props);
     const diffs = this.getDiffs(props);
-
     const controlsMap = getControlsForVizType(this.props.origFormData.viz_type);
+    const rows = this.getRowsFromDiffs(diffs, controlsMap);
 
-    this.state = { diffs, hasDiffs: !isEmpty(diffs), controlsMap };
+    this.state = { rows, hasDiffs: !isEmpty(diffs), controlsMap };
   }
 
   UNSAFE_componentWillReceiveProps(newProps) {
@@ -65,7 +65,18 @@ export default class AlteredSliceTag extends React.Component {
       return;
     }
     const diffs = this.getDiffs(newProps);
-    this.setState({ diffs, hasDiffs: !isEmpty(diffs) });
+    this.setState(prevState => ({
+      rows: this.getRowsFromDiffs(diffs, prevState.controlsMap),
+      hasDiffs: !isEmpty(diffs),
+    }));
+  }
+
+  getRowsFromDiffs(diffs, controlsMap) {
+    return Object.entries(diffs).map(([key, diff]) => ({
+      control: (controlsMap[key] && controlsMap[key].label) || key,
+      before: this.formatValue(diff.before, key, controlsMap),
+      after: this.formatValue(diff.after, key, controlsMap),
+    }));
   }
 
   getDiffs(props) {
@@ -90,11 +101,35 @@ export default class AlteredSliceTag extends React.Component {
     return diffs;
   }
 
+  sortData = ({ sortBy }) => {
+    if (this.state.rows.length > 0 && sortBy.length > 0) {
+      const { id, desc } = sortBy[0];
+      this.setState(({ rows }) => ({
+        rows: this.sortDataByColumn(rows, id, desc),
+      }));
+    }
+  };
+
+  sortDataByColumn(data, sortById, desc) {
+    return data.sort((row1, row2) => {
+      const rows = desc ? [row2, row1] : [row1, row2];
+      const firstVal = rows[0][sortById];
+      const secondVal = rows[1][sortById];
+      if (typeof firstVal === 'string' && typeof secondVal === 'string') {
+        return secondVal.localeCompare(firstVal);
+      }
+      if (typeof firstVal === 'undefined' || firstVal === null) {
+        return 1;
+      }
+      return -1;
+    });
+  }
+
   isEqualish(val1, val2) {
     return isEqual(alterForComparison(val1), alterForComparison(val2));
   }
 
-  formatValue(value, key) {
+  formatValue(value, key, controlsMap) {
     // Format display value based on the control type
     // or the value type
     if (value === undefined) {
@@ -103,10 +138,7 @@ export default class AlteredSliceTag extends React.Component {
     if (value === null) {
       return 'null';
     }
-    if (
-      this.state.controlsMap[key] &&
-      this.state.controlsMap[key].type === 'AdhocFilterControl'
-    ) {
+    if (controlsMap[key]?.type === 'AdhocFilterControl') {
       if (!value.length) {
         return '[]';
       }
@@ -120,16 +152,10 @@ export default class AlteredSliceTag extends React.Component {
         })
         .join(', ');
     }
-    if (
-      this.state.controlsMap[key] &&
-      this.state.controlsMap[key].type === 'BoundsControl'
-    ) {
+    if (controlsMap[key]?.type === 'BoundsControl') {
       return `Min: ${value[0]}, Max: ${value[1]}`;
     }
-    if (
-      this.state.controlsMap[key] &&
-      this.state.controlsMap[key].type === 'CollectionControl'
-    ) {
+    if (controlsMap[key]?.type === 'CollectionControl') {
       return value.map(v => safeStringify(v)).join(', ');
     }
     if (typeof value === 'boolean') {
@@ -144,38 +170,32 @@ export default class AlteredSliceTag extends React.Component {
     return safeStringify(value);
   }
 
-  renderRows() {
-    const { diffs } = this.state;
-    const rows = [];
-    Object.entries(diffs).forEach(([key, diff]) => {
-      rows.push(
-        <Tr key={key}>
-          <Td
-            column="control"
-            data={
-              (this.state.controlsMap[key] &&
-                this.state.controlsMap[key].label) ||
-              key
-            }
-          />
-          <Td column="before">{this.formatValue(diff.before, key)}</Td>
-          <Td column="after">{this.formatValue(diff.after, key)}</Td>
-        </Tr>,
-      );
-    });
-    return rows;
-  }
-
   renderModalBody() {
+    const columns = [
+      {
+        accessor: 'control',
+        Header: 'Control',
+      },
+      {
+        accessor: 'before',
+        Header: 'Before',
+      },
+      {
+        accessor: 'after',
+        Header: 'After',
+      },
+    ];
+
     return (
-      <Table className="table" sortable>
-        <Thead>
-          <Th column="control">Control</Th>
-          <Th column="before">Before</Th>
-          <Th column="after">After</Th>
-        </Thead>
-        {this.renderRows()}
-      </Table>
+      <ListView
+        columns={columns}
+        data={this.state.rows}
+        count={this.state.rows.length}
+        pageSize={50}
+        fetchData={this.sortData}
+        loading={false}
+        className="table"
+      />
     );
   }
 

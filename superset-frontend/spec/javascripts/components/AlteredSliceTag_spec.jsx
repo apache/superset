@@ -18,140 +18,28 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Table, Thead, Td, Th, Tr } from 'reactable-arc';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import ModalTrigger from 'src/components/ModalTrigger';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import ListView from 'src/components/ListView';
+import TableCollection from 'src/components/ListView/TableCollection';
 
-const defaultProps = {
-  origFormData: {
-    viz_type: 'altered_slice_tag_spec',
-    adhoc_filters: [
-      {
-        clause: 'WHERE',
-        comparator: 'hello',
-        expressionType: 'SIMPLE',
-        operator: '==',
-        subject: 'a',
-      },
-    ],
-    y_axis_bounds: [10, 20],
-    column_collection: [{ 1: 'a', b: ['6', 'g'] }],
-    bool: false,
-    alpha: undefined,
-    gucci: [1, 2, 3, 4],
-    never: 5,
-    ever: { a: 'b', c: 'd' },
-  },
-  currentFormData: {
-    adhoc_filters: [
-      {
-        clause: 'WHERE',
-        comparator: ['hello', 'my', 'name'],
-        expressionType: 'SIMPLE',
-        operator: 'in',
-        subject: 'b',
-      },
-    ],
-    y_axis_bounds: [15, 16],
-    column_collection: [{ 1: 'a', b: [9, '15'], t: 'gggg' }],
-    bool: true,
-    alpha: null,
-    gucci: ['a', 'b', 'c', 'd'],
-    never: 10,
-    ever: { x: 'y', z: 'z' },
-  },
-};
+import {
+  defaultProps,
+  expectedDiffs,
+  expectedRows,
+  fakePluginControls,
+} from './fixtures/AlteredSliceTag';
 
-const expectedDiffs = {
-  adhoc_filters: {
-    before: [
-      {
-        clause: 'WHERE',
-        comparator: 'hello',
-        expressionType: 'SIMPLE',
-        operator: '==',
-        subject: 'a',
-      },
-    ],
-    after: [
-      {
-        clause: 'WHERE',
-        comparator: ['hello', 'my', 'name'],
-        expressionType: 'SIMPLE',
-        operator: 'in',
-        subject: 'b',
-      },
-    ],
-  },
-  y_axis_bounds: {
-    before: [10, 20],
-    after: [15, 16],
-  },
-  column_collection: {
-    before: [{ 1: 'a', b: ['6', 'g'] }],
-    after: [{ 1: 'a', b: [9, '15'], t: 'gggg' }],
-  },
-  bool: {
-    before: false,
-    after: true,
-  },
-  gucci: {
-    before: [1, 2, 3, 4],
-    after: ['a', 'b', 'c', 'd'],
-  },
-  never: {
-    before: 5,
-    after: 10,
-  },
-  ever: {
-    before: { a: 'b', c: 'd' },
-    after: { x: 'y', z: 'z' },
-  },
-};
-
-const fakePluginControls = {
-  controlPanelSections: [
-    {
-      label: 'Fake Control Panel Sections',
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'y_axis_bounds',
-            config: {
-              type: 'BoundsControl',
-              label: 'Value bounds',
-              default: [null, null],
-              description: 'Value bounds for the y axis',
-            },
-          },
-          {
-            name: 'column_collection',
-            config: {
-              type: 'CollectionControl',
-              label: 'Fake Collection Control',
-            },
-          },
-          {
-            name: 'adhoc_filters',
-            config: {
-              type: 'AdhocFilterControl',
-              label: 'Fake Filters',
-              default: null,
-            },
-          },
-        ],
-      ],
-    },
-  ],
-};
+const getTableWrapperFromModalBody = modalBody =>
+  modalBody.find(ListView).shallow().find(TableCollection).shallow();
 
 describe('AlteredSliceTag', () => {
   let wrapper;
   let props;
+  let controlsMap;
 
   beforeEach(() => {
     getChartControlPanelRegistry().registerValue(
@@ -160,12 +48,13 @@ describe('AlteredSliceTag', () => {
     );
     props = { ...defaultProps };
     wrapper = shallow(<AlteredSliceTag {...props} />);
+    ({ controlsMap } = wrapper.instance().state);
   });
 
   it('correctly determines form data differences', () => {
     const diffs = wrapper.instance().getDiffs(props);
     expect(diffs).toEqual(expectedDiffs);
-    expect(wrapper.instance().state.diffs).toEqual(expectedDiffs);
+    expect(wrapper.instance().state.rows).toEqual(expectedRows);
     expect(wrapper.instance().state.hasDiffs).toBe(true);
   });
 
@@ -175,29 +64,32 @@ describe('AlteredSliceTag', () => {
       currentFormData: props.origFormData,
     };
     wrapper = shallow(<AlteredSliceTag {...props} />);
-    expect(wrapper.instance().state.diffs).toEqual({});
+    expect(wrapper.instance().state.rows).toEqual([]);
     expect(wrapper.instance().state.hasDiffs).toBe(false);
     expect(wrapper.instance().render()).toBeNull();
   });
 
-  it('sets new diffs when receiving new props', () => {
+  it('sets new rows when receiving new props', () => {
+    const testRows = ['testValue'];
+    const getRowsFromDiffsStub = jest
+      .spyOn(AlteredSliceTag.prototype, 'getRowsFromDiffs')
+      .mockReturnValueOnce(testRows);
     const newProps = {
       currentFormData: { ...props.currentFormData },
       origFormData: { ...props.origFormData },
     };
-    newProps.currentFormData.beta = 10;
     wrapper = shallow(<AlteredSliceTag {...props} />);
-    wrapper.instance().UNSAFE_componentWillReceiveProps(newProps);
-    const newDiffs = wrapper.instance().state.diffs;
-    const expectedBeta = { before: undefined, after: 10 };
-    expect(newDiffs.beta).toEqual(expectedBeta);
+    const wrapperInstance = wrapper.instance();
+    wrapperInstance.UNSAFE_componentWillReceiveProps(newProps);
+    expect(getRowsFromDiffsStub).toHaveBeenCalled();
+    expect(wrapperInstance.state.rows).toEqual(testRows);
   });
 
   it('does not set new state when props are the same', () => {
-    const currentDiff = wrapper.instance().state.diffs;
+    const currentRows = wrapper.instance().state.rows;
     wrapper.instance().UNSAFE_componentWillReceiveProps(props);
     // Check equal references
-    expect(wrapper.instance().state.diffs).toBe(currentDiff);
+    expect(wrapper.instance().state.rows).toBe(currentRows);
   });
 
   it('renders a ModalTrigger', () => {
@@ -218,24 +110,26 @@ describe('AlteredSliceTag', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      expect(modalBody.find(Table)).toHaveLength(1);
+      expect(modalBody.find(ListView)).toHaveLength(1);
     });
 
-    it('renders a Thead', () => {
+    it('renders a thead', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      expect(modalBody.find(Thead)).toHaveLength(1);
+      expect(
+        getTableWrapperFromModalBody(modalBody).find('thead'),
+      ).toHaveLength(1);
     });
 
-    it('renders Th', () => {
+    it('renders th', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      const th = modalBody.find(Th);
+      const th = getTableWrapperFromModalBody(modalBody).find('th');
       expect(th).toHaveLength(3);
-      ['control', 'before', 'after'].forEach((v, i) => {
-        expect(th.get(i).props.column).toBe(v);
+      ['Control', 'Before', 'After'].forEach((v, i) => {
+        expect(th.find('span').get(i).props.children[0]).toBe(v);
       });
     });
 
@@ -243,46 +137,53 @@ describe('AlteredSliceTag', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      const tr = modalBody.find(Tr);
-      expect(tr).toHaveLength(7);
+      const tr = getTableWrapperFromModalBody(modalBody).find('tr');
+      expect(tr).toHaveLength(8);
     });
 
-    it('renders the correct number of Td', () => {
+    it('renders the correct number of td', () => {
       const modalBody = shallow(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      const td = modalBody.find(Td);
+      const td = getTableWrapperFromModalBody(modalBody).find('td');
       expect(td).toHaveLength(21);
       ['control', 'before', 'after'].forEach((v, i) => {
-        expect(td.get(i).props.column).toBe(v);
+        expect(td.find('Cell').get(0).props.columns[i].id).toBe(v);
       });
     });
   });
 
   describe('renderRows', () => {
-    it('returns an array of rows with one Tr and three Td', () => {
-      const rows = wrapper.instance().renderRows();
-      expect(rows).toHaveLength(7);
-      const fakeRow = shallow(<div>{rows[0]}</div>);
-      expect(fakeRow.find(Tr)).toHaveLength(1);
-      expect(fakeRow.find(Td)).toHaveLength(3);
+    it('returns an array of rows with one tr and three td', () => {
+      const modalBody = shallow(
+        <div>{wrapper.instance().renderModalBody()}</div>,
+      );
+      const rows = getTableWrapperFromModalBody(modalBody).find('tr');
+      expect(rows).toHaveLength(8);
+      const fakeRow = shallow(<div>{rows.get(1)}</div>);
+      expect(fakeRow.find('tr')).toHaveLength(1);
+      expect(fakeRow.find('td')).toHaveLength(3);
     });
   });
 
   describe('formatValue', () => {
     it('returns "N/A" for undefined values', () => {
-      expect(wrapper.instance().formatValue(undefined, 'b')).toBe('N/A');
+      expect(wrapper.instance().formatValue(undefined, 'b', controlsMap)).toBe(
+        'N/A',
+      );
     });
 
     it('returns "null" for null values', () => {
-      expect(wrapper.instance().formatValue(null, 'b')).toBe('null');
+      expect(wrapper.instance().formatValue(null, 'b', controlsMap)).toBe(
+        'null',
+      );
     });
 
     it('returns "Max" and "Min" for BoundsControl', () => {
       // need to pass the viz type to the wrapper
-      expect(wrapper.instance().formatValue([5, 6], 'y_axis_bounds')).toBe(
-        'Min: 5, Max: 6',
-      );
+      expect(
+        wrapper.instance().formatValue([5, 6], 'y_axis_bounds', controlsMap),
+      ).toBe('Min: 5, Max: 6');
     });
 
     it('returns stringified objects for CollectionControl', () => {
@@ -291,35 +192,47 @@ describe('AlteredSliceTag', () => {
         { sent: 'imental', w0ke: 5 },
       ];
       const expected = '{"1":2,"alpha":"bravo"}, {"sent":"imental","w0ke":5}';
-      expect(wrapper.instance().formatValue(value, 'column_collection')).toBe(
-        expected,
-      );
+      expect(
+        wrapper.instance().formatValue(value, 'column_collection', controlsMap),
+      ).toBe(expected);
     });
 
     it('returns boolean values as string', () => {
-      expect(wrapper.instance().formatValue(true, 'b')).toBe('true');
-      expect(wrapper.instance().formatValue(false, 'b')).toBe('false');
+      expect(wrapper.instance().formatValue(true, 'b', controlsMap)).toBe(
+        'true',
+      );
+      expect(wrapper.instance().formatValue(false, 'b', controlsMap)).toBe(
+        'false',
+      );
     });
 
     it('returns Array joined by commas', () => {
       const value = [5, 6, 7, 8, 'hello', 'goodbye'];
       const expected = '5, 6, 7, 8, hello, goodbye';
-      expect(wrapper.instance().formatValue(value)).toBe(expected);
+      expect(
+        wrapper.instance().formatValue(value, undefined, controlsMap),
+      ).toBe(expected);
     });
 
     it('stringifies objects', () => {
       const value = { 1: 2, alpha: 'bravo' };
       const expected = '{"1":2,"alpha":"bravo"}';
-      expect(wrapper.instance().formatValue(value)).toBe(expected);
+      expect(
+        wrapper.instance().formatValue(value, undefined, controlsMap),
+      ).toBe(expected);
     });
 
     it('does nothing to strings and numbers', () => {
-      expect(wrapper.instance().formatValue(5)).toBe(5);
-      expect(wrapper.instance().formatValue('hello')).toBe('hello');
+      expect(wrapper.instance().formatValue(5, undefined, controlsMap)).toBe(5);
+      expect(
+        wrapper.instance().formatValue('hello', undefined, controlsMap),
+      ).toBe('hello');
     });
 
     it('returns "[]" for empty filters', () => {
-      expect(wrapper.instance().formatValue([], 'adhoc_filters')).toBe('[]');
+      expect(
+        wrapper.instance().formatValue([], 'adhoc_filters', controlsMap),
+      ).toBe('[]');
     });
 
     it('correctly formats filters with array values', () => {
@@ -340,9 +253,9 @@ describe('AlteredSliceTag', () => {
         },
       ];
       const expected = 'a in [1, g, 7, ho], b not in [hu, ho, ha]';
-      expect(wrapper.instance().formatValue(filters, 'adhoc_filters')).toBe(
-        expected,
-      );
+      expect(
+        wrapper.instance().formatValue(filters, 'adhoc_filters', controlsMap),
+      ).toBe(expected);
     });
 
     it('correctly formats filters with string values', () => {
@@ -363,9 +276,9 @@ describe('AlteredSliceTag', () => {
         },
       ];
       const expected = 'a == gucci, b LIKE moshi moshi';
-      expect(wrapper.instance().formatValue(filters, 'adhoc_filters')).toBe(
-        expected,
-      );
+      expect(
+        wrapper.instance().formatValue(filters, 'adhoc_filters', controlsMap),
+      ).toBe(expected);
     });
   });
   describe('isEqualish', () => {
