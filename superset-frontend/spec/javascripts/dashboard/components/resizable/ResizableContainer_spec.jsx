@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Resizable from 're-resizable';
+import { Resizable } from 're-resizable';
 import { shallow } from 'enzyme';
 
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';

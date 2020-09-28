@@ -121,12 +121,22 @@ function ColumnCollectionTable({
             <Field
               fieldKey="verbose_name"
               label={t('Label')}
-              control={<TextControl placeholder={t('Label')} />}
+              control={
+                <TextControl
+                  controlId="verbose_name"
+                  placeholder={t('Label')}
+                />
+              }
             />
             <Field
               fieldKey="description"
               label={t('Description')}
-              control={<TextControl placeholder={t('Description')} />}
+              control={
+                <TextControl
+                  controlId="description"
+                  placeholder={t('Description')}
+                />
+              }
             />
             {allowEditDataType && (
               <Field
@@ -162,7 +172,12 @@ function ColumnCollectionTable({
                       database/column name level via the extra parameter.`)}
                 </div>
               }
-              control={<TextControl placeholder="%y/%m/%d" />}
+              control={
+                <TextControl
+                  controlId="python_date_format"
+                  placeholder="%y/%m/%d"
+                />
+              }
             />
           </Fieldset>
         </FormContainer>
@@ -492,7 +507,7 @@ class DatasourceEditor extends React.PureComponent {
           description={t(
             'Default URL to redirect to when accessing from the dataset list page',
           )}
-          control={<TextControl />}
+          control={<TextControl controlId="default_endpoint" />}
         />
         <Field
           fieldKey="filter_select_enabled"
@@ -511,7 +526,7 @@ class DatasourceEditor extends React.PureComponent {
                 'values from the table. Typically the intent would be to limit the scan ' +
                 'by applying a relative time filter on a partitioned or indexed time-related field.',
             )}
-            control={<TextControl />}
+            control={<TextControl controlId="fetch_values_predicate" />}
           />
         )}
         <Field
@@ -576,12 +591,12 @@ class DatasourceEditor extends React.PureComponent {
           description={t(
             'The duration of time in seconds before the cache is invalidated',
           )}
-          control={<TextControl />}
+          control={<TextControl controlId="cache_timeout" />}
         />
         <Field
           fieldKey="offset"
           label={t('Hours offset')}
-          control={<TextControl />}
+          control={<TextControl controlId="offset" />}
         />
         {this.state.isSqla && (
           <Field
@@ -590,7 +605,7 @@ class DatasourceEditor extends React.PureComponent {
             description={t(
               'A set of parameters that become available in the query using Jinja templating syntax',
             )}
-            control={<TextControl />}
+            control={<TextControl controlId="template_params" />}
           />
         )}
       </Fieldset>
@@ -658,17 +673,24 @@ class DatasourceEditor extends React.PureComponent {
               <Field
                 fieldKey="verbose_name"
                 label={t('Label')}
-                control={<TextControl />}
+                control={<TextControl controlId="verbose_name" />}
               />
               <Field
                 fieldKey="description"
                 label={t('Description')}
-                control={<TextControl placeholder={t('Description')} />}
+                control={
+                  <TextControl
+                    controlId="description"
+                    placeholder={t('Description')}
+                  />
+                }
               />
               <Field
                 fieldKey="d3format"
                 label={t('D3 Format')}
-                control={<TextControl placeholder="%y/%m/%d" />}
+                control={
+                  <TextControl controlId="d3format" placeholder="%y/%m/%d" />
+                }
               />
               <Field
                 label={t('Warning Message')}
@@ -676,7 +698,12 @@ class DatasourceEditor extends React.PureComponent {
                 description={t(
                   'Warning message to display in the metric selector',
                 )}
-                control={<TextControl placeholder={t('Warning Message')} />}
+                control={
+                  <TextControl
+                    controlId="warning_text"
+                    placeholder={t('Warning Message')}
+                  />
+                }
               />
               <Field
                 label={t('Certified By')}
@@ -684,14 +711,22 @@ class DatasourceEditor extends React.PureComponent {
                 description={t(
                   'Person or group that has certified this metric',
                 )}
-                control={<TextControl placeholder={t('Certified By')} />}
+                control={
+                  <TextControl
+                    controlId="certified_by"
+                    placeholder={t('Certified By')}
+                  />
+                }
               />
               <Field
                 label={t('Certification Details')}
                 fieldKey="certification_details"
                 description={t('Details of the certification')}
                 control={
-                  <TextControl placeholder={t('Certification Details')} />
+                  <TextControl
+                    controlId="certification_details"
+                    placeholder={t('Certification Details')}
+                  />
                 }
               />
             </Fieldset>
