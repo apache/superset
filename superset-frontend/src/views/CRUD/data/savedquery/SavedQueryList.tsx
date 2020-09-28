@@ -86,38 +86,39 @@ function SavedQueryList({
   };
 
   const copyQueryLink = function (id: number) {
-    const selection = document.getSelection();
-    selection.removeAllRanges();
-    document.activeElement.blur();
-    const range = document.createRange();
-    const span = document.createElement('span');
-    span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
-    span.style.all = 'unset';
-    span.style.position = 'fixed';
-    span.style.top = 0;
-    span.style.clip = 'rect(0, 0, 0, 0)';
-    span.style.whiteSpace = 'pre';
+    const selection: Selection | null = document.getSelection();
 
-    document.body.appendChild(span);
-    range.selectNode(span);
-    selection.addRange(range);
-
-    try {
-      if (!document.execCommand('copy')) {
-        throw new Error(t('Not successful'));
-      }
-    } catch (err) {
-      addDangerToast(t('Sorry, your browser does not support copying.'));
-    }
-
-    document.body.removeChild(span);
-    if (selection.removeRange) {
-      selection.removeRange(range);
-    } else {
+    if (selection) {
       selection.removeAllRanges();
-    }
+      const range = document.createRange();
+      const span = document.createElement('span');
+      span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
+      span.style.position = 'fixed';
+      span.style.top = '0';
+      span.style.clip = 'rect(0, 0, 0, 0)';
+      span.style.whiteSpace = 'pre';
 
-    addSuccessToast(t('Link Copied!'));
+      document.body.appendChild(span);
+      range.selectNode(span);
+      selection.addRange(range);
+
+      try {
+        if (!document.execCommand('copy')) {
+          throw new Error(t('Not successful'));
+        }
+      } catch (err) {
+        addDangerToast(t('Sorry, your browser does not support copying.'));
+      }
+
+      document.body.removeChild(span);
+      if (selection.removeRange) {
+        selection.removeRange(range);
+      } else {
+        selection.removeAllRanges();
+      }
+
+      addSuccessToast(t('Link Copied!'));
+    }
   };
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
