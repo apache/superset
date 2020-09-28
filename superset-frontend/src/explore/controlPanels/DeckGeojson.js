@@ -17,8 +17,8 @@
  * under the License.
  */
 import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
-import { formatSelectOptions } from '../../modules/utils';
-import { columnChoices } from '../controls';
+import { formatSelectOptions } from 'src/modules/utils';
+import { columnChoices } from 'src/explore/controls';
 import {
   filterNulls,
   jsColumns,

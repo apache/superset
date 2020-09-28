@@ -21,15 +21,15 @@ import { isString } from 'lodash';
 import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/core';
 
-import { chart } from '../../chart/chartReducer';
+import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
+import { getParam } from 'src/modules/utils';
+import { applyDefaultFormData } from 'src/explore/store';
+import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
 } from './dashboardFilters';
-import { initSliceEntities } from './sliceEntities';
-import { getParam } from '../../modules/utils';
-import { applyDefaultFormData } from '../../explore/store';
-import { buildActiveFilters } from '../util/activeDashboardFilters';
+import { chart } from '../../chart/chartReducer';
 import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
-import { formatSelectOptions } from '../../modules/utils';
+import { formatSelectOptions } from 'src/modules/utils';
 
 export const druidTimeSeries = {
   label: t('Time'),
