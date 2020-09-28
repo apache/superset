@@ -27,11 +27,9 @@ from superset.extensions import jinja_context_manager
 from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
-        SqlaTable,
-    )
-    from superset.models.core import Database  # pylint: disable=unused-import
-    from superset.models.sql_lab import Query  # pylint: disable=unused-import
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
 
 def filter_values(column: str, default: Optional[str] = None) -> List[str]:
