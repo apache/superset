@@ -515,7 +515,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_chart_not_found(self):
         """
-         Chart API: Test get chart not found
+        Chart API: Test get chart not found
         """
         chart_id = 1000
         self.login(username="admin")
@@ -525,7 +525,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_chart_no_data_access(self):
         """
-         Chart API: Test get chart without data access
+        Chart API: Test get chart without data access
         """
         self.login(username="gamma")
         chart_no_access = (
@@ -596,34 +596,49 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         chart1 = self.insert_chart("foo_a", [admin.id], 1, description="ZY_bar")
         chart2 = self.insert_chart("zy_foo", [admin.id], 1, description="desc1")
         chart3 = self.insert_chart("foo_b", [admin.id], 1, description="desc1zy_")
-        chart4 = self.insert_chart("bar", [admin.id], 1, description="foo")
+        chart4 = self.insert_chart("foo_c", [admin.id], 1, viz_type="viz_zy_")
+        chart5 = self.insert_chart("bar", [admin.id], 1, description="foo")
 
         arguments = {
-            "filters": [
-                {"col": "slice_name", "opr": "name_or_description", "value": "zy_"}
-            ],
+            "filters": [{"col": "slice_name", "opr": "chart_all_text", "value": "zy_"}],
             "order_column": "slice_name",
             "order_direction": "asc",
             "keys": ["none"],
-            "columns": ["slice_name", "description"],
+            "columns": ["slice_name", "description", "viz_type"],
         }
         self.login(username="admin")
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 3)
+        self.assertEqual(data["count"], 4)
 
         expected_response = [
-            {"description": "ZY_bar", "slice_name": "foo_a",},
-            {"description": "desc1zy_", "slice_name": "foo_b",},
-            {"description": "desc1", "slice_name": "zy_foo",},
+            {"description": "ZY_bar", "slice_name": "foo_a", "viz_type": None},
+            {"description": "desc1zy_", "slice_name": "foo_b", "viz_type": None},
+            {"description": None, "slice_name": "foo_c", "viz_type": "viz_zy_"},
+            {"description": "desc1", "slice_name": "zy_foo", "viz_type": None},
         ]
         for index, item in enumerate(data["result"]):
             self.assertEqual(
                 item["description"], expected_response[index]["description"]
             )
             self.assertEqual(item["slice_name"], expected_response[index]["slice_name"])
+            self.assertEqual(item["viz_type"], expected_response[index]["viz_type"])
+
+        # test filtering on datasource_name
+        arguments = {
+            "filters": [
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
+            ],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 8)
 
         self.logout()
         self.login(username="gamma")
@@ -638,6 +653,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(chart2)
         db.session.delete(chart3)
         db.session.delete(chart4)
+        db.session.delete(chart5)
         db.session.commit()
 
     def test_get_charts_page(self):
@@ -870,8 +886,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
 
     def test_chart_data_with_invalid_datasource(self):
-        """Chart data API: Test chart data query with invalid schema
-        """
+        """Chart data API: Test chart data query with invalid schema"""
         self.login(username="admin")
         table = self.get_table_by_name("birth_names")
         payload = get_query_context(table.name, table.id, table.type)
@@ -880,8 +895,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
 
     def test_chart_data_with_invalid_enum_value(self):
-        """Chart data API: Test chart data query with invalid enum value
-        """
+        """Chart data API: Test chart data query with invalid enum value"""
         self.login(username="admin")
         table = self.get_table_by_name("birth_names")
         payload = get_query_context(table.name, table.id, table.type)
