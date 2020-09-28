@@ -129,7 +129,7 @@ export default class AlteredSliceTag extends React.Component {
     return isEqual(alterForComparison(val1), alterForComparison(val2));
   }
 
-  formatValue(value, key, controlsMap = this.state.controlsMap) {
+  formatValue(value, key, controlsMap) {
     // Format display value based on the control type
     // or the value type
     if (value === undefined) {
@@ -152,10 +152,10 @@ export default class AlteredSliceTag extends React.Component {
         })
         .join(', ');
     }
-    if (controlsMap[key] && controlsMap[key].type === 'BoundsControl') {
+    if (controlsMap[key]?.type === 'BoundsControl') {
       return `Min: ${value[0]}, Max: ${value[1]}`;
     }
-    if (controlsMap[key] && controlsMap[key].type === 'CollectionControl') {
+    if (controlsMap[key]?.type === 'CollectionControl') {
       return value.map(v => safeStringify(v)).join(', ');
     }
     if (typeof value === 'boolean') {

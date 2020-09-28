@@ -39,6 +39,7 @@ const getTableWrapperFromModalBody = modalBody =>
 describe('AlteredSliceTag', () => {
   let wrapper;
   let props;
+  let controlsMap;
 
   beforeEach(() => {
     getChartControlPanelRegistry().registerValue(
@@ -47,6 +48,7 @@ describe('AlteredSliceTag', () => {
     );
     props = { ...defaultProps };
     wrapper = shallow(<AlteredSliceTag {...props} />);
+    ({ controlsMap } = wrapper.instance().state);
   });
 
   it('correctly determines form data differences', () => {
@@ -166,18 +168,22 @@ describe('AlteredSliceTag', () => {
 
   describe('formatValue', () => {
     it('returns "N/A" for undefined values', () => {
-      expect(wrapper.instance().formatValue(undefined, 'b')).toBe('N/A');
+      expect(wrapper.instance().formatValue(undefined, 'b', controlsMap)).toBe(
+        'N/A',
+      );
     });
 
     it('returns "null" for null values', () => {
-      expect(wrapper.instance().formatValue(null, 'b')).toBe('null');
+      expect(wrapper.instance().formatValue(null, 'b', controlsMap)).toBe(
+        'null',
+      );
     });
 
     it('returns "Max" and "Min" for BoundsControl', () => {
       // need to pass the viz type to the wrapper
-      expect(wrapper.instance().formatValue([5, 6], 'y_axis_bounds')).toBe(
-        'Min: 5, Max: 6',
-      );
+      expect(
+        wrapper.instance().formatValue([5, 6], 'y_axis_bounds', controlsMap),
+      ).toBe('Min: 5, Max: 6');
     });
 
     it('returns stringified objects for CollectionControl', () => {
@@ -186,35 +192,47 @@ describe('AlteredSliceTag', () => {
         { sent: 'imental', w0ke: 5 },
       ];
       const expected = '{"1":2,"alpha":"bravo"}, {"sent":"imental","w0ke":5}';
-      expect(wrapper.instance().formatValue(value, 'column_collection')).toBe(
-        expected,
-      );
+      expect(
+        wrapper.instance().formatValue(value, 'column_collection', controlsMap),
+      ).toBe(expected);
     });
 
     it('returns boolean values as string', () => {
-      expect(wrapper.instance().formatValue(true, 'b')).toBe('true');
-      expect(wrapper.instance().formatValue(false, 'b')).toBe('false');
+      expect(wrapper.instance().formatValue(true, 'b', controlsMap)).toBe(
+        'true',
+      );
+      expect(wrapper.instance().formatValue(false, 'b', controlsMap)).toBe(
+        'false',
+      );
     });
 
     it('returns Array joined by commas', () => {
       const value = [5, 6, 7, 8, 'hello', 'goodbye'];
       const expected = '5, 6, 7, 8, hello, goodbye';
-      expect(wrapper.instance().formatValue(value)).toBe(expected);
+      expect(
+        wrapper.instance().formatValue(value, undefined, controlsMap),
+      ).toBe(expected);
     });
 
     it('stringifies objects', () => {
       const value = { 1: 2, alpha: 'bravo' };
       const expected = '{"1":2,"alpha":"bravo"}';
-      expect(wrapper.instance().formatValue(value)).toBe(expected);
+      expect(
+        wrapper.instance().formatValue(value, undefined, controlsMap),
+      ).toBe(expected);
     });
 
     it('does nothing to strings and numbers', () => {
-      expect(wrapper.instance().formatValue(5)).toBe(5);
-      expect(wrapper.instance().formatValue('hello')).toBe('hello');
+      expect(wrapper.instance().formatValue(5, undefined, controlsMap)).toBe(5);
+      expect(
+        wrapper.instance().formatValue('hello', undefined, controlsMap),
+      ).toBe('hello');
     });
 
     it('returns "[]" for empty filters', () => {
-      expect(wrapper.instance().formatValue([], 'adhoc_filters')).toBe('[]');
+      expect(
+        wrapper.instance().formatValue([], 'adhoc_filters', controlsMap),
+      ).toBe('[]');
     });
 
     it('correctly formats filters with array values', () => {
@@ -235,9 +253,9 @@ describe('AlteredSliceTag', () => {
         },
       ];
       const expected = 'a in [1, g, 7, ho], b not in [hu, ho, ha]';
-      expect(wrapper.instance().formatValue(filters, 'adhoc_filters')).toBe(
-        expected,
-      );
+      expect(
+        wrapper.instance().formatValue(filters, 'adhoc_filters', controlsMap),
+      ).toBe(expected);
     });
 
     it('correctly formats filters with string values', () => {
@@ -258,9 +276,9 @@ describe('AlteredSliceTag', () => {
         },
       ];
       const expected = 'a == gucci, b LIKE moshi moshi';
-      expect(wrapper.instance().formatValue(filters, 'adhoc_filters')).toBe(
-        expected,
-      );
+      expect(
+        wrapper.instance().formatValue(filters, 'adhoc_filters', controlsMap),
+      ).toBe(expected);
     });
   });
   describe('isEqualish', () => {
