@@ -30,7 +30,7 @@ import FormLabel from 'src/components/FormLabel';
 import './crud.less';
 
 const propTypes = {
-  value: PropTypes.any.isRequired,
+  value: PropTypes.any,
   label: PropTypes.string.isRequired,
   description: PropTypes.node,
   fieldKey: PropTypes.string.isRequired,

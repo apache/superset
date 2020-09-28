@@ -29,9 +29,9 @@ interface CRUDCollectionProps {
   allowDeletes?: boolean;
   collection: Array<object>;
   columnLabels?: object;
-  emptyMessage: ReactNode;
-  expandFieldset: ReactNode;
-  extraButtons: ReactNode;
+  emptyMessage?: ReactNode;
+  expandFieldset?: ReactNode;
+  extraButtons?: ReactNode;
   itemGenerator?: () => any;
   itemRenderers?: ((
     val: unknown,
