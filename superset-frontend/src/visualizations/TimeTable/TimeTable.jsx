@@ -94,7 +94,7 @@ class TimeTable extends React.PureComponent {
     { accessor: 'metric', Header: 'Metric' },
     ...this.props.columnConfigs.map((columnConfig, i) => ({
       accessor: columnConfig.key,
-      width: columnConfig.colType === 'spark' ? '1%' : null,
+      cellProps: columnConfig.colType === 'spark' && { style: { width: '1%' } },
       Header: () => (
         <>
           {columnConfig.label}{' '}
