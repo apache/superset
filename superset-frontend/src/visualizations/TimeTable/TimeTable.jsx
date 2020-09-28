@@ -27,6 +27,7 @@ import {
 } from '@superset-ui/chart-controls';
 import moment from 'moment';
 import ListView from 'src/components/ListView';
+import { memoize } from 'lodash-es';
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
 import './TimeTable.less';
@@ -89,6 +90,68 @@ const defaultProps = {
 };
 
 class TimeTable extends React.PureComponent {
+  memoizedColumns = memoize(() => [
+    { accessor: 'metric', Header: 'Metric' },
+    ...this.props.columnConfigs.map((columnConfig, i) => ({
+      accessor: columnConfig.key,
+      width: columnConfig.colType === 'spark' ? '1%' : null,
+      Header: () => (
+        <>
+          {columnConfig.label}{' '}
+          {columnConfig.tooltip && (
+            <InfoTooltipWithTrigger
+              tooltip={columnConfig.tooltip}
+              label={`tt-col-${i}`}
+              placement="top"
+            />
+          )}
+        </>
+      ),
+      sortType: (rowA, rowB, columnId) => {
+        const rowAVal = rowA.values[columnId].props['data-value'];
+        const rowBVal = rowB.values[columnId].props['data-value'];
+        return rowAVal - rowBVal;
+      },
+    })),
+  ]);
+
+  memoizedRows = memoize(() => {
+    const entries = Object.keys(this.props.data)
+      .sort()
+      .map(time => ({ ...this.props.data[time], time }));
+    const reversedEntries = entries.concat().reverse();
+
+    return this.props.rows.map(row => {
+      const valueField = row.label || row.metric_name;
+      const cellValues = this.props.columnConfigs.reduce(
+        (acc, columnConfig) => {
+          if (columnConfig.colType === 'spark') {
+            return {
+              ...acc,
+              [columnConfig.key]: this.renderSparklineCell(
+                valueField,
+                columnConfig,
+                entries,
+              ),
+            };
+          }
+          return {
+            ...acc,
+            [columnConfig.key]: this.renderValueCell(
+              valueField,
+              columnConfig,
+              reversedEntries,
+            ),
+          };
+        },
+        {},
+      );
+      return { ...row, ...cellValues, metric: this.renderLeftCell(row) };
+    });
+  });
+
+  initialSort = [{ id: 'metric', desc: false }];
+
   renderLeftCell(row) {
     const { rowType, url } = this.props;
     const context = { metric: row };
@@ -106,10 +169,9 @@ class TimeTable extends React.PureComponent {
       return column.label;
     }
 
-    const metric = row;
     return (
       <MetricOption
-        metric={metric}
+        metric={row}
         url={fullUrl}
         showFormula={false}
         openInNewWindow
@@ -139,6 +201,7 @@ class TimeTable extends React.PureComponent {
         width={parseInt(column.width, 10) || 300}
         height={parseInt(column.height, 10) || 50}
         data={sparkData}
+        data-value={sparkData[sparkData.length - 1]}
         ariaLabel={`spark-${valueField}`}
         numberFormat={column.d3format}
         yAxisBounds={column.yAxisBounds}
@@ -197,7 +260,7 @@ class TimeTable extends React.PureComponent {
     const color = colorFromBounds(v, column.bounds);
 
     return (
-      <td
+      <span
         key={column.key}
         data-value={v}
         style={
@@ -208,72 +271,33 @@ class TimeTable extends React.PureComponent {
         }
       >
         {errorMsg ? (
-          <div>{errorMsg}</div>
+          { errorMsg }
         ) : (
-          <div style={{ color }}>
+          <span style={{ color }}>
             <FormattedNumber num={v} format={column.d3format} />
-          </div>
+          </span>
         )}
-      </td>
+      </span>
     );
   }
 
   render() {
-    const { className, height, data, columnConfigs, rows } = this.props;
-
-    const entries = Object.keys(data)
-      .sort()
-      .map(time => ({ ...data[time], time }));
-    const reversedEntries = entries.concat().reverse();
+    const { className, height } = this.props;
 
     return (
       <div className={`time-table ${className}`} style={{ height }}>
         <ListView
-          columns={[
-            { accessor: 'metric', Header: 'Metric' },
-            ...columnConfigs.map((columnConfig, i) => ({
-              accessor: columnConfig.key,
-              width: columnConfig.colType === 'spark' ? '1%' : null,
-              Header: () => (
-                <>
-                  {columnConfig.label}{' '}
-                  {columnConfig.tooltip && (
-                    <InfoTooltipWithTrigger
-                      tooltip={columnConfig.tooltip}
-                      label={`tt-col-${i}`}
-                      placement="top"
-                    />
-                  )}
-                </>
-              ),
-              Cell: ({ row }) => {
-                const cellValue = row.original;
-                const valueField = cellValue.label || cellValue.metric_name;
-                if (columnConfig.colType === 'spark') {
-                  return this.renderSparklineCell(
-                    valueField,
-                    columnConfig,
-                    entries,
-                  );
-                }
-                return this.renderValueCell(
-                  valueField,
-                  columnConfig,
-                  reversedEntries,
-                );
-              },
-            })),
-          ]}
-          data={rows.map(row => ({
-            metric: this.renderLeftCell(row),
-            ...row,
-          }))}
+          columns={this.memoizedColumns()}
+          data={this.memoizedRows()}
           count={0}
-          initialSort={[{ id: 'metric', desc: true }]}
+          // we don't use pagination
+          pageSize={0}
+          initialSort={this.initialSort}
           fetchData={() => {}}
           loading={false}
           sticky={false}
           fullHeight
+          manualSortBy={false}
         />
       </div>
     );

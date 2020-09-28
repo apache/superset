@@ -110,6 +110,7 @@ interface UseListViewConfig {
     Header: (conf: any) => React.ReactNode;
     Cell: (conf: any) => React.ReactNode;
   };
+  manualSortBy: boolean;
 }
 
 export function useListViewState({
@@ -122,6 +123,7 @@ export function useListViewState({
   initialSort = [],
   bulkSelectMode = false,
   bulkSelectColumnConfig,
+  manualSortBy,
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
     filters: JsonParam,
@@ -177,9 +179,9 @@ export function useListViewState({
       initialState,
       manualFilters: true,
       manualPagination: true,
-      manualSortBy: true,
       autoResetFilters: false,
       pageCount: Math.ceil(count / initialPageSize),
+      manualSortBy,
     },
     useFilters,
     useSortBy,
