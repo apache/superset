@@ -41,11 +41,7 @@ from superset.charts.commands.exceptions import (
     ChartUpdateFailedError,
 )
 from superset.charts.commands.update import UpdateChartCommand
-from superset.charts.filters import (
-    ChartFavoriteFilter,
-    ChartFilter,
-    ChartNameOrDescriptionFilter,
-)
+from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartDataQueryContextSchema,
