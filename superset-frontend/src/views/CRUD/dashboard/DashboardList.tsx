@@ -35,6 +35,9 @@ import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import ListViewCard from 'src/components/ListViewCard';
 import { Dropdown, Menu } from 'src/common/components';
+import TooltipWrapper from 'src/components/TooltipWrapper';
+import { sub } from 'spec/__mocks__/fileMock';
+import { SubMenuProps } from 'antd/lib/menu/SubMenu';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
@@ -86,6 +89,7 @@ function DashboardList(props: DashboardListProps) {
     null,
   );
 
+  const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canExport = hasPerm('can_mulexport');
@@ -186,6 +190,7 @@ function DashboardList(props: DashboardListProps) {
         Header: '',
         id: 'favorite',
         disableSortBy: true,
+        size: 'xs',
       },
       {
         Cell: ({
@@ -208,19 +213,17 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <a href={changedByUrl}>{changedByName}</a>,
         Header: t('Modified By'),
         accessor: 'changed_by.first_name',
+        size: 'xl',
       },
       {
         Cell: ({
           row: {
             original: { published },
           },
-        }: any) => (
-          <span className="no-wrap">
-            {published ? <Icon name="check" /> : ''}
-          </span>
-        ),
+        }: any) => (published ? t('Published') : t('Draft')),
         Header: t('Published'),
         accessor: 'published',
+        size: 'xl',
       },
       {
         Cell: ({
@@ -230,11 +233,7 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <span className="no-wrap">{changedOn}</span>,
         Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
-      },
-      {
-        accessor: 'slug',
-        hidden: true,
-        disableSortBy: true,
+        size: 'xl',
       },
       {
         Cell: ({
@@ -246,6 +245,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Created By'),
         accessor: 'created_by',
         disableSortBy: true,
+        size: 'xl',
       },
       {
         Cell: ({
@@ -264,6 +264,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
+        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -287,36 +288,54 @@ function DashboardList(props: DashboardListProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={confirmDelete}
+                    <TooltipWrapper
+                      label="delete-action"
+                      tooltip={t('Delete')}
+                      placement="bottom"
                     >
-                      <Icon name="trash" />
-                    </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="action-button"
+                        onClick={confirmDelete}
+                      >
+                        <Icon name="trash" />
+                      </span>
+                    </TooltipWrapper>
                   )}
                 </ConfirmStatusChange>
               )}
               {canExport && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={handleExport}
+                <TooltipWrapper
+                  label="export-action"
+                  tooltip={t('Export')}
+                  placement="bottom"
                 >
-                  <Icon name="share" />
-                </span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icon name="share" />
+                  </span>
+                </TooltipWrapper>
               )}
               {canEdit && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={handleEdit}
+                <TooltipWrapper
+                  label="edit-action"
+                  tooltip={t('Edit')}
+                  placement="bottom"
                 >
-                  <Icon name="edit-alt" />
-                </span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icon name="edit-alt" />
+                  </span>
+                </TooltipWrapper>
               )}
             </span>
           );
@@ -331,7 +350,7 @@ function DashboardList(props: DashboardListProps) {
 
   const filters: Filters = [
     {
-      Header: 'Owner',
+      Header: t('Owner'),
       id: 'owners',
       input: 'select',
       operator: 'rel_m_m',
@@ -371,18 +390,18 @@ function DashboardList(props: DashboardListProps) {
       paginate: true,
     },
     {
-      Header: 'Published',
+      Header: t('Status'),
       id: 'published',
       input: 'select',
       operator: 'eq',
       unfilteredLabel: 'Any',
       selects: [
-        { label: 'Published', value: true },
-        { label: 'Unpublished', value: false },
+        { label: t('Published'), value: true },
+        { label: t('Unpublished'), value: false },
       ],
     },
     {
-      Header: 'Search',
+      Header: t('Search'),
       id: 'dashboard_title',
       input: 'search',
       operator: 'title_or_slug',
@@ -495,22 +514,31 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
+  const subMenuButtons: SubMenuProps['buttons'] = [];
+  if (canCreate || canExport) {
+    subMenuButtons.push({
+      name: t('Bulk Select'),
+      buttonStyle: 'secondary',
+      onClick: toggleBulkSelect,
+    });
+  }
+  if (canCreate) {
+    subMenuButtons.push({
+      name: (
+        <>
+          {' '}
+          <i className="fa fa-plus" /> {t('Dashboard')}
+        </>
+      ),
+      buttonStyle: 'primary',
+      onClick: () => {
+        window.location.assign('/dashboard/new');
+      },
+    });
+  }
   return (
     <>
-      <SubMenu
-        name={t('Dashboards')}
-        buttons={
-          canDelete || canExport
-            ? [
-                {
-                  name: t('Bulk Select'),
-                  buttonStyle: 'secondary',
-                  onClick: toggleBulkSelect,
-                },
-              ]
-            : undefined
-        }
-      />
+      <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t(
