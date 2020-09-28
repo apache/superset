@@ -18,9 +18,18 @@
  */
 import { styled } from '@superset-ui/core';
 import { Tabs as AntdTabs } from 'src/common/components';
+import { css } from '@emotion/core';
 
-const StyledTabs = styled(AntdTabs)`
-  margin-top: -18px;
+interface TabsProps {
+  inModal?: boolean;
+}
+
+const StyledTabs = styled(AntdTabs)<TabsProps>`
+  ${props =>
+    props.inModal &&
+    css`
+      margin-top: -18px;
+    `};
 
   .ant-tabs-nav-list {
     width: 100%;

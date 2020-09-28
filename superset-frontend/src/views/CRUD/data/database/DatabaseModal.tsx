@@ -302,7 +302,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </h4>
       }
     >
-      <Tabs defaultActiveKey="1">
+      <Tabs defaultActiveKey="1" inModal>
         <Tabs.TabPane
           tab={
             <span>
