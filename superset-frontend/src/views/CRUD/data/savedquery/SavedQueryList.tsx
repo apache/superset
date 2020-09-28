@@ -205,7 +205,7 @@ function SavedQueryList({
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icon name="pencil" />
+                    <Icon name="edit" />
                   </span>
                 </TooltipWrapper>
               )}
@@ -220,7 +220,7 @@ function SavedQueryList({
                   className="action-button"
                   onClick={handleCopy}
                 >
-                  <Icon name="clipboard" />
+                  <Icon name="copy" />
                 </span>
               </TooltipWrapper>
               {canDelete && (
