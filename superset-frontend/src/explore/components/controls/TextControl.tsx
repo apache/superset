@@ -22,19 +22,35 @@ import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import ControlHeader from '../ControlHeader';
 
 interface TextControlProps {
-  disabled: boolean;
-  isFloat: boolean;
-  isInt: boolean;
-  onChange: (value: any, errors: any) => {};
-  onFocus: () => {};
-  placeholder: string;
-  value: string | number;
+  disabled?: boolean;
+  isFloat?: boolean;
+  isInt?: boolean;
+  onChange?: (value: any, errors: any) => {};
+  onFocus?: () => {};
+  placeholder?: string;
+  value?: string | number;
+  controlId?: string;
 }
 
-export default class TextControl extends React.Component<TextControlProps> {
+interface TextControlState {
+  controlId: string;
+}
+
+const generateControlId = (controlId?: string) =>
+  `formInlineName_${controlId ?? (Math.random() * 1000000).toFixed()}`;
+
+export default class TextControl extends React.Component<
+  TextControlProps,
+  TextControlState
+> {
   constructor(props: TextControlProps) {
     super(props);
     this.onChange = this.onChange.bind(this);
+    // if there's no control id provided, generate a random
+    // number to prevent rendering elements with same ids
+    this.state = {
+      controlId: generateControlId(props.controlId),
+    };
   }
 
   onChange(event: any) {
@@ -47,7 +63,7 @@ export default class TextControl extends React.Component<TextControlProps> {
       if (error) {
         errors.push(error);
       } else {
-        value = value.match(/.*(\.|0)$/g) ? value : parseFloat(value);
+        value = value.match(/.*([.0])$/g) ? value : parseFloat(value);
       }
     }
     if (value !== '' && this.props.isInt) {
@@ -58,7 +74,7 @@ export default class TextControl extends React.Component<TextControlProps> {
         value = parseInt(value, 10);
       }
     }
-    this.props.onChange(value, errors);
+    this.props.onChange?.(value, errors);
   }
 
   render() {
@@ -67,10 +83,11 @@ export default class TextControl extends React.Component<TextControlProps> {
       typeof rawValue !== 'undefined' && rawValue !== null
         ? rawValue.toString()
         : '';
+
     return (
       <div>
         <ControlHeader {...this.props} />
-        <FormGroup controlId="formInlineName" bsSize="small">
+        <FormGroup controlId={this.state.controlId} bsSize="small">
           <FormControl
             type="text"
             placeholder={this.props.placeholder}

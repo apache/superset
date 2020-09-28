@@ -25,8 +25,8 @@ import Field from './Field';
 
 const propTypes = {
   children: PropTypes.node.isRequired,
-  onChange: PropTypes.func.isRequired,
-  item: PropTypes.object.isRequired,
+  onChange: PropTypes.func,
+  item: PropTypes.object,
   title: PropTypes.node,
   compact: PropTypes.bool,
 };

@@ -53,7 +53,7 @@ describe('Header', () => {
     fetchCharts: () => {},
     saveFaveStar: () => {},
     savePublished: () => {},
-    isPublished: () => {},
+    isPublished: false,
     updateDashboardTitle: () => {},
     editMode: false,
     setEditMode: () => {},

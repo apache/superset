@@ -152,7 +152,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
         "id": [ChartFavoriteFilter],
-        "slice_name": [ChartNameOrDescriptionFilter],
+        "slice_name": [ChartAllTextFilter],
     }
 
     # Will just affect _info endpoint

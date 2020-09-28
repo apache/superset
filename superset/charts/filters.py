@@ -21,16 +21,15 @@ from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset import security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
 
 
-class ChartNameOrDescriptionFilter(
-    BaseFilter
-):  # pylint: disable=too-few-public-methods
-    name = _("Name or Description")
-    arg_name = "name_or_description"
+class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("All Text")
+    arg_name = "chart_all_text"
 
     def apply(self, query: Query, value: Any) -> Query:
         if not value:
@@ -40,6 +39,8 @@ class ChartNameOrDescriptionFilter(
             or_(
                 Slice.slice_name.ilike(ilike_value),
                 Slice.description.ilike(ilike_value),
+                Slice.viz_type.ilike(ilike_value),
+                SqlaTable.table_name.ilike(ilike_value),
             )
         )
 
