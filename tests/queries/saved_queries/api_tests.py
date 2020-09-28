@@ -344,9 +344,8 @@ class TestSavedQueryApi(SupersetTestCase):
         uri = f"api/v1/saved_query/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 200)
-        for i, expected_model in enumerate(expected_models):
-            assert expected_model.label == data["result"][i]["label"]
+        assert rv.status_code == 200
+        assert len(expected_models) == data["count"]
 
     def test_info_saved_query(self):
         """

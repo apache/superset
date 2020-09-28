@@ -694,8 +694,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(data["count"], len(expected_models))
+        assert rv.status_code == 200
+        assert len(expected_models) == data["count"]
 
         for i, expected_model in enumerate(expected_models):
             assert expected_model.slice_name == data["result"][i]["slice_name"]
@@ -711,8 +711,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(data["count"], len(expected_models))
+        assert rv.status_code == 200
+        assert len(expected_models) == data["count"]
 
     def test_get_charts_page(self):
         """

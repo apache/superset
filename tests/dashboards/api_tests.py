@@ -327,9 +327,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], len(expected_models))
+        assert len(expected_models) == data["count"]
 
         for i, expected_model in enumerate(expected_models):
             assert (
@@ -347,7 +347,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
+        assert len(expected_models) == data["count"]
         for i, expected_model in enumerate(expected_models):
             assert (
                 expected_model.dashboard_title == data["result"][i]["dashboard_title"]
