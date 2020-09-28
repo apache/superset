@@ -51,7 +51,7 @@ class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public
 
     name = _("Is favorite")
     arg_name = "chart_is_fav"
-    class_name = "Slice"
+    class_name = "slice"
     model = Slice
 
 

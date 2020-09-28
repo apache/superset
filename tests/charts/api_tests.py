@@ -89,7 +89,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             fav_charts = []
             for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
                 fav_star = FavStar(
-                    user_id=admin.id, class_name="Slice", obj_id=charts[cx].id
+                    user_id=admin.id, class_name="slice", obj_id=charts[cx].id
                 )
                 db.session.add(fav_star)
                 db.session.commit()
@@ -670,15 +670,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     @pytest.mark.usefixtures("create_charts")
     def test_get_charts_favorite_filter(self):
         """
-        Dashboard API: Test get charts favorite filter
+        Chart API: Test get charts favorite filter
         """
         admin = self.get_user("admin")
-        users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
-            and_(FavStar.user_id == admin.id, FavStar.class_name == "Slice",)
+        users_favorite_query = db.session.query(FavStar.obj_id).filter(
+            and_(FavStar.user_id == admin.id, FavStar.class_name == "slice")
         )
         expected_models = (
             db.session.query(Slice)
-            .filter(and_(Slice.id.in_(users_favorite_dash_query),))
+            .filter(and_(Slice.id.in_(users_favorite_query)))
             .order_by(Slice.slice_name.asc())
             .all()
         )
@@ -699,6 +699,20 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         for i, expected_model in enumerate(expected_models):
             assert expected_model.slice_name == data["result"][i]["slice_name"]
+
+        # Test not favorite charts
+        expected_models = (
+            db.session.query(Slice)
+            .filter(and_(~Slice.id.in_(users_favorite_query)))
+            .order_by(Slice.slice_name.asc())
+            .all()
+        )
+        arguments["filters"][0]["value"] = False
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data["count"], len(expected_models))
 
     def test_get_charts_page(self):
         """

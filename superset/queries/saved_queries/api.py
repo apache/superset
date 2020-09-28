@@ -34,6 +34,7 @@ from superset.queries.saved_queries.commands.exceptions import (
 )
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
+    SavedQueryFavoriteFilter,
     SavedQueryFilter,
 )
 from superset.queries.saved_queries.schemas import (
@@ -96,7 +97,11 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "database.database_name",
     ]
 
-    search_filters = {"label": [SavedQueryAllTextFilter]}
+    search_columns = ["id", "label"]
+    search_filters = {
+        "id": [SavedQueryFavoriteFilter],
+        "label": [SavedQueryAllTextFilter],
+    }
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

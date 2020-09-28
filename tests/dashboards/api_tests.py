@@ -307,12 +307,12 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test get dashboards favorite filter
         """
         admin = self.get_user("admin")
-        users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
-            and_(FavStar.user_id == admin.id, FavStar.class_name == "Dashboard",)
+        users_favorite_query = db.session.query(FavStar.obj_id).filter(
+            and_(FavStar.user_id == admin.id, FavStar.class_name == "Dashboard")
         )
         expected_models = (
             db.session.query(Dashboard)
-            .filter(and_(Dashboard.id.in_(users_favorite_dash_query),))
+            .filter(and_(Dashboard.id.in_(users_favorite_query)))
             .order_by(Dashboard.dashboard_title.asc())
             .all()
         )
@@ -331,6 +331,23 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], len(expected_models))
 
+        for i, expected_model in enumerate(expected_models):
+            assert (
+                expected_model.dashboard_title == data["result"][i]["dashboard_title"]
+            )
+
+        # Test not favorite dashboards
+        expected_models = (
+            db.session.query(Dashboard)
+            .filter(and_(~Dashboard.id.in_(users_favorite_query)))
+            .order_by(Dashboard.dashboard_title.asc())
+            .all()
+        )
+        arguments["filters"][0]["value"] = False
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
         for i, expected_model in enumerate(expected_models):
             assert (
                 expected_model.dashboard_title == data["result"][i]["dashboard_title"]
