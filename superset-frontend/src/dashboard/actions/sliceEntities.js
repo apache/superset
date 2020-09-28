@@ -19,9 +19,9 @@
 /* eslint camelcase: 0 */
 import { t, SupersetClient } from '@superset-ui/core';
 
-import { addDangerToast } from '../../messageToasts/actions';
-import { getDatasourceParameter } from '../../modules/utils';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { addDangerToast } from 'src/messageToasts/actions';
+import { getDatasourceParameter } from 'src/modules/utils';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
 export function setAllSlices(slices) {
