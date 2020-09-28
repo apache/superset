@@ -35,7 +35,7 @@ import AsyncSelect from '../../components/AsyncSelect';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  height: PropTypes.string.isRequired,
+  height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   displayLimit: PropTypes.number.isRequired,
 };
 

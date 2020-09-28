@@ -38,7 +38,7 @@ const propTypes = {
   colType: PropTypes.string,
   width: PropTypes.string,
   height: PropTypes.string,
-  timeLag: PropTypes.string,
+  timeLag: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   timeRatio: PropTypes.string,
   comparisonType: PropTypes.string,
   showYAxis: PropTypes.bool,
