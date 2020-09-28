@@ -1,5 +1,4 @@
 <!--
-<<<<<<< HEAD
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
 distributed with this work for additional information
@@ -19,25 +18,4 @@ under the License.
 -->
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path fill-rule="evenodd" clip-rule="evenodd" d="M21.956 16.706L18.331 4.925C17.976 3.774 16.929 3 15.726 3C14.223 3 13 4.223 13 5.726V7H11V5.726C11 4.223 9.777 3 8.274 3C7.07 3 6.024 3.774 5.669 4.925L2.044 16.706C2.015 16.801 2 16.9 2 17V17.5C2 19.982 4.019 22 6.5 22C8.981 22 11 19.982 11 17.5V13H13V17.5C13 19.982 15.019 22 17.5 22C19.981 22 22 19.982 22 17.5V17C22 16.9 21.985 16.801 21.956 16.706ZM6.5 20C5.122 20 4 18.878 4 17.5C4 16.122 5.122 15 6.5 15C7.878 15 9 16.122 9 17.5C9 18.878 7.878 20 6.5 20ZM9 13.762C8.284 13.282 7.425 13 6.5 13C6.049 13 5.623 13.086 5.212 13.21L7.58 5.512C7.675 5.206 7.954 5 8.274 5C8.674 5 9 5.325 9 5.726V7V13V13.762ZM11 11V9H13V11H11ZM15 7V5.726C15 5.325 15.326 5 15.726 5C16.046 5 16.325 5.206 16.42 5.513L18.788 13.211C18.377 13.086 17.951 13 17.5 13C16.575 13 15.716 13.282 15 13.762V13V7ZM17.5 20C16.122 20 15 18.878 15 17.5C15 16.122 16.122 15 17.5 15C18.878 15 20 16.122 20 17.5C20 18.878 18.878 20 17.5 20Z" fill="currentColor"/>
-=======
-  Licensed to the Apache Software Foundation (ASF) under one
-  or more contributor license agreements.  See the NOTICE file
-  distributed with this work for additional information
-  regarding copyright ownership.  The ASF licenses this file
-  to you under the Apache License, Version 2.0 (the
-  "License"); you may not use this file except in compliance
-  with the License.  You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing,
-  software distributed under the License is distributed on an
-  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  KIND, either express or implied.  See the License for the
-  specific language governing permissions and limitations
-  under the License.
--->
-<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M19.956 14.206L16.331 2.425C15.976 1.274 14.929 0.5 13.726 0.5C12.223 0.5 11 1.723 11 3.226V4.5H9V3.226C9 1.723 7.777 0.5 6.274 0.5C5.07 0.5 4.024 1.274 3.669 2.425L0.044 14.206C0.015 14.301 0 14.4 0 14.5V15C0 17.482 2.019 19.5 4.5 19.5C6.981 19.5 9 17.482 9 15V10.5H11V15C11 17.482 13.019 19.5 15.5 19.5C17.981 19.5 20 17.482 20 15V14.5C20 14.4 19.985 14.301 19.956 14.206ZM4.5 17.5C3.122 17.5 2 16.378 2 15C2 13.622 3.122 12.5 4.5 12.5C5.878 12.5 7 13.622 7 15C7 16.378 5.878 17.5 4.5 17.5ZM7 11.262C6.284 10.782 5.425 10.5 4.5 10.5C4.049 10.5 3.623 10.586 3.212 10.71L5.58 3.012C5.675 2.706 5.954 2.5 6.274 2.5C6.674 2.5 7 2.825 7 3.226V4.5V10.5V11.262ZM9 8.5V6.5H11V8.5H9ZM13 4.5V3.226C13 2.825 13.326 2.5 13.726 2.5C14.046 2.5 14.325 2.706 14.42 3.013L16.788 10.711C16.377 10.586 15.951 10.5 15.5 10.5C14.575 10.5 13.716 10.782 13 11.262V10.5V4.5ZM15.5 17.5C14.122 17.5 13 16.378 13 15C13 13.622 14.122 12.5 15.5 12.5C16.878 12.5 18 13.622 18 15C18 16.378 16.878 17.5 15.5 17.5Z" fill="currentColor"/>
->>>>>>> update actions
 </svg>
