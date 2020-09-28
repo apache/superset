@@ -183,7 +183,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
     )
 
     def __repr__(self) -> str:
-        return self.label
+        return str(self.label)
 
     @property
     def pop_tab_link(self) -> Markup:
