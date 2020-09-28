@@ -26,13 +26,13 @@ import {
 } from '@ant-design/icons';
 import { Collapse } from 'src/common/components/index';
 import S from './Styles';
-import { APPLIED, INCOMPATIBLE, UNSET } from './selectors';
+import { IndicatorStatus } from './selectors';
 
 export type Indicator = {
   id: string;
   name: string;
   value: string[];
-  status: typeof APPLIED | typeof UNSET | typeof INCOMPATIBLE;
+  status: IndicatorStatus;
   path: string;
 };
 

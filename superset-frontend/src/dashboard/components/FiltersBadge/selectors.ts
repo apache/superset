@@ -20,14 +20,23 @@ import { isNil, get } from 'lodash';
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { TIME_FILTER_MAP } from '../../../visualizations/FilterBox/FilterBox';
 
-export const UNSET = 'UNSET';
-export const APPLIED = 'APPLIED';
-export const INCOMPATIBLE = 'INCOMPATIBLE';
+export enum IndicatorStatus {
+  Unset = 'UNSET',
+  Applied = 'APPLIED',
+  Incompatible = 'INCOMPATIBLE',
+}
 
 const TIME_GRANULARITY_FIELDS = new Set([
   TIME_FILTER_MAP.granularity,
   TIME_FILTER_MAP.time_grain_sqla,
 ]);
+
+// As of 2020-09-28, the DatasourceMeta type in superset-ui is incorrect.
+// Should patch it here until the DatasourceMeta type is updated.
+type Datasource = {
+  time_grain_sqla?: [string, string][];
+  granularity?: [string, string][];
+};
 
 type Filter = {
   chartId: number;
@@ -39,10 +48,6 @@ type Filter = {
   datasourceId: string;
 };
 
-type Datasource = {
-  time_grain_sqla?: [string, string][];
-  granularity?: [string, string][];
-};
 const selectIndicatorValue = (
   columnKey: string,
   filter: Filter,
@@ -89,9 +94,9 @@ const selectIndicatorsForChartFromFilter = (
   // or rejected (if the filter is incompatible)
   // or the status can be unknown (if the filter has calculated parameters that we can't analyze)
   const getStatus = (column: string) => {
-    if (appliedColumns.has(column)) return APPLIED;
-    if (rejectedColumns.has(column)) return INCOMPATIBLE;
-    return UNSET;
+    if (appliedColumns.has(column)) return IndicatorStatus.Applied;
+    if (rejectedColumns.has(column)) return IndicatorStatus.Incompatible;
+    return IndicatorStatus.Unset;
   };
 
   return Object.keys(filter.columns)

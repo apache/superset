@@ -26,12 +26,7 @@ import { Popover, Icon } from 'src/common/components';
 import DetailsPanel, { Indicator } from './DetailsPanel';
 import S from './Styles';
 import { setDirectPathToChild } from '../../actions/dashboardState';
-import {
-  selectIndicatorsForChart,
-  INCOMPATIBLE,
-  APPLIED,
-  UNSET,
-} from './selectors';
+import { selectIndicatorsForChart, IndicatorStatus } from './selectors';
 
 const mapDispatchToProps = (dispatch: Dispatch<any>) => {
   return bindActionCreators(
@@ -72,13 +67,13 @@ const FiltersBadge = ({
 }) => {
   const theme = useTheme();
   const appliedIndicators = indicators.filter(
-    indicator => indicator.status === APPLIED,
+    indicator => indicator.status === IndicatorStatus.Applied,
   );
   const unsetIndicators = indicators.filter(
-    indicator => indicator.status === UNSET,
+    indicator => indicator.status === IndicatorStatus.Unset,
   );
   const incompatibleIndicators = indicators.filter(
-    indicator => indicator.status === INCOMPATIBLE,
+    indicator => indicator.status === IndicatorStatus.Incompatible,
   );
 
   if (!appliedIndicators.length && !incompatibleIndicators.length) {
@@ -86,33 +81,31 @@ const FiltersBadge = ({
   }
 
   return (
-    <span>
-      <Popover
-        content={
-          <DetailsPanel
-            appliedIndicators={appliedIndicators}
-            unsetIndicators={unsetIndicators}
-            incompatibleIndicators={incompatibleIndicators}
-            onHighlightFilterSource={onHighlightFilterSource}
-          />
-        }
-        placement="bottomRight"
-        trigger="click"
-      >
-        <S.Pill>
-          <Icon component={FilterIcon} />{' '}
-          <span className="indicator-count">
-            {appliedIndicators.length + incompatibleIndicators.length}
+    <Popover
+      content={
+        <DetailsPanel
+          appliedIndicators={appliedIndicators}
+          unsetIndicators={unsetIndicators}
+          incompatibleIndicators={incompatibleIndicators}
+          onHighlightFilterSource={onHighlightFilterSource}
+        />
+      }
+      placement="bottomRight"
+      trigger="click"
+    >
+      <S.Pill>
+        <Icon component={FilterIcon} />{' '}
+        <span className="indicator-count">
+          {appliedIndicators.length + incompatibleIndicators.length}
+        </span>
+        {incompatibleIndicators.length ? (
+          <span className="rejected-indicators">
+            {' '}
+            <WarningFilled style={{ color: theme.colors.warning.base }} />
           </span>
-          {incompatibleIndicators.length ? (
-            <span className="rejected-indicators">
-              {' '}
-              <WarningFilled style={{ color: theme.colors.warning.base }} />
-            </span>
-          ) : null}
-        </S.Pill>
-      </Popover>
-    </span>
+        ) : null}
+      </S.Pill>
+    </Popover>
   );
 };
 
