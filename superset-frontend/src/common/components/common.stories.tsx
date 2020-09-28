@@ -42,7 +42,12 @@ export const StyledModal = () => (
 );
 
 export const StyledTabs = () => (
-  <Tabs defaultActiveKey="1" centered={boolean('Center tabs', false)}>
+  <Tabs
+    defaultActiveKey="1"
+    centered={boolean('Center tabs', false)}
+    fullWidth={boolean('Full width', true)}
+    inModal={boolean('Is placed in modal', false)}
+  >
     <Tabs.TabPane
       tab="Tab 1"
       key="1"

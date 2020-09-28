@@ -22,6 +22,7 @@ import { css } from '@emotion/core';
 
 interface TabsProps {
   inModal?: boolean;
+  fullWidth?: boolean;
 }
 
 const StyledTabs = styled(AntdTabs)<TabsProps>`
@@ -31,18 +32,30 @@ const StyledTabs = styled(AntdTabs)<TabsProps>`
       margin-top: -18px;
     `};
 
-  .ant-tabs-nav-list {
-    width: 100%;
-  }
-
   .ant-tabs-tab {
     flex: 1 1 auto;
-    width: 0;
 
     &.ant-tabs-tab-active .ant-tabs-tab-btn {
       color: inherit;
     }
   }
+
+  ${({ fullWidth }) =>
+    fullWidth
+      ? css`
+          .ant-tabs-nav-list {
+            width: 100%;
+          }
+
+          .ant-tabs-tab {
+            width: 0;
+          }
+        `
+      : css`
+          .ant-tabs-nav {
+            margin-left: 16px;
+          }
+        `};
 
   .ant-tabs-tab-btn {
     flex: 1 1 auto;
@@ -67,5 +80,9 @@ const StyledTabPane = styled(AntdTabs.TabPane)``;
 const Tabs = Object.assign(StyledTabs, {
   TabPane: StyledTabPane,
 });
+
+Tabs.defaultProps = {
+  fullWidth: true,
+};
 
 export default Tabs;
