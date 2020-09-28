@@ -826,10 +826,6 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.get_assert_metric(uri, "export")
         self.assertEqual(rv.status_code, 200)
-        self.assertEqual(
-            rv.headers["Content-Disposition"],
-            generate_download_headers("yaml")["Content-Disposition"],
-        )
 
         cli_export = export_to_dict(
             session=db.session,

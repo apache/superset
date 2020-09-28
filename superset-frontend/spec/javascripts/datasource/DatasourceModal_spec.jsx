@@ -60,12 +60,10 @@ async function mountAndWait(props = mockedProps) {
 }
 
 describe('DatasourceModal', () => {
-  fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
-  const callsP = fetchMock.put(SAVE_ENDPOINT, SAVE_PAYLOAD);
-
   let wrapper;
 
   beforeEach(async () => {
+    fetchMock.reset();
     wrapper = await mountAndWait();
   });
 
@@ -82,6 +80,7 @@ describe('DatasourceModal', () => {
   });
 
   it('saves on confirm', async () => {
+    const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
     act(() => {
       wrapper
         .find('button[data-test="datasource-modal-save"]')
@@ -94,6 +93,9 @@ describe('DatasourceModal', () => {
       okButton.simulate('click');
     });
     await waitForComponentToPaint(wrapper);
-    expect(callsP._calls).toHaveLength(2); /* eslint no-underscore-dangle: 0 */
+    const expected = ['http://localhost/datasource/save/'];
+    expect(callsP._calls.map(call => call[0])).toEqual(
+      expected,
+    ); /* eslint no-underscore-dangle: 0 */
   });
 });
