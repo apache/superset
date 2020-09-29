@@ -41,7 +41,11 @@ const MenuDotsWrapper = styled.div`
   padding-right: 8px;
 `;
 
-export const Dropdown = ({ overlay, ...rest }) => (
+interface DropdownProps {
+  overlay: React.ReactElement;
+}
+
+export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
   <AntdDropdown overlay={overlay} {...rest}>
     <MenuDotsWrapper>
       <MenuDots />
