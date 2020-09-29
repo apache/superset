@@ -41,7 +41,7 @@ const ErrorAlertDiv = styled.div<{ level: ErrorLevel }>`
   }
 
   .monospace {
-    font-family: monospace;
+    font-family: ${({ theme }) => theme.typography.families.monospace};
     white-space: pre;
   }
 
