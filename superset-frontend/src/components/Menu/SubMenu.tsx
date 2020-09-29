@@ -68,13 +68,13 @@ type MenuChild = {
   usesRouter?: boolean;
 };
 
-interface Buttons {
+interface ButtonProps {
   name: any;
-  onClick: () => void;
+  onClick: OnClickHandler;
   style: string;
 }
 export interface SubMenuProps {
-  buttons: Array<Buttons>;
+  buttons?: Array<ButtonProps>;
   name: string;
   children?: MenuChild[];
   activeChild?: MenuChild['name'];

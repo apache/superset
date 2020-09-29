@@ -502,7 +502,7 @@ function ChartList(props: ChartListProps) {
             ? [
                 {
                   name: t('Bulk Select'),
-                  buttonStyle: 'Primary',
+                  style: 'Primary',
                   onClick: toggleBulkSelect,
                 },
               ]
