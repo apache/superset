@@ -33,8 +33,7 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
-import TooltipWrapper from 'src/components/TooltipWrapper';
-import Icon from 'src/components/Icon';
+import ActionsBar from 'src/components/ListView/ActionsBar';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 
 const PAGE_SIZE = 25;
@@ -284,7 +283,44 @@ function SavedQueryList({
           };
           const handleDelete = () => setQueryCurrentlyDeleting(original); // openQueryDeleteModal(original);
 
-          return (
+          const actions = [
+            {
+              label: 'preview-action',
+              tooltip: t('Query preview'),
+              placement: 'bottom',
+              icon: 'binoculars',
+              onClick: handlePreview,
+            },
+            canEdit
+              ? {
+                  label: 'edit-action',
+                  tooltip: t('Edit query'),
+                  placement: 'bottom',
+                  icon: 'edit',
+                  onClick: handleEdit,
+                }
+              : null,
+            {
+              label: 'copy-action',
+              tooltip: t('Copy query URL'),
+              placement: 'bottom',
+              icon: 'copy',
+              onClick: handleCopy,
+            },
+            canDelete
+              ? {
+                  label: 'delete-action',
+                  tooltip: t('Delete query'),
+                  placement: 'bottom',
+                  icon: 'trash',
+                  onClick: handleDelete,
+                }
+              : null,
+          ].filter(item => !!item);
+
+          return <ActionsBar actions={actions} />;
+
+          /* return (
             <span className="actions">
               <TooltipWrapper
                 label="preview-action"
@@ -335,7 +371,6 @@ function SavedQueryList({
                   role="button"
                   tabIndex={0}
                   className="action-button"
-                  data-test="database-delete"
                   onClick={handleDelete}
                 >
                   <TooltipWrapper
@@ -348,7 +383,7 @@ function SavedQueryList({
                 </span>
               )}
             </span>
-          );
+          ); */
         },
         Header: t('Actions'),
         id: 'actions',
