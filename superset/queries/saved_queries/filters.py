@@ -53,7 +53,6 @@ class SavedQueryFavoriteFilter(
     favored
     """
 
-    name = _("Is favorite")
     arg_name = "saved_query_is_fav"
     class_name = "query"
     model = SavedQuery

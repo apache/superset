@@ -51,7 +51,6 @@ class DashboardFavoriteFilter(
     Custom filter for the GET list that filters all dashboards that a user has favored
     """
 
-    name = _("Is favorite")
     arg_name = "dashboard_is_fav"
     class_name = "Dashboard"
     model = Dashboard
