@@ -50,7 +50,6 @@ const StyledActions = styled.span`
 `;
 
 export default function ActionsBar({ actions }: ActionsBarProps) {
-  console.log('actions', actions);
   return (
     <StyledActions className="actions">
       {actions.map(action => {
