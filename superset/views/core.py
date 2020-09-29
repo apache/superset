@@ -1820,8 +1820,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     def sqllab_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
         data = json.loads(request.form["data"])
-        table_name = data["datasourceName"]
-        database_id = data["dbId"]
+        try:
+            table_name = data["datasourceName"]
+            database_id = data["dbId"]
+        except KeyError:
+            return json_error_response("Missing required fields", status=400)
+        database = db.session.query(Database).get(database_id)
+        if not database:
+            return json_error_response("Database not found", status=400)
         table = (
             db.session.query(SqlaTable)
             .filter_by(database_id=database_id, table_name=table_name)
@@ -1829,7 +1835,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         if not table:
             table = SqlaTable(table_name=table_name, owners=[g.user])
-        table.database_id = database_id
+        table.database = database
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
         table.is_sqllab_view = True
