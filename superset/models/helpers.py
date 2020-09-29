@@ -18,6 +18,7 @@
 import json
 import logging
 import re
+import uuid
 from datetime import datetime, timedelta
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, Optional, Set, Union
@@ -26,7 +27,6 @@ import humanize
 import pandas as pd
 import pytz
 import sqlalchemy as sa
-import uuid
 import yaml
 from flask import escape, g, Markup
 from flask_appbuilder.models.decorators import renders

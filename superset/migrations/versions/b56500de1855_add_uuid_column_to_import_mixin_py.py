@@ -23,13 +23,12 @@ Create Date: 2020-09-28 17:57:23.128142
 """
 import uuid
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import UUIDType
 
 from superset import db
-
 
 # revision identifiers, used by Alembic.
 revision = "b56500de1855"
