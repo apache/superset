@@ -95,6 +95,8 @@ Join our growing community!
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
 - [Whale](http://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
+- [Zeta](https://www.zeta.tech/) [@shaikidris]
+
 
 ### Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
