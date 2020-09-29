@@ -21,7 +21,7 @@ import geohash as geohash_lib
 import numpy as np
 from flask_babel import gettext as _
 from geopy.point import Point
-from pandas import DataFrame, NamedAgg, Series
+from pandas import DataFrame, NamedAgg, Series, Timestamp
 
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
@@ -93,7 +93,8 @@ PROPHET_TIME_GRAIN_MAP = {
 
 
 def _flatten_column_after_pivot(
-    column: Union[str, Tuple[str, ...]], aggregates: Dict[str, Dict[str, Any]]
+    column: Union[float, Timestamp, str, Tuple[str, ...]],
+    aggregates: Dict[str, Dict[str, Any]],
 ) -> str:
     """
     Function for flattening column names into a single string. This step is necessary
@@ -106,15 +107,13 @@ def _flatten_column_after_pivot(
     :param aggregates: aggregates
     :return:
     """
-    if isinstance(column, str):
-        return column
-    if len(column) == 1:
-        return column[0]
+    if not isinstance(column, tuple):
+        column = (column,)
     if len(aggregates) == 1 and len(column) > 1:
         # drop aggregate for single aggregate pivots with multiple groupings
         # from column name (aggregates always come first in column name)
         column = column[1:]
-    return ", ".join(column)
+    return ", ".join([str(col) for col in column])
 
 
 def validate_column_args(*argnames: str) -> Callable[..., Any]:
