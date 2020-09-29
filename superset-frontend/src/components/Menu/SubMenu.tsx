@@ -35,22 +35,19 @@ const StyledHeader = styled.header`
       a,
       div {
         font-size: ${({ theme }) => theme.typography.sizes.s}px;
-        padding: ${({ theme }) => theme.gridUnit * 2}px 0;
+        padding: ${({ theme }) => theme.gridUnit * 2}px;
         margin: ${({ theme }) => theme.gridUnit * 2}px;
         color: ${({ theme }) => theme.colors.secondary.dark1};
-
         a {
           margin: 0;
           padding: ${({ theme }) => theme.gridUnit * 4}px;
         }
       }
-
       &.no-router a {
         padding: ${({ theme }) => theme.gridUnit * 2}px
           ${({ theme }) => theme.gridUnit * 4}px;
       }
     }
-
     li.active > a,
     li.active > div,
     li > a:hover,
@@ -65,19 +62,17 @@ const StyledHeader = styled.header`
 type MenuChild = {
   label: string;
   name: string;
-  url: string;
+  url?: string;
   usesRouter?: boolean;
 };
 
+interface Buttons {
+  name: any;
+  onClick: () => void;
+  style: string;
+}
 export interface SubMenuProps {
-  primaryButton?: {
-    name: React.ReactNode;
-    onClick: OnClickHandler;
-  };
-  secondaryButton?: {
-    name: React.ReactNode;
-    onClick: OnClickHandler;
-  };
+  buttons: Array<Buttons>;
   name: string;
   children?: MenuChild[];
   activeChild?: MenuChild['name'];
@@ -85,11 +80,14 @@ export interface SubMenuProps {
    *  ONLY set usesRouter to true if SubMenu is wrapped in a react-router <Router>;
    *  otherwise, a 'You should not use <Link> outside a <Router>' error will be thrown */
   usesRouter?: boolean;
+  links?: {
+    linkTitle: string;
+    link: string;
+  };
 }
 
 const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
   let hasHistory = true;
-
   // If no parent <Router> component exists, useHistory throws an error
   try {
     useHistory();
@@ -97,7 +95,6 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
     // If error is thrown, we know not to use <Link> in render
     hasHistory = false;
   }
-
   return (
     <StyledHeader>
       <Navbar inverse fluid role="navigation">
@@ -133,24 +130,11 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
             })}
         </Nav>
         <Nav className="navbar-right">
-          {props.secondaryButton && (
-            <Button
-              buttonStyle="secondary"
-              onClick={props.secondaryButton.onClick}
-              cta
-            >
-              {props.secondaryButton.name}
+          {props.buttons?.map((btn, i) => (
+            <Button key={`${i}`} buttonStyle={btn.style} onClick={btn.onClick}>
+              {btn.name}
             </Button>
-          )}
-          {props.primaryButton && (
-            <Button
-              buttonStyle="primary"
-              onClick={props.primaryButton.onClick}
-              cta
-            >
-              {props.primaryButton.name}
-            </Button>
-          )}
+          ))}
         </Nav>
       </Navbar>
     </StyledHeader>

@@ -397,8 +397,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     ...commonMenuData,
   };
 
+  const buttonArr = [];
+
   if (canCreate) {
-    menuData.primaryButton = {
+    buttonArr.push({
       name: (
         <>
           {' '}
@@ -406,15 +408,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         </>
       ),
       onClick: () => setDatasetAddModalOpen(true),
-    };
+      style: 'primary',
+    });
   }
 
   if (canDelete) {
-    menuData.secondaryButton = {
+    buttonArr.push({
       name: t('Bulk Select'),
       onClick: toggleBulkSelect,
-    };
+      style: 'secondary',
+    });
   }
+
+  menuData.buttons = [...buttonArr];
 
   const closeDatasetDeleteModal = () => {
     setDatasetCurrentlyDeleting(null);
