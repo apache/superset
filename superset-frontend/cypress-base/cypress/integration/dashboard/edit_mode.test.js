@@ -26,7 +26,7 @@ describe('Dashboard edit mode', () => {
     cy.get('.dashboard-header [data-test=edit-alt]').click();
   });
 
-  it('remove, and add chart flow', () => {
+  xit('remove, and add chart flow', () => {
     // wait for box plot to appear
     cy.get('.grid-container .box_plot');
 
