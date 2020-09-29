@@ -74,7 +74,9 @@ class DatasetDAO(BaseDAO):
         return dict(charts=charts, dashboards=dashboards)
 
     @staticmethod
-    def validate_table_exists(database: Database, table_name: str, schema: str) -> bool:
+    def validate_table_exists(
+        database: Database, table_name: str, schema: Optional[str]
+    ) -> bool:
         try:
             database.get_table(table_name, schema=schema)
             return True
@@ -83,9 +85,11 @@ class DatasetDAO(BaseDAO):
             return False
 
     @staticmethod
-    def validate_uniqueness(database_id: int, name: str) -> bool:
+    def validate_uniqueness(database_id: int, schema: Optional[str], name: str) -> bool:
         dataset_query = db.session.query(SqlaTable).filter(
-            SqlaTable.table_name == name, SqlaTable.database_id == database_id
+            SqlaTable.table_name == name,
+            SqlaTable.schema == schema,
+            SqlaTable.database_id == database_id,
         )
         return not db.session.query(dataset_query.exists()).scalar()
 

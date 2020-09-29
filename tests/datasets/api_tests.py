@@ -32,10 +32,11 @@ from superset.dao.exceptions import (
 )
 from superset.extensions import db, security_manager
 from superset.models.core import Database
-from superset.utils.core import get_example_database, get_main_database
+from superset.utils.core import backend, get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from superset.views.base import generate_download_headers
 from tests.base_tests import SupersetTestCase
+from tests.conftest import CTAS_SCHEMA_NAME
 
 
 class TestDatasetApi(SupersetTestCase):
@@ -385,6 +386,36 @@ class TestDatasetApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             data, {"message": {"table_name": ["Datasource birth_names already exists"]}}
+        )
+
+    def test_create_dataset_same_name_different_schema(self):
+        if backend() == "sqlite":
+            # sqlite doesn't support schemas
+            return
+
+        example_db = get_example_database()
+        example_db.get_sqla_engine().execute(
+            f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
+        )
+
+        self.login(username="admin")
+        table_data = {
+            "database": example_db.id,
+            "schema": CTAS_SCHEMA_NAME,
+            "table_name": "birth_names",
+        }
+
+        uri = "api/v1/dataset/"
+        rv = self.post_assert_metric(uri, table_data, "post")
+        self.assertEqual(rv.status_code, 201)
+
+        # cleanup
+        data = json.loads(rv.data.decode("utf-8"))
+        uri = f'api/v1/dataset/{data.get("id")}'
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 200)
+        example_db.get_sqla_engine().execute(
+            f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names"
         )
 
     def test_create_dataset_validate_database(self):
