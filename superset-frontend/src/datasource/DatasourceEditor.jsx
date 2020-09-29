@@ -46,11 +46,6 @@ import Field from 'src/CRUD/Field';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const DatasourceContainer = styled.div`
-  .tab-content {
-    height: 600px;
-    overflow: auto;
-  }
-
   .change-warning {
     margin: 16px 10px 0;
     color: ${({ theme }) => theme.colors.warning.base};
@@ -653,6 +648,19 @@ class DatasourceEditor extends React.PureComponent {
                         }
                         formMode={false}
                         handleError={this.props.addDangerToast}
+                      />
+                    }
+                  />
+                  <Field
+                    fieldKey="table_name"
+                    label={t('table name')}
+                    control={
+                      <TextControl
+                        controlId="table_name"
+                        onChange={table => {
+                          this.onDatasourcePropChange('table_name', table);
+                        }}
+                        placeholder={t('Type table name')}
                       />
                     }
                   />

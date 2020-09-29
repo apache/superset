@@ -20,13 +20,34 @@ import React, { FunctionComponent, useState, useRef } from 'react';
 import { Alert, Modal } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
-import { t, SupersetClient } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
+
+const StyledDatasourceModal = styled(Modal)`
+  .modal-content {
+    height: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-header {
+    flex: 0 1 auto;
+  }
+  .modal-body {
+    flex: 1 1 auto;
+    overflow: auto;
+  }
+
+  .modal-footer {
+    flex: 0 1 auto;
+  }
+`;
 
 interface DatasourceModalProps {
   addSuccessToast: (msg: string) => void;
@@ -137,7 +158,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
 
   return (
-    <Modal show={show} onHide={onHide} bsSize="large">
+    <StyledDatasourceModal show={show} onHide={onHide} bsSize="large">
       <Modal.Header closeButton>
         <Modal.Title>
           <div>
@@ -187,7 +208,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <Dialog ref={dialog} />
         </span>
       </Modal.Footer>
-    </Modal>
+    </StyledDatasourceModal>
   );
 };
 
