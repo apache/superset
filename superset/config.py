@@ -504,11 +504,6 @@ MAX_TABLE_NAMES = 3000
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
-# If defined, shows this text in an alert-warning box in the navbar
-# one example use case may be "STAGING" to make it clear that this is
-# not the production version of the site.
-WARNING_MSG = None
-
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
