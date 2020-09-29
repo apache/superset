@@ -41,7 +41,7 @@ Base = declarative_base()
 
 class ImportMixin:
     id = sa.Column(sa.Integer, primary_key=True)
-    uuid = sa.Column(UUIDType(binary=False), primary_key=False, default=uuid.uuid4())
+    uuid = sa.Column(UUIDType(binary=False), primary_key=False, default=uuid.uuid4)
 
 
 table_names = [
