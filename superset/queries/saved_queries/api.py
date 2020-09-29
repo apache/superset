@@ -73,6 +73,8 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "sql_tables",
     ]
     list_columns = [
+        "changed_on_delta_humanized",
+        "created_on",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
@@ -94,6 +96,8 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "sql",
         "created_by.first_name",
         "database.database_name",
+        "created_on",
+        "changed_on_delta_humanized",
     ]
 
     search_filters = {"label": [SavedQueryAllTextFilter]}
