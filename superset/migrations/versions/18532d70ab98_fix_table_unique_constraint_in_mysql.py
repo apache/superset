@@ -17,14 +17,14 @@
 """Delete table_name unique constraint in mysql
 
 Revision ID: 18532d70ab98
-Revises: e5ef6828ac4e
+Revises: 3fbbc6e8d654
 Create Date: 2020-09-25 10:56:13.711182
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "18532d70ab98"
-down_revision = "e5ef6828ac4e"
+down_revision = "3fbbc6e8d654"
 
 from alembic import op
 
