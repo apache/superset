@@ -35,14 +35,16 @@ const StyledHeader = styled.header`
       a,
       div {
         font-size: ${({ theme }) => theme.typography.sizes.s}px;
-        padding: ${({ theme }) => theme.gridUnit * 2}px;
+        padding: ${({ theme }) => theme.gridUnit * 2}px 0;
         margin: ${({ theme }) => theme.gridUnit * 2}px;
         color: ${({ theme }) => theme.colors.secondary.dark1};
+
         a {
           margin: 0;
           padding: ${({ theme }) => theme.gridUnit * 4}px;
         }
       }
+
       &.no-router a {
         padding: ${({ theme }) => theme.gridUnit * 2}px
           ${({ theme }) => theme.gridUnit * 4}px;
@@ -62,7 +64,7 @@ const StyledHeader = styled.header`
 type MenuChild = {
   label: string;
   name: string;
-  url?: string;
+  url: string;
   usesRouter?: boolean;
 };
 
@@ -80,10 +82,6 @@ export interface SubMenuProps {
    *  ONLY set usesRouter to true if SubMenu is wrapped in a react-router <Router>;
    *  otherwise, a 'You should not use <Link> outside a <Router>' error will be thrown */
   usesRouter?: boolean;
-  links?: {
-    linkTitle: string;
-    link: string;
-  };
 }
 
 const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
