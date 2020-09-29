@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  validateNonEmpty,
-  legacyValidateInteger,
-  legacyValidateNumber,
-} from '@superset-ui/core';
+import { t, legacyValidateInteger, legacyValidateNumber } from '@superset-ui/core';
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -295,10 +290,6 @@ const config: ControlPanelConfig = {
     },
   },
   controlOverrides: {
-    series: {
-      validators: [validateNonEmpty],
-      clearable: false,
-    },
     row_limit: {
       default: 100,
     },

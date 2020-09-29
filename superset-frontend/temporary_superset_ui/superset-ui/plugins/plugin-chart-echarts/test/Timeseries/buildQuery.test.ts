@@ -22,7 +22,7 @@ describe('Timeseries buildQuery', () => {
   const formData = {
     datasource: '5__table',
     granularity_sqla: 'ds',
-    series: ['foo'],
+    groupby: ['foo'],
     metrics: ['bar', 'baz'],
     viz_type: 'my_chart',
   };

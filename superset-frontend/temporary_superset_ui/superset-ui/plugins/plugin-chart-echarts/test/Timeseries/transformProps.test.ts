@@ -26,7 +26,7 @@ describe('EchartsTimeseries tranformProps', () => {
     datasource: '3__table',
     granularity_sqla: 'ds',
     metric: 'sum__num',
-    series: ['foo', 'bar'],
+    groupby: ['foo', 'bar'],
   };
   const chartProps = new ChartProps({
     formData,
