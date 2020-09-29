@@ -652,6 +652,19 @@ class DatasourceEditor extends React.PureComponent {
                     }
                   />
                   <Field
+                    fieldKey="table_name"
+                    label={t('table name')}
+                    control={
+                      <TextControl
+                        controlId="table_name"
+                        onChange={table => {
+                          this.onDatasourcePropChange('table_name', table);
+                        }}
+                        placeholder={t('Type table name')}
+                      />
+                    }
+                  />
+                  <Field
                     fieldKey="sql"
                     label={t('SQL')}
                     description={t(
