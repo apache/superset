@@ -108,4 +108,6 @@ def downgrade():
                 batch_op.drop_constraint("uq_uuid")
                 batch_op.drop_column("uuid")
         except Exception:
-            pass
+            logging.warning(
+                f"Failed to drop column uuid in table {model.__tablename__}"
+            )
