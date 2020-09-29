@@ -26,16 +26,22 @@ const dotStyle = css`
   height: 3px;
   border-radius: 1.5px;
   background-color: #bababa;
-
-  &:hover {
-    background-color: #20a7c9;
-  }
 `;
 
 const MenuDots = styled.div`
   ${dotStyle};
   font-weight: 400;
   display: inline-flex;
+  margin: 8px 8px 8px 4px;
+
+  &:hover {
+    background-color: #20a7c9;
+
+    &::before,
+    &::after {
+      background-color: #20a7c9;
+    }
+  }
 
   &::before,
   &::after {
@@ -56,7 +62,6 @@ const MenuDots = styled.div`
 const MenuDotsWrapper = styled.div`
   display: flex;
   align-items: center;
-  padding-right: 8px;
 `;
 
 interface DropdownProps {

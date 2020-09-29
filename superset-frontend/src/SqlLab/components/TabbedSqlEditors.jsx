@@ -293,9 +293,6 @@ class TabbedSqlEditors extends React.PureComponent {
 
   render() {
     const editors = this.props.queryEditors.map(qe => {
-      const isSelected =
-        this.activeQueryEditor() && this.activeQueryEditor().id === qe.id;
-
       let latestQuery;
       if (qe.latestQueryId) {
         latestQuery = this.props.queries[qe.latestQueryId];
@@ -364,27 +361,29 @@ class TabbedSqlEditors extends React.PureComponent {
             <Icon role="button" tabIndex={0} cursor="pointer" name="cancel-x" />
           }
         >
-          {isSelected && (
-            <SqlEditor
-              tables={this.props.tables.filter(
-                xt => xt.queryEditorId === qe.id,
-              )}
-              queryEditor={qe}
-              editorQueries={this.state.queriesArray}
-              dataPreviewQueries={this.state.dataPreviewQueries}
-              latestQuery={latestQuery}
-              database={database}
-              actions={this.props.actions}
-              hideLeftBar={this.state.hideLeftBar}
-              defaultQueryLimit={this.props.defaultQueryLimit}
-              maxRow={this.props.maxRow}
-              displayLimit={this.props.displayLimit}
-              saveQueryWarning={this.props.saveQueryWarning}
-              scheduleQueryWarning={this.props.scheduleQueryWarning}
-            />
-          )}
+          <SqlEditor
+            tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
+            queryEditor={qe}
+            editorQueries={this.state.queriesArray}
+            dataPreviewQueries={this.state.dataPreviewQueries}
+            latestQuery={latestQuery}
+            database={database}
+            actions={this.props.actions}
+            hideLeftBar={this.state.hideLeftBar}
+            defaultQueryLimit={this.props.defaultQueryLimit}
+            maxRow={this.props.maxRow}
+            displayLimit={this.props.displayLimit}
+            saveQueryWarning={this.props.saveQueryWarning}
+            scheduleQueryWarning={this.props.scheduleQueryWarning}
+          />
         </EditableTabs.TabPane>
       );
+    });
+
+    console.log({
+      active: this.activeQueryEditor(),
+      activeId: this.state.activeTabId,
+      qes: this.props.queryEditors,
     });
     return (
       <EditableTabs
