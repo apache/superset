@@ -38,12 +38,14 @@ export interface LabelProps {
 const SupersetLabel = styled(BootstrapLabel)`
   /* un-bunch them! */
   margin-right: ${({ theme }) => theme.gridUnit}px;
+
   &:first-of-type {
     margin-left: 0;
   }
   &:last-of-type {
     margin-right: 0;
   }
+  display: inline-block;
   border-width: 1px;
   border-style: solid;
   cursor: ${({ onClick }) => (onClick ? 'pointer' : 'default')};
