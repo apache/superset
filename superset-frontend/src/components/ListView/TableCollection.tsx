@@ -33,9 +33,28 @@ interface TableCollectionProps {
   highlightRowId?: number;
 }
 
+<<<<<<< HEAD
 const Table = styled.table`
-  border-collapse: separate;
+=======
+interface TableProps {
+  sticky: boolean;
+}
 
+const Table = styled.table<TableProps>`
+  background-color: white;
+>>>>>>> style: getting list & grid view styles closer to the designs
+  border-collapse: separate;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+
+  thead > tr > th {
+    border: 0;
+  }
+
+  tbody {
+    tr:first-child > td {
+      border-top: 0;
+    }
+  }
   th {
     background: ${({ theme }) => theme.colors.grayscale.light5};
     position: sticky;
@@ -175,10 +194,6 @@ const Table = styled.table`
     &:first-of-type {
       padding-left: ${({ theme }) => theme.gridUnit * 4}px;
     }
-  }
-
-  .sort-icon {
-    position: absolute;
   }
 
   @keyframes loading-shimmer {

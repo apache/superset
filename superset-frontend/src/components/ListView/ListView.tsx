@@ -42,14 +42,10 @@ const ListViewStyles = styled.div`
 
   .superset-list-view {
     text-align: left;
-    background-color: white;
     border-radius: 4px 0;
     margin: 0 16px;
-    padding-bottom: 48px;
 
     .body {
-      overflow: scroll;
-      max-height: 64vh;
     }
   }
 
@@ -57,6 +53,7 @@ const ListViewStyles = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
   }
 
   .row-count-container {
@@ -114,9 +111,7 @@ const bulkSelectColumnConfig = {
 };
 
 const ViewModeContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 6}px 0px
-    ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 4}px;
+  padding: 0 0 ${({ theme }) => theme.gridUnit * 8}px 0;
   display: inline-block;
   position: relative;
   top: 8px;
@@ -318,9 +313,9 @@ function ListView<T extends object = any>({
                       data-test="bulk-select-action"
                       key={action.key}
                       className={cx({
-                        danger: action.type === 'danger',
-                        primary: action.type === 'primary',
-                        secondary: action.type === 'secondary',
+                        'btn-danger': action.type === 'danger',
+                        'btn-primary': action.type === 'primary',
+                        'btn-secondary': action.type === 'secondary',
                       })}
                       cta
                       onClick={() =>

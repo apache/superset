@@ -221,7 +221,7 @@ function DashboardList(props: DashboardListProps) {
             original: { published },
           },
         }: any) => (published ? t('Published') : t('Draft')),
-        Header: t('Published'),
+        Header: t('Status'),
         accessor: 'published',
         size: 'xl',
       },
