@@ -36,6 +36,13 @@ const ActionsWrapper = styled.div`
 `;
 
 const StyledCard = styled(Card)`
+  border: 1px solid #d9dbe4;
+
+  &:hover {
+    box-shadow: 8px 8px 28px 0px rgba(0, 0, 0, 0.24);
+    transition: box-shadow 0.1s ease-in-out;
+  }
+
   .ant-card-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px
       ${({ theme }) => theme.gridUnit * 2}px;
@@ -65,20 +72,22 @@ const GradientContainer = styled.div`
   position: relative;
   height: 100%;
 
-  &:after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: inline-block;
-    background: linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0) 47.83%,
-      rgba(0, 0, 0, 0.219135) 79.64%,
-      rgba(0, 0, 0, 0.5) 100%
-    );
+  &:hover {
+    &:after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      display: inline-block;
+      background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0) 47.83%,
+        rgba(0, 0, 0, 0.219135) 79.64%,
+        rgba(0, 0, 0, 0.5) 100%
+      );
+    }
   }
 `;
 
