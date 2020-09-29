@@ -116,6 +116,8 @@ class TestSavedQueryApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == len(saved_queries)
         expected_columns = [
+            "changed_on_delta_humanized",
+            "created_on",
             "created_by",
             "database",
             "db_id",
