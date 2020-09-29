@@ -38,12 +38,14 @@ export interface LabelProps {
 const SupersetLabel = styled(BootstrapLabel)`
   /* un-bunch them! */
   margin-right: ${({ theme }) => theme.gridUnit}px;
+
   &:first-of-type {
     margin-left: 0;
   }
   &:last-of-type {
     margin-right: 0;
   }
+  display: inline-block;
   border-width: 1px;
   border-style: solid;
   cursor: ${({ onClick }) => (onClick ? 'pointer' : 'default')};
@@ -122,12 +124,12 @@ const SupersetLabel = styled(BootstrapLabel)`
     background-color: ${({ theme }) => theme.colors.secondary.base};
     color: ${({ theme }) => theme.colors.grayscale.light4};
     border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.secondary.dark1 : 'inherit'};
+      onClick ? theme.colors.secondary.dark1 : 'transparent'};
     &:hover {
       background-color: ${({ theme, onClick }) =>
         onClick ? theme.colors.secondary.dark1 : theme.colors.secondary.base};
       border-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.secondary.dark2 : 'inherit'};
+        onClick ? theme.colors.secondary.dark2 : 'transparent'};
     }
   }
 `;
