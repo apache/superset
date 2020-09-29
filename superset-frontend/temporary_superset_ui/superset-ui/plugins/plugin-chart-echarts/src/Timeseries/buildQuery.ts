@@ -40,7 +40,7 @@ export default function buildQuery(formData: QueryFormData) {
     return [
       {
         ...baseQueryObject,
-        groupby: formData.series,
+        groupby: formData.groupby || [],
         is_timeseries: true,
         post_processing: [
           {
