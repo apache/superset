@@ -70,11 +70,11 @@ class CreateDatasetCommand(BaseCommand):
         exceptions: List[ValidationError] = list()
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
-        schema = self._properties.get("schema", "")
+        schema = self._properties.get("schema", None)
         owner_ids: Optional[List[int]] = self._properties.get("owners")
 
         # Validate uniqueness
-        if not DatasetDAO.validate_uniqueness(database_id, table_name):
+        if not DatasetDAO.validate_uniqueness(database_id, schema, table_name):
             exceptions.append(DatasetExistsValidationError(table_name))
 
         # Validate/Populate database
