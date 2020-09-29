@@ -19,7 +19,7 @@ from datetime import datetime
 import math
 from typing import Any, List, Optional
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Timestamp
 import pytest
 
 from superset.exceptions import QueryObjectValidationError
@@ -79,15 +79,33 @@ class TestPostProcessing(SupersetTestCase):
         )
         self.assertEqual(
             proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_SINGLE, column=1234,
+            ),
+            "1234",
+        )
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_SINGLE, column=Timestamp("2020-09-29T00:00:00"),
+            ),
+            "2020-09-29 00:00:00",
+        )
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_SINGLE, column="idx_nulls",
+            ),
+            "idx_nulls",
+        )
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
                 aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1"),
             ),
             "col1",
         )
         self.assertEqual(
             proc._flatten_column_after_pivot(
-                aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1", "col2"),
+                aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1", 1234),
             ),
-            "col1, col2",
+            "col1, 1234",
         )
 
         # Multiple aggregate cases
@@ -100,9 +118,9 @@ class TestPostProcessing(SupersetTestCase):
         self.assertEqual(
             proc._flatten_column_after_pivot(
                 aggregates=AGGREGATES_MULTIPLE,
-                column=("idx_nulls", "asc_idx", "col1", "col2"),
+                column=("idx_nulls", "asc_idx", "col1", 1234),
             ),
-            "idx_nulls, asc_idx, col1, col2",
+            "idx_nulls, asc_idx, col1, 1234",
         )
 
     def test_pivot_without_columns(self):
