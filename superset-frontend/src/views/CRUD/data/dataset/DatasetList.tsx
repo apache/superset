@@ -399,6 +399,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const buttonArr = [];
 
+  if (canDelete) {
+    buttonArr.push({
+      name: t('Bulk Select'),
+      onClick: toggleBulkSelect,
+      style: 'secondary',
+    });
+  }
+
   if (canCreate) {
     buttonArr.push({
       name: (
@@ -409,14 +417,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       ),
       onClick: () => setDatasetAddModalOpen(true),
       style: 'primary',
-    });
-  }
-
-  if (canDelete) {
-    buttonArr.push({
-      name: t('Bulk Select'),
-      onClick: toggleBulkSelect,
-      style: 'secondary',
     });
   }
 
