@@ -16,19 +16,27 @@
 # under the License.
 import logging
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
 from urllib import parse
 
 import msgpack
 import pyarrow as pa
 import simplejson as json
-from flask import g, request
+from flask import abort, flash, g, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as __
 
 import superset.models.core as models
-from superset import app, dataframe, db, is_feature_enabled, result_set
+from superset import (
+    app,
+    dataframe,
+    db,
+    is_feature_enabled,
+    result_set,
+    security_manager,
+)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -298,6 +306,36 @@ def get_time_range_endpoints(
 CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
 
 
+def get_dashboard(dashboard_id_or_slug: str,) -> Dashboard:
+    session = db.session()
+    qry = session.query(Dashboard)
+    if dashboard_id_or_slug.isdigit():
+        qry = qry.filter_by(id=int(dashboard_id_or_slug))
+    else:
+        qry = qry.filter_by(slug=dashboard_id_or_slug)
+    dashboard = qry.one_or_none()
+
+    if not dashboard:
+        abort(404)
+
+    return dashboard
+
+
+def get_dashboard_changedon_dt(_self: Any, dashboard_id_or_slug: str) -> datetime:
+    """
+    Get latest changed datetime for a dashboard. The change could be dashboard
+    metadata change, or any of its slice data change.
+
+    This function takes `self` since it must have the same signature as the
+    the decorated method.
+    """
+    dash = get_dashboard(dashboard_id_or_slug)
+    dash_changed_on = dash.changed_on
+    slices_changed_on = max([s.changed_on for s in dash.slices])
+    # drop microseconds in datetime to match with last_modified header
+    return max(dash_changed_on, slices_changed_on).replace(microsecond=0)
+
+
 def get_dashboard_extra_filters(
     slice_id: int, dashboard_id: int
 ) -> List[Dict[str, Any]]:
@@ -488,6 +526,26 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
         )
 
         viz_obj.raise_for_access()
+
+
+def check_dashboard_perms(_self: Any, dashboard_id_or_slug: str) -> None:
+    """
+    Check if user can access a cached response from explore_json.
+
+    This function takes `self` since it must have the same signature as the
+    the decorated method.
+    """
+
+    dash = get_dashboard(dashboard_id_or_slug)
+    datasources = list(dash.datasources)
+    if app.config["ENABLE_ACCESS_REQUEST"]:
+        for datasource in datasources:
+            if datasource and not security_manager.can_access_datasource(datasource):
+                flash(
+                    __(security_manager.get_datasource_access_error_msg(datasource)),
+                    "danger",
+                )
+                redirect("superset/request_access/?" f"dashboard_id={dash.id}&")
 
 
 def _deserialize_results_payload(
