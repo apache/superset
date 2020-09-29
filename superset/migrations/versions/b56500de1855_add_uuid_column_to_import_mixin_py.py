@@ -21,6 +21,8 @@ Revises: e5ef6828ac4e
 Create Date: 2020-09-28 17:57:23.128142
 
 """
+import json
+import logging
 import uuid
 
 import sqlalchemy as sa
@@ -29,6 +31,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import UUIDType
 
 from superset import db
+from superset.utils import core as utils
 
 # revision identifiers, used by Alembic.
 revision = "b56500de1855"
@@ -57,30 +60,60 @@ table_names = [
     "datasources",
     "columns",
     "metrics",
+    # Dashboard email schedules
+    "dashboard_email_schedules",
+    "slice_email_schedules",
 ]
-models = [
-    type(table_name, (Base, ImportMixin), {"__tablename__": table_name})
+models = {
+    table_name: type(table_name, (Base, ImportMixin), {"__tablename__": table_name})
     for table_name in table_names
-]
+}
+
+models["dashboards"].position_json = sa.Column(utils.MediumText())
 
 
-def batch_commit(objects, session, batch_size=100):
+def add_uuids(objects, session, batch_size=100):
+    uuid_map = {}
     count = len(objects)
     for i, object_ in enumerate(objects):
         object_.uuid = uuid.uuid4()
+        uuid_map[object_.id] = object_.uuid
         session.merge(object_)
         if (i + 1) % batch_size == 0:
             session.commit()
             print(f"uuid assigned to {i + 1} out of {count}")
+
     session.commit()
     print(f"Done! Assigned {count} uuids")
+
+    return uuid_map
+
+
+def update_position_json(dashboard, session, uuid_map):
+    layout = json.loads(dashboard.position_json or "{}")
+    for object_ in layout.values():
+        if (
+            isinstance(object_, dict)
+            and object_["type"] == "CHART"
+            and object_["meta"]["chartId"]
+        ):
+            chart_id = object_["meta"]["chartId"]
+            if chart_id in uuid_map:
+                object_["meta"]["uuid"] = str(uuid_map[chart_id])
+            elif object_["meta"].get("uuid"):
+                del object_["meta"]["uuid"]
+
+    dashboard.position_json = json.dumps(layout, indent=4)
+    session.merge(dashboard)
+    session.commit()
 
 
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for model in models:
+    uuid_maps = {}
+    for table_name, model in models.items():
         # add column with NULLs
         with op.batch_alter_table(model.__tablename__) as batch_op:
             batch_op.add_column(
@@ -94,20 +127,29 @@ def upgrade():
 
         # populate column
         objects = session.query(model).all()
-        batch_commit(objects, session)
+        uuid_maps[table_name] = add_uuids(objects, session)
 
         # add uniqueness constraint
         with op.batch_alter_table(model.__tablename__) as batch_op:
             batch_op.create_unique_constraint("uq_uuid", ["uuid"])
 
+    # add UUID to Dashboard.position_json
+    Dashboard = models["dashboards"]
+    for dashboard in session.query(Dashboard).all():
+        update_position_json(dashboard, session, uuid_maps["slices"])
+
 
 def downgrade():
-    for model in models:
-        try:
-            with op.batch_alter_table(model.__tablename__) as batch_op:
-                batch_op.drop_constraint("uq_uuid")
-                batch_op.drop_column("uuid")
-        except Exception:
-            logging.warning(
-                f"Failed to drop column uuid in table {model.__tablename__}"
-            )
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    # remove uuid from position_json
+    Dashboard = models["dashboards"]
+    for dashboard in session.query(Dashboard).all():
+        update_position_json(dashboard, session, {})
+
+    # remove uuid column
+    for model in models.values():
+        with op.batch_alter_table(model.__tablename__) as batch_op:
+            batch_op.drop_constraint("uq_uuid")
+            batch_op.drop_column("uuid")
