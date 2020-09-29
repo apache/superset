@@ -105,7 +105,7 @@ def downgrade():
     for model in models:
         try:
             with op.batch_alter_table(model.__tablename__) as batch_op:
-                batch_op.drop_column("uuid")
                 batch_op.drop_constraint("uq_uuid")
+                batch_op.drop_column("uuid")
         except Exception:
             pass
