@@ -122,12 +122,12 @@ const SupersetLabel = styled(BootstrapLabel)`
     background-color: ${({ theme }) => theme.colors.secondary.base};
     color: ${({ theme }) => theme.colors.grayscale.light4};
     border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.secondary.dark1 : 'inherit'};
+      onClick ? theme.colors.secondary.dark1 : 'transparent'};
     &:hover {
       background-color: ${({ theme, onClick }) =>
         onClick ? theme.colors.secondary.dark1 : theme.colors.secondary.base};
       border-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.secondary.dark2 : 'inherit'};
+        onClick ? theme.colors.secondary.dark2 : 'transparent'};
     }
   }
 `;
