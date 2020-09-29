@@ -599,7 +599,7 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
         weekly_seasonality=weekly_seasonality,
         daily_seasonality=daily_seasonality,
     )
-    df['ds'] = df['ds'].dt.tz_convert(None)
+    df["ds"] = df["ds"].dt.tz_convert(None)
     model.fit(df)
     future = model.make_future_dataframe(periods=periods, freq=freq)
     forecast = model.predict(future)[["ds", "yhat", "yhat_lower", "yhat_upper"]]
