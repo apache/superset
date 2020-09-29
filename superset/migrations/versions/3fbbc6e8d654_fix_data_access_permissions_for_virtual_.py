@@ -167,12 +167,9 @@ def upgrade():
     orphaned_faulty_view_menus = []
     for faulty_view_menu in faulty_view_menus:
         # Get the dataset id from the view_menu name
-        match_ds_id = re.match("\[None\]\.\[.*\]\(id:(.*)\)", faulty_view_menu.name)
+        match_ds_id = re.match("\[None\]\.\[.*\]\(id:(\d+)\)", faulty_view_menu.name)
         if match_ds_id:
-            try:
-                dataset_id = int(match_ds_id.group(1))
-            except ValueError:
-                continue
+            dataset_id = int(match_ds_id.group(1))
             dataset = session.query(SqlaTable).get(dataset_id)
             if dataset:
                 try:
