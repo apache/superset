@@ -18,10 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Badge, Col, Radio, Tabs, Tab, Well } from 'react-bootstrap';
+import { Alert, Badge, Col, Radio, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 
+import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
@@ -886,35 +887,36 @@ class DatasourceEditor extends React.PureComponent {
           </Alert>
         </div>
         <Tabs
+          fullWidth={false}
           id="table-tabs"
           data-test="edit-dataset-tabs"
-          onSelect={this.handleTabSelect}
+          onChange={this.handleTabSelect}
           defaultActiveKey={activeTabKey}
         >
-          <Tab eventKey={0} title={t('Source')}>
-            {activeTabKey === 0 && this.renderSourceFieldset()}
-          </Tab>
-          <Tab
-            title={
+          <Tabs.TabPane key={0} tab={t('Source')}>
+            {this.renderSourceFieldset()}
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            tab={
               <CollectionTabTitle
                 collection={datasource.metrics}
                 title={t('Metrics')}
               />
             }
-            eventKey={1}
+            key={1}
           >
-            {activeTabKey === 1 && this.renderMetricCollection()}
-          </Tab>
-          <Tab
-            title={
+            {this.renderMetricCollection()}
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            tab={
               <CollectionTabTitle
                 collection={this.state.databaseColumns}
                 title={t('Columns')}
               />
             }
-            eventKey={2}
+            key={2}
           >
-            {activeTabKey === 2 && (
+            {
               <div>
                 <ColumnCollectionTable
                   columns={this.state.databaseColumns}
@@ -931,18 +933,18 @@ class DatasourceEditor extends React.PureComponent {
                 </Button>
                 {this.state.metadataLoading && <Loading />}
               </div>
-            )}
-          </Tab>
-          <Tab
-            title={
+            }
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            tab={
               <CollectionTabTitle
                 collection={this.state.calculatedColumns}
                 title={t('Calculated Columns')}
               />
             }
-            eventKey={3}
+            key={3}
           >
-            {activeTabKey === 3 && (
+            {
               <ColumnCollectionTable
                 columns={this.state.calculatedColumns}
                 onChange={calculatedColumns =>
@@ -960,10 +962,10 @@ class DatasourceEditor extends React.PureComponent {
                   __expanded: true,
                 })}
               />
-            )}
-          </Tab>
-          <Tab eventKey={4} title={t('Settings')}>
-            {activeTabKey === 4 && (
+            }
+          </Tabs.TabPane>
+          <Tabs.TabPane key={4} tab={t('Settings')}>
+            {
               <div>
                 <Col md={6}>
                   <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
@@ -972,8 +974,8 @@ class DatasourceEditor extends React.PureComponent {
                   <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
                 </Col>
               </div>
-            )}
-          </Tab>
+            }
+          </Tabs.TabPane>
         </Tabs>
       </DatasourceContainer>
     );
