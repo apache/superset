@@ -64,7 +64,7 @@ class TestCssTemplateApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_css_templates")
     def test_get_list_css_template(self):
         """
-        CSS Template API: Test get list saved query
+        CSS Template API: Test get list css template
         """
         css_templates = db.session.query(CssTemplate).all()
 
@@ -295,7 +295,7 @@ class TestCssTemplateApi(SupersetTestCase):
         assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_css_templates")
-    def test_delete_bulk_saved_queries(self):
+    def test_delete_bulk_css_templates(self):
         """
         CSS Template API: Test delete bulk
         """
@@ -311,11 +311,11 @@ class TestCssTemplateApi(SupersetTestCase):
             "message": f"Deleted {len(css_template_ids)} css templates"
         }
         assert response == expected_response
-        saved_queries = db.session.query(CssTemplate).all()
-        assert saved_queries == []
+        css_templates = db.session.query(CssTemplate).all()
+        assert css_templates == []
 
     @pytest.mark.usefixtures("create_css_templates")
-    def test_delete_one_bulk_saved_queries(self):
+    def test_delete_one_bulk_css_templates(self):
         """
         CSS Template API: Test delete one in bulk
         """
