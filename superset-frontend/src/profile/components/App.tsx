@@ -40,7 +40,7 @@ export default function App({ user }: AppProps) {
           <UserInfo user={user} />
         </Col>
         <Col md={9}>
-          <Tabs>
+          <Tabs centered>
             <Tabs.TabPane
               key="1"
               tab={

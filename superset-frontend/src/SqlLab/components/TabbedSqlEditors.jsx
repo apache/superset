@@ -31,7 +31,6 @@ import { areArraysShallowEqual } from 'src/reduxUtils';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import TabStatusIcon from './TabStatusIcon';
-import Icon from '../../components/Icon';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -357,9 +356,8 @@ class TabbedSqlEditors extends React.PureComponent {
         <EditableTabs.TabPane
           key={qe.id}
           tab={tabTitle}
-          closeIcon={
-            <Icon role="button" tabIndex={0} cursor="pointer" name="cancel-x" />
-          }
+          // for tests - key prop isn't handled by enzyme well bcs it's a react keyword
+          data-key={qe.id}
         >
           <SqlEditor
             tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
@@ -380,11 +378,6 @@ class TabbedSqlEditors extends React.PureComponent {
       );
     });
 
-    console.log({
-      active: this.activeQueryEditor(),
-      activeId: this.state.activeTabId,
-      qes: this.props.queryEditors,
-    });
     return (
       <EditableTabs
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
@@ -395,7 +388,6 @@ class TabbedSqlEditors extends React.PureComponent {
         fullWidth={false}
         hideAdd={this.props.offline}
         onEdit={this.handleEdit}
-        addIcon={<i data-test="add-tab-icon" className="fa fa-plus-circle" />}
       >
         {editors}
       </EditableTabs>

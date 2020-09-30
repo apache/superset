@@ -20,10 +20,10 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import URI from 'urijs';
-import { Tab } from 'react-bootstrap';
 import { shallow, mount } from 'enzyme';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { EditableTabs } from 'src/common/components/Tabs';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 
@@ -206,36 +206,36 @@ describe('TabbedSqlEditors', () => {
       },
     };
     wrapper = getWrapper();
-    sinon.spy(wrapper.instance(), 'newQueryEditor');
     sinon.stub(wrapper.instance().props.actions, 'switchQueryEditor');
-
-    wrapper.instance().handleSelect('add_tab', mockEvent);
-    expect(wrapper.instance().newQueryEditor.callCount).toBe(1);
 
     // cannot switch to current tab, switchQueryEditor never gets called
     wrapper.instance().handleSelect('dfsadfs', mockEvent);
     expect(
       wrapper.instance().props.actions.switchQueryEditor.callCount,
     ).toEqual(0);
+  });
+  it('should handle add tab', () => {
+    wrapper = getWrapper();
+    sinon.spy(wrapper.instance(), 'newQueryEditor');
+
+    wrapper.instance().handleEdit('1', 'add');
+    expect(wrapper.instance().newQueryEditor.callCount).toBe(1);
     wrapper.instance().newQueryEditor.restore();
   });
   it('should render', () => {
     wrapper = getWrapper();
     wrapper.setState({ hideLeftBar: true });
 
-    const firstTab = wrapper.find(Tab).first();
-    expect(firstTab.props().eventKey).toContain(
+    const firstTab = wrapper.find(EditableTabs.TabPane).first();
+    expect(firstTab.props()['data-key']).toContain(
       initialState.sqlLab.queryEditors[0].id,
     );
     expect(firstTab.find(SqlEditor)).toHaveLength(1);
-
-    const lastTab = wrapper.find(Tab).last();
-    expect(lastTab.props().eventKey).toContain('add_tab');
   });
   it('should disable new tab when offline', () => {
     wrapper = getWrapper();
-    expect(wrapper.find(Tab).last().props().disabled).toBe(false);
+    expect(wrapper.find(EditableTabs).props().hideAdd).toBe(false);
     wrapper.setProps({ offline: true });
-    expect(wrapper.find(Tab).last().props().disabled).toBe(true);
+    expect(wrapper.find(EditableTabs).props().hideAdd).toBe(true);
   });
 });

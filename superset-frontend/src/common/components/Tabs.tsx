@@ -20,7 +20,6 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Tabs as AntdTabs } from 'src/common/components';
 import { css } from '@emotion/core';
-import isPropValid from '@emotion/is-prop-valid';
 import Icon from '../../components/Icon';
 
 interface TabsProps {
@@ -31,8 +30,7 @@ interface TabsProps {
 const notForwardedProps = ['fullWidth', 'inModal'];
 
 const StyledTabs = styled(AntdTabs, {
-  shouldForwardProp: prop =>
-    isPropValid(prop) && !notForwardedProps.includes(prop),
+  shouldForwardProp: prop => !notForwardedProps.includes(prop),
 })<TabsProps>`
   ${props =>
     props.inModal &&
@@ -69,6 +67,7 @@ const StyledTabs = styled(AntdTabs, {
     display: flex;
     flex: 1 1 auto;
     align-items: center;
+    justify-content: center;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     text-align: center;
     text-transform: uppercase;
