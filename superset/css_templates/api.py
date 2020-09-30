@@ -33,7 +33,6 @@ from superset.css_templates.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
 )
-from superset.databases.filters import DatabaseFilter
 from superset.models.core import CssTemplate
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
