@@ -59,19 +59,17 @@ const MenuDots = styled.div`
   }
 `;
 
-const MenuDotsWrapper = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
 interface DropdownProps {
   overlay: React.ReactElement;
 }
 
+const StyledDropdown = styled(AntdDropdown)`
+  display: flex;
+  align-items: center;
+`;
+
 export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
-  <AntdDropdown overlay={overlay} {...rest}>
-    <MenuDotsWrapper>
-      <MenuDots />
-    </MenuDotsWrapper>
-  </AntdDropdown>
+  <StyledDropdown overlay={overlay} {...rest}>
+    <MenuDots />
+  </StyledDropdown>
 );

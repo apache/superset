@@ -347,7 +347,9 @@ class TabbedSqlEditors extends React.PureComponent {
 
       const tabTitle = (
         <>
-          <Dropdown overlay={menu} trigger={['click']} />
+          <div data-test="dropdown-toggle-button">
+            <Dropdown overlay={menu} trigger={['click']} />
+          </div>
           <span style={{ marginRight: '8px' }}>{qe.title}</span>{' '}
           <TabStatusIcon tabState={state} />{' '}
         </>
@@ -388,6 +390,7 @@ class TabbedSqlEditors extends React.PureComponent {
         fullWidth={false}
         hideAdd={this.props.offline}
         onEdit={this.handleEdit}
+        addIcon={<i data-test="add-tab-icon" className="fa fa-plus-circle" />}
       >
         {editors}
       </EditableTabs>
