@@ -86,11 +86,11 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Saved Queries
+        """Delete bulk CSS Templates
         ---
         delete:
           description: >-
-            Deletes multiple saved queries in a bulk operation.
+            Deletes multiple css templates in a bulk operation.
           parameters:
           - in: query
             name: q
@@ -100,7 +100,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/get_delete_ids_schema'
           responses:
             200:
-              description: Saved queries bulk delete
+              description: CSS templates bulk delete
               content:
                 application/json:
                   schema:
