@@ -36,6 +36,8 @@ class SupersetErrorType(str, Enum):
 
     # DB Engine errors
     GENERIC_DB_ENGINE_ERROR = "GENERIC_DB_ENGINE_ERROR"
+    COLUMN_DOES_NOT_EXIST_ERROR = "COLUMN_DOES_NOT_EXIST_ERROR"
+    TABLE_DOES_NOT_EXIST_ERROR = "TABLE_DOES_NOT_EXIST_ERROR"
 
     # Viz errors
     VIZ_GET_DF_ERROR = "VIZ_GET_DF_ERROR"
@@ -67,6 +69,36 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "code": 1002,
             "message": _("Issue 1002 - The database returned an unexpected error."),
         }
+    ],
+    SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR: [
+        {
+            "code": 1003,
+            "message": _(
+                "Issue 1003 - There is a syntax error in the SQL query. "
+                "Perhaps there was a misspelling or a typo."
+            ),
+        },
+        {
+            "code": 1004,
+            "message": _(
+                "Issue 1004 - The column was deleted or renamed in the database."
+            ),
+        },
+    ],
+    SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR: [
+        {
+            "code": 1003,
+            "message": _(
+                "Issue 1003 - There is a syntax error in the SQL query. "
+                "Perhaps there was a misspelling or a typo."
+            ),
+        },
+        {
+            "code": 1005,
+            "message": _(
+                "Issue 1005 - The table was deleted or renamed in the database."
+            ),
+        },
     ],
 }
 
