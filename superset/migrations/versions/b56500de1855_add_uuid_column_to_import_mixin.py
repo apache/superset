@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add_uuid_column_to_import_mixin.py
+"""add_uuid_column_to_import_mixin
 
 Revision ID: b56500de1855
 Revises: 18532d70ab98
