@@ -52,18 +52,20 @@ const StyledActions = styled.span`
 export default function ActionsBar({ actions }: ActionsBarProps) {
   return (
     <StyledActions className="actions">
-      {actions.map(action => {
+      {actions.map((action, index) => {
         if (action.tooltip) {
           return (
             <TooltipWrapper
               label={action.label}
               tooltip={action.tooltip}
               placement={action.placement || ''}
+              key={index}
             >
               <span
                 role="button"
                 tabIndex={0}
                 className="action-button"
+                data-test={action.label}
                 onClick={action.onClick}
               >
                 <Icon name={action.icon} />
@@ -78,6 +80,8 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
             tabIndex={0}
             className="action-button"
             onClick={action.onClick}
+            data-test={action.label}
+            key={index}
           >
             <Icon name={action.icon} />
           </span>

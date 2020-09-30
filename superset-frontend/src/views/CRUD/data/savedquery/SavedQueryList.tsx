@@ -444,7 +444,7 @@ function SavedQueryList({
       {queryCurrentlyDeleting && (
         <DeleteModal
           description={t(
-            'This action will permanently delete the selected saved queries.',
+            'This action will permanently delete the saved query.',
           )}
           onConfirm={() => {
             if (queryCurrentlyDeleting) {
