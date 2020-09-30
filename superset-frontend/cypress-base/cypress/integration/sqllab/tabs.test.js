@@ -27,7 +27,7 @@ describe('SqlLab query tabs', () => {
     cy.get('[data-test="sql-editor-tabs"]').then(tabList => {
       const initialTabCount = tabList.length;
       // add tab
-      cy.get('[data-test="add-tab-icon"]').click();
+      cy.get('[data-test="add-tab-icon"]').first().click();
       // wait until we find the new tab
       cy.get('[data-test="sql-editor-tabs"]')
         .children()

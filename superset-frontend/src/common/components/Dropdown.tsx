@@ -32,7 +32,6 @@ const MenuDots = styled.div`
   ${dotStyle};
   font-weight: 400;
   display: inline-flex;
-  margin: 8px 8px 8px 4px;
 
   &:hover {
     background-color: #20a7c9;
@@ -59,17 +58,20 @@ const MenuDots = styled.div`
   }
 `;
 
+const MenuDotsWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 8px 8px 8px 4px;
+`;
+
 interface DropdownProps {
   overlay: React.ReactElement;
 }
 
-const StyledDropdown = styled(AntdDropdown)`
-  display: flex;
-  align-items: center;
-`;
-
 export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
-  <StyledDropdown overlay={overlay} {...rest}>
-    <MenuDots />
-  </StyledDropdown>
+  <AntdDropdown overlay={overlay} {...rest}>
+    <MenuDotsWrapper>
+      <MenuDots />
+    </MenuDotsWrapper>
+  </AntdDropdown>
 );
