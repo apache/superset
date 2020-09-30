@@ -107,22 +107,25 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_by_url",
         "changed_on_delta_humanized",
         "changed_on_utc",
+        "created_by.first_name",
+        "created_by.id",
+        "created_by.last_name",
         "datasource_id",
         "datasource_name_text",
         "datasource_type",
         "datasource_url",
         "description",
         "id",
+        "owners.first_name",
+        "owners.id",
+        "owners.last_name",
+        "owners.username",
         "params",
         "slice_name",
         "table.default_endpoint",
         "table.table_name",
         "thumbnail_url",
         "url",
-        "owners.id",
-        "owners.username",
-        "owners.first_name",
-        "owners.last_name",
         "viz_type",
     ]
     list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
@@ -135,6 +138,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "viz_type",
     ]
     search_columns = [
+        "created_by",
         "datasource_id",
         "datasource_name",
         "datasource_type",
@@ -172,10 +176,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
     }
 
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
-    allowed_rel_fields = {"owners"}
+    allowed_rel_fields = {"owners", "created_by"}
 
     def __init__(self) -> None:
         if is_feature_enabled("THUMBNAILS"):

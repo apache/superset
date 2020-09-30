@@ -26,7 +26,7 @@ describe('chart list view', () => {
     cy.get('[data-test="list-view"]').click();
   });
 
-  it.skip('should load rows', () => {
+  it('should load rows', () => {
     cy.get('.chart-list-view');
     cy.get('table[role="table"]').should('be.visible');
 
@@ -38,7 +38,8 @@ describe('chart list view', () => {
     cy.get('th[role="columnheader"]:nth-child(4)').contains('Dataset');
     cy.get('th[role="columnheader"]:nth-child(5)').contains('Modified By');
     cy.get('th[role="columnheader"]:nth-child(6)').contains('Last Modified');
-    cy.get('th[role="columnheader"]:nth-child(7)').contains('Actions');
+    cy.get('th[role="columnheader"]:nth-child(7)').contains('Created By');
+    cy.get('th[role="columnheader"]:nth-child(8)').contains('Actions');
     cy.get('.table-row').should('have.length', 25);
   });
 

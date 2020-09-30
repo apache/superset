@@ -48,6 +48,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         slice_name: str,
         owners: List[int],
         datasource_id: int,
+        created_by=None,
         datasource_type: str = "table",
         description: Optional[str] = None,
         viz_type: Optional[str] = None,
@@ -62,15 +63,16 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             datasource_type, datasource_id, db.session
         )
         slice = Slice(
-            slice_name=slice_name,
+            cache_timeout=cache_timeout,
+            created_by=created_by,
             datasource_id=datasource.id,
             datasource_name=datasource.name,
             datasource_type=datasource.type,
-            owners=obj_owners,
             description=description,
-            viz_type=viz_type,
+            owners=obj_owners,
             params=params,
-            cache_timeout=cache_timeout,
+            slice_name=slice_name,
+            viz_type=viz_type,
         )
         db.session.add(slice)
         db.session.commit()
@@ -93,12 +95,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test delete bulk
         """
-        admin_id = self.get_user("admin").id
+        admin = self.get_user("admin")
         chart_count = 4
         chart_ids = list()
         for chart_name_index in range(chart_count):
             chart_ids.append(
-                self.insert_chart(f"title{chart_name_index}", [admin_id], 1).id
+                self.insert_chart(f"title{chart_name_index}", [admin.id], 1, admin).id
             )
         self.login(username="admin")
         argument = chart_ids
@@ -365,7 +367,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
 
-        chart_id = self.insert_chart("title", [admin.id], 1).id
+        chart_id = self.insert_chart("title", [admin.id], 1, admin).id
         birth_names_table_id = SupersetTestCase.get_table_by_name("birth_names").id
         chart_data = {
             "slice_name": "title1_changed",
@@ -384,6 +386,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
         related_dashboard = db.session.query(Dashboard).get(1)
+        self.assertEqual(model.created_by, admin)
         self.assertEqual(model.slice_name, "title1_changed")
         self.assertEqual(model.description, "description1")
         self.assertIn(admin, model.owners)
@@ -902,7 +905,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
 
     def test_chart_data_with_invalid_datasource(self):
-        """Chart data API: Test chart data query with invalid schema"""
+        """
+        Chart data API: Test chart data query with invalid schema
+        """
         self.login(username="admin")
         table = self.get_table_by_name("birth_names")
         payload = get_query_context(table.name, table.id, table.type)
@@ -911,7 +916,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
 
     def test_chart_data_with_invalid_enum_value(self):
-        """Chart data API: Test chart data query with invalid enum value"""
+        """
+        Chart data API: Test chart data query with invalid enum value
+        """
         self.login(username="admin")
         table = self.get_table_by_name("birth_names")
         payload = get_query_context(table.name, table.id, table.type)
