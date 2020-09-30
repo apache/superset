@@ -202,6 +202,7 @@ export interface ListViewProps<T extends object = any> {
   renderCard?: (row: T & { loading: boolean }) => React.ReactNode;
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
+  highlightRowId?: number;
 }
 
 function ListView<T extends object = any>({
@@ -221,6 +222,7 @@ function ListView<T extends object = any>({
   renderCard,
   cardSortSelectOptions,
   defaultViewMode = 'card',
+  highlightRowId,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -350,6 +352,7 @@ function ListView<T extends object = any>({
               rows={rows}
               columns={columns}
               loading={loading}
+              highlightRowId={highlightRowId}
             />
           )}
           {!loading && rows.length === 0 && (
