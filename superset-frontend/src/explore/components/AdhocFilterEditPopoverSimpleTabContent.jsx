@@ -368,7 +368,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               onChange={this.onInputComparatorChange}
               value={comparator}
               className="form-control input-sm"
-              placeholder={t('Filter value')}
+              placeholder={t('Filter value (case sensitive)')}
               disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
             />
           )}
