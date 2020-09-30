@@ -855,6 +855,22 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertIn("sum__num__yhat_lower", row)
         self.assertEqual(result["rowcount"], 47)
 
+    def test_chart_data_query_missing_filter(self):
+        """
+        Chart data API: Ensure filter referencing missing column is ignored
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["queries"][0]["filters"] = [
+            {"col": "non_existent_filter", "op": "==", "val": "foo"},
+        ]
+        request_payload["result_type"] = utils.ChartDataResultType.QUERY
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        assert "non_existent_filter" not in response_payload["result"][0]["query"]
+
     def test_chart_data_no_data(self):
         """
         Chart data API: Test chart data with empty result
