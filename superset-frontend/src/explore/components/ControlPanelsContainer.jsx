@@ -21,9 +21,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Alert, Tab, Tabs } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
 
+import { CardTabs } from 'src/common/components/Tabs';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -44,7 +45,7 @@ const Styles = styled.div`
   height: 100%;
   max-height: 100%;
   .remove-alert {
-    cursor: 'pointer';
+    cursor: pointer;
   }
   #controlSections {
     display: flex;
@@ -208,16 +209,16 @@ class ControlPanelsContainer extends React.Component {
             />
           </Alert>
         )}
-        <Tabs id="controlSections" data-test="control-tabs">
-          <Tab eventKey="query" title={t('Data')}>
+        <CardTabs id="controlSections" data-test="control-tabs">
+          <CardTabs.TabPane key="query" tab={t('Data')}>
             {querySectionsToRender.map(this.renderControlPanelSection)}
-          </Tab>
+          </CardTabs.TabPane>
           {displaySectionsToRender.length > 0 && (
-            <Tab eventKey="display" title={t('Customize')}>
+            <CardTabs.TabPane key="display" tab={t('Customize')}>
               {displaySectionsToRender.map(this.renderControlPanelSection)}
-            </Tab>
+            </CardTabs.TabPane>
           )}
-        </Tabs>
+        </CardTabs>
       </Styles>
     );
   }
