@@ -103,6 +103,14 @@ const StyledEditableTabs = styled(StyledTabs)`
     padding-bottom: 0;
     height: 24px;
   }
+
+  ${({ fullWidth }) =>
+    fullWidth &&
+    css`
+      .ant-tabs-nav-list {
+        width: 100%;
+      }
+    `}
 `;
 
 const EditableTabs = Object.assign(StyledEditableTabs, {
@@ -111,6 +119,7 @@ const EditableTabs = Object.assign(StyledEditableTabs, {
 
 EditableTabs.defaultProps = {
   type: 'editable-card',
+  fullWidth: false,
 };
 
 EditableTabs.TabPane.defaultProps = {
