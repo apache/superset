@@ -203,4 +203,4 @@ class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "grid-container"
     window_size: WindowSize = (1600, int(1600 * 0.75))
-    thumb_size: WindowSize = (400, int(400 * 0.75))
+    thumb_size: WindowSize = (800, int(800 * 0.75))
