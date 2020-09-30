@@ -109,6 +109,8 @@ class TabbedSqlEditors extends React.PureComponent {
       ...URI(window.location).search(true),
     };
 
+    console.log('query', query);
+
     // Popping a new tab based on the querystring
     if (
       query.id ||
@@ -150,8 +152,12 @@ class TabbedSqlEditors extends React.PureComponent {
         this.props.actions.addQueryEditor(newQueryEditor);
       }
       this.popNewTab();
-    } else if (this.props.queryEditors.length === 0) {
+    } else if (query.new || this.props.queryEditors.length === 0) {
       this.newQueryEditor();
+
+      if (query.new) {
+        window.history.replaceState({}, document.title, this.state.sqlLabUrl);
+      }
     } else {
       const qe = this.activeQueryEditor();
       const latestQuery = this.props.queries[qe.latestQueryId];

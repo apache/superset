@@ -91,9 +91,18 @@ function SavedQueryList({
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
+  const openNewQuery = function () {
+    window.open(`${window.location.origin}/superset/sqllab?new=true`);
+  };
+
   const menuData: SubMenuProps = {
     activeChild: 'Saved Queries',
     ...commonMenuData,
+  };
+
+  menuData.primaryButton = {
+    name: t('+ Query'),
+    onClick: openNewQuery,
   };
 
   if (canDelete) {
