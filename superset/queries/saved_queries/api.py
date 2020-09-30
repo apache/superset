@@ -73,7 +73,6 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "sql_tables",
     ]
     list_columns = [
-        "created_on",
         "changed_on_delta_humanized",
         "created_on",
         "created_by.first_name",
