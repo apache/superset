@@ -63,6 +63,7 @@ describe('dashboard filters list view', () => {
     cy.login();
     cy.server();
     cy.visit(DASHBOARD_LIST);
+    cy.get('[data-test="list-view"]').click();
   });
 
   it('should filter by owners correctly', () => {
