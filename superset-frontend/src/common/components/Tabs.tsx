@@ -120,5 +120,15 @@ EditableTabs.TabPane.defaultProps = {
   ),
 };
 
+const StyledCardTabs = styled(EditableTabs)``;
+
+const CardTabs = Object.assign(StyledCardTabs, {
+  TabPane: StyledTabPane,
+});
+
+CardTabs.defaultProps = {
+  type: 'card',
+};
+
 export default Tabs;
-export { EditableTabs };
+export { CardTabs, EditableTabs };
