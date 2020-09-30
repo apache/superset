@@ -173,7 +173,7 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.charts.api.data",
-    "superset.views.core.stop_dashboard_queries",
+    "superset.charts.api.data_stop",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -655,6 +655,20 @@ JINJA_CONTEXT_ADDONS: Dict[str, Callable[..., Any]] = {}
 # dictionary. The customized addons don't necessarily need to use jinjia templating
 # language. This allows you to define custom logic to process macro template.
 CUSTOM_TEMPLATE_PROCESSORS: Dict[str, Type[BaseTemplateProcessor]] = {}
+
+# A dictionary mapping database_ids to hooks that are called with username_id and
+# dashboard_id if the `STOP_DASHBOARD_PENDING_QUERIES` feature flag is enabled.
+# Example:
+# def STOP_DASHBOARD_PENDING_QUERIES_HOOK(
+#     dashboard_id: int,
+#     username: str
+# ) -> None:
+#     if datasource_id == 10:
+#         call_external_api(dashboard_id, username)
+#     return None
+STOP_DASHBOARD_PENDING_QUERIES_HOOK: Callable[
+    [int, str], None
+] = lambda dashboard_id, username: None
 
 # Roles that are controlled by the API / Superset and should not be changes
 # by humans.

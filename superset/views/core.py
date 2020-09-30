@@ -1435,25 +1435,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             payload.append(dash)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/dashboard/<int:dashboard_id>/stop/", methods=["POST"])
-    def stop_dashboard_queries(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        if is_feature_enabled("STOP_DASHBOARD_PENDING_QUERIES"):
-            username = g.user.username
-            database_ids = get_database_ids(dashboard_id)
-
-            # stop pending query is only available for certain database(s)
-            for dbid in database_ids:
-                mydb = db.session.query(models.Database).get(dbid)
-                if mydb:
-                    mydb.db_engine_spec.stop_queries(username, int(dashboard_id))
-
-        return Response(status=200)
-
     @event_logger.log_this
     @api
     @has_access_api

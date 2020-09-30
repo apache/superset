@@ -1237,22 +1237,6 @@ class TestCore(SupersetTestCase):
             "my_col"
         ]
 
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"STOP_DASHBOARD_PENDING_QUERIES": True},
-        clear=True,
-    )
-    def test_stop_dashboard_queries(self):
-        username = "admin"
-        self.login(username)
-        dashboard = self.get_dash_by_slug("births")
-        with mock.patch.object(BaseEngineSpec, "stop_queries") as mock_stop_queries:
-            resp = self.client.post(f"/superset/dashboard/{dashboard.id}/stop/")
-
-            self.assertTrue(is_feature_enabled("STOP_DASHBOARD_PENDING_QUERIES"))
-            self.assertEqual(resp.status_code, 200)
-            mock_stop_queries.assert_called_once_with(username, dashboard.id)
-
 
 if __name__ == "__main__":
     unittest.main()

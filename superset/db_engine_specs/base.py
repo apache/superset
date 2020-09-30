@@ -1025,13 +1025,3 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 logger.error(ex)
                 raise ex
         return extra
-
-    @classmethod
-    def stop_queries(cls, username: str, dashboard_id: int) -> None:
-        """
-        An empty function. The actual stop implementation depends on the engine
-
-        :param: username: user sends out queries
-        :param dashboard_id: dashboard has charts that waiting for queries
-        """
-        return None

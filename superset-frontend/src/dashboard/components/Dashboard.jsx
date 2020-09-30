@@ -192,7 +192,8 @@ class Dashboard extends React.PureComponent {
   stopPendingQueries() {
     if (navigator && navigator.sendBeacon) {
       navigator.sendBeacon(
-        `/superset/dashboard/${this.props.dashboardInfo.id}/stop/`,
+        '/api/v1/chart/data/stop/',
+        JSON.stringify({ dashboard_id: this.props.dashboardInfo.id }),
       );
     }
   }

@@ -19,7 +19,7 @@ import logging
 from typing import Any, Dict
 
 import simplejson
-from flask import g, make_response, redirect, request, Response, url_for
+from flask import current_app, g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
@@ -82,6 +82,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "data",
+        "data_stop",
         "viz_types",
     }
     class_permission_name = "SliceModelView"
@@ -184,6 +185,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 "screenshot",
                 "cache_screenshot",
             }
+
         super().__init__()
 
     @expose("/", methods=["POST"])
@@ -421,8 +423,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/data", methods=["POST"])
     @event_logger.log_this
-    @protect()
-    @safe
     @statsd_metrics
     def data(self) -> Response:
         """
@@ -502,6 +502,53 @@ class ChartRestApi(BaseSupersetModelRestApi):
             response = resp
 
         return response
+
+    @expose("/data/stop", methods=["POST"])
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    def data_stop(self) -> Response:
+        """
+        Takes a dashboard id and tries to cancel all associated chart data requests
+        issued by the user.
+        ---
+        post:
+          description: >-
+            Takes a dashboard id and tries to cancel all associated chart data requests
+            issued by the user
+          requestBody:
+            description: >-
+              The dashboard id.
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/ChartDataStopSchema"
+          responses:
+            200:
+              description: Pending dashboard queries terminated
+              content:
+                application/json:
+                  schema:
+                    type: object
+            400:
+              $ref: '#/components/responses/400'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if request.is_json:
+            json_body = request.json
+            dashboard_id = json_body.get("dashboard_id")
+            if not dashboard_id:
+                return self.response(400, message="dashboard_id missing in body")
+            hook = current_app.config["STOP_DASHBOARD_PENDING_QUERIES_HOOK"]
+            try:
+                hook(dashboard_id, g.user.username)
+                return self.response(200)
+            except Exception as ex:
+                return self.response(500, message=str(ex))
+        return self.response(400, message="body missing")
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()

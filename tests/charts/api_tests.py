@@ -28,6 +28,7 @@ from sqlalchemy.sql import func
 
 from superset.utils.core import get_example_database
 from tests.test_app import app
+from superset import is_feature_enabled
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
@@ -951,3 +952,25 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         result = response_payload["result"][0]["query"]
         if get_example_database().backend != "presto":
             assert "('boy' = 'boy')" in result
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"STOP_DASHBOARD_PENDING_QUERIES": True},
+        clear=True,
+    )
+    def test_stop_dashboard_queries(self):
+        hook = app.config["STOP_DASHBOARD_PENDING_QUERIES_HOOK"]
+        mock_hook = mock.Mock()
+        app.config["STOP_DASHBOARD_PENDING_QUERIES_HOOK"] = mock_hook
+
+        username = "admin"
+        self.login(username)
+        dashboard = self.get_dash_by_slug("births")
+        resp = self.client.post(
+            f"/api/v1/chart/data/stop", json={"dashboard_id": dashboard.id}
+        )
+
+        self.assertTrue(is_feature_enabled("STOP_DASHBOARD_PENDING_QUERIES"))
+        self.assertEqual(resp.status_code, 200)
+        mock_hook.assert_called_once_with(dashboard.id, username)
+        app.config["STOP_DASHBOARD_PENDING_QUERIES_HOOK"] = hook
