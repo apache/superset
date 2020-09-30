@@ -67,6 +67,7 @@ export function fetchAllSlices(userId) {
                 slice_id: slice.id,
                 slice_url: slice.slice_url,
                 slice_name: slice.slice_name,
+                uuid: slice.uuid,
                 edit_url: slice.edit_url,
                 form_data,
                 datasource_name: slice.datasource_name_text,

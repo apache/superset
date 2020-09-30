@@ -193,20 +193,21 @@ class Slice(
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,
+            "uuid": str(self.uuid),
         }
 
     @property
     def digest(self) -> str:
         """
-            Returns a MD5 HEX digest that makes this dashboard unique
+        Returns a MD5 HEX digest that makes this dashboard unique
         """
         return utils.md5_hex(self.params)
 
     @property
     def thumbnail_url(self) -> str:
         """
-            Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
-            if the dashboard has changed
+        Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
+        if the dashboard has changed
         """
         return f"/api/v1/chart/{self.id}/thumbnail/{self.digest}/"
 

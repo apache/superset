@@ -105,5 +105,6 @@ class SliceAsync(SliceModelView):  # pylint: disable=too-many-ancestors
         "slice_name",
         "slice_url",
         "viz_type",
+        "uuid",
     ]
     label_columns = {"icons": " ", "slice_link": _("Chart")}
