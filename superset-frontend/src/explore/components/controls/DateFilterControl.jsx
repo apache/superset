@@ -26,8 +26,6 @@ import {
   MenuItem,
   OverlayTrigger,
   Radio,
-  Tab,
-  Tabs,
   Tooltip,
 } from 'react-bootstrap';
 import Popover from 'src/common/components/Popover';
@@ -37,6 +35,7 @@ import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
 import { t, styled, withTheme } from '@superset-ui/core';
 
+import { CardTabs } from 'src/common/components/Tabs';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -434,16 +433,18 @@ class DateFilterControl extends React.Component {
           this.popoverContainer = ref;
         }}
       >
-        <Tabs
+        <CardTabs
           defaultActiveKey={this.state.tab === TABS.DEFAULTS ? 1 : 2}
           id="type"
           className="time-filter-tabs"
           onSelect={this.changeTab}
         >
-          <Tab eventKey={1} title="Defaults">
-            <FormGroup>{timeFrames}</FormGroup>
-          </Tab>
-          <Tab eventKey={2} title="Custom">
+          <CardTabs.TabPane key={1} tab="Defaults">
+            <div style={{ marginLeft: '8px' }}>
+              <FormGroup>{timeFrames}</FormGroup>
+            </div>
+          </CardTabs.TabPane>
+          <CardTabs.TabPane key={2} tab="Custom">
             <FormGroup>
               <PopoverSection
                 title="Relative to today"
@@ -573,8 +574,8 @@ class DateFilterControl extends React.Component {
                 </div>
               </PopoverSection>
             </FormGroup>
-          </Tab>
-        </Tabs>
+          </CardTabs.TabPane>
+        </CardTabs>
         <div className="clearfix">
           <Button
             data-test="date-ok-button"
