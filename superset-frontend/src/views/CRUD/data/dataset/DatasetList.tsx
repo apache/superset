@@ -420,7 +420,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     });
   }
 
-  menuData.buttons = [...buttonArr];
+  menuData.buttons = buttonArr;
 
   const closeDatasetDeleteModal = () => {
     setDatasetCurrentlyDeleting(null);

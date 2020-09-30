@@ -71,8 +71,16 @@ type MenuChild = {
 interface ButtonProps {
   name: any;
   onClick: OnClickHandler;
-  style: string;
+  style:
+    | 'primary'
+    | 'secondary'
+    | 'dashed'
+    | 'danger'
+    | 'link'
+    | 'warning'
+    | 'success';
 }
+
 export interface SubMenuProps {
   buttons?: Array<ButtonProps>;
   name: string;
