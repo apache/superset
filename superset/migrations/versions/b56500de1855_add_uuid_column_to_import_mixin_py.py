@@ -17,7 +17,7 @@
 """add_uuid_column_to_import_mixin.py
 
 Revision ID: b56500de1855
-Revises: e5ef6828ac4e
+Revises: 18532d70ab98
 Create Date: 2020-09-28 17:57:23.128142
 
 """
@@ -35,7 +35,7 @@ from superset.utils import core as utils
 
 # revision identifiers, used by Alembic.
 revision = "b56500de1855"
-down_revision = "e5ef6828ac4e"
+down_revision = "18532d70ab98"
 
 
 Base = declarative_base()
