@@ -30,6 +30,10 @@ const notForwardedProps = ['fullWidth'];
 const StyledTabs = styled(AntdTabs, {
   shouldForwardProp: prop => !notForwardedProps.includes(prop),
 })<TabsProps>`
+  .ant-tabs-content-holder {
+    overflow: auto;
+  }
+
   .ant-tabs-tab {
     flex: 1 1 auto;
 

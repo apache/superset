@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormGroup, Tab, Tabs } from 'react-bootstrap';
+import { FormGroup } from 'react-bootstrap';
+import { CardTabs } from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/core';
@@ -216,19 +217,18 @@ export default class AdhocMetricEditPopover extends React.Component {
         data-test="metrics-edit-popover"
         {...popoverProps}
       >
-        <Tabs
+        <CardTabs
           id="adhoc-metric-edit-tabs"
           data-test="adhoc-metric-edit-tabs"
           defaultActiveKey={adhocMetric.expressionType}
           className="adhoc-metric-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
-          onSelect={this.refreshAceEditor}
-          animation={false}
+          onChange={this.refreshAceEditor}
         >
-          <Tab
+          <CardTabs.TabPane
             className="adhoc-metric-edit-tab"
-            eventKey={EXPRESSION_TYPES.SIMPLE}
-            title="Simple"
+            key={EXPRESSION_TYPES.SIMPLE}
+            tab="Simple"
           >
             <FormGroup>
               <FormLabel>
@@ -251,11 +251,11 @@ export default class AdhocMetricEditPopover extends React.Component {
                 autoFocus
               />
             </FormGroup>
-          </Tab>
-          <Tab
+          </CardTabs.TabPane>
+          <CardTabs.TabPane
             className="adhoc-metric-edit-tab"
-            eventKey={EXPRESSION_TYPES.SQL}
-            title="Custom SQL"
+            key={EXPRESSION_TYPES.SQL}
+            tab="Custom SQL"
             data-test="adhoc-metric-edit-tab#custom"
           >
             {this.props.datasourceType !== 'druid' ? (
@@ -282,8 +282,8 @@ export default class AdhocMetricEditPopover extends React.Component {
                 Custom SQL Metrics are not available on druid datasources
               </div>
             )}
-          </Tab>
-        </Tabs>
+          </CardTabs.TabPane>
+        </CardTabs>
         <div>
           <Button
             disabled={!stateIsValid}
