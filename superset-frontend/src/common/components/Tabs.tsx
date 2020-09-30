@@ -47,21 +47,16 @@ const StyledTabs = styled(AntdTabs, {
   }
 
   ${({ fullWidth }) =>
-    fullWidth
-      ? css`
-          .ant-tabs-nav-list {
-            width: 100%;
-          }
+    fullWidth &&
+    css`
+      .ant-tabs-nav-list {
+        width: 100%;
+      }
 
-          .ant-tabs-tab {
-            width: 0;
-          }
-        `
-      : css`
-          .ant-tabs-nav {
-            margin-left: 16px;
-          }
-        `};
+      .ant-tabs-tab {
+        width: 0;
+      }
+    `};
 
   .ant-tabs-tab-btn {
     display: flex;
