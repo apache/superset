@@ -101,7 +101,7 @@ describe('SubMenu', () => {
     ];
     const overrideProps = { buttons };
     const newWrapper = getWrapper(overrideProps);
-    expect(newWrapper.find('.navbar-right').children()).toHaveLength(2)
+    expect(newWrapper.find('.navbar-right').children()).toHaveLength(2);
     newWrapper.find('[buttonStyle="primary"]').simulate('click');
     expect(mockFunc).toHaveBeenCalled();
   });
