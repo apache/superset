@@ -34,12 +34,14 @@ import {
   LOG_ACTIONS_MOUNT_DASHBOARD,
   Logger,
 } from '../../logger/LogUtils';
+import { isFeatureEnabled, FeatureFlag } from '../../featureFlags';
 import OmniContainer from '../../components/OmniContainer';
 import { areObjectsEqual } from '../../reduxUtils';
 
 import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
+import isDashboardLoading from '../util/isDashboardLoading';
 
 const propTypes = {
   actions: PropTypes.shape({
@@ -68,16 +70,7 @@ const defaultProps = {
 };
 
 class Dashboard extends React.PureComponent {
-  // eslint-disable-next-line react/sort-comp
-  static onBeforeUnload(hasChanged) {
-    if (hasChanged) {
-      window.addEventListener('beforeunload', Dashboard.unload);
-    } else {
-      window.removeEventListener('beforeunload', Dashboard.unload);
-    }
-  }
-
-  static unload() {
+  static showUnsavedMessage() {
     const message = t('You have unsaved changes.');
     window.event.returnValue = message; // Gecko + IE
     return message; // Gecko + Webkit, Safari, Chrome etc.
@@ -86,7 +79,11 @@ class Dashboard extends React.PureComponent {
   constructor(props) {
     super(props);
     this.appliedFilters = props.activeFilters || {};
+    this.canStopPendingQueries = isFeatureEnabled(
+      FeatureFlag.STOP_DASHBOARD_PENDING_QUERIES,
+    );
 
+    this.stopPendingQueries = this.stopPendingQueries.bind(this);
     this.onVisibilityChange = this.onVisibilityChange.bind(this);
   }
 
@@ -143,7 +140,8 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidUpdate() {
-    const { hasUnsavedChanges, editMode } = this.props.dashboardState;
+    const { charts, dashboardState } = this.props;
+    const { hasUnsavedChanges, editMode } = dashboardState;
 
     const { appliedFilters } = this;
     const { activeFilters } = this.props;
@@ -153,9 +151,15 @@ class Dashboard extends React.PureComponent {
     }
 
     if (hasUnsavedChanges) {
-      Dashboard.onBeforeUnload(true);
+      window.addEventListener('beforeunload', Dashboard.showUnsavedMessage);
     } else {
-      Dashboard.onBeforeUnload(false);
+      window.removeEventListener('beforeunload', Dashboard.showUnsavedMessage);
+    }
+
+    if (this.canStopPendingQueries && isDashboardLoading(charts)) {
+      window.addEventListener('beforeunload', this.stopPendingQueries);
+    } else {
+      window.removeEventListener('beforeunload', this.stopPendingQueries);
     }
   }
 
@@ -183,6 +187,14 @@ class Dashboard extends React.PureComponent {
   // return charts in array
   getAllCharts() {
     return Object.values(this.props.charts);
+  }
+
+  stopPendingQueries() {
+    if (navigator && navigator.sendBeacon) {
+      navigator.sendBeacon(
+        `/superset/dashboard/${this.props.dashboardInfo.id}/stop/`,
+      );
+    }
   }
 
   applyFilters() {

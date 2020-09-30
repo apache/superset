@@ -221,6 +221,33 @@ def get_datasource_info(
     return datasource_id, datasource_type
 
 
+def get_database_ids(dashboard_id: int) -> List[int]:
+    """
+    Find all database ids used by a given dashboard
+
+    :param dashboard_id: The dashboard id
+    :returns: A list of database ids used by the given dashboard
+    """
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+    slices = dashboard.slices
+    datasource_ids: Set[int] = set()
+    database_ids: Set[int] = set()
+
+    for slc in slices:
+        datasource = slc.datasource
+        if (
+            datasource
+            and datasource.type == "table"
+            and datasource.id not in datasource_ids
+        ):
+            datasource_ids.add(datasource.id)
+            database = datasource.database
+            if database:
+                database_ids.add(database.id)
+
+    return list(database_ids)
+
+
 def apply_display_max_row_limit(
     sql_results: Dict[str, Any], rows: Optional[int] = None
 ) -> Dict[str, Any]:
