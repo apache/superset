@@ -578,11 +578,9 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     const { spatials, all_cols: allCols } = datasource;
     return (
-      <Tab
-        title={
-          <CollectionTabTitle collection={spatials} title={t('Spatial')} />
-        }
-        eventKey={4}
+      <Tabs.TabPane
+        tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
+        key={4}
       >
         <CollectionTable
           tableColumns={['name', 'config']}
@@ -603,7 +601,7 @@ class DatasourceEditor extends React.PureComponent {
             ),
           }}
         />
-      </Tab>
+      </Tabs.TabPane>
     );
   }
 
@@ -916,24 +914,22 @@ class DatasourceEditor extends React.PureComponent {
             }
             key={2}
           >
-            {
-              <div>
-                <ColumnCollectionTable
-                  columns={this.state.databaseColumns}
-                  onChange={databaseColumns =>
-                    this.setColumns({ databaseColumns })
-                  }
-                />
-                <Button
-                  buttonStyle="primary"
-                  onClick={this.syncMetadata}
-                  className="sync-from-source"
-                >
-                  {t('Sync columns from source')}
-                </Button>
-                {this.state.metadataLoading && <Loading />}
-              </div>
-            }
+            <div>
+              <ColumnCollectionTable
+                columns={this.state.databaseColumns}
+                onChange={databaseColumns =>
+                  this.setColumns({ databaseColumns })
+                }
+              />
+              <Button
+                buttonStyle="primary"
+                onClick={this.syncMetadata}
+                className="sync-from-source"
+              >
+                {t('Sync columns from source')}
+              </Button>
+              {this.state.metadataLoading && <Loading />}
+            </div>
           </Tabs.TabPane>
           <Tabs.TabPane
             tab={
@@ -944,37 +940,33 @@ class DatasourceEditor extends React.PureComponent {
             }
             key={3}
           >
-            {
-              <ColumnCollectionTable
-                columns={this.state.calculatedColumns}
-                onChange={calculatedColumns =>
-                  this.setColumns({ calculatedColumns })
-                }
-                editableColumnName
-                showExpression
-                allowAddItem
-                allowEditDataType
-                itemGenerator={() => ({
-                  column_name: '<new column>',
-                  filterable: true,
-                  groupby: true,
-                  expression: '<enter SQL expression here>',
-                  __expanded: true,
-                })}
-              />
-            }
+            <ColumnCollectionTable
+              columns={this.state.calculatedColumns}
+              onChange={calculatedColumns =>
+                this.setColumns({ calculatedColumns })
+              }
+              editableColumnName
+              showExpression
+              allowAddItem
+              allowEditDataType
+              itemGenerator={() => ({
+                column_name: '<new column>',
+                filterable: true,
+                groupby: true,
+                expression: '<enter SQL expression here>',
+                __expanded: true,
+              })}
+            />
           </Tabs.TabPane>
           <Tabs.TabPane key={4} tab={t('Settings')}>
-            {
-              <div>
-                <Col md={6}>
-                  <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
-                </Col>
-                <Col md={6}>
-                  <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
-                </Col>
-              </div>
-            }
+            <div>
+              <Col md={6}>
+                <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
+              </Col>
+              <Col md={6}>
+                <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
+              </Col>
+            </div>
           </Tabs.TabPane>
         </Tabs>
       </DatasourceContainer>
