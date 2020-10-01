@@ -21,7 +21,7 @@ import { FormControl } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import * as sinon from 'sinon';
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
-import ModalTrigger from 'src/components/ModalTrigger';
+import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 
 describe('SavedQuery', () => {
@@ -40,9 +40,9 @@ describe('SavedQuery', () => {
   it('is valid with props', () => {
     expect(React.isValidElement(<SaveQuery {...mockedProps} />)).toBe(true);
   });
-  it('has a ModalTrigger', () => {
+  it('has a Modal', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
-    expect(wrapper.find(ModalTrigger)).toExist();
+    expect(wrapper.find(Modal)).toExist();
   });
   it('has a cancel button', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);

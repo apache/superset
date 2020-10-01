@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormControl, FormGroup, Row, Col } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
@@ -39,6 +39,23 @@ const defaultProps = {
   onSave: () => {},
   saveQueryWarning: null,
 };
+
+const StyledRow = styled(Row)`
+  div {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  button.cta {
+    margin: 0 7px;
+    min-width: 105px;
+    font-size: 12px;
+
+    &:first-child {
+      margin-left: 0;
+    }
+  }
+`;
 
 class SaveQuery extends React.PureComponent {
   constructor(props) {
@@ -87,8 +104,7 @@ class SaveQuery extends React.PureComponent {
   }
 
   close() {
-    this.setState(prevState => ({ showSave: false }));
-    // if (this.saveModal) this.saveModal.close();
+    this.setState(() => ({ showSave: false }));
   }
 
   toggleSave() {
@@ -141,7 +157,7 @@ class SaveQuery extends React.PureComponent {
             <br />
           </div>
         )}
-        <Row>
+        <StyledRow>
           <Col md={12}>
             {isSaved && (
               <Button
@@ -165,7 +181,7 @@ class SaveQuery extends React.PureComponent {
               {t('Cancel')}
             </Button>
           </Col>
-        </Row>
+        </StyledRow>
       </FormGroup>
     );
   }
@@ -187,9 +203,10 @@ class SaveQuery extends React.PureComponent {
           onHandledPrimaryAction={this.onSave}
           onHide={this.onCancel}
           primaryButtonName={isSaved ? t('Save') : t('Add')}
-          width="350px"
+          width="390px"
           show={this.state.showSave}
           title={<h4>{t('Save Query')}</h4>}
+          hideFooter
         >
           {this.renderModalBody()}
         </Modal>
