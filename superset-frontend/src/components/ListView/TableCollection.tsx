@@ -265,6 +265,7 @@ export default function TableCollection({
                 {...row.getRowProps()}
                 className={cx('table-row', {
                   'table-row-selected':
+                    // @ts-ignore
                     row.isSelected || row.original.id === highlightRowId,
                 })}
               >
