@@ -497,13 +497,16 @@ function ChartList(props: ChartListProps) {
     <>
       <SubMenu
         name={t('Charts')}
-        secondaryButton={
+        buttons={
           canDelete
-            ? {
-                name: t('Bulk Select'),
-                onClick: toggleBulkSelect,
-              }
-            : undefined
+            ? [
+                {
+                  name: t('Bulk Select'),
+                  buttonStyle: 'secondary',
+                  onClick: toggleBulkSelect,
+                },
+              ]
+            : []
         }
       />
       {sliceCurrentlyEditing && (
