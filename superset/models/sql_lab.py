@@ -182,6 +182,9 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
         backref=backref("saved_queries", cascade="all, delete-orphan"),
     )
 
+    def __repr__(self) -> str:
+        return str(self.label)
+
     @property
     def pop_tab_link(self) -> Markup:
         return Markup(
