@@ -92,11 +92,11 @@ describe('SubMenu', () => {
       {
         name: 'test_button',
         onClick: mockFunc,
-        style: 'primary',
+        buttonStyle: 'primary',
       },
       {
         name: 'danger_button',
-        style: 'danger',
+        buttonStyle: 'danger',
       },
     ];
     const overrideProps = { buttons };

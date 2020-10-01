@@ -21,10 +21,7 @@ import React, { useState, useMemo } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import SubMenu, {
-  SubMenuProps,
-  ButtonStyleTypes,
-} from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
@@ -137,7 +134,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             <i className="fa fa-plus" /> {t('Database')}{' '}
           </>
         ),
-        style: ButtonStyleTypes.Primary,
+        buttonStyle: 'primary',
         onClick: () => {
           // Ensure modal will be opened in add mode
           setCurrentDatabase(null);

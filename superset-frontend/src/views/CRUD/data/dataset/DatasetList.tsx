@@ -31,7 +31,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import SubMenu, {
   SubMenuProps,
-  ButtonStyleTypes,
+  ButtonProps,
 } from 'src/components/Menu/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import AvatarIcon from 'src/components/AvatarIcon';
@@ -400,13 +400,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     ...commonMenuData,
   };
 
-  const buttonArr = [];
+  const buttonArr: Array<ButtonProps> = [];
 
   if (canDelete) {
     buttonArr.push({
       name: t('Bulk Select'),
       onClick: toggleBulkSelect,
-      style: ButtonStyleTypes.Secondary,
+      buttonStyle: 'secondary',
     });
   }
 
@@ -419,7 +419,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         </>
       ),
       onClick: () => setDatasetAddModalOpen(true),
-      style: ButtonStyleTypes.Primary,
+      buttonStyle: 'primary',
     });
   }
 

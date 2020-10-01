@@ -68,20 +68,17 @@ type MenuChild = {
   usesRouter?: boolean;
 };
 
-export enum ButtonStyleTypes {
-  Primary = 'primary',
-  Secondary = 'secondary',
-  Dashed = 'dashed',
-  Danger = 'danger',
-  Link = 'link',
-  Warning = 'warning',
-  Success = 'success',
-}
-
-interface ButtonProps {
+export interface ButtonProps {
   name: any;
   onClick: OnClickHandler;
-  style: ButtonStyleTypes;
+  buttonStyle:
+    | 'primary'
+    | 'secondary'
+    | 'dashed'
+    | 'link'
+    | 'warning'
+    | 'success'
+    | 'tertiary';
 }
 
 export interface SubMenuProps {
@@ -140,7 +137,11 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
         </Nav>
         <Nav className="navbar-right">
           {props.buttons?.map((btn, i) => (
-            <Button key={`${i}`} buttonStyle={btn.style} onClick={btn.onClick}>
+            <Button
+              key={`${i}`}
+              buttonStyle={btn.buttonStyle}
+              onClick={btn.onClick}
+            >
               {btn.name}
             </Button>
           ))}

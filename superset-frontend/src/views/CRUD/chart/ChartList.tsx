@@ -24,7 +24,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu, { ButtonStyleTypes } from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
@@ -502,7 +502,7 @@ function ChartList(props: ChartListProps) {
             ? [
                 {
                   name: t('Bulk Select'),
-                  style: ButtonStyleTypes.Secondary,
+                  buttonStyle: 'secondary',
                   onClick: toggleBulkSelect,
                 },
               ]
