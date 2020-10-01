@@ -27,15 +27,15 @@ revision = "18532d70ab98"
 down_revision = "3fbbc6e8d654"
 
 from alembic import op
+from sqlalchemy.dialects.mysql.base import MySQLDialect
 
 
 def upgrade():
-    try:
+    bind = op.get_bind()
+    if isinstance(bind.dialect, MySQLDialect):
         # index only exists in mysql db
         with op.get_context().autocommit_block():
             op.drop_constraint("table_name", "tables", type_="unique")
-    except Exception as ex:
-        print(ex)
 
 
 def downgrade():
