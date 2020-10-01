@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { t, styled } from '@superset-ui/core';
-import React, { useMemo } from 'react';
+import { SupersetClient, t, styled } from '@superset-ui/core';
+import React, { useState, useMemo } from 'react';
+import rison from 'rison';
 import moment from 'moment';
 import {
   createFetchRelated,
@@ -28,10 +29,12 @@ import {
 import { Popover } from 'src/common/components';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import ListView, { Filters } from 'src/components/ListView';
-import TooltipWrapper from 'src/components/TooltipWrapper';
-import Icon from 'src/components/Icon';
+import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import DeleteModal from 'src/components/DeleteModal';
+import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
+import { IconName } from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 
 const PAGE_SIZE = 25;
@@ -41,7 +44,10 @@ interface SavedQueryListProps {
   addSuccessToast: (msg: string) => void;
 }
 
-type SavedQueryObject = {};
+type SavedQueryObject = {
+  id: number;
+  label: string;
+};
 
 const StyledTableLabel = styled.div`
   .count {
@@ -61,23 +67,124 @@ function SavedQueryList({
   addSuccessToast,
 }: SavedQueryListProps) {
   const {
-    state: { loading, resourceCount: queryCount, resourceCollection: queries },
+    state: {
+      loading,
+      resourceCount: queryCount,
+      resourceCollection: queries,
+      bulkSelectEnabled,
+    },
     hasPerm,
     fetchData,
-    // refreshData, //TODO: add back later when editing?
+    toggleBulkSelect,
+    refreshData,
   } = useListViewResource<SavedQueryObject>(
     'saved_query',
     t('saved_queries'),
     addDangerToast,
   );
 
+  const [
+    queryCurrentlyDeleting,
+    setQueryCurrentlyDeleting,
+  ] = useState<SavedQueryObject | null>(null);
+
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
+  const openNewQuery = () => {
+    window.open(`${window.location.origin}/superset/sqllab?new=true`);
+  };
+
   const menuData: SubMenuProps = {
     activeChild: 'Saved Queries',
     ...commonMenuData,
+  };
+
+  menuData.primaryButton = {
+    name: t('+ Query'),
+    onClick: openNewQuery,
+  };
+
+  if (canDelete) {
+    menuData.secondaryButton = {
+      name: t('Bulk Select'),
+      onClick: toggleBulkSelect,
+    };
+  }
+
+  // Action methods
+  const openInSqlLab = (id: number) => {
+    window.open(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`);
+  };
+
+  const copyQueryLink = (id: number) => {
+    const selection: Selection | null = document.getSelection();
+
+    if (selection) {
+      selection.removeAllRanges();
+      const range = document.createRange();
+      const span = document.createElement('span');
+      span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
+      span.style.position = 'fixed';
+      span.style.top = '0';
+      span.style.clip = 'rect(0, 0, 0, 0)';
+      span.style.whiteSpace = 'pre';
+
+      document.body.appendChild(span);
+      range.selectNode(span);
+      selection.addRange(range);
+
+      try {
+        if (!document.execCommand('copy')) {
+          throw new Error(t('Not successful'));
+        }
+      } catch (err) {
+        addDangerToast(t('Sorry, your browser does not support copying.'));
+      }
+
+      document.body.removeChild(span);
+      if (selection.removeRange) {
+        selection.removeRange(range);
+      } else {
+        selection.removeAllRanges();
+      }
+
+      addSuccessToast(t('Link Copied!'));
+    }
+  };
+
+  const handleQueryDelete = ({ id, label }: SavedQueryObject) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/saved_query/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        setQueryCurrentlyDeleting(null);
+        addSuccessToast(t('Deleted: %s', label));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(t('There was an issue deleting %s: %s', label, errMsg)),
+      ),
+    );
+  };
+
+  const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/saved_query/?q=${rison.encode(
+        queriesToDelete.map(({ id }) => id),
+      )}`,
+    }).then(
+      ({ json = {} }) => {
+        refreshData();
+        addSuccessToast(json.message);
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting the selected queries: %s', errMsg),
+        ),
+      ),
+    );
   };
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -95,6 +202,11 @@ function SavedQueryList({
         accessor: 'database',
         hidden: true,
         disableSortBy: true,
+        Cell: ({
+          row: {
+            original: { database },
+          },
+        }: any) => `${database.database_name}`,
       },
       {
         accessor: 'schema',
@@ -173,75 +285,50 @@ function SavedQueryList({
       {
         Cell: ({ row: { original } }: any) => {
           const handlePreview = () => {}; // openQueryPreviewModal(original); // TODO: open preview modal
-          const handleEdit = () => {}; // handleQueryEdit(original); // TODO: navigate to sql editor with selected query open
-          const handleCopy = () => {}; // TODO: copy link to clipboard
-          const handleDelete = () => {}; // openQueryDeleteModal(original);
+          const handleEdit = () => {
+            openInSqlLab(original.id);
+          };
+          const handleCopy = () => {
+            copyQueryLink(original.id);
+          };
+          const handleDelete = () => setQueryCurrentlyDeleting(original); // openQueryDeleteModal(original);
 
-          return (
-            <span className="actions">
-              <TooltipWrapper
-                label="preview-action"
-                tooltip={t('Query preview')}
-                placement="bottom"
-              >
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={handlePreview}
-                >
-                  <Icon name="binoculars" />
-                </span>
-              </TooltipWrapper>
-              {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit query')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
-                    <Icon name="edit" />
-                  </span>
-                </TooltipWrapper>
-              )}
-              <TooltipWrapper
-                label="copy-action"
-                tooltip={t('Copy query URL')}
-                placement="bottom"
-              >
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={handleCopy}
-                >
-                  <Icon name="copy" />
-                </span>
-              </TooltipWrapper>
-              {canDelete && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  data-test="database-delete"
-                  onClick={handleDelete}
-                >
-                  <TooltipWrapper
-                    label="delete-action"
-                    tooltip={t('Delete query')}
-                    placement="bottom"
-                  >
-                    <Icon name="trash" />
-                  </TooltipWrapper>
-                </span>
-              )}
-            </span>
-          );
+          const actions = [
+            {
+              label: 'preview-action',
+              tooltip: t('Query preview'),
+              placement: 'bottom',
+              icon: 'binoculars' as IconName,
+              onClick: handlePreview,
+            },
+            canEdit
+              ? {
+                  label: 'edit-action',
+                  tooltip: t('Edit query'),
+                  placement: 'bottom',
+                  icon: 'edit' as IconName,
+                  onClick: handleEdit,
+                }
+              : null,
+            {
+              label: 'copy-action',
+              tooltip: t('Copy query URL'),
+              placement: 'bottom',
+              icon: 'copy' as IconName,
+              onClick: handleCopy,
+            },
+            canDelete
+              ? {
+                  label: 'delete-action',
+                  tooltip: t('Delete query'),
+                  placement: 'bottom',
+                  icon: 'trash' as IconName,
+                  onClick: handleDelete,
+                }
+              : null,
+          ].filter(item => !!item);
+
+          return <ActionsBar actions={actions as ActionProps[]} />;
         },
         Header: t('Actions'),
         id: 'actions',
@@ -299,17 +386,56 @@ function SavedQueryList({
   return (
     <>
       <SubMenu {...menuData} />
-      <ListView<SavedQueryObject>
-        className="saved_query-list-view"
-        columns={columns}
-        count={queryCount}
-        data={queries}
-        fetchData={fetchData}
-        filters={filters}
-        initialSort={initialSort}
-        loading={loading}
-        pageSize={PAGE_SIZE}
-      />
+      {queryCurrentlyDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete the saved query.',
+          )}
+          onConfirm={() => {
+            if (queryCurrentlyDeleting) {
+              handleQueryDelete(queryCurrentlyDeleting);
+            }
+          }}
+          onHide={() => setQueryCurrentlyDeleting(null)}
+          open
+          title={t('Delete Query?')}
+        />
+      )}
+      <ConfirmStatusChange
+        title={t('Please confirm')}
+        description={t('Are you sure you want to delete the selected queries?')}
+        onConfirm={handleBulkQueryDelete}
+      >
+        {confirmDelete => {
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
+          return (
+            <ListView<SavedQueryObject>
+              className="saved_query-list-view"
+              columns={columns}
+              count={queryCount}
+              data={queries}
+              fetchData={fetchData}
+              filters={filters}
+              initialSort={initialSort}
+              loading={loading}
+              pageSize={PAGE_SIZE}
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={toggleBulkSelect}
+            />
+          );
+        }}
+      </ConfirmStatusChange>
     </>
   );
 }

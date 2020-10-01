@@ -82,6 +82,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "database.id",
         "db_id",
         "description",
+        "id",
         "label",
         "schema",
         "sql",

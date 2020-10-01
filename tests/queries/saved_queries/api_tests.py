@@ -122,6 +122,7 @@ class TestSavedQueryApi(SupersetTestCase):
             "database",
             "db_id",
             "description",
+            "id",
             "label",
             "schema",
             "sql",
