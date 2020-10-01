@@ -91,7 +91,7 @@ function SavedQueryList({
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
-  const openNewQuery = function () {
+  const openNewQuery = () => {
     window.open(`${window.location.origin}/superset/sqllab?new=true`);
   };
 
@@ -113,11 +113,11 @@ function SavedQueryList({
   }
 
   // Action methods
-  const openInSqlLab = function (id: number) {
+  const openInSqlLab = (id: number) => {
     window.open(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`);
   };
 
-  const copyQueryLink = function (id: number) {
+  const copyQueryLink = (id: number) => {
     const selection: Selection | null = document.getSelection();
 
     if (selection) {
@@ -328,71 +328,6 @@ function SavedQueryList({
           ].filter(item => !!item);
 
           return <ActionsBar actions={actions} />;
-
-          /* return (
-            <span className="actions">
-              <TooltipWrapper
-                label="preview-action"
-                tooltip={t('Query preview')}
-                placement="bottom"
-              >
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={handlePreview}
-                >
-                  <Icon name="binoculars" />
-                </span>
-              </TooltipWrapper>
-              {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit query')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
-                    <Icon name="edit" />
-                  </span>
-                </TooltipWrapper>
-              )}
-              <TooltipWrapper
-                label="copy-action"
-                tooltip={t('Copy query URL')}
-                placement="bottom"
-              >
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={handleCopy}
-                >
-                  <Icon name="copy" />
-                </span>
-              </TooltipWrapper>
-              {canDelete && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={handleDelete}
-                >
-                  <TooltipWrapper
-                    label="delete-action"
-                    tooltip={t('Delete query')}
-                    placement="bottom"
-                  >
-                    <Icon name="trash" />
-                  </TooltipWrapper>
-                </span>
-              )}
-            </span>
-          ); */
         },
         Header: t('Actions'),
         id: 'actions',
@@ -496,42 +431,6 @@ function SavedQueryList({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
-              renderBulkSelectCopy={selected => {
-                const { virtualCount, physicalCount } = selected.reduce(
-                  (acc, e) => {
-                    if (e.original.kind === 'physical') acc.physicalCount += 1;
-                    else if (e.original.kind === 'virtual')
-                      acc.virtualCount += 1;
-                    return acc;
-                  },
-                  { virtualCount: 0, physicalCount: 0 },
-                );
-
-                if (!selected.length) {
-                  return t('0 Selected');
-                }
-                if (virtualCount && !physicalCount) {
-                  return t(
-                    '%s Selected (Virtual)',
-                    selected.length,
-                    virtualCount,
-                  );
-                }
-                if (physicalCount && !virtualCount) {
-                  return t(
-                    '%s Selected (Physical)',
-                    selected.length,
-                    physicalCount,
-                  );
-                }
-
-                return t(
-                  '%s Selected (%s Physical, %s Virtual)',
-                  selected.length,
-                  physicalCount,
-                  virtualCount,
-                );
-              }}
             />
           );
         }}

@@ -109,8 +109,6 @@ class TabbedSqlEditors extends React.PureComponent {
       ...URI(window.location).search(true),
     };
 
-    console.log('query', query);
-
     // Popping a new tab based on the querystring
     if (
       query.id ||
