@@ -333,9 +333,9 @@ export function setFocusedFilterField(chartId, column) {
   return { type: SET_FOCUSED_FILTER_FIELD, chartId, column };
 }
 
+export const UNSET_FOCUSED_FILTER_FIELD = 'UNSET_FOCUSED_FILTER_FIELD';
 export function unsetFocusedFilterField() {
-  // same ACTION as setFocusedFilterField, without arguments
-  return { type: SET_FOCUSED_FILTER_FIELD };
+  return { type: UNSET_FOCUSED_FILTER_FIELD };
 }
 
 // Undo history ---------------------------------------------------------------

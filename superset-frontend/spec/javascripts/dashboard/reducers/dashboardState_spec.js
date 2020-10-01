@@ -27,6 +27,7 @@ import {
   SET_UNSAVED_CHANGES,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
+  UNSET_FOCUSED_FILTER_FIELD,
 } from 'src/dashboard/actions/dashboardState';
 
 import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
@@ -155,7 +156,7 @@ describe('dashboardState reducer', () => {
       column: 'column_2',
     });
     const step2 = dashboardStateReducer(step1, {
-      type: SET_FOCUSED_FILTER_FIELD,
+      type: UNSET_FOCUSED_FILTER_FIELD,
     });
 
     expect(step2.focusedFilterField.slice(-1).pop()).toEqual({

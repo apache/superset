@@ -18,7 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import cx from 'classnames';
 
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import Chart from '../../containers/Chart';
 import AnchorLink from '../../../components/AnchorLink';
 import DeleteComponentButton from '../DeleteComponentButton';
@@ -49,6 +51,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   directPathLastUpdated: PropTypes.number,
+  focusedFilterScope: PropTypes.object,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -181,6 +184,7 @@ class ChartHolder extends React.Component {
       editMode,
       isComponentVisible,
       dashboardId,
+      focusedFilterScope,
     } = this.props;
 
     // inherit the size of parent columns
@@ -204,6 +208,17 @@ class ChartHolder extends React.Component {
       chartHeight = Math.floor(
         component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
       );
+    }
+
+    // figure out if this chart is in the focused filter's scope
+    let filterFocusClass = null;
+    if (focusedFilterScope) {
+      const includedInFilterScope = getChartIdsInFilterScope({
+        filterScope: focusedFilterScope,
+      }).includes(component.meta.chartId);
+      filterFocusClass = includedInFilterScope
+        ? 'scoped-to-focused-filter'
+        : 'unscoped-to-focused-filter';
     }
 
     return (
@@ -236,9 +251,12 @@ class ChartHolder extends React.Component {
           >
             <div
               ref={dragSourceRef}
-              className={`dashboard-component dashboard-component-chart-holder ${
-                this.state.outlinedComponentId ? 'fade-in' : 'fade-out'
-              } ${this.state.isFullSize ? 'full-size' : ''}`}
+              className={cx(
+                'dashboard-component dashboard-component-chart-holder',
+                this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
+                this.state.isFullSize ? 'full-size' : '',
+                filterFocusClass || '',
+              )}
             >
               {!editMode && (
                 <AnchorLink

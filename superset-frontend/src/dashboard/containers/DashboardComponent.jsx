@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import ComponentLookup from '../components/gridComponents';
+import { componentLookup } from '../components/gridComponents';
 import getDetailedComponentWidth from '../util/getDetailedComponentWidth';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 import { componentShape } from '../util/propShapes';
@@ -56,8 +56,29 @@ const defaultProps = {
   isComponentVisible: true,
 };
 
+/**
+ * Selects the chart scope of the filter input that has focus.
+ *
+ * @returns {{ scope: string[], immune: string[] } | null }
+ * the scope of the currently focused filter, if any
+ */
+function selectFocusedFilterScope(dashboardState, dashboardFilters) {
+  const focusedFilterField =
+    dashboardState.focusedFilterField[
+      dashboardState.focusedFilterField.length - 1
+    ];
+  if (!focusedFilterField) return null;
+  const { chartId, column } = focusedFilterField;
+  return dashboardFilters[chartId].scopes[column];
+}
+
 function mapStateToProps(
-  { dashboardLayout: undoableLayout, dashboardState, dashboardInfo },
+  {
+    dashboardLayout: undoableLayout,
+    dashboardState,
+    dashboardInfo,
+    dashboardFilters,
+  },
   ownProps,
 ) {
   const dashboardLayout = undoableLayout.present;
@@ -73,10 +94,10 @@ function mapStateToProps(
     directPathToChild: dashboardState.directPathToChild,
     directPathLastUpdated: dashboardState.directPathLastUpdated,
     dashboardId: dashboardInfo.id,
-    filterFieldOnFocus:
-      dashboardState.focusedFilterField.length === 0
-        ? {}
-        : dashboardState.focusedFilterField.slice(-1).pop(),
+    focusedFilterScope: selectFocusedFilterScope(
+      dashboardState,
+      dashboardFilters,
+    ),
   };
 
   // rows and columns need more data about their child dimensions
@@ -116,7 +137,7 @@ function mapDispatchToProps(dispatch) {
 class DashboardComponent extends React.PureComponent {
   render() {
     const { component } = this.props;
-    const Component = component ? ComponentLookup[component.type] : null;
+    const Component = component ? componentLookup[component.type] : null;
     return Component ? <Component {...this.props} /> : null;
   }
 }

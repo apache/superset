@@ -35,6 +35,7 @@ import {
   SET_DIRECT_PATH,
   SET_MOUNTED_TAB,
   SET_FOCUSED_FILTER_FIELD,
+  UNSET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
 
 export default function dashboardStateReducer(state = {}, action) {
@@ -137,15 +138,24 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {
-      const { focusedFilterField } = state;
-      if (action.chartId && action.column) {
-        focusedFilterField.push({
-          chartId: action.chartId,
-          column: action.column,
-        });
-      } else {
-        focusedFilterField.shift();
-      }
+      // dashboard only has 1 focused filter field at a time,
+      // but when user switch different filter boxes,
+      // browser didn't always fire onBlur and onFocus events in order.
+      // so in redux state focusedFilterField prop is a queue,
+      // we always shift first element in the queue
+      const focusedFilterField = state.focusedFilterField.slice();
+      focusedFilterField.push({
+        chartId: action.chartId,
+        column: action.column,
+      });
+      return {
+        ...state,
+        focusedFilterField,
+      };
+    },
+    [UNSET_FOCUSED_FILTER_FIELD]() {
+      const focusedFilterField = state.focusedFilterField.slice();
+      focusedFilterField.shift();
       return {
         ...state,
         focusedFilterField,
