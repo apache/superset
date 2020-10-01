@@ -38,7 +38,7 @@ const MenuDots = styled.div`
 
     &::before,
     &::after {
-      background-color: #20a7c9;
+      background-color: ${({ theme }) => theme.colors.primary.base};
     }
   }
 
