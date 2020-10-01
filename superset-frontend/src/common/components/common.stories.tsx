@@ -48,7 +48,6 @@ export const StyledTabs = () => (
     defaultActiveKey="1"
     centered={boolean('Center tabs', false)}
     fullWidth={boolean('Full width', true)}
-    inModal={boolean('Is placed in modal', false)}
   >
     <Tabs.TabPane
       tab="Tab 1"
@@ -72,7 +71,6 @@ export const StyledEditableTabs = () => (
     defaultActiveKey="1"
     centered={boolean('Center tabs', false)}
     fullWidth={boolean('Full width', true)}
-    inModal={boolean('Is placed in modal', false)}
   >
     <Tabs.TabPane
       tab="Tab 1"
@@ -96,7 +94,6 @@ export const TabsWithDropdownMenu = () => (
     defaultActiveKey="1"
     centered={boolean('Center tabs', false)}
     fullWidth={boolean('Full width', true)}
-    inModal={boolean('Is placed in modal', false)}
   >
     <Tabs.TabPane
       tab={
