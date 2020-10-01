@@ -124,7 +124,7 @@ const contentLayoutDocsStyle = css`
     overflow: auto;
   }
 `;
-const footerHeight = 135;
+const footerHeight = 185;
 const baseLayoutStyle = css`
   min-height: 100vh;
   position: relative;
@@ -133,6 +133,8 @@ const baseLayoutStyle = css`
     bottom: 0;
     width: 100%;
     height: ${footerHeight}px;
+    overflow: auto; // sorry about this :/
+    background-color: #323232;
   }
   .content-wrap {
     padding-bottom: ${footerHeight}px;
