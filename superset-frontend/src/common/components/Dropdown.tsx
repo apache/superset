@@ -50,7 +50,7 @@ const MenuDots = styled.div`
   }
 
   &::before {
-    transform: translateY(-5px);
+    transform: translateY(-${({ theme }) => theme.gridUnit}px);
   }
 
   &::after {
