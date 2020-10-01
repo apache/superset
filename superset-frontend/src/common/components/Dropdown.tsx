@@ -30,7 +30,7 @@ const dotStyle = css`
 
 const MenuDots = styled.div`
   ${dotStyle};
-  font-weight: 400;
+  font-weight: ${({ theme }) => theme.typography.weights.normal};
   display: inline-flex;
 
   &:hover {
