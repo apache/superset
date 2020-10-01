@@ -16,11 +16,19 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset cache warmup"""
+
 import json
 from unittest.mock import MagicMock
+from sqlalchemy import String, Date, Float
 
-import tests.test_app
+import pytest
+import pandas as pd
+
+from superset.models.slice import Slice
+from superset.utils.core import get_example_database
+
 from superset import db
+
 from superset.models.core import Log
 from superset.models.tags import get_tag, ObjectTypes, TaggedObject, TagTypes
 from superset.tasks.cache import (
@@ -30,6 +38,12 @@ from superset.tasks.cache import (
 )
 
 from .base_tests import SupersetTestCase
+from .dashboard_utils import (
+    create_dashboard,
+    create_slice,
+    create_table_for_dashboard,
+    add_datetime_value_to_data,
+)
 
 URL_PREFIX = "http://0.0.0.0:8081"
 
@@ -193,6 +207,51 @@ class TestCacheWarmUp(SupersetTestCase):
                 db.session.delete(o)
             db.session.commit()
 
+    @pytest.fixture()
+    def load_unicode_dashboard(self):
+        data = [
+            "Под",
+            "řšž",
+            "視野無限廣",
+            "微風",
+            "中国智造",
+            "æøå",
+            "ëœéè",
+            "いろはにほ",
+            "다람쥐",
+            "Чешће",
+            "ŕľšťýď",
+            "žšč",
+            "éúüñóá",
+            "كۆچەج",
+        ]
+        tbl_name = "unicode_test"
+
+        # generate date/numeric data
+        unicode_data_dict = add_datetime_value_to_data(data)
+        df = pd.DataFrame.from_dict(unicode_data_dict)
+
+        with self.create_app().app_context():
+            database = get_example_database()
+            schema = {
+                "phrase": String(500),
+                "dttm": Date(),
+                "value": Float(),
+            }
+            obj = create_table_for_dashboard(df, tbl_name, database, schema)
+            obj.fetch_metadata()
+
+            tbl = obj
+            slc = create_slice(tbl, None)
+            o = db.session.query(Slice).filter_by(slice_name=slc.slice_name).first()
+            if o:
+                db.session.delete(o)
+            db.session.add(slc)
+
+            db.session.commit()
+            create_dashboard("unicode-test", "Unicode Test", None, slc)
+
+    @pytest.mark.usefixtures("load_unicode_dashboard")
     def test_dashboard_tags(self):
         tag1 = get_tag("tag1", db.session, TagTypes.custom)
         # delete first to make test idempotent
@@ -242,3 +301,45 @@ class TestCacheWarmUp(SupersetTestCase):
         result = sorted(strategy.get_urls())
         expected = sorted(tag1_urls + tag2_urls)
         self.assertEqual(result, expected)
+
+
+def _get_position():
+    return """{
+                    "CHART-Hkx6154FEm": {
+                        "children": [],
+                        "id": "CHART-Hkx6154FEm",
+                        "meta": {
+                            "chartId": 2225,
+                            "height": 30,
+                            "sliceName": "slice 1",
+                            "width": 4
+                        },
+                        "type": "CHART"
+                    },
+                    "GRID_ID": {
+                        "children": [
+                            "ROW-SyT19EFEQ"
+                        ],
+                        "id": "GRID_ID",
+                        "type": "GRID"
+                    },
+                    "ROOT_ID": {
+                        "children": [
+                            "GRID_ID"
+                        ],
+                        "id": "ROOT_ID",
+                        "type": "ROOT"
+                    },
+                    "ROW-SyT19EFEQ": {
+                        "children": [
+                            "CHART-Hkx6154FEm"
+                        ],
+                        "id": "ROW-SyT19EFEQ",
+                        "meta": {
+                            "background": "BACKGROUND_TRANSPARENT"
+                        },
+                        "type": "ROW"
+                    },
+                    "DASHBOARD_VERSION_KEY": "v2"
+                }
+                    """

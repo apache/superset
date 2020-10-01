@@ -16,16 +16,26 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 import json
 
+import pandas as pd
 import prison
+import pytest
+
+from sqlalchemy import String, Date, Float
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+from superset import db, security_manager, ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
+from tests.dashboard_utils import (
+    add_datetime_value_to_data,
+    create_table_for_dashboard,
+    create_dashboard,
+)
 from tests.fixtures.certificates import ssl_certificate
 from tests.test_app import app
 
@@ -758,6 +768,45 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
+    @pytest.fixture()
+    def load_unicode_dashboard(self):
+        data = [
+            "Под",
+            "řšž",
+            "視野無限廣",
+            "微風",
+            "中国智造",
+            "æøå",
+            "ëœéè",
+            "いろはにほ",
+            "다람쥐",
+            "Чешће",
+            "ŕľšťýď",
+            "žšč",
+            "éúüñóá",
+            "كۆچەج",
+        ]
+        tbl_name = "unicode_test"
+
+        # generate date/numeric data
+        unicode_data_dict = add_datetime_value_to_data(data)
+        df = pd.DataFrame.from_dict(unicode_data_dict)
+
+        with self.create_app().app_context():
+            database = get_example_database()
+            schema = {
+                "phrase": String(500),
+                "dttm": Date(),
+                "value": Float(),
+            }
+            obj = create_table_for_dashboard(df, tbl_name, database, schema)
+            obj.fetch_metadata()
+
+            db.session.commit()
+            position = _get_position()
+            create_dashboard("unicode-test", "Unicode Test", position, None)
+
+    @pytest.mark.usefixtures("load_unicode_dashboard")
     def test_get_database_related_objects(self):
         """
         Database API: Test get chart and dashboard count related to a database
@@ -789,3 +838,45 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{database.id}/related_objects/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+
+def _get_position():
+    return """{
+                    "CHART-Hkx6154FEm": {
+                        "children": [],
+                        "id": "CHART-Hkx6154FEm",
+                        "meta": {
+                            "chartId": 2225,
+                            "height": 30,
+                            "sliceName": "slice 1",
+                            "width": 4
+                        },
+                        "type": "CHART"
+                    },
+                    "GRID_ID": {
+                        "children": [
+                            "ROW-SyT19EFEQ"
+                        ],
+                        "id": "GRID_ID",
+                        "type": "GRID"
+                    },
+                    "ROOT_ID": {
+                        "children": [
+                            "GRID_ID"
+                        ],
+                        "id": "ROOT_ID",
+                        "type": "ROOT"
+                    },
+                    "ROW-SyT19EFEQ": {
+                        "children": [
+                            "CHART-Hkx6154FEm"
+                        ],
+                        "id": "ROW-SyT19EFEQ",
+                        "meta": {
+                            "background": "BACKGROUND_TRANSPARENT"
+                        },
+                        "type": "ROW"
+                    },
+                    "DASHBOARD_VERSION_KEY": "v2"
+                }
+                    """

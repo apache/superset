@@ -20,11 +20,14 @@ import re
 import unittest
 from unittest.mock import Mock, patch
 
+import pandas as pd
 import prison
-from flask import current_app, g
+import pytest
 
-import tests.test_app
-from superset import app, appbuilder, db, security_manager, viz
+from flask import current_app, g
+from sqlalchemy import Float, Date, String
+
+from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -35,6 +38,12 @@ from superset.sql_parse import Table
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
+from .dashboard_utils import (
+    create_table_for_dashboard,
+    create_slice,
+    create_dashboard,
+    add_datetime_value_to_data,
+)
 
 
 def get_perm_tuples(role_name):
@@ -1122,6 +1131,50 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert tbl.get_extra_cache_keys(self.query_obj) == []
         assert "value > 1" not in sql
 
+    @pytest.fixture()
+    def load_unicode_dashboard(self):
+        data = [
+            "Под",
+            "řšž",
+            "視野無限廣",
+            "微風",
+            "中国智造",
+            "æøå",
+            "ëœéè",
+            "いろはにほ",
+            "다람쥐",
+            "Чешће",
+            "ŕľšťýď",
+            "žšč",
+            "éúüñóá",
+            "كۆچەج",
+        ]
+        tbl_name = "unicode_test"
+
+        # generate date/numeric data
+        unicode_data_dict = add_datetime_value_to_data(data)
+        df = pd.DataFrame.from_dict(unicode_data_dict)
+
+        with self.create_app().app_context():
+            database = get_example_database()
+            schema = {
+                "phrase": String(500),
+                "dttm": Date(),
+                "value": Float(),
+            }
+            obj = create_table_for_dashboard(df, tbl_name, database, schema)
+            obj.fetch_metadata()
+
+            tbl = obj
+            slc = create_slice(tbl, None)
+            o = db.session.query(Slice).filter_by(slice_name=slc.slice_name).first()
+            if o:
+                db.session.delete(o)
+            db.session.add(slc)
+            db.session.commit()
+            create_dashboard("unicode-test", "Unicode Test", None, slc)
+
+    @pytest.mark.usefixtures("load_unicode_dashboard")
     def test_multiple_table_filter_alters_another_tables_query(self):
         g.user = self.get_user(
             username="alpha"
@@ -1165,3 +1218,45 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert not self.NAMES_B_REGEX.search(sql)
         assert not self.NAMES_Q_REGEX.search(sql)
         assert not self.BASE_FILTER_REGEX.search(sql)
+
+
+def _get_position():
+    return """{
+                    "CHART-Hkx6154FEm": {
+                        "children": [],
+                        "id": "CHART-Hkx6154FEm",
+                        "meta": {
+                            "chartId": 2225,
+                            "height": 30,
+                            "sliceName": "slice 1",
+                            "width": 4
+                        },
+                        "type": "CHART"
+                    },
+                    "GRID_ID": {
+                        "children": [
+                            "ROW-SyT19EFEQ"
+                        ],
+                        "id": "GRID_ID",
+                        "type": "GRID"
+                    },
+                    "ROOT_ID": {
+                        "children": [
+                            "GRID_ID"
+                        ],
+                        "id": "ROOT_ID",
+                        "type": "ROOT"
+                    },
+                    "ROW-SyT19EFEQ": {
+                        "children": [
+                            "CHART-Hkx6154FEm"
+                        ],
+                        "id": "ROW-SyT19EFEQ",
+                        "meta": {
+                            "background": "BACKGROUND_TRANSPARENT"
+                        },
+                        "type": "ROW"
+                    },
+                    "DASHBOARD_VERSION_KEY": "v2"
+                }
+                    """
