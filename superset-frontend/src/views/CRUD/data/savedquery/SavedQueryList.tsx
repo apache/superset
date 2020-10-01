@@ -30,7 +30,10 @@ import { Popover } from 'src/common/components';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, {
+  SubMenuProps,
+  ButtonProps,
+} from 'src/components/Menu/SubMenu';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
@@ -101,17 +104,23 @@ function SavedQueryList({
     ...commonMenuData,
   };
 
-  menuData.primaryButton = {
-    name: t('+ Query'),
-    onClick: openNewQuery,
-  };
+  const subMenuButtons: Array<ButtonProps> = [];
 
   if (canDelete) {
-    menuData.secondaryButton = {
+    subMenuButtons.push({
       name: t('Bulk Select'),
       onClick: toggleBulkSelect,
-    };
+      buttonStyle: 'secondary',
+    });
   }
+
+  subMenuButtons.push({
+    name: t('+ Query'),
+    onClick: openNewQuery,
+    buttonStyle: 'primary',
+  });
+
+  menuData.buttons = subMenuButtons;
 
   // Action methods
   const openInSqlLab = (id: number) => {
