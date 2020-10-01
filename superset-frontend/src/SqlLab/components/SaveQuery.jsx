@@ -23,7 +23,7 @@ import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
-import ModalTrigger from 'src/components/ModalTrigger';
+import Modal from 'src/common/components/Modal';
 
 const propTypes = {
   query: PropTypes.object,
@@ -87,7 +87,8 @@ class SaveQuery extends React.PureComponent {
   }
 
   close() {
-    if (this.saveModal) this.saveModal.close();
+    this.setState(prevState => ({ showSave: false }));
+    // if (this.saveModal) this.saveModal.close();
   }
 
   toggleSave() {
@@ -147,6 +148,7 @@ class SaveQuery extends React.PureComponent {
                 buttonStyle="primary"
                 onClick={this.onUpdate}
                 className="m-r-3"
+                cta
               >
                 {t('Update')}
               </Button>
@@ -155,10 +157,11 @@ class SaveQuery extends React.PureComponent {
               buttonStyle={isSaved ? undefined : 'primary'}
               onClick={this.onSave}
               className="m-r-3"
+              cta
             >
               {isSaved ? t('Save New') : t('Save')}
             </Button>
-            <Button onClick={this.onCancel} className="cancelQuery">
+            <Button onClick={this.onCancel} className="cancelQuery" cta>
               {t('Cancel')}
             </Button>
           </Col>
@@ -168,26 +171,28 @@ class SaveQuery extends React.PureComponent {
   }
 
   render() {
+    const isSaved = !!this.props.query.remoteId;
+
     return (
       <span className="SaveQuery">
-        <ModalTrigger
-          ref={ref => {
-            this.saveModal = ref;
-          }}
-          modalTitle={t('Save Query')}
-          modalBody={this.renderModalBody()}
-          backdrop="static"
-          triggerNode={
-            <Button
-              buttonSize="small"
-              className="toggleSave"
-              onClick={this.toggleSave}
-            >
-              <i className="fa fa-save" /> {t('Save')}
-            </Button>
-          }
-          bsSize="small"
-        />
+        <Button
+          buttonSize="small"
+          className="toggleSave"
+          onClick={this.toggleSave}
+        >
+          <i className="fa fa-save" /> {t('Save')}
+        </Button>
+        <Modal
+          className="save-query-modal"
+          onHandledPrimaryAction={this.onSave}
+          onHide={this.onCancel}
+          primaryButtonName={isSaved ? t('Save') : t('Add')}
+          width="350px"
+          show={this.state.showSave}
+          title={<h4>{t('Save Query')}</h4>}
+        >
+          {this.renderModalBody()}
+        </Modal>
       </span>
     );
   }
