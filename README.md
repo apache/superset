@@ -30,7 +30,7 @@ Superset
 [![Dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset-frontend)](https://david-dm.org/apache/incubator-superset?path=superset-frontend)
 
 <img
-  src="https://cloud.githubusercontent.com/assets/130878/20946612/49a8a25c-bbc0-11e6-8314-10bef902af51.png"
+  src="https://github.com/apache/incubator-superset/raw/master/superset-frontend/branding/superset-logo-horiz-apache.png"
   alt="Superset"
   width="500"
 />
