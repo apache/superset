@@ -19,19 +19,19 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import Icon from 'src/components/Icon';
+import Icon, { IconName } from 'src/components/Icon';
 
-/* type ActionProps = {
+export type ActionProps = {
   label: string;
   tooltip?: string | React.ReactElement;
   placement?: string;
-  icon: IconName | string;
+  icon: IconName;
   onClick: () => void;
-}; */
-
-type ActionsBarProps = {
-  actions: Array<any>;
 };
+
+interface ActionsBarProps {
+  actions: Array<ActionProps>;
+}
 
 const StyledActions = styled.span`
   white-space: nowrap;

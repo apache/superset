@@ -33,7 +33,8 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
-import ActionsBar from 'src/components/ListView/ActionsBar';
+import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
+import { IconName } from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 
 const PAGE_SIZE = 25;
@@ -297,7 +298,7 @@ function SavedQueryList({
               label: 'preview-action',
               tooltip: t('Query preview'),
               placement: 'bottom',
-              icon: 'binoculars',
+              icon: 'binoculars' as IconName,
               onClick: handlePreview,
             },
             canEdit
@@ -305,7 +306,7 @@ function SavedQueryList({
                   label: 'edit-action',
                   tooltip: t('Edit query'),
                   placement: 'bottom',
-                  icon: 'edit',
+                  icon: 'edit' as IconName,
                   onClick: handleEdit,
                 }
               : null,
@@ -313,7 +314,7 @@ function SavedQueryList({
               label: 'copy-action',
               tooltip: t('Copy query URL'),
               placement: 'bottom',
-              icon: 'copy',
+              icon: 'copy' as IconName,
               onClick: handleCopy,
             },
             canDelete
@@ -321,13 +322,13 @@ function SavedQueryList({
                   label: 'delete-action',
                   tooltip: t('Delete query'),
                   placement: 'bottom',
-                  icon: 'trash',
+                  icon: 'trash' as IconName,
                   onClick: handleDelete,
                 }
               : null,
           ].filter(item => !!item);
 
-          return <ActionsBar actions={actions} />;
+          return <ActionsBar actions={actions as ActionProps[]} />;
         },
         Header: t('Actions'),
         id: 'actions',

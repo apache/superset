@@ -134,7 +134,7 @@ import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 import { ReactComponent as XLargeIcon } from 'images/icons/x-large.svg';
 import { ReactComponent as XSmallIcon } from 'images/icons/x-small.svg';
 
-type IconName =
+export type IconName =
   | 'alert-solid'
   | 'alert'
   | 'binoculars'
