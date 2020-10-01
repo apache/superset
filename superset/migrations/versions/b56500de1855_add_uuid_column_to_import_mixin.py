@@ -114,8 +114,7 @@ def upgrade():
 
     uuid_maps = {}
     for table_name, model in models.items():
-        # add column with NULLs
-        with op.batch_alter_table(model.__tablename__) as batch_op:
+        with op.batch_alter_table(table_name) as batch_op:
             batch_op.add_column(
                 sa.Column(
                     "uuid",
@@ -130,11 +129,8 @@ def upgrade():
         uuid_maps[table_name] = add_uuids(objects, session)
 
         # add uniqueness constraint
-        with op.batch_alter_table(model.__tablename__) as batch_op:
-            try:
-                batch_op.create_unique_constraint(None, ["uuid"])
-            except Exception:
-                pass
+        with op.batch_alter_table(table_name) as batch_op:
+            batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
 
     # add UUID to Dashboard.position_json
     Dashboard = models["dashboards"]
@@ -152,6 +148,7 @@ def downgrade():
         update_position_json(dashboard, session, {})
 
     # remove uuid column
-    for model in models.values():
-        with op.batch_alter_table(model.__tablename__) as batch_op:
+    for table_name, model in models.items():
+        with op.batch_alter_table(model) as batch_op:
+            batch_op.drop_constraint(f"uq_{table_name}_uuid")
             batch_op.drop_column("uuid")
