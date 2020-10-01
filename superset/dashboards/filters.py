@@ -25,6 +25,7 @@ from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter, get_user_roles
+from superset.views.base_api import BaseFavoriteFilter
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -41,6 +42,18 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
                 Dashboard.slug.ilike(ilike_value),
             )
         )
+
+
+class DashboardFavoriteFilter(
+    BaseFavoriteFilter
+):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards that a user has favored
+    """
+
+    arg_name = "dashboard_is_fav"
+    class_name = "Dashboard"
+    model = Dashboard
 
 
 class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods

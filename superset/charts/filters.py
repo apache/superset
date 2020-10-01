@@ -24,6 +24,7 @@ from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter
+from superset.views.base_api import BaseFavoriteFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -42,6 +43,16 @@ class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 SqlaTable.table_name.ilike(ilike_value),
             )
         )
+
+
+class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all charts that a user has favored
+    """
+
+    arg_name = "chart_is_fav"
+    class_name = "slice"
+    model = Slice
 
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods

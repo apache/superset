@@ -41,7 +41,7 @@ from superset.charts.commands.exceptions import (
     ChartUpdateFailedError,
 )
 from superset.charts.commands.update import UpdateChartCommand
-from superset.charts.filters import ChartAllTextFilter, ChartFilter
+from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartDataQueryContextSchema,
@@ -143,13 +143,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "datasource_name",
         "datasource_type",
         "description",
+        "id",
         "owners",
         "slice_name",
         "viz_type",
     ]
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
-    search_filters = {"slice_name": [ChartAllTextFilter]}
+    search_filters = {
+        "id": [ChartFavoriteFilter],
+        "slice_name": [ChartAllTextFilter],
+    }
 
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]
