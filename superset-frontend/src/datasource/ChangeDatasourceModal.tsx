@@ -19,7 +19,7 @@
 import React, { FunctionComponent, useState, useRef } from 'react';
 import DataTable from '@superset-ui/plugin-chart-table/lib/DataTable';
 import { Alert, FormControl, FormControlProps, Modal } from 'react-bootstrap';
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 
 import getClientErrorObject from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
@@ -39,6 +39,60 @@ const CHANGE_WARNING_MSG = t(
   'Changing the datasource may break the chart if the chart relies ' +
     'on columns or metadata that does not exist in the target datasource',
 );
+
+const FullscreenModal = styled(Modal)`
+  & > .modal-lg {
+    height: calc(100% - 60px);
+    & > .modal-content {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      & > .modal-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+    }
+  }
+`;
+
+const FormControlWrapper = styled.div`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const DataTableWrapper = styled.div`
+  flex: 1;
+  & > div {
+    & > div:nth-child(2) {
+      & > div:first-child {
+        & > table {
+          margin-bottom: 0;
+          th {
+            border-bottom-width: 1px;
+          }
+        }
+      }
+      & > div:nth-child(2) {
+        &::-webkit-scrollbar {
+          -webkit-appearance: none;
+          &:vertical {
+            width: ${({ theme }) => theme.gridUnit * 2}px;
+          }
+          &:horizontal {
+            height: ${({ theme }) => theme.gridUnit * 2}px;
+          }
+        }
+
+        &::-webkit-scrollbar-thumb {
+          border-radius: ${({ theme }) => theme.gridUnit}px;
+          background-color: ${({ theme }) => theme.colors.secondary.dark2}80;
+          -webkit-box-shadow: 0 0 1px
+            ${({ theme }) => theme.colors.secondary.light5}80;
+        }
+      }
+    }
+  }
+`;
 
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
@@ -129,12 +183,11 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   };
 
   return (
-    <Modal
+    <FullscreenModal
       show={show}
       onHide={onHide}
       onEnter={onEnterModal}
       bsSize="large"
-      className="modal-fullscreen"
     >
       <Modal.Header closeButton>
         <Modal.Title>{t('Select a datasource')}</Modal.Title>
@@ -143,7 +196,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         <Alert bsStyle="warning">
           <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
         </Alert>
-        <div style={{ marginBottom: '1rem' }}>
+        <FormControlWrapper>
           <FormControl
             inputRef={ref => {
               setSearchRef(ref);
@@ -154,10 +207,10 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             placeholder={t('Search / Filter')}
             onChange={changeSearch}
           />
-        </div>
+        </FormControlWrapper>
         {loading && <Loading />}
         {datasources && (
-          <div className="flex-1 sticky-table">
+          <DataTableWrapper>
             <DataTable
               tableClassName="table table-condensed"
               columns={TABLE_COLUMNS.map(column => ({
@@ -171,10 +224,10 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
               sticky
               height="100%"
             />
-          </div>
+          </DataTableWrapper>
         )}
       </Modal.Body>
-    </Modal>
+    </FullscreenModal>
   );
 };
 
