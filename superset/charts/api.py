@@ -185,7 +185,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 "screenshot",
                 "cache_screenshot",
             }
-
         super().__init__()
 
     @expose("/", methods=["POST"])
@@ -423,6 +422,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/data", methods=["POST"])
     @event_logger.log_this
+    @protect()
+    @safe
     @statsd_metrics
     def data(self) -> Response:
         """
@@ -543,11 +544,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             if not dashboard_id:
                 return self.response(400, message="dashboard_id missing in body")
             hook = current_app.config["STOP_DASHBOARD_PENDING_QUERIES_HOOK"]
-            try:
-                hook(dashboard_id, g.user.username)
-                return self.response(200)
-            except Exception as ex:
-                return self.response(500, message=str(ex))
+            hook(dashboard_id, g.user.username)
+            return self.response(200)
         return self.response(400, message="body missing")
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])

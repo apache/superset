@@ -905,7 +905,9 @@ class ChartDataResponseSchema(Schema):
 
 class ChartDataStopSchema(Schema):
     dashboard_id = fields.Integer(
-        description="the dashboard for which to terminate any pending chart data requests",
+        description="the dashboard for which to terminate pending chart data requests. "
+        "Requires defining a hook for handling query cancellation requests "
+        "by setting `STOP_DASHBOARD_PENDING_QUERIES_HOOK`.",
         required=True,
     )
 
