@@ -131,7 +131,6 @@ from superset.views.utils import (
     get_dashboard,
     get_dashboard_changedon_dt,
     get_dashboard_extra_filters,
-    get_database_ids,
     get_datasource_info,
     get_form_data,
     get_viz,
