@@ -31,9 +31,8 @@ interface CardCollectionProps {
 
 const CardContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(459px, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(459px, 1fr));
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: center;
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
 `;

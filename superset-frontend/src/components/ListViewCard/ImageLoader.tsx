@@ -17,22 +17,32 @@
  * under the License.
  */
 import React, { useEffect } from 'react';
-import { logging } from '@superset-ui/core';
+import { styled, logging } from '@superset-ui/core';
 
 interface ImageLoaderProps
   extends React.DetailedHTMLProps<
-    React.ImgHTMLAttributes<HTMLImageElement>,
-    HTMLImageElement
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
   > {
   fallback: string;
   src: string;
   isLoading: boolean;
 }
+type ImageContainerProps = {
+  src: string;
+};
+
+const ImageContainer = styled.div`
+  background-image: url(${({ src }: ImageContainerProps) => src});
+  background-size: cover;
+  display: inline-block;
+  height: 100%;
+  width: 100%;
+`;
 
 export default function ImageLoader({
   src,
   fallback,
-  alt,
   isLoading,
   ...rest
 }: ImageLoaderProps) {
@@ -61,5 +71,5 @@ export default function ImageLoader({
     };
   }, [src, fallback]);
 
-  return <img alt={alt || ''} src={isLoading ? fallback : imgSrc} {...rest} />;
+  return <ImageContainer src={isLoading ? fallback : imgSrc} {...rest} />;
 }
