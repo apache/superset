@@ -25,6 +25,10 @@ import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
+import ActionsBar from 'src/components/ListView/ActionsBar';
+import DeleteModal from 'src/components/DeleteModal';
+import Button from 'src/components/Button';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 
@@ -34,6 +38,7 @@ const store = mockStore({});
 
 const queriesInfoEndpoint = 'glob:*/api/v1/saved_query/_info*';
 const queriesEndpoint = 'glob:*/api/v1/saved_query/?*';
+const queryEndpoint = 'glob:*/api/v1/saved_query/*';
 const queriesRelatedEndpoint = 'glob:*/api/v1/saved_query/related/database?*';
 const queriesDistinctEndpoint = 'glob:*/api/v1/saved_query/distinct/schema?*';
 
@@ -51,6 +56,7 @@ const mockqueries = [...new Array(3)].map((_, i) => ({
   changed_on_delta_humanized: '1 day ago',
   db_id: i,
   description: `SQL for ${i}`,
+  id: i,
   label: `query ${i}`,
   schema: 'public',
   sql: `SELECT ${i} FROM table`,
@@ -70,6 +76,9 @@ fetchMock.get(queriesEndpoint, {
   result: mockqueries,
   count: 3,
 });
+
+fetchMock.delete(queryEndpoint, {});
+fetchMock.delete(queriesEndpoint, {});
 
 fetchMock.get(queriesRelatedEndpoint, {
   count: 0,
@@ -105,6 +114,51 @@ describe('SavedQueryList', () => {
     expect(callsQ).toHaveLength(1);
     expect(callsQ[0][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/saved_query/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+    );
+  });
+
+  it('renders ActionsBar in table', () => {
+    expect(wrapper.find(ActionsBar)).toExist();
+    expect(wrapper.find(ActionsBar)).toHaveLength(3);
+  });
+
+  it('deletes', async () => {
+    act(() => {
+      wrapper.find('span[data-test="delete-action"]').first().props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(
+      wrapper.find(DeleteModal).first().props().description,
+    ).toMatchInlineSnapshot(
+      `"This action will permanently delete the saved query."`,
+    );
+
+    act(() => {
+      wrapper
+        .find('#delete')
+        .first()
+        .props()
+        .onChange({ target: { value: 'DELETE' } });
+    });
+    await waitForComponentToPaint(wrapper);
+    act(() => {
+      wrapper.find('button').last().props().onClick();
+    });
+
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.calls(/saved_query\/0/, 'DELETE')).toHaveLength(1);
+  });
+
+  it('shows/hides bulk actions when bulk actions is clicked', async () => {
+    const button = wrapper.find(Button).at(0);
+    act(() => {
+      button.props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+      mockqueries.length + 1, // 1 for each row and 1 for select all
     );
   });
 
