@@ -24,7 +24,7 @@ import { Menu } from 'src/common/components';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
@@ -57,6 +57,10 @@ const defaultProps = {
 };
 
 let queryCount = 1;
+
+const TabTitle = styled.span`
+  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+`;
 
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
@@ -345,19 +349,18 @@ class TabbedSqlEditors extends React.PureComponent {
         </Menu>
       );
 
-      const tabTitle = (
+      const tabHeader = (
         <>
           <div data-test="dropdown-toggle-button">
             <Dropdown overlay={menu} trigger={['click']} />
           </div>
-          <span style={{ marginRight: '8px' }}>{qe.title}</span>{' '}
-          <TabStatusIcon tabState={state} />{' '}
+          <TabTitle>{qe.title}</TabTitle> <TabStatusIcon tabState={state} />{' '}
         </>
       );
       return (
         <EditableTabs.TabPane
           key={qe.id}
-          tab={tabTitle}
+          tab={tabHeader}
           // for tests - key prop isn't handled by enzyme well bcs it's a react keyword
           data-key={qe.id}
         >
