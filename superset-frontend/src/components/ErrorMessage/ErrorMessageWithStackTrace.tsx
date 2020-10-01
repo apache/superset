@@ -27,8 +27,8 @@ type Props = {
   title?: string;
   error?: SupersetError;
   link?: string;
-  subtitle?: string;
-  subtitleAsMonospace?: boolean;
+  subtitle?: React.ReactNode;
+  copyText?: string;
   stackTrace?: string;
   source?: ErrorSource;
 };
@@ -37,7 +37,7 @@ export default function ErrorMessageWithStackTrace({
   title = t('Unexpected Error'),
   error,
   subtitle,
-  subtitleAsMonospace = false,
+  copyText,
   link,
   stackTrace,
   source,
@@ -57,8 +57,7 @@ export default function ErrorMessageWithStackTrace({
       level="warning"
       title={title}
       subtitle={subtitle}
-      subtitleAsMonospace={subtitleAsMonospace}
-      copyText={subtitle}
+      copyText={copyText}
       source={source}
       body={
         link || stackTrace ? (
