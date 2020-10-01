@@ -653,14 +653,14 @@ class DatasourceEditor extends React.PureComponent {
                   />
                   <Field
                     fieldKey="table_name"
-                    label={t('table name')}
+                    label={t('dataset name')}
                     control={
                       <TextControl
                         controlId="table_name"
                         onChange={table => {
                           this.onDatasourcePropChange('table_name', table);
                         }}
-                        placeholder={t('Type table name')}
+                        placeholder={t('dataset name')}
                       />
                     }
                   />
