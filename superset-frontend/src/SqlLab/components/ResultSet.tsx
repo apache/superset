@@ -60,7 +60,7 @@ interface ResultSetState {
 const MonospaceDiv = styled.div`
   font-family: ${({ theme }) => theme.typography.families.monospace};
   white-space: pre;
-`
+`;
 
 export default class ResultSet extends React.PureComponent<
   ResultSetProps,
@@ -234,13 +234,12 @@ export default class ResultSet extends React.PureComponent<
       return <Alert bsStyle="warning">Query was stopped</Alert>;
     }
     if (query.state === 'failed') {
-      const subtitle = <MonospaceDiv>{query.errorMessage}</MonospaceDiv>
       return (
         <div className="result-set-error-message">
           <ErrorMessageWithStackTrace
             title={t('Database Error')}
             error={query?.errors?.[0]}
-            subtitle={subtitle}
+            subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
             copyText={query.errorMessage || undefined}
             link={query.link}
             source="sqllab"
