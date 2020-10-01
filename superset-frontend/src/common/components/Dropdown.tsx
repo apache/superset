@@ -61,7 +61,8 @@ const MenuDots = styled.div`
 const MenuDotsWrapper = styled.div`
   display: flex;
   align-items: center;
-  padding: 8px 8px 8px 4px;
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
 interface DropdownProps {
