@@ -232,7 +232,7 @@ export function useListViewState({
 
   const applyFilterValue = (index: number, value: any) => {
     setInternalFilters(currentInternalFilters => {
-      // skip redunundant updates
+      // skip redundant updates
       if (currentInternalFilters[index].value === value) {
         return currentInternalFilters;
       }

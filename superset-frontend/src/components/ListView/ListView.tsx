@@ -48,12 +48,12 @@ const ListViewStyles = styled.div<ListViewStylesProps>`
   .superset-list-view {
     text-align: left;
     background-color: white;
-    border-radius: 4px 0;
-    margin: 0 16px;
-    padding-bottom: 48px;
+    border-radius: ${({ theme }) => theme.gridUnit}px 0;
+    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 12}px;
 
     .body {
-      ${({ fullHeight }) =>
+      ${({ fullHeight, theme }) =>
         !fullHeight &&
         css`
           overflow: auto;
@@ -62,17 +62,17 @@ const ListViewStyles = styled.div<ListViewStylesProps>`
           &::-webkit-scrollbar {
             -webkit-appearance: none;
             &:vertical {
-              width: 7px;
+              width: ${theme.gridUnit * 2}px;
             }
             &:horizontal {
-              height: 7px;
+              height: ${theme.gridUnit * 2}px;
             }
           }
 
           &::-webkit-scrollbar-thumb {
-            border-radius: 4px;
-            background-color: rgba(0, 0, 0, 0.5);
-            -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+            border-radius: ${theme.gridUnit}px;
+            background-color: ${theme.colors.secondary.dark2}80;
+            -webkit-box-shadow: 0 0 1px ${theme.colors.secondary.light5}80;
           }
         `};
     }
