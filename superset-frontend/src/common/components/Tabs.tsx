@@ -23,21 +23,14 @@ import { css } from '@emotion/core';
 import Icon from '../../components/Icon';
 
 interface TabsProps {
-  inModal?: boolean;
   fullWidth?: boolean;
 }
 
-const notForwardedProps = ['fullWidth', 'inModal'];
+const notForwardedProps = ['fullWidth'];
 
 const StyledTabs = styled(AntdTabs, {
   shouldForwardProp: prop => !notForwardedProps.includes(prop),
 })<TabsProps>`
-  ${props =>
-    props.inModal &&
-    css`
-      margin-top: -18px;
-    `};
-
   .ant-tabs-tab {
     flex: 1 1 auto;
 

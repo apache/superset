@@ -78,6 +78,11 @@ const StyledModal = styled(BaseModal)`
       margin-left: 8px;
     }
   }
+
+  // styling for Tabs component
+  .ant-tabs {
+    margin-top: -18px;
+  }
 `;
 
 export default function Modal({
