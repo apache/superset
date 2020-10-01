@@ -23,6 +23,8 @@ import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry
 import { SupersetError, ErrorSource } from './types';
 import ErrorAlert from './ErrorAlert';
 
+const DEFAULT_TITLE = t('Unexpected Error');
+
 type Props = {
   title?: string;
   error?: SupersetError;
@@ -34,7 +36,7 @@ type Props = {
 };
 
 export default function ErrorMessageWithStackTrace({
-  title = t('Unexpected Error'),
+  title = DEFAULT_TITLE,
   error,
   subtitle,
   copyText,
