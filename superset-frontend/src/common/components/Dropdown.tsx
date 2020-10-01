@@ -34,7 +34,7 @@ const MenuDots = styled.div`
   display: inline-flex;
 
   &:hover {
-    background-color: #20a7c9;
+    background-color: ${({ theme }) => theme.colors.primary.base};
 
     &::before,
     &::after {
