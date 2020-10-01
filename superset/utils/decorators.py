@@ -51,6 +51,7 @@ def etag_cache(
     check_perms: Callable[..., Any],
     get_last_modified: Optional[Callable[..., Any]] = None,
     skip: Optional[Callable[..., Any]] = None,
+    must_revalidate: Optional[bool] = False,
 ) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.
@@ -100,8 +101,7 @@ def etag_cache(
                 if (
                     response
                     and response.last_modified
-                    and response.last_modified.timestamp()
-                    < content_changed_time.timestamp()
+                    and response.last_modified < content_changed_time
                 ):
                     response = None
             else:
@@ -112,14 +112,21 @@ def etag_cache(
             # if no response was cached, compute it using the wrapped function
             if response is None:
                 response = f(*args, **kwargs)
-
-                # add headers for caching: Last Modified, Expires and ETag
-                response.cache_control.public = True
                 response.last_modified = content_changed_time
-                expiration = max_age if max_age != 0 else FAR_FUTURE
-                response.expires = response.last_modified + timedelta(
-                    seconds=expiration
-                )
+
+                # only set Expires header if required
+                if must_revalidate:
+                    # Cache-Control: no-cache asks the browser to always store the cache,
+                    # but also must validate it with the server.
+                    response.cache_control.no_cache = True
+                else:
+                    # Cache-Control: Public asks the browser to always store the cache
+                    response.cache_control.public = True
+                    expiration = max_age if max_age != 0 else FAR_FUTURE
+                    response.expires = response.last_modified + timedelta(
+                        seconds=expiration
+                    )
+
                 response.add_etag()
 
                 # if we have a cache, store the response from the request
