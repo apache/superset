@@ -68,17 +68,20 @@ type MenuChild = {
   usesRouter?: boolean;
 };
 
+export enum ButtonStyleTypes {
+  Primary = 'primary',
+  Secondary = 'secondary',
+  Dashed = 'dashed',
+  Danger = 'danger',
+  Link = 'link',
+  Warning = 'warning',
+  Success = 'success',
+}
+
 interface ButtonProps {
   name: any;
   onClick: OnClickHandler;
-  style:
-    | 'primary'
-    | 'secondary'
-    | 'dashed'
-    | 'danger'
-    | 'link'
-    | 'warning'
-    | 'success';
+  style: ButtonStyleTypes;
 }
 
 export interface SubMenuProps {

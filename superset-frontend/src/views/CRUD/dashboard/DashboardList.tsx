@@ -23,7 +23,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu, { ButtonStyleTypes } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import ExpandableList from 'src/components/ExpandableList';
@@ -504,7 +504,7 @@ function DashboardList(props: DashboardListProps) {
             ? [
                 {
                   name: t('Bulk Select'),
-                  style: 'secondary',
+                  style: ButtonStyleTypes.Secondary,
                   onClick: toggleBulkSelect,
                 },
               ]
