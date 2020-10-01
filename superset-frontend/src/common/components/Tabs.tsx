@@ -101,7 +101,7 @@ const StyledEditableTabs = styled(StyledTabs)`
   .ant-tabs-tab-remove {
     padding-top: 0;
     padding-bottom: 0;
-    height: 24px;
+    height: ${({ theme }) => theme.gridUnit * 6}px;
   }
 
   ${({ fullWidth }) =>
