@@ -140,6 +140,7 @@ class SupersetAppInitializer:
             TableColumnInlineView,
             TableModelView,
         )
+        from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
@@ -197,6 +198,7 @@ class SupersetAppInitializer:
         #
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
+        appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
         appbuilder.add_api(DatasetRestApi)
