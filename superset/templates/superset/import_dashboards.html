@@ -21,8 +21,6 @@
 {% block title %}{{ _("Import dashboards") }}{% endblock %}
 
 {% block content %}
-  {% include "superset/flash_wrapper.html" %}
-
   <div class="container">
     <div class="panel">
       <div class="panel-heading"><h3>{{ _("Import Dashboard(s)") }}</h3></div>
@@ -43,6 +41,7 @@
                     id="my-file-selector"
                     type="file"
                     name="file"
+                    accept=".json"
                     style="display:none;"
                     onchange="$('#upload-file-info').html(this.files[0].name)"/>
                   {{ _("Choose File") }}
