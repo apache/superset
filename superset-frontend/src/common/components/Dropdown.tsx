@@ -54,7 +54,7 @@ const MenuDots = styled.div`
   }
 
   &::after {
-    transform: translateY(5px);
+    transform: translateY(${({ theme }) => theme.gridUnit}px);
   }
 `;
 
