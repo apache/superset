@@ -39,8 +39,4 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    if isinstance(bind.dialect, MySQLDialect):
-        # index only exists in mysql db
-        with op.get_context().autocommit_block():
-            op.add_constraint("table_name", "tables", type_="unique")
+    pass
