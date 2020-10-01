@@ -131,7 +131,10 @@ def upgrade():
 
         # add uniqueness constraint
         with op.batch_alter_table(model.__tablename__) as batch_op:
-            batch_op.create_unique_constraint("uq_uuid", ["uuid"])
+            try:
+                batch_op.create_unique_constraint(None, ["uuid"])
+            except Exception:
+                pass
 
     # add UUID to Dashboard.position_json
     Dashboard = models["dashboards"]
@@ -151,5 +154,4 @@ def downgrade():
     # remove uuid column
     for model in models.values():
         with op.batch_alter_table(model.__tablename__) as batch_op:
-            batch_op.drop_constraint("uq_uuid")
             batch_op.drop_column("uuid")
