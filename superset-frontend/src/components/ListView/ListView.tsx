@@ -230,6 +230,7 @@ export interface ListViewProps<T extends object = any> {
   sticky?: boolean;
   fullHeight?: boolean;
   manualSortBy?: boolean;
+  manualPagination?: boolean;
 }
 
 function ListView<T extends object = any>({
@@ -252,6 +253,7 @@ function ListView<T extends object = any>({
   sticky = true,
   fullHeight = false,
   manualSortBy = true,
+  manualPagination = true,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -276,6 +278,7 @@ function ListView<T extends object = any>({
     initialSort,
     initialFilters: filters,
     manualSortBy,
+    manualPagination,
   });
   const filterable = Boolean(filters.length);
   const withPagination = Boolean(count);

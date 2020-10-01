@@ -118,6 +118,7 @@ class TableLoader extends React.PureComponent {
         pageSize={50}
         fetchData={this.fetchOrSortData}
         loading={this.state.isLoading}
+        manualPagination={false}
       />
     );
   }
