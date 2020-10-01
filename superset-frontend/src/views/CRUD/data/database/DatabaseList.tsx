@@ -126,19 +126,22 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   };
 
   if (canCreate) {
-    menuData.primaryButton = {
-      name: (
-        <>
-          {' '}
-          <i className="fa fa-plus" /> {t('Database')}{' '}
-        </>
-      ),
-      onClick: () => {
-        // Ensure modal will be opened in add mode
-        setCurrentDatabase(null);
-        setDatabaseModalOpen(true);
+    menuData.buttons = [
+      {
+        name: (
+          <>
+            {' '}
+            <i className="fa fa-plus" /> {t('Database')}{' '}
+          </>
+        ),
+        buttonStyle: 'primary',
+        onClick: () => {
+          // Ensure modal will be opened in add mode
+          setCurrentDatabase(null);
+          setDatabaseModalOpen(true);
+        },
       },
-    };
+    ];
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];

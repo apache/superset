@@ -499,12 +499,15 @@ function DashboardList(props: DashboardListProps) {
     <>
       <SubMenu
         name={t('Dashboards')}
-        secondaryButton={
+        buttons={
           canDelete || canExport
-            ? {
-                name: t('Bulk Select'),
-                onClick: toggleBulkSelect,
-              }
+            ? [
+                {
+                  name: t('Bulk Select'),
+                  buttonStyle: 'secondary',
+                  onClick: toggleBulkSelect,
+                },
+              ]
             : undefined
         }
       />
