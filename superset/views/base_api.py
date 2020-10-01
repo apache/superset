@@ -20,15 +20,22 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, 
 
 from apispec import APISpec
 from apispec.exceptions import DuplicateComponentNameError
-from flask import Blueprint, Response
+from flask import Blueprint, g, Response
 from flask_appbuilder import AppBuilder, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema
-from sqlalchemy import distinct, func
+from sqlalchemy import and_, distinct, func
+from sqlalchemy.orm.query import Query
 
+from superset.extensions import db, security_manager
+from superset.models.core import FavStar
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
 from superset.typing import FlaskResponse
 from superset.utils.core import time_function
@@ -82,6 +89,31 @@ class RelatedFieldFilter:
     def __init__(self, field_name: str, filter_class: Type[BaseFilter]):
         self.field_name = field_name
         self.filter_class = filter_class
+
+
+class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Base Custom filter for the GET list that filters all dashboards, slices
+    that a user has favored or not
+    """
+
+    name = _("Is favorite")
+    arg_name = ""
+    class_name = ""
+    """ The FavStar class_name to user """
+    model: Type[Union[Dashboard, Slice, SqllabQuery]] = Dashboard
+    """ The SQLAlchemy model """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        # If anonymous user filter nothing
+        if security_manager.current_user is None:
+            return query
+        users_favorite_query = db.session.query(FavStar.obj_id).filter(
+            and_(FavStar.user_id == g.user.id, FavStar.class_name == self.class_name)
+        )
+        if value:
+            return query.filter(and_(self.model.id.in_(users_favorite_query)))
+        return query.filter(and_(~self.model.id.in_(users_favorite_query)))
 
 
 class BaseSupersetModelRestApi(ModelRestApi):

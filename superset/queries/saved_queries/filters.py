@@ -24,6 +24,7 @@ from sqlalchemy.orm.query import Query
 
 from superset.models.sql_lab import SavedQuery
 from superset.views.base import BaseFilter
+from superset.views.base_api import BaseFavoriteFilter
 
 
 class SavedQueryAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -42,6 +43,19 @@ class SavedQueryAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-met
                 SavedQuery.sql.ilike(ilike_value),
             )
         )
+
+
+class SavedQueryFavoriteFilter(
+    BaseFavoriteFilter
+):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all saved queries that a user has
+    favored
+    """
+
+    arg_name = "saved_query_is_fav"
+    class_name = "query"
+    model = SavedQuery
 
 
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods

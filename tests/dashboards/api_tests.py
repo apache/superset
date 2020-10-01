@@ -18,20 +18,24 @@
 """Unit tests for Superset"""
 import json
 from typing import List, Optional
-from datetime import datetime
 
+import pytest
 import prison
-import humanize
 from sqlalchemy.sql import func
 
 import tests.test_app
+from sqlalchemy import and_
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
+from superset.models.core import FavStar
 from superset.models.slice import Slice
 from superset.views.base import generate_download_headers
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
+
+
+DASHBOARDS_FIXTURE_COUNT = 10
 
 
 class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
@@ -77,6 +81,32 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.add(dashboard)
         db.session.commit()
         return dashboard
+
+    @pytest.fixture()
+    def create_dashboards(self):
+        with self.create_app().app_context():
+            dashboards = []
+            admin = self.get_user("admin")
+            for cx in range(DASHBOARDS_FIXTURE_COUNT - 1):
+                dashboards.append(
+                    self.insert_dashboard(f"title{cx}", f"slug{cx}", [admin.id])
+                )
+            fav_dashboards = []
+            for cx in range(round(DASHBOARDS_FIXTURE_COUNT / 2)):
+                fav_star = FavStar(
+                    user_id=admin.id, class_name="Dashboard", obj_id=dashboards[cx].id
+                )
+                db.session.add(fav_star)
+                db.session.commit()
+                fav_dashboards.append(fav_star)
+            yield dashboards
+
+            # rollback changes
+            for dashboard in dashboards:
+                db.session.delete(dashboard)
+            for fav_dashboard in fav_dashboards:
+                db.session.delete(fav_dashboard)
+            db.session.commit()
 
     def test_get_dashboard(self):
         """
@@ -223,19 +253,15 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(dashboard)
         db.session.commit()
 
-    def test_get_dashboards_custom_filter(self):
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboards_title_or_slug_filter(self):
         """
-        Dashboard API: Test get dashboards custom filter
+        Dashboard API: Test get dashboards title or slug filter
         """
-        admin = self.get_user("admin")
-        dashboard1 = self.insert_dashboard("foo_a", "ZY_bar", [admin.id])
-        dashboard2 = self.insert_dashboard("zy_foo", "slug1", [admin.id])
-        dashboard3 = self.insert_dashboard("foo_b", "slug1zy_", [admin.id])
-        dashboard4 = self.insert_dashboard("bar", "foo", [admin.id])
-
+        # Test title filter with ilike
         arguments = {
             "filters": [
-                {"col": "dashboard_title", "opr": "title_or_slug", "value": "zy_"}
+                {"col": "dashboard_title", "opr": "title_or_slug", "value": "title1"}
             ],
             "order_column": "dashboard_title",
             "order_direction": "asc",
@@ -247,18 +273,25 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 3)
+        self.assertEqual(data["count"], 1)
 
         expected_response = [
-            {"slug": "ZY_bar", "dashboard_title": "foo_a"},
-            {"slug": "slug1zy_", "dashboard_title": "foo_b"},
-            {"slug": "slug1", "dashboard_title": "zy_foo"},
+            {"slug": "slug1", "dashboard_title": "title1"},
         ]
-        for index, item in enumerate(data["result"]):
-            self.assertEqual(item["slug"], expected_response[index]["slug"])
-            self.assertEqual(
-                item["dashboard_title"], expected_response[index]["dashboard_title"]
-            )
+        assert data["result"] == expected_response
+
+        # Test slug filter with ilike
+        arguments["filters"][0]["value"] = "slug2"
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 1)
+
+        expected_response = [
+            {"slug": "slug2", "dashboard_title": "title2"},
+        ]
+        assert data["result"] == expected_response
 
         self.logout()
         self.login(username="gamma")
@@ -268,12 +301,73 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 0)
 
-        # rollback changes
-        db.session.delete(dashboard1)
-        db.session.delete(dashboard2)
-        db.session.delete(dashboard3)
-        db.session.delete(dashboard4)
-        db.session.commit()
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboards_favorite_filter(self):
+        """
+        Dashboard API: Test get dashboards favorite filter
+        """
+        admin = self.get_user("admin")
+        users_favorite_query = db.session.query(FavStar.obj_id).filter(
+            and_(FavStar.user_id == admin.id, FavStar.class_name == "Dashboard")
+        )
+        expected_models = (
+            db.session.query(Dashboard)
+            .filter(and_(Dashboard.id.in_(users_favorite_query)))
+            .order_by(Dashboard.dashboard_title.asc())
+            .all()
+        )
+
+        arguments = {
+            "filters": [{"col": "id", "opr": "dashboard_is_fav", "value": True}],
+            "order_column": "dashboard_title",
+            "order_direction": "asc",
+            "keys": ["none"],
+            "columns": ["dashboard_title"],
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert len(expected_models) == data["count"]
+
+        for i, expected_model in enumerate(expected_models):
+            assert (
+                expected_model.dashboard_title == data["result"][i]["dashboard_title"]
+            )
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboards_not_favorite_filter(self):
+        """
+        Dashboard API: Test get dashboards not favorite filter
+        """
+        admin = self.get_user("admin")
+        users_favorite_query = db.session.query(FavStar.obj_id).filter(
+            and_(FavStar.user_id == admin.id, FavStar.class_name == "Dashboard")
+        )
+        expected_models = (
+            db.session.query(Dashboard)
+            .filter(and_(~Dashboard.id.in_(users_favorite_query)))
+            .order_by(Dashboard.dashboard_title.asc())
+            .all()
+        )
+        arguments = {
+            "filters": [{"col": "id", "opr": "dashboard_is_fav", "value": False}],
+            "order_column": "dashboard_title",
+            "order_direction": "asc",
+            "keys": ["none"],
+            "columns": ["dashboard_title"],
+        }
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        self.login(username="admin")
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(expected_models) == data["count"]
+        for i, expected_model in enumerate(expected_models):
+            assert (
+                expected_model.dashboard_title == data["result"][i]["dashboard_title"]
+            )
 
     def test_get_dashboards_no_data_access(self):
         """
