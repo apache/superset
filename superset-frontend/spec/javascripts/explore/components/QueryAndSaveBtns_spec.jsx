@@ -25,7 +25,7 @@ import Button from 'src/components/Button';
 
 describe('QueryAndSaveButtons', () => {
   const defaultProps = {
-    canAdd: 'True',
+    canAdd: true,
     onQuery: sinon.spy(),
   };
 
