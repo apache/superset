@@ -40,7 +40,6 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
-import { buildFilterColorMap } from '../util/dashboardFiltersColorMap';
 import findFirstParentContainerId from '../util/findFirstParentContainer';
 import getEmptyLayout from '../util/getEmptyLayout';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
@@ -232,7 +231,6 @@ export default function getInitialState(bootstrapData) {
     dashboardFilters,
     components: layout,
   });
-  buildFilterColorMap(dashboardFilters, layout);
 
   // store the header as a layout component so we can undo/redo changes
   layout[DASHBOARD_HEADER_ID] = {

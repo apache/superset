@@ -28,7 +28,6 @@ import {
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 import { DASHBOARD_ROOT_ID } from '../util/constants';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
-import { buildFilterColorMap } from '../util/dashboardFiltersColorMap';
 import { buildActiveFilters } from '../util/activeDashboardFilters';
 import { getChartIdAndColumnFromFilterKey } from '../util/getDashboardFilterKey';
 
@@ -159,7 +158,6 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
     const { chartId } = action;
     const { [chartId]: deletedFilter, ...updatedFilters } = dashboardFilters;
     buildActiveFilters({ dashboardFilters: updatedFilters });
-    buildFilterColorMap(updatedFilters);
 
     return updatedFilters;
   }
@@ -173,7 +171,6 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
 
     if (CHANGE_FILTER_VALUE_ACTIONS.includes(action.type)) {
       buildActiveFilters({ dashboardFilters: updatedFilters });
-      buildFilterColorMap(updatedFilters);
     }
 
     return updatedFilters;

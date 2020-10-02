@@ -32,14 +32,11 @@ import Control from 'src/explore/components/Control';
 import { controls } from 'src/explore/controls';
 import { getExploreUrl } from 'src/explore/exploreUtils';
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
-import { getDashboardFilterKey } from 'src/dashboard/util/getDashboardFilterKey';
-import { getFilterColorMap } from 'src/dashboard/util/dashboardFiltersColorMap';
 import {
   FILTER_CONFIG_ATTRIBUTES,
   FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
 } from 'src/explore/constants';
-import FilterBadgeIcon from 'src/components/FilterBadgeIcon';
 
 import './FilterBox.less';
 
@@ -267,13 +264,12 @@ class FilterBox extends React.Component {
   }
 
   renderDateFilter() {
-    const { showDateFilter, chartId } = this.props;
+    const { showDateFilter } = this.props;
     const label = TIME_FILTER_LABELS.time_range;
     if (showDateFilter) {
       return (
         <div className="row space-1">
           <div className="col-lg-12 col-xs-12 filter-container">
-            {this.renderFilterBadge(chartId, TIME_RANGE, label)}
             <DateFilterControl
               name={TIME_RANGE}
               label={label}
@@ -410,31 +406,18 @@ class FilterBox extends React.Component {
   }
 
   renderFilters() {
-    const { filtersFields, chartId } = this.props;
+    const { filtersFields } = this.props;
     return filtersFields.map(filterConfig => {
       const { label, key } = filterConfig;
       return (
         <div key={key} className="m-b-5 filter-container">
-          {this.renderFilterBadge(chartId, key, label)}
           <div>
             <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
-            {this.renderSelect(filterConfig)}
           </div>
+          {this.renderSelect(filterConfig)}
         </div>
       );
     });
-  }
-
-  renderFilterBadge(chartId, column) {
-    const colorKey = getDashboardFilterKey({ chartId, column });
-    const filterColorMap = getFilterColorMap();
-    const colorCode = filterColorMap[colorKey];
-
-    return (
-      <div className="filter-badge-container">
-        <FilterBadgeIcon colorCode={colorCode} />
-      </div>
-    );
   }
 
   render() {
