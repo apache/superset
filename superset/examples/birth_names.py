@@ -101,6 +101,7 @@ def load_birth_names(
     obj.main_dttm_col = "ds"
     obj.database = database
     obj.filter_select_enabled = True
+    obj.fetch_metadata()
 
     if not any(col.column_name == "num_california" for col in obj.columns):
         col_state = str(column("state").compile(db.engine))
@@ -117,7 +118,6 @@ def load_birth_names(
         obj.metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
 
     db.session.commit()
-    obj.fetch_metadata()
     tbl = obj
 
     metrics = [
