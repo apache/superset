@@ -227,7 +227,7 @@ class TestCacheWarmUp(SupersetTestCase):
             obj.fetch_metadata()
 
             tbl = obj
-            slc = create_slice(tbl, None)
+            slc = create_slice("Unicode Cloud", "word_cloud", tbl, None)
             o = db.session.query(Slice).filter_by(slice_name=slc.slice_name).first()
             if o:
                 db.session.delete(o)

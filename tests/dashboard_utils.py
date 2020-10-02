@@ -51,10 +51,10 @@ def create_table_for_dashboard(
     return obj
 
 
-def create_slice(tbl, slices_dict: Dict[str, str]):
+def create_slice(title, viz_type, tbl, slices_dict: Dict[str, str]):
     return Slice(
-        slice_name="Unicode Cloud",
-        viz_type="word_cloud",
+        slice_name=title,
+        viz_type=viz_type,
         datasource_type="table",
         datasource_id=tbl.id,
         params=json.dumps(slices_dict, indent=4, sort_keys=True),
