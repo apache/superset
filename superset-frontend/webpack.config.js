@@ -369,7 +369,7 @@ const config = {
         issuer: {
           test: /\.(j|t)sx?$/,
         },
-        use: ['@svgr/webpack'],
+        use: ['babel-loader', '@svgr/webpack', 'url-loader'],
       },
       {
         test: /\.(jpg|gif)$/,
@@ -386,6 +386,9 @@ const config = {
       {
         test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
         loader: 'file-loader',
+        options: {
+          esModule: false,
+        },
       },
     ],
   },
