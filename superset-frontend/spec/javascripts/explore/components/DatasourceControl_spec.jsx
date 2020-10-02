@@ -60,14 +60,14 @@ describe('DatasourceControl', () => {
     });
   }
 
-  it('renders a Modal', () => {
+  it('should not render Modal', () => {
     const wrapper = setup();
-    expect(wrapper.find(DatasourceModal)).toExist();
+    expect(wrapper.find(DatasourceModal)).toHaveLength(0);
   });
 
-  it('renders a ChangeDatasourceModal', () => {
+  it('should not render ChangeDatasourceModal', () => {
     const wrapper = setup();
-    expect(wrapper.find(ChangeDatasourceModal)).toExist();
+    expect(wrapper.find(ChangeDatasourceModal)).toHaveLength(0);
   });
 
   it('show or hide Edit Datasource option', () => {
