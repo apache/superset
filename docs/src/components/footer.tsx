@@ -109,7 +109,7 @@ const LayoutFooter = () => (
       </a>
       , &nbsp;Licensed under the Apache
       <a
-        href="https://www.apache.org/licenses/"
+        href="https://apache.org/licenses/LICENSE-2.0"
         target="_blank"
         rel="noreferrer"
       >
