@@ -16,9 +16,11 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset cache warmup"""
-
+import datetime
 import json
 from unittest.mock import MagicMock
+
+import random
 from sqlalchemy import String, Date, Float
 
 import pytest
@@ -38,12 +40,7 @@ from superset.tasks.cache import (
 )
 
 from .base_tests import SupersetTestCase
-from .dashboard_utils import (
-    create_dashboard,
-    create_slice,
-    create_table_for_dashboard,
-    add_datetime_value_to_data,
-)
+from .dashboard_utils import create_dashboard, create_slice, create_table_for_dashboard
 
 URL_PREFIX = "http://0.0.0.0:8081"
 
@@ -210,34 +207,22 @@ class TestCacheWarmUp(SupersetTestCase):
     @pytest.fixture()
     def load_unicode_dashboard(self):
         data = [
-            "Под",
-            "řšž",
-            "視野無限廣",
-            "微風",
-            "中国智造",
-            "æøå",
-            "ëœéè",
-            "いろはにほ",
-            "다람쥐",
-            "Чешће",
-            "ŕľšťýď",
-            "žšč",
-            "éúüñóá",
-            "كۆچەج",
+            {"phrase": "Под"},
+            {"phrase": "řšž"},
+            {"phrase": "視野無限廣"},
+            {"phrase": "微風"},
+            {"phrase": "中国智造"},
+            {"phrase": "æøå"},
+            {"phrase": "ëœéè"},
+            {"phrase": "いろはにほ"},
         ]
         tbl_name = "unicode_test"
 
-        # generate date/numeric data
-        unicode_data_dict = add_datetime_value_to_data(data)
-        df = pd.DataFrame.from_dict(unicode_data_dict)
+        df = pd.DataFrame.from_dict(data)
 
         with self.create_app().app_context():
             database = get_example_database()
-            schema = {
-                "phrase": String(500),
-                "dttm": Date(),
-                "value": Float(),
-            }
+            schema = {"phrase": String(500)}
             obj = create_table_for_dashboard(df, tbl_name, database, schema)
             obj.fetch_metadata()
 
@@ -301,45 +286,3 @@ class TestCacheWarmUp(SupersetTestCase):
         result = sorted(strategy.get_urls())
         expected = sorted(tag1_urls + tag2_urls)
         self.assertEqual(result, expected)
-
-
-def _get_position():
-    return """{
-                    "CHART-Hkx6154FEm": {
-                        "children": [],
-                        "id": "CHART-Hkx6154FEm",
-                        "meta": {
-                            "chartId": 2225,
-                            "height": 30,
-                            "sliceName": "slice 1",
-                            "width": 4
-                        },
-                        "type": "CHART"
-                    },
-                    "GRID_ID": {
-                        "children": [
-                            "ROW-SyT19EFEQ"
-                        ],
-                        "id": "GRID_ID",
-                        "type": "GRID"
-                    },
-                    "ROOT_ID": {
-                        "children": [
-                            "GRID_ID"
-                        ],
-                        "id": "ROOT_ID",
-                        "type": "ROOT"
-                    },
-                    "ROW-SyT19EFEQ": {
-                        "children": [
-                            "CHART-Hkx6154FEm"
-                        ],
-                        "id": "ROW-SyT19EFEQ",
-                        "meta": {
-                            "background": "BACKGROUND_TRANSPARENT"
-                        },
-                        "type": "ROW"
-                    },
-                    "DASHBOARD_VERSION_KEY": "v2"
-                }
-                    """

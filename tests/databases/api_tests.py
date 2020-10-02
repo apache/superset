@@ -16,12 +16,13 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-
+import datetime
 import json
 
 import pandas as pd
 import prison
 import pytest
+import random
 
 from sqlalchemy import String, Date, Float
 from sqlalchemy.sql import func
@@ -32,7 +33,6 @@ from superset.models.core import Database
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
 from tests.dashboard_utils import (
-    add_datetime_value_to_data,
     create_table_for_dashboard,
     create_dashboard,
 )
@@ -771,26 +771,19 @@ class TestDatabaseApi(SupersetTestCase):
     @pytest.fixture()
     def load_unicode_dashboard(self):
         data = [
-            "Под",
-            "řšž",
-            "視野無限廣",
-            "微風",
-            "中国智造",
-            "æøå",
-            "ëœéè",
-            "いろはにほ",
-            "다람쥐",
-            "Чешће",
-            "ŕľšťýď",
-            "žšč",
-            "éúüñóá",
-            "كۆچەج",
+            {"phrase": "Под"},
+            {"phrase": "řšž"},
+            {"phrase": "視野無限廣"},
+            {"phrase": "微風"},
+            {"phrase": "中国智造"},
+            {"phrase": "æøå"},
+            {"phrase": "ëœéè"},
+            {"phrase": "いろはにほ"},
         ]
         tbl_name = "unicode_test"
 
         # generate date/numeric data
-        unicode_data_dict = add_datetime_value_to_data(data)
-        df = pd.DataFrame.from_dict(unicode_data_dict)
+        df = pd.DataFrame.from_dict(data)
 
         with self.create_app().app_context():
             database = get_example_database()
@@ -803,7 +796,7 @@ class TestDatabaseApi(SupersetTestCase):
             obj.fetch_metadata()
 
             db.session.commit()
-            position = _get_position()
+            position = "{}"
             create_dashboard("unicode-test", "Unicode Test", position, None)
 
     @pytest.mark.usefixtures("load_unicode_dashboard")
@@ -838,45 +831,3 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{database.id}/related_objects/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
-
-
-def _get_position():
-    return """{
-                    "CHART-Hkx6154FEm": {
-                        "children": [],
-                        "id": "CHART-Hkx6154FEm",
-                        "meta": {
-                            "chartId": 2225,
-                            "height": 30,
-                            "sliceName": "slice 1",
-                            "width": 4
-                        },
-                        "type": "CHART"
-                    },
-                    "GRID_ID": {
-                        "children": [
-                            "ROW-SyT19EFEQ"
-                        ],
-                        "id": "GRID_ID",
-                        "type": "GRID"
-                    },
-                    "ROOT_ID": {
-                        "children": [
-                            "GRID_ID"
-                        ],
-                        "id": "ROOT_ID",
-                        "type": "ROOT"
-                    },
-                    "ROW-SyT19EFEQ": {
-                        "children": [
-                            "CHART-Hkx6154FEm"
-                        ],
-                        "id": "ROW-SyT19EFEQ",
-                        "meta": {
-                            "background": "BACKGROUND_TRANSPARENT"
-                        },
-                        "type": "ROW"
-                    },
-                    "DASHBOARD_VERSION_KEY": "v2"
-                }
-                    """

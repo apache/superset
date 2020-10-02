@@ -17,25 +17,14 @@
 # isort:skip_file
 """Utils to provide dashboards for tests"""
 
-import datetime
 import json
 
-import random
 from pandas import DataFrame
 from typing import Dict, Any
 
 from superset import db, ConnectorRegistry
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-
-
-def add_datetime_value_to_data(data):
-    data_dict = {}
-    for d in data:
-        data_dict["phrase"] = d
-        data_dict["dttm"] = datetime.datetime.now().date()
-        data_dict["value"] = [random.randint(1, 100) for _ in range(len(data))]
-    return data_dict
 
 
 def create_table_for_dashboard(
@@ -55,7 +44,6 @@ def create_table_for_dashboard(
     obj = db.session.query(tbl_source).filter_by(table_name=tbl_name).first()
     if not obj:
         obj = tbl_source(table_name=tbl_name)
-    obj.main_dttm_col = "dttm"
     obj.database = database
     db.session.merge(obj)
     db.session.commit()
