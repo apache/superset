@@ -25,14 +25,11 @@ import SavedQueryPreviewModal from 'src/views/CRUD/data/savedquery/SavedQueryPre
 import Button from 'src/components/Button';
 import Modal from 'src/common/components/Modal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
-
-const FETCH_SAVED_QUERY_ENDPOINT = 'glob:*/api/v1/saved_query/*';
 
 const mockqueries = [...new Array(3)].map((_, i) => ({
   created_by: {
@@ -62,21 +59,26 @@ const mockqueries = [...new Array(3)].map((_, i) => ({
 }));
 
 const mockedProps = {
-  fetchData: () => {},
-  openInSqlLab: () => {},
+  fetchData: jest.fn(() => {}),
+  openInSqlLab: jest.fn(() => {}),
   onHide: () => {},
   queries: mockqueries,
-  savedQuery: mockqueries[0],
+  savedQuery: mockqueries[1],
   show: true,
 };
+
+const FETCH_SAVED_QUERY_ENDPOINT = 'glob:*/api/v1/saved_query/*';
+const SAVED_QUERY_PAYLOAD = { result: mockqueries[1] };
+
+fetchMock.get(FETCH_SAVED_QUERY_ENDPOINT, SAVED_QUERY_PAYLOAD);
 
 async function mountAndWait(props = mockedProps) {
   const mounted = mount(<SavedQueryPreviewModal {...props} />, {
     context: { store },
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
   });
   await waitForComponentToPaint(mounted);
+
+  return mounted;
 }
 
 describe('SavedQueryPreviewModal', () => {
@@ -86,51 +88,52 @@ describe('SavedQueryPreviewModal', () => {
     wrapper = await mountAndWait();
   });
 
-  it.skip('renders', () => {
+  it('renders', () => {
     expect(wrapper.find(SavedQueryPreviewModal)).toExist();
   });
 
-  it.skip('renders a Modal', () => {
+  it('renders a Modal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
-  it.skip('renders sql from saved query', () => {
-    expect(wrapper.find('pre').text()).toEqual(`SELECT 0 FROM table`);
+  it('renders sql from saved query', () => {
+    expect(wrapper.find('pre').text()).toEqual('SELECT 1 FROM table');
   });
 
-  it.skip('renders buttons with correct text', () => {
+  it('renders buttons with correct text', () => {
     expect(wrapper.find(Button).contains('Previous')).toBe(true);
     expect(wrapper.find(Button).contains('Next')).toBe(true);
     expect(wrapper.find(Button).contains('Open in SQL Lab')).toBe(true);
   });
 
-  it.skip('should previous buttons be disabled', () => {
-    expect(
-      wrapper.find('[data-test="previous-saved-query"]').at(0).props().disabled,
-    ).toBe(true);
-  });
-
-  it('handle next save query', async () => {
-    fetchMock.get(FETCH_SAVED_QUERY_ENDPOINT, {
-      result: mockqueries[1],
-    });
-    const button = wrapper.find('[data-test="next-saved-query"]').find(Button);
+  it('handle next save query', () => {
+    const button = wrapper.find('button[data-test="next-saved-query"]');
     expect(button.props().disabled).toBe(false);
     act(() => {
       button.props().onClick(false);
     });
-    await waitForComponentToPaint(wrapper);
-    wrapper.update();
-    console.log('fetchData', fetchMock.lastCall());
-    expect(fetchMock.calls(/saved_query\/1/, 'GET')).toHaveLength(1);
+    expect(mockedProps.fetchData).toHaveBeenCalled();
+    expect(mockedProps.fetchData.mock.calls[0][0]).toEqual(2);
   });
 
-  it.skip('handle open in sql lab', async () => {
+  it('handle previous save query', () => {
+    const button = wrapper
+      .find('[data-test="previous-saved-query"]')
+      .find(Button);
+    expect(button.props().disabled).toBe(false);
+    act(() => {
+      button.props().onClick(true);
+    });
+    wrapper.update();
+    expect(mockedProps.fetchData).toHaveBeenCalled();
+    expect(mockedProps.fetchData.mock.calls[0][0]).toEqual(2);
+  });
+
+  it('handle open in sql lab', async () => {
     act(() => {
       wrapper.find('[data-test="open-in-sql-lab"]').first().props().onClick();
     });
-    await waitForComponentToPaint(wrapper);
-    wrapper.update();
-    console.log('fetchData', fetchMock.lastCall());
+    expect(mockedProps.openInSqlLab).toHaveBeenCalled();
+    expect(mockedProps.openInSqlLab.mock.calls[0][0]).toEqual(1);
   });
 });

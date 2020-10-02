@@ -112,17 +112,19 @@ function SavedQueryList({
     window.open(`${window.location.origin}/superset/sqllab?new=true`);
   };
 
-  const handleSavedQueryPreview = async (id: number) => {
-    try {
-      const { json = {} } = await SupersetClient.get({
-        endpoint: `/api/v1/saved_query/${id}`,
-      });
-      setSavedQueryCurrentlyPreviewing({ ...json.result });
-    } catch {
-      addDangerToast(
-        t('An error occurred while fetching dataset related data'),
-      );
-    }
+  const handleSavedQueryPreview = (id: number) => {
+    SupersetClient.get({
+      endpoint: `/api/v1/saved_query/${id}`,
+    }).then(
+      ({ json = {} }) => {
+        setSavedQueryCurrentlyPreviewing({ ...json.result });
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue previewing the selected query %s', errMsg),
+        ),
+      ),
+    );
   };
 
   const menuData: SubMenuProps = {

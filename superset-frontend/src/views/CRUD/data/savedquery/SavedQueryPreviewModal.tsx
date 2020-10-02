@@ -112,10 +112,10 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> = (
 
   function handleKeyPress(ev: any) {
     if (currentIndex >= 0 && currentIndex < queries.length) {
-      if (ev.key === 'ArrowDown') {
+      if (ev.key === 'ArrowDown' || ev.key === 'k') {
         ev.preventDefault();
         handleDataChange(false);
-      } else if (ev.key === 'ArrowUp') {
+      } else if (ev.key === 'ArrowUp' || ev.key === 'j') {
         ev.preventDefault();
         handleDataChange(true);
       }
