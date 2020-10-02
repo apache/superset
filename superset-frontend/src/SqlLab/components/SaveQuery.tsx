@@ -56,7 +56,7 @@ export default function SaveQuery({
   onUpdate,
   saveQueryWarning = null,
 }: SaveQueryProps) {
-  const [description, setDescription] = useState<string>('');
+  const [description, setDescription] = useState<string>(query.description || '');
   const [label, setLabel] = useState<string>(defaultLabel);
   const [showSave, setShowSave] = useState<boolean>(false);
   const isSaved = !!query.remoteId;
