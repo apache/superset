@@ -29,6 +29,7 @@ describe('QuerySearch', () => {
   const mockedProps = {
     actions: {},
     height: 0,
+    displayLimit: 50,
   };
   it('is valid', () => {
     expect(React.isValidElement(<QuerySearch {...mockedProps} />)).toBe(true);

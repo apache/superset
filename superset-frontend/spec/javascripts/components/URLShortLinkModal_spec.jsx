@@ -28,6 +28,7 @@ describe('URLShortLinkModal', () => {
     url: 'mockURL',
     emailSubject: 'Mock Subject',
     emailContent: 'mock content',
+    triggerNode: <div />,
   };
 
   function setup() {

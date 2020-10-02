@@ -34,6 +34,7 @@ describe('DisplayQueryButton', () => {
     latestQueryFormData: {
       datasource: '1__table',
     },
+    chartHeight: '30px',
   };
 
   it('is valid', () => {
