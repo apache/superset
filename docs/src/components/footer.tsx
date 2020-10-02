@@ -180,7 +180,7 @@ const LayoutFooter = () => (
         target="_blank"
         rel="noreferrer"
       >
-        Licenses
+        License
       </a>
     </div>
   </Footer>
