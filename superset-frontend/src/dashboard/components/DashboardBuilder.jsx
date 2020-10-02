@@ -99,7 +99,8 @@ const StyledDashboardContent = styled.div`
       background: none;
       filter: blur(2px);
       opacity: 0.3;
-      &.scoped-to-focused-filter {
+      &.scoped-to-focused-filter,
+      &.contains-focused-filter {
         border-color: ${({ theme }) => theme.colors.primary.light2};
         filter: blur(0);
         opacity: 1;
@@ -264,9 +265,7 @@ class DashboardBuilder extends React.Component {
         </Sticky>
 
         <StyledDashboardContent
-          className={cx(
-            focusedFilterField && 'focused-filter-field',
-          )}
+          className={cx(focusedFilterField && 'focused-filter-field')}
         >
           <div className="grid-container">
             <ParentSize>

@@ -212,9 +212,11 @@ class ChartHolder extends React.Component {
 
     // figure out if this chart is in the focused filter's scope
     const { chartId } = component.meta;
+    const isFocusedFilterChart =
+      focusedFilterScope && chartId === focusedFilterScope.chartId;
     const includedInFilterScope =
       focusedFilterScope &&
-      chartId !== focusedFilterScope.chartId &&
+      !isFocusedFilterChart &&
       getChartIdsInFilterScope({
         filterScope: focusedFilterScope.scope,
       }).includes(chartId);
@@ -252,8 +254,9 @@ class ChartHolder extends React.Component {
               className={cx(
                 'dashboard-component dashboard-component-chart-holder',
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
-                this.state.isFullSize ? 'full-size' : '',
+                this.state.isFullSize && 'full-size',
                 includedInFilterScope && 'scoped-to-focused-filter',
+                isFocusedFilterChart && 'contains-focused-filter',
               )}
             >
               {!editMode && (
