@@ -131,21 +131,34 @@ describe('dashboardState reducer', () => {
     });
   });
 
-  it('should clear focused filter field', () => {
+  it('should clear the focused filter field', () => {
+    const initState = {
+      focusedFilterField: {
+        chartId: 1,
+        column: 'column_1',
+      },
+    };
+
+    const cleared = dashboardStateReducer(initState, {
+      type: UNSET_FOCUSED_FILTER_FIELD,
+      chartId: 1,
+      column: 'column_1',
+    });
+
+    expect(cleared.focusedFilterField).toBeNull();
+  });
+
+  it('should only clear focused filter when the fields match', () => {
     // dashboard only has 1 focused filter field at a time,
     // but when user switch different filter boxes,
     // browser didn't always fire onBlur and onFocus events in order.
-    // so in redux state focusedFilterField prop is a queue,
-    // we always shift first element in the queue
 
     // init state: has 1 focus field
     const initState = {
-      focusedFilterField: [
-        {
-          chartId: 1,
-          column: 'column_1',
-        },
-      ],
+      focusedFilterField: {
+        chartId: 1,
+        column: 'column_1',
+      },
     };
     // when user switching filter,
     // browser focus on new filter first,
@@ -157,9 +170,11 @@ describe('dashboardState reducer', () => {
     });
     const step2 = dashboardStateReducer(step1, {
       type: UNSET_FOCUSED_FILTER_FIELD,
+      chartId: 1,
+      column: 'column_1',
     });
 
-    expect(step2.focusedFilterField.slice(-1).pop()).toEqual({
+    expect(step2.focusedFilterField).toEqual({
       chartId: 2,
       column: 'column_2',
     });

@@ -282,12 +282,7 @@ export default function getInitialState(bootstrapData) {
       sliceIds: Array.from(sliceIds),
       directPathToChild,
       directPathLastUpdated: Date.now(),
-      // dashboard only has 1 focused filter field at a time,
-      // but when user switch different filter boxes,
-      // browser didn't always fire onBlur and onFocus events in order.
-      // so in redux state focusedFilterField prop is a queue,
-      // but component use focusedFilterField prop as single object.
-      focusedFilterField: [],
+      focusedFilterField: null,
       expandedSlices: dashboard.metadata.expanded_slices || {},
       refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       // dashboard viewers can set refresh frequency for the current visit,

@@ -60,6 +60,7 @@ const propTypes = {
   setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  focusedFilterField: PropTypes.object,
   setDirectPathToChild: PropTypes.func.isRequired,
   setMountedTab: PropTypes.func.isRequired,
 };
@@ -70,7 +71,7 @@ const defaultProps = {
   colorScheme: undefined,
 };
 
-const Styles = styled.div`
+const StyledDashboardContent = styled.div`
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -98,11 +99,12 @@ const Styles = styled.div`
       background: none;
       filter: blur(2px);
       opacity: 0.3;
-    }
-    &.scoped-to-focused-filter {
-      border-color: ${({ theme }) => theme.colors.grayscale.light2};
-      opacity: 1;
-      box-shadow: 0px 0px 8px ${({ theme }) => theme.colors.grayscale.light2};
+      &.scoped-to-focused-filter {
+        border-color: ${({ theme }) => theme.colors.primary.light2};
+        filter: blur(0);
+        opacity: 1;
+        box-shadow: 0px 0px 8px ${({ theme }) => theme.colors.primary.light2};
+      }
     }
   }
 `;
@@ -197,6 +199,7 @@ class DashboardBuilder extends React.Component {
       handleComponentDrop,
       dashboardLayout,
       editMode,
+      focusedFilterField,
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
@@ -260,7 +263,11 @@ class DashboardBuilder extends React.Component {
           )}
         </Sticky>
 
-        <StyledDashboardContent className="dashboard-content">
+        <StyledDashboardContent
+          className={cx(
+            focusedFilterField && 'focused-filter-field',
+          )}
+        >
           <div className="grid-container">
             <ParentSize>
               {({ width }) => (

@@ -125,12 +125,16 @@ class FilterBox extends React.Component {
     return this.props.onFilterMenuOpen(this.props.chartId, column);
   }
 
+  onFilterMenuClose(column) {
+    return this.props.onFilterMenuClose(this.props.chartId, column);
+  }
+
   onOpenDateFilterControl() {
     return this.onFilterMenuOpen(TIME_RANGE);
   }
 
-  onFilterMenuClose() {
-    return this.props.onFilterMenuClose(this.props.chartId);
+  onCloseDateFilterControl() {
+    return this.onFilterMenuClose(TIME_RANGE);
   }
 
   getControlData(controlName) {
@@ -278,7 +282,7 @@ class FilterBox extends React.Component {
                 this.changeFilter(TIME_RANGE, newValue);
               }}
               onOpenDateFilterControl={this.onOpenDateFilterControl}
-              onCloseDateFilterControl={this.onFilterMenuClose}
+              onCloseDateFilterControl={this.onCloseDateFilterControl}
               value={this.state.selectedValues[TIME_RANGE] || 'No filter'}
             />
           </div>
@@ -392,8 +396,8 @@ class FilterBox extends React.Component {
         }}
         onFocus={() => this.onFilterMenuOpen(key)}
         onMenuOpen={() => this.onFilterMenuOpen(key)}
-        onBlur={this.onFilterMenuClose}
-        onMenuClose={this.onFilterMenuClose}
+        onBlur={() => this.onFilterMenuClose(key)}
+        onMenuClose={() => this.onFilterMenuClose(key)}
         selectWrap={
           filterConfig[FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
           data.length >= FILTER_OPTIONS_LIMIT
