@@ -19,7 +19,7 @@
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as ace from 'brace';
-import shortid from 'shortid';
+import * as shortid from 'shortid';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 function selectColorScheme(color: string) {
@@ -76,14 +76,14 @@ describe('Dashboard edit action', () => {
     cy.get('.dashboard-grid', { timeout: 50000 })
       .should('be.visible') // wait for 50 secs to load dashboard
       .then(() => {
-        cy.get('.dashboard-header [data-test=pencil]')
+        cy.get('.dashboard-header [data-test=edit-alt]')
           .should('be.visible')
           .click();
         openDashboardEditProperties();
       });
   });
 
-  xit('should update the title', () => {
+  it('should update the title', () => {
     const dashboardTitle = `Test dashboard [${shortid.generate()}]`;
 
     // update title
@@ -108,6 +108,7 @@ describe('Dashboard edit action', () => {
   describe('the color picker is changed', () => {
     describe('the metadata has a color scheme', () => {
       describe('the advanced tab is open', () => {
+        // TODO test passes locally but not on ci
         xit('should overwrite the color scheme', () => {
           openAdvancedProperties();
           cy.wait('@dashboardGet').then(() => {
@@ -117,6 +118,7 @@ describe('Dashboard edit action', () => {
         });
       });
       describe('the advanced tab is not open', () => {
+        // TODO test passes locally but not on ci
         xit('should overwrite the color scheme', () => {
           selectColorScheme('bnbColors');
           openAdvancedProperties();
@@ -128,6 +130,7 @@ describe('Dashboard edit action', () => {
     });
   });
   describe('a valid colorScheme is entered', () => {
+    // TODO test passes locally but not on ci
     xit('should save json metadata color change to dropdown', () => {
       // edit json metadata
       openAdvancedProperties().then(() => {
@@ -158,6 +161,7 @@ describe('Dashboard edit action', () => {
     });
   });
   describe('an invalid colorScheme is entered', () => {
+    // TODO test passes locally but not on ci
     xit('should throw an error', () => {
       // edit json metadata
       openAdvancedProperties().then(() => {

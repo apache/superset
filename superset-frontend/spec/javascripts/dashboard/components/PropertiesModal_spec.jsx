@@ -29,6 +29,17 @@ import {
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { mockStore } from '../fixtures/mockStore';
 
+const dashboardResult = {
+  json: {
+    result: {
+      dashboard_title: 'New Title',
+      slug: '/new',
+      json_metadata: '{"something":"foo"}',
+      owners: [],
+    },
+  },
+};
+
 describe('PropertiesModal', () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -152,7 +163,24 @@ describe('PropertiesModal', () => {
         endpoint: '/api/v1/dashboard/1',
       });
     });
+
     it('should update state', async () => {
+      const wrapper = setup();
+      const modalInstance = wrapper.find('PropertiesModal').instance();
+      const fetchSpy = jest
+        .spyOn(SupersetClient, 'get')
+        .mockResolvedValue(dashboardResult);
+      modalInstance.fetchDashboardDetails();
+      await fetchSpy();
+      expect(modalInstance.state.values.colorScheme).toBeUndefined();
+      expect(modalInstance.state.values.dashboard_title).toEqual('New Title');
+      expect(modalInstance.state.values.slug).toEqual('/new');
+      expect(modalInstance.state.values.json_metadata).toEqual(
+        '{"something":"foo"}',
+      );
+    });
+
+    it('should call onOwnersChange', async () => {
       const wrapper = setup();
       const modalInstance = wrapper.find('PropertiesModal').instance();
       const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
@@ -160,18 +188,92 @@ describe('PropertiesModal', () => {
           result: {
             dashboard_title: 'New Title',
             slug: '/new',
-            json_metadata: '{"something":foo"}',
+            json_metadata: '{"something":"foo"}',
+            owners: [{ id: 1, first_name: 'Al', last_name: 'Pacino' }],
           },
         },
       });
+      const onOwnersSpy = jest.spyOn(modalInstance, 'onOwnersChange');
       modalInstance.fetchDashboardDetails();
       await fetchSpy();
+      expect(modalInstance.state.values.colorScheme).toBeUndefined();
+      expect(onOwnersSpy).toHaveBeenCalledWith([
+        { value: 1, label: 'Al Pacino' },
+      ]);
+    });
 
-      expect(modalInstance.state.values.dashboard_title).toEqual('New Title');
-      expect(modalInstance.state.values.slug).toEqual('/new');
-      expect(modalInstance.state.values.json_metadata).toEqual(
-        '{"something":foo"}',
-      );
+    describe('when colorScheme is undefined as a prop', () => {
+      describe('when color_scheme is defined in json_metadata', () => {
+        const wrapper = setup();
+        const modalInstance = wrapper.find('PropertiesModal').instance();
+        it('should use the color_scheme from json_metadata in the api response', async () => {
+          const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+            json: {
+              result: {
+                dashboard_title: 'New Title',
+                slug: '/new',
+                json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
+                owners: [],
+              },
+            },
+          });
+          modalInstance.fetchDashboardDetails();
+
+          // this below triggers the callback of the api call
+          await fetchSpy();
+
+          expect(modalInstance.state.values.colorScheme).toEqual(
+            'SUPERSET_DEFAULT',
+          );
+        });
+        describe('when color_scheme is not defined in json_metadata', () => {
+          const wrapper = setup();
+          const modalInstance = wrapper.find('PropertiesModal').instance();
+          it('should be undefined', async () => {
+            const fetchSpy = jest
+              .spyOn(SupersetClient, 'get')
+              .mockResolvedValue(dashboardResult);
+            modalInstance.fetchDashboardDetails();
+            await fetchSpy();
+            expect(modalInstance.state.values.colorScheme).toBeUndefined();
+          });
+        });
+      });
+    });
+    describe('when colorScheme is defined as a prop', () => {
+      describe('when color_scheme is defined in json_metadata', () => {
+        const wrapper = setup({ colorScheme: 'SUPERSET_DEFAULT' });
+        const modalInstance = wrapper.find('PropertiesModal').instance();
+        it('should use the color_scheme from json_metadata in the api response', async () => {
+          const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+            json: {
+              result: {
+                dashboard_title: 'New Title',
+                slug: '/new',
+                json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
+                owners: [],
+              },
+            },
+          });
+          modalInstance.fetchDashboardDetails();
+          await fetchSpy();
+          expect(modalInstance.state.values.colorScheme).toEqual(
+            'SUPERSET_DEFAULT',
+          );
+        });
+      });
+      describe('when color_scheme is not defined in json_metadata', () => {
+        const wrapper = setup({ colorScheme: 'SUPERSET_DEFAULT' });
+        const modalInstance = wrapper.find('PropertiesModal').instance();
+        it('should use the colorScheme from the prop', async () => {
+          const fetchSpy = jest
+            .spyOn(SupersetClient, 'get')
+            .mockResolvedValue(dashboardResult);
+          modalInstance.fetchDashboardDetails();
+          await fetchSpy();
+          expect(modalInstance.state.values.colorScheme).toBeUndefined();
+        });
+      });
     });
   });
 });

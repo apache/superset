@@ -149,6 +149,7 @@ class PropertiesModal extends React.PureComponent {
       const jsonMetadataObj = dashboard.json_metadata?.length
         ? JSON.parse(dashboard.json_metadata)
         : {};
+
       this.setState(state => ({
         isDashboardLoaded: true,
         values: {
@@ -156,8 +157,7 @@ class PropertiesModal extends React.PureComponent {
           dashboard_title: dashboard.dashboard_title || '',
           slug: dashboard.slug || '',
           json_metadata: dashboard.json_metadata || '',
-          colorScheme:
-            state.values.color_scheme || jsonMetadataObj.color_scheme,
+          colorScheme: jsonMetadataObj.color_scheme,
         },
       }));
       const initialSelectedOwners = dashboard.owners.map(owner => ({
@@ -278,6 +278,7 @@ class PropertiesModal extends React.PureComponent {
     const { onHide, onlyApply } = this.props;
 
     const saveLabel = onlyApply ? t('Apply') : t('Save');
+
     return (
       <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <form onSubmit={this.submit}>

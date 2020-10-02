@@ -21,7 +21,7 @@ import shortid from 'shortid';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 function openDashboardEditProperties() {
-  cy.get('.dashboard-header [data-test=pencil]').click();
+  cy.get('.dashboard-header [data-test=edit-alt]').click();
   cy.get('#save-dash-split-button').trigger('click', { force: true });
   cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
 }
@@ -82,7 +82,7 @@ describe('Dashboard save action', () => {
       .should('not.be.visible');
   });
 
-  xit('should save after edit', () => {
+  it('should save after edit', () => {
     cy.get('.dashboard-grid', { timeout: 50000 }) // wait for 50 secs to load dashboard
       .then(() => {
         const dashboardTitle = `Test dashboard [${shortid.generate()}]`;
