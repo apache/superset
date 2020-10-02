@@ -59,17 +59,16 @@ const defaultProps = {
 /**
  * Selects the chart scope of the filter input that has focus.
  *
- * @returns {{ scope: string[], immune: string[] } | null }
+ * @returns {{chartId: number, scope: { scope: string[], immune: string[] }} | null }
  * the scope of the currently focused filter, if any
  */
 function selectFocusedFilterScope(dashboardState, dashboardFilters) {
-  const focusedFilterField =
-    dashboardState.focusedFilterField[
-      dashboardState.focusedFilterField.length - 1
-    ];
-  if (!focusedFilterField) return null;
-  const { chartId, column } = focusedFilterField;
-  return dashboardFilters[chartId].scopes[column];
+  if (!dashboardState.focusedFilterField) return null;
+  const { chartId, column } = dashboardState.focusedFilterField;
+  return {
+    chartId,
+    scope: dashboardFilters[chartId].scopes[column],
+  };
 }
 
 function mapStateToProps(

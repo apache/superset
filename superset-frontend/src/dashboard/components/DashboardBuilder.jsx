@@ -59,6 +59,7 @@ const propTypes = {
   setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  focusedFilterField: PropTypes.object,
   setDirectPathToChild: PropTypes.func.isRequired,
   setMountedTab: PropTypes.func.isRequired,
 };
@@ -159,6 +160,7 @@ class DashboardBuilder extends React.Component {
       handleComponentDrop,
       dashboardLayout,
       editMode,
+      focusedFilterField,
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
@@ -222,7 +224,12 @@ class DashboardBuilder extends React.Component {
           )}
         </Sticky>
 
-        <div className="dashboard-content">
+        <div
+          className={cx(
+            'dashboard-content',
+            focusedFilterField && 'focused-filter-field',
+          )}
+        >
           <div className="grid-container">
             <ParentSize>
               {({ width }) => (

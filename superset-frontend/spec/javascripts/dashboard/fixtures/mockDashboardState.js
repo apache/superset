@@ -27,5 +27,5 @@ export default {
   isStarred: true,
   isPublished: true,
   css: '',
-  focusedFilterField: [],
+  focusedFilterField: null,
 };
