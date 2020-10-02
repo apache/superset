@@ -171,7 +171,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     logger = logging.getLogger(__name__)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Determinate string representation of the view instance for etag_cache."""
         return "Superset.views.core.Superset@v{}{}".format(
             self.appbuilder.app.config["VERSION_STRING"],
