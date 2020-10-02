@@ -114,18 +114,19 @@ def etag_cache(
                 response = f(*args, **kwargs)
                 response.last_modified = content_changed_time
 
-                # only set Expires header if required
+                # when needed, instruct the browser to always revalidate cache
                 if must_revalidate:
-                    # Cache-Control: no-cache asks the browser to always store the cache,
+                    # `Cache-Control: no-cache` asks the browser to always store the cache,
                     # but also must validate it with the server.
                     response.cache_control.no_cache = True
                 else:
-                    # Cache-Control: Public asks the browser to always store the cache
+                    # `Cache-Control: Public` asks the browser to always store the cache
                     response.cache_control.public = True
-                    expiration = max_age if max_age != 0 else FAR_FUTURE
-                    response.expires = response.last_modified + timedelta(
-                        seconds=expiration
-                    )
+
+                expiration = max_age if max_age != 0 else FAR_FUTURE
+                response.expires = response.last_modified + timedelta(
+                    seconds=expiration
+                )
 
                 response.add_etag()
 

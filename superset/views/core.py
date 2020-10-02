@@ -1606,7 +1606,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @etag_cache(
-        CACHE_DEFAULT_TIMEOUT,
+        0,
         check_perms=check_dashboard_perms,
         get_last_modified=get_dashboard_changedon_dt,
         skip=lambda _self, dashboard_id_or_slug: not is_feature_enabled(
