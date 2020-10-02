@@ -479,7 +479,7 @@ function SavedQueryList({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
-              previewRowId={savedQueryCurrentlyPreviewing?.id}
+              highlightRowId={savedQueryCurrentlyPreviewing?.id}
             />
           );
         }}

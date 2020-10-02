@@ -134,22 +134,24 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> = (
         title={t('Query Preview')}
         footer={[
           <Button
+            data-test="previous-saved-query"
+            key="previous-saved-query"
             disabled={disbalePrevious}
-            key="previous"
             onClick={() => handleDataChange(true)}
           >
             {t('Previous')}
           </Button>,
           <Button
-            key="next"
+            data-test="next-saved-query"
+            key="next-saved-query"
             disabled={disbaleNext}
-            type="primary"
             onClick={() => handleDataChange(false)}
           >
             {t('Next')}
           </Button>,
           <Button
-            key="open"
+            data-test="open-in-sql-lab"
+            key="open-in-sql-lab"
             buttonStyle="primary"
             onClick={() => openInSqlLab(savedQuery.id)}
           >
