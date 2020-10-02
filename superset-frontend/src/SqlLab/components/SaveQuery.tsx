@@ -101,9 +101,7 @@ export default function SaveQuery({
         <Row>
           <Col md={12}>
             <small>
-              <FormLabel className="control-label" htmlFor="embed-height">
-                {t('Label')}
-              </FormLabel>
+              <FormLabel htmlFor="embed-height">{t('Label')}</FormLabel>
             </small>
             <FormControl
               type="text"
@@ -117,9 +115,7 @@ export default function SaveQuery({
         <Row>
           <Col md={12}>
             <small>
-              <FormLabel className="control-label" htmlFor="embed-height">
-                {t('Description')}
-              </FormLabel>
+              <FormLabel htmlFor="embed-height">{t('Description')}</FormLabel>
             </small>
             <FormControl
               componentClass="textarea"
