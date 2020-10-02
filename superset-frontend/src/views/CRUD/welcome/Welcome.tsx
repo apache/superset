@@ -28,6 +28,7 @@ import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
+import Icon from 'src/components/Icon';
 
 const { Panel } = Collapse;
 
@@ -93,8 +94,20 @@ export default function Welcome({ user }: WelcomeProps) {
     '',
   );
   console.log('user', user);
+
+
+  function ExpandIcon(): React.ReactNode {
+    return (
+      <Icon name="caret-right" />
+    )
+  }
+
   return (
-    <Collapse defaultActiveKey={['1']}>
+    <Collapse
+      defaultActiveKey={['1']}
+      expandIcon={ExpandIcon}
+      ghost
+    >
       <Panel header={t('Recents')} key="1">
         <SubMenu
           activeChild={activityFilter}
@@ -159,7 +172,9 @@ export default function Welcome({ user }: WelcomeProps) {
             {
               name: 'View All',
               buttonStyle: 'link',
-              onClick: () => { window.location = '/dashboard/list/'}
+              onClick: () => {
+                window.location = '/dashboard/list/';
+              },
             },
           ]}
         />
@@ -212,7 +227,9 @@ export default function Welcome({ user }: WelcomeProps) {
             {
               name: 'View All',
               buttonStyle: 'link',
-              onClick: () => { window.location = 'superset/sqllab#search'}
+              onClick: () => {
+                window.location = 'superset/sqllab#search';
+              },
             },
           ]}
         />
@@ -252,7 +269,9 @@ export default function Welcome({ user }: WelcomeProps) {
             {
               name: 'View All',
               buttonStyle: 'link',
-              onClick: () => { window.location = '/chart/list'}
+              onClick: () => {
+                window.location = '/chart/list';
+              },
             },
           ]}
         />
