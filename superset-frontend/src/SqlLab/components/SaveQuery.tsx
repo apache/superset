@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { useState } from 'react';
 import { FormControl, FormGroup, Row, Col } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
 
@@ -25,20 +24,13 @@ import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import Modal from 'src/common/components/Modal';
 
-const propTypes = {
-  query: PropTypes.object,
-  defaultLabel: PropTypes.string,
-  animation: PropTypes.bool,
-  onSave: PropTypes.func,
-  onUpdate: PropTypes.func,
-  saveQueryWarning: PropTypes.string,
-};
-const defaultProps = {
-  defaultLabel: t('Undefined'),
-  animation: true,
-  onSave: () => {},
-  saveQueryWarning: null,
-};
+interface SaveQueryProps {
+  query: any;
+  defaultLabel: string;
+  onSave: () => void;
+  onUpdate: () => void;
+  saveQueryWarning: string | null;
+}
 
 const StyledRow = styled(Row)`
   div {
@@ -51,68 +43,59 @@ const StyledRow = styled(Row)`
     min-width: 105px;
     font-size: 12px;
 
-    &:first-child {
+    &:first-of-type {
       margin-left: 0;
     }
   }
 `;
 
-class SaveQuery extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      description: '',
-      label: props.defaultLabel,
-      showSave: false,
-    };
-    this.toggleSave = this.toggleSave.bind(this);
-    this.onSave = this.onSave.bind(this);
-    this.onUpdate = this.onUpdate.bind(this);
-    this.onCancel = this.onCancel.bind(this);
-    this.onLabelChange = this.onLabelChange.bind(this);
-    this.onDescriptionChange = this.onDescriptionChange.bind(this);
-  }
+export default function SaveQuery({
+  query,
+  defaultLabel = t('Undefined'),
+  onSave = () => {},
+  onUpdate,
+  saveQueryWarning = null,
+}: SaveQueryProps) {
+  const [description, setDescription] = useState<string>('');
+  const [label, setLabel] = useState<string>(defaultLabel);
+  const [showSave, setShowSave] = useState<boolean>(false);
+  const isSaved = !!query.remoteId;
 
-  onSave() {
-    this.props.onSave(this.queryPayload());
-    this.close();
-  }
-
-  onUpdate() {
-    this.props.onUpdate(this.queryPayload());
-    this.close();
-  }
-
-  onCancel() {
-    this.close();
-  }
-
-  onLabelChange(e) {
-    this.setState({ label: e.target.value });
-  }
-
-  onDescriptionChange(e) {
-    this.setState({ description: e.target.value });
-  }
-
-  queryPayload() {
+  const queryPayload = () => {
     return {
-      ...this.props.query,
-      title: this.state.label,
-      description: this.state.description,
+      ...query,
+      title: label,
+      description,
     };
-  }
+  };
 
-  close() {
-    this.setState(() => ({ showSave: false }));
-  }
+  const close = () => {
+    setShowSave(false);
+  };
 
-  toggleSave() {
-    this.setState(prevState => ({ showSave: !prevState.showSave }));
-  }
+  const onSaveWrapper = () => {
+    onSave(queryPayload());
+    close();
+  };
 
-  renderModalBody() {
-    const isSaved = !!this.props.query.remoteId;
+  const onUpdateWrapper = () => {
+    onUpdate(queryPayload());
+    close();
+  };
+
+  const onLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLabel(e.target.value);
+  };
+
+  const onDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDescription(e.target.value);
+  };
+
+  const toggleSave = () => {
+    setShowSave(!showSave);
+  };
+
+  const renderModalBody = () => {
     return (
       <FormGroup bsSize="small">
         <Row>
@@ -125,8 +108,8 @@ class SaveQuery extends React.PureComponent {
             <FormControl
               type="text"
               placeholder={t('Label for your query')}
-              value={this.state.label}
-              onChange={this.onLabelChange}
+              value={label}
+              onChange={onLabelChange}
             />
           </Col>
         </Row>
@@ -141,17 +124,17 @@ class SaveQuery extends React.PureComponent {
             <FormControl
               componentClass="textarea"
               placeholder={t('Write a description for your query')}
-              value={this.state.description}
-              onChange={this.onDescriptionChange}
+              value={description}
+              onChange={onDescriptionChange}
             />
           </Col>
         </Row>
         <br />
-        {this.props.saveQueryWarning && (
+        {saveQueryWarning && (
           <div>
             <Row>
               <Col md={12}>
-                <small>{this.props.saveQueryWarning}</small>
+                <small>{saveQueryWarning}</small>
               </Col>
             </Row>
             <br />
@@ -162,7 +145,7 @@ class SaveQuery extends React.PureComponent {
             {isSaved && (
               <Button
                 buttonStyle="primary"
-                onClick={this.onUpdate}
+                onClick={onUpdateWrapper}
                 className="m-r-3"
                 cta
               >
@@ -171,50 +154,38 @@ class SaveQuery extends React.PureComponent {
             )}
             <Button
               buttonStyle={isSaved ? undefined : 'primary'}
-              onClick={this.onSave}
+              onClick={onSaveWrapper}
               className="m-r-3"
               cta
             >
               {isSaved ? t('Save New') : t('Save')}
             </Button>
-            <Button onClick={this.onCancel} className="cancelQuery" cta>
+            <Button onClick={close} className="cancelQuery" cta>
               {t('Cancel')}
             </Button>
           </Col>
         </StyledRow>
       </FormGroup>
     );
-  }
+  };
 
-  render() {
-    const isSaved = !!this.props.query.remoteId;
-
-    return (
-      <span className="SaveQuery">
-        <Button
-          buttonSize="small"
-          className="toggleSave"
-          onClick={this.toggleSave}
-        >
-          <i className="fa fa-save" /> {t('Save')}
-        </Button>
-        <Modal
-          className="save-query-modal"
-          onHandledPrimaryAction={this.onSave}
-          onHide={this.onCancel}
-          primaryButtonName={isSaved ? t('Save') : t('Add')}
-          width="390px"
-          show={this.state.showSave}
-          title={<h4>{t('Save Query')}</h4>}
-          hideFooter
-        >
-          {this.renderModalBody()}
-        </Modal>
-      </span>
-    );
-  }
+  return (
+    <span className="SaveQuery">
+      <Button buttonSize="small" className="toggleSave" onClick={toggleSave}>
+        <i className="fa fa-save" /> {t('Save')}
+      </Button>
+      <Modal
+        className="save-query-modal"
+        onHandledPrimaryAction={onSaveWrapper}
+        onHide={close}
+        primaryButtonName={isSaved ? t('Save') : t('Add')}
+        width="390px"
+        show={showSave}
+        title={<h4>{t('Save Query')}</h4>}
+        hideFooter
+      >
+        {renderModalBody()}
+      </Modal>
+    </span>
+  );
 }
-SaveQuery.propTypes = propTypes;
-SaveQuery.defaultProps = defaultProps;
-
-export default SaveQuery;
