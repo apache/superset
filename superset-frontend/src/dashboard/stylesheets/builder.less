@@ -31,13 +31,6 @@
   box-shadow: 0 4px 4px 0 fade(@darkest, @opacity-light); /* @TODO color */
 }
 
-.dashboard-content {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  height: auto;
-}
-
 /* only top-level tabs have popover, give it more padding to match header + tabs */
 .dashboard > .with-popover-menu > .popover-menu {
   left: 24px;
@@ -47,17 +40,6 @@
 .dashboard .dashboard-component-tabs {
   box-shadow: 0 4px 4px 0 fade(@darkest, @opacity-light);
   padding-left: 8px; /* note this is added to tab-level padding, to match header */
-}
-
-.dashboard-content .grid-container .dashboard-component-tabs {
-  box-shadow: none;
-  padding-left: 0;
-}
-
-.dashboard-content > div:first-child {
-  width: 100%;
-  flex-grow: 1;
-  position: relative;
 }
 
 .dropdown-toggle.btn.btn-primary .caret {

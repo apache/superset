@@ -25,6 +25,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
+import { styled } from '@superset-ui/core';
 
 import BuilderComponentPane from './BuilderComponentPane';
 import DashboardHeader from '../containers/DashboardHeader';
@@ -69,6 +70,44 @@ const defaultProps = {
   directPathToChild: [],
   colorScheme: undefined,
 };
+
+const StyledDashboardContent = styled.div`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  height: auto;
+
+  .grid-container .dashboard-component-tabs {
+    box-shadow: none;
+    padding-left: 0;
+  }
+
+  & > div:first-child {
+    width: 100%;
+    flex-grow: 1;
+    position: relative;
+  }
+
+  .dashboard-component-chart-holder {
+    // transitionable traits to show filter relevance
+    transition: all 0.2s;
+    border: 2px solid transparent;
+    box-shadow: 0px 0px 0px #fff;
+  }
+  &.focused-filter-field {
+    .dashboard-component-chart-holder {
+      background: none;
+      filter: blur(2px);
+      opacity: 0.3;
+      &.scoped-to-focused-filter {
+        border-color: ${({ theme }) => theme.colors.primary.light2};
+        filter: blur(0);
+        opacity: 1;
+        box-shadow: 0px 0px 8px ${({ theme }) => theme.colors.primary.light2};
+      }
+    }
+  }
+`;
 
 class DashboardBuilder extends React.Component {
   static shouldFocusTabs(event, container) {
@@ -224,9 +263,8 @@ class DashboardBuilder extends React.Component {
           )}
         </Sticky>
 
-        <div
+        <StyledDashboardContent
           className={cx(
-            'dashboard-content',
             focusedFilterField && 'focused-filter-field',
           )}
         >
@@ -284,7 +322,7 @@ class DashboardBuilder extends React.Component {
               colorScheme={colorScheme}
             />
           )}
-        </div>
+        </StyledDashboardContent>
         <ToastPresenter />
       </StickyContainer>
     );
