@@ -154,6 +154,7 @@ interface CardProps {
   actions: React.ReactNode;
   showImg?: boolean;
   rows?: number | string;
+  avatar?: string;
 }
 
 function ListViewCard({
@@ -166,7 +167,7 @@ function ListViewCard({
   coverLeft,
   coverRight,
   actions,
-  avatar,
+  avatar = 'nav-dashboard',
   loading,
   imgPosition = 'top',
   showImg = true,
@@ -254,7 +255,7 @@ function ListViewCard({
             </>
           }
           description={description}
-          avatar={<Icon name={avatar} />}
+          avatar={<IconComponent />}
         />
       )}
     </StyledCard>
