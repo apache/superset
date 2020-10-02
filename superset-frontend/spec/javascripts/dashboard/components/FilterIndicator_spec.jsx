@@ -32,6 +32,11 @@ describe('FilterIndicator', () => {
       name: column,
       label: column,
       values: ['a', 'b', 'c'],
+      chartId: 1,
+      componentId: 'foo',
+      isDateFilter: false,
+      isFilterFieldActive: true,
+      isInstantFilter: false,
     },
     setDirectPathToChild: jest.fn(),
   };

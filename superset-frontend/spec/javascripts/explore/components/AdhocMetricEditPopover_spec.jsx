@@ -51,6 +51,7 @@ function setup(overrides) {
     adhocMetric: sumValueAdhocMetric,
     onChange,
     onClose,
+    onResize: () => {},
     columns,
     ...overrides,
   };
