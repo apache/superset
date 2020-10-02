@@ -166,16 +166,19 @@ function ListViewCard({
   coverLeft,
   coverRight,
   actions,
+  avatar,
   loading,
   imgPosition = 'top',
   showImg = true,
   rows,
+  isRecent,
 }: CardProps) {
   return (
     <StyledCard
       data-test="styled-card"
       cover={
-        showImg ? (
+        !isRecent &&
+        (showImg ? (
           <Cover>
             <a href={url}>
               <div className="gradient-container">
@@ -197,11 +200,21 @@ function ListViewCard({
             </CoverFooter>
           </Cover>
         ) : (
-          <>
-            <div>Rows</div>
-            <div>{rows}</div>
-          </>
-        )
+          <QueryData>
+            <div>
+              <div>Tables</div>
+              <div>{}</div>
+            </div>
+            <div>
+              <div>Rows</div>
+              <div>{rows}</div>
+            </div>
+            <div>
+              <div>Datasource Name</div>
+              <div>{}</div>
+            </div>
+          </QueryData>
+        ))
       }
     >
       {loading && (
@@ -241,6 +254,7 @@ function ListViewCard({
             </>
           }
           description={description}
+          avatar={<Icon name={avatar} />}
         />
       )}
     </StyledCard>

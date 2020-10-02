@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { User } from 'src/types/bootstrapTypes';
@@ -71,6 +71,10 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
   );
+
+  console.log('dashboards', dashboards);
+  console.log('dashboardFilter', dashboardFilter);
+
   const getFilters = () => {
     const filters = [];
 
@@ -82,8 +86,8 @@ function DashboardTable({
       });
     } else {
       filters.push({
-        id: 'favorite', // API currently can't filter by favorite
-        operator: 'eq',
+        id: 'id',
+        operator: 'dashboard_is_fav',
         value: true,
       });
     }

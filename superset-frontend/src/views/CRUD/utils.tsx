@@ -53,6 +53,22 @@ const createFetchResourceMethod = (method: string) => (
   return [];
 };
 
+export const createBatchMethod = (queryParams: string) => {
+  return Promise.all([
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/?q=${queryParams}` }),
+    SupersetClient.get({ endpoint: `/api/v1/chart/?q=${queryParams}` }),
+  ]).then(([dashboardRes, chartRes]) => {
+    const results = [];
+    results.push(
+      ...[
+        ...dashboardRes.json.result.slice(0, 3),
+        ...chartRes.json.result.slice(0, 3),
+      ],
+    );
+    return results;
+  });
+};
+
 export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
 

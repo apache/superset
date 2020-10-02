@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
-// import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { Dropdown } from 'src/common/components';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { Dropdown, Menu } from 'src/common/components';
 import ListViewCard from 'src/components/ListViewCard';
 // import FaveStar from 'src/components/FaveStar';
 import Icon from 'src/components/Icon';
@@ -35,9 +35,11 @@ class SavedQueries extends React.PureComponent {
       queries: [],
     };
   }
+
   componentDidMount() {
     this.fetchData();
   }
+
   // eslint-disable-next-line consistent-return
   fetchData = async () => {
     try {
@@ -49,7 +51,14 @@ class SavedQueries extends React.PureComponent {
       return console.log(e);
     }
   };
+
   render() {
+    const menu = (
+      <Menu>
+        <Menu.Item>Delete</Menu.Item>
+      </Menu>
+    );
+    // console.log('queries', this.state.queries)
     return (
       <>
         {this.state.queries.map(q => (
@@ -61,8 +70,8 @@ class SavedQueries extends React.PureComponent {
             showImg={false}
             actions={
               <ListViewCard.Actions>
-                <Dropdown>
-                  <Icon name="more" />
+                <Dropdown overlay={menu}>
+                  <Icon name="more-horiz" />
                 </Dropdown>
               </ListViewCard.Actions>
             }
@@ -73,4 +82,4 @@ class SavedQueries extends React.PureComponent {
   }
 }
 
-export default SavedQueries;
+export default withToasts(SavedQueries);

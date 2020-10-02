@@ -23,7 +23,8 @@ import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
-import RecentActivity from 'src/profile/components/RecentActivity';
+import Icon from 'src/components/Icon';
+import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
@@ -43,11 +44,16 @@ const ActivityContainer = styled.div`
     ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
+const IconContainer = styled.div`
+  svg {
+    vertical-align: -7px;
+  }
+`;
 export const CardContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(459px, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(459px, 1fr));
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: center;
+  justify-content: left;
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
 `;
@@ -71,16 +77,14 @@ function useSyncQueryState(
   return [state, setQueryStateAndState];
 }
 
-function ding(e: any) {
-  console.log('event', e);
-}
-
 export default function Welcome({ user }: WelcomeProps) {
   const [activeTab, setActiveTab] = useSyncQueryState(
     'activeTab',
     StringParam,
     'all',
   );
+  const [queryFilter, setQueryFilter] = useState('Favorite');
+  const [activityFilter, setActivityFilter] = useState('Viewed');
   const [dashboardFilter, setDashboardFilter] = useState('Favorite');
   const [chartFilter, setChartFilter] = useState('Favorite');
   const [searchQuery, setSearchQuery] = useSyncQueryState(
@@ -93,29 +97,33 @@ export default function Welcome({ user }: WelcomeProps) {
     <Collapse defaultActiveKey={['1']}>
       <Panel header={t('Recents')} key="1">
         <SubMenu
-          activeChild={activtyFilter}
+          activeChild={activityFilter}
           name=""
           // eslint-disable-next-line react/no-children-prop
           children={[
             {
               name: 'Viewed',
               label: t('Viewed'),
-              onClick: () => ding('hi?'),
+              onClick: () => setActivityFilter('Viewed'),
             },
             {
               name: 'Edited',
               label: t('Edited'),
-              onClick: ding,
+              onClick: () => setActivityFilter('Edited'),
             },
             {
               name: 'Created',
               label: t('Created'),
-              onClick: ding,
+              onClick: () => setActivityFilter('Created'),
             },
           ]}
+          links={{
+            link: `/chart/list`,
+            linkTitle: 'View All',
+          }}
         />
         <ActivityContainer>
-          <ActivityTable user={user} activityFilter={activtyFilter} />
+          <ActivityTable user={user} activityFilter={activityFilter} />
         </ActivityContainer>
       </Panel>
 
@@ -134,6 +142,24 @@ export default function Welcome({ user }: WelcomeProps) {
               name: 'Mine',
               label: t('Mine'),
               onClick: () => setDashboardFilter('Mine'),
+            },
+          ]}
+          buttons={[
+            {
+              name: (
+                <IconContainer>
+                  <Icon name="plus-small" /> DashBoard{' '}
+                </IconContainer>
+              ),
+              buttonStyle: 'tertiary',
+              onClick: () => {
+                window.location = '/dashboard/new';
+              },
+            },
+            {
+              name: 'View All',
+              buttonStyle: 'link',
+              onClick: () => { window.location = '/dashboard/list/'}
             },
           ]}
         />
@@ -156,19 +182,37 @@ export default function Welcome({ user }: WelcomeProps) {
 
       <Panel header={t('Saved Queries')} key="3">
         <SubMenu
-          activeChild={dashboardFilter}
+          activeChild={queryFilter}
           name=""
           // eslint-disable-next-line react/no-children-prop
           children={[
             {
               name: 'Favorite',
               label: t('Favorite'),
-              onClick: () => setChartFilter('Favorite'),
+              onClick: () => setQueryFilter('Favorite'),
             },
             {
               name: 'Mine',
               label: t('Mine'),
-              onClick: () => setChartFilter('Mine'),
+              onClick: () => setQueryFilter('Mine'),
+            },
+          ]}
+          buttons={[
+            {
+              name: (
+                <IconContainer>
+                  <Icon name="plus-small" /> SQL Query{' '}
+                </IconContainer>
+              ),
+              buttonStyle: 'tertiary',
+              onClick: () => {
+                window.location = '/superset/sqllab';
+              },
+            },
+            {
+              name: 'View All',
+              buttonStyle: 'link',
+              onClick: () => { window.location = 'superset/sqllab#search'}
             },
           ]}
         />
@@ -193,8 +237,29 @@ export default function Welcome({ user }: WelcomeProps) {
               onClick: () => setChartFilter('Mine'),
             },
           ]}
+          buttons={[
+            {
+              name: (
+                <IconContainer>
+                  <Icon name="plus-small" /> Chart{' '}
+                </IconContainer>
+              ),
+              buttonStyle: 'tertiary',
+              onClick: () => {
+                window.location = '/chart/add';
+              },
+            },
+            {
+              name: 'View All',
+              buttonStyle: 'link',
+              onClick: () => { window.location = '/chart/list'}
+            },
+          ]}
         />
-        <ChartTable chartFilter={chartFilter} user={user} />
+
+        <CardContainer>
+          <ChartTable chartFilter={chartFilter} user={user} />
+        </CardContainer>
       </Panel>
     </Collapse>
   );

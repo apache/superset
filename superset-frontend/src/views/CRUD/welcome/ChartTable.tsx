@@ -95,9 +95,13 @@ function ChartTable({
       });
     } else {
       filters.push({
-        id: 'favorite', // API currently can't filter by favorite
+        id: 'id',
+        operator: 'chart_is_fav',
+        value: true,
+       /* id: 'favorite', // API currently can't filter by favorite
         operator: 'eq',
         value: true,
+        */
       });
     }
     // Do we need search?
@@ -127,7 +131,7 @@ function ChartTable({
   }, [chartFilter]);
   console.log("----charts: ", charts);
   return (
-    <div>
+    <>
       {charts.map(e => (
         <DashboardCard
           {...{
@@ -141,7 +145,7 @@ function ChartTable({
           isChart
         />
       ))}
-    </div>
+    </>
   );
 }
 

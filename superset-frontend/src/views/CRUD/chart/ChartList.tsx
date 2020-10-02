@@ -25,7 +25,6 @@ import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import FacePile from 'src/components/FacePile';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
@@ -36,10 +35,8 @@ import ListView, {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import Chart, { Slice } from 'src/types/Chart';
-import ListViewCard from 'src/components/ListViewCard';
-import Label from 'src/components/Label';
-import { Dropdown, Menu } from 'src/common/components';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -426,69 +423,14 @@ function ChartList(props: ChartListProps) {
     },
   ];
 
-  function renderCard(chart: Chart & { loading: boolean }) {
-    const menu = (
-      <Menu>
-        {canDelete && (
-          <Menu.Item>
-            <ConfirmStatusChange
-              title={t('Please Confirm')}
-              description={
-                <>
-                  {t('Are you sure you want to delete')}{' '}
-                  <b>{chart.slice_name}</b>?
-                </>
-              }
-              onConfirm={() => handleChartDelete(chart)}
-            >
-              {confirmDelete => (
-                <div
-                  data-test="chart-list-delete-option"
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={confirmDelete}
-                >
-                  <ListViewCard.MenuIcon name="trash" /> Delete
-                </div>
-              )}
-            </ConfirmStatusChange>
-          </Menu.Item>
-        )}
-        {canEdit && (
-          <Menu.Item
-            data-test="chart-list-edit-option"
-            role="button"
-            tabIndex={0}
-            onClick={() => openChartEditModal(chart)}
-          >
-            <ListViewCard.MenuIcon name="edit-alt" /> Edit
-          </Menu.Item>
-        )}
-      </Menu>
-    );
-
+  function renderCard(chart: Chart) {
     return (
-      <ListViewCard
-        loading={chart.loading}
-        title={chart.slice_name}
-        url={bulkSelectEnabled ? undefined : chart.url}
-        imgURL={chart.thumbnail_url ?? ''}
-        imgFallbackURL="/static/assets/images/chart-card-fallback.png"
-        imgPosition="bottom"
-        description={t('Last modified %s', chart.changed_on_delta_humanized)}
-        coverLeft={<FacePile users={chart.owners || []} />}
-        coverRight={
-          <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
-        }
-        actions={
-          <ListViewCard.Actions>
-            {renderFaveStar(chart.id)}
-            <Dropdown data-test="dropdown-options" overlay={menu}>
-              <Icon name="more-horiz" />
-            </Dropdown>
-          </ListViewCard.Actions>
-        }
+      <ChartCard
+        chart={chart}
+        hasPerm={hasPerm}
+        openChartEditModal={openChartEditModal}
+        bulkSelectEnabled={bulkSelectEnabled}
+        renderFaveStar={renderFaveStar}
       />
     );
   }

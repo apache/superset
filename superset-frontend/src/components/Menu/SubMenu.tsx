@@ -66,8 +66,9 @@ type MenuClickHandler = React.MouseEventHandler<MenuItem>;
 type MenuChild = {
   label: string;
   name: string;
-  url: string;
+  url?: string;
   usesRouter?: boolean;
+  onClick?: () => void;
 };
 
 export interface ButtonProps {
@@ -131,6 +132,7 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
                   active={child.name === props.activeChild}
                   key={`${child.label}`}
                   href={child.url}
+                  onClick={child.onClick}
                 >
                   {child.label}
                 </MenuItem>

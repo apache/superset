@@ -18,12 +18,16 @@
  */
 import React, { useEffect, useState } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
+import Icon from 'src/components/Icon';
 import rison from 'rison';
 import moment from 'moment';
+import ListViewCard from 'src/components/ListViewCard';
 import { addDangerToast } from 'src/messageToasts/actions';
+import { MenuItem } from 'react-bootstrap';
 import { createBatchMethod, createErrorHandler } from '../utils';
 
 interface MapProps {
+  action: string;
   item_title: string;
   slice_name: string;
   time: string;
@@ -81,6 +85,14 @@ export default function ActivityTable({ user, activityFilter }: MapProps) {
     });
   };
 
+  const getIconName = (name: string): string => {
+    console.log('name', name)
+    if (name === 'explore_json') return 'sql';
+    if (name === 'dashboard') return 'nav-dashboard';
+    if (name === 'log') return 'nav-chart';
+    return 'sql';
+  };
+
   const getData = () => {
     const queryParams = rison.encode({
       order_column: 'changed_on_delta_humanized',
@@ -105,7 +117,23 @@ export default function ActivityTable({ user, activityFilter }: MapProps) {
   }, [activityFilter]);
 
   const renderActivity = () => {
+    console.log('e', active)
     return active.map((e: MapProps) => (
+      <ListViewCard
+        isRecent={true}
+        url={e.item_url}
+        title={activityFilter === 'Viewed' ? e.item_title : e.slice_name}
+        description={moment
+          .utc(activityFilter === 'Viewd' ? e.time : e.changed_on_utc)
+          .fromNow()}
+        avatar={getIconName(e.action)}
+      />
+    ));
+  };
+
+  return <> {renderActivity()} </>;
+}
+/*
       <a href={e.item_url}>
         <Cards>
           <div>{activityFilter === 'Viewed' ? e.item_title : e.slice_name}</div>
@@ -115,9 +143,5 @@ export default function ActivityTable({ user, activityFilter }: MapProps) {
               .fromNow()}
           </div>
         </Cards>
-      </a>
-    ));
-  };
-
-  return <> {renderActivity()} </>;
-}
+      </>
+      */
