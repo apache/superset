@@ -24,7 +24,7 @@ import { getCategoricalSchemeRegistry, t } from '@superset-ui/core';
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
 
 const propTypes = {
-  onChange: PropTypes.func.isRequired,
+  onChange: PropTypes.func,
   colorScheme: PropTypes.string,
 };
 
