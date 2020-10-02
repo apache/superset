@@ -23,7 +23,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import ExpandableList from 'src/components/ExpandableList';
@@ -36,8 +36,6 @@ import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import ListViewCard from 'src/components/ListViewCard';
 import { Dropdown, Menu } from 'src/common/components';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import { sub } from 'spec/__mocks__/fileMock';
-import { SubMenuProps } from 'antd/lib/menu/SubMenu';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
