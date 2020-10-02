@@ -17,24 +17,14 @@
  * under the License.
  */
 import React, { useEffect } from 'react';
-import { t } from '@superset-ui/core';
-import { debounce } from 'lodash';
-import ListView, { FetchDataConfig } from 'src/components/ListView';
+import { t, styled } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { User } from 'src/types/bootstrapTypes';
-import ListViewCard from 'src/components/ListViewCard';
-import { Dropdown, Menu } from 'src/common/components';
-import Icon from 'src/components/Icon';
-import Label from 'src/components/Label';
 import Owner from 'src/types/Owner';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DashboardCard from '../dashboard/DashboardCard';
-const PAGE_SIZE = 3;
 
-// const canEdit = hasPerm('can_edit');
-// const canDelete = hasPerm('can_delete');
-// const canExport = hasPerm('can_mulexport');
+const PAGE_SIZE = 3;
 
 interface DashboardTableProps {
   addDangerToast: (message: string) => void;
@@ -58,20 +48,10 @@ interface Dashboard {
   loading: boolean;
 }
 
-interface DashboardTableState {
-  dashboards: Dashboard[];
-  dashboard_count: number;
-  loading: boolean;
-}
-
 export interface FilterValue {
   col: string;
   operator: string;
   value: string | boolean | number | null | undefined;
-}
-
-export interface FetchDataConfig {
-  filters: FilterValue[];
 }
 
 function DashboardTable({
@@ -91,7 +71,6 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
   );
-  console.log('dashboardFilter', dashboardFilter);
   const getFilters = () => {
     const filters = [];
 
@@ -133,7 +112,7 @@ function DashboardTable({
   }, [dashboardFilter]);
 
   return (
-    <div>
+    <>
       {dashboards.map(e => (
         <DashboardCard
           {...{
@@ -146,7 +125,7 @@ function DashboardTable({
           }}
         />
       ))}
-    </div>
+    </>
   );
 }
 

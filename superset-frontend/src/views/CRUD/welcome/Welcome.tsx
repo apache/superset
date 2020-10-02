@@ -19,8 +19,8 @@
 import React, { useState } from 'react';
 import { FormControl } from 'react-bootstrap';
 import SubMenu from 'src/components/Menu/SubMenu';
+import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
-import { t } from '@superset-ui/core';
 import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
 import RecentActivity from 'src/profile/components/RecentActivity';
@@ -33,6 +33,24 @@ const { Panel } = Collapse;
 interface WelcomeProps {
   user: User;
 }
+
+const ActivityContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, max-content));
+  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
+  justify-content: center;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+export const CardContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(459px, max-content));
+  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
+  justify-content: center;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px;
+`;
 
 function useSyncQueryState(
   queryParam: string,
@@ -75,7 +93,7 @@ export default function Welcome({ user }: WelcomeProps) {
     <Collapse defaultActiveKey={['1']}>
       <Panel header={t('Recents')} key="1">
         <SubMenu
-          activeChild="Viewed"
+          activeChild={activtyFilter}
           name=""
           // eslint-disable-next-line react/no-children-prop
           children={[
@@ -96,7 +114,9 @@ export default function Welcome({ user }: WelcomeProps) {
             },
           ]}
         />
-        <RecentActivity user={user} />
+        <ActivityContainer>
+          <ActivityTable user={user} activityFilter={activtyFilter} />
+        </ActivityContainer>
       </Panel>
 
       <Panel header={t('Dashboards')} key="2">
@@ -125,11 +145,13 @@ export default function Welcome({ user }: WelcomeProps) {
           // @ts-ignore React bootstrap types aren't quite right here
           onChange={e => setSearchQuery(e.currentTarget.value)}
         />
-        <DashboardTable
-          search={searchQuery}
-          dashboardFilter={dashboardFilter}
-          user={user}
-        />
+        <CardContainer>
+          <DashboardTable
+            search={searchQuery}
+            dashboardFilter={dashboardFilter}
+            user={user}
+          />
+        </CardContainer>
       </Panel>
 
       <Panel header={t('Saved Queries')} key="3">
@@ -150,7 +172,9 @@ export default function Welcome({ user }: WelcomeProps) {
             },
           ]}
         />
-        <SavedQueries />
+        <CardContainer>
+          <SavedQueries />
+        </CardContainer>
       </Panel>
       <Panel header={t('Charts')} key="4">
         <SubMenu

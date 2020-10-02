@@ -66,13 +66,8 @@ type MenuClickHandler = React.MouseEventHandler<MenuItem>;
 type MenuChild = {
   label: string;
   name: string;
-<<<<<<< HEAD
   url: string;
   usesRouter?: boolean;
-=======
-  url?: string;
-  onClick?: any;
->>>>>>> step 1: broken stuff!
 };
 
 export interface ButtonProps {

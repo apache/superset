@@ -21,7 +21,7 @@ interface Dashboard {
   changed_on_delta_humanized: string;
   changed_by: string;
   dashboard_title: string;
-  slice_name: string;
+  slice_name?: string;
   id: number;
   published: boolean;
   url: string;

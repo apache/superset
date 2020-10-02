@@ -42,11 +42,9 @@ class Api(BaseSupersetView):
 
         raises SupersetSecurityException: If the user cannot access the resource
         """
-        print("hello")
         query_context = QueryContext(**json.loads(request.form["query_context"]))
         query_context.raise_for_access()
         payload_json = query_context.get_payload()
-        print("playload", payload_json)
         return json.dumps(
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
         )

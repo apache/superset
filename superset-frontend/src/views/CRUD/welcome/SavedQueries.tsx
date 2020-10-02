@@ -18,12 +18,18 @@
  */
 import React from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
-import { debounce } from 'lodash';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+// import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { Dropdown } from 'src/common/components';
 import ListViewCard from 'src/components/ListViewCard';
+// import FaveStar from 'src/components/FaveStar';
+import Icon from 'src/components/Icon';
+
+interface StateProps {
+  queries: Array<object>;
+}
 
 class SavedQueries extends React.PureComponent {
-  constructor(props: Readonly<{}>) {
+  constructor(props: StateProps) {
     super(props);
     this.state = {
       queries: [],
@@ -32,28 +38,20 @@ class SavedQueries extends React.PureComponent {
   componentDidMount() {
     this.fetchData();
   }
+  // eslint-disable-next-line consistent-return
   fetchData = async () => {
     try {
-      const ids = [];
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/query/`,
       });
-      /*(json.ids.forEach(id => {
-        const { json } = SupersetClient.get({
-          endpoint: `/api/v1/query/${id}`,
-        });
-        console.log('data', json);
-      });*/
-      console.log('json.result', json);
       this.setState({ queries: json.result });
     } catch (e) {
       return console.log(e);
     }
   };
   render() {
-    console.log('q', this.state.queries)
     return (
-      <div>
+      <>
         {this.state.queries.map(q => (
           <ListViewCard
             title={q.database.database_name}
@@ -61,9 +59,16 @@ class SavedQueries extends React.PureComponent {
             loading={false}
             description={t('Last run ', q.end_time)}
             showImg={false}
+            actions={
+              <ListViewCard.Actions>
+                <Dropdown>
+                  <Icon name="more" />
+                </Dropdown>
+              </ListViewCard.Actions>
+            }
           />
         ))}
-      </div>
+      </>
     );
   }
 }

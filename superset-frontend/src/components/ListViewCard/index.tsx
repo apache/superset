@@ -152,7 +152,7 @@ interface CardProps {
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
   actions: React.ReactNode;
-  showImg: boolean;
+  showImg?: boolean;
   rows?: number | string;
 }
 
