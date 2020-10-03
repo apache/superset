@@ -96,7 +96,6 @@ const StyledDashboardContent = styled.div`
   }
   &.focused-filter-field {
     .dashboard-component-chart-holder {
-      background: none;
       filter: blur(2px);
       opacity: 0.3;
       &.scoped-to-focused-filter,
