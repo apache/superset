@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import { css } from '@emotion/core';
 import React, { useState } from 'react';
 import { Alert } from 'react-bootstrap';
 import { Empty } from 'src/common/components';
@@ -38,11 +37,7 @@ import {
 } from './types';
 import { ListViewError, useListViewState } from './utils';
 
-interface ListViewStylesProps {
-  fullHeight: boolean;
-}
-
-const ListViewStyles = styled.div<ListViewStylesProps>`
+const ListViewStyles = styled.div`
   text-align: center;
 
   .superset-list-view {
@@ -53,12 +48,8 @@ const ListViewStyles = styled.div<ListViewStylesProps>`
     padding-bottom: 48px;
 
     .body {
-      ${({ fullHeight }) =>
-        !fullHeight &&
-        css`
-          overflow: scroll;
-          max-height: 64vh;
-        `};
+      overflow: scroll;
+      max-height: 64vh;
     }
   }
 
@@ -211,9 +202,6 @@ export interface ListViewProps<T extends object = any> {
   renderCard?: (row: T & { loading: boolean }) => React.ReactNode;
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
-  sticky?: boolean;
-  fullHeight?: boolean;
-  manualSortBy?: boolean;
 }
 
 function ListView<T extends object = any>({
@@ -233,9 +221,6 @@ function ListView<T extends object = any>({
   renderCard,
   cardSortSelectOptions,
   defaultViewMode = 'card',
-  sticky = true,
-  fullHeight = false,
-  manualSortBy = true,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -259,10 +244,8 @@ function ListView<T extends object = any>({
     initialPageSize,
     initialSort,
     initialFilters: filters,
-    manualSortBy,
   });
   const filterable = Boolean(filters.length);
-  const withPagination = Boolean(count);
   if (filterable) {
     const columnAccessors = columns.reduce(
       (acc, col) => ({ ...acc, [col.accessor || col.id]: true }),
@@ -283,7 +266,7 @@ function ListView<T extends object = any>({
   );
 
   return (
-    <ListViewStyles fullHeight={fullHeight}>
+    <ListViewStyles>
       <div className={`superset-list-view ${className}`}>
         <div className="header">
           {cardViewEnabled && (
@@ -367,7 +350,6 @@ function ListView<T extends object = any>({
               rows={rows}
               columns={columns}
               loading={loading}
-              sticky={sticky}
             />
           )}
           {!loading && rows.length === 0 && (
@@ -378,25 +360,23 @@ function ListView<T extends object = any>({
         </div>
       </div>
 
-      {withPagination && (
-        <div className="pagination-container">
-          <Pagination
-            totalPages={pageCount || 0}
-            currentPage={pageCount ? pageIndex + 1 : 0}
-            onChange={(p: number) => gotoPage(p - 1)}
-            hideFirstAndLastPageLinks
-          />
-          <div className="row-count-container">
-            {!loading &&
-              t(
-                '%s-%s of %s',
-                pageSize * pageIndex + (rows.length && 1),
-                pageSize * pageIndex + rows.length,
-                count,
-              )}
-          </div>
+      <div className="pagination-container">
+        <Pagination
+          totalPages={pageCount || 0}
+          currentPage={pageCount ? pageIndex + 1 : 0}
+          onChange={(p: number) => gotoPage(p - 1)}
+          hideFirstAndLastPageLinks
+        />
+        <div className="row-count-container">
+          {!loading &&
+            t(
+              '%s-%s of %s',
+              pageSize * pageIndex + (rows.length && 1),
+              pageSize * pageIndex + rows.length,
+              count,
+            )}
         </div>
-      )}
+      </div>
     </ListViewStyles>
   );
 }
