@@ -39,13 +39,13 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDragDropManager from 'src/dashboard/util/getDragDropManager';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
+import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
+import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
-import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
-import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;

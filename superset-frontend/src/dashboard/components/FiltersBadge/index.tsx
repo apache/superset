@@ -20,10 +20,11 @@ import React from 'react';
 import cx from 'classnames';
 import { connect, Dispatch } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { useTheme } from '@superset-ui/core';
 import { Popover } from 'src/common/components';
 import Icon from 'src/components/Icon';
-import DetailsPanel, { Indicator } from 'src/dashboard/components/FiltersBadge/DetailsPanel';
+import DetailsPanel, {
+  Indicator,
+} from 'src/dashboard/components/FiltersBadge/DetailsPanel';
 import S from 'src/dashboard/components/FiltersBadge/Styles';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import {
@@ -68,7 +69,6 @@ const FiltersBadge = ({
   indicators: Indicator[];
   onHighlightFilterSource: (path: string) => void;
 }) => {
-  const theme = useTheme();
   const appliedIndicators = indicators.filter(
     indicator => indicator.status === IndicatorStatus.Applied,
   );
