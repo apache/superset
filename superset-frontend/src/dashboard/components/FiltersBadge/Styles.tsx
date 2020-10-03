@@ -20,21 +20,33 @@ import { styled } from '@superset-ui/core';
 
 const Pill = styled.div`
   display: inline-block;
-  background: ${({ color }) => color || '#000'};
-  color: #fff;
+  background: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colors.grayscale.light5};
   border-radius: 1em;
   vertical-align: text-top;
   padding: 0 8px;
   font-size: 14px;
   font-weight: normal;
+  transition: ${({ theme }) => theme.transitionTiming}s all;
+
+  svg {
+    vertical-align: middle;
+    height: ${({ theme }) => theme.typography.sizes.m}px;
+    width: ${({ theme }) => theme.typography.sizes.m}px;
+    color: currentColor;
+  }
 
   &:hover {
     cursor: pointer;
-    filter: brightness(3);
+    background: ${({ theme }) => theme.colors.grayscale.dark2};
   }
 
-  svg {
-    vertical-align: text-top;
+  &.has-incompatible-filters {
+    color: ${({ theme }) => theme.colors.grayscale.dark2};
+    background: ${({ theme }) => theme.colors.alert.base};
+    &:hover {
+      background: ${({ theme }) => theme.colors.alert.dark1};
+    }
   }
 `;
 
