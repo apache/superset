@@ -92,7 +92,7 @@ const StyledDashboardContent = styled.div`
     // transitionable traits to show filter relevance
     transition: all 0.2s;
     border: 2px solid transparent;
-    box-shadow: 0px 0px 0px #fff;
+    box-shadow: 0px 0px 0px ${({ theme }) => theme.colors.primary.light5};
   }
   &.focused-filter-field {
     .dashboard-component-chart-holder {
