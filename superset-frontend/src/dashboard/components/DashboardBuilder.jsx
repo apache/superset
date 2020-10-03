@@ -27,25 +27,25 @@ import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 import { styled } from '@superset-ui/core';
 
-import BuilderComponentPane from './BuilderComponentPane';
-import DashboardHeader from '../containers/DashboardHeader';
-import DashboardGrid from '../containers/DashboardGrid';
-import IconButton from './IconButton';
-import DragDroppable from './dnd/DragDroppable';
-import DashboardComponent from '../containers/DashboardComponent';
-import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
-import WithPopoverMenu from './menu/WithPopoverMenu';
+import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
+import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
+import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
+import IconButton from 'src/dashboard/components/IconButton';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import getDragDropManager from '../util/getDragDropManager';
-import findTabIndexByComponentId from '../util/findTabIndexByComponentId';
+import getDragDropManager from 'src/dashboard/util/getDragDropManager';
+import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
-import getDirectPathToTabIndex from '../util/getDirectPathToTabIndex';
-import getLeafComponentIdFromPath from '../util/getLeafComponentIdFromPath';
+import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
+import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
