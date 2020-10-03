@@ -63,9 +63,8 @@ import {
   getSequentialSchemeRegistry,
   legacyValidateInteger,
   validateNonEmpty,
-  ColumnOption,
 } from '@superset-ui/core';
-
+import { ColumnOption } from '@superset-ui/chart-controls';
 import { formatSelectOptions, mainMetric } from 'src/modules/utils';
 import { TIME_FILTER_LABELS } from './constants';
 
