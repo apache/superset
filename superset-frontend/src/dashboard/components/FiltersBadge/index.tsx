@@ -103,12 +103,14 @@ const FiltersBadge = ({
         )}
       >
         <Icon name="filter" />
-        <span className="indicator-count">{appliedIndicators.length}</span>
+        <span data-test="applied-filter-count">{appliedIndicators.length}</span>
         {incompatibleIndicators.length ? (
           <>
             {' '}
             <Icon name="alert-solid" />
-            {incompatibleIndicators.length}
+            <span data-test="incompatible-filter-count">
+              {incompatibleIndicators.length}
+            </span>
           </>
         ) : null}
       </S.Pill>

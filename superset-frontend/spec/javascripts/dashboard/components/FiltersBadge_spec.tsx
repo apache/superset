@@ -75,7 +75,9 @@ describe('FiltersBadge', () => {
     });
     const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
     expect(wrapper.dive().find('Popover')).toExist();
-    expect(wrapper.dive().find('.indicator-count')).toHaveText('1');
+    expect(
+      wrapper.dive().find('[data-test="applied-filter-count"]'),
+    ).toHaveText('1');
     expect(wrapper.dive().find('WarningFilled')).not.toExist();
   });
 
@@ -94,11 +96,16 @@ describe('FiltersBadge', () => {
     });
     const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
     expect(wrapper.dive().find('Popover')).toExist();
-    expect(wrapper.dive().find('.indicator-count')).toHaveText('1');
+    expect(
+      wrapper.dive().find('[data-test="applied-filter-count"]'),
+    ).toHaveText('0');
+    expect(
+      wrapper.dive().find('[data-test="incompatible-filter-count"]'),
+    ).toHaveText('1');
     // antd components are often wrapped in ForwardRef which means we can't
     // just select "WarningFilled", we have to include the ForwardRef.
     // to look at the shape of the wrapper use:
-    // console.log(wrapper.debug())
-    expect(wrapper.dive().find('ForwardRef(WarningFilled)')).toExist();
+    // console.log(wrapper.dive().debug())
+    expect(wrapper.dive().find('Icon[name="alert-solid"]')).toExist();
   });
 });
