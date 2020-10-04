@@ -552,7 +552,6 @@ class SupersetAppInitializer:
         appbuilder.indexview = SupersetIndexView
         appbuilder.base_template = "superset/base.html"
         appbuilder.security_manager_class = custom_sm
-        appbuilder.update_perms = False
         appbuilder.init_app(self.flask_app, db.session)
 
     def configure_url_map_converters(self) -> None:

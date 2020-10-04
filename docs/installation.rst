@@ -276,23 +276,6 @@ server (`superset run` or `flask run`) is not intended for production use.
 If not using gunicorn, you may want to disable the use of flask-compress
 by setting `COMPRESS_REGISTER = False` in your `superset_config.py`
 
-Flask-AppBuilder Permissions
-----------------------------
-
-By default, every time the Flask-AppBuilder (FAB) app is initialized the
-permissions and views are added automatically to the backend and associated with
-the ‘Admin’ role. The issue, however, is when you are running multiple concurrent
-workers this creates a lot of contention and race conditions when defining
-permissions and views.
-
-To alleviate this issue, the automatic updating of permissions can be disabled
-by setting `FAB_UPDATE_PERMS = False` (defaults to True).
-
-In a production environment initialization could take on the following form:
-
-  superset init
-  gunicorn -w 10 ... superset:app
-
 Configuration behind a load balancer
 ------------------------------------
 

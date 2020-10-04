@@ -22,7 +22,6 @@ class CacheManager:
     def __init__(self) -> None:
         super().__init__()
 
-<<<<<<< HEAD
         self._cache = Cache()
         self._tables_cache = Cache()
         self._thumbnail_cache = Cache()
@@ -31,26 +30,6 @@ class CacheManager:
         self._cache.init_app(app, app.config["CACHE_CONFIG"])
         self._tables_cache.init_app(app, app.config["TABLE_NAMES_CACHE_CONFIG"])
         self._thumbnail_cache.init_app(app, app.config["THUMBNAIL_CACHE_CONFIG"])
-=======
-        self._cache = self._setup_cache(app.config["CACHE_CONFIG"])
-        self._tables_cache = self._setup_cache(app.config["TABLE_NAMES_CACHE_CONFIG"])
-        self._thumbnail_cache = self._setup_cache(app.config["THUMBNAIL_CACHE_CONFIG"])
-
-    def init_app(self, app: Flask) -> None:
-        self._cache.init_app(app)
-        self._tables_cache.init_app(app)
-        self._thumbnail_cache.init_app(app)
-
-    @staticmethod
-    def _setup_cache(cache_config: CacheConfig) -> Cache:
-        """Setup the flask-cache on a flask app"""
-        if isinstance(cache_config, dict):
-            return Cache(config=cache_config)
-
-        # Accepts a custom cache initialization function, returning an object compatible
-        # with Flask-Caching API.
-        return cache_config()
->>>>>>> f4db8315a... chore: Using cache factory method
 
     @property
     def tables_cache(self) -> Cache:
