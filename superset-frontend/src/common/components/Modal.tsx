@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { isNil } from 'lodash';
 import { styled, t } from '@superset-ui/core';
 import { Modal as BaseModal } from 'src/common/components';
 import Button from 'src/components/Button';
@@ -26,13 +27,14 @@ interface ModalProps {
   children: React.ReactNode;
   disablePrimaryButton?: boolean;
   onHide: () => void;
-  onHandledPrimaryAction: () => void;
-  primaryButtonName: string;
+  onHandledPrimaryAction?: () => void;
+  primaryButtonName?: string;
   primaryButtonType?: 'primary' | 'danger';
   show: boolean;
   title: React.ReactNode;
   width?: string;
   centered?: boolean;
+  footer?: React.ReactNode;
 }
 
 const StyledModal = styled(BaseModal)`
@@ -96,8 +98,26 @@ export default function Modal({
   title,
   width,
   centered,
+  footer,
   ...rest
 }: ModalProps) {
+  const modalFooter = isNil(footer)
+    ? [
+        <Button key="back" onClick={onHide} cta>
+          {t('Cancel')}
+        </Button>,
+        <Button
+          key="submit"
+          buttonStyle={primaryButtonType}
+          disabled={disablePrimaryButton}
+          onClick={onHandledPrimaryAction}
+          cta
+        >
+          {primaryButtonName}
+        </Button>,
+      ]
+    : footer;
+
   return (
     <StyledModal
       centered={!!centered}
@@ -111,20 +131,7 @@ export default function Modal({
           ×
         </span>
       }
-      footer={[
-        <Button key="back" onClick={onHide} cta>
-          {t('Cancel')}
-        </Button>,
-        <Button
-          key="submit"
-          buttonStyle={primaryButtonType}
-          disabled={disablePrimaryButton}
-          onClick={onHandledPrimaryAction}
-          cta
-        >
-          {primaryButtonName}
-        </Button>,
-      ]}
+      footer={modalFooter}
       {...rest}
     >
       {children}

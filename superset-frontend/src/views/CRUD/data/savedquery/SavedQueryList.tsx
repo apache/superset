@@ -39,6 +39,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { IconName } from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
+import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
 
@@ -48,8 +49,17 @@ interface SavedQueryListProps {
 }
 
 type SavedQueryObject = {
+  database: {
+    database_name: string;
+    id: number;
+  };
+  db_id: number;
+  description?: string;
   id: number;
   label: string;
+  schema: string;
+  sql: string;
+  sql_tables: Array<{ catalog?: string; schema: string; table: string }>;
 };
 
 const StyledTableLabel = styled.div`
@@ -85,10 +95,13 @@ function SavedQueryList({
     t('saved_queries'),
     addDangerToast,
   );
-
   const [
     queryCurrentlyDeleting,
     setQueryCurrentlyDeleting,
+  ] = useState<SavedQueryObject | null>(null);
+  const [
+    savedQueryCurrentlyPreviewing,
+    setSavedQueryCurrentlyPreviewing,
   ] = useState<SavedQueryObject | null>(null);
 
   const canCreate = hasPerm('can_add');
@@ -97,6 +110,21 @@ function SavedQueryList({
 
   const openNewQuery = () => {
     window.open(`${window.location.origin}/superset/sqllab?new=true`);
+  };
+
+  const handleSavedQueryPreview = (id: number) => {
+    SupersetClient.get({
+      endpoint: `/api/v1/saved_query/${id}`,
+    }).then(
+      ({ json = {} }) => {
+        setSavedQueryCurrentlyPreviewing({ ...json.result });
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue previewing the selected query %s', errMsg),
+        ),
+      ),
+    );
   };
 
   const menuData: SubMenuProps = {
@@ -293,7 +321,9 @@ function SavedQueryList({
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handlePreview = () => {}; // openQueryPreviewModal(original); // TODO: open preview modal
+          const handlePreview = () => {
+            handleSavedQueryPreview(original.id);
+          };
           const handleEdit = () => {
             openInSqlLab(original.id);
           };
@@ -410,6 +440,16 @@ function SavedQueryList({
           title={t('Delete Query?')}
         />
       )}
+      {savedQueryCurrentlyPreviewing && (
+        <SavedQueryPreviewModal
+          fetchData={handleSavedQueryPreview}
+          onHide={() => setSavedQueryCurrentlyPreviewing(null)}
+          savedQuery={savedQueryCurrentlyPreviewing}
+          queries={queries}
+          openInSqlLab={openInSqlLab}
+          show
+        />
+      )}
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t('Are you sure you want to delete the selected queries?')}
@@ -441,6 +481,7 @@ function SavedQueryList({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
+              highlightRowId={savedQueryCurrentlyPreviewing?.id}
             />
           );
         }}
