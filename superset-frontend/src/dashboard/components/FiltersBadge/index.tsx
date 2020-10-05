@@ -17,16 +17,20 @@
  * under the License.
  */
 import React from 'react';
+import cx from 'classnames';
 import { connect, Dispatch } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { WarningFilled } from '@ant-design/icons';
-import { useTheme } from '@superset-ui/core';
-import { ReactComponent as FilterIcon } from 'images/icons/filter.svg';
-import { Popover, Icon } from 'src/common/components';
-import DetailsPanel, { Indicator } from './DetailsPanel';
-import S from './Styles';
-import { setDirectPathToChild } from '../../actions/dashboardState';
-import { selectIndicatorsForChart, IndicatorStatus } from './selectors';
+import { Popover } from 'src/common/components';
+import Icon from 'src/components/Icon';
+import DetailsPanel, {
+  Indicator,
+} from 'src/dashboard/components/FiltersBadge/DetailsPanel';
+import S from 'src/dashboard/components/FiltersBadge/Styles';
+import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import {
+  selectIndicatorsForChart,
+  IndicatorStatus,
+} from 'src/dashboard/components/FiltersBadge/selectors';
 
 const mapDispatchToProps = (dispatch: Dispatch<any>) => {
   return bindActionCreators(
@@ -65,7 +69,6 @@ const FiltersBadge = ({
   indicators: Indicator[];
   onHighlightFilterSource: (path: string) => void;
 }) => {
-  const theme = useTheme();
   const appliedIndicators = indicators.filter(
     indicator => indicator.status === IndicatorStatus.Applied,
   );
@@ -93,16 +96,22 @@ const FiltersBadge = ({
       placement="bottomRight"
       trigger="click"
     >
-      <S.Pill>
-        <Icon component={FilterIcon} />{' '}
-        <span className="indicator-count">
-          {appliedIndicators.length + incompatibleIndicators.length}
-        </span>
+      <S.Pill
+        className={cx(
+          'filter-counts',
+          incompatibleIndicators.length && 'has-incompatible-filters',
+        )}
+      >
+        <Icon name="filter" />
+        <span data-test="applied-filter-count">{appliedIndicators.length}</span>
         {incompatibleIndicators.length ? (
-          <span className="rejected-indicators">
+          <>
             {' '}
-            <WarningFilled style={{ color: theme.colors.warning.base }} />
-          </span>
+            <Icon name="alert-solid" />
+            <span data-test="incompatible-filter-count">
+              {incompatibleIndicators.length}
+            </span>
+          </>
         ) : null}
       </S.Pill>
     </Popover>
