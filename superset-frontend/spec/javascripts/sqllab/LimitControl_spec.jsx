@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { mount } from 'enzyme';
+import { shallow, mount } from 'enzyme';
 
 import Label from 'src/components/Label';
 import LimitControl from 'src/SqlLab/components/LimitControl';
@@ -35,10 +35,7 @@ describe('LimitControl', () => {
   let wrapper;
   const factory = o => <LimitControl {...o} />;
   beforeEach(() => {
-    wrapper = mount(factory(defaultProps), {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
+    wrapper = shallow(factory(defaultProps));
   });
   it('is a valid element', () => {
     expect(React.isValidElement(<LimitControl {...defaultProps} />)).toEqual(
@@ -50,42 +47,59 @@ describe('LimitControl', () => {
   });
   it('loads the correct state', () => {
     const value = 100;
-    wrapper = mount(factory({ ...defaultProps, value }), {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
+    wrapper = shallow(factory({ ...defaultProps, value }));
     expect(wrapper.state().textValue).toEqual(value.toString());
     wrapper.find(Label).first().simulate('click');
     expect(wrapper.find(Popover).props().visible).toBe(true);
-    expect(wrapper.find(ControlHeader).props().validationErrors).toHaveLength(
-      0,
-    );
+    const popoverContentWrapper = mount(wrapper.instance().renderPopover(), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
+    expect(
+      popoverContentWrapper.find(ControlHeader).props().validationErrors,
+    ).toHaveLength(0);
   });
   it('handles invalid value', () => {
     wrapper.find(Label).first().simulate('click');
     wrapper.setState({ textValue: 'invalid' });
-    expect(wrapper.find(ControlHeader).props().validationErrors).toHaveLength(
-      1,
-    );
+    const popoverContentWrapper = mount(wrapper.instance().renderPopover(), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
+    expect(
+      popoverContentWrapper.find(ControlHeader).props().validationErrors,
+    ).toHaveLength(1);
   });
   it('handles negative value', () => {
     wrapper.find(Label).first().simulate('click');
     wrapper.setState({ textValue: '-1' });
-    expect(wrapper.find(ControlHeader).props().validationErrors).toHaveLength(
-      1,
-    );
+    const popoverContentWrapper = mount(wrapper.instance().renderPopover(), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
+    expect(
+      popoverContentWrapper.find(ControlHeader).props().validationErrors,
+    ).toHaveLength(1);
   });
   it('handles value above max row', () => {
     wrapper.find(Label).first().simulate('click');
     wrapper.setState({ textValue: (defaultProps.maxRow + 1).toString() });
-    expect(wrapper.find(ControlHeader).props().validationErrors).toHaveLength(
-      1,
-    );
+    const popoverContentWrapper = mount(wrapper.instance().renderPopover(), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
+    expect(
+      popoverContentWrapper.find(ControlHeader).props().validationErrors,
+    ).toHaveLength(1);
   });
   it('opens and closes', () => {
     wrapper.find(Label).first().simulate('click');
     expect(wrapper.state().showOverlay).toBe(true);
-    wrapper.find('.ok').first().simulate('click');
+    const popoverContentWrapper = mount(wrapper.instance().renderPopover(), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
+    popoverContentWrapper.find('.ok').first().simulate('click');
     expect(wrapper.state().showOverlay).toBe(false);
   });
   it('resets and closes', () => {
@@ -96,7 +110,11 @@ describe('LimitControl', () => {
     });
     wrapper.find(Label).first().simulate('click');
     expect(wrapper.state().textValue).toEqual(value.toString());
-    wrapper.find('.reset').first().simulate('click');
+    const popoverContentWrapper = mount(wrapper.instance().renderPopover(), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
+    popoverContentWrapper.find('.reset').first().simulate('click');
     expect(wrapper.state().textValue).toEqual(
       defaultProps.defaultQueryLimit.toString(),
     );
