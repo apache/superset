@@ -141,8 +141,9 @@ const LayoutFooter = () => (
         rel="noreferrer"
       >
         Apache Software Foundation
-      </a>resources
-      <br/>
+      </a>
+      resources
+      <br />
       <a
         href="https://www.apache.org/security/"
         target="_blank"
