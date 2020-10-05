@@ -27,10 +27,36 @@ import Modal from 'src/common/components/Modal';
 interface SaveQueryProps {
   query: any;
   defaultLabel: string;
-  onSave: () => void;
-  onUpdate: () => void;
+  onSave: (arg0: QueryPayload) => void;
+  onUpdate: (arg0: QueryPayload) => void;
   saveQueryWarning: string | null;
 }
+
+type QueryPayload = {
+  autorun: boolean;
+  dbId: number;
+  description?: string;
+  id?: string;
+  latestQueryId: string;
+  queryLimit: number;
+  remoteId: number;
+  schema: string;
+  schemaOptions: Array<{
+    label: string;
+    title: string;
+    value: string;
+  }>;
+  selectedText: string | null;
+  sql: string;
+  tableOptions: Array<{
+    label: string;
+    schema: string;
+    title: string;
+    type: string;
+    value: string;
+  }>;
+  title: string;
+};
 
 const StyledRow = styled(Row)`
   div {
@@ -56,7 +82,9 @@ export default function SaveQuery({
   onUpdate,
   saveQueryWarning = null,
 }: SaveQueryProps) {
-  const [description, setDescription] = useState<string>(query.description || '');
+  const [description, setDescription] = useState<string>(
+    query.description || '',
+  );
   const [label, setLabel] = useState<string>(defaultLabel);
   const [showSave, setShowSave] = useState<boolean>(false);
   const isSaved = !!query.remoteId;
@@ -83,12 +111,12 @@ export default function SaveQuery({
     close();
   };
 
-  const onLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLabel(e.target.value);
+  const onLabelChange = (e: React.FormEvent<FormControl>) => {
+    setLabel((e.target as HTMLInputElement).value);
   };
 
-  const onDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDescription(e.target.value);
+  const onDescriptionChange = (e: React.FormEvent<FormControl>) => {
+    setDescription((e.target as HTMLInputElement).value);
   };
 
   const toggleSave = () => {
