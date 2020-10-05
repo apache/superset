@@ -311,14 +311,14 @@ class DashboardEncoder(json.JSONEncoder):
         self.sort_keys = True
 
     def default(self, o: Any) -> Union[Dict[Any, Any], str]:
+        if isinstance(o, uuid.UUID):
+            return str(o)
         try:
             vals = {k: v for k, v in o.__dict__.items() if k != "_sa_instance_state"}
             return {"__{}__".format(o.__class__.__name__): vals}
         except Exception:  # pylint: disable=broad-except
             if isinstance(o, datetime):
                 return {"__datetime__": o.replace(microsecond=0).isoformat()}
-            if isinstance(o, uuid.UUID):
-                return str(o)
             return json.JSONEncoder(sort_keys=True).default(o)
 
 
