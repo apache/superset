@@ -1,0 +1,34 @@
+---
+name: API
+title: API
+route: /docs/api
+---
+## API
+
+import SwaggerUI from 'swagger-ui-react';
+import openapi from 'src/resources/openapi.json';
+import 'swagger-ui-react/swagger-ui.css';
+import { Alert } from 'antd';
+
+
+Superset's public **REST API** follows the
+[OpenAPI specification](https://swagger.io/specification/), and is
+documented here. The docs bellow are generated using
+[Swagger React UI](https://www.npmjs.com/package/swagger-ui-react).
+
+<Alert
+  message={
+    <div>
+      <strong>NOTE! </strong>
+      You can find an interactive version of this documentation
+      on your local Superset instance
+      at <strong>/swagger/v1</strong> (if enabled)
+    </div>
+  }
+  type="info"
+/>
+
+<br /><br /><hr />
+<div className="swagger-container">
+  <SwaggerUI spec={openapi} />
+</div>
