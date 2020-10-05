@@ -73,6 +73,7 @@ A modern, enterprise-ready business intelligence web application.
 
 <kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
 
+
 ## Why Superset
 
 Superset provides:
