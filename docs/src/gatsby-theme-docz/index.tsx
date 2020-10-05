@@ -34,6 +34,14 @@ interface Props {
 const docLayout = css`
   display: flex;
   flex-direction: row;
+  .doc-content {
+    width: 100%;
+  }
+
+  // Hacks to disable Swagger UI's "try it out" interactive mode
+  .try-out, .auth-wrapper, .information-container {
+    display: none;
+  }
 `;
 
 const Theme = ({ children }: Props) => {
@@ -43,7 +51,9 @@ const Theme = ({ children }: Props) => {
       <Layout>
         <SEO title="Documentation" />
         <div css={docLayout}>
-          <div>{children}</div>
+          <div className="doc-content">
+            {children}
+          </div>
           <AnchorNavigator />
         </div>
         <div>

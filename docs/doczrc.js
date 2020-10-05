@@ -30,6 +30,7 @@ export default {
     'Frequently Asked Questions',
     'Contribution Guide',
     'Roadmap',
+    'API',
     'Security',
   ],
 };
