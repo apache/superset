@@ -29,8 +29,8 @@ from superset.models.slice import Slice
 
 
 def create_table_for_dashboard(
-    df: DataFrame, tbl_name: str, database: "Database", schema: Dict[str, Any]
-) -> "SqlaTable":
+    df: DataFrame, tbl_name: str, database: Database, schema: Dict[str, Any]
+) -> SqlaTable:
     df.to_sql(
         tbl_name,
         database.get_sqla_engine(),
