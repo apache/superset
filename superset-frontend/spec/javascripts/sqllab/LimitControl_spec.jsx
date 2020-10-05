@@ -17,11 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { mount } from 'enzyme';
 
 import Label from 'src/components/Label';
 import LimitControl from 'src/SqlLab/components/LimitControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import Popover from 'src/common/components/Popover';
 
 describe('LimitControl', () => {
   const defaultProps = {
@@ -33,7 +35,10 @@ describe('LimitControl', () => {
   let wrapper;
   const factory = o => <LimitControl {...o} />;
   beforeEach(() => {
-    wrapper = shallow(factory(defaultProps));
+    wrapper = mount(factory(defaultProps), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
   });
   it('is a valid element', () => {
     expect(React.isValidElement(<LimitControl {...defaultProps} />)).toEqual(
@@ -45,10 +50,13 @@ describe('LimitControl', () => {
   });
   it('loads the correct state', () => {
     const value = 100;
-    wrapper = shallow(factory({ ...defaultProps, value }));
+    wrapper = mount(factory({ ...defaultProps, value }), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
     expect(wrapper.state().textValue).toEqual(value.toString());
     wrapper.find(Label).first().simulate('click');
-    expect(wrapper.state().showOverlay).toBe(true);
+    expect(wrapper.find(Popover).props().visible).toBe(true);
     expect(wrapper.find(ControlHeader).props().validationErrors).toHaveLength(
       0,
     );
@@ -82,10 +90,13 @@ describe('LimitControl', () => {
   });
   it('resets and closes', () => {
     const value = 100;
-    wrapper = shallow(factory({ ...defaultProps, value }));
+    wrapper = mount(factory({ ...defaultProps, value }), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
     wrapper.find(Label).first().simulate('click');
     expect(wrapper.state().textValue).toEqual(value.toString());
-    wrapper.find('.reset').simulate('click');
+    wrapper.find('.reset').first().simulate('click');
     expect(wrapper.state().textValue).toEqual(
       defaultProps.defaultQueryLimit.toString(),
     );
