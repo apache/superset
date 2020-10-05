@@ -20,7 +20,8 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { mount, shallow } from 'enzyme';
 import sinon from 'sinon';
-import { Tabs as BootstrapTabs, Tab as BootstrapTab } from 'react-bootstrap';
+import { CardTabs, EditableTabs } from 'src/common/components/Tabs';
+import { Modal } from 'src/common/components';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -61,9 +62,11 @@ describe('Tabs', () => {
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
       <Provider store={mockStoreWithTabs}>
-        <WithDragDropContext>
-          <Tabs {...props} {...overrideProps} />
-        </WithDragDropContext>
+        <ThemeProvider theme={supersetTheme}>
+          <WithDragDropContext>
+            <Tabs {...props} {...overrideProps} />
+          </WithDragDropContext>
+        </ThemeProvider>
       </Provider>,
       {
         wrappingComponent: ThemeProvider,
@@ -79,31 +82,21 @@ describe('Tabs', () => {
     expect(wrapper.find(DragDroppable)).toExist();
   });
 
-  it('should render BootstrapTabs', () => {
+  it('should render CardTabs', () => {
     const wrapper = setup();
-    expect(wrapper.find(BootstrapTabs)).toExist();
+    expect(wrapper.find(CardTabs)).toExist();
   });
 
-  it('should set animation=true, mountOnEnter=true, and unmounOnExit=false on BootstrapTabs for perf', () => {
+  it('should render a CardTab for each child', () => {
     const wrapper = setup();
-    const tabProps = wrapper.find(BootstrapTabs).props();
-    expect(tabProps.animation).toBe(true);
-    expect(tabProps.mountOnEnter).toBe(true);
-    expect(tabProps.unmountOnExit).toBe(false);
-  });
-
-  it('should render a BootstrapTab for each child', () => {
-    const wrapper = setup();
-    expect(wrapper.find(BootstrapTab)).toHaveLength(
+    expect(wrapper.find(CardTabs.TabPane)).toHaveLength(
       props.component.children.length,
     );
   });
 
-  it('should render an extra (+) BootstrapTab in editMode', () => {
+  it('should render EditableTabs in editMode', () => {
     const wrapper = setup({ editMode: true });
-    expect(wrapper.find(BootstrapTab)).toHaveLength(
-      props.component.children.length + 1,
-    );
+    expect(wrapper.find(EditableTabs)).toExist();
   });
 
   it('should render a DashboardComponent for each child', () => {
@@ -118,7 +111,7 @@ describe('Tabs', () => {
     const createComponent = sinon.spy();
     const wrapper = setup({ editMode: true, createComponent });
     wrapper
-      .find('.dashboard-component-tabs .nav-tabs a')
+      .find('.dashboard-component-tabs .ant-tabs-nav-add')
       .last()
       .simulate('click');
 
@@ -129,7 +122,7 @@ describe('Tabs', () => {
     const onChangeTab = sinon.spy();
     const wrapper = setup({ editMode: true, onChangeTab });
     wrapper
-      .find('.dashboard-component-tabs .nav-tabs a')
+      .find('.dashboard-component-tabs .ant-tabs-tab')
       .at(1) // will not call if it is already selected
       .simulate('click');
 
@@ -140,7 +133,7 @@ describe('Tabs', () => {
     const onChangeTab = sinon.spy();
     const wrapper = setup({ editMode: true, onChangeTab });
     wrapper
-      .find('.dashboard-component-tabs .nav-tabs a .short-link-trigger')
+      .find('.dashboard-component-tabs .ant-tabs-tab .short-link-trigger')
       .at(1) // will not call if it is already selected
       .simulate('click');
 
@@ -185,5 +178,14 @@ describe('Tabs', () => {
 
     wrapper = shallow(<Tabs {...directLinkProps} />);
     expect(wrapper.state('tabIndex')).toBe(1);
+  });
+
+  it('should render Modal when clicked remove tab button', () => {
+    const deleteComponent = sinon.spy();
+    const modalMock = jest.spyOn(Modal, 'confirm');
+    const wrapper = setup({ editMode: true, deleteComponent });
+    wrapper.find('.ant-tabs-tab-remove').at(0).simulate('click');
+    expect(modalMock.mock.calls).toHaveLength(1);
+    expect(deleteComponent.callCount).toBe(0);
   });
 });

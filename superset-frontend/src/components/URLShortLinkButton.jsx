@@ -48,7 +48,8 @@ class URLShortLinkButton extends React.Component {
     }));
   }
 
-  getCopyUrl() {
+  getCopyUrl(e) {
+    e.stopPropagation();
     getShortUrl(this.props.url)
       .then(this.onShortUrlSuccess)
       .catch(this.props.addDangerToast);
