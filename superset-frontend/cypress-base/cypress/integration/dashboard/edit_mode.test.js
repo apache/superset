@@ -45,7 +45,7 @@ describe('Dashboard edit mode', () => {
     cy.get('[data-test="tabs-component"]').children().siblings().last().click();
 
     // wait for tab-switching animation to complete
-    cy.wait(1000);
+    cy.wait(2000);
 
     // find box plot is available from list
     cy.get('[data-test="card-title"]').contains('Box plot');
