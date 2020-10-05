@@ -830,7 +830,7 @@ there's a **schema** parameter you can set in the table form.
 External Password store for SQLAlchemy connections
 --------------------------------------------------
 It is possible to use an external store for you database passwords. This is
-useful if you a running a custom secret distribution framework and do not wish
+useful if you are running a custom secret distribution framework and do not wish
 to store secrets in Superset's meta database.
 
 Example:
