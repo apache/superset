@@ -30,6 +30,7 @@ interface TableCollectionProps {
   rows: TableInstance['rows'];
   columns: TableInstance['column'][];
   loading: boolean;
+  highlightRowId?: number;
 }
 
 const Table = styled.table`
@@ -199,6 +200,7 @@ export default function TableCollection({
   columns,
   rows,
   loading,
+  highlightRowId,
 }: TableCollectionProps) {
   return (
     <Table {...getTableProps()} className="table table-hover">
@@ -262,7 +264,9 @@ export default function TableCollection({
               <tr
                 {...row.getRowProps()}
                 className={cx('table-row', {
-                  'table-row-selected': row.isSelected,
+                  'table-row-selected':
+                    // @ts-ignore
+                    row.isSelected || row.original.id === highlightRowId,
                 })}
               >
                 {row.cells.map(cell => {
