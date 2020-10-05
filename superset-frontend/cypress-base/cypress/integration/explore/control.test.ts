@@ -37,7 +37,7 @@ describe('Datasource control', () => {
       numScripts = nodes.length;
     });
     cy.get('[data-test="datasource-menu"]').click();
-    cy.get('[data-test="edit-datasource"]').contains('Edit Datasource').click();
+    cy.get('[data-test="edit-datasource"]').click();
 
     // should load additional scripts for the modal
     cy.get('script').then(nodes => {
