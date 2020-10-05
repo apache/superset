@@ -22,15 +22,10 @@ import { connect, Dispatch } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Popover } from 'src/common/components';
 import Icon from 'src/components/Icon';
-import DetailsPanel, {
-  Indicator,
-} from 'src/dashboard/components/FiltersBadge/DetailsPanel';
-import S from 'src/dashboard/components/FiltersBadge/Styles';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import {
-  selectIndicatorsForChart,
-  IndicatorStatus,
-} from 'src/dashboard/components/FiltersBadge/selectors';
+import DetailsPanel, { Indicator } from './DetailsPanel';
+import { Pill } from './Styles';
+import { selectIndicatorsForChart, IndicatorStatus } from './selectors';
 
 const mapDispatchToProps = (dispatch: Dispatch<any>) => {
   return bindActionCreators(
@@ -56,19 +51,6 @@ const mapStateToProps = (
     charts,
   );
 
-  return {
-    chartId,
-    indicators,
-  };
-};
-
-const FiltersBadge = ({
-  indicators,
-  onHighlightFilterSource,
-}: {
-  indicators: Indicator[];
-  onHighlightFilterSource: (path: string) => void;
-}) => {
   const appliedIndicators = indicators.filter(
     indicator => indicator.status === IndicatorStatus.Applied,
   );
@@ -79,9 +61,35 @@ const FiltersBadge = ({
     indicator => indicator.status === IndicatorStatus.Incompatible,
   );
 
-  if (!appliedIndicators.length && !incompatibleIndicators.length) {
+  return {
+    chartId,
+    appliedIndicators,
+    unsetIndicators,
+    incompatibleIndicators,
+  };
+};
+
+const FiltersBadge = ({
+  appliedIndicators,
+  unsetIndicators,
+  incompatibleIndicators,
+  onHighlightFilterSource,
+}: {
+  appliedIndicators: Indicator[];
+  unsetIndicators: Indicator[];
+  incompatibleIndicators: Indicator[];
+  onHighlightFilterSource: (path: string) => void;
+}) => {
+  if (
+    !appliedIndicators.length &&
+    !incompatibleIndicators.length &&
+    !unsetIndicators.length
+  ) {
     return null;
   }
+
+  const isInactive =
+    !appliedIndicators.length && !incompatibleIndicators.length;
 
   return (
     <Popover
@@ -96,14 +104,19 @@ const FiltersBadge = ({
       placement="bottomRight"
       trigger="click"
     >
-      <S.Pill
+      <Pill
         className={cx(
           'filter-counts',
-          incompatibleIndicators.length && 'has-incompatible-filters',
+          !!incompatibleIndicators.length && 'has-incompatible-filters',
+          isInactive && 'filters-inactive',
         )}
       >
-        <Icon name="filter" />
-        <span data-test="applied-filter-count">{appliedIndicators.length}</span>
+        <Icon name="filter" className={''} />
+        {!isInactive && (
+          <span data-test="applied-filter-count">
+            {appliedIndicators.length}
+          </span>
+        )}
         {incompatibleIndicators.length ? (
           <>
             {' '}
@@ -113,7 +126,7 @@ const FiltersBadge = ({
             </span>
           </>
         ) : null}
-      </S.Pill>
+      </Pill>
     </Popover>
   );
 };

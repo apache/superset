@@ -43,7 +43,7 @@ describe('FiltersBadge', () => {
     jest.spyOn(SupersetUI, 'useTheme').mockImplementation(() => supersetTheme);
   });
 
-  it("Doesn't appear when there are no indicators to show", () => {
+  it("doesn't show number when there are no active filters", () => {
     const store = getMockStoreWithFilters();
     // start with basic dashboard state, dispatch an event to simulate query completion
     store.dispatch({
@@ -57,7 +57,9 @@ describe('FiltersBadge', () => {
       dashboardFilters,
     });
     const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
-    expect(wrapper.dive().type()).toEqual(null);
+    expect(
+      wrapper.dive().find('[data-test="applied-filter-count"]'),
+    ).not.toExist();
   });
 
   it('shows the indicator when filters have been applied', () => {
@@ -102,8 +104,6 @@ describe('FiltersBadge', () => {
     expect(
       wrapper.dive().find('[data-test="incompatible-filter-count"]'),
     ).toHaveText('1');
-    // antd components are often wrapped in ForwardRef which means we can't
-    // just select "WarningFilled", we have to include the ForwardRef.
     // to look at the shape of the wrapper use:
     // console.log(wrapper.dive().debug())
     expect(wrapper.dive().find('Icon[name="alert-solid"]')).toExist();

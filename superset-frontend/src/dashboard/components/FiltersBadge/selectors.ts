@@ -116,7 +116,7 @@ const selectIndicatorsForChartFromFilter = (
 
 export const selectIndicatorsForChart = (
   chartId: number,
-  filters: Filter[],
+  filters: { [key: number]: Filter },
   datasources: { [key: string]: Datasource },
   charts: any,
 ) => {

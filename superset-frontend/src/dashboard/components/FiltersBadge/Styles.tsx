@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 
-const Pill = styled.div`
+export const Pill = styled.div`
   display: inline-block;
   background: ${({ theme }) => theme.colors.grayscale.dark1};
   color: ${({ theme }) => theme.colors.grayscale.light5};
@@ -48,14 +48,36 @@ const Pill = styled.div`
       background: ${({ theme }) => theme.colors.alert.dark1};
     }
   }
+
+  &.filters-inactive {
+    color: ${({ theme }) => theme.colors.grayscale.light5};
+    background: ${({ theme }) => theme.colors.grayscale.light1};
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    text-align: center;
+    line-height: 24px;
+    &:hover {
+      background: ${({ theme }) => theme.colors.grayscale.base};
+    }
+  }
 `;
 
-interface TitleProps {
+export const WarningPill = styled(Pill)`
+  background: ${({ theme }) => theme.colors.alert.base};
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+`;
+
+export const UnsetPill = styled(Pill)`
+  background: ${({ theme }) => theme.colors.grayscale.light1};
+`;
+
+export interface TitleProps {
   bold?: boolean;
   color?: string;
 }
 
-const Title = styled.span`
+export const Title = styled.span`
   color: ${({ color }: TitleProps) => color || 'auto'};
   font-weight: ${({ bold }) => (bold ? '600' : 'auto')};
 
@@ -64,7 +86,7 @@ const Title = styled.span`
   }
 `;
 
-const ItemIcon = styled.i`
+export const ItemIcon = styled.i`
   display: none;
   position: absolute;
   top: 50%;
@@ -72,7 +94,7 @@ const ItemIcon = styled.i`
   left: -20px;
 `;
 
-const Item = styled.button`
+export const Item = styled.button`
   cursor: pointer;
   display: block;
   padding: 0;
@@ -91,29 +113,17 @@ const Item = styled.button`
   }
 `;
 
-const Reset = styled.div`
+export const Reset = styled.div`
   margin: 0 -16px;
 `;
 
-const Indent = styled.div`
+export const Indent = styled.div`
   padding-left: 24px;
   margin: -12px 0;
 `;
 
-const Panel = styled.div`
+export const Panel = styled.div`
   min-width: 200px;
   max-width: 400px;
   overflow-x: hidden;
 `;
-
-const S = {
-  Pill,
-  Title,
-  Reset,
-  Indent,
-  Panel,
-  Item,
-  ItemIcon,
-};
-
-export default S;

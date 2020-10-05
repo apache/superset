@@ -25,7 +25,7 @@ import {
   ExclamationCircleFilled,
 } from '@ant-design/icons';
 import { Collapse } from 'src/common/components/index';
-import S from './Styles';
+import { Indent, Item, ItemIcon, Panel, Reset, Title } from './Styles';
 import { IndicatorStatus } from './selectors';
 
 export type Indicator = {
@@ -45,13 +45,13 @@ const Indicator = ({
   indicator: { name, value = [], path },
   onClick,
 }: IndicatorProps) => (
-  <S.Item onClick={() => onClick(path)}>
-    <S.ItemIcon>
+  <Item onClick={() => onClick(path)}>
+    <ItemIcon>
       <SearchOutlined />
-    </S.ItemIcon>
-    <S.Title bold>{name.toUpperCase()}</S.Title>
+    </ItemIcon>
+    <Title bold>{name.toUpperCase()}</Title>
     {value.length ? `: ${value.join(', ')}` : ''}
-  </S.Item>
+  </Item>
 );
 
 export interface DetailsPanelProps {
@@ -72,22 +72,29 @@ const DetailsPanel = ({
     appliedIndicators.length +
     incompatibleIndicators.length +
     unsetIndicators.length;
+  let activePanel = 'unset';
+  if (incompatibleIndicators.length) {
+    activePanel = 'incompatible';
+  } else if (appliedIndicators.length) {
+    activePanel = 'applied';
+  }
+
   return (
-    <S.Panel>
+    <Panel>
       <div>{`${total} Scoped Filters`}</div>
-      <S.Reset>
-        <Collapse ghost defaultActiveKey={['applied', 'incompatible']}>
+      <Reset>
+        <Collapse ghost defaultActiveKey={[activePanel]}>
           {appliedIndicators.length ? (
             <Collapse.Panel
               key="applied"
               header={
-                <S.Title color={theme.colors.success.base}>
+                <Title color={theme.colors.success.base}>
                   <CheckCircleFilled />
                   {` Applied (${appliedIndicators.length})`}
-                </S.Title>
+                </Title>
               }
             >
-              <S.Indent>
+              <Indent>
                 {appliedIndicators.map(indicator => (
                   <Indicator
                     key={indicator.id}
@@ -95,20 +102,20 @@ const DetailsPanel = ({
                     onClick={onHighlightFilterSource}
                   />
                 ))}
-              </S.Indent>
+              </Indent>
             </Collapse.Panel>
           ) : null}
           {incompatibleIndicators.length ? (
             <Collapse.Panel
               key="incompatible"
               header={
-                <S.Title color={theme.colors.alert.base}>
+                <Title color={theme.colors.alert.base}>
                   <ExclamationCircleFilled />
                   {` Incompatible (${incompatibleIndicators.length})`}
-                </S.Title>
+                </Title>
               }
             >
-              <S.Indent>
+              <Indent>
                 {incompatibleIndicators.map(indicator => (
                   <Indicator
                     key={indicator.id}
@@ -116,20 +123,20 @@ const DetailsPanel = ({
                     onClick={onHighlightFilterSource}
                   />
                 ))}
-              </S.Indent>
+              </Indent>
             </Collapse.Panel>
           ) : null}
           <Collapse.Panel
             key="unset"
             header={
-              <S.Title color={theme.colors.grayscale.dark1}>
+              <Title color={theme.colors.grayscale.dark1}>
                 <MinusCircleFilled />
                 {` Unset (${unsetIndicators.length})`}
-              </S.Title>
+              </Title>
             }
             disabled={!unsetIndicators.length}
           >
-            <S.Indent>
+            <Indent>
               {unsetIndicators.map(indicator => (
                 <Indicator
                   key={indicator.id}
@@ -137,11 +144,11 @@ const DetailsPanel = ({
                   onClick={onHighlightFilterSource}
                 />
               ))}
-            </S.Indent>
+            </Indent>
           </Collapse.Panel>
         </Collapse>
-      </S.Reset>
-    </S.Panel>
+      </Reset>
+    </Panel>
   );
 };
 
