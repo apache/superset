@@ -70,9 +70,40 @@ def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
 def get_example_data(
     filepath: str, is_gzip: bool = True, make_bytes: bool = False
 ) -> BytesIO:
-    content = request.urlopen(f"{BASE_URL}{filepath}?raw=true").read()
+    content = get_data_content(filepath)
     if is_gzip:
         content = zlib.decompress(content, zlib.MAX_WBITS | 16)
     if make_bytes:
         content = BytesIO(content)
+    return content
+
+
+def get_data_content(filepath):
+    cached_file_path = get_cache_file(filepath)
+    if os.path.exists(cached_file_path):
+        return get_content_from_cache(cached_file_path)
+    else:
+        content = get_content_from_web(filepath)
+        save_content_to_cache(content, cached_file_path)
+        return content
+
+
+def get_cache_file(filepath):
+    temp_folder = os.path.join(os.getcwd(), '.cache')
+    full_file_path = os.path.join(temp_folder, filepath)
+    return full_file_path
+
+
+def save_content_to_cache(content, full_file_path):
+    with open(full_file_path, 'xb') as file:
+        file.write(content)
+
+
+def get_content_from_web(filepath):
+    return request.urlopen(f"{BASE_URL}{filepath}?raw=true").read()
+
+
+def get_content_from_cache(full_file_path):
+    with open(full_file_path, 'rb') as file:
+        content = file.read()
     return content
