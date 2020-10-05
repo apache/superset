@@ -79,14 +79,12 @@ export default function Modal({
           <Title>{title}</Title>
         </BaseModal.Title>
       </BaseModal.Header>
-      <BaseModal.Body data-test={`${title}-modal-body`}>{children}</BaseModal.Body>
+      <BaseModal.Body data-test={`${title}-modal-body`}>
+        {children}
+      </BaseModal.Body>
       <BaseModal.Footer data-test={`${title}-modal-footer`}>
         <span className="float-right">
-          <Button
-            data-test="modal-cancel-button"
-            onClick={onHide}
-            cta
-          >
+          <Button data-test="modal-cancel-button" onClick={onHide} cta>
             {t('Cancel')}
           </Button>
           <Button

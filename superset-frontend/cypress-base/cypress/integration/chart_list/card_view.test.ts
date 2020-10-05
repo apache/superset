@@ -90,21 +90,24 @@ describe('chart card view', () => {
   it('should delete correctly', () => {
     // show delete modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
-    cy.get('[data-test="chart-list-delete-option"]').contains('Delete').should('be.visible');
+    cy.get('[data-test="chart-list-delete-option"]').should('be.visible');
     cy.get('[data-test="chart-list-delete-option"]').contains('Delete').click();
     cy.get('[data-test="Please Confirm-modal-header"]').should('be.visible');
     cy.get('[data-test="modal-delete-button"]').should('have.attr', 'disabled');
     cy.get('[data-test="Please Confirm-modal-header"]').should('be.visible');
     cy.get("[data-test='delete-modal-input']").type('DELETE');
-    cy.get('[data-test="modal-delete-button"]').should('not.have.attr', 'disabled');
+    cy.get('[data-test="modal-delete-button"]').should(
+      'not.have.attr',
+      'disabled',
+    );
     cy.get('[data-test="modal-cancel-button"]').click();
   });
 
   it('should edit correctly', () => {
     // show edit modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
-    cy.get('[data-test="chart-list-edit-option"]').contains('Edit').should('be.visible');
-    cy.get('[data-test="chart-list-edit-option"]').contains('Edit').click();
+    cy.get('[data-test="chart-list-edit-option"]').should('be.visible');
+    cy.get('[data-test="chart-list-edit-option"]').click();
     cy.get('[data-test="edit-modal"]').should('be.visible');
     cy.get('[data-test="name-input"]').should('not.have.value');
     cy.get('[data-test="properties-modal-cancel-button"]')

@@ -212,7 +212,6 @@ export default function TableCollection({
   return (
     <Table
       {...getTableProps()}
-      sticky={sticky}
       className="table table-hover"
       data-test="listview-table"
     >

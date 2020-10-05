@@ -447,7 +447,11 @@ function DashboardList(props: DashboardListProps) {
                   className="action-button"
                   onClick={confirmDelete}
                 >
-                  <ListViewCard.MenuIcon {...{"data-test":"dashboard-card-view-trash-icon"}} name="trash" /> Delete
+                  <ListViewCard.MenuIcon
+                    {...{ 'data-test': 'dashboard-card-view-trash-icon' }}
+                    name="trash"
+                  />{' '}
+                  Delete
                 </div>
               )}
             </ConfirmStatusChange>
