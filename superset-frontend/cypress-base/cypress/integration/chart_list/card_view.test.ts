@@ -44,7 +44,7 @@ describe('chart card view', () => {
     cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-selected']")
-      .should('exist');
+      .should('be.visible');
     cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-unselected']")
@@ -61,7 +61,7 @@ describe('chart card view', () => {
     cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-unselected']")
-      .should('exist');
+      .should('be.visible');
     cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-selected']")
@@ -90,14 +90,12 @@ describe('chart card view', () => {
   it('should delete correctly', () => {
     // show delete modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
-    cy.get('[data-test="chart-list-delete-option"]')
-      .contains('Delete')
-      .should('exist');
+    cy.get('[data-test="chart-list-delete-option"]').contains('Delete').should('be.visible');
     cy.get('[data-test="chart-list-delete-option"]').contains('Delete').click();
-    cy.get('[data-test="modal-footer"]').should('exist');
+    cy.get('[data-test="modal-footer"]').should('be.visible');
     cy.get('[data-test="delete-button"]').should('have.attr', 'disabled');
-    cy.get('[data-test="modal-body"]').should('exist');
-    cy.get("[data-test='delete-input']").type('DELETE');
+    cy.get('[data-test="modal-body"]').should('be.visible');
+    cy.get("[data-test='delete-modal-input']").type('DELETE');
     cy.get('[data-test="delete-button"]').should('not.have.attr', 'disabled');
     cy.get('[data-test="modal-cancel-button"]').click();
   });
@@ -107,7 +105,7 @@ describe('chart card view', () => {
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
     cy.get('[data-test="edit-option"]').contains('Edit').should('be.visible');
     cy.get('[data-test="edit-option"]').contains('Edit').click();
-    cy.get('[data-test="edit-modal"]').should('exist');
+    cy.get('[data-test="edit-modal"]').should('be.visible');
     cy.get('[data-test="name-input"]').should('not.have.value');
     cy.get('[data-test="properties-modal-cancel-button"]')
       .contains('Cancel')
