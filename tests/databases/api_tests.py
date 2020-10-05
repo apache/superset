@@ -37,6 +37,7 @@ from tests.dashboard_utils import (
     create_dashboard,
 )
 from tests.fixtures.certificates import ssl_certificate
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.test_app import app
 
 
@@ -768,38 +769,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
-    @pytest.fixture()
-    def load_unicode_dashboard(self):
-        data = [
-            {"phrase": "Под"},
-            {"phrase": "řšž"},
-            {"phrase": "視野無限廣"},
-            {"phrase": "微風"},
-            {"phrase": "中国智造"},
-            {"phrase": "æøå"},
-            {"phrase": "ëœéè"},
-            {"phrase": "いろはにほ"},
-        ]
-        tbl_name = "unicode_test"
-
-        # generate date/numeric data
-        df = pd.DataFrame.from_dict(data)
-
-        with self.create_app().app_context():
-            database = get_example_database()
-            schema = {
-                "phrase": String(500),
-                "dttm": Date(),
-                "value": Float(),
-            }
-            obj = create_table_for_dashboard(df, tbl_name, database, schema)
-            obj.fetch_metadata()
-
-            db.session.commit()
-            position = "{}"
-            create_dashboard("unicode-test", "Unicode Test", position, None)
-
-    @pytest.mark.usefixtures("load_unicode_dashboard")
+    @pytest.mark.usefixtures("load_unicode_dashboard_with_position")
     def test_get_database_related_objects(self):
         """
         Database API: Test get chart and dashboard count related to a database

@@ -45,6 +45,7 @@ from .dashboard_utils import (
     create_slice,
     create_dashboard,
 )
+from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
 
 def get_perm_tuples(role_name):
@@ -1132,41 +1133,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert tbl.get_extra_cache_keys(self.query_obj) == []
         assert "value > 1" not in sql
 
-    @pytest.fixture()
-    def load_unicode_dashboard(self):
-        data = [
-            {"phrase": "Под"},
-            {"phrase": "řšž"},
-            {"phrase": "視野無限廣"},
-            {"phrase": "微風"},
-            {"phrase": "中国智造"},
-            {"phrase": "æøå"},
-            {"phrase": "ëœéè"},
-            {"phrase": "いろはにほ"},
-        ]
-        tbl_name = "unicode_test"
-
-        # generate date/numeric data
-        df = pd.DataFrame.from_dict(data)
-
-        with self.create_app().app_context():
-            database = get_example_database()
-            schema = {
-                "phrase": String(500),
-            }
-            obj = create_table_for_dashboard(df, tbl_name, database, schema)
-            obj.fetch_metadata()
-
-            tbl = obj
-            slc = create_slice("Unicode Cloud", "word_cloud", tbl, None)
-            o = db.session.query(Slice).filter_by(slice_name=slc.slice_name).first()
-            if o:
-                db.session.delete(o)
-            db.session.add(slc)
-            db.session.commit()
-            create_dashboard("unicode-test", "Unicode Test", None, slc)
-
-    @pytest.mark.usefixtures("load_unicode_dashboard")
+    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
     def test_multiple_table_filter_alters_another_tables_query(self):
         g.user = self.get_user(
             username="alpha"

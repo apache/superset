@@ -14,22 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 """Utils to provide dashboards for tests"""
 
 import json
+from typing import Any, Dict
 
 from pandas import DataFrame
-from typing import Dict, Any
 
-from superset import db, ConnectorRegistry
+from superset import ConnectorRegistry, db
+from superset.connectors.sqla.models import SqlaTable
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 
 
 def create_table_for_dashboard(
-    df: DataFrame, tbl_name: str, database, schema: Dict[str, Any]
-):
+    df: DataFrame, tbl_name: str, database: "Database", schema: Dict[str, Any]
+) -> "SqlaTable":
     df.to_sql(
         tbl_name,
         database.get_sqla_engine(),
@@ -51,7 +52,9 @@ def create_table_for_dashboard(
     return obj
 
 
-def create_slice(title, viz_type, tbl, slices_dict: Dict[str, str]):
+def create_slice(
+    title: str, viz_type: str, tbl: SqlaTable, slices_dict: Dict[str, str]
+) -> Slice:
     return Slice(
         slice_name=title,
         viz_type=viz_type,
@@ -61,7 +64,7 @@ def create_slice(title, viz_type, tbl, slices_dict: Dict[str, str]):
     )
 
 
-def create_dashboard(slug: str, title: str, position: str, slc: Slice):
+def create_dashboard(slug: str, title: str, position: str, slc: Slice) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 
     if not dash:
@@ -76,3 +79,4 @@ def create_dashboard(slug: str, title: str, position: str, slc: Slice):
         dash.slices = [slc]
         db.session.merge(dash)
     db.session.commit()
+    return dash

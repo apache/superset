@@ -53,7 +53,6 @@ def setup_sample_data() -> Any:
         engine.execute("DROP TABLE energy_usage")
         engine.execute("DROP TABLE wb_health_population")
         engine.execute("DROP TABLE birth_names")
-        engine.execute("DROP TABLE IF EXISTS unicode_test")
 
         # drop sqlachemy tables
 
