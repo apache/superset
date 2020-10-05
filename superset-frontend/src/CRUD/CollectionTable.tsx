@@ -231,7 +231,7 @@ export default class CRUDCollection extends React.PureComponent<
       tds.push(
         <td key="__actions" data-test="crud-delete-option">
           <i
-            {...{ 'data-test': 'crud-delete-icon' }}
+            {...{"data-test": "crud-delete-icon"}}
             role="button"
             aria-label="Delete item"
             tabIndex={0}
@@ -242,7 +242,7 @@ export default class CRUDCollection extends React.PureComponent<
       );
     }
     const trs = [
-      <tr {...{ 'data-test': 'table-row' }} className="row" key={record.id}>
+      <tr {...{"data-test": "table-row"} } className="row" key={record.id}>
         {tds}
       </tr>,
     ];
@@ -294,7 +294,7 @@ export default class CRUDCollection extends React.PureComponent<
             </Button>
           )}
         </span>
-        <table data-test="table" className="table">
+        <table data-test="crud-table" className="table">
           {this.renderHeaderRow()}
           {this.renderTableBody()}
         </table>
