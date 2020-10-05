@@ -173,6 +173,7 @@ class TableColumn(Model, BaseColumn):
         "expression",
         "description",
         "python_date_format",
+        "uuid",
     ]
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
@@ -336,6 +337,7 @@ class TableColumn(Model, BaseColumn):
             "is_dttm",
             "type",
             "python_date_format",
+            "uuid",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 
