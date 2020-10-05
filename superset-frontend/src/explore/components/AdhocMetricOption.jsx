@@ -18,10 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { OverlayTrigger } from 'react-bootstrap';
 import { withTheme } from '@superset-ui/core';
 
+import Popover from 'src/common/components/Popover';
 import Label from 'src/components/Label';
+import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
@@ -41,8 +42,19 @@ class AdhocMetricOption extends React.PureComponent {
     this.onOverlayEntered = this.onOverlayEntered.bind(this);
     this.onOverlayExited = this.onOverlayExited.bind(this);
     this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.state = { overlayShown: false };
-    this.overlay = null;
+    this.handleVisibleChange = this.handleVisibleChange.bind(this);
+    this.onLabelChange = this.onLabelChange.bind(this);
+    this.state = { overlayShown: false, adhocMetric: props.adhocMetric };
+  }
+
+  onLabelChange(e) {
+    const label = e.target.value;
+    this.setState(prevState => ({
+      adhocMetric: prevState.adhocMetric.duplicateWith({
+        label,
+        hasCustomLabel: true,
+      }),
+    }));
   }
 
   onPopoverResize() {
@@ -62,11 +74,19 @@ class AdhocMetricOption extends React.PureComponent {
   }
 
   closeMetricEditOverlay() {
-    this.overlay.hide();
+    this.setState({ overlayShown: false });
+  }
+
+  handleVisibleChange(visible) {
+    if (visible) {
+      this.onOverlayEntered();
+    } else {
+      this.onOverlayExited();
+    }
   }
 
   render() {
-    const { adhocMetric, theme } = this.props;
+    const { adhocMetric } = this.props;
     const overlayContent = (
       <AdhocMetricEditPopover
         onResize={this.onPopoverResize}
@@ -75,7 +95,13 @@ class AdhocMetricOption extends React.PureComponent {
         onClose={this.closeMetricEditOverlay}
         columns={this.props.columns}
         datasourceType={this.props.datasourceType}
-        theme={theme}
+      />
+    );
+
+    const popoverTitle = (
+      <AdhocMetricEditPopoverTitle
+        adhocMetric={this.state.adhocMetric}
+        onChange={this.onLabelChange}
       />
     );
 
@@ -85,19 +111,15 @@ class AdhocMetricOption extends React.PureComponent {
         data-test="metric-option"
         onMouseDownCapture={e => e.stopPropagation()}
       >
-        <OverlayTrigger
-          ref={ref => {
-            this.overlay = ref;
-          }}
+        <Popover
           placement="right"
           trigger="click"
           disabled
-          overlay={overlayContent}
-          rootClose
-          shouldUpdatePosition
-          defaultOverlayShown={adhocMetric.isNew}
-          onEntered={this.onOverlayEntered}
-          onExited={this.onOverlayExited}
+          content={overlayContent}
+          defaultVisible={adhocMetric.isNew}
+          onVisibleChange={this.handleVisibleChange}
+          visible={this.state.overlayShown}
+          title={popoverTitle}
         >
           <Label className="option-label adhoc-option">
             {adhocMetric.label}
@@ -107,7 +129,7 @@ class AdhocMetricOption extends React.PureComponent {
               } adhoc-label-arrow`}
             />
           </Label>
-        </OverlayTrigger>
+        </Popover>
       </div>
     );
   }

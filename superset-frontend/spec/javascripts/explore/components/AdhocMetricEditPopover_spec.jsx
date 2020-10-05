@@ -20,7 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { FormGroup, Popover } from 'react-bootstrap';
+import { FormGroup } from 'react-bootstrap';
 import Button from 'src/components/Button';
 
 import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
@@ -62,7 +62,6 @@ function setup(overrides) {
 describe('AdhocMetricEditPopover', () => {
   it('renders a popover with edit metric form contents', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find(FormGroup)).toHaveLength(3);
     expect(wrapper.find(Button)).toHaveLength(2);
   });
