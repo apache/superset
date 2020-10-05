@@ -31,8 +31,8 @@ export const Pill = styled.div`
 
   svg {
     vertical-align: middle;
-    height: ${({ theme }) => theme.typography.sizes.m}px;
-    width: ${({ theme }) => theme.typography.sizes.m}px;
+    height: 1em;
+    width: 1em;
     color: currentColor;
   }
 
@@ -52,11 +52,17 @@ export const Pill = styled.div`
   &.filters-inactive {
     color: ${({ theme }) => theme.colors.grayscale.light5};
     background: ${({ theme }) => theme.colors.grayscale.light1};
-    width: 24px;
-    height: 24px;
+    min-width: 22px;
+    max-width: 22px;
+    min-height: 22px;
+    max-height: 22px;
     padding: 0;
     text-align: center;
-    line-height: 24px;
+    line-height: 22px;
+    font-size: 18px;
+    svg {
+      margin-bottom: 2px;
+    }
     &:hover {
       background: ${({ theme }) => theme.colors.grayscale.base};
     }

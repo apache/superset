@@ -111,7 +111,7 @@ const FiltersBadge = ({
           isInactive && 'filters-inactive',
         )}
       >
-        <Icon name="filter" className={''} />
+        <Icon name="filter" />
         {!isInactive && (
           <span data-test="applied-filter-count">
             {appliedIndicators.length}

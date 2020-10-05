@@ -57,31 +57,30 @@ body {
 }
 
 .dashboard .chart-header {
-  position: relative;
   font-size: @font-size-l;
   font-weight: @font-weight-bold;
   margin-bottom: 4px;
+  display: grid;
+  max-width: 100%;
+  overflow: hidden;
+  grid-template-columns: 1fr auto;
 
-  & > .chart-header-container {
-    display: flex;
-    flex-wrap: nowrap;
-    padding-right: 20px;
+  & > .header-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
 
+  & > .header-controls {
     & > * {
-      flex: none;
-    }
-
-    & > .header {
-      flex: 1;
+      margin-left: 8px;
     }
   }
 
   .dropdown.btn-group {
-    position: absolute;
-    right: 0;
-    top: 2px;
     pointer-events: none;
-
+    vertical-align: top;
     & > * {
       pointer-events: auto;
     }

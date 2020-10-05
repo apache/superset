@@ -185,6 +185,10 @@ export default function EditableTitle({
       </TooltipWrapper>
     );
   }
+  if (!canEdit) {
+    // don't actually want an input in this case
+    input = <span title={value}>{value}</span>;
+  }
   return (
     <span
       className={cx(
