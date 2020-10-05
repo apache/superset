@@ -295,7 +295,7 @@ function DashboardList(props: DashboardListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icon name="trash" />
+                      <Icon {...{"data-test":"dashboard-list-trash-icon"}} name="trash" />
                       </span>
                     </TooltipWrapper>
                   )}
@@ -442,13 +442,12 @@ function DashboardList(props: DashboardListProps) {
             >
               {confirmDelete => (
                 <div
-                  data-test="dashboard-list-delete-option"
                   role="button"
                   tabIndex={0}
                   className="action-button"
                   onClick={confirmDelete}
                 >
-                  <ListViewCard.MenuIcon name="trash" /> Delete
+                  <ListViewCard.MenuIcon {...{"data-test":"dashboard-card-view-trash-icon"}} name="trash" /> Delete
                 </div>
               )}
             </ConfirmStatusChange>
@@ -465,7 +464,7 @@ function DashboardList(props: DashboardListProps) {
         )}
         {canEdit && (
           <Menu.Item
-            data-test="edit-option"
+            data-test="dashboard-list-edit-option"
             role="button"
             tabIndex={0}
             onClick={() => openDashboardEditModal(dashboard)}

@@ -282,7 +282,7 @@ function ListView<T extends object = any>({
   return (
     <ListViewStyles fullHeight={fullHeight}>
       <div
-        data-test="chart-list-view"
+        data-test={className}
         className={`superset-list-view ${className}`}
       >
         <div className="header">

@@ -459,7 +459,7 @@ function ChartList(props: ChartListProps) {
         )}
         {canEdit && (
           <Menu.Item
-            data-test="edit-option"
+            data-test="chart-list-edit-option"
             role="button"
             tabIndex={0}
             onClick={() => openChartEditModal(chart)}

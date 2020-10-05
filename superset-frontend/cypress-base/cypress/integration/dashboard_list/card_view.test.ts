@@ -27,7 +27,7 @@ describe('Dashboard card view', () => {
   });
 
   it('should load cards', () => {
-    cy.get('.dashboard-list-view');
+    cy.get('[data-test="dashboard-list-view"]');
     cy.get('[data-test="styled-card"]').should('be.visible');
     cy.get('[data-test="styled-card"]').should('have.length', 4);
   });
@@ -73,7 +73,7 @@ describe('Dashboard card view', () => {
     cy.get('.Select__control').last().should('be.visible');
     cy.get('.Select__control').last().click({ force: true });
     cy.get('.Select__menu').contains('Alphabetical').click();
-    cy.get('.dashboard-list-view').should('be.visible');
+    cy.get('[data-test="dashboard-list-view"]').should('be.visible');
     cy.get('.ant-card').first().contains('Tabbed Dashboard');
     cy.get('.ant-card').last().contains("World Bank's Data");
 
@@ -89,25 +89,23 @@ describe('Dashboard card view', () => {
   it('should delete correctly', () => {
     // show delete modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
-    cy.get('[data-test="dashboard-list-delete-option"]')
-      .contains('Delete')
+    cy.get('[data-test="dashboard-card-view-trash-icon"]')
       .should('be.visible');
-    cy.get('[data-test="dashboard-list-delete-option"]')
-      .contains('Delete')
+    cy.get('[data-test="dashboard-card-view-trash-icon"]')
       .click();
-    cy.get('[data-test="modal-footer"]').should('be.visible');
-    cy.get('[data-test="delete-button"]').should('have.attr', 'disabled');
-    cy.get('[data-test="modal-body"]').should('be.visible');
+    cy.get('[data-test="Please Confirm-modal-footer"]').should('be.visible');
+    cy.get('[data-test="modal-delete-button"]').should('have.attr', 'disabled');
+    cy.get('[data-test="Please Confirm-modal-body"]').should('be.visible');
     cy.get("[data-test='delete-modal-input']").type('DELETE');
-    cy.get('[data-test="delete-button"]').should('not.have.attr', 'disabled');
+    cy.get('[data-test="modal-delete-button"]').should('not.have.attr', 'disabled');
     cy.get('[data-test="modal-cancel-button"]').click();
   });
 
   it('should edit correctly', () => {
     // show edit modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
-    cy.get('[data-test="edit-option"]').contains('Edit').should('be.visible');
-    cy.get('[data-test="edit-option"]').contains('Edit').click();
+    cy.get('[data-test="dashboard-list-edit-option"]').contains('Edit').should('be.visible');
+    cy.get('[data-test="dashboard-list-edit-option"]').contains('Edit').click();
     cy.get('[data-test="dashboard-properties-modal"]').should('be.visible');
     cy.get('[data-test="dashboard-title-input"]').should('not.have.value');
     cy.get('[data-test="properties-modal-cancel-button"]')
