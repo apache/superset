@@ -30,7 +30,7 @@ describe('Dashboard edit mode', () => {
 
   it('remove, and add chart flow', () => {
     // wait for box plot to appear
-    cy.get('[data-test="grid-container"]').find('.box_plot');
+    cy.get('[data-test="grid-container"]').find('.box_plot', { timeout: 10000 });
 
     cy.get('[data-test="icon-button-span"]')
       .last()
@@ -48,7 +48,7 @@ describe('Dashboard edit mode', () => {
     cy.wait(2000);
 
     // find box plot is available from list
-    cy.get('[data-test="card-title"]').contains('Box plot');
+    cy.get('[data-test="card-title"]').contains('Box plot', { timeout: 5000 });
 
     drag('[data-test="card-title"]', 'Box plot').to(
       '.grid-row.background--transparent:last',

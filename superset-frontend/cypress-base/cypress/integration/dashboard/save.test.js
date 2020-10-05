@@ -52,7 +52,7 @@ describe('Dashboard save action', () => {
 
   it('should save/overwrite dashboard', () => {
     // should have box_plot chart
-    cy.get('[data-test="grid-container"]').find('.box_plot', { timeout: 5000 });
+    cy.get('[data-test="grid-container"]').find('.box_plot', { timeout: 10000 });
 
     // remove box_plot chart from dashboard
     cy.get('[data-test="edit-alt"]').click({ timeout: 5000 });

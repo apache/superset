@@ -47,9 +47,7 @@ describe('chart card view filters', () => {
     cy.get('.Select__control').eq(2).click();
     cy.get('.Select__control').eq(2).type('world_map{enter}');
     cy.get('[data-test="styled-card"]').should('have.length', 1);
-    cy.get('[data-test="styled-card"]')
-      .contains('% Rural')
-      .should('exist');
+    cy.get('[data-test="styled-card"]').contains('% Rural').should('exist');
   });
 
   it('should filter by datasource correctly', () => {
