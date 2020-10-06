@@ -133,9 +133,9 @@ export default class MainMenu extends React.Component {
     const { visible } = this.state;
     return (
       <Layout.Header css={headerStyle}>
-        <Link to="https://superset.incubator.apache.org">
+        <a href="https://superset.incubator.apache.org">
           <img height="50" css={logoStyle} src={logoSvg} alt="logo" />
-        </Link>
+        </a>
         <MenuItems toggleDrawer={this.toggleDrawer} mode="horizontal" />
         <Drawer
           title="Menu"
