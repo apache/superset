@@ -142,7 +142,7 @@ export default function EditableTitle({
 
   // Create a textarea when we're editing a multi-line value, otherwise create an input (which may
   // be text or a button).
-  let input =
+  let titleComponent =
     multiLine && isEditing ? (
       <textarea
         ref={contentRef}
@@ -171,7 +171,7 @@ export default function EditableTitle({
       />
     );
   if (showTooltip && !isEditing) {
-    input = (
+    titleComponent = (
       <TooltipWrapper
         label="title"
         tooltip={
@@ -181,13 +181,13 @@ export default function EditableTitle({
               t("You don't have the rights to alter this title.")
         }
       >
-        {input}
+        {titleComponent}
       </TooltipWrapper>
     );
   }
   if (!canEdit) {
     // don't actually want an input in this case
-    input = <span title={value}>{value}</span>;
+    titleComponent = <span title={value}>{value}</span>;
   }
   return (
     <span
@@ -199,7 +199,7 @@ export default function EditableTitle({
       )}
       style={style}
     >
-      {input}
+      {titleComponent}
     </span>
   );
 }

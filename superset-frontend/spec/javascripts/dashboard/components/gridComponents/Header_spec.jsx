@@ -86,7 +86,9 @@ describe('Header', () => {
   it('should render an EditableTitle with meta.text', () => {
     const wrapper = setup();
     expect(wrapper.find(EditableTitle)).toExist();
-    expect(wrapper.find('input').prop('value')).toBe(props.component.meta.text);
+    expect(wrapper.find('.editable-title')).toHaveText(
+      props.component.meta.text,
+    );
   });
 
   it('should call updateComponents when EditableTitle changes', () => {
