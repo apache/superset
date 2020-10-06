@@ -1,6 +1,8 @@
 # Python unit tests
 name: Python
 
+on: [push, pull_request]
+
 jobs:
   lint:
     runs-on: ubuntu-18.04

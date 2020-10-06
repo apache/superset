@@ -1,5 +1,7 @@
 name: E2E
 
+on: [push, pull_request]
+
 jobs:
   Cypress:
     runs-on: ubuntu-18.04

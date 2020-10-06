@@ -1,5 +1,7 @@
 name: Hive
 
+on: [push, pull_request]
+
 jobs:
   test-postgres-hive:
     runs-on: ubuntu-18.04

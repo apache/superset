@@ -1,5 +1,7 @@
 name: Presto
 
+on: [push, pull_request]
+
 jobs:
   test-postgres-presto:
       runs-on: ubuntu-18.04
