@@ -33,6 +33,7 @@ interface ModalProps {
   show: boolean;
   title: React.ReactNode;
   width?: string;
+  hideFooter?: boolean;
   centered?: boolean;
   footer?: React.ReactNode;
 }
@@ -99,6 +100,7 @@ export default function Modal({
   width,
   centered,
   footer,
+  hideFooter,
   ...rest
 }: ModalProps) {
   const modalFooter = isNil(footer)
@@ -131,7 +133,7 @@ export default function Modal({
           ×
         </span>
       }
-      footer={modalFooter}
+      footer={!hideFooter ? modalFooter : null}
       {...rest}
     >
       {children}

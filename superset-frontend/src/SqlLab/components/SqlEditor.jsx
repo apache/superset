@@ -529,9 +529,7 @@ class SqlEditor extends React.PureComponent {
             <span>
               <SaveQuery
                 query={qe}
-                defaultLabel={
-                  qe.description == null ? qe.title : qe.description
-                }
+                defaultLabel={qe.title || qe.description}
                 onSave={this.props.actions.saveQuery}
                 onUpdate={this.props.actions.updateSavedQuery}
                 saveQueryWarning={this.props.saveQueryWarning}
