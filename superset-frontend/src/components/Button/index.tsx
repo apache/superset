@@ -237,6 +237,7 @@ export default function Button(props: ButtonProps) {
   const buttonProps = {
     ...props,
     bsSize: props.buttonSize,
+    disabled: props.disabled || false,
     placement: props.placement || 'top',
   };
   const { tooltip, placement, dropdownItems } = props;

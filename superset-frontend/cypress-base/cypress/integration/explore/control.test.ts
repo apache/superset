@@ -24,7 +24,7 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
 
-  it('should allow edit datasource', () => {
+  it('should allow edit dataset', () => {
     let numScripts = 0;
 
     cy.login();
@@ -40,7 +40,7 @@ describe('Datasource control', () => {
       numScripts = nodes.length;
     });
 
-    cy.get('a').contains('Edit Datasource').click();
+    cy.get('a').contains('Edit Dataset').click();
 
     // should load additional scripts for the modal
     cy.get('script').then(nodes => {
@@ -64,7 +64,7 @@ describe('Datasource control', () => {
       .type(newMetricName, { force: true });
     // delete metric
     cy.get('#datasource_menu').click();
-    cy.get('a').contains('Edit Datasource').click();
+    cy.get('a').contains('Edit Dataset').click();
     cy.get('a[role="tab"]').contains('Metrics').click();
     cy.get(`input[value="${newMetricName}"]`)
       .closest('tr')

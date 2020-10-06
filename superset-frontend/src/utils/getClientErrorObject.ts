@@ -103,7 +103,7 @@ export default function getClientErrorObject(
                   {
                     code: 1000,
                     message: t(
-                      'Issue 1000 - The datasource is too large to query.',
+                      'Issue 1000 - The dataset is too large to query.',
                     ),
                   },
                   {
