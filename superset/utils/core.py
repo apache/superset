@@ -462,12 +462,6 @@ def json_dumps_w_dates(payload: Dict[Any, Any]) -> str:
     return json.dumps(payload, default=json_int_dttm_ser)
 
 
-def uuid_ser(obj: Any) -> str:
-    if isinstance(obj, uuid.UUID):
-        return str(obj)
-    raise TypeError(f"Unable to serialize {obj!r} to JSON")
-
-
 def error_msg_from_exception(ex: Exception) -> str:
     """Translate exception into error message
 

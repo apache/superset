@@ -193,7 +193,6 @@ class Slice(
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,
-            "uuid": str(self.uuid),
         }
 
     @property

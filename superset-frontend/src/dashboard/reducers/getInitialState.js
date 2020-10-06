@@ -126,7 +126,6 @@ export default function getInitialState(bootstrapData) {
       slice_id: key,
       slice_url: slice.slice_url,
       slice_name: slice.slice_name,
-      uuid: slice.slice_uuid,
       form_data: slice.form_data,
       edit_url: slice.edit_url,
       viz_type: slice.form_data.viz_type,
@@ -159,7 +158,6 @@ export default function getInitialState(bootstrapData) {
         CHART_TYPE,
         {
           chartId: slice.slice_id,
-          uuid: slice.uuid,
         },
         (newSlicesContainer.parents || []).slice(),
       );

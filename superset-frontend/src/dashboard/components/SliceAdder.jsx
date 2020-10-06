@@ -164,7 +164,6 @@ class SliceAdder extends React.Component {
     const meta = {
       chartId: cellData.slice_id,
       sliceName: cellData.slice_name,
-      uuid: cellData.uuid,
     };
     return (
       <DragDroppable

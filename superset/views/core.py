@@ -2425,7 +2425,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(DATASOURCE_MISSING_ERR)
 
         datasource.raise_for_access()
-        return json_success(json.dumps(datasource.data, default=utils.uuid_ser))
+        return json_success(json.dumps(datasource.data))
 
     @has_access_api
     @expose("/queries/<float:last_updated_ms>")
