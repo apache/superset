@@ -29,10 +29,10 @@ from superset.models.slice import Slice
 
 
 def create_table_for_dashboard(
-    df: DataFrame, tbl_name: str, database: Database, schema: Dict[str, Any]
+    df: DataFrame, table_name: str, database: Database, schema: Dict[str, Any]
 ) -> SqlaTable:
     df.to_sql(
-        tbl_name,
+        table_name,
         database.get_sqla_engine(),
         if_exists="replace",
         chunksize=500,
@@ -41,30 +41,30 @@ def create_table_for_dashboard(
         method="multi",
     )
 
-    tbl_source = ConnectorRegistry.sources["table"]
-    obj = db.session.query(tbl_source).filter_by(table_name=tbl_name).first()
-    if not obj:
-        obj = tbl_source(table_name=tbl_name)
-    obj.database = database
-    db.session.merge(obj)
+    table_source = ConnectorRegistry.sources["table"]
+    table = db.session.query(table_source).filter_by(table_name=table_name).first()
+    if not table:
+        table = table_source(table_name=table_name)
+    table.database = database
+    db.session.merge(table)
     db.session.commit()
 
-    return obj
+    return table
 
 
 def create_slice(
-    title: str, viz_type: str, tbl: SqlaTable, slices_dict: Dict[str, str]
+    title: str, viz_type: str, table: SqlaTable, slices_dict: Dict[str, str]
 ) -> Slice:
     return Slice(
         slice_name=title,
         viz_type=viz_type,
         datasource_type="table",
-        datasource_id=tbl.id,
+        datasource_id=table.id,
         params=json.dumps(slices_dict, indent=4, sort_keys=True),
     )
 
 
-def create_dashboard(slug: str, title: str, position: str, slc: Slice) -> Dashboard:
+def create_dashboard(slug: str, title: str, position: str, slice: Slice) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 
     if not dash:
@@ -75,8 +75,8 @@ def create_dashboard(slug: str, title: str, position: str, slc: Slice) -> Dashbo
         pos = json.loads(js)
         dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
-    if slc is not None:
-        dash.slices = [slc]
+    if slice is not None:
+        dash.slices = [slice]
         db.session.merge(dash)
     db.session.commit()
     return dash

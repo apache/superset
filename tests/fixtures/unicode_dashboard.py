@@ -35,21 +35,21 @@ from tests.test_app import app
 
 @pytest.fixture()
 def load_unicode_dashboard_with_slice():
-    tbl_name = "unicode_test"
+    table_name = "unicode_test"
     df = _get_dataframe()
     with app.app_context():
-        yield _create_unicode_dashboard(df, tbl_name, "Unicode Cloud", None)
+        yield _create_unicode_dashboard(df, table_name, "Unicode Cloud", None)
 
         _cleanup()
 
 
 @pytest.fixture()
 def load_unicode_dashboard_with_position():
-    tbl_name = "unicode_test"
+    table_name = "unicode_test"
     df = _get_dataframe()
     position = "{}"
     with app.app_context():
-        yield _create_unicode_dashboard(df, tbl_name, "Unicode Cloud", position)
+        yield _create_unicode_dashboard(df, table_name, "Unicode Cloud", position)
 
         _cleanup()
 
@@ -73,31 +73,29 @@ def _get_unicode_data():
 
 
 def _create_unicode_dashboard(
-    df: DataFrame, tbl_name: str, slc_title: str, position: str
+    df: DataFrame, table_name: str, slice_title: str, position: str
 ) -> Dashboard:
     database = get_example_database()
     schema = {
         "phrase": String(500),
     }
-    obj = create_table_for_dashboard(df, tbl_name, database, schema)
-    obj.fetch_metadata()
+    table = create_table_for_dashboard(df, table_name, database, schema)
+    table.fetch_metadata()
 
-    tbl = obj
+    if slice_title:
+        slice = _create_and_commit_unicode_slice(table, slice_title)
 
-    if slc_title:
-        slc = _create_and_commit_unicode_slice(tbl, slc_title)
-
-    return create_dashboard("unicode-test", "Unicode Test", position, slc)
+    return create_dashboard("unicode-test", "Unicode Test", position, slice)
 
 
-def _create_and_commit_unicode_slice(tbl: SqlaTable, title: str):
-    slc = create_slice(title, "word_cloud", tbl, {})
-    o = db.session.query(Slice).filter_by(slice_name=slc.slice_name).first()
+def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
+    slice = create_slice(title, "word_cloud", table, {})
+    o = db.session.query(Slice).filter_by(slice_name=slice.slice_name).first()
     if o:
         db.session.delete(o)
-    db.session.add(slc)
+    db.session.add(slice)
     db.session.commit()
-    return slc
+    return slice
 
 
 def _cleanup() -> None:
