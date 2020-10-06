@@ -23,7 +23,7 @@ import { bindActionCreators } from 'redux';
 import { Popover } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import DetailsPanel, { Indicator } from './DetailsPanel';
+import DetailsPanelPopover, { Indicator } from './DetailsPanel';
 import { Pill } from './Styles';
 import { selectIndicatorsForChart, IndicatorStatus } from './selectors';
 
@@ -92,17 +92,11 @@ const FiltersBadge = ({
     !appliedIndicators.length && !incompatibleIndicators.length;
 
   return (
-    <Popover
-      content={
-        <DetailsPanel
-          appliedIndicators={appliedIndicators}
-          unsetIndicators={unsetIndicators}
-          incompatibleIndicators={incompatibleIndicators}
-          onHighlightFilterSource={onHighlightFilterSource}
-        />
-      }
-      placement="bottomRight"
-      trigger="click"
+    <DetailsPanelPopover
+      appliedIndicators={appliedIndicators}
+      unsetIndicators={unsetIndicators}
+      incompatibleIndicators={incompatibleIndicators}
+      onHighlightFilterSource={onHighlightFilterSource}
     >
       <Pill
         className={cx(
@@ -127,7 +121,7 @@ const FiltersBadge = ({
           </>
         ) : null}
       </Pill>
-    </Popover>
+    </DetailsPanelPopover>
   );
 };
 

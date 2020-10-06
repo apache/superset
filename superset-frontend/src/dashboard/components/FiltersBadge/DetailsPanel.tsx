@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '@superset-ui/core';
 import {
   SearchOutlined,
@@ -24,7 +24,7 @@ import {
   CheckCircleFilled,
   ExclamationCircleFilled,
 } from '@ant-design/icons';
-import { Collapse } from 'src/common/components/index';
+import { Collapse, Popover } from 'src/common/components/index';
 import { Indent, Item, ItemIcon, Panel, Reset, Title } from './Styles';
 import { IndicatorStatus } from './selectors';
 
@@ -59,31 +59,43 @@ export interface DetailsPanelProps {
   incompatibleIndicators: Indicator[];
   unsetIndicators: Indicator[];
   onHighlightFilterSource: (path: string) => void;
+  children: JSX.Element;
 }
 
-const DetailsPanel = ({
+const DetailsPanelPopover = ({
   appliedIndicators = [],
   incompatibleIndicators = [],
   unsetIndicators = [],
   onHighlightFilterSource,
+  children,
 }: DetailsPanelProps) => {
   const theme = useTheme();
+
+  function defaultActivePanel() {
+    if (incompatibleIndicators.length) return 'incompatible';
+    if (appliedIndicators.length) return 'applied';
+    return 'unset';
+  }
+
+  const [activePanel, setActivePanel] = useState(defaultActivePanel);
+
+  function handlePopoverStatus(isOpen: boolean) {
+    // every time the popover opens, choose the active panel anew
+    if (isOpen) {
+      setActivePanel(defaultActivePanel());
+    }
+  }
+
   const total =
     appliedIndicators.length +
     incompatibleIndicators.length +
     unsetIndicators.length;
-  let activePanel = 'unset';
-  if (incompatibleIndicators.length) {
-    activePanel = 'incompatible';
-  } else if (appliedIndicators.length) {
-    activePanel = 'applied';
-  }
 
-  return (
+  const content = (
     <Panel>
       <div>{`${total} Scoped Filters`}</div>
       <Reset>
-        <Collapse ghost defaultActiveKey={[activePanel]}>
+        <Collapse ghost activeKey={[activePanel]}>
           {appliedIndicators.length ? (
             <Collapse.Panel
               key="applied"
@@ -150,6 +162,17 @@ const DetailsPanel = ({
       </Reset>
     </Panel>
   );
+
+  return (
+    <Popover
+      content={content}
+      onVisibleChange={handlePopoverStatus}
+      placement="bottomRight"
+      trigger="click"
+    >
+      {children}
+    </Popover>
+  );
 };
 
-export default DetailsPanel;
+export default DetailsPanelPopover;
