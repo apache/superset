@@ -28,7 +28,7 @@ const propTypes = {
       descr: PropTypes.string.isRequired,
       func: PropTypes.func,
     }),
-  ).isRequired,
+  ),
   header: PropTypes.string,
   placement: PropTypes.string,
 };

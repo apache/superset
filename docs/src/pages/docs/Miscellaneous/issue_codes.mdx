@@ -43,3 +43,33 @@ This may be due to a syntax error, a bug in your query, or some other
 internal failure within the database. This is usually not an
 issue within Superset, but instead a problem with the underlying
 database that serves your query.
+
+## Issue 1003
+
+```
+There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.
+```
+
+Your query failed because of a syntax error within the underlying query. Please
+validate that all columns or tables referenced within the query exist and are spelled
+correctly.
+
+## Issue 1004
+
+```
+The column was deleted or renamed in the database.
+```
+
+Your query failed because it is referencing a column that no longer exists in
+the underlying datasource. You should modify the query to reference the
+replacement column, or remove this column from your query.
+
+## Issue 1005
+
+```
+The table was deleted or renamed in the database.
+```
+
+Your query failed because it is referencing a table that no longer exists in
+the underlying database. You should modify your query to reference the correct
+table.

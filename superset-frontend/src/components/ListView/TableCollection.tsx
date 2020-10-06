@@ -30,19 +30,15 @@ interface TableCollectionProps {
   rows: TableInstance['rows'];
   columns: TableInstance['column'][];
   loading: boolean;
-  sticky: boolean;
+  highlightRowId?: number;
 }
 
-interface TableProps {
-  sticky: boolean;
-}
-
-const Table = styled.table<TableProps>`
+const Table = styled.table`
   border-collapse: separate;
 
   th {
     background: ${({ theme }) => theme.colors.grayscale.light5};
-    position: ${({ sticky }) => sticky && 'sticky'};
+    position: sticky;
     top: 0;
 
     &:first-of-type {
@@ -204,10 +200,10 @@ export default function TableCollection({
   columns,
   rows,
   loading,
-  sticky,
+  highlightRowId,
 }: TableCollectionProps) {
   return (
-    <Table {...getTableProps()} sticky={sticky} className="table table-hover">
+    <Table {...getTableProps()} className="table table-hover">
       <thead>
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
@@ -268,7 +264,9 @@ export default function TableCollection({
               <tr
                 {...row.getRowProps()}
                 className={cx('table-row', {
-                  'table-row-selected': row.isSelected,
+                  'table-row-selected':
+                    // @ts-ignore
+                    row.isSelected || row.original.id === highlightRowId,
                 })}
               >
                 {row.cells.map(cell => {

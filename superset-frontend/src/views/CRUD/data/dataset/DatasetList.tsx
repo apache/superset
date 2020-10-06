@@ -29,7 +29,10 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, {
+  SubMenuProps,
+  ButtonProps,
+} from 'src/components/Menu/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import AvatarIcon from 'src/components/AvatarIcon';
 import Owner from 'src/types/Owner';
@@ -397,8 +400,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     ...commonMenuData,
   };
 
+  const buttonArr: Array<ButtonProps> = [];
+
+  if (canDelete) {
+    buttonArr.push({
+      name: t('Bulk Select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
   if (canCreate) {
-    menuData.primaryButton = {
+    buttonArr.push({
       name: (
         <>
           {' '}
@@ -406,15 +419,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         </>
       ),
       onClick: () => setDatasetAddModalOpen(true),
-    };
+      buttonStyle: 'primary',
+    });
   }
 
-  if (canDelete) {
-    menuData.secondaryButton = {
-      name: t('Bulk Select'),
-      onClick: toggleBulkSelect,
-    };
-  }
+  menuData.buttons = buttonArr;
 
   const closeDatasetDeleteModal = () => {
     setDatasetCurrentlyDeleting(null);

@@ -20,14 +20,14 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
+import { Table, Thead, Th, Tr, Td } from 'reactable-arc';
 import { formatNumber, formatTime } from '@superset-ui/core';
 import {
   InfoTooltipWithTrigger,
   MetricOption,
 } from '@superset-ui/chart-controls';
 import moment from 'moment';
-import ListView from 'src/components/ListView';
-import { memoize } from 'lodash-es';
+
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
 import './TimeTable.less';
@@ -90,68 +90,6 @@ const defaultProps = {
 };
 
 class TimeTable extends React.PureComponent {
-  memoizedColumns = memoize(() => [
-    { accessor: 'metric', Header: 'Metric' },
-    ...this.props.columnConfigs.map((columnConfig, i) => ({
-      accessor: columnConfig.key,
-      cellProps: columnConfig.colType === 'spark' && { style: { width: '1%' } },
-      Header: () => (
-        <>
-          {columnConfig.label}{' '}
-          {columnConfig.tooltip && (
-            <InfoTooltipWithTrigger
-              tooltip={columnConfig.tooltip}
-              label={`tt-col-${i}`}
-              placement="top"
-            />
-          )}
-        </>
-      ),
-      sortType: (rowA, rowB, columnId) => {
-        const rowAVal = rowA.values[columnId].props['data-value'];
-        const rowBVal = rowB.values[columnId].props['data-value'];
-        return rowAVal - rowBVal;
-      },
-    })),
-  ]);
-
-  memoizedRows = memoize(() => {
-    const entries = Object.keys(this.props.data)
-      .sort()
-      .map(time => ({ ...this.props.data[time], time }));
-    const reversedEntries = entries.concat().reverse();
-
-    return this.props.rows.map(row => {
-      const valueField = row.label || row.metric_name;
-      const cellValues = this.props.columnConfigs.reduce(
-        (acc, columnConfig) => {
-          if (columnConfig.colType === 'spark') {
-            return {
-              ...acc,
-              [columnConfig.key]: this.renderSparklineCell(
-                valueField,
-                columnConfig,
-                entries,
-              ),
-            };
-          }
-          return {
-            ...acc,
-            [columnConfig.key]: this.renderValueCell(
-              valueField,
-              columnConfig,
-              reversedEntries,
-            ),
-          };
-        },
-        {},
-      );
-      return { ...row, ...cellValues, metric: this.renderLeftCell(row) };
-    });
-  });
-
-  initialSort = [{ id: 'metric', desc: false }];
-
   renderLeftCell(row) {
     const { rowType, url } = this.props;
     const context = { metric: row };
@@ -169,9 +107,10 @@ class TimeTable extends React.PureComponent {
       return column.label;
     }
 
+    const metric = row;
     return (
       <MetricOption
-        metric={row}
+        metric={metric}
         url={fullUrl}
         showFormula={false}
         openInNewWindow
@@ -197,27 +136,32 @@ class TimeTable extends React.PureComponent {
     }
 
     return (
-      <SparklineCell
-        width={parseInt(column.width, 10) || 300}
-        height={parseInt(column.height, 10) || 50}
-        data={sparkData}
-        data-value={sparkData[sparkData.length - 1]}
-        ariaLabel={`spark-${valueField}`}
-        numberFormat={column.d3format}
-        yAxisBounds={column.yAxisBounds}
-        showYAxis={column.showYAxis}
-        renderTooltip={({ index }) => (
-          <div>
-            <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
+      <Td
+        column={column.key}
+        key={column.key}
+        value={sparkData[sparkData.length - 1]}
+      >
+        <SparklineCell
+          width={parseInt(column.width, 10) || 300}
+          height={parseInt(column.height, 10) || 50}
+          data={sparkData}
+          ariaLabel={`spark-${valueField}`}
+          numberFormat={column.d3format}
+          yAxisBounds={column.yAxisBounds}
+          showYAxis={column.showYAxis}
+          renderTooltip={({ index }) => (
             <div>
-              {formatTime(
-                column.dateFormat,
-                moment.utc(entries[index].time).toDate(),
-              )}
+              <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
+              <div>
+                {formatTime(
+                  column.dateFormat,
+                  moment.utc(entries[index].time).toDate(),
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      />
+          )}
+        />
+      </Td>
     );
   }
 
@@ -260,9 +204,10 @@ class TimeTable extends React.PureComponent {
     const color = colorFromBounds(v, column.bounds);
 
     return (
-      <span
+      <Td
+        column={column.key}
         key={column.key}
-        data-value={v}
+        value={v}
         style={
           color && {
             boxShadow: `inset 0px -2.5px 0px 0px ${color}`,
@@ -271,34 +216,87 @@ class TimeTable extends React.PureComponent {
         }
       >
         {errorMsg ? (
-          { errorMsg }
+          <div>{errorMsg}</div>
         ) : (
-          <span style={{ color }}>
+          <div style={{ color }}>
             <FormattedNumber num={v} format={column.d3format} />
-          </span>
+          </div>
         )}
-      </span>
+      </Td>
+    );
+  }
+
+  renderRow(row, entries, reversedEntries) {
+    const { columnConfigs } = this.props;
+    const valueField = row.label || row.metric_name;
+    const leftCell = this.renderLeftCell(row);
+
+    return (
+      <Tr key={leftCell}>
+        <Td column="metric" data={leftCell}>
+          {leftCell}
+        </Td>
+        {columnConfigs.map(c =>
+          c.colType === 'spark'
+            ? this.renderSparklineCell(valueField, c, entries)
+            : this.renderValueCell(valueField, c, reversedEntries),
+        )}
+      </Tr>
     );
   }
 
   render() {
-    const { className, height } = this.props;
+    const {
+      className,
+      height,
+      data,
+      columnConfigs,
+      rowType,
+      rows,
+    } = this.props;
+
+    const entries = Object.keys(data)
+      .sort()
+      .map(time => ({ ...data[time], time }));
+    const reversedEntries = entries.concat().reverse();
+
+    const defaultSort =
+      rowType === 'column' && columnConfigs.length
+        ? {
+            column: columnConfigs[0].key,
+            direction: 'desc',
+          }
+        : false;
 
     return (
       <div className={`time-table ${className}`} style={{ height }}>
-        <ListView
-          columns={this.memoizedColumns()}
-          data={this.memoizedRows()}
-          count={0}
-          // we don't use pagination
-          pageSize={0}
-          initialSort={this.initialSort}
-          fetchData={() => {}}
-          loading={false}
-          sticky={false}
-          fullHeight
-          manualSortBy={false}
-        />
+        <Table
+          className="table table-no-hover"
+          defaultSort={defaultSort}
+          sortBy={defaultSort}
+          sortable={columnConfigs.map(c => c.key)}
+        >
+          <Thead>
+            <Th column="metric">Metric</Th>
+            {columnConfigs.map((c, i) => (
+              <Th
+                key={c.key}
+                column={c.key}
+                width={c.colType === 'spark' ? '1%' : null}
+              >
+                {c.label}{' '}
+                {c.tooltip && (
+                  <InfoTooltipWithTrigger
+                    tooltip={c.tooltip}
+                    label={`tt-col-${i}`}
+                    placement="top"
+                  />
+                )}
+              </Th>
+            ))}
+          </Thead>
+          {rows.map(row => this.renderRow(row, entries, reversedEntries))}
+        </Table>
       </div>
     );
   }

@@ -38,5 +38,13 @@ export default function setupErrorMessages() {
     ErrorTypeEnum.GENERIC_DB_ENGINE_ERROR,
     DatabaseErrorMessage,
   );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.COLUMN_DOES_NOT_EXIST_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.TABLE_DOES_NOT_EXIST_ERROR,
+    DatabaseErrorMessage,
+  );
   setupErrorMessagesExtra();
 }

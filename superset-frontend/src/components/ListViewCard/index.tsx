@@ -36,8 +36,6 @@ const ActionsWrapper = styled.div`
 `;
 
 const StyledCard = styled(Card)`
-  width: 459px;
-
   .ant-card-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px
       ${({ theme }) => theme.gridUnit * 2}px;
@@ -65,7 +63,7 @@ const Cover = styled.div`
 
 const GradientContainer = styled.div`
   position: relative;
-  display: inline-block;
+  height: 100%;
 
   &:after {
     content: '';
@@ -82,12 +80,6 @@ const GradientContainer = styled.div`
       rgba(0, 0, 0, 0.5) 100%
     );
   }
-`;
-const CardCoverImg = styled(ImageLoader)`
-  display: block;
-  object-fit: cover;
-  width: 459px;
-  height: 264px;
 `;
 
 const TitleContainer = styled.div`
@@ -173,7 +165,7 @@ function ListViewCard({
         <Cover>
           <a href={url}>
             <GradientContainer>
-              <CardCoverImg
+              <ImageLoader
                 src={imgURL}
                 fallback={imgFallbackURL}
                 isLoading={loading}

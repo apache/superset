@@ -40,7 +40,6 @@ SELENIUM_HEADSTART = 3
 
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from flask_appbuilder.security.sqla.models import User
 
 

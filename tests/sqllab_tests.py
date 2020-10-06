@@ -381,6 +381,27 @@ class TestSqlLab(SupersetTestCase):
         table_id = resp["table_id"]
         table = db.session.query(SqlaTable).filter_by(id=table_id).one()
         self.assertEqual([owner.username for owner in table.owners], ["admin"])
+        view_menu = security_manager.find_view_menu(table.get_perm())
+        assert view_menu is not None
+
+    def test_sqllab_viz_bad_payload(self):
+        self.login("admin")
+        payload = {
+            "chartType": "dist_bar",
+            "schema": "superset",
+            "columns": [
+                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+            ],
+            "sql": """\
+                SELECT *
+                FROM birth_names
+                LIMIT 10""",
+        }
+        data = {"data": json.dumps(payload)}
+        url = "/superset/sqllab_viz/"
+        response = self.client.post(url, data=data, follow_redirects=True)
+        assert response.status_code == 400
 
     def test_sqllab_table_viz(self):
         self.login("admin")

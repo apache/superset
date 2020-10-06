@@ -99,7 +99,6 @@ try:
             self.client.timing(key, value)
 
         def gauge(self, key: str) -> None:
-            # pylint: disable=no-value-for-parameter
             self.client.gauge(key)
 
 

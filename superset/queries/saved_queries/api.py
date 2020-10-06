@@ -34,6 +34,7 @@ from superset.queries.saved_queries.commands.exceptions import (
 )
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
+    SavedQueryFavoriteFilter,
     SavedQueryFilter,
 )
 from superset.queries.saved_queries.schemas import (
@@ -73,6 +74,8 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "sql_tables",
     ]
     list_columns = [
+        "changed_on_delta_humanized",
+        "created_on",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
@@ -80,6 +83,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "database.id",
         "db_id",
         "description",
+        "id",
         "label",
         "schema",
         "sql",
@@ -94,9 +98,15 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "sql",
         "created_by.first_name",
         "database.database_name",
+        "created_on",
+        "changed_on_delta_humanized",
     ]
 
-    search_filters = {"label": [SavedQueryAllTextFilter]}
+    search_columns = ["id", "label"]
+    search_filters = {
+        "id": [SavedQueryFavoriteFilter],
+        "label": [SavedQueryAllTextFilter],
+    }
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

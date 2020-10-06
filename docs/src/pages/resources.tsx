@@ -41,8 +41,16 @@ const learningLinks = [
 
 const installationLinks = [
   [
+    'Official Apache releases',
+    'https://dist.apache.org/repos/dist/release/incubator/superset/',
+  ],
+  [
     'Locally with Docker',
     'https://superset.incubator.apache.org/installation.html#start-with-docker',
+  ],
+  [
+    'Superset on the Python Package Index (PyPI)',
+    'https://dist.apache.org/repos/dist/release/incubator/superset/',
   ],
   [
     'Install on CentOS',
@@ -97,7 +105,7 @@ interface featureProps {
 }
 const LinkSection = ({ title, links }: featureProps) => (
   <div className="link-section">
-    <h2>{title}</h2>
+    <h3>{title}</h3>
     <List
       size="small"
       bordered

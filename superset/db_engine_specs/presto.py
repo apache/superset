@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 import logging
 import re
 import textwrap
@@ -27,7 +28,7 @@ from urllib import parse
 
 import pandas as pd
 import simplejson as json
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -38,6 +39,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 
 from superset import app, cache, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import (
@@ -54,6 +56,9 @@ from superset.utils import core as utils
 if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
+
+COLUMN_NOT_RESOLVED_ERROR_REGEX = "line (.+?): .*Column '(.+?)' cannot be resolved"
+TABLE_DOES_NOT_EXIST_ERROR_REGEX = ".*Table (.+?) does not exist"
 
 QueryStatus = utils.QueryStatus
 config = app.config
@@ -1035,3 +1040,53 @@ class PrestoEngineSpec(BaseEngineSpec):
         :return: A list of function names useable in the database
         """
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
+
+    @classmethod
+    def extract_errors(cls, ex: Exception) -> List[Dict[str, Any]]:
+        raw_message = cls._extract_error_message(ex)
+
+        column_match = re.search(COLUMN_NOT_RESOLVED_ERROR_REGEX, raw_message)
+        if column_match:
+            return [
+                dataclasses.asdict(
+                    SupersetError(
+                        error_type=SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+                        message=__(
+                            'We can\'t seem to resolve the column "%(column_name)s" at '
+                            "line %(location)s.",
+                            column_name=column_match.group(2),
+                            location=column_match.group(1),
+                        ),
+                        level=ErrorLevel.ERROR,
+                        extra={"engine_name": cls.engine_name},
+                    )
+                )
+            ]
+
+        table_match = re.search(TABLE_DOES_NOT_EXIST_ERROR_REGEX, raw_message)
+        if table_match:
+            return [
+                dataclasses.asdict(
+                    SupersetError(
+                        error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                        message=__(
+                            'The table "%(table_name)s" does not exist. '
+                            "A valid table must be used to run this query.",
+                            table_name=table_match.group(1),
+                        ),
+                        level=ErrorLevel.ERROR,
+                        extra={"engine_name": cls.engine_name},
+                    )
+                )
+            ]
+
+        return [
+            dataclasses.asdict(
+                SupersetError(
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    message=cls._extract_error_message(ex),
+                    level=ErrorLevel.ERROR,
+                    extra={"engine_name": cls.engine_name},
+                )
+            )
+        ]

@@ -718,6 +718,7 @@ class ChartDataQueryObjectSchema(Schema):
     )
     groupby = fields.List(
         fields.String(description="Columns by which to group the query.",),
+        allow_none=True,
     )
     metrics = fields.List(
         fields.Raw(),
@@ -781,12 +782,20 @@ class ChartDataQueryObjectSchema(Schema):
     order_desc = fields.Boolean(
         description="Reverse order. Default: `false`", required=False
     )
-    extras = fields.Nested(ChartDataExtrasSchema, required=False)
-    columns = fields.List(fields.String(), description="",)
+    extras = fields.Nested(
+        ChartDataExtrasSchema,
+        description="Extra parameters to add to the query.",
+        required=False,
+    )
+    columns = fields.List(
+        fields.String(),
+        description="Columns which to select in the query.",
+        allow_none=True,
+    )
     orderby = fields.List(
         fields.List(fields.Raw()),
         description="Expects a list of lists where the first element is the column "
-        "name which to sort by, and the second element is a boolean ",
+        "name which to sort by, and the second element is a boolean.",
         example=[["my_col_1", False], ["my_col_2", True]],
     )
     where = fields.String(

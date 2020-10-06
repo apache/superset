@@ -85,4 +85,24 @@ describe('SubMenu', () => {
     expect(routerWrapper.find(Link)).toHaveLength(2);
     expect(routerWrapper.find(MenuItem)).toHaveLength(1);
   });
+
+  it('renders buttons in the right nav of the submenu', () => {
+    const mockFunc = jest.fn();
+    const buttons = [
+      {
+        name: 'test_button',
+        onClick: mockFunc,
+        buttonStyle: 'primary',
+      },
+      {
+        name: 'danger_button',
+        buttonStyle: 'danger',
+      },
+    ];
+    const overrideProps = { buttons };
+    const newWrapper = getWrapper(overrideProps);
+    expect(newWrapper.find('.navbar-right').children()).toHaveLength(2);
+    newWrapper.find('[buttonStyle="primary"]').simulate('click');
+    expect(mockFunc).toHaveBeenCalled();
+  });
 });

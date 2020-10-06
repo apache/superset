@@ -18,11 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, OverlayTrigger, Popover } from 'react-bootstrap';
-import Button from 'src/components/Button';
+import { Row, Col } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
+import Popover from 'src/components/Popover';
 import PopoverSection from 'src/components/PopoverSection';
 import Checkbox from 'src/components/Checkbox';
 import ControlHeader from '../ControlHeader';
@@ -108,10 +108,6 @@ export default class SpatialControl extends React.Component {
     this.setState({ type }, this.onChange);
   }
 
-  close() {
-    this.refs.trigger.hide();
-  }
-
   toggleCheckbox() {
     this.setState(
       prevState => ({ reverseCheckbox: !prevState.reverseCheckbox }),
@@ -164,68 +160,56 @@ export default class SpatialControl extends React.Component {
     );
   }
 
-  renderPopover() {
+  renderPopoverContent() {
     return (
-      <Popover id="filter-popover">
-        <div style={{ width: '300px' }}>
-          <PopoverSection
-            title={t('Longitude & Latitude columns')}
-            isSelected={this.state.type === spatialTypes.latlong}
-            onSelect={this.setType.bind(this, spatialTypes.latlong)}
-          >
-            <Row>
-              <Col md={6}>
-                Longitude
-                {this.renderSelect('lonCol', spatialTypes.latlong)}
-              </Col>
-              <Col md={6}>
-                Latitude
-                {this.renderSelect('latCol', spatialTypes.latlong)}
-              </Col>
-            </Row>
-          </PopoverSection>
-          <PopoverSection
-            title={t('Delimited long & lat single column')}
-            info={t(
-              'Multiple formats accepted, look the geopy.points ' +
-                'Python library for more details',
-            )}
-            isSelected={this.state.type === spatialTypes.delimited}
-            onSelect={this.setType.bind(this, spatialTypes.delimited)}
-          >
-            <Row>
-              <Col md={6}>
-                {t('Column')}
-                {this.renderSelect('lonlatCol', spatialTypes.delimited)}
-              </Col>
-              <Col md={6}>{this.renderReverseCheckbox()}</Col>
-            </Row>
-          </PopoverSection>
-          <PopoverSection
-            title={t('Geohash')}
-            isSelected={this.state.type === spatialTypes.geohash}
-            onSelect={this.setType.bind(this, spatialTypes.geohash)}
-          >
-            <Row>
-              <Col md={6}>
-                Column
-                {this.renderSelect('geohashCol', spatialTypes.geohash)}
-              </Col>
-              <Col md={6}>{this.renderReverseCheckbox()}</Col>
-            </Row>
-          </PopoverSection>
-          <div className="clearfix">
-            <Button
-              buttonSize="small"
-              className="float-left ok"
-              buttonStyle="primary"
-              onClick={this.close.bind(this)}
-            >
-              Ok
-            </Button>
-          </div>
-        </div>
-      </Popover>
+      <div style={{ width: '300px' }}>
+        <PopoverSection
+          title={t('Longitude & Latitude columns')}
+          isSelected={this.state.type === spatialTypes.latlong}
+          onSelect={this.setType.bind(this, spatialTypes.latlong)}
+        >
+          <Row>
+            <Col md={6}>
+              Longitude
+              {this.renderSelect('lonCol', spatialTypes.latlong)}
+            </Col>
+            <Col md={6}>
+              Latitude
+              {this.renderSelect('latCol', spatialTypes.latlong)}
+            </Col>
+          </Row>
+        </PopoverSection>
+        <PopoverSection
+          title={t('Delimited long & lat single column')}
+          info={t(
+            'Multiple formats accepted, look the geopy.points ' +
+              'Python library for more details',
+          )}
+          isSelected={this.state.type === spatialTypes.delimited}
+          onSelect={this.setType.bind(this, spatialTypes.delimited)}
+        >
+          <Row>
+            <Col md={6}>
+              {t('Column')}
+              {this.renderSelect('lonlatCol', spatialTypes.delimited)}
+            </Col>
+            <Col md={6}>{this.renderReverseCheckbox()}</Col>
+          </Row>
+        </PopoverSection>
+        <PopoverSection
+          title={t('Geohash')}
+          isSelected={this.state.type === spatialTypes.geohash}
+          onSelect={this.setType.bind(this, spatialTypes.geohash)}
+        >
+          <Row>
+            <Col md={6}>
+              Column
+              {this.renderSelect('geohashCol', spatialTypes.geohash)}
+            </Col>
+            <Col md={6}>{this.renderReverseCheckbox()}</Col>
+          </Row>
+        </PopoverSection>
+      </div>
     );
   }
 
@@ -233,17 +217,13 @@ export default class SpatialControl extends React.Component {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <OverlayTrigger
-          animation={this.props.animation}
-          container={document.body}
+        <Popover
+          content={this.renderPopoverContent()}
+          placement="topLeft" // so that popover doesn't move when label changes
           trigger="click"
-          rootClose
-          ref="trigger"
-          placement="right"
-          overlay={this.renderPopover()}
         >
           <Label className="pointer">{this.renderLabelContent()}</Label>
-        </OverlayTrigger>
+        </Popover>
       </div>
     );
   }

@@ -67,6 +67,7 @@ describe('DashboardBuilder', () => {
     colorScheme: undefined,
     handleComponentDrop() {},
     setDirectPathToChild: sinon.spy(),
+    setMountedTab() {},
   };
 
   function setup(overrideProps, useProvider = false, store = mockStore) {

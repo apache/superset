@@ -39,7 +39,7 @@ const propTypes = {
   lastUpdated: PropTypes.number.isRequired,
   errorMessage: PropTypes.string,
   userId: PropTypes.string.isRequired,
-  selectedSliceIds: PropTypes.arrayOf(PropTypes.number).isRequired,
+  selectedSliceIds: PropTypes.arrayOf(PropTypes.number),
   editMode: PropTypes.bool,
   height: PropTypes.number,
 };

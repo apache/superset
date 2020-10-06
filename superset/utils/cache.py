@@ -27,8 +27,7 @@ def view_cache_key(*args: Any, **kwargs: Any) -> str:  # pylint: disable=unused-
 
 
 def memoized_func(
-    key: Callable[..., str] = view_cache_key,  # pylint: disable=bad-whitespace
-    attribute_in_key: Optional[str] = None,
+    key: Callable[..., str] = view_cache_key, attribute_in_key: Optional[str] = None,
 ) -> Callable[..., Any]:
     """Use this decorator to cache functions that have predefined first arg.
 

@@ -297,6 +297,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
+    "ENABLE_DASHBOARD_ETAG_HEADER": False,
     "KV_STORE": False,
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
@@ -502,11 +503,6 @@ MAX_TABLE_NAMES = 3000
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
-
-# If defined, shows this text in an alert-warning box in the navbar
-# one example use case may be "STAGING" to make it clear that this is
-# not the production version of the site.
-WARNING_MSG = None
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
