@@ -54,7 +54,7 @@ def json_to_dict(json_str: str) -> Dict[Any, Any]:
 
 class ImportMixin:
     uuid = sa.Column(
-        UUIDType(binary=False), primary_key=False, unique=True, default=uuid.uuid4
+        UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )
 
     export_parent: Optional[str] = None

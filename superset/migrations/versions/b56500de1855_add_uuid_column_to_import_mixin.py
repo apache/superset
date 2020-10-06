@@ -43,7 +43,7 @@ Base = declarative_base()
 
 class ImportMixin:
     id = sa.Column(sa.Integer, primary_key=True)
-    uuid = sa.Column(UUIDType(binary=False), primary_key=False, default=uuid.uuid4)
+    uuid = sa.Column(UUIDType(binary=True), primary_key=False, default=uuid.uuid4)
 
 
 table_names = [
@@ -118,7 +118,7 @@ def upgrade():
             batch_op.add_column(
                 sa.Column(
                     "uuid",
-                    UUIDType(binary=False),
+                    UUIDType(binary=True),
                     primary_key=False,
                     default=uuid.uuid4,
                 )
