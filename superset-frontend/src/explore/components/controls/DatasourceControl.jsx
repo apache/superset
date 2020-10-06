@@ -183,8 +183,8 @@ class DatasourceControl extends React.PureComponent {
           <OverlayTrigger
             placement="top"
             overlay={
-              <Tooltip id="toggle-datasource-tooltip">
-                {t('Expand/collapse datasource configuration')}
+              <Tooltip id="toggle-dataset-tooltip">
+                {t('Expand/collapse dataset configuration')}
               </Tooltip>
             }
           >
@@ -202,7 +202,7 @@ class DatasourceControl extends React.PureComponent {
           </OverlayTrigger>
           <TooltipWrapper
             label="change-datasource"
-            tooltip={t('more dataset related options')}
+            tooltip={t('More dataset related options')}
             trigger={['hover']}
           >
             <DropdownButton
@@ -212,7 +212,7 @@ class DatasourceControl extends React.PureComponent {
               id="datasource_menu"
             >
               <MenuItem eventKey="3" onClick={this.toggleChangeDatasourceModal}>
-                {t('Change Datasource')}
+                {t('Change Dataset')}
               </MenuItem>
               {datasource.type === 'table' && (
                 <MenuItem
@@ -226,7 +226,7 @@ class DatasourceControl extends React.PureComponent {
               )}
               {this.props.isEditable && (
                 <MenuItem eventKey="3" onClick={this.toggleEditDatasourceModal}>
-                  {t('Edit Datasource')}
+                  {t('Edit Dataset')}
                 </MenuItem>
               )}
             </DropdownButton>

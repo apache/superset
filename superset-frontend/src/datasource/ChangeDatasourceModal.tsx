@@ -37,8 +37,8 @@ interface ChangeDatasourceModalProps {
 const TABLE_COLUMNS = ['name', 'type', 'schema', 'connection', 'creator'];
 const TABLE_FILTERABLE = ['rawName', 'type', 'schema', 'connection', 'creator'];
 const CHANGE_WARNING_MSG = t(
-  'Changing the datasource may break the chart if the chart relies ' +
-    'on columns or metadata that does not exist in the target datasource',
+  'Changing the dataset may break the chart if the chart relies ' +
+    'on columns or metadata that does not exist in the target dataset',
 );
 
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
@@ -123,7 +123,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   return (
     <Modal show={show} onHide={onHide} onEnter={onEnterModal} bsSize="large">
       <Modal.Header closeButton>
-        <Modal.Title>{t('Select a datasource')}</Modal.Title>
+        <Modal.Title>{t('Select a dataset')}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Alert bsStyle="warning">

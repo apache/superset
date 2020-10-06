@@ -55,7 +55,7 @@ const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
 const KEYS_TO_SORT = [
   { key: 'slice_name', label: 'Name' },
   { key: 'viz_type', label: 'Vis type' },
-  { key: 'datasource_name', label: 'Datasource' },
+  { key: 'datasource_name', label: 'Dataset' },
   { key: 'changed_on', label: 'Recent' },
 ];
 
