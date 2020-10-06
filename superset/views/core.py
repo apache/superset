@@ -171,6 +171,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     logger = logging.getLogger(__name__)
 
+    def __repr__(self) -> str:
+        """Determinate string representation of the view instance for etag_cache."""
+        return "Superset.views.core.Superset@v{}{}".format(
+            self.appbuilder.app.config["VERSION_STRING"],
+            self.appbuilder.app.config["VERSION_SHA"],
+        )
+
     @has_access_api
     @expose("/datasources/")
     def datasources(self) -> FlaskResponse:
@@ -1605,6 +1612,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         skip=lambda _self, dashboard_id_or_slug: not is_feature_enabled(
             "ENABLE_DASHBOARD_ETAG_HEADER"
         ),
+        must_revalidate=True,
     )
     @expose("/dashboard/<dashboard_id_or_slug>/")
     def dashboard(  # pylint: disable=too-many-locals
