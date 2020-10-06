@@ -51,6 +51,7 @@ def etag_cache(
     check_perms: Callable[..., Any],
     get_last_modified: Optional[Callable[..., Any]] = None,
     skip: Optional[Callable[..., Any]] = None,
+    must_revalidate: Optional[bool] = False,
 ) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.
@@ -78,6 +79,8 @@ def etag_cache(
                 return f(*args, **kwargs)
 
             response = None
+            last_modified = get_last_modified and get_last_modified(*args, **kwargs)
+
             if cache:
                 try:
                     # build the cache key from the function arguments and any
@@ -94,32 +97,37 @@ def etag_cache(
                         raise
                     logger.exception("Exception possibly due to cache backend.")
 
-            # if cache is stale?
-            if get_last_modified:
-                content_changed_time = get_last_modified(*args, **kwargs)
+                # if cache is stale?
                 if (
                     response
+                    and last_modified
                     and response.last_modified
-                    and response.last_modified.timestamp()
-                    < content_changed_time.timestamp()
+                    and response.last_modified < last_modified
                 ):
                     response = None
-            else:
-                # if caller didn't provide content's last_modified time, assume
-                # its cache won't be stale.
-                content_changed_time = datetime.utcnow()
 
-            # if no response was cached, compute it using the wrapped function
             if response is None:
+                # if no response was cached, compute it using the wrapped function
                 response = f(*args, **kwargs)
 
-                # add headers for caching: Last Modified, Expires and ETag
-                response.cache_control.public = True
-                response.last_modified = content_changed_time
+                # set expiration headers:
+                #   Last-Modified, Expires, Cache-Control, ETag
+                response.last_modified = last_modified or datetime.utcnow()
                 expiration = max_age if max_age != 0 else FAR_FUTURE
                 response.expires = response.last_modified + timedelta(
                     seconds=expiration
                 )
+
+                # when needed, instruct the browser to always revalidate cache
+                if must_revalidate:
+                    # `Cache-Control: no-cache` asks the browser to always store
+                    # the cache, but also must validate it with the server.
+                    response.cache_control.no_cache = True
+                else:
+                    # `Cache-Control: Public` asks the browser to always store
+                    # the cache.
+                    response.cache_control.public = True
+
                 response.add_etag()
 
                 # if we have a cache, store the response from the request
