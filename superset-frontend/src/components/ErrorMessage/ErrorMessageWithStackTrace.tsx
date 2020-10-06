@@ -23,17 +23,23 @@ import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry
 import { SupersetError, ErrorSource } from './types';
 import ErrorAlert from './ErrorAlert';
 
+const DEFAULT_TITLE = t('Unexpected Error');
+
 type Props = {
+  title?: string;
   error?: SupersetError;
   link?: string;
-  message?: string;
+  subtitle?: React.ReactNode;
+  copyText?: string;
   stackTrace?: string;
   source?: ErrorSource;
 };
 
 export default function ErrorMessageWithStackTrace({
+  title = DEFAULT_TITLE,
   error,
-  message,
+  subtitle,
+  copyText,
   link,
   stackTrace,
   source,
@@ -51,9 +57,9 @@ export default function ErrorMessageWithStackTrace({
   return (
     <ErrorAlert
       level="warning"
-      title={t('Unexpected Error')}
-      subtitle={message}
-      copyText={message}
+      title={title}
+      subtitle={subtitle}
+      copyText={copyText}
       source={source}
       body={
         link || stackTrace ? (
