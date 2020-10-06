@@ -1,13 +1,5 @@
 name: Frontend
 
-on:
-  push:
-    paths-ignore:
-      - 'docs/**'
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-
 jobs:
   build:
     runs-on: ubuntu-18.04

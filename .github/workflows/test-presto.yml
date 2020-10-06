@@ -1,13 +1,5 @@
 name: Presto
 
-on:
-  push:
-    paths-ignore:
-      - 'docs/**'
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-
 jobs:
   test-postgres-presto:
       runs-on: ubuntu-18.04

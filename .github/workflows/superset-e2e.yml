@@ -1,13 +1,5 @@
 name: E2E
 
-on:
-  push:
-    paths-ignore:
-      - 'docs/**'
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-
 jobs:
   Cypress:
     runs-on: ubuntu-18.04

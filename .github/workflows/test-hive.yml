@@ -1,13 +1,5 @@
 name: Hive
 
-on:
-  push:
-    paths-ignore:
-      - 'docs/**'
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-
 jobs:
   test-postgres-hive:
     runs-on: ubuntu-18.04
