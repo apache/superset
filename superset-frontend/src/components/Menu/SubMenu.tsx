@@ -53,10 +53,22 @@ const StyledHeader = styled.header`
     li.active > a,
     li.active > div,
     li > a:hover,
+    li > a:focus,
     li > div:hover {
-      background-color: ${({ theme }) => theme.colors.secondary.light4};
+      background: ${({ theme }) => theme.colors.secondary.light4};
       border-bottom: none;
       border-radius: 4px;
+    }
+  }
+  .navbar-inverse {
+    .navbar-nav {
+      & > .active > a {
+        background: ${({ theme }) => theme.colors.secondary.light4};
+        &:hover,
+        &:focus {
+          background: ${({ theme }) => theme.colors.secondary.light4};
+        }
+      }
     }
   }
 `;

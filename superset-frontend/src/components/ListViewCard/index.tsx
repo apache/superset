@@ -151,10 +151,11 @@ interface CardProps {
   titleRight?: React.ReactNode;
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
-  actions: React.ReactNode;
+  actions: React.ReactNode | null;
   showImg?: boolean;
   rows?: number | string;
   avatar?: string;
+  isRecent?: boolean;
 }
 
 function ListViewCard({
@@ -167,7 +168,7 @@ function ListViewCard({
   coverLeft,
   coverRight,
   actions,
-  avatar = 'nav-dashboard',
+  avatar,
   loading,
   imgPosition = 'top',
   showImg = true,
@@ -255,7 +256,8 @@ function ListViewCard({
             </>
           }
           description={description}
-          avatar={<IconComponent />}
+          // @ts-ignore
+          avatar={avatar ? <Icon name={avatar} /> : null}
         />
       )}
     </StyledCard>

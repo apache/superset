@@ -8,38 +8,11 @@ import Icon from 'src/components/Icon';
 import Label from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
-import Owner from 'src/types/Owner';
-
+import { DashboardCardProps, Dashboard } from 'src/views/CRUD/types';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { useFavoriteStatus } from 'src/views/CRUD/hooks';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
-
-interface Dashboard {
-  changed_by_name: string;
-  changed_by_url: string;
-  changed_on_delta_humanized: string;
-  changed_by: string;
-  dashboard_title: string;
-  slice_name?: string;
-  id: number;
-  published: boolean;
-  url: string;
-  thumbnail_url: string;
-  owners: Owner[];
-  loading: boolean;
-}
-
-interface DashboardCardProps {
-  isChart?: boolean;
-  dashboard: Dashboard;
-  hasPerm: (name: string) => boolean;
-  bulkSelectEnabled: boolean;
-  refreshData: () => void;
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
-  openDashboardEditModal?: (d: Dashboard) => void;
-}
 
 function DashboardCard({
   isChart,
@@ -132,7 +105,7 @@ function DashboardCard({
             openDashboardEditModal && openDashboardEditModal(dashboard)
           }
         >
-          <ListViewCard.MenuIcon name="pencil" /> Edit
+          <ListViewCard.MenuIcon name="edit-alt" /> Edit
         </Menu.Item>
       )}
     </Menu>

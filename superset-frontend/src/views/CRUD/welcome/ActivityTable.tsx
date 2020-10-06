@@ -17,33 +17,28 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled, SupersetClient, t } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import { SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import moment from 'moment';
 import ListViewCard from 'src/components/ListViewCard';
 import { addDangerToast } from 'src/messageToasts/actions';
-import { MenuItem } from 'react-bootstrap';
 import { createBatchMethod, createErrorHandler } from '../utils';
 
 interface MapProps {
-  action: string;
-  item_title: string;
+  action?: string;
+  item_title?: string;
   slice_name: string;
   time: string;
   changed_on_utc: string;
+  item_url: string;
+}
+
+interface ActivityProps {
   user: {
     userId: string | number;
   };
   activityFilter: string;
-  item_url: string;
 }
-
-const Cards = styled.div`
-  width: 200px;
-  padding: 15px;
-  border: 1px solid #f0f0f0;
-`;
 
 const filters = {
   // Chart and dashbaord uses same filters
@@ -64,33 +59,34 @@ const filters = {
   ],
 };
 
-export default function ActivityTable({ user, activityFilter }: MapProps) {
+export default function ActivityTable({ user, activityFilter }: ActivityProps) {
   const [active, setActiveState] = useState([]);
+  const [loading, setLoading] = useState(false);
   const recent = `/superset/recent_activity/${user.userId}/?limit=10`;
   const setData = (endpoint: string) => {
-    SupersetClient.get(endpoint)
+    setLoading(true);
+    SupersetClient.get({ endpoint })
       .then(({ json }) => {
+        setLoading(false);
         setActiveState(json);
       })
-      .catch(e => {
-        createErrorHandler(err =>
+      .catch(() => {
+        setLoading(false);
+        createErrorHandler(() =>
           addDangerToast(t('There was an issue fetching your resource')),
         );
       });
   };
 
   const setBatchData = (q: string) => {
-    createBatchMethod(q).then((res: Array<object>) => {
-      setActiveState(res);
-    });
+    createBatchMethod(q).then((res: Array<object>) => setActiveState(res));
   };
 
-  const getIconName = (name: string): string => {
-    console.log('name', name)
+  const getIconName = (name: string | undefined) => {
     if (name === 'explore_json') return 'sql';
     if (name === 'dashboard') return 'nav-dashboard';
-    if (name === 'log') return 'nav-chart';
-    return 'sql';
+    if (name === 'log') return 'nav-charts';
+    return '';
   };
 
   const getData = () => {
@@ -102,7 +98,7 @@ export default function ActivityTable({ user, activityFilter }: MapProps) {
       filters: activityFilter !== 'Created' ? filters.edited : filters.created,
     });
     if (activityFilter === 'Viewed') {
-      setData({ endpoint: recent });
+      setData(recent);
     }
     if (activityFilter === 'Edited') {
       setBatchData(queryParams);
@@ -117,31 +113,22 @@ export default function ActivityTable({ user, activityFilter }: MapProps) {
   }, [activityFilter]);
 
   const renderActivity = () => {
-    console.log('e', active)
     return active.map((e: MapProps) => (
       <ListViewCard
-        isRecent={true}
+        isRecent
+        loading={loading}
+        imgURL={null}
+        imgFallbackURL={null}
         url={e.item_url}
         title={activityFilter === 'Viewed' ? e.item_title : e.slice_name}
         description={moment
           .utc(activityFilter === 'Viewd' ? e.time : e.changed_on_utc)
           .fromNow()}
         avatar={getIconName(e.action)}
+        actions={null}
       />
     ));
   };
 
   return <> {renderActivity()} </>;
 }
-/*
-      <a href={e.item_url}>
-        <Cards>
-          <div>{activityFilter === 'Viewed' ? e.item_title : e.slice_name}</div>
-          <div>
-            {moment
-              .utc(activityFilter === 'Viewd' ? e.time : e.changed_on_utc)
-              .fromNow()}
-          </div>
-        </Cards>
-      </>
-      */

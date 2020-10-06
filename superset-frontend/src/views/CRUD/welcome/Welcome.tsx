@@ -24,11 +24,11 @@ import { Collapse } from 'src/common/components';
 import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
 import Icon from 'src/components/Icon';
+
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
-import Icon from 'src/components/Icon';
 
 const { Panel } = Collapse;
 
@@ -79,11 +79,6 @@ function useSyncQueryState(
 }
 
 export default function Welcome({ user }: WelcomeProps) {
-  const [activeTab, setActiveTab] = useSyncQueryState(
-    'activeTab',
-    StringParam,
-    'all',
-  );
   const [queryFilter, setQueryFilter] = useState('Favorite');
   const [activityFilter, setActivityFilter] = useState('Viewed');
   const [dashboardFilter, setDashboardFilter] = useState('Favorite');
@@ -93,21 +88,13 @@ export default function Welcome({ user }: WelcomeProps) {
     StringParam,
     '',
   );
-  console.log('user', user);
-
 
   function ExpandIcon(): React.ReactNode {
-    return (
-      <Icon name="caret-right" />
-    )
+    return <Icon name="caret-right" />;
   }
 
   return (
-    <Collapse
-      defaultActiveKey={['1']}
-      expandIcon={ExpandIcon}
-      ghost
-    >
+    <Collapse defaultActiveKey={['1']} expandIcon={ExpandIcon} ghost>
       <Panel header={t('Recents')} key="1">
         <SubMenu
           activeChild={activityFilter}
@@ -130,10 +117,6 @@ export default function Welcome({ user }: WelcomeProps) {
               onClick: () => setActivityFilter('Created'),
             },
           ]}
-          links={{
-            link: `/chart/list`,
-            linkTitle: 'View All',
-          }}
         />
         <ActivityContainer>
           <ActivityTable user={user} activityFilter={activityFilter} />
@@ -166,6 +149,7 @@ export default function Welcome({ user }: WelcomeProps) {
               ),
               buttonStyle: 'tertiary',
               onClick: () => {
+                // @ts-ignore
                 window.location = '/dashboard/new';
               },
             },
@@ -173,6 +157,7 @@ export default function Welcome({ user }: WelcomeProps) {
               name: 'View All',
               buttonStyle: 'link',
               onClick: () => {
+                // @ts-ignore
                 window.location = '/dashboard/list/';
               },
             },
@@ -221,6 +206,7 @@ export default function Welcome({ user }: WelcomeProps) {
               ),
               buttonStyle: 'tertiary',
               onClick: () => {
+                // @ts-ignore
                 window.location = '/superset/sqllab';
               },
             },
@@ -228,13 +214,14 @@ export default function Welcome({ user }: WelcomeProps) {
               name: 'View All',
               buttonStyle: 'link',
               onClick: () => {
+                // @ts-ignore
                 window.location = 'superset/sqllab#search';
               },
             },
           ]}
         />
         <CardContainer>
-          <SavedQueries />
+          <SavedQueries user={user} queryFilter={queryFilter} />
         </CardContainer>
       </Panel>
       <Panel header={t('Charts')} key="4">
@@ -263,6 +250,7 @@ export default function Welcome({ user }: WelcomeProps) {
               ),
               buttonStyle: 'tertiary',
               onClick: () => {
+                // @ts-ignore
                 window.location = '/chart/add';
               },
             },
@@ -270,6 +258,7 @@ export default function Welcome({ user }: WelcomeProps) {
               name: 'View All',
               buttonStyle: 'link',
               onClick: () => {
+                // @ts-ignore
                 window.location = '/chart/list';
               },
             },

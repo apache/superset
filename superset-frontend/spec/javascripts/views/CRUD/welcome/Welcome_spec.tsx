@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { Panel, Row, Tab } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 
 import Welcome from 'src/views/CRUD/welcome/Welcome';
@@ -37,10 +36,8 @@ describe('Welcome', () => {
   it('is valid', () => {
     expect(React.isValidElement(<Welcome {...mockedProps} />)).toBe(true);
   });
-  it('renders 3 Tab, Panel, and Row components', () => {
+  it('renders 3 submenu components', () => {
     const wrapper = shallow(<Welcome {...mockedProps} />);
-    expect(wrapper.find(Tab)).toHaveLength(3);
-    expect(wrapper.find(Panel)).toHaveLength(3);
-    expect(wrapper.find(Row)).toHaveLength(3);
+    expect(wrapper.find('SubMenu')).toHaveLength(4);
   });
 });

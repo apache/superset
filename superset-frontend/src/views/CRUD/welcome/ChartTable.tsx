@@ -18,18 +18,13 @@
  */
 import React, { useEffect } from 'react';
 import { t } from '@superset-ui/core';
-import { debounce } from 'lodash';
-import ListView, { FetchDataConfig } from 'src/components/ListView';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { User } from 'src/types/bootstrapTypes';
-import ListViewCard from 'src/components/ListViewCard';
-import { Dropdown, Menu } from 'src/common/components';
-import Icon from 'src/components/Icon';
-import Label from 'src/components/Label';
 import Owner from 'src/types/Owner';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DashboardCard from '../dashboard/DashboardCard';
+import ChartCard from 'src/views/CRUD/chart/ChartCard';
+import Chart from 'src/types/Chart';
+
 const PAGE_SIZE = 3;
 
 interface ChartTableProps {
@@ -61,16 +56,6 @@ interface ChartTableState {
   loading: boolean;
 }
 
-export interface FilterValue {
-  col: string;
-  operator: string;
-  value: string | boolean | number | null | undefined;
-}
-
-export interface FetchDataConfig {
-  filters: FilterValue[];
-}
-
 function ChartTable({
   chartFilter,
   user,
@@ -82,15 +67,14 @@ function ChartTable({
     hasPerm,
     refreshData,
     fetchData,
-  } = useListViewResource<Dashboard>('chart', t('chart'), addDangerToast);
-  console.log('dashboardFilter', chartFilter);
+  } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
   const getFilters = () => {
     const filters = [];
 
     if (chartFilter === 'Mine') {
       filters.push({
-        id: 'owners',
-        operator: 'rel_m_m',
+        id: 'created_by',
+        operator: 'rel_o_m',
         value: `${user?.userId}`,
       });
     } else {
@@ -98,10 +82,6 @@ function ChartTable({
         id: 'id',
         operator: 'chart_is_fav',
         value: true,
-       /* id: 'favorite', // API currently can't filter by favorite
-        operator: 'eq',
-        value: true,
-        */
       });
     }
     // Do we need search?
@@ -129,20 +109,19 @@ function ChartTable({
       filters: getFilters(),
     });
   }, [chartFilter]);
-  console.log("----charts: ", charts);
+
   return (
     <>
-      {charts.map(e => (
-        <DashboardCard
-          {...{
-            dashboard: e,
-            hasPerm,
-            bulkSelectEnabled,
-            refreshData,
-            addDangerToast,
-            addSuccessToast,
-          }}
-          isChart
+      {charts.map((e, i) => (
+        <ChartCard
+          key={`${i}`}
+          loading={loading}
+          chart={e}
+          hasPerm={hasPerm}
+          bulkSelectEnabled={bulkSelectEnabled}
+          refreshData={refreshData}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
         />
       ))}
     </>

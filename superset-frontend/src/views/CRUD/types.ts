@@ -16,7 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { User } from 'src/types/bootstrapTypes';
+import Owner from 'src/types/Owner';
 
 export type FavoriteStatus = {
   [id: number]: boolean;
 };
+
+export interface DashboardTableProps {
+  addDangerToast: (message: string) => void;
+  addSuccessToast: (message: string) => void;
+  search: string;
+  dashboardFilter?: string;
+  user?: User;
+}
+
+interface Dashboard {
+  changed_by_name: string;
+  changed_by_url: string;
+  changed_on_delta_humanized: string;
+  changed_by: string;
+  dashboard_title: string;
+  slice_name?: string;
+  id: number;
+  published: boolean;
+  url: string;
+  thumbnail_url: string;
+  owners: Owner[];
+  loading: boolean;
+}
+
+export interface DashboardCardProps {
+  isChart?: boolean;
+  dashboard: Dashboard;
+  hasPerm: (name: string) => boolean;
+  bulkSelectEnabled: boolean;
+  refreshData: () => void;
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  openDashboardEditModal?: (d: Dashboard) => void;
+}

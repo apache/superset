@@ -16,70 +16,97 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Dropdown, Menu } from 'src/common/components';
+import { useListViewResource } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
-// import FaveStar from 'src/components/FaveStar';
 import Icon from 'src/components/Icon';
+import { addDangerToast } from 'src/messageToasts/actions';
+
+const PAGE_SIZE = 3;
+
+interface Query {
+  database: {
+    database_name: string;
+  };
+  rows: string;
+  description: string;
+  end_time: string;
+  addDangerToast: () => void;
+}
 
 interface StateProps {
-  queries: Array<object>;
+  queries: Array<Query>;
 }
 
-class SavedQueries extends React.PureComponent {
-  constructor(props: StateProps) {
-    super(props);
-    this.state = {
-      queries: [],
-    };
-  }
+const SavedQueries = ({ user, queryFilter }) => {
+  const {
+    state: { loading, resourceCollection: queries },
+    fetchData,
+  } = useListViewResource<Query>('query', t('query'), addDangerToast);
+  const getFilters = () => {
+    const filters = [];
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  // eslint-disable-next-line consistent-return
-  fetchData = async () => {
-    try {
-      const { json } = await SupersetClient.get({
-        endpoint: `/api/v1/query/`,
+    if (queryFilter === 'Mine') {
+      filters.push({
+        id: 'created_by',
+        operator: 'rel_o_m',
+        value: `${user?.userId}`,
       });
-      this.setState({ queries: json.result });
-    } catch (e) {
-      return console.log(e);
+    } else {
+      filters.push({
+        id: 'id',
+        operator: 'saved_query_is_fav',
+        value: true,
+      });
     }
+    return filters;
   };
 
-  render() {
-    const menu = (
-      <Menu>
-        <Menu.Item>Delete</Menu.Item>
-      </Menu>
-    );
-    // console.log('queries', this.state.queries)
-    return (
-      <>
-        {this.state.queries.map(q => (
-          <ListViewCard
-            title={q.database.database_name}
-            rows={q.rows}
-            loading={false}
-            description={t('Last run ', q.end_time)}
-            showImg={false}
-            actions={
-              <ListViewCard.Actions>
-                <Dropdown overlay={menu}>
-                  <Icon name="more-horiz" />
-                </Dropdown>
-              </ListViewCard.Actions>
-            }
-          />
-        ))}
-      </>
-    );
-  }
-}
+  useEffect(() => {
+    fetchData({
+      pageIndex: 0,
+      pageSize: PAGE_SIZE,
+      sortBy: [
+        {
+          id: 'changed_on_delta_humanized',
+          desc: true,
+        },
+      ],
+      filters: getFilters(),
+    });
+  }, [queryFilter]);
+
+  const menu = (
+    <Menu>
+      <Menu.Item>Delete</Menu.Item>
+    </Menu>
+  );
+
+  return (
+    <>
+      {queries.map(q => (
+        <ListViewCard
+          imgFallbackURL={null}
+          imgURL={null}
+          title={q.database.database_name}
+          rows={q.rows}
+          loading={loading}
+          description={t('Last run ', q.end_time)}
+          showImg={false}
+          actions={
+            <ListViewCard.Actions>
+              <Dropdown overlay={menu}>
+                <Icon name="more-horiz" />
+              </Dropdown>
+            </ListViewCard.Actions>
+          }
+        />
+      ))}
+    </>
+  );
+};
 
 export default withToasts(SavedQueries);

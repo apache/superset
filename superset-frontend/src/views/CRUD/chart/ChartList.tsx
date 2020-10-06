@@ -430,7 +430,10 @@ function ChartList(props: ChartListProps) {
         hasPerm={hasPerm}
         openChartEditModal={openChartEditModal}
         bulkSelectEnabled={bulkSelectEnabled}
-        renderFaveStar={renderFaveStar}
+        addDangerToast={props.addDangerToast}
+        addSuccessToast={addSuccessToast}
+        refreshData={refreshData}
+        loading={loading}
       />
     );
   }
