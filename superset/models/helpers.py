@@ -285,6 +285,10 @@ class ImportMixin:
                     key=lambda k: sorted(str(k.items())),
                 )
 
+        # convert to string so that it can be serialized to JSON/YAML
+        if "uuid" in dict_rep:
+            dict_rep["uuid"] = str(dict_rep["uuid"])
+
         return dict_rep
 
     def override(self, obj: Any) -> None:

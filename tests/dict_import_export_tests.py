@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import json
 import unittest
+from uuid import uuid4
 
 import yaml
 
@@ -64,10 +65,15 @@ class TestDictImportExport(SupersetTestCase):
     def tearDownClass(cls):
         cls.delete_imports()
 
-    def create_table(self, name, schema="", id=0, cols_names=[], metric_names=[]):
+    def create_table(
+        self, name, schema="", id=0, cols_names=[], cols_uuids=None, metric_names=[]
+    ):
         database_name = "main"
         name = "{0}{1}".format(NAME_PREFIX, name)
         params = {DBREF: id, "database_name": database_name}
+
+        if cols_uuids is None:
+            cols_uuids = [None] * len(cols_names)
 
         dict_rep = {
             "database_id": get_example_database().id,
@@ -75,15 +81,17 @@ class TestDictImportExport(SupersetTestCase):
             "schema": schema,
             "id": id,
             "params": json.dumps(params),
-            "columns": [{"column_name": c} for c in cols_names],
+            "columns": [
+                {"column_name": c, "uuid": u} for c, u in zip(cols_names, cols_uuids)
+            ],
             "metrics": [{"metric_name": c, "expression": ""} for c in metric_names],
         }
 
         table = SqlaTable(
             id=id, schema=schema, table_name=name, params=json.dumps(params)
         )
-        for col_name in cols_names:
-            table.columns.append(TableColumn(column_name=col_name))
+        for col_name, uuid in zip(cols_names, cols_uuids):
+            table.columns.append(TableColumn(column_name=col_name, uuid=uuid))
         for metric_name in metric_names:
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
         return table, dict_rep
@@ -171,6 +179,7 @@ class TestDictImportExport(SupersetTestCase):
             "table_1_col_1_met",
             id=ID_PREFIX + 2,
             cols_names=["col1"],
+            cols_uuids=[uuid4()],
             metric_names=["metric1"],
         )
         imported_table = SqlaTable.import_from_dict(db.session, dict_table)
@@ -187,6 +196,7 @@ class TestDictImportExport(SupersetTestCase):
             "table_2_col_2_met",
             id=ID_PREFIX + 3,
             cols_names=["c1", "c2"],
+            cols_uuids=[uuid4(), uuid4()],
             metric_names=["m1", "m2"],
         )
         imported_table = SqlaTable.import_from_dict(db.session, dict_table)
@@ -217,6 +227,7 @@ class TestDictImportExport(SupersetTestCase):
             id=ID_PREFIX + 3,
             metric_names=["new_metric1", "m1"],
             cols_names=["col1", "new_col1", "col2", "col3"],
+            cols_uuids=[col.uuid for col in imported_over.columns],
         )
         self.assert_table_equals(expected_table, imported_over)
         self.yaml_compare(
@@ -247,6 +258,7 @@ class TestDictImportExport(SupersetTestCase):
             id=ID_PREFIX + 3,
             metric_names=["new_metric1"],
             cols_names=["new_col1", "col2", "col3"],
+            cols_uuids=[col.uuid for col in imported_over.columns],
         )
         self.assert_table_equals(expected_table, imported_over)
         self.yaml_compare(
