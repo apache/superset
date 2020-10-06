@@ -20,7 +20,6 @@ import React from 'react';
 import cx from 'classnames';
 import { connect, Dispatch } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { Popover } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import DetailsPanelPopover, { Indicator } from './DetailsPanel';
