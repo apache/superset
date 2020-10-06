@@ -77,6 +77,7 @@ def create_dashboard(slug: str, title: str, position: str, slice: Slice) -> Dash
     dash.slug = slug
     if slice is not None:
         dash.slices = [slice]
-        db.session.merge(dash)
+    db.session.merge(dash)
     db.session.commit()
+
     return dash

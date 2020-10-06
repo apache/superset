@@ -18,7 +18,6 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 from sqlalchemy import String
-from sqlalchemy.engine import Engine
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
@@ -36,22 +35,25 @@ from tests.test_app import app
 @pytest.fixture()
 def load_unicode_dashboard_with_slice():
     table_name = "unicode_test"
+    slice_name = "Unicode Cloud"
     df = _get_dataframe()
     with app.app_context():
-        yield _create_unicode_dashboard(df, table_name, "Unicode Cloud", None)
+        dash = _create_unicode_dashboard(df, table_name, slice_name, None)
+        yield
 
-        _cleanup()
+        _cleanup(dash, slice_name)
 
 
 @pytest.fixture()
 def load_unicode_dashboard_with_position():
     table_name = "unicode_test"
+    slice_name = "Unicode Cloud"
     df = _get_dataframe()
     position = "{}"
     with app.app_context():
-        yield _create_unicode_dashboard(df, table_name, "Unicode Cloud", position)
-
-        _cleanup()
+        dash = _create_unicode_dashboard(df, table_name, slice_name, position)
+        yield
+        _cleanup(dash, slice_name)
 
 
 def _get_dataframe():
@@ -98,7 +100,11 @@ def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
     return slice
 
 
-def _cleanup() -> None:
+def _cleanup(dash: Dashboard, slice_name: str) -> None:
     engine = get_example_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS unicode_test")
+    db.session.delete(dash)
+    if slice_name:
+        slice = db.session.query(Slice).filter_by(slice_name=slice_name).first()
+        db.session.delete(slice)
     db.session.commit()
