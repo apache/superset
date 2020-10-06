@@ -144,6 +144,8 @@ Commit the change with the version number, then git tag the version with the rel
     git push upstream ${SUPERSET_VERSION_RC}
 ```
 
+At this point, a git action will run that will automatically tag this release as `latest` so that the most recent release can be referenced simply by this tag instead of looking up the version number.
+
 ## Preparing the release candidate
 
 The first step of preparing an Apache Release is packaging a release candidate
