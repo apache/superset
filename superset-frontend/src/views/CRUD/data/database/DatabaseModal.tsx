@@ -314,7 +314,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         >
           <StyledInputContainer>
             <div className="label">
-              {t('Datasource Name')}
+              {t('Database Name')}
               <span className="required">*</span>
             </div>
             <div className="input-container">
@@ -322,7 +322,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 type="text"
                 name="database_name"
                 value={db ? db.database_name : ''}
-                placeholder={t('Name your datasource')}
+                placeholder={t('Name your dataset')}
                 onChange={onInputChange}
               />
             </div>

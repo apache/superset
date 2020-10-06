@@ -221,7 +221,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
               />
               <p className="help-block">
                 {t(
-                  'Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.',
+                  "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
                 )}
               </p>
             </FormGroup>
