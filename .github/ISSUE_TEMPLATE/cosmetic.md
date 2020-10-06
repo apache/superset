@@ -12,3 +12,9 @@ labels: "cosmetic-issue", "good first issue"
 ## Description
 
 [describe the issue here!]
+
+## Design input
+[describe any input/collaboration you'd like from designers, and
+tag accordingly. For design review, add the
+label `design:review`. If this includes a design proposal,
+include the label `design:suggest`]
