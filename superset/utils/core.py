@@ -1553,3 +1553,7 @@ class AdhocMetricExpressionType(str, Enum):
 class RowLevelSecurityFilterType(str, Enum):
     REGULAR = "Regular"
     BASE = "Base"
+
+
+def is_test() -> bool:
+    return "SUPERSET_TESTENV" in os.environ
