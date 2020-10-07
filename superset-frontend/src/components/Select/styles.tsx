@@ -241,6 +241,14 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   }),
 };
 
+const multiInputSpanStyle = css`
+  color: '#879399',
+  position: 'absolute',
+  top: '2px',
+  left: '4px',
+  width: '100vw',
+`;
+
 const { ClearIndicator, DropdownIndicator, Option, Input } = defaultComponents;
 
 type SelectComponentsType = SelectComponentsConfig<any> & {
@@ -298,17 +306,7 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
     <div style={{ position: 'relative' }}>
       <Input {...props} />
       {!!(props.selectProps.isMulti && props.selectProps.value.length) && (
-        <span
-          style={{
-            color: '#879399',
-            position: 'absolute',
-            top: '2px',
-            left: '4px',
-            width: '100vw',
-          }}
-        >
-          {props.selectProps.placeholder}
-        </span>
+        <span css={multiInputSpanStyle}>{props.selectProps.placeholder}</span>
       )}
     </div>
   ),
