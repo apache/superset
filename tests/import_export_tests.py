@@ -225,8 +225,8 @@ class TestImportExport(SupersetTestCase):
         self.assertEqual(exp_params, actual_params)
 
     def assert_only_exported_slc_fields(self, expected_dash, actual_dash):
-        """ only exported json has this params
-            imported/created dashboard has relationships to other models instead
+        """only exported json has this params
+        imported/created dashboard has relationships to other models instead
         """
         expected_slices = sorted(expected_dash.slices, key=lambda s: s.slice_name or "")
         actual_slices = sorted(actual_dash.slices, key=lambda s: s.slice_name or "")

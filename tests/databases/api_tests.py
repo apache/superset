@@ -328,8 +328,8 @@ class TestDatabaseApi(SupersetTestCase):
                 ]
             }
         }
-        self.assertEqual(response.status_code, 400)
         self.assertEqual(response_data, expected_response)
+        self.assertEqual(response.status_code, 400)
 
     def test_create_database_conn_fail(self):
         """
