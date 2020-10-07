@@ -106,7 +106,6 @@ class AnnotationLayerControl extends React.PureComponent {
 
   renderPopover(parent, annotation, error) {
     const id = !annotation ? '_new' : annotation.name;
-    const { theme } = this.props;
     return (
       <div data-test="annotation-popover" id={`annotation-pop-${id}`}>
         <AnnotationLayer
@@ -118,7 +117,6 @@ class AnnotationLayerControl extends React.PureComponent {
           addAnnotationLayer={this.addAnnotationLayer}
           removeAnnotationLayer={this.removeAnnotationLayer}
           close={() => this.refs[parent].hide()}
-          theme={theme}
         />
       </div>
     );

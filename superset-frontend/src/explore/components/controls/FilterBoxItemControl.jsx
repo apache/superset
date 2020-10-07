@@ -263,7 +263,11 @@ export default class FilterBoxItemControl extends React.Component {
   }
 
   renderPopover() {
-    return <div style={STYLE_WIDTH}>{this.renderForm()}</div>;
+    return (
+      <div id="ts-col-popo" style={STYLE_WIDTH}>
+        {this.renderForm()}
+      </div>
+    );
   }
 
   render() {

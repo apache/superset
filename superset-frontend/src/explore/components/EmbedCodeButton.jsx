@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 
 import Popover from 'src/common/components/Popover';

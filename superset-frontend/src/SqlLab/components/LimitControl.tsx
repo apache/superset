@@ -94,7 +94,7 @@ export default class LimitControl extends React.PureComponent<
         ? t(' and not greater than %s', this.props.maxRow)
         : '');
     return (
-      <StyledPopoverContent>
+      <StyledPopoverContent id="sqllab-limit-results">
         <ControlHeader
           label={t('Row limit')}
           validationErrors={!isValid ? [errorMsg] : []}

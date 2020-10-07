@@ -148,7 +148,7 @@ export default class TimeSeriesColumnControl extends React.Component {
 
   renderPopover() {
     return (
-      <div style={{ width: 300 }}>
+      <div id="ts-col-popo" style={{ width: 300 }}>
         {this.formRow(
           'Label',
           'The column header label',

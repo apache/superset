@@ -69,7 +69,7 @@ class AdhocFilterOption extends React.PureComponent {
   }
 
   closeFilterEditOverlay() {
-    this.refs.overlay.hide();
+    this.setState({ overlayShown: false });
   }
 
   handleVisibleChange(visible) {
@@ -112,6 +112,7 @@ class AdhocFilterOption extends React.PureComponent {
           disabled
           content={content}
           defaultVisible={adhocFilter.isNew}
+          visible={this.state.overlayShown}
           onVisibleChange={this.handleVisibleChange}
         >
           <Label className="option-label adhoc-option adhoc-filter-option">

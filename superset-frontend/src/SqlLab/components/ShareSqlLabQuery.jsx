@@ -89,12 +89,14 @@ class ShareSqlLabQuery extends React.Component {
 
   renderPopover() {
     return (
-      <CopyToClipboard
-        text={this.state.shortUrl || t('Loading ...')}
-        copyNode={
-          <i className="fa fa-clipboard" title={t('Copy to clipboard')} />
-        }
-      />
+      <div id="sqllab-shareurl-popover">
+        <CopyToClipboard
+          text={this.state.shortUrl || t('Loading ...')}
+          copyNode={
+            <i className="fa fa-clipboard" title={t('Copy to clipboard')} />
+          }
+        />
+      </div>
     );
   }
 

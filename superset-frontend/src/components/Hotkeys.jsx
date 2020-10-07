@@ -49,7 +49,7 @@ export default class Hotkeys extends React.PureComponent {
   renderPopover() {
     const { hotkeys } = this.props;
     return (
-      <div style={{ width: '300px' }}>
+      <div id="hotkey-popover" style={{ width: '300px' }}>
         <table className="table table-condensed">
           <thead>
             <tr>
