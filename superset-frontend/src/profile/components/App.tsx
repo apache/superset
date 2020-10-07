@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Col, Row, Panel } from 'react-bootstrap';
-import Tabs from 'src/common/components/Tabs';
+import { Col, Row, Tabs, Tab, Panel } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 
 import Favorites from './Favorites';
@@ -40,10 +39,10 @@ export default function App({ user }: AppProps) {
           <UserInfo user={user} />
         </Col>
         <Col md={9}>
-          <Tabs centered>
-            <Tabs.TabPane
-              key="1"
-              tab={
+          <Tabs id="options">
+            <Tab
+              eventKey={1}
+              title={
                 <div>
                   <i className="fa fa-star" /> {t('Favorites')}
                 </div>
@@ -54,10 +53,10 @@ export default function App({ user }: AppProps) {
                   <Favorites user={user} />
                 </Panel.Body>
               </Panel>
-            </Tabs.TabPane>
-            <Tabs.TabPane
-              key="2"
-              tab={
+            </Tab>
+            <Tab
+              eventKey={2}
+              title={
                 <div>
                   <i className="fa fa-paint-brush" /> {t('Created Content')}
                 </div>
@@ -68,10 +67,10 @@ export default function App({ user }: AppProps) {
                   <CreatedContent user={user} />
                 </Panel.Body>
               </Panel>
-            </Tabs.TabPane>
-            <Tabs.TabPane
-              key="3"
-              tab={
+            </Tab>
+            <Tab
+              eventKey={3}
+              title={
                 <div>
                   <i className="fa fa-list" /> {t('Recent Activity')}
                 </div>
@@ -82,10 +81,10 @@ export default function App({ user }: AppProps) {
                   <RecentActivity user={user} />
                 </Panel.Body>
               </Panel>
-            </Tabs.TabPane>
-            <Tabs.TabPane
-              key="4"
-              tab={
+            </Tab>
+            <Tab
+              eventKey={4}
+              title={
                 <div>
                   <i className="fa fa-lock" /> {t('Security & Access')}
                 </div>
@@ -96,7 +95,7 @@ export default function App({ user }: AppProps) {
                   <Security user={user} />
                 </Panel.Body>
               </Panel>
-            </Tabs.TabPane>
+            </Tab>
           </Tabs>
         </Col>
       </Row>
