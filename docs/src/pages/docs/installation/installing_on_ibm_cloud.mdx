@@ -46,7 +46,7 @@ the Helm chart.
 We will copy the default class `ibmc-file-gold` to make it use a specified
 Group ID (GID), so that the pod can write to the volume after mounting.
 
-In the same file we will define the PersistentVolumeClaim (PVC) that the
+In the same file we will define the PersistentVolumeClaim (PVC) which the
 Superset pod will mount.
 
 Save the following as `superset-sc-pvc.yaml`:
@@ -157,7 +157,7 @@ superset.default.svc.cluster.local
 Initially you can login with username/password: admin/admin.
 ```
 
-Initialization will take a few minutes. You can monitor the progress by watching the pod's logs:
+Initialization will take a few minutes. You can monitor progress by watching the pod's logs:
 
 ```bash
 kubectl get pods
@@ -205,7 +205,7 @@ Visit [`localhost:8080`](http://localhost:8080) and use the credentials from the
 previous step.
 
 
-Congratulations, you have set up Superset in IBM Cloud!
+Congratulations, you have set up Superset on IBM Cloud!
 
 
 [1]: https://cloud.ibm.com/docs/containers?topic=containers-cs_cluster_tutorial
