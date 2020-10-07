@@ -99,6 +99,12 @@ class AnnotationLayerControl extends React.PureComponent {
     this.props.onChange(annotations);
   }
 
+  handleVisibleChange(visible, popoverKey) {
+    this.setState(prevState => ({
+      popoverVisible: { ...prevState, [popoverKey]: visible },
+    }));
+  }
+
   removeAnnotationLayer(annotation) {
     const annotations = this.props.value
       .slice()
@@ -144,12 +150,6 @@ class AnnotationLayerControl extends React.PureComponent {
       return <span style={{ color: 'red' }}> Hidden </span>;
     }
     return '';
-  }
-
-  handleVisibleChange(visible, popoverKey) {
-    this.setState(prevState => ({
-      popoverVisible: { ...prevState, [popoverKey]: visible },
-    }));
   }
 
   render() {

@@ -131,7 +131,11 @@ export default class AdhocFilterEditPopover extends React.Component {
     const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
 
     return (
-      <div id="filter-edit-popover" {...popoverProps} data-test="filter-edit-popover">
+      <div
+        id="filter-edit-popover"
+        {...popoverProps}
+        data-test="filter-edit-popover"
+      >
         <Tabs
           id="adhoc-filter-edit-tabs"
           defaultActiveKey={adhocFilter.expressionType}
