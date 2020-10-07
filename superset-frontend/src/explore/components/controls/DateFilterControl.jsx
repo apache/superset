@@ -206,6 +206,8 @@ class DateFilterControl extends React.Component {
       showUntilCalendar: false,
       sinceViewMode: 'days',
       untilViewMode: 'days',
+
+      popoverVisible: false,
     };
 
     const { value } = props;
@@ -230,6 +232,7 @@ class DateFilterControl extends React.Component {
     this.setTypeCustomStartEnd = this.setTypeCustomStartEnd.bind(this);
     this.toggleCalendar = this.toggleCalendar.bind(this);
     this.changeTab = this.changeTab.bind(this);
+    this.handleVisibleChange = this.handleVisibleChange.bind(this);
   }
 
   componentDidMount() {
@@ -328,8 +331,11 @@ class DateFilterControl extends React.Component {
     }
     this.props.onCloseDateFilterControl();
     this.props.onChange(val);
-    this.refs.trigger.hide();
-    this.setState({ showSinceCalendar: false, showUntilCalendar: false });
+    this.setState({
+      showSinceCalendar: false,
+      showUntilCalendar: false,
+      popoverVisible: false,
+    });
   }
 
   isValidSince(date) {
@@ -360,6 +366,10 @@ class DateFilterControl extends React.Component {
       }
     }
     this.setState(nextState);
+  }
+
+  handleVisibleChange(visible) {
+    this.setState({ popoverVisible: visible });
   }
 
   renderInput(props, key) {
@@ -597,6 +607,8 @@ class DateFilterControl extends React.Component {
           placement="right"
           content={this.renderPopover()}
           onClick={this.handleClickTrigger}
+          visible={this.state.popoverVisible}
+          onVisibleChange={this.handleVisibleChange}
         >
           <Label
             name="popover-trigger"

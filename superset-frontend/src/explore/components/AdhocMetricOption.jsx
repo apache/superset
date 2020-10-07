@@ -123,7 +123,7 @@ class AdhocMetricOption extends React.PureComponent {
           visible={this.state.overlayShown}
           title={popoverTitle}
         >
-          <Label className="option-label adhoc-option">
+          <Label className="option-label adhoc-option" data-test="option-label">
             {adhocMetric.label}
             <i
               className={`fa fa-caret-${

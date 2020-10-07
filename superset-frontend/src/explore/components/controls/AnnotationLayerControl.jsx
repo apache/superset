@@ -58,8 +58,10 @@ const defaultProps = {
 class AnnotationLayerControl extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = { popoverVisible: false };
     this.addAnnotationLayer = this.addAnnotationLayer.bind(this);
     this.removeAnnotationLayer = this.removeAnnotationLayer.bind(this);
+    this.handleVisibleChange = this.handleVisibleChange.bind(this);
   }
 
   componentDidMount() {
@@ -104,10 +106,10 @@ class AnnotationLayerControl extends React.PureComponent {
     this.props.onChange(annotations);
   }
 
-  renderPopover(parent, annotation, error) {
+  renderPopover(parent, popoverKey, annotation, error) {
     const id = !annotation ? '_new' : annotation.name;
     return (
-      <div data-test="annotation-popover" id={`annotation-pop-${id}`}>
+      <div id={`annotation-pop-${id}`} data-test="popover-content">
         <AnnotationLayer
           {...annotation}
           parent={this.refs[parent]}
@@ -116,7 +118,7 @@ class AnnotationLayerControl extends React.PureComponent {
           vizType={this.props.vizType}
           addAnnotationLayer={this.addAnnotationLayer}
           removeAnnotationLayer={this.removeAnnotationLayer}
-          close={() => this.refs[parent].hide()}
+          close={() => this.handleVisibleChange(false, popoverKey)}
         />
       </div>
     );
@@ -144,6 +146,12 @@ class AnnotationLayerControl extends React.PureComponent {
     return '';
   }
 
+  handleVisibleChange(visible, popoverKey) {
+    this.setState(prevState => ({
+      popoverVisible: { ...prevState, [popoverKey]: visible },
+    }));
+  }
+
   render() {
     const annotations = this.props.value.map((anno, i) => (
       <Popover
@@ -153,9 +161,12 @@ class AnnotationLayerControl extends React.PureComponent {
         title={t('Edit Annotation Layer')}
         content={this.renderPopover(
           `overlay-${i}`,
+          i,
           anno,
           this.props.annotationError[anno.name],
         )}
+        visible={this.state.popoverVisible[i]}
+        onVisibleChange={visible => this.handleVisibleChange(visible, i)}
       >
         <ListGroupItem>
           <span>{anno.name}</span>
@@ -163,6 +174,8 @@ class AnnotationLayerControl extends React.PureComponent {
         </ListGroupItem>
       </Popover>
     ));
+
+    const addLayerPopoverKey = 'add';
     return (
       <div>
         <ListGroup>
@@ -170,8 +183,12 @@ class AnnotationLayerControl extends React.PureComponent {
           <Popover
             trigger="click"
             placement="right"
-            content={this.renderPopover('overlay-new')}
+            content={this.renderPopover('overlay-new', addLayerPopoverKey)}
             title={t('Add Annotation Layer')}
+            visible={this.state.popoverVisible[addLayerPopoverKey]}
+            onVisibleChange={visible =>
+              this.handleVisibleChange(visible, addLayerPopoverKey)
+            }
           >
             <ListGroupItem>
               <i

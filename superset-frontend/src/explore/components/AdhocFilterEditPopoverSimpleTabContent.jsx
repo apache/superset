@@ -327,7 +327,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       getOptionLabel: translateOperator,
     };
 
-    console.log({selectProps: this.selectProps, subjectSelectProps})
     return (
       <span>
         <FormGroup className="adhoc-filter-simple-column-dropdown">
