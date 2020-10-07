@@ -17,25 +17,8 @@
  * under the License.
  */
 import React, { <%if (componentType == 'class') { %>PureComponent<% } %><%if (componentType == 'function') { %>useEffect<% } %>, createRef } from 'react';
-import { styled, supersetTheme } from '@superset-ui/core';
-
-interface <%= packageLabel %>StylesProps {
-  height: number;
-  width: number;
-  headerFontSize: keyof typeof supersetTheme.typography.sizes;
-  boldText: boolean;
-}
-
-export type <%= packageLabel %>Props = {
-  height: number;
-  width: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: Record<any, any>; // please add additional typing for your data here
-  // add typing here for the props you pass in from transformProps.ts!
-  boldText: boolean;
-  headerFontSize: 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
-  headerText: string;
-};
+import { styled } from '@superset-ui/core';
+import { <%= packageLabel %>Props, <%= packageLabel %>StylesProps } from './types';
 
 // The following Styles component is a <div> element, which has been styled using Emotion
 // For docs, visit https://emotion.sh/docs/styled
