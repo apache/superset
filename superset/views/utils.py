@@ -491,7 +491,7 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message="Could not determine datasource type",
+                message=__("Could not determine datasource type"),
             )
         )
 
@@ -507,7 +507,7 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message="Could not find viz object",
+                message=__("Could not find viz object"),
             )
         )
 
