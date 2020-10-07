@@ -62,21 +62,28 @@ module.exports = class extends Generator {
   }
 
   writing() {
+    // 'hello-world' -> 'HelloWorld'
     const packageLabel = _.upperFirst(_.camelCase(this.answers.packageName));
+
+    // 'hello-world' -> 'Hello World'
+    const pluginName = _.startCase(_.camelCase(this.answers.packageName));
 
     const params = {
       ...this.answers,
       packageLabel,
+      pluginName,
     };
 
     [
       ['package.erb', 'package.json'],
+      ['tsconfig.json', 'tsconfig.json'],
       ['README.erb', 'README.md'],
       ['src/index.erb', 'src/index.ts'],
       ['src/plugin/buildQuery.erb', 'src/plugin/buildQuery.ts'],
       ['src/plugin/controlPanel.erb', 'src/plugin/controlPanel.ts'],
       ['src/plugin/index.erb', 'src/plugin/index.ts'],
       ['src/plugin/transformProps.erb', 'src/plugin/transformProps.ts'],
+      ['src/types.erb', 'src/types.ts'],
       ['src/MyChart.erb', `src/${packageLabel}.tsx`],
       ['test/index.erb', 'test/index.test.ts'],
       ['test/plugin/buildQuery.test.erb', 'test/plugin/buildQuery.test.ts'],
