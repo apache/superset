@@ -310,7 +310,9 @@ class DashboardEncoder(json.JSONEncoder):
         super().__init__(*args, **kwargs)
         self.sort_keys = True
 
-    def default(self, o: Any) -> Dict[Any, Any]:
+    def default(self, o: Any) -> Union[Dict[Any, Any], str]:
+        if isinstance(o, uuid.UUID):
+            return str(o)
         try:
             vals = {k: v for k, v in o.__dict__.items() if k != "_sa_instance_state"}
             return {"__{}__".format(o.__class__.__name__): vals}

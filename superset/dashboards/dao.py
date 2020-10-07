@@ -99,6 +99,17 @@ class DashboardDAO(BaseDAO):
 
         dashboard.slices = current_slices
 
+        # add UUID to positions
+        uuid_map = {slice.id: str(slice.uuid) for slice in current_slices}
+        for obj in positions.values():
+            if (
+                isinstance(obj, dict)
+                and obj["type"] == "CHART"
+                and obj["meta"]["chartId"]
+            ):
+                chart_id = obj["meta"]["chartId"]
+                obj["meta"]["uuid"] = uuid_map[chart_id]
+
         # remove leading and trailing white spaces in the dumped json
         dashboard.position_json = json.dumps(
             positions, indent=None, separators=(",", ":"), sort_keys=True
