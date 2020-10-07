@@ -39,8 +39,9 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin {
       controlPanel,
       loadChart: () => import('./EchartsTimeseries'),
       metadata: new ChartMetadata({
-        description: 'ECharts Timeseries',
-        name: t('ECharts Timeseries'),
+        credits: ['https://echarts.apache.org'],
+        description: 'Time-series (Apache ECharts)',
+        name: t('Time-series Chart'),
         thumbnail,
       }),
       transformProps,
