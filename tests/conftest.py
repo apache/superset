@@ -45,7 +45,6 @@ def setup_sample_data() -> Any:
         examples.load_energy(sample=True)
         examples.load_world_bank_health_n_pop(sample=True)
         examples.load_birth_names(sample=True)
-        examples.load_unicode_test_data(sample=True)
 
     yield
 
@@ -54,7 +53,6 @@ def setup_sample_data() -> Any:
         engine.execute("DROP TABLE energy_usage")
         engine.execute("DROP TABLE wb_health_population")
         engine.execute("DROP TABLE birth_names")
-        engine.execute("DROP TABLE unicode_test")
 
         # drop sqlachemy tables
 
