@@ -52,6 +52,7 @@ class DatasetColumnsPutSchema(Schema):
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
+    uuid = fields.String(allow_none=True)
 
 
 class DatasetMetricsPutSchema(Schema):
