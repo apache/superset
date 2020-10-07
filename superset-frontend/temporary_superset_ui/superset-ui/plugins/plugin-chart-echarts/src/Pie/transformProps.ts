@@ -61,11 +61,11 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     colorScheme,
     donut = false,
     groupby,
-    innerRadius = 40,
+    innerRadius = 30,
     labelsOutside = true,
     metric,
     numberFormat,
-    outerRadius = 80,
+    outerRadius = 50,
     pieLabelType = 'value',
     showLabels = true,
     showLegend = false,
@@ -91,6 +91,13 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     formatPieLabel({ params, numberFormatter, pieLabelType });
 
   const echartOptions: echarts.EChartOption<echarts.EChartOption.SeriesPie> = {
+    grid: {
+      top: 30,
+      bottom: 30,
+      left: 30,
+      right: 30,
+      containLabel: true,
+    },
     tooltip: {
       confine: true,
       trigger: 'item',
@@ -113,6 +120,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       {
         type: 'pie',
         radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
+        center: ['50%', '50%'],
         avoidLabelOverlap: true,
         labelLine: labelsOutside ? { show: true } : { show: false },
         label: labelsOutside

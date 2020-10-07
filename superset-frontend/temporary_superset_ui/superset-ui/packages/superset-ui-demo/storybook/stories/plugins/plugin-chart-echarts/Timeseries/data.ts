@@ -1,4 +1,3 @@
-/* eslint-disable sort-keys */
 export default [
   {
     __timestamp: 1419811200000,

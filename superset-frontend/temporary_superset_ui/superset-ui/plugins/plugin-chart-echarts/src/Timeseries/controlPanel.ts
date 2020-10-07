@@ -291,7 +291,7 @@ const config: ControlPanelConfig = {
   },
   controlOverrides: {
     row_limit: {
-      default: 100,
+      default: 10000,
     },
   },
 };

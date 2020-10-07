@@ -22,7 +22,7 @@ import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
-export default class EchartsPieChartPlugin extends ChartPlugin {
+export default class EchartsBoxPlotChartPlugin extends ChartPlugin {
   /**
    * The constructor is used to pass relevant metadata and callbacks that get
    * registered in respective registries that are used throughout the library
@@ -37,11 +37,11 @@ export default class EchartsPieChartPlugin extends ChartPlugin {
     super({
       buildQuery,
       controlPanel,
-      loadChart: () => import('./EchartsPie'),
+      loadChart: () => import('./EchartsBoxPlot'),
       metadata: new ChartMetadata({
         credits: ['https://echarts.apache.org'],
-        description: 'Pie Chart (Apache ECharts)',
-        name: t('Pie Chart'),
+        description: 'Box Plot (Apache ECharts)',
+        name: t('Box Plot'),
         thumbnail,
       }),
       transformProps,

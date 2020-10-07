@@ -3,7 +3,6 @@ import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
 import { EchartsTimeseriesChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import transformProps from '@superset-ui/plugin-chart-echarts/lib/Timeseries/transformProps';
-import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 import data from './data';
 
 new EchartsTimeseriesChartPlugin().configure({ key: 'echarts-timeseries' }).register();
@@ -11,8 +10,8 @@ new EchartsTimeseriesChartPlugin().configure({ key: 'echarts-timeseries' }).regi
 getChartTransformPropsRegistry().registerValue('echarts-timeseries', transformProps);
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts',
-  decorators: [withKnobs, withResizableChartDemo],
+  title: 'Chart Plugins|plugin-chart-echarts/Timeseries',
+  decorators: [withKnobs],
 };
 
 export const Timeseries = ({ width, height }) => {
@@ -22,6 +21,7 @@ export const Timeseries = ({ width, height }) => {
       forecastEnabled
         ? row
         : {
+            // eslint-disable-next-line no-underscore-dangle
             __timestamp: row.__timestamp,
             Boston: row.Boston,
             California: row.California,
