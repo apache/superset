@@ -16,17 +16,28 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+import datetime
 import json
 
+import pandas as pd
 import prison
+import pytest
+import random
+
+from sqlalchemy import String, Date, Float
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+from superset import db, security_manager, ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
+from tests.dashboard_utils import (
+    create_table_for_dashboard,
+    create_dashboard,
+)
 from tests.fixtures.certificates import ssl_certificate
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.test_app import app
 
 
@@ -758,6 +769,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
+    @pytest.mark.usefixtures("load_unicode_dashboard_with_position")
     def test_get_database_related_objects(self):
         """
         Database API: Test get chart and dashboard count related to a database
