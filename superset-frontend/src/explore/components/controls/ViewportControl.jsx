@@ -82,11 +82,7 @@ export default class ViewportControl extends React.Component {
   }
 
   renderPopover() {
-    return (
-      <>
-        {PARAMS.map(ctrl => this.renderTextControl(ctrl))}
-      </>
-    );
+    return <>{PARAMS.map(ctrl => this.renderTextControl(ctrl))}</>;
   }
 
   renderLabel() {
