@@ -35,12 +35,11 @@ helm repo update
 ## Install
 
 We are ready to install Superset. We will create a custom StorageClass to
-make Superset with with IBM Cloud, and we will need to modify the chart
-to reflect our changes.
+make Superset work with with IBM Cloud. We will also create a Persistent
+Volume Claim (PVC) to be used by the Superset pod.
 
-Additionally we will create
-a Persistent Volume Claim (PVC) to be used by the Superset pod. In the following
-sections we will first create the PVC and then move on to the Helm chart.
+In the following sections we will first create the PVC and then move on to
+the Helm chart.
 
 ### Create StorageClass and PersistentVolumeClaim
 
