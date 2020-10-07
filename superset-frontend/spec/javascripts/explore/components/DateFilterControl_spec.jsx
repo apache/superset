@@ -18,10 +18,11 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { OverlayTrigger, Popover, Tab, Tabs, Radio } from 'react-bootstrap';
+import { OverlayTrigger, Tab, Tabs, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 import { styledMount as mount } from 'spec/helpers/theming';
 
+import Popover from 'src/common/components/Popover';
 import Label from 'src/components/Label';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -57,15 +58,8 @@ describe('DateFilterControl', () => {
     expect(controlHeader).toHaveLength(1);
   });
 
-  it('renders an OverlayTrigger', () => {
-    expect(wrapper.find(OverlayTrigger)).toExist();
-  });
-
-  it('renders a popover', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
-
-    expect(overlayWrapper.find(Popover)).toExist();
+  it('renders an Popover', () => {
+    expect(wrapper.find(Popover)).toExist();
   });
 
   it('calls open/close methods on trigger click', () => {
@@ -87,27 +81,26 @@ describe('DateFilterControl', () => {
   });
 
   it('renders two tabs in popover', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
-    const popover = overlayWrapper.find(Popover).first();
+    const popoverContent = wrapper.find(Popover).first().props().content;
+    const popoverContentWrapper = mount(popoverContent);
 
-    expect(popover.find(Tabs)).toExist();
-    expect(popover.find(Tab)).toHaveLength(2);
+    expect(popoverContentWrapper.find(Tabs)).toExist();
+    expect(popoverContentWrapper.find(Tab)).toHaveLength(2);
   });
 
   it('renders default time options', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
-    const defaultTab = overlayWrapper.find(Tab).first();
+    const popoverContent = wrapper.find(Popover).first().props().content;
+    const popoverContentWrapper = mount(popoverContent);
+    const defaultTab = popoverContentWrapper.find(Tab).first();
 
     expect(defaultTab.find(Radio)).toExist();
     expect(defaultTab.find(Radio)).toHaveLength(6);
   });
 
   it('renders tooltips over timeframe options', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
-    const defaultTab = overlayWrapper.find(Tab).first();
+    const popoverContent = wrapper.find(Popover).first().props().content;
+    const popoverContentWrapper = mount(popoverContent);
+    const defaultTab = popoverContentWrapper.find(Tab).first();
     const radioTrigger = defaultTab.find(OverlayTrigger);
 
     expect(radioTrigger).toExist();
@@ -115,9 +108,9 @@ describe('DateFilterControl', () => {
   });
 
   it('renders the correct time range in tooltip', () => {
-    const { overlay } = wrapper.find(OverlayTrigger).first().props();
-    const overlayWrapper = mount(overlay);
-    const defaultTab = overlayWrapper.find(Tab).first();
+    const popoverContent = wrapper.find(Popover).first().props().content;
+    const popoverContentWrapper = mount(popoverContent);
+    const defaultTab = popoverContentWrapper.find(Tab).first();
     const triggers = defaultTab.find(OverlayTrigger);
 
     const expectedLabels = {

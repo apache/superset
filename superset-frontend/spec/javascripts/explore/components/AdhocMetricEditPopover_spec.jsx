@@ -90,21 +90,6 @@ describe('AdhocMetricEditPopover', () => {
     );
   });
 
-  it('overwrites the adhocMetric in state with onLabelChange', () => {
-    const { wrapper } = setup();
-    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
-    expect(wrapper.state('adhocMetric').label).toBe('new label');
-    expect(wrapper.state('adhocMetric').hasCustomLabel).toBe(true);
-  });
-
-  it('returns to default labels when the custom label is cleared', () => {
-    const { wrapper } = setup();
-    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
-    wrapper.instance().onLabelChange({ target: { value: '' } });
-    expect(wrapper.state('adhocMetric').label).toBe('SUM(value)');
-    expect(wrapper.state('adhocMetric').hasCustomLabel).toBe(false);
-  });
-
   it('prevents saving if no column or aggregate is chosen', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
