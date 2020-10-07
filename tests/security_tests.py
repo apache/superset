@@ -15,16 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import datetime
 import inspect
 import re
 import unittest
 from unittest.mock import Mock, patch
 
+import pandas as pd
 import prison
-from flask import current_app, g
+import pytest
+import random
 
-import tests.test_app
-from superset import app, appbuilder, db, security_manager, viz
+from flask import current_app, g
+from sqlalchemy import Float, Date, String
+
+from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -35,6 +40,12 @@ from superset.sql_parse import Table
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
+from .dashboard_utils import (
+    create_table_for_dashboard,
+    create_slice,
+    create_dashboard,
+)
+from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
 
 def get_perm_tuples(role_name):
@@ -1122,6 +1133,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert tbl.get_extra_cache_keys(self.query_obj) == []
         assert "value > 1" not in sql
 
+    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
     def test_multiple_table_filter_alters_another_tables_query(self):
         g.user = self.get_user(
             username="alpha"
