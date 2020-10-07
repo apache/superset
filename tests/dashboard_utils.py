@@ -36,13 +36,15 @@ def create_table_for_dashboard(
         database.get_sqla_engine(),
         if_exists="replace",
         chunksize=500,
-        dtype=schema,
+        dtype=dtype,
         index=False,
         method="multi",
     )
 
     table_source = ConnectorRegistry.sources["table"]
-    table = db.session.query(table_source).filter_by(table_name=table_name).first()
+    table = (
+        db.session.query(table_source).filter_by(table_name=table_name).one_or_none()
+    )
     if not table:
         table = table_source(table_name=table_name)
     table.database = database
@@ -65,7 +67,7 @@ def create_slice(
 
 
 def create_dashboard(slug: str, title: str, position: str, slice: Slice) -> Dashboard:
-    dash = db.session.query(Dashboard).filter_by(slug=slug).first()
+    dash = db.session.query(Dashboard).filter_by(slug=slug).one_or_none()
 
     if not dash:
         dash = Dashboard()

@@ -78,10 +78,10 @@ def _create_unicode_dashboard(
     df: DataFrame, table_name: str, slice_title: str, position: str
 ) -> Dashboard:
     database = get_example_database()
-    schema = {
+    dtype = {
         "phrase": String(500),
     }
-    table = create_table_for_dashboard(df, table_name, database, schema)
+    table = create_table_for_dashboard(df, table_name, database, dtype)
     table.fetch_metadata()
 
     if slice_title:
@@ -92,7 +92,7 @@ def _create_unicode_dashboard(
 
 def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
     slice = create_slice(title, "word_cloud", table, {})
-    o = db.session.query(Slice).filter_by(slice_name=slice.slice_name).first()
+    o = db.session.query(Slice).filter_by(slice_name=slice.slice_name).one_or_none()
     if o:
         db.session.delete(o)
     db.session.add(slice)
@@ -105,6 +105,6 @@ def _cleanup(dash: Dashboard, slice_name: str) -> None:
     engine.execute("DROP TABLE IF EXISTS unicode_test")
     db.session.delete(dash)
     if slice_name:
-        slice = db.session.query(Slice).filter_by(slice_name=slice_name).first()
+        slice = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
         db.session.delete(slice)
     db.session.commit()
