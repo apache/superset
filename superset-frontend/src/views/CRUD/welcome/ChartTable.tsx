@@ -18,8 +18,9 @@
  */
 import React, { useEffect } from 'react';
 import { t } from '@superset-ui/core';
-import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import { useListViewResource, useChartEditModal } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
@@ -35,27 +36,6 @@ interface ChartTableProps {
   user?: User;
 }
 
-interface Dashboard {
-  changed_by_name: string;
-  changed_by_url: string;
-  changed_on_delta_humanized: string;
-  changed_by: string;
-  dashboard_title: string;
-  slice_name: string;
-  id: number;
-  published: boolean;
-  url: string;
-  thumbnail_url: string;
-  owners: Owner[];
-  loading: boolean;
-}
-
-interface ChartTableState {
-  charts: Dashboard[];
-  chart_count: number;
-  loading: boolean;
-}
-
 function ChartTable({
   chartFilter,
   user,
@@ -64,10 +44,19 @@ function ChartTable({
 }: ChartTableProps) {
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
+    setResourceCollection: setCharts,
     hasPerm,
     refreshData,
     fetchData,
   } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
+
+  const {
+    sliceCurrentlyEditing,
+    openChartEditModal,
+    handleChartUpdated,
+    closeChartEditModal,
+  } = useChartEditModal(setCharts, charts);
+
   const getFilters = () => {
     const filters = [];
 
@@ -112,9 +101,19 @@ function ChartTable({
 
   return (
     <>
+      {sliceCurrentlyEditing && (
+        <PropertiesModal
+          onHide={closeChartEditModal}
+          onSave={handleChartUpdated}
+          show
+          slice={sliceCurrentlyEditing}
+        />
+      )}
+
       {charts.map((e, i) => (
         <ChartCard
           key={`${i}`}
+          openChartEditModal={openChartEditModal}
           loading={loading}
           chart={e}
           hasPerm={hasPerm}

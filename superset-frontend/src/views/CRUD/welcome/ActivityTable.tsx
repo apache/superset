@@ -40,34 +40,35 @@ interface ActivityProps {
   activityFilter: string;
 }
 
-const filters = {
-  // Chart and dashbaord uses same filters
-  // for edited and created
-  edited: [
-    {
-      col: 'changed_by',
-      opr: 'rel_o_m',
-      value: 1,
-    },
-  ],
-  created: [
-    {
-      col: 'owners',
-      opr: 'rel_m_m',
-      value: 1,
-    },
-  ],
-};
-
 export default function ActivityTable({ user, activityFilter }: ActivityProps) {
   const [active, setActiveState] = useState([]);
   const [loading, setLoading] = useState(false);
-  const recent = `/superset/recent_activity/${user.userId}/?limit=10`;
+  const recent = `/superset/recent_activity/${user.userId}/?limit=5`;
+  const filters = {
+    // Chart and dashbaord uses same filters
+    // for edited and created
+    edited: [
+      {
+        col: 'changed_by',
+        opr: 'rel_o_m',
+        value: `${user.userId}`,
+      },
+    ],
+    created: [
+      {
+        col: 'created_by',
+        opr: 'rel_o_m',
+        value: `${user.userId}`,
+      },
+    ],
+  };
+
   const setData = (endpoint: string) => {
     setLoading(true);
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
         setLoading(false);
+        // @ts-ignore
         setActiveState(json);
       })
       .catch(() => {
@@ -79,13 +80,14 @@ export default function ActivityTable({ user, activityFilter }: ActivityProps) {
   };
 
   const setBatchData = (q: string) => {
+    // @ts-ignore
     createBatchMethod(q).then((res: Array<object>) => setActiveState(res));
   };
 
   const getIconName = (name: string | undefined) => {
     if (name === 'explore_json') return 'sql';
     if (name === 'dashboard') return 'nav-dashboard';
-    if (name === 'log') return 'nav-charts';
+    if (name === 'log' || name === 'explore') return 'nav-charts';
     return '';
   };
 

@@ -60,15 +60,6 @@ export default function ChartCard({
     addDangerToast,
   );
 
-  function openChartEditModal(chart: Chart) {
-    setSliceCurrentlyEditing({
-      slice_id: chart.id,
-      slice_name: chart.slice_name,
-      description: chart.description,
-      cache_timeout: chart.cache_timeout,
-    });
-  }
-
   function handleChartDelete({ id, slice_name: sliceName }: Chart) {
     SupersetClient.delete({
       endpoint: `/api/v1/chart/${id}`,
@@ -121,6 +112,7 @@ export default function ChartCard({
       )}
     </Menu>
   );
+  console.log('favorite status', favoriteStatusRef)
   return (
     <ListViewCard
       loading={loading}

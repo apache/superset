@@ -87,24 +87,28 @@ const SavedQueries = ({ user, queryFilter }) => {
 
   return (
     <>
-      {queries.map(q => (
-        <ListViewCard
-          imgFallbackURL={null}
-          imgURL={null}
-          title={q.database.database_name}
-          rows={q.rows}
-          loading={loading}
-          description={t('Last run ', q.end_time)}
-          showImg={false}
-          actions={
-            <ListViewCard.Actions>
-              <Dropdown overlay={menu}>
-                <Icon name="more-horiz" />
-              </Dropdown>
-            </ListViewCard.Actions>
-          }
-        />
-      ))}
+      {queries ? (
+        queries.map(q => (
+          <ListViewCard
+            imgFallbackURL={null}
+            imgURL={null}
+            title={q.database.database_name}
+            rows={q.rows}
+            loading={loading}
+            description={t('Last run ', q.end_time)}
+            showImg={false}
+            actions={
+              <ListViewCard.Actions>
+                <Dropdown overlay={menu}>
+                  <Icon name="more-horiz" />
+                </Dropdown>
+              </ListViewCard.Actions>
+            }
+          />
+        ))
+      ) : (
+        <span>You have no Saved Queries!</span>
+      )}
     </>
   );
 };

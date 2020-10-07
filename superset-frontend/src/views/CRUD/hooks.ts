@@ -21,7 +21,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
+import { Slice } from 'src/explore/components/PropertiesModal';
 import { FetchDataConfig } from 'src/components/ListView';
+import Chart from 'src/types/Chart';
 import { FavoriteStatus } from './types';
 
 interface ListViewResourceState<D extends object = any> {
@@ -31,6 +33,11 @@ interface ListViewResourceState<D extends object = any> {
   permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
   bulkSelectEnabled: boolean;
+}
+
+interface EditChartModal {
+  setCharts: () => void;
+  charts: Array<any>;
 }
 
 export function useListViewResource<D extends object = any>(
@@ -352,3 +359,41 @@ export function useFavoriteStatus(
 
   return [favoriteStatusRef, fetchFaveStar, saveFaveStar] as const;
 }
+
+export const useChartEditModal = (
+  setCharts: (charts: Array<Chart>) => void,
+  charts: Array<Chart>,
+) => {
+  const [
+    sliceCurrentlyEditing,
+    setSliceCurrentlyEditing,
+  ] = useState<Slice | null>(null);
+
+  function openChartEditModal(chart: Chart) {
+    setSliceCurrentlyEditing({
+      slice_id: chart.id,
+      slice_name: chart.slice_name,
+      description: chart.description,
+      cache_timeout: chart.cache_timeout,
+    });
+  }
+
+  function closeChartEditModal() {
+    setSliceCurrentlyEditing(null);
+  }
+
+  function handleChartUpdated(edits: Chart) {
+    // update the chart in our state with the edited info
+    const newCharts = charts.map((chart: Chart) =>
+      chart.id === edits.id ? { ...chart, ...edits } : chart,
+    );
+    setCharts(newCharts);
+  }
+
+  return {
+    sliceCurrentlyEditing,
+    handleChartUpdated,
+    openChartEditModal,
+    closeChartEditModal,
+  };
+};

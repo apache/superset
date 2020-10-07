@@ -22,7 +22,11 @@ import rison from 'rison';
 import { uniqBy } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
-import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import {
+  useListViewResource,
+  useFavoriteStatus,
+  useChartEditModal,
+} from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import Icon from 'src/components/Icon';
@@ -102,36 +106,17 @@ function ChartList(props: ChartListProps) {
     FAVESTAR_BASE_URL,
     props.addDangerToast,
   );
-  const [
+  const {
     sliceCurrentlyEditing,
-    setSliceCurrentlyEditing,
-  ] = useState<Slice | null>(null);
+    handleChartUpdated,
+    openChartEditModal,
+    closeChartEditModal,
+  } = useChartEditModal(setCharts, charts);
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-
-  function openChartEditModal(chart: Chart) {
-    setSliceCurrentlyEditing({
-      slice_id: chart.id,
-      slice_name: chart.slice_name,
-      description: chart.description,
-      cache_timeout: chart.cache_timeout,
-    });
-  }
-
-  function closeChartEditModal() {
-    setSliceCurrentlyEditing(null);
-  }
-
-  function handleChartUpdated(edits: Chart) {
-    // update the chart in our state with the edited info
-    const newCharts = charts.map(chart =>
-      chart.id === edits.id ? { ...chart, ...edits } : chart,
-    );
-    setCharts(newCharts);
-  }
 
   function handleChartDelete({ id, slice_name: sliceName }: Chart) {
     SupersetClient.delete({

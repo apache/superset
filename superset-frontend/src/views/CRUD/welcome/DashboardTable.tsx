@@ -20,19 +20,11 @@ import React, { useEffect } from 'react';
 import { t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { User } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
-import DashboardCard from '../dashboard/DashboardCard';
+import { DashboardTableProps } from 'src/views/CRUD/types';
+import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 
 const PAGE_SIZE = 3;
-
-interface DashboardTableProps {
-  addDangerToast: (message: string) => void;
-  addSuccessToast: (message: string) => void;
-  search: string;
-  dashboardFilter?: string;
-  user?: User;
-}
 
 interface Dashboard {
   changed_by_name: string;
@@ -71,9 +63,6 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
   );
-
-  console.log('dashboards', dashboards);
-  console.log('dashboardFilter', dashboardFilter);
 
   const getFilters = () => {
     const filters = [];

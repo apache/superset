@@ -31,7 +31,7 @@ export interface DashboardTableProps {
   user?: User;
 }
 
-interface Dashboard {
+export interface Dashboard {
   changed_by_name: string;
   changed_by_url: string;
   changed_on_delta_humanized: string;
@@ -43,7 +43,7 @@ interface Dashboard {
   url: string;
   thumbnail_url: string;
   owners: Owner[];
-  loading: boolean;
+  loading?: boolean;
 }
 
 export interface DashboardCardProps {
