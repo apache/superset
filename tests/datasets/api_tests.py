@@ -871,6 +871,7 @@ class TestDatasetApi(SupersetTestCase):
                 expected_response = export_table
                 break
         ui_export = yaml.safe_load(rv.data.decode("utf-8"))
+        self.maxDiff = None
         self.assertEqual(ui_export[0], expected_response)
 
     def test_export_dataset_not_found(self):
