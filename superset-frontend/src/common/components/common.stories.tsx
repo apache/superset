@@ -20,9 +20,7 @@ import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean } from '@storybook/addon-knobs';
 import Modal from './Modal';
-import Tabs, { EditableTabs } from './Tabs';
-import { Menu } from '.';
-import { Dropdown } from './Dropdown';
+import Tabs from './Tabs';
 
 export default {
   title: 'Common Components',
@@ -44,11 +42,7 @@ export const StyledModal = () => (
 );
 
 export const StyledTabs = () => (
-  <Tabs
-    defaultActiveKey="1"
-    centered={boolean('Center tabs', false)}
-    fullWidth={boolean('Full width', true)}
-  >
+  <Tabs defaultActiveKey="1" centered={boolean('Center tabs', false)}>
     <Tabs.TabPane
       tab="Tab 1"
       key="1"
@@ -64,55 +58,4 @@ export const StyledTabs = () => (
       Tab 2 Content!
     </Tabs.TabPane>
   </Tabs>
-);
-
-export const StyledEditableTabs = () => (
-  <EditableTabs
-    defaultActiveKey="1"
-    centered={boolean('Center tabs', false)}
-    fullWidth={boolean('Full width', true)}
-  >
-    <Tabs.TabPane
-      tab="Tab 1"
-      key="1"
-      disabled={boolean('Tab 1 Disabled', false)}
-    >
-      Tab 1 Content!
-    </Tabs.TabPane>
-    <Tabs.TabPane
-      tab="Tab 2"
-      key="2"
-      disabled={boolean('Tab 2 Disabled', false)}
-    >
-      Tab 2 Content!
-    </Tabs.TabPane>
-  </EditableTabs>
-);
-
-export const TabsWithDropdownMenu = () => (
-  <EditableTabs
-    defaultActiveKey="1"
-    centered={boolean('Center tabs', false)}
-    fullWidth={boolean('Full width', true)}
-  >
-    <Tabs.TabPane
-      tab={
-        <>
-          <Dropdown
-            overlay={
-              <Menu>
-                <Menu.Item key="1">Item 1</Menu.Item>
-                <Menu.Item key="2">Item 2</Menu.Item>
-              </Menu>
-            }
-          />
-          Tab with dropdown menu
-        </>
-      }
-      key="1"
-      disabled={boolean('Tab 1 Disabled', false)}
-    >
-      Tab 1 Content!
-    </Tabs.TabPane>
-  </EditableTabs>
 );
