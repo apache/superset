@@ -33,7 +33,7 @@ export type Indicator = {
   name: string;
   value: string[];
   status: IndicatorStatus;
-  path: string;
+  path: string[];
 };
 
 export interface IndicatorProps {
