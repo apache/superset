@@ -22,12 +22,6 @@ import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from '../images/thumbnail.png';
 
-const metadata = new ChartMetadata({
-  description: '<%= description %>',
-  name: t('<%= packageLabel %>'),
-  thumbnail,
-});
-
 export default class <%= packageLabel %>ChartPlugin extends ChartPlugin {
   /**
    * The constructor is used to pass relevant metadata and callbacks that get
@@ -40,6 +34,12 @@ export default class <%= packageLabel %>ChartPlugin extends ChartPlugin {
    * (pivoting, rolling aggregations, sorting etc) or submitting multiple queries.
    */
   constructor() {
+    const metadata = new ChartMetadata({
+      description: '<%= description %>',
+      name: t('<%= pluginName %>'),
+      thumbnail,
+    });
+
     super({
       buildQuery,
       controlPanel,

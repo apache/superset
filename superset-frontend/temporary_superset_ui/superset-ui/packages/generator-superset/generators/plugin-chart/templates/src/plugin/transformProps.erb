@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DataRecord } from '@superset-ui/core';
-
-<%if (chartType === 'timeseries') { %>type TimestampType = string | number | Date;
-
-interface <%= packageLabel %>Datum extends DataRecord {
-  __timestamp: TimestampType;
-}<% } else { %>type <%= packageLabel %>Datum = DataRecord;<% } %>
+import { ChartProps, TimeseriesDataRecord } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
   /**
@@ -55,7 +49,8 @@ export default function transformProps(chartProps: ChartProps) {
    * be seen until restarting the development server.
    */
   const { width, height, formData, queryData } = chartProps;
-  const data = queryData.data as <%= packageLabel %>Datum[];
+  const { boldText, headerFontSize, headerText } = formData;
+  const data = queryData.data as TimeseriesDataRecord[];
 
   console.log('formData via TransformProps.ts', formData);
 
@@ -63,15 +58,15 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
 <%if (chartType === 'timeseries') { %>
-    data: data.map((item: { __timestamp: TimestampType }) => ({
+    data: data.map(item => ({
       ...item,
       // convert epoch to native Date
       // eslint-disable-next-line no-underscore-dangle
-      __timestamp: new Date(item.__timestamp),
+      __timestamp: new Date(item.__timestamp as number),
     })),<% } else { %>    data,<% } %>
     // and now your control data, manipulated as needed, and passed through as props!
-    boldText: formData.boldText,
-    headerFontSize: formData.headerFontSize,
-    headerText: formData.headerText,
+    boldText,
+    headerFontSize,
+    headerText,
   };
 }
