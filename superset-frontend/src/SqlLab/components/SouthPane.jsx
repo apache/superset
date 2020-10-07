@@ -19,8 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
-import { Alert } from 'react-bootstrap';
-import Tabs from 'src/common/components/Tabs';
+import { Alert, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { t } from '@superset-ui/core';
@@ -141,8 +140,9 @@ export class SouthPane extends React.PureComponent {
       );
     }
     const dataPreviewTabs = props.dataPreviewQueries.map(query => (
-      <Tabs.TabPane
-        tab={t('Preview: `%s`', decodeURIComponent(query.tableName))}
+      <Tab
+        title={t('Preview: `%s`', decodeURIComponent(query.tableName))}
+        eventKey={query.id}
         key={query.id}
       >
         <ResultSet
@@ -154,27 +154,29 @@ export class SouthPane extends React.PureComponent {
           height={innerTabContentHeight}
           displayLimit={this.props.displayLimit}
         />
-      </Tabs.TabPane>
+      </Tab>
     ));
 
     return (
       <div className="SouthPane" ref={this.southPaneRef}>
         <Tabs
-          defaultActiveKey={this.props.activeSouthPaneTab}
+          bsStyle="tabs"
+          animation={false}
           className="SouthPaneTabs"
           id={shortid.generate()}
-          fullWidth={false}
+          activeKey={this.props.activeSouthPaneTab}
+          onSelect={this.switchTab}
         >
-          <Tabs.TabPane tab={t('Results')} key="Results">
+          <Tab title={t('Results')} eventKey="Results">
             {results}
-          </Tabs.TabPane>
-          <Tabs.TabPane tab={t('Query History')} key="History">
+          </Tab>
+          <Tab title={t('Query History')} eventKey="History">
             <QueryHistory
               queries={props.editorQueries}
               actions={props.actions}
               displayLimit={props.displayLimit}
             />
-          </Tabs.TabPane>
+          </Tab>
           {dataPreviewTabs}
         </Tabs>
       </div>
