@@ -88,7 +88,7 @@ export default function QueryAndSaveBtns({
       buttonSize="small"
       disabled={!canAdd}
     >
-      <i className="fa fa-stop-circle-o" /> Stop
+      <i className="fa fa-stop-circle-o" /> {t('Stop')}
     </Button>
   ) : (
     <Button
@@ -115,7 +115,7 @@ export default function QueryAndSaveBtns({
             disabled={saveButtonDisabled}
             onClick={onSave}
           >
-            <i className="fa fa-plus-circle" /> Save
+            <i className="fa fa-plus-circle" /> {t('Save')}
           </Button>
         </ButtonGroup>
         {errorMessage && (
