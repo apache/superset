@@ -109,7 +109,9 @@ class AdhocMetricOption extends React.PureComponent {
       <div
         className="metric-option"
         data-test="metric-option"
-        onMouseDownCapture={e => e.stopPropagation()}
+        role="button"
+        tabIndex={0}
+        onMouseDown={e => e.stopPropagation()}
       >
         <Popover
           placement="right"
