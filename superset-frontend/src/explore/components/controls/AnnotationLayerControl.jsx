@@ -18,15 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  OverlayTrigger,
-  Popover,
-  ListGroup,
-  ListGroupItem,
-} from 'react-bootstrap';
+import { ListGroup, ListGroupItem } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import Popover from 'src/common/components/Popover';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/chart/chartAction';
@@ -112,14 +108,7 @@ class AnnotationLayerControl extends React.PureComponent {
     const id = !annotation ? '_new' : annotation.name;
     const { theme } = this.props;
     return (
-      <Popover
-        data-test="annotation-popover"
-        style={{ maxWidth: 'none' }}
-        title={
-          annotation ? t('Edit Annotation Layer') : t('Add Annotation Layer')
-        }
-        id={`annotation-pop-${id}`}
-      >
+      <div data-test="annotation-popover" id={`annotation-pop-${id}`}>
         <AnnotationLayer
           {...annotation}
           parent={this.refs[parent]}
@@ -131,7 +120,7 @@ class AnnotationLayerControl extends React.PureComponent {
           close={() => this.refs[parent].hide()}
           theme={theme}
         />
-      </Popover>
+      </div>
     );
   }
 
@@ -159,13 +148,12 @@ class AnnotationLayerControl extends React.PureComponent {
 
   render() {
     const annotations = this.props.value.map((anno, i) => (
-      <OverlayTrigger
+      <Popover
         key={i}
         trigger="click"
-        rootClose
-        ref={`overlay-${i}`}
         placement="right"
-        overlay={this.renderPopover(
+        title={t('Edit Annotation Layer')}
+        content={this.renderPopover(
           `overlay-${i}`,
           anno,
           this.props.annotationError[anno.name],
@@ -175,18 +163,17 @@ class AnnotationLayerControl extends React.PureComponent {
           <span>{anno.name}</span>
           <span style={{ float: 'right' }}>{this.renderInfo(anno)}</span>
         </ListGroupItem>
-      </OverlayTrigger>
+      </Popover>
     ));
     return (
       <div>
         <ListGroup>
           {annotations}
-          <OverlayTrigger
+          <Popover
             trigger="click"
-            rootClose
-            ref="overlay-new"
             placement="right"
-            overlay={this.renderPopover('overlay-new')}
+            content={this.renderPopover('overlay-new')}
+            title={t('Add Annotation Layer')}
           >
             <ListGroupItem>
               <i
@@ -195,7 +182,7 @@ class AnnotationLayerControl extends React.PureComponent {
               />{' '}
               &nbsp; {t('Add Annotation Layer')}
             </ListGroupItem>
-          </OverlayTrigger>
+          </Popover>
         </ListGroup>
       </div>
     );
