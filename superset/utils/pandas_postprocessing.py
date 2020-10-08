@@ -765,7 +765,6 @@ def boxplot(
             or not isinstance(percentiles[1], (int, float))
             or percentiles[0] >= percentiles[1]
         ):
-
             raise QueryObjectValidationError(
                 _(
                     "percentiles must be a list or tuple with two numeric values, "
