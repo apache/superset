@@ -175,8 +175,6 @@ function ChartList(props: ChartListProps) {
         fetchFaveStar={fetchFaveStar}
         saveFaveStar={saveFaveStar}
         isStarred={!!favoriteStatusRef.current[id]}
-        height={20}
-        width={20}
       />
     );
   }
