@@ -34,35 +34,17 @@ describe('Visualization > Box Plot', () => {
 
   function verify(formData) {
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
 
   beforeEach(() => {
     cy.server();
     cy.login();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/api/v1/chart/data').as('getJson');
   });
 
   it('should work', () => {
     verify(BOX_PLOT_FORM_DATA);
-    cy.get('.chart-container svg rect.vx-boxplot-box').should('have.length', 7);
-  });
-
-  it('should work with filter', () => {
-    verify({
-      ...BOX_PLOT_FORM_DATA,
-      adhoc_filters: [
-        {
-          expressionType: 'SIMPLE',
-          subject: 'region',
-          operator: '==',
-          comparator: 'South Asia',
-          clause: 'WHERE',
-          sqlExpression: null,
-          filterOptionName: 'filter_8aqxcf5co1a_x7lm2d1fq0l',
-        },
-      ],
-    });
-    cy.get('.chart-container svg rect.vx-boxplot-box').should('have.length', 1);
+    cy.get('.chart-container .box_plot canvas').should('have.length', 1);
   });
 });
