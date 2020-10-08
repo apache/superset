@@ -21,12 +21,12 @@ import React, { useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-// import ListView, { Filters } from 'src/components/ListView';
-import ListView from 'src/components/ListView';
+import ListView, { Filters } from 'src/components/ListView';
 import CssTemplateModal from './CssTemplateModal';
 import { TemplateObject } from './types';
 
@@ -185,6 +185,36 @@ function CssTemplatesList({
     });
   }
 
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Created by'),
+        id: 'created_by',
+        input: 'select',
+        operator: 'rel_o_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'css_template',
+          'created_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Search'),
+        id: 'template_name',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [],
+  );
+
   return (
     <>
       <SubMenu name={t('CSS Templates')} buttons={subMenuButtons} />
@@ -201,7 +231,7 @@ function CssTemplatesList({
         count={templatesCount}
         data={templates}
         fetchData={fetchData}
-        // filters={filters}
+        filters={filters}
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
