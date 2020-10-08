@@ -119,7 +119,7 @@ describe('Dashboard tabs', () => {
     // click row level tab, see 1 more chart
     cy.get('.tab-content ul.nav.nav-tabs li')
       .last()
-      .find('.editable-title input')
+      .find('.editable-title')
       .click();
     cy.wait('@linechartRequest');
     cy.get('.grid-container .line').should('be.exist');
@@ -130,7 +130,7 @@ describe('Dashboard tabs', () => {
       .first()
       .find('ul.nav.nav-tabs li')
       .last()
-      .find('.editable-title input')
+      .find('.editable-title')
       .click();
 
     // should exist a visible box_plot element
