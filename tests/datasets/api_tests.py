@@ -865,8 +865,8 @@ class TestDatasetApi(SupersetTestCase):
             back_references=False,
             include_defaults=False,
         )
+        print(cli_export)
         cli_export_tables = cli_export["databases"][0]["tables"]
-        print(cli_export_tables)
         expected_response = {}
         for export_table in cli_export_tables:
             if export_table["table_name"] == "birth_names":
