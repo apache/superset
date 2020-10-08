@@ -874,7 +874,6 @@ class TestDatasetApi(SupersetTestCase):
             # TODO: fix for test-postgres-hive not finding the table
             return
         ui_export = yaml.safe_load(rv.data.decode("utf-8"))
-        self.maxDiff = None
         self.assertEqual(ui_export[0], expected_response)
 
     def test_export_dataset_not_found(self):
