@@ -23,6 +23,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [11172](https://github.com/apache/incubator-superset/pull/11172): Breaking change: SQL templating is turned off be default. To turn it on set `ENABLE_TEMPLATE_PROCESSING` to True on `DEFAULT_FEATURE_FLAGS`
+
 * [11155](https://github.com/apache/incubator-superset/pull/11155): The `FAB_UPDATE_PERMS` config parameter is no longer required as the Superset application correctly informs FAB under which context permissions should be updated.
 
 * [10887](https://github.com/apache/incubator-superset/pull/10887): Breaking change: The custom cache backend changed in order to support the Flask-Caching factory method approach and thus must be registered as a custom type. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.

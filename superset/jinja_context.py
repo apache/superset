@@ -23,7 +23,7 @@ from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment
 
 from superset import jinja_base_context
-from superset.extensions import jinja_context_manager
+from superset.extensions import feature_flag_manager, jinja_context_manager
 from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
 
 if TYPE_CHECKING:
@@ -247,6 +247,16 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         return template.render(kwargs)
 
 
+class NoOpTemplateProcessor(
+    BaseTemplateProcessor
+):  # pylint: disable=too-few-public-methods
+    def process_template(self, sql: str, **kwargs: Any) -> str:
+        """
+        Makes processing a template a noop
+        """
+        return sql
+
+
 class PrestoTemplateProcessor(BaseTemplateProcessor):
     """Presto Jinja context
 
@@ -324,7 +334,10 @@ def get_template_processor(
     query: Optional["Query"] = None,
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
-    template_processor = template_processors.get(
-        database.backend, BaseTemplateProcessor
-    )
+    if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+        template_processor = template_processors.get(
+            database.backend, BaseTemplateProcessor
+        )
+    else:
+        template_processor = NoOpTemplateProcessor
     return template_processor(database=database, table=table, query=query, **kwargs)
