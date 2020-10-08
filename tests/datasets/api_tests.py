@@ -848,7 +848,7 @@ class TestDatasetApi(SupersetTestCase):
         birth_names_dataset = self.get_birth_names_dataset()
         # TODO: fix test for presto
         # debug with dump: https://github.com/apache/incubator-superset/runs/1092546855
-        if birth_names_dataset.database.backend == "presto":
+        if birth_names_dataset.database.backend in {"presto", "hive"}:
             return
 
         argument = [birth_names_dataset.id]
@@ -870,9 +870,6 @@ class TestDatasetApi(SupersetTestCase):
             if export_table["table_name"] == "birth_names":
                 expected_response = export_table
                 break
-        else:
-            # TODO: fix for test-postgres-hive not finding the table
-            return
         ui_export = yaml.safe_load(rv.data.decode("utf-8"))
         self.assertEqual(ui_export[0], expected_response)
 
