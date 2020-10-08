@@ -63,16 +63,8 @@ export const createBatchMethod = (queryParams: string, created?: string) => {
       SupersetClient.get({ endpoint: `/api/v1/saved_query/?q=${queryParams}` }),
     );
   return Promise.all(baseBatch).then(([dashboardRes, chartRes, savedQuery]) => {
-    console.log('dashboard', dashboardRes);
-    console.log('chartRes', chartRes);
-    console.log('savedQuery', savedQuery);
     const results = [];
     const ifQuery = savedQuery ? savedQuery.json?.result.slice(0, 3) : [];
-    console.log('-----slices--------');
-    console.log(dashboardRes?.json?.result.slice(0, 3));
-    console.log(chartRes?.json?.result.slice(0, 3));
-    console.log(ifQuery);
-    console.log('-----END Slices--------');
     results.push(
       ...[
         ...dashboardRes.json?.result.slice(0, 3),
@@ -80,7 +72,6 @@ export const createBatchMethod = (queryParams: string, created?: string) => {
         ...ifQuery,
       ],
     );
-    console.log('result', results);
     return results;
   });
 };
