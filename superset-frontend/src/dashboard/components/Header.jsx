@@ -105,6 +105,15 @@ const StyledDashboardHeader = styled.div`
   .fave-unfave-icon {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
+  .button-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+    .btn {
+      font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+    }
+  }
 `;
 
 class Header extends React.PureComponent {
