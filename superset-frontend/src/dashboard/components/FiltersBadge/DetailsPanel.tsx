@@ -38,27 +38,29 @@ export type Indicator = {
 
 export interface IndicatorProps {
   indicator: Indicator;
-  onClick: (path: string) => void;
+  onClick: (path: string[]) => void;
 }
 
 const Indicator = ({
   indicator: { name, value = [], path },
   onClick,
-}: IndicatorProps) => (
-  <Item onClick={() => onClick(path)}>
-    <ItemIcon>
-      <SearchOutlined />
-    </ItemIcon>
-    <Title bold>{name.toUpperCase()}</Title>
-    {value.length ? `: ${value.join(', ')}` : ''}
-  </Item>
-);
+}: IndicatorProps) => {
+  return (
+    <Item onClick={() => onClick(path)}>
+      <ItemIcon>
+        <SearchOutlined />
+      </ItemIcon>
+      <Title bold>{name.toUpperCase()}</Title>
+      {value.length ? `: ${value.join(', ')}` : ''}
+    </Item>
+  );
+};
 
 export interface DetailsPanelProps {
   appliedIndicators: Indicator[];
   incompatibleIndicators: Indicator[];
   unsetIndicators: Indicator[];
-  onHighlightFilterSource: (path: string) => void;
+  onHighlightFilterSource: (path: string[]) => void;
   children: JSX.Element;
 }
 

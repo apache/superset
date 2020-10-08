@@ -77,7 +77,7 @@ const FiltersBadge = ({
   appliedIndicators: Indicator[];
   unsetIndicators: Indicator[];
   incompatibleIndicators: Indicator[];
-  onHighlightFilterSource: (path: string) => void;
+  onHighlightFilterSource: (path: string[]) => void;
 }) => {
   if (
     !appliedIndicators.length &&
