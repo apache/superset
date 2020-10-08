@@ -18,6 +18,7 @@
 import json
 import logging
 import re
+import uuid
 from datetime import datetime, timedelta
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, Optional, Set, Union
@@ -35,6 +36,7 @@ from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy_utils import UUIDType
 
 from superset.utils.core import QueryStatus
 
@@ -51,6 +53,10 @@ def json_to_dict(json_str: str) -> Dict[Any, Any]:
 
 
 class ImportMixin:
+    uuid = sa.Column(
+        UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
+    )
+
     export_parent: Optional[str] = None
     # The name of the attribute
     # with the SQL Alchemy back reference

@@ -52,7 +52,7 @@ const HeaderNav = () => {
     <div css={anchorNavStyle}>
       <Anchor>
         {headings.map((e) => (
-          <Link href={`#${e.slug}`} title={e.value} />
+          <Link key={e.slug} href={`#${e.slug}`} title={e.value} />
         ))}
       </Anchor>
     </div>

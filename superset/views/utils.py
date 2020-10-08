@@ -27,6 +27,7 @@ from flask import abort, flash, g, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
+from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
 from superset import (
@@ -490,16 +491,25 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message="Could not determine datasource type",
+                message=__("Could not determine datasource type"),
             )
         )
 
-    viz_obj = get_viz(
-        datasource_type=datasource_type,
-        datasource_id=datasource_id,
-        form_data=form_data,
-        force=False,
-    )
+    try:
+        viz_obj = get_viz(
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            form_data=form_data,
+            force=False,
+        )
+    except NoResultFound:
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
+                level=ErrorLevel.ERROR,
+                message=__("Could not find viz object"),
+            )
+        )
 
     viz_obj.raise_for_access()
 
@@ -518,12 +528,21 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
 
     if slc:
-        viz_obj = get_viz(
-            datasource_type=slc.datasource.type,
-            datasource_id=slc.datasource.id,
-            form_data=form_data,
-            force=False,
-        )
+        try:
+            viz_obj = get_viz(
+                datasource_type=slc.datasource.type,
+                datasource_id=slc.datasource.id,
+                form_data=form_data,
+                force=False,
+            )
+        except NoResultFound:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
+                    level=ErrorLevel.ERROR,
+                    message="Could not find viz object",
+                )
+            )
 
         viz_obj.raise_for_access()
 

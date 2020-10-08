@@ -1,12 +1,6 @@
 name: Frontend
 
-on:
-  push:
-    paths-ignore:
-      - 'docs/**'
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
+on: [push, pull_request]
 
 jobs:
   build:

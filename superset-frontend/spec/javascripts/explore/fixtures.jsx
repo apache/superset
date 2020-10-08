@@ -18,7 +18,8 @@
  */
 
 import React from 'react';
-import { ColumnOption, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { ColumnOption } from '@superset-ui/chart-controls';
 
 export const controlPanelSectionsChartOptions = [
   {

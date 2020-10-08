@@ -163,10 +163,12 @@ class Chart extends React.PureComponent {
       extra.owners = owners;
       error.extra = extra;
     }
+    const message = chartAlert || queryResponse?.message;
     return (
       <ErrorMessageWithStackTrace
         error={error}
-        message={chartAlert || queryResponse?.message}
+        subtitle={message}
+        copyText={message}
         link={queryResponse ? queryResponse.link : null}
         source={dashboardId ? 'dashboard' : 'explore'}
         stackTrace={chartStackTrace}

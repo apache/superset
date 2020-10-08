@@ -28,6 +28,7 @@ from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from superset.utils.core import get_example_database
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.test_app import app
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
@@ -567,6 +568,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
     def test_get_charts(self):
         """
         Chart API: Test get charts
@@ -733,6 +735,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         assert rv.status_code == 200
         assert len(expected_models) == data["count"]
 
+    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
     def test_get_charts_page(self):
         """
         Chart API: Test get charts filter

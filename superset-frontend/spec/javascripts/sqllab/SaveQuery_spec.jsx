@@ -21,7 +21,7 @@ import { FormControl } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import * as sinon from 'sinon';
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
-import ModalTrigger from 'src/components/ModalTrigger';
+import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 
 describe('SavedQuery', () => {
@@ -40,24 +40,27 @@ describe('SavedQuery', () => {
   it('is valid with props', () => {
     expect(React.isValidElement(<SaveQuery {...mockedProps} />)).toBe(true);
   });
-  it('has a ModalTrigger', () => {
+  it('has a Modal', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
-    expect(wrapper.find(ModalTrigger)).toExist();
+    expect(wrapper.find(Modal)).toExist();
   });
   it('has a cancel button', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
-    const modal = shallow(wrapper.instance().renderModalBody());
+    const modal = wrapper.find(Modal);
+
     expect(modal.find('.cancelQuery')).toHaveLength(1);
   });
   it('has 2 FormControls', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
-    const modal = shallow(wrapper.instance().renderModalBody());
+    const modal = wrapper.find(Modal);
+
     expect(modal.find(FormControl)).toHaveLength(2);
   });
   it('has a save button if this is a new query', () => {
     const saveSpy = sinon.spy();
     const wrapper = shallow(<SaveQuery {...mockedProps} onSave={saveSpy} />);
-    const modal = shallow(wrapper.instance().renderModalBody());
+    const modal = wrapper.find(Modal);
+
     expect(modal.find(Button)).toHaveLength(2);
     modal.find(Button).at(0).simulate('click');
     expect(saveSpy.calledOnce).toBe(true);
@@ -72,7 +75,8 @@ describe('SavedQuery', () => {
       },
     };
     const wrapper = shallow(<SaveQuery {...props} onUpdate={updateSpy} />);
-    const modal = shallow(wrapper.instance().renderModalBody());
+    const modal = wrapper.find(Modal);
+
     expect(modal.find(Button)).toHaveLength(3);
     modal.find(Button).at(0).simulate('click');
     expect(updateSpy.calledOnce).toBe(true);
