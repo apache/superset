@@ -329,7 +329,7 @@ function ChartList(props: ChartListProps) {
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, favoriteStatusRef],
+    [canEdit, canDelete],
   );
 
   const filters: Filters = [
