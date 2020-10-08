@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import moment from 'moment';
 import ListViewCard from 'src/components/ListViewCard';
@@ -30,7 +29,12 @@ interface MapProps {
   slice_name: string;
   time: string;
   changed_on_utc: string;
-  item_url: string;
+  url: string;
+  sql: string;
+  dashboard_title: string;
+  label: string;
+  id: string;
+  table: object;
 }
 
 interface ActivityProps {
@@ -43,7 +47,8 @@ interface ActivityProps {
 export default function ActivityTable({ user, activityFilter }: ActivityProps) {
   const [active, setActiveState] = useState([]);
   const [loading, setLoading] = useState(false);
-  const recent = `/superset/recent_activity/${user.userId}/?limit=5`;
+  // this API uses Log for data which in some cases is can be empty
+  // const recent = `/superset/recent_activity/${user.userId}/?limit=5`;
   const filters = {
     // Chart and dashbaord uses same filters
     // for edited and created
@@ -63,31 +68,30 @@ export default function ActivityTable({ user, activityFilter }: ActivityProps) {
     ],
   };
 
-  const setData = (endpoint: string) => {
-    setLoading(true);
-    SupersetClient.get({ endpoint })
-      .then(({ json }) => {
-        setLoading(false);
+  const setBatchData = (q: string, created?: string) => {
+    createBatchMethod(q, created)
+      .then((res: Array<object>) =>
         // @ts-ignore
-        setActiveState(json);
-      })
-      .catch(() => {
-        setLoading(false);
-        createErrorHandler(() =>
-          addDangerToast(t('There was an issue fetching your resource')),
-        );
-      });
+        setActiveState(res),
+      )
+      .catch(() => addDangerToast('Oops something went wrong'));
   };
 
-  const setBatchData = (q: string) => {
-    // @ts-ignore
-    createBatchMethod(q).then((res: Array<object>) => setActiveState(res));
+  const getFilterTitle = (e: MapProps) => {
+    if (e.dashboard_title) return e.dashboard_title;
+    if (e.label) return e.label;
+    if (e.url && !e.table) return e.item_title;
+    return e.slice_name;
   };
 
-  const getIconName = (name: string | undefined) => {
-    if (name === 'explore_json') return 'sql';
-    if (name === 'dashboard') return 'nav-dashboard';
-    if (name === 'log' || name === 'explore') return 'nav-charts';
+  const getIconName = (e: MapProps) => {
+    if (e.sql) return 'sql';
+    if (e.url.indexOf('dashboard') !== -1) {
+      return 'nav-dashboard';
+    }
+    if (e.url.indexOf('explore') !== -1) {
+      return 'nav-charts';
+    }
     return '';
   };
 
@@ -99,14 +103,11 @@ export default function ActivityTable({ user, activityFilter }: ActivityProps) {
       page_size: 0,
       filters: activityFilter !== 'Created' ? filters.edited : filters.created,
     });
-    if (activityFilter === 'Viewed') {
-      setData(recent);
-    }
     if (activityFilter === 'Edited') {
       setBatchData(queryParams);
     }
     if (activityFilter === 'Created') {
-      setBatchData(queryParams);
+      setBatchData(queryParams, 'createdBy');
     }
   };
 
@@ -115,18 +116,17 @@ export default function ActivityTable({ user, activityFilter }: ActivityProps) {
   }, [activityFilter]);
 
   const renderActivity = () => {
-    return active.map((e: MapProps) => (
+    return active.map((e: MapProps, i) => (
       <ListViewCard
+        key={`${i}`}
         isRecent
         loading={loading}
-        imgURL={null}
-        imgFallbackURL={null}
-        url={e.item_url}
-        title={activityFilter === 'Viewed' ? e.item_title : e.slice_name}
-        description={moment
-          .utc(activityFilter === 'Viewd' ? e.time : e.changed_on_utc)
-          .fromNow()}
-        avatar={getIconName(e.action)}
+        imgURL=""
+        imgFallbackURL=""
+        url={e.sql ? `/supserset/sqllab?queryId=${e.id}` : e.url}
+        title={getFilterTitle(e)}
+        description={moment.utc(e.changed_on_utc).fromNow()}
+        avatar={getIconName(e)}
         actions={null}
       />
     ));

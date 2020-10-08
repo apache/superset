@@ -32,6 +32,8 @@ import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+
+import Dashboard from 'src/dashboard/containers/Dashboard';
 import DashboardCard from './DashboardCard';
 
 const PAGE_SIZE = 25;
@@ -415,7 +417,7 @@ function DashboardList(props: DashboardListProps) {
     },
   ];
 
-  function renderCard(dashboard: Dashboard & { loading: boolean }) {
+  function renderCard(dashboard: Dashboard) {
     return (
       <DashboardCard
         {...{

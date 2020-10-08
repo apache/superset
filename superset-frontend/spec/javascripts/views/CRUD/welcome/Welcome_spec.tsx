@@ -40,4 +40,5 @@ describe('Welcome', () => {
     const wrapper = shallow(<Welcome {...mockedProps} />);
     expect(wrapper.find('SubMenu')).toHaveLength(4);
   });
+  console.log('wrapper', )
 });

@@ -17,11 +17,9 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { FormControl } from 'react-bootstrap';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
-import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
 import { User } from 'src/types/bootstrapTypes';
 import Icon from 'src/components/Icon';
 
@@ -36,9 +34,24 @@ interface WelcomeProps {
   user: User;
 }
 
+const WelcomeContainer = styled.div`
+  nav {
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    &:after {
+      content: '';
+      display: block;
+      border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+      margin: 0px 26px;
+    }
+  }
+  .ant-card.ant-card-bordered {
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+`;
+
 const ActivityContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: center;
   padding: ${({ theme }) => theme.gridUnit * 2}px
@@ -48,6 +61,7 @@ const ActivityContainer = styled.div`
 const IconContainer = styled.div`
   svg {
     vertical-align: -7px;
+    color: ${({ theme }) => theme.colors.primary.dark1};
   }
 `;
 export const CardContainer = styled.div`
@@ -56,219 +70,180 @@ export const CardContainer = styled.div`
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;
   padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 4}px;
+    ${({ theme }) => theme.gridUnit * 6}px;
 `;
-
-function useSyncQueryState(
-  queryParam: string,
-  queryParamType: QueryParamConfig<
-    string | null | undefined,
-    string | undefined
-  >,
-  defaultState: string,
-): [string, (val: string) => void] {
-  const [queryState, setQueryState] = useQueryParam(queryParam, queryParamType);
-  const [state, setState] = useState(queryState || defaultState);
-
-  const setQueryStateAndState = (val: string) => {
-    setQueryState(val);
-    setState(val);
-  };
-
-  return [state, setQueryStateAndState];
-}
 
 export default function Welcome({ user }: WelcomeProps) {
   const [queryFilter, setQueryFilter] = useState('Favorite');
-  const [activityFilter, setActivityFilter] = useState('Viewed');
+  const [activityFilter, setActivityFilter] = useState('Edited');
   const [dashboardFilter, setDashboardFilter] = useState('Favorite');
   const [chartFilter, setChartFilter] = useState('Favorite');
-  const [searchQuery, setSearchQuery] = useSyncQueryState(
-    'search',
-    StringParam,
-    '',
-  );
 
   function ExpandIcon(): React.ReactNode {
     return <Icon name="caret-right" />;
   }
 
   return (
-    <Collapse defaultActiveKey={['1']} expandIcon={ExpandIcon} ghost>
-      <Panel header={t('Recents')} key="1">
-        <SubMenu
-          activeChild={activityFilter}
-          name=""
-          // eslint-disable-next-line react/no-children-prop
-          children={[
-            {
-              name: 'Viewed',
-              label: t('Viewed'),
-              onClick: () => setActivityFilter('Viewed'),
-            },
-            {
-              name: 'Edited',
-              label: t('Edited'),
-              onClick: () => setActivityFilter('Edited'),
-            },
-            {
-              name: 'Created',
-              label: t('Created'),
-              onClick: () => setActivityFilter('Created'),
-            },
-          ]}
-        />
-        <ActivityContainer>
-          <ActivityTable user={user} activityFilter={activityFilter} />
-        </ActivityContainer>
-      </Panel>
-
-      <Panel header={t('Dashboards')} key="2">
-        <SubMenu
-          activeChild={dashboardFilter}
-          name=""
-          // eslint-disable-next-line react/no-children-prop
-          children={[
-            {
-              name: 'Favorite',
-              label: t('Favorite'),
-              onClick: () => setDashboardFilter('Favorite'),
-            },
-            {
-              name: 'Mine',
-              label: t('Mine'),
-              onClick: () => setDashboardFilter('Mine'),
-            },
-          ]}
-          buttons={[
-            {
-              name: (
-                <IconContainer>
-                  <Icon name="plus-small" /> DashBoard{' '}
-                </IconContainer>
-              ),
-              buttonStyle: 'tertiary',
-              onClick: () => {
-                // @ts-ignore
-                window.location = '/dashboard/new';
+    <WelcomeContainer>
+      <Collapse defaultActiveKey={['1']} ghost>
+        <Panel header={t('Recents')} key="1">
+          <SubMenu
+            activeChild={activityFilter}
+            name=""
+            // eslint-disable-next-line react/no-children-prop
+            children={[
+              {
+                name: 'Edited',
+                label: t('Edited'),
+                onClick: () => setActivityFilter('Edited'),
               },
-            },
-            {
-              name: 'View All',
-              buttonStyle: 'link',
-              onClick: () => {
-                // @ts-ignore
-                window.location = '/dashboard/list/';
+              {
+                name: 'Created',
+                label: t('Created'),
+                onClick: () => setActivityFilter('Created'),
               },
-            },
-          ]}
-        />
-        <FormControl
-          type="text"
-          bsSize="sm"
-          placeholder="Search"
-          value={searchQuery}
-          // @ts-ignore React bootstrap types aren't quite right here
-          onChange={e => setSearchQuery(e.currentTarget.value)}
-        />
-        <CardContainer>
-          <DashboardTable
-            search={searchQuery}
-            dashboardFilter={dashboardFilter}
-            user={user}
+            ]}
           />
-        </CardContainer>
-      </Panel>
+          <ActivityContainer>
+            <ActivityTable user={user} activityFilter={activityFilter} />
+          </ActivityContainer>
+        </Panel>
 
-      <Panel header={t('Saved Queries')} key="3">
-        <SubMenu
-          activeChild={queryFilter}
-          name=""
-          // eslint-disable-next-line react/no-children-prop
-          children={[
-            {
-              name: 'Favorite',
-              label: t('Favorite'),
-              onClick: () => setQueryFilter('Favorite'),
-            },
-            {
-              name: 'Mine',
-              label: t('Mine'),
-              onClick: () => setQueryFilter('Mine'),
-            },
-          ]}
-          buttons={[
-            {
-              name: (
-                <IconContainer>
-                  <Icon name="plus-small" /> SQL Query{' '}
-                </IconContainer>
-              ),
-              buttonStyle: 'tertiary',
-              onClick: () => {
-                // @ts-ignore
-                window.location = '/superset/sqllab';
+        <Panel header={t('Dashboards')} key="2">
+          <SubMenu
+            activeChild={dashboardFilter}
+            name=""
+            // eslint-disable-next-line react/no-children-prop
+            children={[
+              {
+                name: 'Favorite',
+                label: t('Favorite'),
+                onClick: () => setDashboardFilter('Favorite'),
               },
-            },
-            {
-              name: 'View All',
-              buttonStyle: 'link',
-              onClick: () => {
-                // @ts-ignore
-                window.location = 'superset/sqllab#search';
+              {
+                name: 'Mine',
+                label: t('Mine'),
+                onClick: () => setDashboardFilter('Mine'),
               },
-            },
-          ]}
-        />
-        <CardContainer>
-          <SavedQueries user={user} queryFilter={queryFilter} />
-        </CardContainer>
-      </Panel>
-      <Panel header={t('Charts')} key="4">
-        <SubMenu
-          activeChild={chartFilter}
-          name=""
-          // eslint-disable-next-line react/no-children-prop
-          children={[
-            {
-              name: 'Favorite',
-              label: t('Favorite'),
-              onClick: () => setChartFilter('Favorite'),
-            },
-            {
-              name: 'Mine',
-              label: t('Mine'),
-              onClick: () => setChartFilter('Mine'),
-            },
-          ]}
-          buttons={[
-            {
-              name: (
-                <IconContainer>
-                  <Icon name="plus-small" /> Chart{' '}
-                </IconContainer>
-              ),
-              buttonStyle: 'tertiary',
-              onClick: () => {
-                // @ts-ignore
-                window.location = '/chart/add';
+            ]}
+            buttons={[
+              {
+                name: (
+                  <IconContainer>
+                    <Icon name="plus-small" /> Dashboard{' '}
+                  </IconContainer>
+                ),
+                buttonStyle: 'tertiary',
+                onClick: () => {
+                  // @ts-ignore
+                  window.location = '/dashboard/new';
+                },
               },
-            },
-            {
-              name: 'View All',
-              buttonStyle: 'link',
-              onClick: () => {
-                // @ts-ignore
-                window.location = '/chart/list';
+              {
+                name: 'View All',
+                buttonStyle: 'link',
+                onClick: () => {
+                  // @ts-ignore
+                  window.location = '/dashboard/list/';
+                },
               },
-            },
-          ]}
-        />
+            ]}
+          />
+          <CardContainer>
+            <DashboardTable dashboardFilter={dashboardFilter} user={user} />
+          </CardContainer>
+        </Panel>
 
-        <CardContainer>
-          <ChartTable chartFilter={chartFilter} user={user} />
-        </CardContainer>
-      </Panel>
-    </Collapse>
+        <Panel header={t('Saved Queries')} key="3">
+          <SubMenu
+            activeChild={queryFilter}
+            name=""
+            // eslint-disable-next-line react/no-children-prop
+            children={[
+              {
+                name: 'Favorite',
+                label: t('Favorite'),
+                onClick: () => setQueryFilter('Favorite'),
+              },
+              {
+                name: 'Mine',
+                label: t('Mine'),
+                onClick: () => setQueryFilter('Mine'),
+              },
+            ]}
+            buttons={[
+              {
+                name: (
+                  <IconContainer>
+                    <Icon name="plus-small" /> SQL Query{' '}
+                  </IconContainer>
+                ),
+                buttonStyle: 'tertiary',
+                onClick: () => {
+                  // @ts-ignore
+                  window.location = '/superset/sqllab';
+                },
+              },
+              {
+                name: 'View All',
+                buttonStyle: 'link',
+                onClick: () => {
+                  // @ts-ignore
+                  window.location = '/savedqueryview/list';
+                },
+              },
+            ]}
+          />
+          <CardContainer>
+            <SavedQueries user={user} queryFilter={queryFilter} />
+          </CardContainer>
+        </Panel>
+        <Panel header={t('Charts')} key="4">
+          <SubMenu
+            activeChild={chartFilter}
+            name=""
+            // eslint-disable-next-line react/no-children-prop
+            children={[
+              {
+                name: 'Favorite',
+                label: t('Favorite'),
+                onClick: () => setChartFilter('Favorite'),
+              },
+              {
+                name: 'Mine',
+                label: t('Mine'),
+                onClick: () => setChartFilter('Mine'),
+              },
+            ]}
+            buttons={[
+              {
+                name: (
+                  <IconContainer>
+                    <Icon name="plus-small" /> Chart{' '}
+                  </IconContainer>
+                ),
+                buttonStyle: 'tertiary',
+                onClick: () => {
+                  // @ts-ignore
+                  window.location = '/chart/add';
+                },
+              },
+              {
+                name: 'View All',
+                buttonStyle: 'link',
+                onClick: () => {
+                  // @ts-ignore
+                  window.location = '/chart/list';
+                },
+              },
+            ]}
+          />
+
+          <CardContainer>
+            <ChartTable chartFilter={chartFilter} user={user} />
+          </CardContainer>
+        </Panel>
+      </Collapse>
+    </WelcomeContainer>
   );
 }

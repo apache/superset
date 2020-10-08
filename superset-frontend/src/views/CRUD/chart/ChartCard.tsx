@@ -112,7 +112,6 @@ export default function ChartCard({
       )}
     </Menu>
   );
-  console.log('favorite status', favoriteStatusRef)
   return (
     <ListViewCard
       loading={loading}

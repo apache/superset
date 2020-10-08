@@ -53,18 +53,34 @@ const createFetchResourceMethod = (method: string) => (
   return [];
 };
 
-export const createBatchMethod = (queryParams: string) => {
-  return Promise.all([
+export const createBatchMethod = (queryParams: string, created?: string) => {
+  const baseBatch = [
     SupersetClient.get({ endpoint: `/api/v1/dashboard/?q=${queryParams}` }),
     SupersetClient.get({ endpoint: `/api/v1/chart/?q=${queryParams}` }),
-  ]).then(([dashboardRes, chartRes]) => {
+  ];
+  if (created)
+    baseBatch.push(
+      SupersetClient.get({ endpoint: `/api/v1/saved_query/?q=${queryParams}` }),
+    );
+  return Promise.all(baseBatch).then(([dashboardRes, chartRes, savedQuery]) => {
+    console.log('dashboard', dashboardRes);
+    console.log('chartRes', chartRes);
+    console.log('savedQuery', savedQuery);
     const results = [];
+    const ifQuery = savedQuery ? savedQuery.json?.result.slice(0, 3) : [];
+    console.log('-----slices--------');
+    console.log(dashboardRes?.json?.result.slice(0, 3));
+    console.log(chartRes?.json?.result.slice(0, 3));
+    console.log(ifQuery);
+    console.log('-----END Slices--------');
     results.push(
       ...[
-        ...dashboardRes.json.result.slice(0, 3),
-        ...chartRes.json.result.slice(0, 3),
+        ...dashboardRes.json?.result.slice(0, 3),
+        ...chartRes.json?.result.slice(0, 3),
+        ...ifQuery,
       ],
     );
+    console.log('result', results);
     return results;
   });
 };

@@ -156,6 +156,7 @@ interface CardProps {
   rows?: number | string;
   avatar?: string;
   isRecent?: boolean;
+  tableName?: string;
 }
 
 function ListViewCard({
@@ -169,6 +170,7 @@ function ListViewCard({
   coverRight,
   actions,
   avatar,
+  tableName,
   loading,
   imgPosition = 'top',
   showImg = true,
@@ -213,7 +215,7 @@ function ListViewCard({
             </div>
             <div>
               <div>Datasource Name</div>
-              <div>{}</div>
+              <div>{tableName}</div>
             </div>
           </QueryData>
         ))

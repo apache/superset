@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -28,6 +28,7 @@ import { addDangerToast } from 'src/messageToasts/actions';
 const PAGE_SIZE = 3;
 
 interface Query {
+  sql_tables: array;
   database: {
     database_name: string;
   };
@@ -37,15 +38,18 @@ interface Query {
   addDangerToast: () => void;
 }
 
-interface StateProps {
-  queries: Array<Query>;
+interface SavedQueriesProps {
+  user: {
+    userId: string | number;
+  };
+  queryFilter: string;
 }
 
-const SavedQueries = ({ user, queryFilter }) => {
+const SavedQueries = ({ user, queryFilter }: SavedQueriesProps) => {
   const {
     state: { loading, resourceCollection: queries },
     fetchData,
-  } = useListViewResource<Query>('query', t('query'), addDangerToast);
+  } = useListViewResource<Query>('saved_query', t('query'), addDangerToast);
   const getFilters = () => {
     const filters = [];
 
@@ -90,10 +94,11 @@ const SavedQueries = ({ user, queryFilter }) => {
       {queries ? (
         queries.map(q => (
           <ListViewCard
-            imgFallbackURL={null}
-            imgURL={null}
+            imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
+            imgURL=""
             title={q.database.database_name}
             rows={q.rows}
+            tableName={q.sql_tables[0].table}
             loading={loading}
             description={t('Last run ', q.end_time)}
             showImg={false}
