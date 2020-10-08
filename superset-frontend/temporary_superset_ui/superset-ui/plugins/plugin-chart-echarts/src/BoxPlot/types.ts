@@ -32,4 +32,4 @@ export type BoxPlotFormDataWhiskerOptions =
 
 export type BoxPlotFormXTickLayout = '45°' | '90°' | 'auto' | 'flat' | 'staggered';
 
-export type BoxPlotQueryObjectType = 'tukey' | 'min/max' | 'percentile';
+export type BoxPlotQueryObjectWhiskerType = 'tukey' | 'min/max' | 'percentile';

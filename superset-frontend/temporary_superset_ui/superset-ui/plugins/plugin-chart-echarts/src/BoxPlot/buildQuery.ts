@@ -17,7 +17,7 @@
  * under the License.
  */
 import { buildQueryContext, convertMetric } from '@superset-ui/core';
-import { BoxPlotQueryFormData, BoxPlotQueryObjectType } from './types';
+import { BoxPlotQueryFormData, BoxPlotQueryObjectWhiskerType } from './types';
 
 const PERCENTILE_REGEX = /(\d+)\/(\d+) percentiles/;
 
@@ -27,20 +27,19 @@ export default function buildQuery(formData: BoxPlotQueryFormData) {
   // @ts-ignore
   const metrics = formDataMetrics.map(metric => convertMetric(metric).label);
   return buildQueryContext(formData, baseQueryObject => {
-    let type: BoxPlotQueryObjectType;
+    let whiskerType: BoxPlotQueryObjectWhiskerType;
     let percentiles: [number, number] | undefined;
     const percentileMatch = PERCENTILE_REGEX.exec(whiskerOptions as string);
     const distributionColumns = columns || [];
 
-    if (whiskerOptions === 'Tukey') type = 'tukey';
-    else if (whiskerOptions === 'Min/max (no outliers)') type = 'min/max';
+    if (whiskerOptions === 'Tukey') whiskerType = 'tukey';
+    else if (whiskerOptions === 'Min/max (no outliers)') whiskerType = 'min/max';
     else if (percentileMatch) {
-      type = 'percentile';
+      whiskerType = 'percentile';
       percentiles = [parseInt(percentileMatch[1], 10), parseInt(percentileMatch[2], 10)];
     } else {
       throw new Error(`Unsupported whisker type: ${whiskerOptions}`);
     }
-    console.log(formData);
     return [
       {
         ...baseQueryObject,
@@ -50,7 +49,7 @@ export default function buildQuery(formData: BoxPlotQueryFormData) {
           {
             operation: 'boxplot',
             options: {
-              type,
+              whisker_type: whiskerType,
               percentiles,
               groupby,
               metrics,
