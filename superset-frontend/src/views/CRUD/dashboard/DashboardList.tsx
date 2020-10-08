@@ -511,7 +511,7 @@ function DashboardList(props: DashboardListProps) {
   }
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
-  if (canCreate || canExport) {
+  if (canDelete || canExport) {
     subMenuButtons.push({
       name: t('Bulk Select'),
       buttonStyle: 'secondary',

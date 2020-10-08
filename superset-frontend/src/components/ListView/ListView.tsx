@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-bootstrap';
 import { Empty } from 'src/common/components';
 import cx from 'classnames';
@@ -45,6 +45,17 @@ const ListViewStyles = styled.div`
     border-radius: 4px 0;
     margin: 0 16px;
 
+    .header {
+      display: flex;
+
+      .header-left {
+        flex: 5;
+      }
+      .header-right {
+        flex: 1;
+        text-align: right;
+      }
+    }
     .body {
     }
   }
@@ -263,29 +274,38 @@ function ListView<T extends object = any>({
     cardViewEnabled ? defaultViewMode : 'table',
   );
 
+  useEffect(() => {
+    // discard selections if bulk select is disabled
+    if (!bulkSelectEnabled) toggleAllRowsSelected(false);
+  }, [bulkSelectEnabled, toggleAllRowsSelected]);
+
   return (
     <ListViewStyles>
       <div className={`superset-list-view ${className}`}>
         <div className="header">
-          {cardViewEnabled && (
-            <ViewModeToggle mode={viewingMode} setMode={setViewingMode} />
-          )}
-          {filterable && (
-            <FilterControls
-              filters={filters}
-              internalFilters={internalFilters}
-              updateFilterValue={applyFilterValue}
-            />
-          )}
-          {viewingMode === 'card' && cardSortSelectOptions && (
-            <CardSortSelect
-              initialSort={initialSort}
-              onChange={fetchData}
-              options={cardSortSelectOptions}
-              pageIndex={pageIndex}
-              pageSize={pageSize}
-            />
-          )}
+          <div className="header-left">
+            {cardViewEnabled && (
+              <ViewModeToggle mode={viewingMode} setMode={setViewingMode} />
+            )}
+            {filterable && (
+              <FilterControls
+                filters={filters}
+                internalFilters={internalFilters}
+                updateFilterValue={applyFilterValue}
+              />
+            )}
+          </div>
+          <div className="header-right">
+            {viewingMode === 'card' && cardSortSelectOptions && (
+              <CardSortSelect
+                initialSort={initialSort}
+                onChange={fetchData}
+                options={cardSortSelectOptions}
+                pageIndex={pageIndex}
+                pageSize={pageSize}
+              />
+            )}
+          </div>
         </div>
         <div className="body">
           {bulkSelectEnabled && (

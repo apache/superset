@@ -30,9 +30,9 @@ const SortTitle = styled.label`
 
 const SortContainer = styled.div`
   display: inline-flex;
-  float: right;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   padding: ${({ theme }) => theme.gridUnit * 3}px 0 0 0;
+  text-align: left;
 `;
 interface CardViewSelectSortProps {
   onChange: (conf: FetchDataConfig) => any;
