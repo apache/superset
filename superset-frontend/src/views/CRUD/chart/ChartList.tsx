@@ -264,6 +264,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Created By'),
         accessor: 'created_by',
         disableSortBy: true,
+        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {

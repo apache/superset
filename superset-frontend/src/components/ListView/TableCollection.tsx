@@ -43,7 +43,7 @@ const Table = styled.table`
   }
 
   tbody {
-    tr:first-child > td {
+    tr:first-of-type > td {
       border-top: 0;
     }
   }

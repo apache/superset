@@ -38,11 +38,6 @@ const ActionsWrapper = styled.div`
 const StyledCard = styled(Card)`
   border: 1px solid #d9dbe4;
 
-  &:hover {
-    box-shadow: 8px 8px 28px 0px rgba(0, 0, 0, 0.24);
-    transition: box-shadow 0.1s ease-in-out;
-  }
-
   .ant-card-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px
       ${({ theme }) => theme.gridUnit * 2}px;
@@ -50,30 +45,15 @@ const StyledCard = styled(Card)`
   .ant-card-meta-detail > div:not(:last-child) {
     margin-bottom: 0;
   }
-`;
-
-const Cover = styled.div`
-  height: 264px;
-  overflow: hidden;
-
-  .cover-footer {
-    transform: translateY(${({ theme }) => theme.gridUnit * 9}px);
-    transition: ${({ theme }) => theme.transitionTiming}s ease-out;
+  .gradient-container {
+    position: relative;
+    height: 100%;
   }
-
   &:hover {
-    .cover-footer {
-      transform: translateY(0);
-    }
-  }
-`;
+    box-shadow: 8px 8px 28px 0px rgba(0, 0, 0, 0.24);
+    transition: box-shadow ${({ theme }) => theme.transitionTiming}s ease-in-out;
 
-const GradientContainer = styled.div`
-  position: relative;
-  height: 100%;
-
-  &:hover {
-    &:after {
+    .gradient-container:after {
       content: '';
       position: absolute;
       left: 0;
@@ -87,7 +67,24 @@ const GradientContainer = styled.div`
         rgba(0, 0, 0, 0.219135) 79.64%,
         rgba(0, 0, 0, 0.5) 100%
       );
+
+      transition: background ${({ theme }) => theme.transitionTiming}s
+        ease-in-out;
     }
+
+    .cover-footer {
+      transform: translateY(0);
+    }
+  }
+`;
+
+const Cover = styled.div`
+  height: 264px;
+  overflow: hidden;
+
+  .cover-footer {
+    transform: translateY(${({ theme }) => theme.gridUnit * 9}px);
+    transition: ${({ theme }) => theme.transitionTiming}s ease-out;
   }
 `;
 
@@ -175,14 +172,14 @@ function ListViewCard({
       cover={
         <Cover>
           <a href={url}>
-            <GradientContainer>
+            <div className="gradient-container">
               <ImageLoader
                 src={imgURL}
                 fallback={imgFallbackURL}
                 isLoading={loading}
                 position={imgPosition}
               />
-            </GradientContainer>
+            </div>
           </a>
           <CoverFooter className="cover-footer">
             {!loading && coverLeft && (

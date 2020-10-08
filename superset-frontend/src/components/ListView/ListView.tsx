@@ -246,7 +246,7 @@ function ListView<T extends object = any>({
   const filterable = Boolean(filters.length);
   if (filterable) {
     const columnAccessors = columns.reduce(
-      (acc, col) => ({ ...acc, [col.accessor || col.id]: true }),
+      (acc, col) => ({ ...acc, [col.id || col.accessor]: true }),
       {},
     );
     filters.forEach(f => {
