@@ -67,7 +67,6 @@ from superset.utils.core import (
 from superset.utils import schema
 from superset.views.utils import (
     build_extra_filters,
-    get_dashboard_changedon_dt,
     get_form_data,
     get_time_range_endpoints,
 )
@@ -1135,14 +1134,3 @@ class TestUtils(SupersetTestCase):
         assert get_form_data_token({"token": "token_abcdefg1"}) == "token_abcdefg1"
         generated_token = get_form_data_token({})
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
-
-    def test_get_dashboard_changedon_dt(self) -> None:
-        slug = "world_health"
-        dashboard = db.session.query(Dashboard).filter_by(slug=slug).one()
-        dashboard_last_changedon = dashboard.changed_on
-        slices = dashboard.slices
-        slices_last_changedon = max([slc.changed_on for slc in slices])
-        # drop microsecond in datetime
-        assert get_dashboard_changedon_dt(self, slug) == max(
-            dashboard_last_changedon, slices_last_changedon
-        ).replace(microsecond=0)
