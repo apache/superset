@@ -476,6 +476,7 @@ function ChartList(props: ChartListProps) {
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url ?? ''}
         imgFallbackURL="/static/assets/images/chart-card-fallback.png"
+        imgPosition="bottom"
         description={t('Last modified %s', chart.changed_on_delta_humanized)}
         coverLeft={(chart.owners || []).slice(0, 5).map(owner => (
           <AvatarIcon

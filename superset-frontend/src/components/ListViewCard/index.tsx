@@ -20,7 +20,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
-import ImageLoader from './ImageLoader';
+import ImageLoader, { BackgroundPosition } from './ImageLoader';
 
 const MenuIcon = styled(Icon)`
   width: ${({ theme }) => theme.gridUnit * 4}px;
@@ -148,6 +148,7 @@ interface CardProps {
   url?: string;
   imgURL: string;
   imgFallbackURL: string;
+  imgPosition?: BackgroundPosition;
   description: string;
   loading: boolean;
   titleRight?: React.ReactNode;
@@ -167,6 +168,7 @@ function ListViewCard({
   coverRight,
   actions,
   loading,
+  imgPosition = 'top',
 }: CardProps) {
   return (
     <StyledCard
@@ -178,6 +180,7 @@ function ListViewCard({
                 src={imgURL}
                 fallback={imgFallbackURL}
                 isLoading={loading}
+                position={imgPosition}
               />
             </GradientContainer>
           </a>

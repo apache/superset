@@ -33,16 +33,8 @@ interface TableCollectionProps {
   highlightRowId?: number;
 }
 
-<<<<<<< HEAD
 const Table = styled.table`
-=======
-interface TableProps {
-  sticky: boolean;
-}
-
-const Table = styled.table<TableProps>`
   background-color: white;
->>>>>>> style: getting list & grid view styles closer to the designs
   border-collapse: separate;
   border-radius: ${({ theme }) => theme.borderRadius}px;
 
