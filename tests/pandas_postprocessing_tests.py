@@ -24,10 +24,20 @@ import pytest
 
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import pandas_postprocessing as proc
-from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
+from superset.utils.core import (
+    DTTM_ALIAS,
+    PostProcessingContributionOrientation,
+    PostProcessingBoxplotWhiskerType,
+)
 
 from .base_tests import SupersetTestCase
-from .fixtures.dataframes import categories_df, lonlat_df, names_df, timeseries_df, prophet_df
+from .fixtures.dataframes import (
+    categories_df,
+    lonlat_df,
+    names_df,
+    timeseries_df,
+    prophet_df,
+)
 
 AGGREGATES_SINGLE = {"idx_nulls": {"operator": "sum"}}
 AGGREGATES_MULTIPLE = {
@@ -612,7 +622,7 @@ class TestPostProcessing(SupersetTestCase):
         df = proc.boxplot(
             df=names_df,
             groupby=["region"],
-            whisker_type='tukey',
+            whisker_type=PostProcessingBoxplotWhiskerType.TUKEY,
             metrics=["cars"],
         )
         columns = {column for column in df.columns}
@@ -633,7 +643,7 @@ class TestPostProcessing(SupersetTestCase):
         df = proc.boxplot(
             df=names_df,
             groupby=["region"],
-            whisker_type='min/max',
+            whisker_type=PostProcessingBoxplotWhiskerType.MINMAX,
             metrics=["cars"],
         )
         columns = {column for column in df.columns}
@@ -654,7 +664,7 @@ class TestPostProcessing(SupersetTestCase):
         df = proc.boxplot(
             df=names_df,
             groupby=["region"],
-            whisker_type='percentile',
+            whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
             metrics=["cars"],
             percentiles=[1, 99],
         )
@@ -677,7 +687,7 @@ class TestPostProcessing(SupersetTestCase):
             proc.boxplot(
                 df=names_df,
                 groupby=["region"],
-                whisker_type='percentile',
+                whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
                 metrics=["cars"],
             )
 
@@ -685,25 +695,25 @@ class TestPostProcessing(SupersetTestCase):
             proc.boxplot(
                 df=names_df,
                 groupby=["region"],
-                whisker_type='percentile',
+                whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
                 metrics=["cars"],
-                percentiles=[10]
+                percentiles=[10],
             )
 
         with pytest.raises(QueryObjectValidationError):
             proc.boxplot(
                 df=names_df,
                 groupby=["region"],
-                whisker_type='percentile',
+                whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
                 metrics=["cars"],
-                percentiles=[90, 10]
+                percentiles=[90, 10],
             )
 
         with pytest.raises(QueryObjectValidationError):
             proc.boxplot(
                 df=names_df,
                 groupby=["region"],
-                whisker_type='percentile',
+                whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
                 metrics=["cars"],
-                percentiles=[10, 90, 10]
+                percentiles=[10, 90, 10],
             )

@@ -23,13 +23,13 @@ describe('Visualization > Box Plot', () => {
     slice_id: 49,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
-    time_range: '1960-01-01+:+now',
+    time_range: '1960-01-01 : now',
     metrics: ['sum__SP_POP_TOTL'],
     adhoc_filters: [],
     groupby: ['region'],
     limit: '25',
     color_scheme: 'bnbColors',
-    whisker_options: 'Min/max+(no+outliers)',
+    whisker_options: 'Min/max (no outliers)',
   };
 
   function verify(formData) {
