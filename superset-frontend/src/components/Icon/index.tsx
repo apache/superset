@@ -19,7 +19,6 @@
 import React, { SVGProps } from 'react';
 import { styled } from '@superset-ui/core';
 
-
 import { ReactComponent as AlertSolidIcon } from 'images/icons/alert_solid.svg';
 import { ReactComponent as AlertIcon } from 'images/icons/alert.svg';
 import { ReactComponent as BinocularsIcon } from 'images/icons/binoculars.svg';
@@ -317,7 +316,7 @@ export const iconsRegistry: Record<
   'field-num': FieldNumIcon,
   'field-struct': FieldStructIcon,
   file: FileIcon,
-  'filter': FilterIcon,
+  filter: FilterIcon,
   'filter-small': FilterSmallIcon,
   folder: FolderIcon,
   full: FullIcon,
@@ -399,7 +398,6 @@ const Icon = ({
   viewBox = '0 0 24 24',
   ...rest
 }: IconProps) => {
-
   const Component = iconsRegistry[name];
 
   return (

@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import TooltipWrapper from './TooltipWrapper';
 import Icon from './Icon';
-import { styled } from '@superset-ui/core';
 
 interface FaveStarProps {
   itemId: number;
