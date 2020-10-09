@@ -276,5 +276,6 @@ export const filterSelectStyles: PartialStylesConfig = {
     borderWidth: 0,
     boxShadow: 'none',
     cursor: 'pointer',
+    backgroundColor: 'transparent',
   }),
 };

@@ -34,8 +34,19 @@ interface TableCollectionProps {
 }
 
 const Table = styled.table`
+  background-color: white;
   border-collapse: separate;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 
+  thead > tr > th {
+    border: 0;
+  }
+
+  tbody {
+    tr:first-of-type > td {
+      border-top: 0;
+    }
+  }
   th {
     background: ${({ theme }) => theme.colors.grayscale.light5};
     position: sticky;
@@ -175,10 +186,6 @@ const Table = styled.table`
     &:first-of-type {
       padding-left: ${({ theme }) => theme.gridUnit * 4}px;
     }
-  }
-
-  .sort-icon {
-    position: absolute;
   }
 
   @keyframes loading-shimmer {
