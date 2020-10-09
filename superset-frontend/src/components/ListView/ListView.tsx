@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-bootstrap';
 import { Empty } from 'src/common/components';
 import cx from 'classnames';
@@ -42,14 +42,21 @@ const ListViewStyles = styled.div`
 
   .superset-list-view {
     text-align: left;
-    background-color: white;
     border-radius: 4px 0;
     margin: 0 16px;
-    padding-bottom: 48px;
 
+    .header {
+      display: flex;
+
+      .header-left {
+        flex: 5;
+      }
+      .header-right {
+        flex: 1;
+        text-align: right;
+      }
+    }
     .body {
-      overflow: scroll;
-      max-height: 64vh;
     }
   }
 
@@ -57,6 +64,7 @@ const ListViewStyles = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
   }
 
   .row-count-container {
@@ -114,9 +122,8 @@ const bulkSelectColumnConfig = {
 };
 
 const ViewModeContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 6}px 0px
-    ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 4}px;
+  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 8}px 0;
   display: inline-block;
   position: relative;
   top: 8px;
@@ -250,7 +257,7 @@ function ListView<T extends object = any>({
   const filterable = Boolean(filters.length);
   if (filterable) {
     const columnAccessors = columns.reduce(
-      (acc, col) => ({ ...acc, [col.accessor || col.id]: true }),
+      (acc, col) => ({ ...acc, [col.id || col.accessor]: true }),
       {},
     );
     filters.forEach(f => {
@@ -267,29 +274,38 @@ function ListView<T extends object = any>({
     cardViewEnabled ? defaultViewMode : 'table',
   );
 
+  useEffect(() => {
+    // discard selections if bulk select is disabled
+    if (!bulkSelectEnabled) toggleAllRowsSelected(false);
+  }, [bulkSelectEnabled, toggleAllRowsSelected]);
+
   return (
     <ListViewStyles>
       <div className={`superset-list-view ${className}`}>
         <div className="header">
-          {cardViewEnabled && (
-            <ViewModeToggle mode={viewingMode} setMode={setViewingMode} />
-          )}
-          {filterable && (
-            <FilterControls
-              filters={filters}
-              internalFilters={internalFilters}
-              updateFilterValue={applyFilterValue}
-            />
-          )}
-          {viewingMode === 'card' && cardSortSelectOptions && (
-            <CardSortSelect
-              initialSort={initialSort}
-              onChange={fetchData}
-              options={cardSortSelectOptions}
-              pageIndex={pageIndex}
-              pageSize={pageSize}
-            />
-          )}
+          <div className="header-left">
+            {cardViewEnabled && (
+              <ViewModeToggle mode={viewingMode} setMode={setViewingMode} />
+            )}
+            {filterable && (
+              <FilterControls
+                filters={filters}
+                internalFilters={internalFilters}
+                updateFilterValue={applyFilterValue}
+              />
+            )}
+          </div>
+          <div className="header-right">
+            {viewingMode === 'card' && cardSortSelectOptions && (
+              <CardSortSelect
+                initialSort={initialSort}
+                onChange={fetchData}
+                options={cardSortSelectOptions}
+                pageIndex={pageIndex}
+                pageSize={pageSize}
+              />
+            )}
+          </div>
         </div>
         <div className="body">
           {bulkSelectEnabled && (
@@ -318,9 +334,9 @@ function ListView<T extends object = any>({
                       data-test="bulk-select-action"
                       key={action.key}
                       className={cx({
-                        danger: action.type === 'danger',
-                        primary: action.type === 'primary',
-                        secondary: action.type === 'secondary',
+                        'btn-danger': action.type === 'danger',
+                        'btn-primary': action.type === 'primary',
+                        'btn-secondary': action.type === 'secondary',
                       })}
                       cta
                       onClick={() =>

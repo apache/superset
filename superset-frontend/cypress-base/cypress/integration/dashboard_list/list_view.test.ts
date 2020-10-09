@@ -32,7 +32,7 @@ describe('dashboard list view', () => {
     // check dashboard list view header
     cy.get('th[role="columnheader"]:nth-child(2)').contains('Title');
     cy.get('th[role="columnheader"]:nth-child(3)').contains('Modified By');
-    cy.get('th[role="columnheader"]:nth-child(4)').contains('Published');
+    cy.get('th[role="columnheader"]:nth-child(4)').contains('Status');
     cy.get('th[role="columnheader"]:nth-child(5)').contains('Modified');
     cy.get('th[role="columnheader"]:nth-child(6)').contains('Created By');
     cy.get('th[role="columnheader"]:nth-child(7)').contains('Owners');
