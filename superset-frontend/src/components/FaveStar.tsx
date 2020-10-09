@@ -20,6 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import TooltipWrapper from './TooltipWrapper';
 import Icon from './Icon';
+import { styled } from '@superset-ui/core';
 
 interface FaveStarProps {
   itemId: number;
@@ -30,6 +31,10 @@ interface FaveStarProps {
   height?: number;
   showTooltip?: boolean;
 }
+
+const StyledLink = styled.a`
+  font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+`;
 
 export default class FaveStar extends React.PureComponent<FaveStarProps> {
   componentDidMount() {
@@ -68,7 +73,7 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
     }
 
     return (
-      <a
+      <StyledLink
         href="#"
         onClick={this.onClick.bind(this)}
         className="fave-unfave-icon"
@@ -80,7 +85,7 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
           width={this.props.width || 20}
           height={this.props.height || 'auto'}
         />
-      </a>
+      </StyledLink>
     );
   }
 }
