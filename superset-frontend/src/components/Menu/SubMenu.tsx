@@ -58,6 +58,7 @@ const StyledHeader = styled.header`
       background: ${({ theme }) => theme.colors.secondary.light4};
       border-bottom: none;
       border-radius: 4px;
+      margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
   .navbar-inverse {
