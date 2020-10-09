@@ -18,7 +18,7 @@
  */
 
 import { SupersetClient, t, styled } from '@superset-ui/core';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import moment from 'moment';
 import {
@@ -104,7 +104,6 @@ function SavedQueryList({
     setSavedQueryCurrentlyPreviewing,
   ] = useState<SavedQueryObject | null>(null);
 
-  const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
@@ -112,20 +111,23 @@ function SavedQueryList({
     window.open(`${window.location.origin}/superset/sqllab?new=true`);
   };
 
-  const handleSavedQueryPreview = (id: number) => {
-    SupersetClient.get({
-      endpoint: `/api/v1/saved_query/${id}`,
-    }).then(
-      ({ json = {} }) => {
-        setSavedQueryCurrentlyPreviewing({ ...json.result });
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(
-          t('There was an issue previewing the selected query %s', errMsg),
+  const handleSavedQueryPreview = useCallback(
+    (id: number) => {
+      SupersetClient.get({
+        endpoint: `/api/v1/saved_query/${id}`,
+      }).then(
+        ({ json = {} }) => {
+          setSavedQueryCurrentlyPreviewing({ ...json.result });
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue previewing the selected query %s', errMsg),
+          ),
         ),
-      ),
-    );
-  };
+      );
+    },
+    [addDangerToast],
+  );
 
   const menuData: SubMenuProps = {
     activeChild: 'Saved Queries',
@@ -155,41 +157,44 @@ function SavedQueryList({
     window.open(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`);
   };
 
-  const copyQueryLink = (id: number) => {
-    const selection: Selection | null = document.getSelection();
+  const copyQueryLink = useCallback(
+    (id: number) => {
+      const selection: Selection | null = document.getSelection();
 
-    if (selection) {
-      selection.removeAllRanges();
-      const range = document.createRange();
-      const span = document.createElement('span');
-      span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
-      span.style.position = 'fixed';
-      span.style.top = '0';
-      span.style.clip = 'rect(0, 0, 0, 0)';
-      span.style.whiteSpace = 'pre';
-
-      document.body.appendChild(span);
-      range.selectNode(span);
-      selection.addRange(range);
-
-      try {
-        if (!document.execCommand('copy')) {
-          throw new Error(t('Not successful'));
-        }
-      } catch (err) {
-        addDangerToast(t('Sorry, your browser does not support copying.'));
-      }
-
-      document.body.removeChild(span);
-      if (selection.removeRange) {
-        selection.removeRange(range);
-      } else {
+      if (selection) {
         selection.removeAllRanges();
-      }
+        const range = document.createRange();
+        const span = document.createElement('span');
+        span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
+        span.style.position = 'fixed';
+        span.style.top = '0';
+        span.style.clip = 'rect(0, 0, 0, 0)';
+        span.style.whiteSpace = 'pre';
 
-      addSuccessToast(t('Link Copied!'));
-    }
-  };
+        document.body.appendChild(span);
+        range.selectNode(span);
+        selection.addRange(range);
+
+        try {
+          if (!document.execCommand('copy')) {
+            throw new Error(t('Not successful'));
+          }
+        } catch (err) {
+          addDangerToast(t('Sorry, your browser does not support copying.'));
+        }
+
+        document.body.removeChild(span);
+        if (selection.removeRange) {
+          selection.removeRange(range);
+        } else {
+          selection.removeAllRanges();
+        }
+
+        addSuccessToast(t('Link Copied!'));
+      }
+    },
+    [addDangerToast, addSuccessToast],
+  );
 
   const handleQueryDelete = ({ id, label }: SavedQueryObject) => {
     SupersetClient.delete({
@@ -232,22 +237,15 @@ function SavedQueryList({
         Header: t('Name'),
       },
       {
+        id: 'database',
         accessor: 'database.database_name',
         Header: t('Database'),
-      },
-      {
-        accessor: 'database',
-        hidden: true,
-        disableSortBy: true,
-        Cell: ({
-          row: {
-            original: { database },
-          },
-        }: any) => `${database.database_name}`,
+        size: 'xl',
       },
       {
         accessor: 'schema',
         Header: t('Schema'),
+        size: 'xl',
       },
       {
         Cell: ({
@@ -284,6 +282,7 @@ function SavedQueryList({
         },
         accessor: 'sql_tables',
         Header: t('Tables'),
+        size: 'xl',
         disableSortBy: true,
       },
       {
@@ -309,6 +308,7 @@ function SavedQueryList({
         },
         Header: t('Created On'),
         accessor: 'created_on',
+        size: 'xl',
       },
       {
         Cell: ({
@@ -318,6 +318,7 @@ function SavedQueryList({
         }: any) => changedOn,
         Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
+        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -374,7 +375,7 @@ function SavedQueryList({
         disableSortBy: true,
       },
     ],
-    [canDelete, canCreate],
+    [canDelete, canEdit, copyQueryLink, handleSavedQueryPreview],
   );
 
   const filters: Filters = useMemo(

@@ -35,6 +35,7 @@ const SearchInputWrapper = styled.div`
 
 const StyledInput = styled.input`
   width: 200px;
+  height: ${({ theme }) => theme.gridUnit * 8}px;
   background-image: none;
   border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
   border-radius: 4px;
@@ -54,14 +55,14 @@ const commonStyles = `
 `;
 const SearchIcon = styled(Icon)`
   ${commonStyles};
-  top: 1px;
+  top: 4px;
   left: 2px;
 `;
 
 const ClearIcon = styled(Icon)`
   ${commonStyles};
   right: 0px;
-  top: 1px;
+  top: 4px;
 `;
 
 export default function SearchInput({

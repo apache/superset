@@ -285,7 +285,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         disableSortBy: true,
       },
     ],
-    [canDelete, canCreate],
+    [canDelete, canEdit],
   );
 
   const filters: Filters = useMemo(

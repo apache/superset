@@ -20,7 +20,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
-import ImageLoader from './ImageLoader';
+import ImageLoader, { BackgroundPosition } from './ImageLoader';
 
 const MenuIcon = styled(Icon)`
   width: ${({ theme }) => theme.gridUnit * 4}px;
@@ -36,12 +36,45 @@ const ActionsWrapper = styled.div`
 `;
 
 const StyledCard = styled(Card)`
+  border: 1px solid #d9dbe4;
+
   .ant-card-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px
       ${({ theme }) => theme.gridUnit * 2}px;
   }
   .ant-card-meta-detail > div:not(:last-child) {
     margin-bottom: 0;
+  }
+  .gradient-container {
+    position: relative;
+    height: 100%;
+  }
+  &:hover {
+    box-shadow: 8px 8px 28px 0px rgba(0, 0, 0, 0.24);
+    transition: box-shadow ${({ theme }) => theme.transitionTiming}s ease-in-out;
+
+    .gradient-container:after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      display: inline-block;
+      background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0) 47.83%,
+        rgba(0, 0, 0, 0.219135) 79.64%,
+        rgba(0, 0, 0, 0.5) 100%
+      );
+
+      transition: background ${({ theme }) => theme.transitionTiming}s
+        ease-in-out;
+    }
+
+    .cover-footer {
+      transform: translateY(0);
+    }
   }
 `;
 
@@ -52,33 +85,6 @@ const Cover = styled.div`
   .cover-footer {
     transform: translateY(${({ theme }) => theme.gridUnit * 9}px);
     transition: ${({ theme }) => theme.transitionTiming}s ease-out;
-  }
-
-  &:hover {
-    .cover-footer {
-      transform: translateY(0);
-    }
-  }
-`;
-
-const GradientContainer = styled.div`
-  position: relative;
-  height: 100%;
-
-  &:after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: inline-block;
-    background: linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0) 47.83%,
-      rgba(0, 0, 0, 0.219135) 79.64%,
-      rgba(0, 0, 0, 0.5) 100%
-    );
   }
 `;
 
@@ -139,6 +145,7 @@ interface CardProps {
   url?: string;
   imgURL: string;
   imgFallbackURL: string;
+  imgPosition?: BackgroundPosition;
   description: string;
   loading: boolean;
   titleRight?: React.ReactNode;
@@ -158,19 +165,21 @@ function ListViewCard({
   coverRight,
   actions,
   loading,
+  imgPosition = 'top',
 }: CardProps) {
   return (
     <StyledCard
       cover={
         <Cover>
           <a href={url}>
-            <GradientContainer>
+            <div className="gradient-container">
               <ImageLoader
                 src={imgURL}
                 fallback={imgFallbackURL}
                 isLoading={loading}
+                position={imgPosition}
               />
-            </GradientContainer>
+            </div>
           </a>
           <CoverFooter className="cover-footer">
             {!loading && coverLeft && (

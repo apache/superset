@@ -24,7 +24,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
@@ -39,6 +39,7 @@ import Chart from 'src/types/Chart';
 import ListViewCard from 'src/components/ListViewCard';
 import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
+import TooltipWrapper from 'src/components/TooltipWrapper';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -109,6 +110,7 @@ function ChartList(props: ChartListProps) {
     setSliceCurrentlyEditing,
   ] = useState<Slice | null>(null);
 
+  const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -173,8 +175,6 @@ function ChartList(props: ChartListProps) {
         fetchFaveStar={fetchFaveStar}
         saveFaveStar={saveFaveStar}
         isStarred={!!favoriteStatusRef.current[id]}
-        height={20}
-        width={20}
       />
     );
   }
@@ -190,6 +190,7 @@ function ChartList(props: ChartListProps) {
         Header: '',
         id: 'favorite',
         disableSortBy: true,
+        size: 'xs',
       },
       {
         Cell: ({
@@ -208,6 +209,7 @@ function ChartList(props: ChartListProps) {
         }: any) => vizType,
         Header: t('Visualization Type'),
         accessor: 'viz_type',
+        size: 'xxl',
       },
       {
         Cell: ({
@@ -219,7 +221,8 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
         Header: t('Dataset'),
-        accessor: 'datasource_name',
+        accessor: 'datasource_id',
+        size: 'xl',
       },
       {
         Cell: ({
@@ -232,6 +235,7 @@ function ChartList(props: ChartListProps) {
         }: any) => <a href={changedByUrl}>{changedByName}</a>,
         Header: t('Modified By'),
         accessor: 'changed_by.first_name',
+        size: 'xl',
       },
       {
         Cell: ({
@@ -241,19 +245,10 @@ function ChartList(props: ChartListProps) {
         }: any) => <span className="no-wrap">{changedOn}</span>,
         Header: t('Last Modified'),
         accessor: 'changed_on_delta_humanized',
-      },
-      {
-        accessor: 'description',
-        hidden: true,
-        disableSortBy: true,
+        size: 'xl',
       },
       {
         accessor: 'owners',
-        hidden: true,
-        disableSortBy: true,
-      },
-      {
-        accessor: 'datasource_id',
         hidden: true,
         disableSortBy: true,
       },
@@ -267,6 +262,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Created By'),
         accessor: 'created_by',
         disableSortBy: true,
+        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -290,26 +286,38 @@ function ChartList(props: ChartListProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={confirmDelete}
+                    <TooltipWrapper
+                      label="delete-action"
+                      tooltip={t('Delete')}
+                      placement="bottom"
                     >
-                      <Icon name="trash" />
-                    </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="action-button"
+                        onClick={confirmDelete}
+                      >
+                        <Icon name="trash" />
+                      </span>
+                    </TooltipWrapper>
                   )}
                 </ConfirmStatusChange>
               )}
               {canEdit && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={openEditModal}
+                <TooltipWrapper
+                  label="edit-action"
+                  tooltip={t('Edit')}
+                  placement="bottom"
                 >
-                  <Icon name="edit-alt" />
-                </span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={openEditModal}
+                  >
+                    <Icon name="edit-alt" />
+                  </span>
+                </TooltipWrapper>
               )}
             </span>
           );
@@ -319,7 +327,7 @@ function ChartList(props: ChartListProps) {
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, favoriteStatusRef],
+    [canEdit, canDelete],
   );
 
   const filters: Filters = [
@@ -467,6 +475,7 @@ function ChartList(props: ChartListProps) {
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url ?? ''}
         imgFallbackURL="/static/assets/images/chart-card-fallback.png"
+        imgPosition="bottom"
         description={t('Last modified %s', chart.changed_on_delta_humanized)}
         coverLeft={(chart.owners || []).slice(0, 5).map(owner => (
           <AvatarIcon
@@ -492,23 +501,31 @@ function ChartList(props: ChartListProps) {
       />
     );
   }
-
+  const subMenuButtons: SubMenuProps['buttons'] = [];
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk Select'),
+      buttonStyle: 'secondary',
+      onClick: toggleBulkSelect,
+    });
+  }
+  if (canCreate) {
+    subMenuButtons.push({
+      name: (
+        <>
+          {' '}
+          <i className="fa fa-plus" /> {t('Chart')}
+        </>
+      ),
+      buttonStyle: 'primary',
+      onClick: () => {
+        window.location.assign('/chart/add');
+      },
+    });
+  }
   return (
     <>
-      <SubMenu
-        name={t('Charts')}
-        buttons={
-          canDelete
-            ? [
-                {
-                  name: t('Bulk Select'),
-                  buttonStyle: 'secondary',
-                  onClick: toggleBulkSelect,
-                },
-              ]
-            : []
-        }
-      />
+      <SubMenu name={t('Charts')} buttons={subMenuButtons} />
       {sliceCurrentlyEditing && (
         <PropertiesModal
           onHide={closeChartEditModal}
