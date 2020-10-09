@@ -139,11 +139,6 @@ def upgrade():
             a.validator_config = a.validators[0].config
     session.commit()
 
-    # op.alter_column('alerts', 'database_id', server_default=None)
-    # op.alter_column('alerts', 'sql', server_default=None)
-    # op.alter_column('alerts', 'config', server_default=None)
-    # op.alter_column('alerts', 'validator_type', server_default=None)
-
     if not isinstance(bind.dialect, SQLiteDialect):
         constraint = generic_find_fk_constraint_name(
             "sql_observations", {"id"}, "sql_observers", insp

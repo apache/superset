@@ -64,6 +64,8 @@ def setup_database():
         db.session.query(SQLObservation).delete()
         db.session.query(AlertLog).delete()
         db.session.query(Alert).delete()
+        db.session.commit()
+        example_database.get_sqla_engine().execute("DROP TABLE test_table")
 
 
 def create_alert(
