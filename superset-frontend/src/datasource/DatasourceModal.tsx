@@ -89,6 +89,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       postPayload: {
         data: {
           ...currentDatasource,
+          schema:
+            currentDatasource.databaseSelector?.schema ||
+            currentDatasource.tableSelector?.schema,
           metrics: currentDatasource?.metrics?.map(
             (metric: Record<string, unknown>) => ({
               ...metric,

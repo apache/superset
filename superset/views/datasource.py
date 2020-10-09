@@ -46,10 +46,12 @@ class Datasource(BaseSupersetView):
         datasource_id = datasource_dict.get("id")
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
+        table_name = datasource_dict.get("table_name")
         orm_datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
         )
         orm_datasource.database_id = database_id
+        orm_datasource.table_name = table_name
 
         if "owners" in datasource_dict and orm_datasource.owner_class is not None:
             datasource_dict["owners"] = (
