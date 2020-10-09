@@ -181,7 +181,7 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(len(data.split("\n")), 12)
 
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
-        assert ck.datasource_uid == "3__table"
+        assert ck.datasource_uid == f"{table.id}__table"
 
     def test_sql_injection_via_groupby(self):
         """
