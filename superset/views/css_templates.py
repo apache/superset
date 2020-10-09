@@ -14,11 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask_appbuilder.api import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 
+from superset import app
 from superset.constants import RouteMethod
+from superset.extensions import feature_flag_manager
 from superset.models import core as models
+from superset.typing import FlaskResponse
 from superset.views.base import DeleteMixin, SupersetModelView
 
 
@@ -37,6 +42,17 @@ class CssTemplateModelView(  # pylint: disable=too-many-ancestors
     edit_columns = ["template_name", "css"]
     add_columns = edit_columns
     label_columns = {"template_name": _("Template Name")}
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        if not (
+            app.config["ENABLE_REACT_CRUD_VIEWS"]
+            and feature_flag_manager.is_feature_enabled("SIP_34_CSS_TEMPLATES_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
 
 
 class CssTemplateAsyncModelView(  # pylint: disable=too-many-ancestors
