@@ -30,6 +30,7 @@ from uuid import uuid4
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.exc import OperationalError
 from sqlalchemy_utils import UUIDType
 
 from superset import db
@@ -73,7 +74,7 @@ models = {
 
 models["dashboards"].position_json = sa.Column(utils.MediumText())
 
-default_batch_size = int(os.environ.get("BATCH_SIZE", 500))
+default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 
 
 def add_uuids(objects_query, session, batch_size=default_batch_size):
@@ -127,21 +128,28 @@ def upgrade():
 
     uuid_maps = {}
     for table_name, model in models.items():
-        with op.batch_alter_table(table_name) as batch_op:
-            batch_op.add_column(
-                sa.Column(
-                    "uuid", UUIDType(binary=True), primary_key=False, default=uuid4,
+        try:
+            with op.batch_alter_table(table_name) as batch_op:
+                batch_op.add_column(
+                    sa.Column(
+                        "uuid", UUIDType(binary=True), primary_key=False, default=uuid4,
+                    )
                 )
-            )
+        except OperationalError:
+            # ignore collumn update errors so that we can run upgrade multiple times
+            pass
 
         # populate column
         objects_query = session.query(model)
         print(f"\nAdding uuids for `{table_name}`...")
         uuid_maps[table_name] = add_uuids(objects_query, session)
 
-        # add uniqueness constraint
-        with op.batch_alter_table(table_name) as batch_op:
-            batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
+        try:
+            # add uniqueness constraint
+            with op.batch_alter_table(table_name) as batch_op:
+                batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
+        except OperationalError:
+            pass
 
     # add UUID to Dashboard.position_json
     Dashboard = models["dashboards"]
