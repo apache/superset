@@ -18,6 +18,7 @@
  */
 
 export * from './ListView';
+export * from './TableView';
 export * from './types';
 
 export { default } from './ListView';

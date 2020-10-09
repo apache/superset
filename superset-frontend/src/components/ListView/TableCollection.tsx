@@ -33,8 +33,7 @@ interface TableCollectionProps {
   highlightRowId?: number;
 }
 
-const Table = styled.table`
-  background-color: white;
+export const Table = styled.table`
   border-collapse: separate;
   border-radius: ${({ theme }) => theme.borderRadius}px;
 
