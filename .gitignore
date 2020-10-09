@@ -20,6 +20,8 @@
 *.pyc
 *.sqllite
 *.swp
+__pycache__
+
 .bento*
 .cache-loader
 .coverage
