@@ -28,8 +28,11 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.mysql.base import MySQLDialect
+from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import load_only
 from sqlalchemy_utils import UUIDType
 
 from superset import db
@@ -75,24 +78,39 @@ models["dashboards"].position_json = sa.Column(utils.MediumText())
 
 default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 
+# Add uuids directly using built-in SQL uuid function
+add_uuids_by_dialect = {
+    MySQLDialect: """UPDATE %s SET uuid = UNHEX(REPLACE(uuid(), "-", ""));""",
+    PGDialect: """UPDATE %s SET uuid = uuid_in(md5(random()::text || clock_timestamp()::text)::cstring);""",
+}
+
 
 def add_uuids(table_name, session, batch_size=default_batch_size):
-    uuid_map = {}
+    """Populate columns with pre-computed uuids"""
+    bind = op.get_bind()
     objects_query = session.query(models[table_name])
     count = objects_query.count()
+
+    # silently skip if the table is empty (suitable for db initialization)
     if count == 0:
-        # silently skip if the table is empty (suitable for db initialization)
-        return uuid_map
+        return
 
     print(f"\nAdding uuids for `{table_name}`...")
     start_time = time.time()
 
+    # Use dialect specific native SQL queries if possible
+    for dialect, sql in add_uuids_by_dialect.items():
+        if isinstance(bind.dialect, dialect):
+            op.execute(sql % table_name)
+            print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.")
+            return
+
+    # Othwewise Use Python uuid function
     start = 0
     while start < count:
         end = min(start + batch_size, count)
         for obj, uuid in map(lambda obj: (obj, uuid4()), objects_query[start:end]):
             obj.uuid = uuid
-            uuid_map[obj.id] = uuid
             session.merge(obj)
         session.commit()
         if start + batch_size < count:
@@ -101,10 +119,8 @@ def add_uuids(table_name, session, batch_size=default_batch_size):
 
     print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.")
 
-    return uuid_map
 
-
-def update_position_json(dashboard, session, uuid_map):
+def update_position_json(dashboard, session, uuid_map={}):
     layout = json.loads(dashboard.position_json or "{}")
     for object_ in layout.values():
         if (
@@ -127,7 +143,6 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    uuid_maps = {}
     for table_name in models.keys():
         try:
             with op.batch_alter_table(table_name) as batch_op:
@@ -140,8 +155,7 @@ def upgrade():
             # ignore collumn update errors so that we can run upgrade multiple times
             pass
 
-        # populate column with prefilled uuids
-        uuid_maps[table_name] = add_uuids(table_name, session)
+        add_uuids(table_name, session)
 
         try:
             # add uniqueness constraint
@@ -151,10 +165,21 @@ def upgrade():
         except OperationalError:
             pass
 
+    message = "Updating dashboard position json with slice uuid.."
+    print(f"\n{message}\r", end="")
+
     # add UUID to Dashboard.position_json
     Dashboard = models["dashboards"]
-    for dashboard in session.query(Dashboard).all():
-        update_position_json(dashboard, session, uuid_maps["slices"])
+    Slice = models["slices"]
+    slice_uuid_map = {
+        slc.id: slc.uuid
+        for slc in session.query(Slice).options(load_only("id", "uuid")).all()
+    }
+    dashboard_count = session.query(Dashboard).count()
+    for i, dashboard in enumerate(session.query(Dashboard).all()):
+        update_position_json(dashboard, session, slice_uuid_map)
+        print(f"{message} {i+1}/{dashboard_count}\r", end="")
+    print(f"{message} Done.")
 
 
 def downgrade():
