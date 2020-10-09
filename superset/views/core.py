@@ -1064,6 +1064,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         dash = session.query(Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form["data"])
+        remote_last_modified_time = data.get("last_modified_time")
+        current_last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
+        # prevent mid-air collisions
+        if remote_last_modified_time < current_last_modified_time:
+            return json_error_response(
+                "This dashboard was changed recently. "
+                "Please reload dashboard to get latest version.",
+                412,
+            )
+
         DashboardDAO.set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
