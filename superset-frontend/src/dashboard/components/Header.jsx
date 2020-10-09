@@ -109,6 +109,10 @@ const StyledDashboardHeader = styled.div`
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
+    font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+    .btn {
+      font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+    }
   }
 `;
 
