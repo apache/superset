@@ -22,8 +22,10 @@ Create Date: 2020-09-28 17:57:23.128142
 
 """
 import json
-import logging
-import uuid
+import os
+import time
+
+from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
@@ -43,7 +45,7 @@ Base = declarative_base()
 
 class ImportMixin:
     id = sa.Column(sa.Integer, primary_key=True)
-    uuid = sa.Column(UUIDType(binary=True), primary_key=False, default=uuid.uuid4)
+    uuid = sa.Column(UUIDType(binary=True), primary_key=False, default=uuid4)
 
 
 table_names = [
@@ -71,20 +73,31 @@ models = {
 
 models["dashboards"].position_json = sa.Column(utils.MediumText())
 
+default_batch_size = int(os.environ.get("BATCH_SIZE", 500))
 
-def add_uuids(objects, session, batch_size=100):
+
+def add_uuids(objects_query, session, batch_size=default_batch_size):
     uuid_map = {}
-    count = len(objects)
-    for i, object_ in enumerate(objects):
-        object_.uuid = uuid.uuid4()
-        uuid_map[object_.id] = object_.uuid
-        session.merge(object_)
-        if (i + 1) % batch_size == 0:
-            session.commit()
-            print(f"uuid assigned to {i + 1} out of {count}")
+    count = objects_query.count()
+    if count == 0:
+        print("Done. This table is empty.")
+        return uuid_map
 
-    session.commit()
-    print(f"Done! Assigned {count} uuids")
+    start_time = time.time()
+
+    start = 0
+    while start < count:
+        end = min(start + batch_size, count)
+        for obj, uuid in map(lambda obj: (obj, uuid4()), objects_query[start:end]):
+            obj.uuid = uuid
+            uuid_map[obj.id] = uuid
+            session.merge(obj)
+        session.commit()
+        if start + batch_size < count:
+            print(f"  uuid assigned to {end} out of {count}\r", end="")
+        start += batch_size
+
+    print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.")
 
     return uuid_map
 
@@ -110,23 +123,21 @@ def update_position_json(dashboard, session, uuid_map):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.session(bind=bind)
 
     uuid_maps = {}
     for table_name, model in models.items():
         with op.batch_alter_table(table_name) as batch_op:
             batch_op.add_column(
                 sa.Column(
-                    "uuid",
-                    UUIDType(binary=True),
-                    primary_key=False,
-                    default=uuid.uuid4,
+                    "uuid", UUIDType(binary=True), primary_key=False, default=uuid4,
                 )
             )
 
         # populate column
-        objects = session.query(model).all()
-        uuid_maps[table_name] = add_uuids(objects, session)
+        objects_query = session.query(model)
+        print(f"\nAdding uuids for `{table_name}`...")
+        uuid_maps[table_name] = add_uuids(objects_query, session)
 
         # add uniqueness constraint
         with op.batch_alter_table(table_name) as batch_op:
@@ -140,7 +151,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.session(bind=bind)
 
     # remove uuid from position_json
     Dashboard = models["dashboards"]
@@ -149,6 +160,6 @@ def downgrade():
 
     # remove uuid column
     for table_name, model in models.items():
-        with op.batch_alter_table(model) as batch_op:
-            batch_op.drop_constraint(f"uq_{table_name}_uuid")
+        with op.batch_alter_table(model.__tablename__) as batch_op:
+            batch_op.drop_constraint(f"uq_{table_name}_uuid", type_="unique")
             batch_op.drop_column("uuid")
