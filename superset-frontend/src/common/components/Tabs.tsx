@@ -52,7 +52,10 @@ const StyledTabs = styled(AntdTabs, {
     `};
 
   .ant-tabs-tab-btn {
+    display: flex;
     flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     text-align: center;
     text-transform: uppercase;
