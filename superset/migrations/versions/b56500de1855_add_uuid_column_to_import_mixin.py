@@ -24,13 +24,12 @@ Create Date: 2020-09-28 17:57:23.128142
 import json
 import os
 import time
-
 from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import UUIDType
 
 from superset import db
@@ -77,13 +76,15 @@ models["dashboards"].position_json = sa.Column(utils.MediumText())
 default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 
 
-def add_uuids(objects_query, session, batch_size=default_batch_size):
+def add_uuids(table_name, session, batch_size=default_batch_size):
     uuid_map = {}
+    objects_query = session.query(models[table_name])
     count = objects_query.count()
     if count == 0:
-        print("Done. This table is empty.")
+        # silently skip if the table is empty (suitable for db initialization)
         return uuid_map
 
+    print(f"\nAdding uuids for `{table_name}`...")
     start_time = time.time()
 
     start = 0
@@ -124,29 +125,28 @@ def update_position_json(dashboard, session, uuid_map):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.session(bind=bind)
+    session = db.Session(bind=bind)
 
     uuid_maps = {}
-    for table_name, model in models.items():
+    for table_name in models.keys():
         try:
             with op.batch_alter_table(table_name) as batch_op:
                 batch_op.add_column(
                     sa.Column(
                         "uuid", UUIDType(binary=True), primary_key=False, default=uuid4,
-                    )
+                    ),
                 )
         except OperationalError:
             # ignore collumn update errors so that we can run upgrade multiple times
             pass
 
-        # populate column
-        objects_query = session.query(model)
-        print(f"\nAdding uuids for `{table_name}`...")
-        uuid_maps[table_name] = add_uuids(objects_query, session)
+        # populate column with prefilled uuids
+        uuid_maps[table_name] = add_uuids(table_name, session)
 
         try:
             # add uniqueness constraint
             with op.batch_alter_table(table_name) as batch_op:
+                # batch mode is required for sqllite
                 batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
         except OperationalError:
             pass
@@ -159,7 +159,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.session(bind=bind)
+    session = db.Session(bind=bind)
 
     # remove uuid from position_json
     Dashboard = models["dashboards"]
@@ -168,6 +168,6 @@ def downgrade():
 
     # remove uuid column
     for table_name, model in models.items():
-        with op.batch_alter_table(model.__tablename__) as batch_op:
+        with op.batch_alter_table(table_name) as batch_op:
             batch_op.drop_constraint(f"uq_{table_name}_uuid", type_="unique")
             batch_op.drop_column("uuid")
