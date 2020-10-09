@@ -15,9 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
+from io import BytesIO
 from typing import Any, Optional
 
-from flask import g, request, Response
+from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _
@@ -43,6 +45,7 @@ from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseUpdateFailedError,
 )
+from superset.databases.commands.export import ExportDatabaseCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.dao import DatabaseDAO
@@ -63,6 +66,7 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
+from superset.utils.dict_import_export import sanitize
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -72,6 +76,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        RouteMethod.EXPORT,
         "table_metadata",
         "select_star",
         "schemas",
@@ -652,4 +657,49 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             200,
             charts={"count": len(charts), "result": charts},
             dashboards={"count": len(dashboards), "result": dashboards},
+        )
+
+    @expose("/<int:pk>/export/", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def export(self, pk: int) -> Response:
+        """Export database with associated datasets
+        ---
+        get:
+          description: Download database and associated tables as a zip file
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          responses:
+            200:
+              description: A zip file with database and tables as YAML
+              content:
+                application/zip:
+                  schema:
+                    type: string
+                    format: binary
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = DatabaseDAO.find_by_id(pk)
+        if database is None:
+            return self.response_404()
+
+        name = sanitize(database.database_name)
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        filename = f"database_{name}_{timestamp}.zip"
+
+        buf: BytesIO = ExportDatabaseCommand(pk, filename).run()
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            attachment_filename=filename,
         )

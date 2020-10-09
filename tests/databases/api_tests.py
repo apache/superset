@@ -18,6 +18,8 @@
 """Unit tests for Superset"""
 import datetime
 import json
+from io import BytesIO
+from zipfile import is_zipfile
 
 import pandas as pd
 import prison
@@ -801,3 +803,26 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{database.id}/related_objects/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_export_database(self):
+        """
+        Database API: Test export database
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/1/export/"
+        rv = self.client.get(uri)
+
+        self.assertEqual(rv.status_code, 200)
+
+        buf = BytesIO(rv.data)
+        self.assertTrue(is_zipfile(buf))
+
+    def test_export_database_not_allowed(self):
+        """
+        Database API: Test export database
+        """
+        self.login(username="gamma")
+        uri = "api/v1/database/1/export/"
+        rv = self.client.get(uri)
+
+        self.assertEqual(rv.status_code, 401)

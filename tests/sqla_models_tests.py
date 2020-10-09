@@ -20,6 +20,7 @@ from unittest.mock import patch
 import pytest
 
 import tests.test_app
+from superset import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError
@@ -86,48 +87,53 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         # Table with Jinja callable.
-        table = SqlaTable(
+        table1 = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
             sql="SELECT '{{ current_username() }}' as user",
             database=get_example_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={})
-        extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertTrue(table.has_extra_cache_key_calls(query_obj))
+        extra_cache_keys = table1.get_extra_cache_keys(query_obj)
+        self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
         assert extra_cache_keys == ["abc"]
 
         # Table with Jinja callable disabled.
-        table = SqlaTable(
+        table2 = SqlaTable(
             table_name="test_has_extra_cache_keys_disabled_table",
             sql="SELECT '{{ current_username(False) }}' as user",
             database=get_example_database(),
         )
         query_obj = dict(**base_query_obj, extras={})
-        extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertTrue(table.has_extra_cache_key_calls(query_obj))
+        extra_cache_keys = table2.get_extra_cache_keys(query_obj)
+        self.assertTrue(table2.has_extra_cache_key_calls(query_obj))
         self.assertListEqual(extra_cache_keys, [])
 
         # Table with no Jinja callable.
         query = "SELECT 'abc' as user"
-        table = SqlaTable(
+        table3 = SqlaTable(
             table_name="test_has_no_extra_cache_keys_table",
             sql=query,
             database=get_example_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={"where": "(user != 'abc')"})
-        extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertFalse(table.has_extra_cache_key_calls(query_obj))
+        extra_cache_keys = table3.get_extra_cache_keys(query_obj)
+        self.assertFalse(table3.has_extra_cache_key_calls(query_obj))
         self.assertListEqual(extra_cache_keys, [])
 
         # With Jinja callable in SQL expression.
         query_obj = dict(
             **base_query_obj, extras={"where": "(user != '{{ current_username() }}')"}
         )
-        extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertTrue(table.has_extra_cache_key_calls(query_obj))
+        extra_cache_keys = table3.get_extra_cache_keys(query_obj)
+        self.assertTrue(table3.has_extra_cache_key_calls(query_obj))
         assert extra_cache_keys == ["abc"]
+
+        # Cleanup
+        for table in [table1, table2, table3]:
+            db.session.delete(table)
+        db.session.commit()
 
     def test_where_operators(self):
         class FilterTestCase(NamedTuple):
