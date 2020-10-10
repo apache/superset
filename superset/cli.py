@@ -115,6 +115,15 @@ def load_examples_run(
     print("Loading [Random long/lat data]")
     examples.load_long_lat_data(only_metadata, force)
 
+    print("Loading [San Francisco population polygons]")
+    examples.load_sf_population_polygons(only_metadata, force)
+
+    print("Loading [Flights data]")
+    examples.load_flights(only_metadata, force)
+
+    print("Loading [BART lines]")
+    examples.load_bart_lines(only_metadata, force)
+
     print("Loading DECK.gl demo")
     examples.load_deck_dash()
 
@@ -136,15 +145,6 @@ def load_examples_run(
 
         print("Loading [Paris GeoJson]")
         examples.load_paris_iris_geojson(only_metadata, force)
-
-        print("Loading [San Francisco population polygons]")
-        examples.load_sf_population_polygons(only_metadata, force)
-
-        print("Loading [Flights data]")
-        examples.load_flights(only_metadata, force)
-
-        print("Loading [BART lines]")
-        examples.load_bart_lines(only_metadata, force)
 
         print("Loading [Multi Line]")
         examples.load_multi_line(only_metadata)
