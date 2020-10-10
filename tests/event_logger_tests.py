@@ -15,9 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 import unittest
+from datetime import datetime
+from unittest.mock import patch
 
-from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.log import (
+    AbstractEventLogger,
+    DBEventLogger,
+    get_event_logger_from_cfg_value,
+)
+from tests.test_app import app
 
 
 class TestEventLogger(unittest.TestCase):
@@ -42,3 +50,39 @@ class TestEventLogger(unittest.TestCase):
         # test that assignment of non AbstractEventLogger derived type raises TypeError
         with self.assertRaises(TypeError):
             get_event_logger_from_cfg_value(logging.getLogger())
+
+    @patch.object(AbstractEventLogger, "log_with_context")
+    def test_log_this_decorator(self, mock_log_with_context):
+        logger = DBEventLogger()
+
+        @logger.log_this
+        def test_func():
+            time.sleep(0.2)
+            return 1
+
+        before_job_run = datetime.now()
+        result = test_func()
+        after_job_run = datetime.now()
+        args, kwargs = mock_log_with_context.call_args
+
+        self.assertEqual(result, 1)
+        self.assertEqual(args, ("test_func",))
+        assert kwargs["start_dttm"] > before_job_run
+        assert kwargs["start_dttm"] < after_job_run
+
+    @patch.object(DBEventLogger, "log")
+    def test_log_with_context(self, mock_log):
+        logger = DBEventLogger()
+
+        @logger.log_this
+        def test_func():
+            time.sleep(0.2)
+            return 1
+
+        with app.test_request_context():
+            test_func()
+            assert mock_log.call_args[1]["duration_ms"] >= 200
+
+            mock_log.reset_mock()
+            logger.log_with_context("random", duration_ms=10)
+            self.assertEqual(mock_log.call_args[1]["duration_ms"], 10)

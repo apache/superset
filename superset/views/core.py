@@ -1606,6 +1606,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, dashboard_id_or_slug: str
     ) -> FlaskResponse:
         """Server side rendering for a dashboard"""
+        start_dttm = datetime.now()
         session = db.session()
         qry = session.query(Dashboard)
         if dashboard_id_or_slug.isdigit():
@@ -1652,18 +1653,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
         )
 
-        # Hack to log the dashboard_id properly, even when getting a slug
-        @event_logger.log_this
-        def dashboard(**_: Any) -> None:
-            pass
-
-        dashboard(
-            dashboard_id=dash.id,
-            dashboard_version="v2",
-            dash_edit_perm=dash_edit_perm,
-            edit_mode=edit_mode,
-        )
-
         if is_feature_enabled("REMOVE_SLICE_LEVEL_LABEL_COLORS"):
             # dashboard metadata has dashboard-level label_colors,
             # so remove slice-level label_colors from its form_data
@@ -1695,20 +1684,31 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         if request.args.get("json") == "true":
-            return json_success(
+            response = json_success(
                 json.dumps(bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser)
             )
+        else:
+            response = self.render_template(
+                "superset/dashboard.html",
+                entry="dashboard",
+                standalone_mode=standalone_mode,
+                title=dash.dashboard_title,
+                custom_css=dash.css,
+                bootstrap_data=json.dumps(
+                    bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                ),
+            )
 
-        return self.render_template(
-            "superset/dashboard.html",
-            entry="dashboard",
-            standalone_mode=standalone_mode,
-            title=dash.dashboard_title,
-            custom_css=dash.css,
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
-            ),
+        event_logger.log_with_context(
+            "dashboard",
+            start_dttm=start_dttm,
+            dashboard_id=dash.id,
+            dashboard_version="v2",
+            dash_edit_perm=dash_edit_perm,
+            edit_mode=edit_mode,
         )
+
+        return response
 
     @api
     @event_logger.log_this

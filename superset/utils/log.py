@@ -21,7 +21,7 @@ import logging
 import textwrap
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Callable, cast, Optional, Type
+from typing import Any, Callable, cast, Optional, Type, Union
 
 from flask import current_app, g, request
 from sqlalchemy.exc import SQLAlchemyError
@@ -36,58 +36,69 @@ class AbstractEventLogger(ABC):
     ) -> None:
         pass
 
-    def log_this(self, f: Callable[..., Any]) -> Callable[..., Any]:
-        from superset.views.core import get_form_data
-
-        @functools.wraps(f)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            user_id = None
-            if hasattr(g, "user") and g.user:
-                user_id = g.user.get_id()
-            payload = request.form.to_dict() or {}
-
-            # request parameters can overwrite post body
-            request_params = request.args.to_dict()
-            payload.update(request_params)
-            payload.update(kwargs)
-
-            dashboard_id = payload.get("dashboard_id")
-
-            if "form_data" in payload:
-                form_data, _ = get_form_data()
-                payload["form_data"] = form_data
-                slice_id = form_data.get("slice_id")
-            else:
-                slice_id = payload.get("slice_id")
-
-            try:
-                slice_id = int(slice_id)  # type: ignore
-            except (TypeError, ValueError):
-                slice_id = 0
-
-            self.stats_logger.incr(f.__name__)
-            start_dttm = datetime.now()
-            value = f(*args, **kwargs)
+    def log_with_context(
+        self,
+        action: str,
+        start_dttm: Optional[datetime] = None,
+        duration_ms: Optional[Union[float, int]] = None,
+        **kwargs: Any
+    ) -> None:
+        """
+        Log an event while reading information from the request context.
+        `kwargs` will be appended directly to the log payload.
+        """
+        if duration_ms is None and start_dttm is not None:
             duration_ms = (datetime.now() - start_dttm).total_seconds() * 1000
 
-            # bulk insert
-            try:
-                explode_by = payload.get("explode")
-                records = json.loads(payload.get(explode_by))  # type: ignore
-            except Exception:  # pylint: disable=broad-except
-                records = [payload]
+        from superset.views.core import get_form_data
 
-            referrer = request.referrer[:1000] if request.referrer else None
+        user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
+        payload = request.form.to_dict() or {}
+        # request parameters can overwrite post body
+        payload.update(request.args.to_dict())
+        payload.update(kwargs)
 
-            self.log(
-                user_id,
-                f.__name__,
-                records=records,
-                dashboard_id=dashboard_id,
-                slice_id=slice_id,
-                duration_ms=duration_ms,
-                referrer=referrer,
-            )
+        dashboard_id = payload.get("dashboard_id")
+
+        if "form_data" in payload:
+            form_data, _ = get_form_data()
+            payload["form_data"] = form_data
+            slice_id = form_data.get("slice_id")
+        else:
+            slice_id = payload.get("slice_id")
+
+        try:
+            slice_id = int(slice_id)  # type: ignore
+        except (TypeError, ValueError):
+            slice_id = 0
+
+        self.stats_logger.incr(action)
+
+        # bulk insert
+        try:
+            explode_by = payload.get("explode")
+            records = json.loads(payload.get(explode_by))  # type: ignore
+        except Exception:  # pylint: disable=broad-except
+            records = [payload]
+
+        referrer = request.referrer[:1000] if request.referrer else None
+
+        self.log(
+            user_id,
+            action,
+            records=records,
+            dashboard_id=dashboard_id,
+            slice_id=slice_id,
+            duration_ms=duration_ms,
+            referrer=referrer,
+        )
+
+    def log_this(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(f)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            start_dttm = datetime.now()
+            value = f(*args, **kwargs)
+            self.log_with_context(f.__name__, start_dttm=start_dttm, **kwargs)
             return value
 
         return wrapper
@@ -141,6 +152,8 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
 
 
 class DBEventLogger(AbstractEventLogger):
+    """Event logger that commits logs to Superset DB"""
+
     def log(  # pylint: disable=too-many-locals
         self, user_id: Optional[int], action: str, *args: Any, **kwargs: Any
     ) -> None:
