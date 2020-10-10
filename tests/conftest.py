@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import os
 from typing import Any
 
 import pytest
@@ -28,9 +29,11 @@ from superset.utils.core import get_example_database
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
+# setting SKIP_SUPERSET_SAMPLE_LOAD environment variable to skip setup fixture
+AUTOUSE = False if "SKIP_SUPERSET_SAMPLE_LOAD" in os.environ else True
 
 
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(autouse=AUTOUSE, scope="session")
 def setup_sample_data() -> Any:
     with app.app_context():
         setup_presto_if_needed()

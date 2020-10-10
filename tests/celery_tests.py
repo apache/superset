@@ -33,6 +33,7 @@ from tests.base_tests import login
 from tests.conftest import CTAS_SCHEMA_NAME
 from tests.test_app import app
 from superset import db, sql_lab
+from superset import config
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.extensions import celery_app
@@ -220,6 +221,7 @@ def test_run_async_query_cta_config(setup_sqllab, ctas_method):
     )
 
 
+@pytest.mark.skipif(config.CELERY_CONFIG is None, reason="Celery not configured")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_async_cta_query(setup_sqllab, ctas_method):
     table_name = f"{TEST_ASYNC_CTA}_{ctas_method.lower()}"
@@ -240,6 +242,7 @@ def test_run_async_cta_query(setup_sqllab, ctas_method):
     assert query.select_as_cta_used
 
 
+@pytest.mark.skipif(config.CELERY_CONFIG is None, reason="Celery not configured")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_async_cta_query_with_lower_limit(setup_sqllab, ctas_method):
     tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.lower()}"
