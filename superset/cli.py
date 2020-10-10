@@ -552,6 +552,7 @@ def load_test_users() -> None:
     """
     print(Fore.GREEN + "Loading a set of users for unit tests")
     load_test_users_run()
+    print(Fore.RESET)
 
 
 def load_test_users_run() -> None:
