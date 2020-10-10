@@ -355,11 +355,11 @@ def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-bloc
     for filter_id, columns in default_filters.items():
         filter_slice = db.session.query(Slice).filter_by(id=filter_id).one_or_none()
 
-        filter_configs = (
-            json.loads(filter_slice.params or "{}").get("filter_configs") or []
-            if filter_slice
-            else []
-        )
+        filter_configs: List[Dict[str, Any]] = []
+        if filter_slice:
+            filter_configs = (
+                json.loads(filter_slice.params or "{}").get("filter_configs") or []
+            )
 
         scopes_by_filter_field = filter_scopes.get(filter_id, {})
         for col, val in columns.items():
