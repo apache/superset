@@ -458,7 +458,7 @@ const Theme = () => {
                     href={href}
                     target="_blank"
                     key={imageName}
-                    rel="noreferrer"
+                    rel="nofollow"
                   >
                     <DbImage
                       {...{
