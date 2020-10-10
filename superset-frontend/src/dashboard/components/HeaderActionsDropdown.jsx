@@ -149,7 +149,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         title={<Icon name="more-horiz" />}
         noCaret
         id="save-dash-split-button"
-        bsSize="small"
+        bsSize="large"
         style={{ border: 'none', padding: 0, marginLeft: '4px' }}
         pullRight
       >

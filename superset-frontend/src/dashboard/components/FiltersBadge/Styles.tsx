@@ -24,16 +24,19 @@ export const Pill = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.light5};
   border-radius: 1em;
   vertical-align: text-top;
-  padding: 0 8px;
-  font-size: 14px;
+  padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
   font-weight: normal;
   transition: ${({ theme }) => theme.transitionTiming}s all;
+  min-width: 1em;
+  min-height: 1em;
+  line-height: 1em;
+  vertical-align: middle;
+  white-space: nowrap;
 
   svg {
-    vertical-align: middle;
-    height: 1em;
-    width: 1em;
-    color: currentColor;
+    position: relative;
+    top: -1px;
   }
 
   &:hover {
@@ -52,17 +55,8 @@ export const Pill = styled.div`
   &.filters-inactive {
     color: ${({ theme }) => theme.colors.grayscale.light5};
     background: ${({ theme }) => theme.colors.grayscale.light1};
-    min-width: 22px;
-    max-width: 22px;
-    min-height: 22px;
-    max-height: 22px;
-    padding: 0;
+    padding: ${({ theme }) => theme.gridUnit}px;
     text-align: center;
-    line-height: 22px;
-    font-size: 18px;
-    svg {
-      margin-bottom: 2px;
-    }
     &:hover {
       background: ${({ theme }) => theme.colors.grayscale.base};
     }
