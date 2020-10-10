@@ -24,8 +24,6 @@ import MenuObject, {
   MenuObjectProps,
   MenuObjectChildProps,
 } from './MenuObject';
-import NewMenu from './NewMenu';
-import UserMenu from './UserMenu';
 import LanguagePicker, { Languages } from './LanguagePicker';
 
 interface BrandProps {
@@ -89,6 +87,10 @@ const StyledHeader = styled.header`
 
   .nav > li > a {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+  .dropdown-header {
+    text-transform: uppercase;
+    padding-left: 12px;
   }
 
   .navbar-nav > li > a {
@@ -186,7 +188,6 @@ export function Menu({
           ))}
         </Nav>
         <Nav className="navbar-right">
-          {!navbarRight.user_is_anonymous && <NewMenu />}
           {settings && settings.length > 0 && (
             <NavDropdown id="settings-dropdown" title={t('Settings')}>
               {flatSettings.map((section, index) => {
@@ -202,7 +203,7 @@ export function Menu({
                 }
                 if (section.isHeader) {
                   return (
-                    <MenuItem key={`${section.label}`} disabled>
+                    <MenuItem key={`${section.label}`} header>
                       {section.label}
                     </MenuItem>
                   );
@@ -218,6 +219,47 @@ export function Menu({
                   </MenuItem>
                 );
               })}
+
+              {!navbarRight.user_is_anonymous && (
+                <>
+                  <MenuItem
+                    key="user-divider"
+                    divider
+                    disabled
+                    className="settings-divider"
+                  />
+                  <MenuItem key="user-section" header>
+                    {t('User')}
+                  </MenuItem>
+                  <MenuItem href={navbarRight.user_info_url}>
+                    {t('Profile')}
+                  </MenuItem>
+                  <MenuItem href={navbarRight.user_logout_url}>
+                    {t('Logout')}
+                  </MenuItem>
+                </>
+              )}
+              {(navbarRight.version_string || navbarRight.version_sha) && (
+                <>
+                  <MenuItem
+                    key="user-divider"
+                    divider
+                    disabled
+                    className="settings-divider"
+                  />
+                  <MenuItem key="about-section" header>
+                    {t('About')}
+                  </MenuItem>
+                  <li className="version-info">
+                    {navbarRight.version_string && (
+                      <div>Version: {navbarRight.version_string}</div>
+                    )}
+                    {navbarRight.version_sha && (
+                      <div>SHA: {navbarRight.version_sha}</div>
+                    )}
+                  </li>
+                </>
+              )}
             </NavDropdown>
           )}
           {navbarRight.documentation_url && (
@@ -246,14 +288,6 @@ export function Menu({
               languages={navbarRight.languages}
             />
           )}
-          {!navbarRight.user_is_anonymous && (
-            <UserMenu
-              userInfoUrl={navbarRight.user_info_url}
-              userLogoutUrl={navbarRight.user_logout_url}
-              versionString={navbarRight.version_string}
-              versionSha={navbarRight.version_sha}
-            />
-          )}
           {navbarRight.user_is_anonymous && (
             <NavItem href={navbarRight.user_login_url}>
               <i className="fa fa-fw fa-sign-in" />
@@ -280,7 +314,6 @@ export default function MenuWrapper({ data }: MenuProps) {
   // Cycle through menu.menu to build out cleanedMenu and settings
   const cleanedMenu: MenuObjectProps[] = [];
   const settings: MenuObjectProps[] = [];
-
   newMenuData.menu.forEach((item: any) => {
     if (!item) {
       return;
