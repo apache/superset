@@ -140,7 +140,7 @@ export default function Welcome({ user }: WelcomeProps) {
                 },
               },
               {
-                name: 'View All',
+                name: 'View All »',
                 buttonStyle: 'link',
                 onClick: () => {
                   // @ts-ignore
@@ -185,7 +185,7 @@ export default function Welcome({ user }: WelcomeProps) {
                 },
               },
               {
-                name: 'View All',
+                name: 'View All »',
                 buttonStyle: 'link',
                 onClick: () => {
                   // @ts-ignore
@@ -229,7 +229,7 @@ export default function Welcome({ user }: WelcomeProps) {
                 },
               },
               {
-                name: 'View All',
+                name: 'View All »',
                 buttonStyle: 'link',
                 onClick: () => {
                   // @ts-ignore
