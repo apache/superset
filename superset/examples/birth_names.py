@@ -135,6 +135,7 @@ def load_birth_names(
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
+        "time_range": "No filter",
         "granularity_sqla": "ds",
         "groupby": [],
         "row_limit": config["ROW_LIMIT"],
@@ -354,7 +355,6 @@ def load_birth_names(
             viz_type="table",
             datasource_type="table",
             datasource_id=tbl.id,
-            created_by=admin,
             params=get_slice_json(
                 defaults,
                 groupby=["ds"],
@@ -467,9 +467,13 @@ def load_birth_names(
         ),
     ]
     for slc in slices:
+        slc.owners = [admin]
+        slc.created_by = admin
         merge_slice(slc)
 
     for slc in misc_slices:
+        slc.owners = [admin]
+        slc.created_by = admin
         merge_slice(slc)
         misc_dash_slices.add(slc.slice_name)
 
@@ -478,6 +482,8 @@ def load_birth_names(
 
     if not dash:
         dash = Dashboard()
+        dash.owners = [admin]
+        dash.created_by = admin
         db.session.add(dash)
     dash.published = True
     dash.json_metadata = textwrap.dedent(
