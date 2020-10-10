@@ -31,20 +31,17 @@ logger = logging.getLogger("tasks.email_reports")
 # Session needs to be passed along in the celery workers and db.session cannot be used.
 # For more info see: https://github.com/apache/incubator-superset/issues/10530
 def observe(alert_id: int, session: Session) -> Optional[str]:
-    """
-    Runs the SQL query in an alert's SQLObserver and then
-    stores the result in a SQLObservation.
+    """Collect observations for the alert.
     Returns an error message if the observer value was not valid
     """
 
     alert = session.query(Alert).filter_by(id=alert_id).one()
-    sql_observer = alert.sql_observer[0]
 
     value = None
 
-    tp = jinja_context.get_template_processor(database=sql_observer.database)
-    rendered_sql = tp.process_template(sql_observer.sql)
-    df = sql_observer.database.get_df(rendered_sql)
+    tp = jinja_context.get_template_processor(database=alert.database)
+    rendered_sql = tp.process_template(alert.sql)
+    df = alert.database.get_df(rendered_sql)
 
     error_msg = validate_observer_result(df, alert.id, alert.label)
 
@@ -52,11 +49,7 @@ def observe(alert_id: int, session: Session) -> Optional[str]:
         value = float(df.to_records()[0][1])
 
     observation = SQLObservation(
-        observer_id=sql_observer.id,
-        alert_id=alert_id,
-        dttm=datetime.utcnow(),
-        value=value,
-        error_msg=error_msg,
+        alert_id=alert_id, dttm=datetime.utcnow(), value=value, error_msg=error_msg,
     )
 
     session.add(observation)

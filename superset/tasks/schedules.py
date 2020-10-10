@@ -591,15 +591,13 @@ def deliver_alert(
     recipients = recipients or alert.recipients
     slack_channel = slack_channel or alert.slack_channel
     validation_error_message = (
-        str(alert.observations[-1].value) + " " + alert.validators[0].pretty_config
-        if alert.validators
-        else ""
+        str(alert.observations[-1].value) + " " + alert.pretty_config
     )
 
     if alert.slice:
         alert_content = AlertContent(
             alert.label,
-            alert.sql_observer[0].sql,
+            alert.sql,
             str(alert.observations[-1].value),
             validation_error_message,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
@@ -609,7 +607,7 @@ def deliver_alert(
         # TODO: dashboard delivery!
         alert_content = AlertContent(
             alert.label,
-            alert.sql_observer[0].sql,
+            alert.sql,
             str(alert.observations[-1].value),
             validation_error_message,
             _get_url_path("AlertModelView.show", user_friendly=True, pk=alert_id),
@@ -743,12 +741,8 @@ def validate_observations(alert_id: int, label: str, session: Session) -> bool:
 
     logger.info("Validating observations for alert <%s:%s>", alert_id, label)
     alert = session.query(Alert).get(alert_id)
-    if not alert.validators:
-        return False
-
-    validator = alert.validators[0]
-    validate = get_validator_function(validator.validator_type)
-    return bool(validate and validate(alert.sql_observer[0], validator.config))
+    validate = get_validator_function(alert.validator_type)
+    return bool(validate and validate(alert, alert.validator_config))
 
 
 def next_schedules(
