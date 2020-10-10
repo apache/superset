@@ -80,8 +80,62 @@ class Alert(Model, AuditMixinNullable):
     last_eval_dttm = Column(DateTime, default=datetime.utcnow)
     last_state = Column(String(10))
 
+    # Observation related columns
+    sql = Column(Text, nullable=False)
+
+    # Validation related columns
+    validator_type = Column(String(100), nullable=False)
+    validator_config = Column(
+        Text,
+        default=textwrap.dedent(
+            """
+            {
+
+            }
+            """
+        ),
+    )
+
+    @declared_attr
+    def database_id(self) -> int:
+        return Column(Integer, ForeignKey("dbs.id"), nullable=False)
+
+    @declared_attr
+    def database(self) -> RelationshipProperty:
+        return relationship(
+            "Database",
+            foreign_keys=[self.database_id],
+            backref=backref("sql_observers", cascade="all, delete-orphan"),
+        )
+
+    def get_last_observation(self) -> Optional[Any]:
+        observations = list(
+            db.session.query(SQLObservation)
+            .filter_by(alert_id=self.id)
+            .order_by(SQLObservation.dttm.desc())
+            .limit(1)
+        )
+
+        if observations:
+            return observations[0]
+
+        return None
+
     def __str__(self) -> str:
         return f"<{self.id}:{self.label}>"
+
+    @property
+    def pretty_config(self) -> str:
+        """ String representing the comparison that will trigger a validator """
+        config = json.loads(self.validator_config)
+
+        if self.validator_type.lower() == "operator":
+            return f"{config['op']} {config['threshold']}"
+
+        if self.validator_type.lower() == "not null":
+            return "!= Null or 0"
+
+        return ""
 
 
 class AlertLog(Model):
@@ -105,65 +159,13 @@ class AlertLog(Model):
 # TODO: Currently SQLObservation table will constantly grow with no limit,
 # add some retention restriction or more to a more scalable db e.g.
 # https://github.com/apache/incubator-superset/blob/master/superset/utils/log.py#L32
-class SQLObserver(Model, AuditMixinNullable):
-    """Runs SQL-based queries for alerts"""
-
-    __tablename__ = "sql_observers"
-
-    id = Column(Integer, primary_key=True)
-    sql = Column(Text, nullable=False)
-
-    @declared_attr
-    def alert_id(self) -> int:
-        return Column(Integer, ForeignKey("alerts.id"), nullable=False)
-
-    @declared_attr
-    def alert(self) -> RelationshipProperty:
-        return relationship(
-            "Alert",
-            foreign_keys=[self.alert_id],
-            backref=backref("sql_observer", cascade="all, delete-orphan"),
-        )
-
-    @declared_attr
-    def database_id(self) -> int:
-        return Column(Integer, ForeignKey("dbs.id"), nullable=False)
-
-    @declared_attr
-    def database(self) -> RelationshipProperty:
-        return relationship(
-            "Database",
-            foreign_keys=[self.database_id],
-            backref=backref("sql_observers", cascade="all, delete-orphan"),
-        )
-
-    def get_last_observation(self) -> Optional[Any]:
-        observations = list(
-            db.session.query(SQLObservation)
-            .filter_by(observer_id=self.id)
-            .order_by(SQLObservation.dttm.desc())
-            .limit(1)
-        )
-
-        if observations:
-            return observations[0]
-
-        return None
-
-
 class SQLObservation(Model):  # pylint: disable=too-few-public-methods
-    """Keeps track of values retrieved from SQLObservers"""
+    """Keeps track of the collected observations for alerts."""
 
     __tablename__ = "sql_observations"
 
     id = Column(Integer, primary_key=True)
     dttm = Column(DateTime, default=datetime.utcnow, index=True)
-    observer_id = Column(Integer, ForeignKey("sql_observers.id"), nullable=False)
-    observer = relationship(
-        "SQLObserver",
-        foreign_keys=[observer_id],
-        backref=backref("observations", cascade="all, delete-orphan"),
-    )
     alert_id = Column(Integer, ForeignKey("alerts.id"))
     alert = relationship(
         "Alert",
@@ -172,47 +174,3 @@ class SQLObservation(Model):  # pylint: disable=too-few-public-methods
     )
     value = Column(Float)
     error_msg = Column(String(500))
-
-
-class Validator(Model, AuditMixinNullable):
-    """Used to determine how an alert and its observations should be validated"""
-
-    __tablename__ = "alert_validators"
-
-    id = Column(Integer, primary_key=True)
-    validator_type = Column(String(100), nullable=False)
-    config = Column(
-        Text,
-        default=textwrap.dedent(
-            """
-            {
-
-            }
-            """
-        ),
-    )
-
-    @declared_attr
-    def alert_id(self) -> int:
-        return Column(Integer, ForeignKey("alerts.id"), nullable=False)
-
-    @declared_attr
-    def alert(self) -> RelationshipProperty:
-        return relationship(
-            "Alert",
-            foreign_keys=[self.alert_id],
-            backref=backref("validators", cascade="all, delete-orphan"),
-        )
-
-    @property
-    def pretty_config(self) -> str:
-        """ String representing the comparison that will trigger a validator """
-        config = json.loads(self.config)
-
-        if self.validator_type.lower() == "operator":
-            return f"{config['op']} {config['threshold']}"
-
-        if self.validator_type.lower() == "not null":
-            return "!= Null or 0"
-
-        return ""
