@@ -87,25 +87,13 @@ export const MAX_DS = {
 };
 
 export const MAX_STATE = {
-  expressionType: 'SIMPLE',
-  column: {
-    id: 337,
-    column_name: 'state',
-    verbose_name: null,
-    description: null,
-    expression: null,
-    filterable: true,
-    groupby: true,
-    is_dttm: false,
-    type: 'VARCHAR(10)',
-    python_date_format: null,
-    optionName: '_col_state',
-  },
-  aggregate: 'MAX',
-  sqlExpression: null,
+  expressionType: 'SQL',
+  sqlExpression: 'MAX(UPPER(state))',
+  column: null,
+  aggregate: null,
   isNew: false,
   hasCustomLabel: false,
-  label: 'MAX(state)',
+  label: 'MAX(UPPER(state))',
   optionName: 'metric_kvval50pvbo_hewj3pzacb',
 };
 
