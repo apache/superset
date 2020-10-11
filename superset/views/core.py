@@ -33,7 +33,7 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import (
     ArgumentError,
@@ -1129,8 +1129,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             username = g.user.username if g.user is not None else None
             engine = database.get_sqla_engine(user_name=username)
 
-            with closing(engine.connect()) as conn:
-                conn.scalar(select([1]))
+            with closing(engine.raw_connection()) as conn:
+                engine.dialect.do_ping(conn)
                 return json_success('"OK"')
         except CertificateException as ex:
             logger.info("Certificate exception")
