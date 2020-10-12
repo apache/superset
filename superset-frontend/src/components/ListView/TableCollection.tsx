@@ -198,6 +198,8 @@ export const Table = styled.table`
   }
 `;
 
+Table.displayName = 'table';
+
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
