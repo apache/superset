@@ -523,6 +523,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+            400:
+              $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
             403:
