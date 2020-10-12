@@ -20,6 +20,7 @@ from typing import List
 from unittest.mock import patch
 
 import prison
+import pytest
 import yaml
 from sqlalchemy.sql import func
 
@@ -34,12 +35,14 @@ from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
-from superset.views.base import generate_download_headers
 from tests.base_tests import SupersetTestCase
 from tests.conftest import CTAS_SCHEMA_NAME
 
 
 class TestDatasetApi(SupersetTestCase):
+
+    fixture_tables_names = ("ab_permission", "ab_permission_view", "ab_view_menu")
+
     @staticmethod
     def insert_dataset(
         table_name: str, schema: str, owners: List[int], database: Database
@@ -60,6 +63,30 @@ class TestDatasetApi(SupersetTestCase):
         return self.insert_dataset(
             "ab_permission", "", [self.get_user("admin").id], get_main_database()
         )
+
+    def get_fixture_datasets(self) -> List[SqlaTable]:
+        return (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
+            .all()
+        )
+
+    @pytest.fixture()
+    def create_datasets(self):
+        with self.create_app().app_context():
+            datasets = []
+            admin = self.get_user("admin")
+            main_db = get_main_database()
+            for tables_name in self.fixture_tables_names:
+                datasets.append(
+                    self.insert_dataset(tables_name, "", [admin.id], main_db)
+                )
+            yield datasets
+
+            # rollback changes
+            for dataset in datasets:
+                db.session.delete(dataset)
+            db.session.commit()
 
     @staticmethod
     def get_energy_usage_dataset():
@@ -788,6 +815,89 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(data, {"message": "Dataset could not be deleted."})
         db.session.delete(dataset)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_bulk_delete_dataset_items(self):
+        """
+        Dataset API: Test bulk delete dataset items
+        """
+        datasets = self.get_fixture_datasets()
+        dataset_ids = [dataset.id for dataset in datasets]
+
+        view_menu_names = []
+        for dataset in datasets:
+            view_menu_names.append(dataset.get_perm())
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        expected_response = {"message": f"Deleted {len(datasets)} datasets"}
+        assert data == expected_response
+        datasets = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
+            .all()
+        )
+        assert datasets == []
+        # Assert permissions get cleaned
+        for view_menu_name in view_menu_names:
+            assert security_manager.find_view_menu(view_menu_name) is None
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_bulk_delete_item_dataset_not_owned(self):
+        """
+        Dataset API: Test bulk delete item not owned
+        """
+        datasets = self.get_fixture_datasets()
+        dataset_ids = [dataset.id for dataset in datasets]
+
+        self.login(username="alpha")
+        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_bulk_delete_item_not_found(self):
+        """
+        Dataset API: Test bulk delete item not found
+        """
+        datasets = self.get_fixture_datasets()
+        dataset_ids = [dataset.id for dataset in datasets]
+        dataset_ids.append(db.session.query(func.max(SqlaTable.id)).scalar())
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_bulk_delete_dataset_item_not_authorized(self):
+        """
+        Dataset API: Test bulk delete item not authorized
+        """
+        datasets = self.get_fixture_datasets()
+        dataset_ids = [dataset.id for dataset in datasets]
+
+        self.login(username="gamma")
+        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 401
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_bulk_delete_dataset_item_incorrect(self):
+        """
+        Dataset API: Test bulk delete item incorrect request
+        """
+        datasets = self.get_fixture_datasets()
+        dataset_ids = [dataset.id for dataset in datasets]
+        dataset_ids.append("Wrong")
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 400
 
     def test_dataset_item_refresh(self):
         """
