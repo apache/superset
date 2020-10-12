@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useRef } from 'react';
-// @ts-ignore
-import { Table } from 'reactable-arc';
+import React, { FunctionComponent, useState, useRef, useMemo } from 'react';
 import { Alert, FormControl, FormControlProps, Modal } from 'react-bootstrap';
 import { SupersetClient, t } from '@superset-ui/core';
+import { TableView } from '../components/ListView';
 
 import getClientErrorObject from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
@@ -120,6 +119,21 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setFilter((event.currentTarget?.value as string) ?? '');
   };
 
+  const columns = useMemo(
+    () => TABLE_COLUMNS.map(col => ({ accessor: col, Header: col })),
+    [],
+  );
+
+  const data = useMemo(
+    () =>
+      filter && datasources
+        ? datasources.filter((datasource: any) =>
+            TABLE_FILTERABLE.some(field => datasource[field]?.includes(filter)),
+          )
+        : datasources,
+    [datasources, filter],
+  );
+
   return (
     <Modal show={show} onHide={onHide} onEnter={onEnterModal} bsSize="large">
       <Modal.Header closeButton>
@@ -143,14 +157,11 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         </div>
         {loading && <Loading />}
         {datasources && (
-          <Table
-            columns={TABLE_COLUMNS}
-            className="table table-condensed"
-            data={datasources}
-            itemsPerPage={20}
-            filterable={TABLE_FILTERABLE}
-            filterBy={filter}
-            hideFilterInput
+          <TableView
+            columns={columns}
+            data={data}
+            pageSize={20}
+            className="table-condensed"
           />
         )}
       </Modal.Body>
