@@ -22,7 +22,7 @@ import moment from 'moment';
 import { ProgressBar, Well } from 'react-bootstrap';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
-import { memoize } from 'lodash-es';
+import memoize from 'lodash/memoize';
 
 import { TableView } from 'src/components/ListView';
 import Button from 'src/components/Button';
