@@ -1082,9 +1082,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
 
-        if not orderby and ((is_sip_38 and metrics) or (not is_sip_38 and not columns)):
-            orderby = [(main_metric_expr, not order_desc)]
-
         # To ensure correct handling of the ORDER BY labeling we need to reference the
         # metric instance if defined in the SELECT clause.
         metrics_exprs_by_label = {
