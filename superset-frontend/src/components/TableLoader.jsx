@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, Tr, Td } from 'reactable-arc';
+import memoize from 'lodash/memoize';
 import { t, SupersetClient } from '@superset-ui/core';
-
+import { TableView } from 'src/components/ListView';
 import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from './Loading';
 import '../../stylesheets/reactable-pagination.less';
@@ -68,43 +68,33 @@ class TableLoader extends React.PureComponent {
       addInfoToast,
       addSuccessToast,
       addWarningToast,
+      columns,
       ...tableProps
     } = this.props;
 
-    let { columns } = this.props;
-    if (!columns && this.state.data.length > 0) {
-      columns = Object.keys(this.state.data[0]).filter(col => col[0] !== '_');
-    }
+    const memoizedColumns = memoize((columns, data) => {
+      let tableColumns = columns;
+      if (!columns && data.length > 0) {
+        tableColumns = Object.keys(data[0]).filter(col => col[0] !== '_');
+      }
+      return tableColumns.map(column => ({
+        accessor: column,
+        Header: column,
+      }));
+    });
+
     delete tableProps.dataEndpoint;
     delete tableProps.mutator;
     delete tableProps.columns;
 
     return (
-      <Table
+      <TableView
+        columns={memoizedColumns(columns, this.state.data)}
+        data={this.state.data}
+        pageSize={50}
+        loading={this.state.isLoading}
         {...tableProps}
-        className="table"
-        itemsPerPage={50}
-        style={{ textTransform: 'capitalize' }}
-      >
-        {this.state.data.map((row, i) => (
-          <Tr key={i}>
-            {columns.map(col => {
-              if (row.hasOwnProperty(`_${col}`)) {
-                return (
-                  <Td key={col} column={col} value={row[`_${col}`]}>
-                    {row[col]}
-                  </Td>
-                );
-              }
-              return (
-                <Td key={col} column={col}>
-                  {row[col]}
-                </Td>
-              );
-            })}
-          </Tr>
-        ))}
-      </Table>
+      />
     );
   }
 }
