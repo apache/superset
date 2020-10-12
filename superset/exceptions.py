@@ -93,3 +93,7 @@ class QueryObjectValidationError(SupersetException):
 
 class DashboardImportException(SupersetException):
     pass
+
+
+class SerializationError(SupersetException):
+    pass
