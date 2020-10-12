@@ -20,6 +20,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length
 
+get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 
