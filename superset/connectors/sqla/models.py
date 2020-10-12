@@ -64,6 +64,7 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
+from superset.sql_parse import ParsedQuery
 from superset.typing import Metric, QueryObjectDict
 from superset.utils import core as utils, import_datasource
 
@@ -755,6 +756,14 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     )
 
             from_sql = sqlparse.format(from_sql, strip_comments=True)
+            if len(sqlparse.split(from_sql)) > 1:
+                raise QueryObjectValidationError(
+                    _("Virtual dataset query cannot consist of multiple statements")
+                )
+            if not ParsedQuery(from_sql).is_readonly():
+                raise QueryObjectValidationError(
+                    _("Virtual dataset query must be read-only")
+                )
             return TextAsFrom(sa.text(from_sql), []).alias("expr_qry")
         return self.get_sqla_table()
 
