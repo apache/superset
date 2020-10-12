@@ -33,6 +33,7 @@ interface TableViewProps {
   initialPageIndex?: number;
   initialSortBy?: SortColumn[];
   loading?: boolean;
+  className?: string;
 }
 
 const EmptyWrapper = styled.div`
