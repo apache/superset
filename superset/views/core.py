@@ -72,6 +72,7 @@ from superset.databases.filters import DatabaseFilter
 from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
+    SerializationError,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
@@ -1961,7 +1962,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self.results_exec(key)
 
     @staticmethod
-    def results_exec(key: str) -> FlaskResponse:
+    def results_exec(  # pylint: disable=too-many-return-statements
+        key: str,
+    ) -> FlaskResponse:
         """Serves a key off of the results backend
 
         It is possible to pass the `rows` query argument to limit the number
@@ -1995,9 +1998,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_errors_response([ex.error], status=403)
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
-        obj = _deserialize_results_payload(
-            payload, query, cast(bool, results_backend_use_msgpack)
-        )
+        try:
+            obj = _deserialize_results_payload(
+                payload, query, cast(bool, results_backend_use_msgpack)
+            )
+        except SerializationError:
+            return json_error_response(
+                __("Data could not be deserialized. You may want to re-run the query."),
+                status=404,
+            )
 
         if "rows" in request.args:
             try:
