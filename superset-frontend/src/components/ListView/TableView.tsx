@@ -33,6 +33,7 @@ interface TableViewProps {
   initialPageIndex?: number;
   initialSortBy?: SortColumn[];
   loading?: boolean;
+  withPagination?: boolean;
   className?: string;
 }
 
@@ -64,6 +65,7 @@ export const TableView = ({
   initialPageIndex,
   initialSortBy = [],
   loading = false,
+  withPagination = true,
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -77,6 +79,7 @@ export const TableView = ({
     getTableBodyProps,
     headerGroups,
     page,
+    rows,
     prepareRow,
     pageCount,
     gotoPage,
@@ -92,6 +95,7 @@ export const TableView = ({
     usePagination,
   );
 
+  const content = withPagination ? page : rows;
   return (
     <TableViewStyles {...props}>
       <TableCollection
@@ -99,16 +103,16 @@ export const TableView = ({
         getTableBodyProps={getTableBodyProps}
         prepareRow={prepareRow}
         headerGroups={headerGroups}
-        rows={page}
+        rows={content}
         columns={columns}
         loading={loading}
       />
-      {!loading && page.length === 0 && (
+      {!loading && content.length === 0 && (
         <EmptyWrapper>
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </EmptyWrapper>
       )}
-      {pageCount > 1 && (
+      {pageCount > 1 && withPagination && (
         <div className="pagination-container">
           <Pagination
             totalPages={pageCount || 0}
