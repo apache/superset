@@ -187,3 +187,45 @@ class TestDatabaseModel(SupersetTestCase):
         if get_example_database().backend != "presto":
             with pytest.raises(QueryObjectValidationError):
                 table.get_sqla_query(**query_obj)
+
+    def test_multiple_sql_statements_raises_exception(self):
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["grp"],
+            "metrics": [],
+            "is_timeseries": False,
+            "filter": [],
+        }
+
+        table = SqlaTable(
+            table_name="test_has_extra_cache_keys_table",
+            sql="SELECT 'foo' as grp, 1 as num; SELECT 'bar' as grp, 2 as num",
+            database=get_example_database(),
+        )
+
+        query_obj = dict(**base_query_obj, extras={})
+        with pytest.raises(QueryObjectValidationError):
+            table.get_sqla_query(**query_obj)
+
+    def test_dml_statement_raises_exception(self):
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["grp"],
+            "metrics": [],
+            "is_timeseries": False,
+            "filter": [],
+        }
+
+        table = SqlaTable(
+            table_name="test_has_extra_cache_keys_table",
+            sql="DELETE FROM foo",
+            database=get_example_database(),
+        )
+
+        query_obj = dict(**base_query_obj, extras={})
+        with pytest.raises(QueryObjectValidationError):
+            table.get_sqla_query(**query_obj)
