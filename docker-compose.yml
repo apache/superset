@@ -70,8 +70,10 @@ services:
   superset-node:
     image: node:12
     container_name: superset_node
-    command: ["bash", "-c", "cd /app/superset-frontend && npm install -f --no-optional --global webpack webpack-cli && npm install -f --no-optional && npm run dev"]
+    command: ["/app/docker-frontend.sh"]
     env_file: docker/.env
+    environment:
+      ENABLE_WEBPACK_DEV_SERVER: "${ENABLE_WEBPACK_DEV_SERVER}"
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
