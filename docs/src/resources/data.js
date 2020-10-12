@@ -151,6 +151,11 @@ export const Databases = [
     imgName: 'clickhouse.png',
   },
   {
+    title: 'Dremio',
+    href: 'https://dremio.com/',
+    imgName: 'dremio.png',
+  },
+  {
     title: 'Exasol',
     href: 'https://www.exasol.com/en/',
     imgName: 'exasol.png',
