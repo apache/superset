@@ -103,6 +103,7 @@ function CssTemplatesList({
         Header: t('Created On'),
         accessor: 'created_on',
         size: 'xl',
+        disableSortBy: true,
       },
       {
         accessor: 'created_by',
@@ -125,6 +126,7 @@ function CssTemplatesList({
         Header: t('Last Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        disableSortBy: true,
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -188,7 +190,7 @@ function CssTemplatesList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Created by'),
+        Header: t('Created By'),
         id: 'created_by',
         input: 'select',
         operator: 'rel_o_m',
