@@ -302,7 +302,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
-    "REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD": True,
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "SIP_38_VIZ_REARCHITECTURE": False,
@@ -628,11 +627,11 @@ UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[
-    ["Database", "models.User"], List[str]
-] = lambda database, user: [
-    UPLOADED_CSV_HIVE_NAMESPACE
-] if UPLOADED_CSV_HIVE_NAMESPACE else []
+ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[["Database", "models.User"], List[str]] = (
+    lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
+    if UPLOADED_CSV_HIVE_NAMESPACE
+    else []
+)
 
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)

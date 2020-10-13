@@ -1626,8 +1626,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Filter out unneeded fields from the datasource payload
         datasources_payload = {
             datasource.uid: datasource.data_for_slices(slices)
-            if is_feature_enabled("REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD")
-            else datasource.data
             for datasource, slices in datasources.items()
         }
 
