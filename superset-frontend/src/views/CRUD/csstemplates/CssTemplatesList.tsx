@@ -19,12 +19,14 @@
 
 import React, { useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import SubMenu from 'src/components/Menu/SubMenu';
+import DeleteModal from 'src/components/DeleteModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
@@ -64,6 +66,28 @@ function CssTemplatesList({
     currentCssTemplate,
     setCurrentCssTemplate,
   ] = useState<TemplateObject | null>(null);
+
+  const [
+    templateCurrentlyDeleting,
+    setTemplateCurrentlyDeleting,
+  ] = useState<TemplateObject | null>(null);
+
+  const handleTemplateDelete = ({ id, template_name }: TemplateObject) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/css_template/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        setTemplateCurrentlyDeleting(null);
+        addSuccessToast(t('Deleted: %s', template_name));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', template_name, errMsg),
+        ),
+      ),
+    );
+  };
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
@@ -152,7 +176,7 @@ function CssTemplatesList({
       {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleCssTemplateEdit(original);
-          const handleDelete = () => {}; // openDatabaseDeleteModal(original);
+          const handleDelete = () => setTemplateCurrentlyDeleting(original);
 
           const actions = [
             canEdit
@@ -248,6 +272,19 @@ function CssTemplatesList({
         onHide={() => setCssTemplateModalOpen(false)}
         show={cssTemplateModalOpen}
       />
+      {templateCurrentlyDeleting && (
+        <DeleteModal
+          description={t('This action will permanently delete the template.')}
+          onConfirm={() => {
+            if (templateCurrentlyDeleting) {
+              handleTemplateDelete(templateCurrentlyDeleting);
+            }
+          }}
+          onHide={() => setTemplateCurrentlyDeleting(null)}
+          open
+          title={t('Delete Template?')}
+        />
+      )}
       <ListView<TemplateObject>
         className="css-templates-list-view"
         columns={columns}
