@@ -31,6 +31,7 @@ import traceback
 import uuid
 import zlib
 from datetime import date, datetime, time, timedelta
+from distutils.util import strtobool
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -1556,4 +1557,4 @@ class RowLevelSecurityFilterType(str, Enum):
 
 
 def is_test() -> bool:
-    return "SUPERSET_TESTENV" in os.environ
+    return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
