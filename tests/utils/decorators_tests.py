@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import Mock
+from unittest.mock import call, Mock
 
 from superset.utils import decorators
 from tests.base_tests import SupersetTestCase
