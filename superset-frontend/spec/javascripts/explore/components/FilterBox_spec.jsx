@@ -17,9 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { shallow, mount } from 'enzyme';
 
 import FilterBox from 'src/visualizations/FilterBox/FilterBox';
+import SelectControl from 'src/explore/components/controls/SelectControl';
 
 describe('FilterBox', () => {
   it('should only add defined non-predefined options to filtersChoices', () => {
@@ -57,5 +58,31 @@ describe('FilterBox', () => {
     // Add a new name
     inst.setState({ selectedValues: { name: 'James' } });
     expect(inst.props.filtersChoices.name.length).toEqual(3);
+  });
+
+  it('should support granularity_sqla options', () => {
+    const wrapper = mount(
+      <FilterBox
+        chartId={1001}
+        datasource={{
+          id: 1,
+          columns: [],
+          databases: {},
+          granularity_sqla: [
+            ['created_on', 'created_on'],
+            ['changed_on', 'changed_on'],
+          ],
+        }}
+        showSqlaTimeColumn
+        instantFiltering
+      />,
+    );
+
+    expect(wrapper.find(SelectControl).props().choices).toEqual(
+      expect.arrayContaining([
+        ['created_on', 'created_on'],
+        ['changed_on', 'changed_on'],
+      ]),
+    );
   });
 });
