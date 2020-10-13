@@ -1135,12 +1135,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 if existing_database and uri == existing_database.safe_sqlalchemy_uri():
                     uri = existing_database.sqlalchemy_uri_decrypted
 
-            # this is the database instance that will be tested
+            # This is the database instance that will be tested. Note the extra fields
+            # are represented as JSON encoded strings in the model.
             database = models.Database(
-                # extras is sent as json, but required to be a string in the Database
-                # model
                 server_cert=request.json.get("server_cert"),
-                extra=json.dumps(request.json.get("extras", {})),
+                extra=json.dumps(request.json.get("extra", {})),
                 impersonate_user=request.json.get("impersonate_user"),
                 encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
             )
