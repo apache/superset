@@ -290,6 +290,7 @@ class Header extends React.PureComponent {
       label_colors: labelColors,
       dashboard_title: dashboardTitle,
       refresh_frequency: refreshFrequency,
+      last_modified_time: dashboardInfo.lastModifiedTime,
     };
 
     // make sure positions data less than DB storage limitation:
