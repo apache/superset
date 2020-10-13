@@ -452,7 +452,7 @@ const Theme = () => {
               <ul className="database-list">
                 {Databases.map(
                   ({
-                    title, href, imgName: imageName, width, height,
+                    title, imgName: imageName, width, height,
                   }) => (
                     <li>
                       <DbImage
@@ -470,7 +470,9 @@ const Theme = () => {
               <span className="databaseSub">
                 ... and any other
                 <a href="https://superset.incubator.apache.org/installation.html#database-dependencies">
-                  {' '}compatible databases{' '}
+                  {' '}
+                  compatible databases
+                  {' '}
                 </a>
               </span>
             </div>
