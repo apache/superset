@@ -158,20 +158,14 @@ class SliceHeaderControls extends React.PureComponent {
             </MenuItem>
           )}
 
-          {this.props.sliceCanEdit && (
-            <MenuItem href={slice.edit_url} target="_blank">
-              {t('Edit chart metadata')}
+          {this.props.supersetCanExplore && (
+            <MenuItem onClick={this.exploreChart}>
+              {t('Explore chart')}
             </MenuItem>
           )}
 
           {this.props.supersetCanCSV && (
             <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
-          )}
-
-          {this.props.supersetCanExplore && (
-            <MenuItem onClick={this.exploreChart}>
-              {t('Explore chart')}
-            </MenuItem>
           )}
 
           <MenuItem onClick={this.handleToggleFullSize}>{resizeLabel}</MenuItem>

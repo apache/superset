@@ -22,12 +22,12 @@ from typing import Callable, Optional
 import numpy as np
 
 from superset.exceptions import SupersetException
-from superset.models.alerts import SQLObserver
+from superset.models.alerts import Alert
 
 OPERATOR_FUNCTIONS = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 
 
-class AlertValidatorType(enum.Enum):
+class AlertValidatorType(str, enum.Enum):
     not_null = "not null"
     operator = "operator"
 
@@ -67,11 +67,11 @@ def check_validator(validator_type: str, config: str) -> None:
 
 
 def not_null_validator(
-    observer: SQLObserver, validator_config: str  # pylint: disable=unused-argument
+    alert: Alert, validator_config: str  # pylint: disable=unused-argument
 ) -> bool:
-    """Returns True if a SQLObserver's recent observation is not NULL"""
+    """Returns True if a recent observation is not NULL"""
 
-    observation = observer.get_last_observation()
+    observation = alert.get_last_observation()
     # TODO: Validate malformed observations/observations with errors separately
     if (
         not observation
@@ -82,12 +82,12 @@ def not_null_validator(
     return True
 
 
-def operator_validator(observer: SQLObserver, validator_config: str) -> bool:
+def operator_validator(alert: Alert, validator_config: str) -> bool:
     """
-    Returns True if a SQLObserver's recent observation is greater than or equal to
+    Returns True if a recent observation is greater than or equal to
     the value given in the validator config
     """
-    observation = observer.get_last_observation()
+    observation = alert.get_last_observation()
     if not observation or observation.value in (None, np.nan):
         return False
 
@@ -98,7 +98,7 @@ def operator_validator(observer: SQLObserver, validator_config: str) -> bool:
 
 def get_validator_function(
     validator_type: str,
-) -> Optional[Callable[[SQLObserver, str], bool]]:
+) -> Optional[Callable[[Alert, str], bool]]:
     """Returns a validation function based on validator_type"""
 
     alert_validators = {

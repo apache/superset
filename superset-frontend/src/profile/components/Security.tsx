@@ -57,7 +57,7 @@ export default function Security({ user }: SecurityProps) {
         {user.permissions.datasource_access && (
           <div>
             <h4>
-              {t('Datasources')}{' '}
+              {t('Datasets')}{' '}
               <Badge>{user.permissions.datasource_access.length}</Badge>
             </h4>
             {user.permissions.datasource_access.map(role => (

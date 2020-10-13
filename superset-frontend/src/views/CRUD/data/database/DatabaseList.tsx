@@ -180,7 +180,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: (
           <TooltipWrapper
             label="allow-dml-header"
-            tooltip={t('Allow Data Danipulation Language')}
+            tooltip={t('Allow Data Manipulation Language')}
             placement="top"
           >
             <span>{t('DML')}</span>
@@ -285,7 +285,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         disableSortBy: true,
       },
     ],
-    [canDelete, canCreate],
+    [canDelete, canEdit],
   );
 
   const filters: Filters = useMemo(

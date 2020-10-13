@@ -33,6 +33,7 @@ import ChartList from 'src/views/CRUD/chart/ChartList';
 import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
+import CssTemplatesList from 'src/views/CRUD/csstemplates/CssTemplatesList';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
@@ -95,6 +96,11 @@ const App = () => (
               <Route path="/savedqueryview/list/">
                 <ErrorBoundary>
                   <SavedQueryList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/csstemplatemodelview/list/">
+                <ErrorBoundary>
+                  <CssTemplatesList user={user} />
                 </ErrorBoundary>
               </Route>
             </Switch>

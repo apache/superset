@@ -142,7 +142,7 @@ class BaseViz:
         force: bool = False,
     ) -> None:
         if not datasource:
-            raise Exception(_("Viz is missing a datasource"))
+            raise QueryObjectValidationError(_("Viz is missing a datasource"))
 
         self.datasource = datasource
         self.request = request
@@ -742,6 +742,10 @@ class TableViz(BaseViz):
                 if sort_by_label not in d["metrics"]:
                     d["metrics"].append(sort_by)
                 d["orderby"] = [(sort_by, not fd.get("order_desc", True))]
+            elif d["metrics"]:
+                # Legacy behavior of sorting by first metric by default
+                first_metric = d["metrics"][0]
+                d["orderby"] = [(first_metric, not fd.get("order_desc", True))]
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:

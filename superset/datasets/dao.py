@@ -207,6 +207,32 @@ class DatasetDAO(BaseDAO):
         """
         return DatasetMetricDAO.create(properties, commit=commit)
 
+    @staticmethod
+    def bulk_delete(models: Optional[List[SqlaTable]], commit: bool = True) -> None:
+        item_ids = [model.id for model in models] if models else []
+        # bulk delete, first delete related data
+        if models:
+            for model in models:
+                model.owners = []
+                db.session.merge(model)
+            db.session.query(SqlMetric).filter(SqlMetric.table_id.in_(item_ids)).delete(
+                synchronize_session="fetch"
+            )
+            db.session.query(TableColumn).filter(
+                TableColumn.table_id.in_(item_ids)
+            ).delete(synchronize_session="fetch")
+        # bulk delete itself
+        try:
+            db.session.query(SqlaTable).filter(SqlaTable.id.in_(item_ids)).delete(
+                synchronize_session="fetch"
+            )
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as ex:
+            if commit:
+                db.session.rollback()
+            raise ex
+
 
 class DatasetColumnDAO(BaseDAO):
     model_cls = TableColumn

@@ -151,8 +151,6 @@ class SupersetAppInitializer:
             AlertLogModelView,
             AlertModelView,
             AlertObservationModelView,
-            SQLObserverInlineView,
-            ValidatorInlineView,
         )
         from superset.views.annotations import (
             AnnotationLayerModelView,
@@ -411,8 +409,6 @@ class SupersetAppInitializer:
                 category_label=__("Manage"),
                 icon="fa-exclamation-triangle",
             )
-            appbuilder.add_view_no_menu(SQLObserverInlineView)
-            appbuilder.add_view_no_menu(ValidatorInlineView)
             appbuilder.add_view_no_menu(AlertObservationModelView)
             appbuilder.add_view_no_menu(AlertLogModelView)
 
@@ -552,7 +548,6 @@ class SupersetAppInitializer:
         appbuilder.indexview = SupersetIndexView
         appbuilder.base_template = "superset/base.html"
         appbuilder.security_manager_class = custom_sm
-        appbuilder.update_perms = False
         appbuilder.init_app(self.flask_app, db.session)
 
     def configure_url_map_converters(self) -> None:

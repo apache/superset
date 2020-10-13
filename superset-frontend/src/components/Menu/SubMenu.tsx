@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import { Nav, Navbar, MenuItem } from 'react-bootstrap';
@@ -69,7 +69,7 @@ type MenuChild = {
 };
 
 export interface ButtonProps {
-  name: any;
+  name: ReactNode;
   onClick: OnClickHandler;
   buttonStyle:
     | 'primary'

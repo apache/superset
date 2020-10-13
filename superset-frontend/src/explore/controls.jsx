@@ -63,9 +63,8 @@ import {
   getSequentialSchemeRegistry,
   legacyValidateInteger,
   validateNonEmpty,
-  ColumnOption,
 } from '@superset-ui/core';
-
+import { ColumnOption } from '@superset-ui/chart-controls';
 import { formatSelectOptions, mainMetric } from 'src/modules/utils';
 import { TIME_FILTER_LABELS } from './constants';
 
@@ -317,12 +316,12 @@ export const controls = {
     mapStateToProps: state => {
       const props = {};
       if (state.datasource) {
-        props.options = state.datasource.columns.filter(c => c.is_dttm);
+        props.choices = state.datasource.granularity_sqla;
         props.default = null;
         if (state.datasource.main_dttm_col) {
           props.default = state.datasource.main_dttm_col;
-        } else if (props.options && props.options.length > 0) {
-          props.default = props.options[0].column_name;
+        } else if (props.choices && props.choices.length > 0) {
+          props.default = props.choices[0].column_name;
         }
       }
       return props;

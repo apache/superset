@@ -17,7 +17,7 @@
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Iterator, Optional
+from typing import Any, Callable, Iterator
 
 from contextlib2 import contextmanager
 from flask import request
@@ -46,12 +46,7 @@ def stats_timing(stats_key: str, stats_logger: BaseStatsLogger) -> Iterator[floa
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def etag_cache(
-    max_age: int,
-    check_perms: Callable[..., Any],
-    get_last_modified: Optional[Callable[..., Any]] = None,
-    skip: Optional[Callable[..., Any]] = None,
-) -> Callable[..., Any]:
+def etag_cache(max_age: int, check_perms: Callable[..., Any]) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.
 
@@ -74,7 +69,7 @@ def etag_cache(
             # for POST requests we can't set cache headers, use the response
             # cache nor use conditional requests; this will still use the
             # dataframe cache in `superset/viz.py`, though.
-            if request.method == "POST" or (skip and skip(*args, **kwargs)):
+            if request.method == "POST":
                 return f(*args, **kwargs)
 
             response = None
@@ -94,28 +89,13 @@ def etag_cache(
                         raise
                     logger.exception("Exception possibly due to cache backend.")
 
-            # if cache is stale?
-            if get_last_modified:
-                content_changed_time = get_last_modified(*args, **kwargs)
-                if (
-                    response
-                    and response.last_modified
-                    and response.last_modified.timestamp()
-                    < content_changed_time.timestamp()
-                ):
-                    response = None
-            else:
-                # if caller didn't provide content's last_modified time, assume
-                # its cache won't be stale.
-                content_changed_time = datetime.utcnow()
-
             # if no response was cached, compute it using the wrapped function
             if response is None:
                 response = f(*args, **kwargs)
 
                 # add headers for caching: Last Modified, Expires and ETag
                 response.cache_control.public = True
-                response.last_modified = content_changed_time
+                response.last_modified = datetime.utcnow()
                 expiration = max_age if max_age != 0 else FAR_FUTURE
                 response.expires = response.last_modified + timedelta(
                     seconds=expiration

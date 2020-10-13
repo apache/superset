@@ -20,6 +20,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length
 
+get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 
@@ -52,6 +53,7 @@ class DatasetColumnsPutSchema(Schema):
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
+    uuid = fields.String(allow_none=True)
 
 
 class DatasetMetricsPutSchema(Schema):

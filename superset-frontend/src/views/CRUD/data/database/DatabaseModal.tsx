@@ -45,11 +45,10 @@ const StyledIcon = styled(Icon)`
 const StyledInputContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 
-  .label,
   .helper {
     display: block;
     padding: ${({ theme }) => theme.gridUnit}px 0;
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colors.grayscale.base};
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
     text-align: left;
 
@@ -313,8 +312,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           key="1"
         >
           <StyledInputContainer>
-            <div className="label">
-              {t('Datasource Name')}
+            <div className="control-label">
+              {t('Database Name')}
               <span className="required">*</span>
             </div>
             <div className="input-container">
@@ -322,13 +321,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 type="text"
                 name="database_name"
                 value={db ? db.database_name : ''}
-                placeholder={t('Name your datasource')}
+                placeholder={t('Name your dataset')}
                 onChange={onInputChange}
               />
             </div>
           </StyledInputContainer>
           <StyledInputContainer>
-            <div className="label">
+            <div className="control-label">
               {t('SQLAlchemy URI')}
               <span className="required">*</span>
             </div>
@@ -359,7 +358,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Performance')}</span>} key="2">
           <StyledInputContainer>
-            <div className="label">{t('Chart Cache Timeout')}</div>
+            <div className="control-label">{t('Chart Cache Timeout')}</div>
             <div className="input-container">
               <input
                 type="number"
@@ -483,7 +482,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </StyledInputContainer>
           </StyledInputContainer>
           <StyledInputContainer>
-            <div className="label">{t('CTAS Schema')}</div>
+            <div className="control-label">{t('CTAS Schema')}</div>
             <div className="input-container">
               <input
                 type="text"
@@ -503,7 +502,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Security')}</span>} key="4">
           <StyledInputContainer>
-            <div className="label">{t('Secure Extra')}</div>
+            <div className="control-label">{t('Secure Extra')}</div>
             <div className="input-container">
               <textarea
                 name="encrypted_extra"
@@ -528,7 +527,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </div>
           </StyledInputContainer>
           <StyledInputContainer>
-            <div className="label">{t('Root Certificate')}</div>
+            <div className="control-label">{t('Root Certificate')}</div>
             <div className="input-container">
               <textarea
                 name="server_cert"
@@ -585,7 +584,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </div>
           </StyledInputContainer>
           <StyledInputContainer>
-            <div className="label">{t('Extra')}</div>
+            <div className="control-label">{t('Extra')}</div>
             <div className="input-container">
               <textarea
                 name="extra"

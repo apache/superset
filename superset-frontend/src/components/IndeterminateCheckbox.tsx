@@ -33,6 +33,10 @@ const CheckboxLabel = styled.label`
   margin-bottom: 0;
 `;
 
+const IconWithColor = styled(Icon)`
+  color: ${({ theme }) => theme.colors.primary.dark1};
+`;
+
 const HiddenInput = styled.input`
   visibility: none;
 `;
@@ -57,8 +61,8 @@ const IndeterminateCheckbox = React.forwardRef(
 
     return (
       <CheckboxLabel title={title}>
-        {indeterminate && <Icon name="checkbox-half" />}
-        {!indeterminate && checked && <Icon name="checkbox-on" />}
+        {indeterminate && <IconWithColor name="checkbox-half" />}
+        {!indeterminate && checked && <IconWithColor name="checkbox-on" />}
         {!indeterminate && !checked && <Icon name="checkbox-off" />}
         <HiddenInput
           className="hidden"

@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+from datetime import datetime
 import json
 import unittest
 from random import random
@@ -89,6 +90,8 @@ class TestDashboard(SupersetTestCase):
             "expanded_slices": {},
             "positions": positions,
             "dashboard_title": dash.dashboard_title,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
         url = "/superset/save_dash/{}/".format(dash.id)
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
@@ -107,6 +110,8 @@ class TestDashboard(SupersetTestCase):
             "positions": positions,
             "dashboard_title": dash.dashboard_title,
             "default_filters": default_filters,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
         url = "/superset/save_dash/{}/".format(dash.id)
@@ -134,6 +139,8 @@ class TestDashboard(SupersetTestCase):
             "positions": positions,
             "dashboard_title": dash.dashboard_title,
             "default_filters": default_filters,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
         url = "/superset/save_dash/{}/".format(dash.id)
@@ -154,6 +161,8 @@ class TestDashboard(SupersetTestCase):
             "expanded_slices": {},
             "positions": positions,
             "dashboard_title": "new title",
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
         url = "/superset/save_dash/{}/".format(dash.id)
         self.get_resp(url, data=dict(data=json.dumps(data)))
@@ -176,6 +185,8 @@ class TestDashboard(SupersetTestCase):
             "color_namespace": "Color Namespace Test",
             "color_scheme": "Color Scheme Test",
             "label_colors": new_label_colors,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
         url = "/superset/save_dash/{}/".format(dash.id)
         self.get_resp(url, data=dict(data=json.dumps(data)))
@@ -203,6 +214,8 @@ class TestDashboard(SupersetTestCase):
             "color_namespace": "Color Namespace Test",
             "color_scheme": "Color Scheme Test",
             "label_colors": new_label_colors,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
         # Save changes to Births dashboard and retrieve updated dash
@@ -271,6 +284,8 @@ class TestDashboard(SupersetTestCase):
             "expanded_slices": {},
             "positions": positions,
             "dashboard_title": dash.dashboard_title,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
         # save dash
