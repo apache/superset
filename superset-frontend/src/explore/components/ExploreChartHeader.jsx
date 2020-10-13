@@ -134,7 +134,6 @@ export class ExploreChartHeader extends React.PureComponent {
       <StyledHeader
         id="slice-header"
         className="clearfix panel-title-large"
-        ref
       >
         <EditableTitle
           title={this.getSliceName()}

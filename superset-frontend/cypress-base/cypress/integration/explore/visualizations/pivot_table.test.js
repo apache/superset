@@ -113,7 +113,7 @@ describe('Visualization > Pivot Table', () => {
       .contains('name');
   });
 
-  it.only('should work with multiple groupby and multiple metrics', () => {
+  it('should work with multiple groupby and multiple metrics', () => {
     verify({
       ...PIVOT_TABLE_FORM_DATA,
       groupby: ['name', 'gender'],

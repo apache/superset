@@ -288,7 +288,7 @@ export default function TableCollection({
                   return (
                     <td
                       data-test="row-cell"
-                      className={cx('row-cell', {
+                      className={cx('table-cell', {
                         'table-cell-loader': loading,
                         [cell.column.size || '']: cell.column.size,
                       })}

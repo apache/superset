@@ -44,7 +44,7 @@ describe('dashboard list view', () => {
     cy.get('[data-test="sort-header"]').eq(1).click();
     cy.get('[data-test="table-row"]')
       .first()
-      .find('[data-test="row-cell"]')
+      .find('[data-test="table-cell"]')
       .find('[data-test="cell-text"]')
       .contains("World Bank's Data");
   });
