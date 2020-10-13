@@ -16,13 +16,14 @@
 # under the License.
 import json
 import textwrap
-from typing import Dict, Union
+from typing import Dict, List, Tuple, Union
 
 import pandas as pd
 from sqlalchemy import DateTime, String
 from sqlalchemy.sql import column
 
 from superset import db, security_manager
+from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -38,6 +39,8 @@ from .helpers import (
     TBL,
     update_slice_ids,
 )
+
+admin = security_manager.find_user("admin")
 
 
 def gen_filter(
@@ -118,8 +121,12 @@ def load_birth_names(
         obj.metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
 
     db.session.commit()
-    tbl = obj
 
+    slices, _ = create_slices(obj)
+    create_dashboard(slices)
+
+
+def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
     metrics = [
         {
             "expressionType": "SIMPLE",
@@ -135,6 +142,7 @@ def load_birth_names(
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
+        "time_range": "No filter",
         "granularity_sqla": "ds",
         "groupby": [],
         "row_limit": config["ROW_LIMIT"],
@@ -144,15 +152,16 @@ def load_birth_names(
         "markup_type": "markdown",
     }
 
-    admin = security_manager.find_user("admin")
+    slice_props = dict(
+        datasource_id=tbl.id, datasource_type="table", owners=[admin], created_by=admin
+    )
 
     print("Creating some slices")
     slices = [
         Slice(
+            **slice_props,
             slice_name="Participants",
             viz_type="big_number",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="big_number",
@@ -163,19 +172,17 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Genders",
             viz_type="pie",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults, viz_type="pie", groupby=["gender"], metric=metric
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Trends",
             viz_type="line",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="line",
@@ -187,10 +194,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Genders by State",
             viz_type="dist_bar",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[
@@ -224,10 +230,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Girls",
             viz_type="table",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 groupby=["name"],
@@ -238,10 +243,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Girl Name Cloud",
             viz_type="word_cloud",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="word_cloud",
@@ -255,10 +259,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Boys",
             viz_type="table",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 groupby=["name"],
@@ -268,10 +271,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Boy Name Cloud",
             viz_type="word_cloud",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="word_cloud",
@@ -285,10 +287,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Top 10 Girl Name Share",
             viz_type="area",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[gen_filter("gender", "girl")],
@@ -303,10 +304,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Top 10 Boy Name Share",
             viz_type="area",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[gen_filter("gender", "boy")],
@@ -323,10 +323,9 @@ def load_birth_names(
     ]
     misc_slices = [
         Slice(
+            **slice_props,
             slice_name="Average and Sum Trends",
             viz_type="dual_line",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="dual_line",
@@ -343,18 +342,15 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Num Births Trend",
             viz_type="line",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(defaults, viz_type="line", metrics=metrics),
         ),
         Slice(
+            **slice_props,
             slice_name="Daily Totals",
             viz_type="table",
-            datasource_type="table",
-            datasource_id=tbl.id,
-            created_by=admin,
             params=get_slice_json(
                 defaults,
                 groupby=["ds"],
@@ -365,10 +361,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Number of California Births",
             viz_type="big_number_total",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 metric={
@@ -385,10 +380,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Top 10 California Names Timeseries",
             viz_type="line",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 metrics=[
@@ -418,10 +412,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Names Sorted by Num in California",
             viz_type="table",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 metrics=metrics,
@@ -439,10 +432,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Number of Girls",
             viz_type="big_number_total",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 metric=metric,
@@ -453,10 +445,9 @@ def load_birth_names(
             ),
         ),
         Slice(
+            **slice_props,
             slice_name="Pivot Table",
             viz_type="pivot_table",
-            datasource_type="table",
-            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="pivot_table",
@@ -473,12 +464,19 @@ def load_birth_names(
         merge_slice(slc)
         misc_dash_slices.add(slc.slice_name)
 
-    print("Creating a dashboard")
-    dash = db.session.query(Dashboard).filter_by(slug="births").first()
+    return slices, misc_slices
 
+
+def create_dashboard(slices: List[Slice]) -> None:
+    print("Creating a dashboard")
+
+    dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
+        dash.owners = [admin]
+        dash.created_by = admin
         db.session.add(dash)
+
     dash.published = True
     dash.json_metadata = textwrap.dedent(
         """\
@@ -491,9 +489,10 @@ def load_birth_names(
         }
     }"""
     )
-    js = textwrap.dedent(
-        # pylint: disable=line-too-long
-        """\
+    pos = json.loads(
+        textwrap.dedent(
+            # pylint: disable=line-too-long
+            """\
         {
           "CHART-6GdlekVise": {
             "children": [],
@@ -763,8 +762,8 @@ def load_birth_names(
           }
         }
         """  # pylint: enable=line-too-long
+        )
     )
-    pos = json.loads(js)
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos, dash.slices)
