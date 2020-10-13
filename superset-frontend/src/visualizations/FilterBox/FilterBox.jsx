@@ -130,7 +130,7 @@ class FilterBox extends React.Component {
     return this.onFilterMenuOpen(TIME_RANGE);
   }
 
-  onCloseDateFilterControl() {
+  onCloseDateFilterControl = () => {
     return this.onFilterMenuClose(TIME_RANGE);
   }
 
