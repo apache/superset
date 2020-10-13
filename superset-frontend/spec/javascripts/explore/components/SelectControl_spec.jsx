@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import { shallow, mount } from 'enzyme';
 import { Select, CreatableSelect } from 'src/components/Select';
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -45,25 +45,6 @@ describe('SelectControl', () => {
 
   beforeEach(() => {
     wrapper = shallow(<SelectControl {...defaultProps} />);
-  });
-
-  it('renders with Select by default', () => {
-    expect(wrapper.find(OnPasteSelect)).not.toExist();
-    expect(wrapper.findWhere(x => x.type() === Select)).toHaveLength(1);
-  });
-
-  it('renders with OnPasteSelect when multi', () => {
-    wrapper.setProps({ multi: true });
-    expect(wrapper.find(OnPasteSelect)).toExist();
-    expect(wrapper.findWhere(x => x.type() === Select)).toHaveLength(0);
-  });
-
-  it('renders with Creatable when freeForm', () => {
-    wrapper.setProps({ freeForm: true });
-    expect(wrapper.find(OnPasteSelect)).not.toExist();
-    expect(wrapper.findWhere(x => x.type() === CreatableSelect)).toHaveLength(
-      1,
-    );
   });
 
   it('uses Select in onPasteSelect when freeForm=false', () => {
@@ -98,6 +79,52 @@ describe('SelectControl', () => {
     wrapper.setProps(selectAllProps);
     wrapper.instance().onChange([{ meta: true, value: 'Select All' }]);
     expect(selectAllProps.onChange.calledWith(expectedValues)).toBe(true);
+  });
+
+  describe('render', () => {
+    it('renders with Select by default', () => {
+      expect(wrapper.find(OnPasteSelect)).not.toExist();
+      expect(wrapper.findWhere(x => x.type() === Select)).toHaveLength(1);
+    });
+
+    it('renders with OnPasteSelect when multi', () => {
+      wrapper.setProps({ multi: true });
+      expect(wrapper.find(OnPasteSelect)).toExist();
+      expect(wrapper.findWhere(x => x.type() === Select)).toHaveLength(0);
+    });
+
+    it('renders with Creatable when freeForm', () => {
+      wrapper.setProps({ freeForm: true });
+      expect(wrapper.find(OnPasteSelect)).not.toExist();
+      expect(wrapper.findWhere(x => x.type() === CreatableSelect)).toHaveLength(
+        1,
+      );
+    });
+    describe('when select is multi', () => {
+      it('renders the placeholder when a selection has been made', () => {
+        wrapper = mount(
+          <SelectControl
+            {...defaultProps}
+            multi
+            value={50}
+            placeholder="add something"
+          />,
+        );
+        expect(wrapper.html()).toContain('add something');
+      });
+    });
+    describe('when select is single', () => {
+      it('does not render the placeholder when a selection has been made', () => {
+        wrapper = mount(
+          <SelectControl
+            {...defaultProps}
+            value={50}
+            placeholder="add something"
+          />,
+        );
+        expect(wrapper.html()).not.toContain('add something');
+      });
+    });
   });
 
   describe('getOptions', () => {

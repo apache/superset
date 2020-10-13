@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import React, { CSSProperties, ComponentType } from 'react';
 import { css, SerializedStyles, ClassNames } from '@emotion/core';
 import { supersetTheme } from '@superset-ui/core';
 import {
@@ -241,9 +241,39 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   }),
 };
 
-const { ClearIndicator, DropdownIndicator, Option } = defaultComponents;
+const multiInputSpanStyle = css`
+  color: '#879399',
+  position: 'absolute',
+  top: '2px',
+  left: '4px',
+  width: '100vw',
+`;
 
-export const DEFAULT_COMPONENTS: SelectComponentsConfig<any> = {
+const { ClearIndicator, DropdownIndicator, Option, Input } = defaultComponents;
+
+type SelectComponentsType = SelectComponentsConfig<any> & {
+  Input: ComponentType<InputProps>;
+};
+
+// react-select is missing selectProps from their props type
+// so overwriting it here to avoid errors
+type InputProps = {
+  selectProps: {
+    isMulti: boolean;
+    value: {
+      length: number;
+    };
+    placeholder: string;
+  };
+  cx: (a: string | null, b: any, c: string) => string | void;
+  innerRef: (element: React.Ref<any>) => void;
+  isHidden: boolean;
+  isDisabled?: boolean | undefined;
+  className?: string | undefined;
+  getStyles: any;
+};
+
+export const DEFAULT_COMPONENTS: SelectComponentsType = {
   Option: ({ children, innerProps, data, ...props }) => (
     <ClassNames>
       {({ css }) => (
@@ -271,6 +301,14 @@ export const DEFAULT_COMPONENTS: SelectComponentsConfig<any> = {
         }`}
       />
     </DropdownIndicator>
+  ),
+  Input: (props: InputProps) => (
+    <div style={{ position: 'relative' }}>
+      <Input {...props} />
+      {!!(props.selectProps.isMulti && props.selectProps.value.length) && (
+        <span css={multiInputSpanStyle}>{props.selectProps.placeholder}</span>
+      )}
+    </div>
   ),
 };
 
