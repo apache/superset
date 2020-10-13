@@ -129,6 +129,7 @@ class SaveModal extends React.PureComponent {
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       duplicate_slices: this.state.duplicateSlices,
       refresh_frequency: refreshFrequency,
+      last_modified_time: dashboardInfo.lastModifiedTime,
     };
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {

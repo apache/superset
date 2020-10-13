@@ -1019,6 +1019,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """Copy dashboard"""
         session = db.session()
         data = json.loads(request.form["data"])
+        # client-side send back last_modified_time which was set when
+        # the dashboard was open. it was use to avoid mid-air collision.
+        # remove it to avoid confusion.
+        data.pop("last_modified_time", None)
+
         dash = models.Dashboard()
         original_dash = session.query(Dashboard).get(dashboard_id)
 
@@ -1065,6 +1070,21 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         dash = session.query(Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form["data"])
+        # client-side send back last_modified_time which was set when
+        # the dashboard was open. it was use to avoid mid-air collision.
+        remote_last_modified_time = data.get("last_modified_time")
+        current_last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
+        if remote_last_modified_time < current_last_modified_time:
+            return json_error_response(
+                __(
+                    "This dashboard was changed recently. "
+                    "Please reload dashboard to get latest version."
+                ),
+                412,
+            )
+        # remove to avoid confusion.
+        data.pop("last_modified_time", None)
+
         DashboardDAO.set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
