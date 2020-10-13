@@ -73,18 +73,18 @@ const DetailsPanelPopover = ({
 }: DetailsPanelProps) => {
   const theme = useTheme();
 
-  function defaultActivePanel() {
-    if (incompatibleIndicators.length) return 'incompatible';
-    if (appliedIndicators.length) return 'applied';
-    return 'unset';
+  function defaultActivePanels() {
+    if (incompatibleIndicators.length) return ['incompatible'];
+    if (appliedIndicators.length) return ['applied'];
+    return ['unset'];
   }
 
-  const [activePanel, setActivePanel] = useState(defaultActivePanel);
+  const [activePanels, setActivePanels] = useState<string | string[]>(defaultActivePanels);
 
   function handlePopoverStatus(isOpen: boolean) {
     // every time the popover opens, choose the active panel anew
     if (isOpen) {
-      setActivePanel(defaultActivePanel());
+      setActivePanels(defaultActivePanels());
     }
   }
 
@@ -97,7 +97,7 @@ const DetailsPanelPopover = ({
     <Panel>
       <div>{`${total} Scoped Filters`}</div>
       <Reset>
-        <Collapse ghost activeKey={[activePanel]}>
+        <Collapse ghost activeKey={activePanels} onChange={setActivePanels}>
           {appliedIndicators.length ? (
             <Collapse.Panel
               key="applied"
