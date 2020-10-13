@@ -90,9 +90,9 @@ build-instrumented-assets() {
 setup-postgres() {
   say "::group::Initialize database"
   psql "postgresql://superset:superset@127.0.0.1:15432/superset" <<-EOF
-    DROP SCHEMA IF EXISTS sqllab_test_db;
+    DROP SCHEMA IF EXISTS sqllab_test_db CASCADE;
+    DROP SCHEMA IF EXISTS admin_database CASCADE;
     CREATE SCHEMA sqllab_test_db;
-    DROP SCHEMA IF EXISTS admin_database;
     CREATE SCHEMA admin_database;
 EOF
   say "::endgroup::"
