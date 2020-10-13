@@ -24,13 +24,15 @@ from superset import db, security_manager
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.commands.export import ExportDatabaseCommand
 from superset.models.core import Database
-from superset.utils.core import get_example_database
+from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
 
 
 class TestExportDatabaseCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     def test_export_database_command(self, mock_g):
+        self.maxDiff = None
+
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
@@ -39,21 +41,25 @@ class TestExportDatabaseCommand(SupersetTestCase):
 
         self.assertTrue(is_zipfile(buf))
 
-        self.maxDiff = None
+        # TODO: this list shouldn't depend on the order in which unit tests are run
+        # or on the backend; for now use a stable subset
+        core_datasets = {
+            "test/databases/examples.yaml",
+            "test/datasets/energy_usage.yaml",
+            "test/datasets/wb_health_population.yaml",
+            "test/datasets/birth_names.yaml",
+        }
+        expected_extra = {
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "metadata_params": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
+        if backend() == "presto":
+            expected_extra = {"engine_params": {"connect_args": {"poll_interval": 0.1}}}
+
         with ZipFile(buf) as bundle:
-            self.assertEqual(
-                bundle.namelist(),
-                [
-                    "test/databases/examples.yaml",
-                    "test/datasets/energy_usage.yaml",
-                    "test/datasets/wb_health_population.yaml",
-                    "test/datasets/birth_names.yaml",
-                    "test/datasets/csv_upload.yaml",
-                    "test/datasets/excel_upload.yaml",
-                    "test/datasets/unicode_test.yaml",
-                    "test/datasets/test_table.yaml",
-                ],
-            )
+            self.assertTrue(core_datasets.issubset(set(bundle.namelist())))
 
             with bundle.open("test/databases/examples.yaml") as database:
                 metadata = yaml.safe_load(database.read())
@@ -67,13 +73,8 @@ class TestExportDatabaseCommand(SupersetTestCase):
                         "cache_timeout": None,
                         "database_name": "examples",
                         "expose_in_sqllab": True,
-                        "extra": {
-                            "engine_params": {},
-                            "metadata_cache_timeout": {},
-                            "metadata_params": {},
-                            "schemas_allowed_for_csv_upload": [],
-                        },
-                        "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+                        "extra": expected_extra,
+                        "sqlalchemy_uri": example_db.sqlalchemy_uri,
                         "uuid": str(example_db.uuid),
                         "version": "1.0.0",
                     },
@@ -262,23 +263,20 @@ class TestExportDatabaseCommand(SupersetTestCase):
         self.maxDiff = None
         with ZipFile(buf) as bundle:
             with bundle.open("test/databases/examples.yaml") as database:
+                metadata = yaml.safe_load(database.read())
                 self.assertEqual(
-                    database.read().decode("utf-8").strip(),
-                    f"""
-database_name: examples
-sqlalchemy_uri: {example_db.sqlalchemy_uri_decrypted}
-cache_timeout: null
-expose_in_sqllab: true
-allow_run_async: false
-allow_ctas: true
-allow_cvas: true
-allow_csv_upload: true
-extra:
-  metadata_params: {{}}
-  engine_params: {{}}
-  metadata_cache_timeout: {{}}
-  schemas_allowed_for_csv_upload: []
-uuid: {str(example_db.uuid)}
-version: 1.0.0
-""".strip(),
+                    list(metadata.keys()),
+                    [
+                        "database_name",
+                        "sqlalchemy_uri",
+                        "cache_timeout",
+                        "expose_in_sqllab",
+                        "allow_run_async",
+                        "allow_ctas",
+                        "allow_cvas",
+                        "allow_csv_upload",
+                        "extra",
+                        "uuid",
+                        "version",
+                    ],
                 )
