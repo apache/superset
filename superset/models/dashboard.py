@@ -264,9 +264,9 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return {
             # dashboard metadata
             "dashboard": self.data,
-            # slices data
+            # slices metadata
             "slices": [slc.data for slc in slices],
-            # datasource data
+            # datasource metadata
             "datasources": {
                 # Filter out unneeded fields from the datasource payload
                 datasource.uid: datasource.data_for_slices(slices)
