@@ -159,7 +159,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
 
   return (
     <form onSubmit={onSubmit}>
-      <Modal.Header data-test="edit-modal" closeButton>
+      <Modal.Header data-test="properties-edit-modal" closeButton>
         <Modal.Title>Edit Chart Properties</Modal.Title>
       </Modal.Header>
       <Modal.Body>
@@ -172,7 +172,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
               </FormLabel>
               <FormControl
                 name="name"
-                data-test="name-input"
+                data-test="properties-name-input"
                 type="text"
                 bsSize="sm"
                 value={name}
