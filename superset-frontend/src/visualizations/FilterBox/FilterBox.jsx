@@ -406,7 +406,7 @@ class FilterBox extends React.Component {
   }
 
   renderFilters() {
-    const { filtersFields, chartId } = this.props;
+    const { filtersFields = [], chartId } = this.props;
     return filtersFields.map(filterConfig => {
       const { label, key } = filterConfig;
       return (
