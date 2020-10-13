@@ -24,6 +24,8 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/components/Menu/SubMenu';
+import TooltipWrapper from 'src/components/TooltipWrapper';
 import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, { Filters } from 'src/components/ListView';
@@ -82,6 +84,36 @@ function CssTemplatesList({
       {
         Cell: ({
           row: {
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by: changedBy,
+            },
+          },
+        }: any) => {
+          let name = 'null';
+
+          if (changedBy) {
+            name = `${changedBy.first_name} ${changedBy.last_name}`;
+          }
+
+          return (
+            <TooltipWrapper
+              label="allow-run-async-header"
+              tooltip={`${t('Last modified by')} ${name}`}
+              placement="right"
+            >
+              <span>{changedOn}</span>
+            </TooltipWrapper>
+          );
+        },
+        Header: t('Last Modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
             original: { created_on: createdOn },
           },
         }: any) => {
@@ -116,17 +148,6 @@ function CssTemplatesList({
         }: any) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => changedOn,
-        Header: t('Last Modified'),
-        accessor: 'changed_on_delta_humanized',
-        size: 'xl',
-        disableSortBy: true,
       },
       {
         Cell: ({ row: { original } }: any) => {
