@@ -50,6 +50,14 @@ const mapStateToProps = (
     charts,
   );
 
+  const alphabetically = (a: Indicator, b: Indicator) => {
+    if (a.name < b.name) return -1;
+    if (a.name > b.name) return 1;
+    return 0;
+  };
+
+  indicators.sort(alphabetically);
+
   const appliedIndicators = indicators.filter(
     indicator => indicator.status === IndicatorStatus.Applied,
   );
