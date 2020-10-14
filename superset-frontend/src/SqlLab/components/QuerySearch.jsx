@@ -153,10 +153,10 @@ class QuerySearch extends React.PureComponent {
   }
 
   userMutator(data) {
-   return data.result.map(({ value, text}) => ({
-     label: text,
-     value,
-   })) 
+    return data.result.map(({ value, text }) => ({
+      label: text,
+      value,
+    }));
   }
 
   dbMutator(data) {
@@ -205,7 +205,7 @@ class QuerySearch extends React.PureComponent {
         <div id="search-header" className="row space-1">
           <div className="col-sm-2">
             <AsyncSelect
-              dataEndpoint="api/v1/query/related/user"  
+              dataEndpoint="api/v1/query/related/user"
               mutator={this.userMutator}
               value={this.state.userId}
               onChange={this.changeUser}
