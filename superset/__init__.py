@@ -33,7 +33,6 @@ from superset.extensions import (
     talisman,
 )
 from superset.security import SupersetSecurityManager
-from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 #  All of the fields located here should be considered legacy. The correct way
 #  to declare "global" dependencies is to define it in extensions.py,
