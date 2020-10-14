@@ -33,8 +33,7 @@ interface TableCollectionProps {
   highlightRowId?: number;
 }
 
-const Table = styled.table`
-  background-color: white;
+export const Table = styled.table`
   border-collapse: separate;
   border-radius: ${({ theme }) => theme.borderRadius}px;
 
@@ -199,6 +198,8 @@ const Table = styled.table`
   }
 `;
 
+Table.displayName = 'table';
+
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -267,13 +268,15 @@ export default function TableCollection({
         {rows.length > 0 &&
           rows.map(row => {
             prepareRow(row);
+            // @ts-ignore
+            const rowId = row.original.id;
             return (
               <tr
                 {...row.getRowProps()}
                 className={cx('table-row', {
                   'table-row-selected':
-                    // @ts-ignore
-                    row.isSelected || row.original.id === highlightRowId,
+                    row.isSelected ||
+                    (typeof rowId !== 'undefined' && rowId === highlightRowId),
                 })}
               >
                 {row.cells.map(cell => {
