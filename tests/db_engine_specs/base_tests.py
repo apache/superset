@@ -17,7 +17,6 @@
 # isort:skip_file
 from datetime import datetime
 
-from tests.test_app import app
 from tests.base_tests import SupersetTestCase
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.models.core import Database

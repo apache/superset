@@ -137,6 +137,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations"""
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
+    engine_aliases: Optional[Tuple[str]] = None
     engine_name: Optional[
         str
     ] = None  # used for user messages, overridden in child classes
