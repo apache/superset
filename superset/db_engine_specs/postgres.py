@@ -67,6 +67,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
 class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = "postgresql"
+    engine_aliases = ("postgres",)
     max_column_name_length = 63
     try_remove_schema_from_table_name = False
 
