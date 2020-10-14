@@ -31,6 +31,7 @@ import {
   formatProphetTooltipSeries,
   rebaseTimeseriesDatum,
 } from '../utils/prophet';
+import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 
 export default function transformProps(chartProps: ChartProps): EchartsTimeseriesProps {
   const { width, height, formData, queryData } = chartProps;
@@ -46,7 +47,9 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
     markerEnabled,
     markerSize,
     minorSplitLine,
+    truncateYAxis,
     yAxisFormat,
+    yAxisBounds,
     zoomable,
   } = formData;
 
@@ -109,26 +112,40 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
             : 0,
       });
   });
+
+  // yAxisBounds sometimes starts returning NaNs, which messes up the u-axis
+  let [min, max] = (yAxisBounds || [])
+    .map(Number)
+    .map((val: number) => (Number.isNaN(val) ? undefined : val));
+
+  // default to 0-100% range when doing row-level contribution chart
+  if (contributionMode === 'row' && stack) {
+    if (min === undefined) min = 0;
+    if (max === undefined) max = 1;
+  }
+
   const echartOptions: echarts.EChartOption = {
     grid: {
+      ...defaultGrid,
       top: 30,
       bottom: zoomable ? 80 : 0,
       left: 20,
       right: 20,
-      containLabel: true,
     },
     xAxis: { type: 'time' },
     yAxis: {
+      ...defaultYAxis,
       type: logAxis ? 'log' : 'value',
-      min: contributionMode === 'row' && stack ? 0 : undefined,
-      max: contributionMode === 'row' && stack ? 1 : undefined,
+      min,
+      max,
       minorTick: { show: true },
       minorSplitLine: { show: minorSplitLine },
       axisLabel: { formatter },
+      scale: truncateYAxis,
     },
     tooltip: {
+      ...defaultTooltip,
       trigger: 'axis',
-      confine: true,
       formatter: params => {
         // @ts-ignore
         const rows = [`${smartDateVerboseFormatter(params[0].value[0])}`];
@@ -148,7 +165,6 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
       },
     },
     legend: {
-      type: 'scroll',
       data: rawSeries
         .filter(
           entry =>

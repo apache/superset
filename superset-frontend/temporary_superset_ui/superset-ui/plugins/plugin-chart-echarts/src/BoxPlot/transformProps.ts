@@ -27,6 +27,7 @@ import {
 import { BoxPlotQueryFormData } from './types';
 import { EchartsProps } from '../types';
 import { extractGroupbyLabel } from '../utils/series';
+import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 
 export default function transformProps(chartProps: ChartProps): EchartsProps {
   const { width, height, formData, queryData } = chartProps;
@@ -109,11 +110,11 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   // @ts-ignore
   const echartOptions: echarts.EChartOption<echarts.EChartOption.SeriesBoxplot> = {
     grid: {
+      ...defaultGrid,
       top: 30,
       bottom: 30,
       left: 20,
       right: 20,
-      containLabel: true,
     },
     xAxis: {
       type: 'category',
@@ -121,12 +122,13 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       axisLabel,
     },
     yAxis: {
+      ...defaultYAxis,
       type: 'value',
       axisLabel: { formatter: numberFormatter },
     },
     tooltip: {
+      ...defaultTooltip,
       trigger: 'item',
-      confine: true,
       axisPointer: {
         type: 'shadow',
       },

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { t, legacyValidateInteger, legacyValidateNumber } from '@superset-ui/core';
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
 
@@ -180,7 +181,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['y_axis_format'],
         [
           {
             name: 'stack',
@@ -244,6 +244,21 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'zoomable',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Data Zoom'),
+              default: false,
+              renderTrigger: true,
+              description: t('Enable data zooming controls'),
+            },
+          },
+        ],
+        // eslint-disable-next-line react/jsx-key
+        [<h1 className="section-header">{t('Y Axis')}</h1>],
+        ['y_axis_format'],
+        [
+          {
             name: 'logAxis',
             config: {
               type: 'CheckboxControl',
@@ -266,13 +281,32 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'zoomable',
+            name: 'truncateYAxis',
             config: {
               type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: false,
+              label: t('Truncate Y Axis'),
+              default: true,
               renderTrigger: true,
-              description: t('Enable data zooming controls'),
+              description: t(
+                'Truncate Y Axis. Can be overridden by specifying a min or max bound.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_bounds',
+            config: {
+              type: 'BoundsControl',
+              label: t('Y Axis Bounds'),
+              renderTrigger: true,
+              default: [null, null],
+              description: t(
+                'Bounds for the Y-axis. When left empty, the bounds are ' +
+                  'dynamically defined based on the min/max of the data. Note that ' +
+                  "this feature will only expand the axis range. It won't " +
+                  "narrow the data's extent.",
+              ),
             },
           },
         ],

@@ -1,9 +1,9 @@
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { boolean, select, withKnobs } from '@storybook/addon-knobs';
+import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
 import { EchartsPieChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import transformProps from '@superset-ui/plugin-chart-echarts/lib/Pie/transformProps';
-import data from './data';
+import { weekday, population } from './data';
 
 new EchartsPieChartPlugin().configure({ key: 'echarts-pie' }).register();
 
@@ -14,21 +14,55 @@ export default {
   decorators: [withKnobs],
 };
 
-export const Pie = ({ width, height }) => {
+export const WeekdayPie = ({ width, height }) => {
   return (
     <SuperChart
       chartType="echarts-pie"
       width={width}
       height={height}
-      queryData={{ data }}
+      queryData={{ data: weekday }}
       formData={{
         colorScheme: 'supersetColors',
         groupby: ['Day'],
         metric: 'SUM(AIR_TIME)',
         numberFormat: 'SMART_NUMBER',
         donut: boolean('Donut', false),
+        innerRadius: number('Inner Radius', 30),
+        outerRadius: number('Outer Radius', 50),
         labelsOutside: boolean('Labels outside', true),
+        labelLine: boolean('Label line', false),
         showLabels: boolean('Show labels', true),
+        showLabelsThreshold: number('Percentage threshold', 0),
+        showLegend: boolean('Show legend', false),
+        pieLabelType: select(
+          'Pie label type',
+          ['key', 'value', 'percent', 'key_value', 'key_percent', 'key_value_percent'],
+          'key_value_percent',
+        ),
+      }}
+    />
+  );
+};
+
+export const PopulationPie = ({ width, height }) => {
+  return (
+    <SuperChart
+      chartType="echarts-pie"
+      width={width}
+      height={height}
+      queryData={{ data: population }}
+      formData={{
+        colorScheme: 'supersetColors',
+        groupby: ['Country'],
+        metric: 'Population',
+        numberFormat: 'SMART_NUMBER',
+        donut: boolean('Donut', false),
+        innerRadius: number('Inner Radius', 30),
+        outerRadius: number('Outer Radius', 50),
+        labelsOutside: boolean('Labels outside', false),
+        labelLine: boolean('Label line', false),
+        showLabels: boolean('Show labels', true),
+        showLabelsThreshold: number('Percentage threshold', 5),
         showLegend: boolean('Show legend', false),
         pieLabelType: select(
           'Pie label type',
