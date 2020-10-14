@@ -252,7 +252,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         }
 
     @cache.memoize(
-        make_name=lambda fname: f"{fname}-v0.1",
+        # manage cache version manually
+        make_name=lambda fname: f"{fname}-v2",
         timeout=config["DASHBOARD_CACHE_TIMEOUT"],
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
