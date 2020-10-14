@@ -22,7 +22,8 @@ from superset.constants import RouteMethod
 from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
 from superset.queries.schemas import openapi_spec_methods_override
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
+from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
 
     resource_name = "query"
     allow_browser_login = True
-    include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST}
+    include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST, RouteMethod.RELATED}
 
     class_permission_name = "QueryView"
     list_columns = [
@@ -73,3 +74,8 @@ class QueryRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Queries"
     openapi_spec_methods = openapi_spec_methods_override
+
+    related_field_filters = {
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+    }
+    allowed_rel_fields = {"user"}
