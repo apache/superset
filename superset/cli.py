@@ -127,7 +127,7 @@ def load_examples_run(
     print("Loading DECK.gl demo")
     examples.load_deck_dash()
 
-    if not load_test_data:
+    if load_test_data:
         print("Loading energy related dataset")
         examples.load_energy(only_metadata, force)
 
