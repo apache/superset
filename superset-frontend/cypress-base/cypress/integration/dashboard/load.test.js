@@ -17,7 +17,7 @@
  * under the License.
  */
 import readResponseBlob from '../../utils/readResponseBlob';
-import { NON_LEGACY_PLUGINS } from '../../utils/vizPlugins';
+import { isLegacyChart } from '../../utils/vizPlugins';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard load', () => {
@@ -31,17 +31,20 @@ describe('Dashboard load', () => {
 
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const { slices } = bootstrapData.dashboard_data;
+      const dashboard = bootstrapData.dashboard_data;
+      const { slices } = dashboard;
+
       // then define routes and create alias for each requests
       slices.forEach(slice => {
-        const { viz_type: vizType } = slice;
-        // only test non-legacy plugins
-        if (!NON_LEGACY_PLUGINS.includes(vizType)) {
-          const alias = `getJson_${slice.slice_id}`;
-          const formData = `{"slice_id":${slice.slice_id}}`;
-          cy.route('POST', `/superset/explore_json/?*${formData}*`).as(alias);
-          aliases.push(`@${alias}`);
-        }
+        const vizType = slice.form_data.viz_type;
+        const isLegacy = isLegacyChart(vizType);
+        const alias = `getJson_${slice.slice_id}_${vizType}_${isLegacy}`;
+        const formData = `{"slice_id":${slice.slice_id}}`;
+        const route = isLegacy
+          ? `/superset/explore_json/?*${slice.slice_id}*`
+          : `/api/v1/chart/data?dashboard_id=${dashboard.id}`;
+        cy.route('POST', `${route}`).as(alias);
+        aliases.push(`@${alias}`);
       });
     });
   });

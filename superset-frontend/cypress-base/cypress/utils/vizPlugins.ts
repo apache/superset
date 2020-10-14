@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const NON_LEGACY_PLUGINS = [
+const NON_LEGACY_PLUGINS = [
   'box_plot',
   'echarts_timeseries',
   'word_cloud',
   'pie',
 ];
+
+export function isLegacyChart(vizType: string): boolean {
+  return !NON_LEGACY_PLUGINS.includes(vizType);
+}
