@@ -54,9 +54,8 @@ from sqlalchemy_utils import EncryptedType
 
 from superset import app, db_engine_specs, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import TimeGrain
-from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ImportMixin
-from superset.models.tags import DashboardUpdater, FavStarUpdater
+from superset.models.tags import FavStarUpdater
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
 
@@ -719,8 +718,5 @@ class FavStar(Model):  # pylint: disable=too-few-public-methods
 
 # events for updating tags
 if is_feature_enabled("TAGGING_SYSTEM"):
-    sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
-    sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
-    sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
     sqla.event.listen(FavStar, "after_insert", FavStarUpdater.after_insert)
     sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)

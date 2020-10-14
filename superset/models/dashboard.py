@@ -17,8 +17,9 @@
 import json
 import logging
 from copy import copy
+from functools import partial
 from json.decoder import JSONDecodeError
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 from urllib import parse
 
 import sqlalchemy as sqla
@@ -40,8 +41,20 @@ from sqlalchemy import (
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.orm.session import object_session
+from sqlalchemy.sql import join, select
 
-from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset import (
+    app,
+    cache,
+    ConnectorRegistry,
+    db,
+    is_feature_enabled,
+    security_manager,
+)
+from superset.connectors.base.models import BaseDatasource
+from superset.connectors.druid.models import DruidColumn, DruidMetric
+from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater
@@ -52,10 +65,8 @@ from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
 )
+from superset.utils.decorators import debounce
 from superset.utils.urls import get_url_path
-
-if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -131,7 +142,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     css = Column(Text)
     json_metadata = Column(Text)
     slug = Column(String(255), unique=True)
-    slices = relationship("Slice", secondary=dashboard_slices, backref="dashboards")
+    slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
 
@@ -145,7 +156,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     ]
 
     def __repr__(self) -> str:
-        return self.dashboard_title or str(self.id)
+        return f"Dashboard<{self.slug or self.id}>"
 
     @property
     def table_names(self) -> str:
@@ -177,11 +188,11 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return url
 
     @property
-    def datasources(self) -> Set[Optional["BaseDatasource"]]:
+    def datasources(self) -> Set[BaseDatasource]:
         return {slc.datasource for slc in self.slices}
 
     @property
-    def charts(self) -> List[Optional["BaseDatasource"]]:
+    def charts(self) -> List[BaseDatasource]:
         return [slc.chart for slc in self.slices]
 
     @property
@@ -240,6 +251,29 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             "last_modified_time": self.changed_on.replace(microsecond=0).timestamp(),
         }
 
+    @cache.memoize(
+        # manually maintain cache key version
+        make_name=lambda fname: f"{fname}-v1",
+        timeout=config["DASHBOARD_CACHE_TIMEOUT"],
+        unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
+    )
+    def full_data(self) -> Dict[str, Any]:
+        """Bootstrap data for rendering the dashboard page."""
+        slices = self.slices
+        datasource_slices = utils.indexed(slices, "datasource")
+        return {
+            # dashboard metadata
+            "dashboard": self.data,
+            # slices metadata
+            "slices": [slc.data for slc in slices],
+            # datasource metadata
+            "datasources": {
+                # Filter out unneeded fields from the datasource payload
+                datasource.uid: datasource.data_for_slices(slices)
+                for datasource, slices in datasource_slices.items()
+            },
+        }
+
     @property  # type: ignore
     def params(self) -> str:  # type: ignore
         return self.json_metadata
@@ -253,6 +287,39 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         if self.position_json:
             return json.loads(self.position_json)
         return {}
+
+    def update_thumbnail(self) -> None:
+        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=self.id)
+        cache_dashboard_thumbnail.delay(url, self.digest, force=True)
+
+    @debounce(0.1)
+    def clear_cache(self) -> None:
+        cache.delete_memoized(self.full_data)
+
+    @classmethod
+    @debounce(0.1)
+    def clear_cache_for_slice(cls, slice_id: int) -> None:
+        filter_query = select([dashboard_slices.c.dashboard_id], distinct=True).where(
+            dashboard_slices.c.slice_id == slice_id
+        )
+        for (dashboard_id,) in db.session.execute(filter_query):
+            cls(id=dashboard_id).clear_cache()
+
+    @classmethod
+    @debounce(0.1)
+    def clear_cache_for_datasource(cls, datasource_id: int) -> None:
+        filter_query = select(
+            [dashboard_slices.c.dashboard_id], distinct=True,
+        ).select_from(
+            join(
+                Slice,
+                dashboard_slices,
+                Slice.id == dashboard_slices.c.slice_id,
+                Slice.datasource_id == datasource_id,
+            )
+        )
+        for (dashboard_id,) in db.session.execute(filter_query):
+            cls(id=dashboard_id).clear_cache()
 
     @classmethod
     def import_obj(
@@ -489,12 +556,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         )
 
 
-def event_after_dashboard_changed(
-    _mapper: Mapper, _connection: Connection, target: Dashboard
-) -> None:
-    url = get_url_path("Superset.dashboard", dashboard_id_or_slug=target.id)
-    cache_dashboard_thumbnail.delay(url, target.digest, force=True)
-
+OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
 # events for updating tags
 if is_feature_enabled("TAGGING_SYSTEM"):
@@ -502,8 +564,45 @@ if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
     sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
 
-
-# events for updating tags
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
-    sqla.event.listen(Dashboard, "after_insert", event_after_dashboard_changed)
-    sqla.event.listen(Dashboard, "after_update", event_after_dashboard_changed)
+    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()
+    sqla.event.listen(Dashboard, "after_insert", update_thumbnail)
+    sqla.event.listen(Dashboard, "after_update", update_thumbnail)
+
+if is_feature_enabled("DASHBOARD_CACHE"):
+
+    def clear_dashboard_cache(
+        _mapper: Mapper,
+        _connection: Connection,
+        obj: Union[Slice, BaseDatasource, Dashboard],
+        check_modified: bool = True,
+    ) -> None:
+        if check_modified and not object_session(obj).is_modified(obj):
+            # needed for avoiding excessive cache purging when duplicating a dashboard
+            return
+        if isinstance(obj, Dashboard):
+            obj.clear_cache()
+        elif isinstance(obj, Slice):
+            Dashboard.clear_cache_for_slice(slice_id=obj.id)
+        elif isinstance(obj, BaseDatasource):
+            Dashboard.clear_cache_for_datasource(datasource_id=obj.id)
+        elif isinstance(obj, (SqlMetric, TableColumn)):
+            Dashboard.clear_cache_for_datasource(datasource_id=obj.table_id)
+        elif isinstance(obj, (DruidMetric, DruidColumn)):
+            Dashboard.clear_cache_for_datasource(datasource_id=obj.datasource_id)
+
+    sqla.event.listen(Dashboard, "after_update", clear_dashboard_cache)
+    sqla.event.listen(
+        Dashboard, "after_delete", partial(clear_dashboard_cache, check_modified=False)
+    )
+    sqla.event.listen(Slice, "after_update", clear_dashboard_cache)
+    sqla.event.listen(Slice, "after_delete", clear_dashboard_cache)
+    sqla.event.listen(
+        BaseDatasource, "after_update", clear_dashboard_cache, propagage=True
+    )
+    # also clear cache on column/metric updates since updates to these will not
+    # trigger update events for BaseDatasource.
+    sqla.event.listen(SqlMetric, "after_update", clear_dashboard_cache)
+    sqla.event.listen(TableColumn, "after_update", clear_dashboard_cache)
+    sqla.event.listen(DruidMetric, "after_update", clear_dashboard_cache)
+    sqla.event.listen(DruidColumn, "after_update", clear_dashboard_cache)
