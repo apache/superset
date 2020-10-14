@@ -22,10 +22,7 @@ from superset.constants import RouteMethod
 from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
 from superset.queries.schemas import openapi_spec_methods_override
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    RelatedFieldFilter,
-)
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
