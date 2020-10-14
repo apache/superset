@@ -17,6 +17,7 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import { NON_LEGACY_PLUGINS } from '../../utils/vizPlugins';
 
 describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };
@@ -33,7 +34,9 @@ describe('Dashboard form data', () => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
       dashboardId = dashboard.id;
-      sliceIds = dashboard.slices.map(slice => slice.slice_id);
+      sliceIds = dashboard.slices
+        .map(slice => slice.slice_id)
+        .filter(slice => !NON_LEGACY_PLUGINS.includes(slice.viz_type));
     });
   });
 

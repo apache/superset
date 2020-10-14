@@ -17,6 +17,7 @@
  * under the License.
  */
 import readResponseBlob from '../../utils/readResponseBlob';
+import { NON_LEGACY_PLUGINS } from '../../utils/vizPlugins';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard load', () => {
@@ -33,10 +34,14 @@ describe('Dashboard load', () => {
       const { slices } = bootstrapData.dashboard_data;
       // then define routes and create alias for each requests
       slices.forEach(slice => {
-        const alias = `getJson_${slice.slice_id}`;
-        const formData = `{"slice_id":${slice.slice_id}}`;
-        cy.route('POST', `/superset/explore_json/?*${formData}*`).as(alias);
-        aliases.push(`@${alias}`);
+        const { viz_type: vizType } = slice;
+        // only test non-legacy plugins
+        if (!NON_LEGACY_PLUGINS.includes(vizType)) {
+          const alias = `getJson_${slice.slice_id}`;
+          const formData = `{"slice_id":${slice.slice_id}}`;
+          cy.route('POST', `/superset/explore_json/?*${formData}*`).as(alias);
+          aliases.push(`@${alias}`);
+        }
       });
     });
   });
