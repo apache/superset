@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+export const defaultGrid = {
+  containLabel: true,
+};
 
-export default function buildQuery(formData: QueryFormData) {
-  const { metric } = formData;
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      orderby: [[metric, false]],
-    },
-  ]);
-}
+export const defaultTooltip = {
+  confine: true,
+};
+
+export const defaultYAxis = {
+  scale: true,
+};

@@ -19,6 +19,8 @@
 import { t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, D3_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
 
+const noopControl = { name: 'noop', config: { type: '', renderTrigger: true } };
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -97,6 +99,8 @@ const config: ControlPanelConfig = {
               description: t('Whether to display the labels.'),
             },
           },
+        ],
+        [
           {
             name: 'labels_outside',
             config: {
@@ -107,8 +111,32 @@ const config: ControlPanelConfig = {
               description: t('Put the labels outside of the pie?'),
             },
           },
+          {
+            name: 'label_line',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Label Line'),
+              default: false,
+              renderTrigger: true,
+              description: t('Draw line from Pie to label when labels outside?'),
+            },
+          },
         ],
-        ['color_scheme', 'label_colors'],
+        [
+          {
+            name: 'show_labels_threshold',
+            config: {
+              type: 'TextControl',
+              label: t('Percentage threshold'),
+              renderTrigger: true,
+              isFloat: true,
+              default: 5,
+              description: t('Minimum threshold in percentage points for showing labels.'),
+            },
+          },
+          noopControl,
+        ],
+        ['color_scheme', noopControl],
         [
           {
             name: 'outerRadius',
