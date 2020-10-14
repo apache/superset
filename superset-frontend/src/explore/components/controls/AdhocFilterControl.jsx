@@ -267,7 +267,7 @@ export default class AdhocFilterControl extends React.Component {
         <OnPasteSelect
           isMulti
           name={`select-${this.props.name}`}
-          placeholder={t('choose one or more column or metric')}
+          placeholder={t('choose a column or metric')}
           options={this.state.options}
           value={this.state.values}
           labelKey="label"
