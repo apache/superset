@@ -23,6 +23,9 @@ assists people when migrating to a new version.
 
 ## Next
 
+* NOTICE: config flag ENABLE_REACT_CRUD_VIEWS has been set to `True` by default, set to `False` if
+  you prefer to vintage look and feel :)
+
 * [11244](https://github.com/apache/incubator-superset/pull/11244): The `REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD` feature flag has been removed after being set to True for multiple months.
 
 * [11172](https://github.com/apache/incubator-superset/pull/11172): Breaking change: SQL templating is turned off be default. To turn it on set `ENABLE_TEMPLATE_PROCESSING` to True on `DEFAULT_FEATURE_FLAGS`
