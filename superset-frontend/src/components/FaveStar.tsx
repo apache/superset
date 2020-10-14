@@ -46,7 +46,12 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
           label="fave-unfave"
           tooltip={t('Click to favorite/unfavorite')}
         >
-          <a href="#" onClick={this.onClick} className="fave-unfave-icon">
+          <a
+            href="#"
+            onClick={this.onClick}
+            className="fave-unfave-icon"
+            data-test="fave-unfave-icon"
+          >
             <Icon
               name={
                 this.props.isStarred

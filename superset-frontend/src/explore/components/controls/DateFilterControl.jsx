@@ -523,9 +523,10 @@ class DateFilterControl extends React.Component {
                       this.startEndSectionRef = ref;
                     }}
                   >
-                    <InputGroup>
+                    <InputGroup data-test="date-input-group">
                       <div style={{ margin: '5px 0' }}>
                         <Datetime
+                          inputProps={{ 'data-test': 'date-from-input' }}
                           value={this.state.since}
                           defaultValue={this.state.since}
                           viewDate={this.state.since}
@@ -546,6 +547,7 @@ class DateFilterControl extends React.Component {
                       </div>
                       <div style={{ margin: '5px 0' }}>
                         <Datetime
+                          inputProps={{ 'data-test': 'date-to-input' }}
                           value={this.state.until}
                           defaultValue={this.state.until}
                           viewDate={this.state.until}
@@ -572,6 +574,7 @@ class DateFilterControl extends React.Component {
           </Tabs>
           <div className="clearfix">
             <Button
+              data-test="date-ok-button"
               buttonSize="small"
               className="float-right ok"
               buttonStyle="primary"
@@ -601,7 +604,11 @@ class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
           onClick={this.handleClickTrigger}
         >
-          <Label name="popover-trigger" className="pointer">
+          <Label
+            name="popover-trigger"
+            className="pointer"
+            data-test="popover-trigger"
+          >
             {formatTimeRange(timeRange, this.props.endpoints)}
           </Label>
         </OverlayTrigger>

@@ -136,7 +136,7 @@ class SaveModal extends React.Component {
         <Modal.Header closeButton>
           <Modal.Title>{t('Save Chart')}</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body data-test="save-modal-body">
           {(this.state.alert || this.props.alert) && (
             <Alert>
               {this.state.alert ? this.state.alert : this.props.alert}
@@ -150,18 +150,20 @@ class SaveModal extends React.Component {
               />
             </Alert>
           )}
-          <FormGroup>
+          <FormGroup data-test="radio-group">
             <Radio
               id="overwrite-radio"
               inline
               disabled={!(this.props.can_overwrite && this.props.slice)}
               checked={this.state.action === 'overwrite'}
               onChange={this.changeAction.bind(this, 'overwrite')}
+              data-test="save-overwrite-radio"
             >
               {t('Save (Overwrite)')}
             </Radio>
             <Radio
               id="saveas-radio"
+              data-test="saveas-radio"
               inline
               checked={this.state.action === 'saveas'}
               onChange={this.changeAction.bind(this, 'saveas')}
@@ -180,6 +182,7 @@ class SaveModal extends React.Component {
               placeholder="Name"
               value={this.state.newSliceName}
               onChange={this.onSliceNameChange}
+              data-test="new-chart-name"
             />
           </FormGroup>
           <FormGroup>
@@ -206,7 +209,7 @@ class SaveModal extends React.Component {
           </FormGroup>
         </Modal.Body>
 
-        <Modal.Footer>
+        <Modal.Footer data-test="save-modal-footer">
           <div className="float-right">
             <Button id="btn_cancel" buttonSize="sm" onClick={this.props.onHide}>
               {t('Cancel')}
@@ -227,6 +230,7 @@ class SaveModal extends React.Component {
               buttonStyle="primary"
               onClick={this.saveOrOverwrite.bind(this, false)}
               disabled={!this.state.newSliceName}
+              data-test="btn-modal-save"
             >
               {t('Save')}
             </Button>
