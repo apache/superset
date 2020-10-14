@@ -113,6 +113,7 @@ class AnnotationLayerControl extends React.PureComponent {
     const { theme } = this.props;
     return (
       <Popover
+        data-test="annotation-popover"
         style={{ maxWidth: 'none' }}
         title={
           annotation ? t('Edit Annotation Layer') : t('Add Annotation Layer')
@@ -188,7 +189,11 @@ class AnnotationLayerControl extends React.PureComponent {
             overlay={this.renderPopover('overlay-new')}
           >
             <ListGroupItem>
-              <i className="fa fa-plus" /> &nbsp; {t('Add Annotation Layer')}
+              <i
+                data-test="add-annotation-layer-button"
+                className="fa fa-plus"
+              />{' '}
+              &nbsp; {t('Add Annotation Layer')}
             </ListGroupItem>
           </OverlayTrigger>
         </ListGroup>

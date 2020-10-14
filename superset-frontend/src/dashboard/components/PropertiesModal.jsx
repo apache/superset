@@ -224,7 +224,7 @@ class PropertiesModal extends React.PureComponent {
     return (
       <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <form onSubmit={this.submit}>
-          <Modal.Header closeButton>
+          <Modal.Header closeButton data-test="dashboard-properties-modal">
             <Modal.Title>
               <div>
                 <span className="float-left">{t('Dashboard Properties')}</span>
@@ -241,6 +241,7 @@ class PropertiesModal extends React.PureComponent {
               <Col md={6}>
                 <FormLabel htmlFor="embed-height">{t('Title')}</FormLabel>
                 <FormControl
+                  data-test="dashboard-title-input"
                   name="dashboard_title"
                   type="text"
                   bsSize="sm"
@@ -333,7 +334,13 @@ class PropertiesModal extends React.PureComponent {
           </Modal.Body>
           <Modal.Footer>
             <span className="float-right">
-              <Button type="button" buttonSize="sm" onClick={onHide} cta>
+              <Button
+                type="button"
+                buttonSize="sm"
+                onClick={onHide}
+                data-test="properties-modal-cancel-button"
+                cta
+              >
                 {t('Cancel')}
               </Button>
               <Button

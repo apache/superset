@@ -132,12 +132,17 @@ export default class AdhocFilterEditPopover extends React.Component {
     const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
 
     return (
-      <Popover id="filter-edit-popover" {...popoverProps}>
+      <Popover
+        id="filter-edit-popover"
+        {...popoverProps}
+        data-test="filter-edit-popover"
+      >
         <ThemeProvider theme={theme}>
           <Tabs
             id="adhoc-filter-edit-tabs"
             defaultActiveKey={adhocFilter.expressionType}
             className="adhoc-filter-edit-tabs"
+            data-test="adhoc-filter-edit-tabs"
             style={{ height: this.state.height, width: this.state.width }}
           >
             <Tab
@@ -176,6 +181,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           </Tabs>
           <div>
             <Button
+              data-test="adhoc-filter-edit-popover-save-button"
               disabled={!stateIsValid}
               buttonStyle={
                 hasUnsavedChanges && stateIsValid ? 'primary' : 'default'

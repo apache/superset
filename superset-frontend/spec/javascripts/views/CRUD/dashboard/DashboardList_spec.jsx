@@ -128,12 +128,18 @@ describe('DashboardList', () => {
   });
 
   it('delete', () => {
-    wrapper.find('[data-test="trash"]').first().simulate('click');
+    wrapper
+      .find('[data-test="dashboard-list-trash-icon"]')
+      .first()
+      .simulate('click');
     expect(wrapper.find(ConfirmStatusChange)).toExist();
   });
 
   it('card view delete', () => {
-    wrapper.find('[data-test="trash"]').last().simulate('click');
+    wrapper
+      .find('[data-test="dashboard-list-trash-icon"]')
+      .last()
+      .simulate('click');
     expect(wrapper.find(ConfirmStatusChange)).toExist();
   });
 });

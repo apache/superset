@@ -226,7 +226,10 @@ class Tabs extends React.PureComponent {
           dropIndicatorProps: tabsDropIndicatorProps,
           dragSourceRef: tabsDragSourceRef,
         }) => (
-          <div className="dashboard-component dashboard-component-tabs">
+          <div
+            className="dashboard-component dashboard-component-tabs"
+            data-test="dashboard-component-tabs"
+          >
             {editMode && renderHoverMenu && (
               <HoverMenu innerRef={tabsDragSourceRef} position="left">
                 <DragHandle position="left" />
@@ -241,6 +244,7 @@ class Tabs extends React.PureComponent {
               animation
               mountOnEnter
               unmountOnExit={false}
+              data-test="nav-list"
             >
               {tabIds.map((tabId, tabIndex) => (
                 // react-bootstrap doesn't render a Tab if we move this to its own Tab.jsx so we

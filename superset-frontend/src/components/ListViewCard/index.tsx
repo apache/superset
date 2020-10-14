@@ -169,6 +169,7 @@ function ListViewCard({
 }: CardProps) {
   return (
     <StyledCard
+      data-test="styled-card"
       cover={
         <Cover>
           <a href={url}>
@@ -222,7 +223,9 @@ function ListViewCard({
               <TitleContainer>
                 <TitleLink href={url}>{title}</TitleLink>
                 {titleRight && <div className="title-right"> {titleRight}</div>}
-                <div className="card-actions">{actions}</div>
+                <div className="card-actions" data-test="card-actions">
+                  {actions}
+                </div>
               </TitleContainer>
             </>
           }

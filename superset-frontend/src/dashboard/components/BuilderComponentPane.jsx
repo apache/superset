@@ -47,7 +47,11 @@ class BuilderComponentPane extends React.PureComponent {
   renderTabs(height) {
     const { isSticky } = this.props;
     return (
-      <Tabs className="m-t-10 tabs-components" id="tabs">
+      <Tabs
+        className="m-t-10 tabs-components"
+        id="tabs"
+        data-test="tabs-component"
+      >
         <Tab eventKey={1} title={t('Components')}>
           <NewTabs />
           <NewRow />
