@@ -25,7 +25,7 @@ assists people when migrating to a new version.
 
 * [11244](https://github.com/apache/incubator-superset/pull/11244): The `REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD` feature flag has been removed after being set to True for multiple months.
 
-* [11098](https://github.com/apache/incubator-superset/pull/11098): includes a database migration that adds a column caled `uuid` to all models, and updates the `Dashboard.position_json` column to also have UUIDs of charts. Depending on the number of objects the migration might take up to 3-4 minutes, requiring planning for the downtime.
+* [11098](https://github.com/apache/incubator-superset/pull/11098): includes a database migration that adds a `uuid` column to most models, and updates `Dashboard.position_json` to include chart UUIDs. Depending on number of objects, the migration may take up to 5 minutes, requiring planning for downtime.
 
 * [11172](https://github.com/apache/incubator-superset/pull/11172): Breaking change: SQL templating is turned off be default. To turn it on set `ENABLE_TEMPLATE_PROCESSING` to True on `DEFAULT_FEATURE_FLAGS`
 
