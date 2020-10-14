@@ -59,6 +59,7 @@ Join our growing community!
 - [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
+- [Utair](https://www.utair.ru)
 
 ### Enterprise Technology
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
