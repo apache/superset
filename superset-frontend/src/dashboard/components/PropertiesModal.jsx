@@ -334,7 +334,13 @@ class PropertiesModal extends React.PureComponent {
           </Modal.Body>
           <Modal.Footer>
             <span className="float-right">
-              <Button type="button" buttonSize="sm" onClick={onHide} cta>
+              <Button
+                type="button"
+                buttonSize="sm"
+                onClick={onHide}
+                data-test="properties-modal-cancel-button"
+                cta
+              >
                 {t('Cancel')}
               </Button>
               <Button
@@ -346,15 +352,6 @@ class PropertiesModal extends React.PureComponent {
                 cta
               >
                 {saveLabel}
-              </Button>
-              <Button
-                data-test="properties-modal-cancel-button"
-                type="button"
-                buttonSize="sm"
-                onClick={onHide}
-                cta
-              >
-                {t('Cancel')}
               </Button>
               <Dialog
                 ref={ref => {

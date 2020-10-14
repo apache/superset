@@ -387,7 +387,10 @@ class Header extends React.PureComponent {
 
         <div className="button-container">
           {userCanSaveAs && (
-            <div className="button-container" data-test="button-container">
+            <div
+              className="button-container"
+              data-test="dashboard-edit-actions"
+            >
               {editMode && (
                 <>
                   <ButtonGroup className="m-r-5">
