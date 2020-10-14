@@ -533,13 +533,13 @@ function ChartList(props: ChartListProps) {
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = canDelete
             ? [
-              {
-                key: 'delete',
-                name: t('Delete'),
-                onSelect: confirmDelete,
-                type: 'danger',
-              },
-            ]
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
             : [];
 
           return (

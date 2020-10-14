@@ -43,8 +43,8 @@ import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
-import AddDatasetModal from './AddDatasetModal';
 import UserStack from 'src/components/UserStack';
+import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
 
@@ -487,13 +487,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = canDelete
             ? [
-              {
-                key: 'delete',
-                name: t('Delete'),
-                onSelect: confirmDelete,
-                type: 'danger',
-              },
-            ]
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
             : [];
 
           return (
