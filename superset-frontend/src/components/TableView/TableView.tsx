@@ -25,7 +25,7 @@ import { SortColumns } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
 
-interface TableViewProps {
+export interface TableViewProps {
   columns: any[];
   data: any[];
   pageSize?: number;
