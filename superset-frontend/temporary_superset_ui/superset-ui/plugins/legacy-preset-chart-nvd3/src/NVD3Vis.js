@@ -587,8 +587,14 @@ function nvd3Vis(element, props) {
 
     let yAxisFormatter = getTimeOrNumberFormatter(yAxisFormat);
     if (chart.yAxis && chart.yAxis.tickFormat) {
-      if (contribution || comparisonType === 'percentage') {
-        // When computing a "Percentage" or "Contribution" selected, we force a percentage format
+      if (
+        (contribution || comparisonType === 'percentage') &&
+        (!yAxisFormat ||
+          yAxisFormat === NumberFormats.SMART_NUMBER ||
+          yAxisFormat === NumberFormats.SMART_NUMBER_SIGNED)
+      ) {
+        // When computing a "Percentage" or "Contribution" selected,
+        // force a percentage format if no custom formatting set
         yAxisFormatter = getNumberFormatter(NumberFormats.PERCENT_1_POINT);
       }
       chart.yAxis.tickFormat(yAxisFormatter);
