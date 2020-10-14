@@ -252,8 +252,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         }
 
     @cache.memoize(
-        # manually maintain cache key version
-        make_name=lambda fname: f"{fname}-v1",
+        # manage cache version manually
+        make_name=lambda fname: f"{fname}-v2",
         timeout=config["DASHBOARD_CACHE_TIMEOUT"],
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
@@ -294,7 +294,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @debounce(0.1)
     def clear_cache(self) -> None:
-        cache.delete_memoized(self.full_data)
+        cache.delete_memoized(Dashboard.full_data, self)
 
     @classmethod
     @debounce(0.1)
