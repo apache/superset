@@ -42,6 +42,7 @@ from superset.jinja_context import (  # pylint: disable=unused-import
 )
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
+from superset.utils.core import is_test
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
@@ -952,7 +953,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
             "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
         )
         raise
-elif importlib.util.find_spec("superset_config"):
+elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
         from superset_config import *  # type: ignore  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
