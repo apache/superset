@@ -39,12 +39,12 @@ import SubMenu, {
   ButtonProps,
 } from 'src/components/Menu/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
-import AvatarIcon from 'src/components/AvatarIcon';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import AddDatasetModal from './AddDatasetModal';
+import UserStack from 'src/components/UserStack';
 
 const PAGE_SIZE = 25;
 
@@ -233,25 +233,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { owners, table_name: tableName },
+            original: { owners = [], table_name: tableName },
           },
-        }: any) => {
-          if (!owners) {
-            return null;
-          }
-          return owners
-            .slice(0, 5)
-            .map((owner: Owner) => (
-              <AvatarIcon
-                key={owner.id}
-                uniqueKey={`${tableName}-${owner.username}`}
-                firstName={owner.first_name}
-                lastName={owner.last_name}
-                iconSize={24}
-                textSize={9}
-              />
-            ));
-        },
+        }: any) => <UserStack users={owners} />,
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,
@@ -503,13 +487,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = canDelete
             ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
+              {
+                key: 'delete',
+                name: t('Delete'),
+                onSelect: confirmDelete,
+                type: 'danger',
+              },
+            ]
             : [];
 
           return (

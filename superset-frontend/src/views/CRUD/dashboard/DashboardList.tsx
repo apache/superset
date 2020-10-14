@@ -24,7 +24,7 @@ import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import AvatarIcon from 'src/components/AvatarIcon';
+import UserStack from 'src/components/UserStack';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -35,7 +35,6 @@ import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import ListViewCard from 'src/components/ListViewCard';
 import { Dropdown, Menu } from 'src/common/components';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import UserStack from 'src/components/UserStack';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
@@ -246,7 +245,7 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { owners },
+            original: { owners = [] },
           },
         }: any) => <UserStack users={owners} />,
         Header: t('Owners'),
@@ -480,16 +479,7 @@ function DashboardList(props: DashboardListProps) {
           'Last modified %s',
           dashboard.changed_on_delta_humanized,
         )}
-        coverLeft={(dashboard.owners || []).slice(0, 5).map(owner => (
-          <AvatarIcon
-            key={owner.id}
-            uniqueKey={`${owner.username}-${dashboard.id}`}
-            firstName={owner.first_name}
-            lastName={owner.last_name}
-            iconSize={24}
-            textSize={9}
-          />
-        ))}
+        coverLeft={<UserStack users={dashboard.owners || []} />}
         actions={
           <ListViewCard.Actions>
             {renderFaveStar(dashboard.id)}

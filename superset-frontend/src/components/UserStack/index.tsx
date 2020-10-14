@@ -27,18 +27,24 @@ interface UserStackProps {
 }
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
+const AVATAR_STYLE = {
+  width: '24px',
+  height: '24px',
+  fontSize: '20px',
+  lineHeight: '24px',
+};
 
-export default function UserStack({ users, maxCount = 5 }: UserStackProps) {
+export default function UserStack({ users, maxCount = 4 }: UserStackProps) {
   return (
-    <Avatar.Group maxCount={maxCount}>
+    <Avatar.Group maxCount={maxCount} maxStyle={AVATAR_STYLE}>
       {users.map(({ first_name, last_name }) => {
         const name = `${first_name} ${last_name}`;
         return (
           <Tooltip key={name} title={name} placement="top">
             <Avatar
-              size="small"
               style={{
                 backgroundColor: getRandomColor(name, colorList),
+                ...AVATAR_STYLE,
               }}
             >
               {first_name[0].toLocaleUpperCase()}
