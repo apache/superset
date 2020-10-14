@@ -337,11 +337,7 @@ export default class MetricsControl extends React.PureComponent {
         <OnPasteSelect
           isMulti={this.props.multi}
           name={`select-${this.props.name}`}
-          placeholder={
-            this.props.multi
-              ? t('choose one or more column or aggregate function')
-              : t('choose a column or aggregate function')
-          }
+          placeholder={t('choose a column or aggregate function')}
           options={this.state.options}
           value={this.state.value}
           labelKey="label"
