@@ -223,7 +223,7 @@ class DashboardBuilder extends React.Component {
         </Sticky>
 
         <div className="dashboard-content">
-          <div className="grid-container">
+          <div className="grid-container" data-test="grid-container">
             <ParentSize>
               {({ width }) => (
                 /*

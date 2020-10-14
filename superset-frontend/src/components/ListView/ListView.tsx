@@ -280,7 +280,7 @@ function ListView<T extends object = any>({
 
   return (
     <ListViewStyles>
-      <div className={`superset-list-view ${className}`}>
+      <div data-test={className} className={`superset-list-view ${className}`}>
         <div className="header">
           <div className="header-left">
             {cardViewEnabled && (
