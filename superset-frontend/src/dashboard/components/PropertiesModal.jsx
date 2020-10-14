@@ -23,7 +23,7 @@ import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
@@ -32,6 +32,11 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 import '../stylesheets/buttons.less';
+
+const StyledJsonEditor = styled(JsonEditor)`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+`;
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
@@ -306,7 +311,7 @@ class PropertiesModal extends React.PureComponent {
                     <FormLabel htmlFor="json_metadata">
                       {t('JSON Metadata')}
                     </FormLabel>
-                    <JsonEditor
+                    <StyledJsonEditor
                       showLoadingForImport
                       name="json_metadata"
                       defaultValue={this.defaultMetadataValue}
@@ -328,6 +333,9 @@ class PropertiesModal extends React.PureComponent {
           </Modal.Body>
           <Modal.Footer>
             <span className="float-right">
+              <Button type="button" buttonSize="sm" onClick={onHide} cta>
+                {t('Cancel')}
+              </Button>
               <Button
                 type="submit"
                 buttonSize="sm"
@@ -337,9 +345,6 @@ class PropertiesModal extends React.PureComponent {
                 cta
               >
                 {saveLabel}
-              </Button>
-              <Button type="button" buttonSize="sm" onClick={onHide} cta>
-                {t('Cancel')}
               </Button>
               <Dialog
                 ref={ref => {
