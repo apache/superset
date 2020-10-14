@@ -211,7 +211,7 @@ function SavedQueryList({
     );
   };
 
-  const handleBulkTemplateDelete = (queriesToDelete: SavedQueryObject[]) => {
+  const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {
     SupersetClient.delete({
       endpoint: `/api/v1/saved_query/?q=${rison.encode(
         queriesToDelete.map(({ id }) => id),
@@ -454,7 +454,7 @@ function SavedQueryList({
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t('Are you sure you want to delete the selected queries?')}
-        onConfirm={handleBulkTemplateDelete}
+        onConfirm={handleBulkQueryDelete}
       >
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = canDelete
