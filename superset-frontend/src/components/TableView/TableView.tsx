@@ -20,9 +20,8 @@ import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from 'src/common/components';
-import TableCollection from './TableCollection';
-import Pagination from './Pagination';
-import { SortColumn } from './types';
+import { TableCollection, Pagination } from 'src/components/dataViewCommon';
+import { SortColumns } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -31,7 +30,7 @@ interface TableViewProps {
   data: any[];
   pageSize?: number;
   initialPageIndex?: number;
-  initialSortBy?: SortColumn[];
+  initialSortBy?: SortColumns;
   loading?: boolean;
   withPagination?: boolean;
   className?: string;
@@ -58,7 +57,7 @@ const TableViewStyles = styled.div`
   }
 `;
 
-export const TableView = ({
+const TableView = ({
   columns,
   data,
   pageSize: initialPageSize,
@@ -134,3 +133,5 @@ export const TableView = ({
     </TableViewStyles>
   );
 };
+
+export default TableView;
