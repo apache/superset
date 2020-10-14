@@ -19,9 +19,10 @@ import inspect
 import json
 import logging
 import textwrap
+import time
 from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Callable, cast, Optional, Type, Union
+from contextlib import contextmanager
+from typing import Any, Callable, cast, Iterator, Optional, Type
 
 from flask import current_app, g, request
 from sqlalchemy.exc import SQLAlchemyError
@@ -36,27 +37,23 @@ class AbstractEventLogger(ABC):
     ) -> None:
         pass
 
-    def log_with_context(
-        self,
-        action: str,
-        start_dttm: Optional[datetime] = None,
-        duration_ms: Optional[Union[float, int]] = None,
-        **kwargs: Any
-    ) -> None:
+    @contextmanager
+    def log_context(self, action: str) -> Iterator[Callable[..., None]]:
         """
         Log an event while reading information from the request context.
         `kwargs` will be appended directly to the log payload.
         """
-        if duration_ms is None and start_dttm is not None:
-            duration_ms = (datetime.now() - start_dttm).total_seconds() * 1000
-
         from superset.views.core import get_form_data
 
+        start_time = time.time()
+        referrer = request.referrer[:1000] if request.referrer else None
         user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
         payload = request.form.to_dict() or {}
         # request parameters can overwrite post body
         payload.update(request.args.to_dict())
-        payload.update(kwargs)
+
+        # yield a helper to update additional kwargs
+        yield lambda **kwargs: payload.update(kwargs)
 
         dashboard_id = payload.get("dashboard_id")
 
@@ -81,24 +78,35 @@ class AbstractEventLogger(ABC):
         except Exception:  # pylint: disable=broad-except
             records = [payload]
 
-        referrer = request.referrer[:1000] if request.referrer else None
-
         self.log(
             user_id,
             action,
             records=records,
             dashboard_id=dashboard_id,
             slice_id=slice_id,
-            duration_ms=duration_ms,
+            duration_ms=round((time.time() - start_time) * 1000),
             referrer=referrer,
         )
 
     def log_this(self, f: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_dttm = datetime.now()
-            value = f(*args, **kwargs)
-            self.log_with_context(f.__name__, start_dttm=start_dttm, **kwargs)
+            with self.log_context(f.__name__) as log:
+                value = f(*args, **kwargs)
+                log(**kwargs)
+            return value
+
+        return wrapper
+
+    def log_manually(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        """Allow a function to manually update"""
+
+        @functools.wraps(f)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            with self.log_context(f.__name__) as log:
+                # updated_log_payload should be either the last positional
+                # argument or one of the named arguments of the decorated function
+                value = f(*args, update_log_payload=log, **kwargs)
             return value
 
         return wrapper

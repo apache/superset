@@ -51,38 +51,33 @@ class TestEventLogger(unittest.TestCase):
         with self.assertRaises(TypeError):
             get_event_logger_from_cfg_value(logging.getLogger())
 
-    @patch.object(AbstractEventLogger, "log_with_context")
-    def test_log_this_decorator(self, mock_log_with_context):
-        logger = DBEventLogger()
-
-        @logger.log_this
-        def test_func():
-            time.sleep(0.2)
-            return 1
-
-        before_job_run = datetime.now()
-        result = test_func()
-        after_job_run = datetime.now()
-        args, kwargs = mock_log_with_context.call_args
-
-        self.assertEqual(result, 1)
-        self.assertEqual(args, ("test_func",))
-        assert kwargs["start_dttm"] > before_job_run
-        assert kwargs["start_dttm"] < after_job_run
-
     @patch.object(DBEventLogger, "log")
-    def test_log_with_context(self, mock_log):
+    def test_log_this_decorator(self, mock_log):
         logger = DBEventLogger()
 
         @logger.log_this
         def test_func():
-            time.sleep(0.2)
+            time.sleep(0.05)
             return 1
 
         with app.test_request_context():
-            test_func()
-            assert mock_log.call_args[1]["duration_ms"] >= 200
+            result = test_func()
+            self.assertEqual(result, 1)
+            assert mock_log.call_args[1]["duration_ms"] >= 50
 
-            mock_log.reset_mock()
-            logger.log_with_context("random", duration_ms=10)
-            self.assertEqual(mock_log.call_args[1]["duration_ms"], 10)
+    @patch.object(DBEventLogger, "log")
+    def test_log_manually_decorator(self, mock_log):
+        logger = DBEventLogger()
+
+        @logger.log_manually
+        def test_func(arg1, update_log_payload, karg1=1):
+            time.sleep(0.1)
+            update_log_payload(foo="bar")
+            return arg1 * karg1
+
+        with app.test_request_context():
+            result = test_func(1, karg1=2)  # pylint: disable=no-value-for-parameter
+            self.assertEqual(result, 2)
+            # should contain only manual payload
+            self.assertEqual(mock_log.call_args[1]["records"], [{"foo": "bar"}])
+            assert mock_log.call_args[1]["duration_ms"] >= 100
