@@ -51,6 +51,5 @@ for (_, name, _) in pkgutil.iter_modules([Path(__file__).parent]):  # type: igno
             engines[attribute.engine] = attribute
 
             # populate engine alias name to engine dictionary
-            if isinstance(attribute.engine_aliases, tuple) and attribute.engine_aliases:
-                for engine_alias in attribute.engine_aliases:
-                    engines[engine_alias] = attribute
+            for engine_alias in attribute.engine_aliases or []:
+                engines[engine_alias] = attribute
