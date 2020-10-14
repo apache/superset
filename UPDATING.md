@@ -25,6 +25,8 @@ assists people when migrating to a new version.
 
 * [11244](https://github.com/apache/incubator-superset/pull/11244): The `REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD` feature flag has been removed after being set to True for multiple months.
 
+* [11098](https://github.com/apache/incubator-superset/pull/11098): includes a database migration that adds a `uuid` column to most models, and updates `Dashboard.position_json` to include chart UUIDs. Depending on number of objects, the migration may take up to 5 minutes, requiring planning for downtime.
+
 * [11172](https://github.com/apache/incubator-superset/pull/11172): Breaking change: SQL templating is turned off be default. To turn it on set `ENABLE_TEMPLATE_PROCESSING` to True on `DEFAULT_FEATURE_FLAGS`
 
 * [11155](https://github.com/apache/incubator-superset/pull/11155): The `FAB_UPDATE_PERMS` config parameter is no longer required as the Superset application correctly informs FAB under which context permissions should be updated.
