@@ -26,7 +26,6 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
-import ExpandableList from 'src/components/ExpandableList';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
@@ -36,6 +35,7 @@ import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import ListViewCard from 'src/components/ListViewCard';
 import { Dropdown, Menu } from 'src/common/components';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import UserStack from 'src/components/UserStack';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
@@ -248,15 +248,7 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { owners },
           },
-        }: any) => (
-          <ExpandableList
-            items={owners.map(
-              ({ first_name: firstName, last_name: lastName }: any) =>
-                `${firstName} ${lastName}`,
-            )}
-            display={2}
-          />
-        ),
+        }: any) => <UserStack users={owners} />,
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
