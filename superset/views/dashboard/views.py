@@ -24,9 +24,9 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
-import superset.models.core as models
 from superset import app, db, event_logger
 from superset.constants import RouteMethod
+from superset.models.dashboard import Dashboard as DashboardModel
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
@@ -43,7 +43,7 @@ class DashboardModelView(
     DashboardMixin, SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
-    datamodel = SQLAInterface(models.Dashboard)
+    datamodel = SQLAInterface(DashboardModel)
     # TODO disable api_read and api_delete (used by cypress)
     # once we move to ChartRestModelApi
     include_route_methods = RouteMethod.CRUD_SET | {
@@ -76,7 +76,7 @@ class DashboardModelView(
         if request.args.get("action") == "go":
             ids = request.args.getlist("id")
             return Response(
-                models.Dashboard.export_dashboards(ids),
+                DashboardModel.export_dashboards(ids),
                 headers=generate_download_headers("json"),
                 mimetype="application/text",
             )
@@ -110,7 +110,7 @@ class Dashboard(BaseSupersetView):
     @expose("/new/")
     def new(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Creates a new, blank dashboard and redirects to it in edit mode"""
-        new_dashboard = models.Dashboard(
+        new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]", owners=[g.user]
         )
         db.session.add(new_dashboard)
