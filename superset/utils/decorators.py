@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Dict, Iterator, Union
 
 from contextlib2 import contextmanager
 from flask import request
@@ -123,3 +124,39 @@ def etag_cache(max_age: int, check_perms: Callable[..., Any]) -> Callable[..., A
         return wrapper
 
     return decorator
+
+
+def arghash(args: Any, kwargs: Dict[str, Any]) -> int:
+    """Simple argument hash with kwargs sorted."""
+    sorted_args = tuple(
+        x if hasattr(x, "__repr__") else x for x in [*args, *sorted(kwargs.items())]
+    )
+    return hash(sorted_args)
+
+
+def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
+    """Ensure a function called with the same arguments executes only once
+    per `duration` (default: 100ms).
+    """
+
+    def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
+        last: Dict[str, Any] = {"t": None, "input": None, "output": None}
+
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            now = time.time()
+            updated_hash = arghash(args, kwargs)
+            if (
+                last["t"] is None
+                or now - last["t"] >= duration
+                or last["input"] != updated_hash
+            ):
+                result = f(*args, **kwargs)
+                last["t"] = time.time()
+                last["input"] = updated_hash
+                last["output"] = result
+                return result
+            return last["output"]
+
+        return wrapped
+
+    return decorate

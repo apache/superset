@@ -108,7 +108,7 @@ class DashboardDAO(BaseDAO):
                 and obj["meta"]["chartId"]
             ):
                 chart_id = obj["meta"]["chartId"]
-                obj["meta"]["uuid"] = uuid_map[chart_id]
+                obj["meta"]["uuid"] = uuid_map.get(chart_id)
 
         # remove leading and trailing white spaces in the dumped json
         dashboard.position_json = json.dumps(

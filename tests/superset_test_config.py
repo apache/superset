@@ -50,6 +50,7 @@ HIVE_POLL_INTERVAL = 0.1
 SQL_MAX_ROW = 666
 SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take affect for the CTA queries
 FEATURE_FLAGS = {
+    **FEATURE_FLAGS,
     "foo": "bar",
     "KV_STORE": True,
     "SHARE_QUERIES_VIA_KV_STORE": True,

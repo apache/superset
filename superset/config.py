@@ -302,6 +302,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
+    "DASHBOARD_CACHE": False,
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "SIP_38_VIZ_REARCHITECTURE": False,
@@ -368,6 +369,7 @@ IMG_UPLOAD_URL = "/static/uploads/"
 CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
 CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 TABLE_NAMES_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+DASHBOARD_CACHE_TIMEOUT = 60 * 60 * 24 * 365
 
 # CORS Options
 ENABLE_CORS = False

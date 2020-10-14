@@ -1418,6 +1418,17 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     return columns
 
 
+def indexed(
+    items: List[Any], key: Union[str, Callable[[Any], Any]]
+) -> Dict[Any, List[Any]]:
+    """Build an index for a list of objects"""
+    idx: Dict[Any, Any] = {}
+    for item in items:
+        key_ = getattr(item, key) if isinstance(key, str) else key(item)
+        idx.setdefault(key_, []).append(item)
+    return idx
+
+
 class LenientEnum(Enum):
     """Enums that do not raise ValueError when value is invalid"""
 
