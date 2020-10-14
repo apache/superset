@@ -24,9 +24,8 @@ import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import TableCollection from './TableCollection';
+import { TableCollection, Pagination } from 'src/components/dataViewCommon';
 import CardCollection from './CardCollection';
-import Pagination from './Pagination';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
 import {

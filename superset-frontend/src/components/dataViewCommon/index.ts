@@ -16,7 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './ListView';
-export * from './types';
-
-export { default } from './ListView';
+export { default as Pagination } from './Pagination';
+export { default as TableCollection } from './TableCollection';

@@ -24,7 +24,7 @@ import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import ModalTrigger from 'src/components/ModalTrigger';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ListView from 'src/components/ListView';
-import TableCollection from 'src/components/ListView/TableCollection';
+import TableCollection from 'src/components/dataViewCommon/TableCollection';
 
 import {
   defaultProps,
