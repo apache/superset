@@ -141,7 +141,7 @@ class Slice(
         # pylint: disable=no-member
         if self.table:
             if self.table.schema:
-                return f"{self.table.schema}.{self.table.table_name}" 
+                return f"{self.table.schema}.{self.table.table_name}"
             return self.table.table_name
         datasource = self.datasource
         if datasource:
