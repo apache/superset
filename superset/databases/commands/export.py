@@ -19,7 +19,7 @@
 import json
 import os.path
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any, cast, Dict, Optional
 from zipfile import ZipFile
 
 import yaml
@@ -28,6 +28,7 @@ from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.dao import DatabaseDAO
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
+from superset.models.core import Database
 
 
 class ExportDatabaseCommand(BaseCommand):
@@ -35,11 +36,14 @@ class ExportDatabaseCommand(BaseCommand):
         self.database_id = database_id
         self.filename = filename
 
+        # this will be set when calling validate()
+        self._model: Optional[Database] = None
+
     def run(self) -> BytesIO:
         self.validate()
+        database = cast(Database, self._model)
 
         root = os.path.splitext(self.filename)[0]
-        database = DatabaseDAO.find_by_id(self.database_id)
         name = sanitize(database.database_name)
         database_filename = f"{root}/databases/{name}.yaml"
 
@@ -84,6 +88,6 @@ class ExportDatabaseCommand(BaseCommand):
         return buf
 
     def validate(self) -> None:
-        instance = DatabaseDAO.find_by_id(self.database_id)
-        if not instance:
+        self._model = DatabaseDAO.find_by_id(self.database_id)
+        if not self._model:
             raise DatabaseNotFoundError()

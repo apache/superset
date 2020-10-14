@@ -809,20 +809,36 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test export database
         """
         self.login(username="admin")
-        uri = "api/v1/database/1/export/"
+        database = get_example_database()
+        uri = f"api/v1/database/{database.id}/export/"
         rv = self.client.get(uri)
 
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         buf = BytesIO(rv.data)
-        self.assertTrue(is_zipfile(buf))
+        assert is_zipfile(buf)
 
     def test_export_database_not_allowed(self):
         """
-        Database API: Test export database
+        Database API: Test export database not allowed
         """
         self.login(username="gamma")
-        uri = "api/v1/database/1/export/"
+        database = get_example_database()
+        uri = f"api/v1/database/{database.id}/export/"
         rv = self.client.get(uri)
 
-        self.assertEqual(rv.status_code, 401)
+        assert rv.status_code == 401
+
+    def test_export_database_not_existing(self):
+        """
+        Database API: Test export database not allowed
+        """
+        max_id = db.session.query(func.max(Database.id)).scalar()
+        # id does not exist and we get 404
+        invalid_id = max_id + 1
+
+        self.login(username="admin")
+        uri = f"api/v1/database/{invalid_id}/export/"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 404

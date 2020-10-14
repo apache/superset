@@ -962,8 +962,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             rv = self.get_assert_metric(uri, "export")
             headers = generate_download_headers("json")["Content-Disposition"]
 
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(rv.headers["Content-Disposition"], headers)
+        assert rv.status_code == 200
+        assert rv.headers["Content-Disposition"] == headers
 
     def test_export_not_found(self):
         """

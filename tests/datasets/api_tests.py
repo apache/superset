@@ -165,7 +165,6 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test get dataset distinct schema
         """
-        self.maxDiff = None
 
         def pg_test_query_parameter(query_parameter, expected_response):
             uri = f"api/v1/dataset/distinct/schema?q={prison.dumps(query_parameter)}"
