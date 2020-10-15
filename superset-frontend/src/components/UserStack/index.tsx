@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { getCategoricalSchemeRegistry } from '@superset-ui/core';
+import { getCategoricalSchemeRegistry, supersetTheme } from '@superset-ui/core';
 import { Avatar, Tooltip } from 'src/common/components';
 import { getRandomColor } from './utils';
 
@@ -28,10 +28,10 @@ interface UserStackProps {
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
 const AVATAR_STYLE = {
-  width: '24px',
-  height: '24px',
-  fontSize: '20px',
-  lineHeight: '24px',
+  width: `${supersetTheme.gridUnit * 6}px`,
+  height: `${supersetTheme.gridUnit * 6}px`,
+  fontSize: `${supersetTheme.typography.sizes.xl}px`,
+  lineHeight: `${supersetTheme.gridUnit * 6}px`,
 };
 
 export default function UserStack({ users, maxCount = 4 }: UserStackProps) {
@@ -39,12 +39,14 @@ export default function UserStack({ users, maxCount = 4 }: UserStackProps) {
     <Avatar.Group maxCount={maxCount} maxStyle={AVATAR_STYLE}>
       {users.map(({ first_name, last_name }) => {
         const name = `${first_name} ${last_name}`;
+        const color = getRandomColor(name, colorList);
         return (
           <Tooltip key={name} title={name} placement="top">
             <Avatar
               key={name}
               style={{
-                backgroundColor: getRandomColor(name, colorList),
+                backgroundColor: color,
+                borderColor: color,
                 ...AVATAR_STYLE,
               }}
             >
