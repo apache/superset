@@ -126,7 +126,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.last_name",
     ]
-    list_select_columns = list_columns + ["changed_on", "changed_by_fk", "created_by_fk"]
+    list_select_columns = list_columns + [
+        "changed_on",
+        "changed_by_fk",
+        "created_by_fk",
+    ]
     order_columns = [
         "changed_by.first_name",
         "changed_on_delta_humanized",
