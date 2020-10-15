@@ -434,7 +434,7 @@ class DateFilterControl extends React.Component {
         }}
       >
         <Tabs
-          defaultActiveKey={this.state.tab === TABS.DEFAULTS ? "1" : "2"}
+          defaultActiveKey={this.state.tab === TABS.DEFAULTS ? '1' : '2'}
           id="type"
           className="time-filter-tabs"
           onSelect={this.changeTab}
