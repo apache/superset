@@ -91,6 +91,68 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.delete(database)
             db.session.commit()
 
+    def create_parametrized_database(
+        self, name: str = "test-database", expose_in_sqllab: bool = False
+    ):
+        with app.app_context():
+            example_db = get_example_database()
+            test_database = self.insert_database(
+                name,
+                example_db.sqlalchemy_uri_decrypted,
+                expose_in_sqllab=expose_in_sqllab,
+            )
+            return test_database.id
+
+    @staticmethod
+    def cleanup_database(database):
+        with app.app_context():
+            db.session.delete(database)
+            db.session.commit()
+
+    def cleanup_database_by_id(self, database_id: int):
+        with app.app_context():
+            database = (
+                db.session.query(Database).filter_by(id=database_id).one_or_none()
+            )
+            self.cleanup_database(database)
+
+    @pytest.fixture
+    def create_database(self):
+        pytest.test_database_id = self.create_parametrized_database()
+        yield
+        self.cleanup_database_by_id(pytest.test_database_id)
+
+    @pytest.fixture
+    def create_database_and_expose_sqllab(self):
+        pytest.test_database_id = self.create_parametrized_database(
+            expose_in_sqllab=True
+        )
+        yield
+        self.cleanup_database_by_id(pytest.test_database_id)
+
+    @pytest.fixture
+    def create_database_twice(self):
+        pytest.test_database_1_id = self.create_parametrized_database(
+            name="test-database1"
+        )
+        test_database_2_id = self.create_parametrized_database(name="test-database2")
+        yield
+        self.cleanup_database_by_id(pytest.test_database_1_id)
+        self.cleanup_database_by_id(test_database_2_id)
+
+    @pytest.fixture
+    def find_and_cleanup_database(self):
+        with app.app_context():
+            database = (
+                db.session.query(Database)
+                    .filter_by(database_name="test_database")
+                    .all()
+            )
+            if database:
+                self.cleanup_database(database)
+        yield
+
+
     def test_get_items(self):
         """
         Database API: Test get items
@@ -124,14 +186,12 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 
+    @pytest.mark.usefixtures("create_database_and_expose_sqllab")
     def test_get_items_filter(self):
         """
         Database API: Test get items with filter
         """
-        example_db = get_example_database()
-        test_database = self.insert_database(
-            "test-database", example_db.sqlalchemy_uri_decrypted, expose_in_sqllab=True
-        )
+
         dbs = db.session.query(Database).filter_by(expose_in_sqllab=True).all()
 
         self.login(username="admin")
@@ -149,10 +209,6 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(response["count"], len(dbs))
 
-        # Cleanup
-        db.session.delete(test_database)
-        db.session.commit()
-
     def test_get_items_not_allowed(self):
         """
         Database API: Test get items not allowed
@@ -164,6 +220,7 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["count"], 0)
 
+    @pytest.mark.usefixtures("find_and_cleanup_database")
     def test_create_database(self):
         """
         Database API: Test create
@@ -188,12 +245,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
-        response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 201)
-        # Cleanup
-        model = db.session.query(Database).get(response.get("id"))
-        db.session.delete(model)
-        db.session.commit()
 
     def test_create_database_server_cert_validate(self):
         """
@@ -372,24 +424,18 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(response.status_code, 422)
         self.assertEqual(response_data, expected_response)
 
+    @pytest.mark.usefixtures("create_database")
     def test_update_database(self):
         """
         Database API: Test update
         """
-        example_db = get_example_database()
-        test_database = self.insert_database(
-            "test-database", example_db.sqlalchemy_uri_decrypted
-        )
         self.login(username="admin")
         database_data = {"database_name": "test-database-updated"}
-        uri = f"api/v1/database/{test_database.id}"
+        uri = f"api/v1/database/{pytest.test_database_id}"
         rv = self.client.put(uri, json=database_data)
         self.assertEqual(rv.status_code, 200)
-        # Cleanup
-        model = db.session.query(Database).get(test_database.id)
-        db.session.delete(model)
-        db.session.commit()
 
+    @pytest.mark.usefixtures("create_database")
     def test_update_database_conn_fail(self):
         """
         Database API: Test update fails connection
@@ -398,41 +444,28 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend in ("sqlite", "hive", "presto"):
             return
 
-        test_database = self.insert_database(
-            "test-database1", example_db.sqlalchemy_uri_decrypted
-        )
         example_db.password = "wrong_password"
         database_data = {
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
         }
 
-        uri = f"api/v1/database/{test_database.id}"
+        uri = f"api/v1/database/{pytest.test_database_id}"
         self.login(username="admin")
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"message": "Could not connect to database."}
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(response, expected_response)
-        # Cleanup
-        model = db.session.query(Database).get(test_database.id)
-        db.session.delete(model)
-        db.session.commit()
 
+    @pytest.mark.usefixtures("create_database_twice")
     def test_update_database_uniqueness(self):
         """
         Database API: Test update uniqueness
         """
-        example_db = get_example_database()
-        test_database1 = self.insert_database(
-            "test-database1", example_db.sqlalchemy_uri_decrypted
-        )
-        test_database2 = self.insert_database(
-            "test-database2", example_db.sqlalchemy_uri_decrypted
-        )
 
         self.login(username="admin")
         database_data = {"database_name": "test-database2"}
-        uri = f"api/v1/database/{test_database1.id}"
+        uri = f"api/v1/database/{pytest.test_database_1_id}"
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
@@ -440,10 +473,6 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(response, expected_response)
-        # Cleanup
-        db.session.delete(test_database1)
-        db.session.delete(test_database2)
-        db.session.commit()
 
     def test_update_database_invalid(self):
         """
@@ -455,21 +484,18 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.put(uri, json=database_data)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("create_database")
     def test_update_database_uri_validate(self):
         """
         Database API: Test update sqlalchemy_uri validate
         """
-        example_db = get_example_database()
-        test_database = self.insert_database(
-            "test-database", example_db.sqlalchemy_uri_decrypted
-        )
 
         self.login(username="admin")
         database_data = {
             "database_name": "test-database-updated",
             "sqlalchemy_uri": "wrong_uri",
         }
-        uri = f"api/v1/database/{test_database.id}"
+        uri = f"api/v1/database/{pytest.test_database_id}"
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
