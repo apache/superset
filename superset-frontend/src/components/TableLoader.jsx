@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import memoize from 'lodash/memoize';
 import { t, SupersetClient } from '@superset-ui/core';
-import { TableView } from 'src/components/ListView';
+import TableView from 'src/components/TableView';
 import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from './Loading';
 import '../../stylesheets/reactable-pagination.less';
