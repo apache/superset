@@ -7,14 +7,14 @@
 #
 -r base.txt
 -e file:.                 # via -r requirements/base.in
-boto3==1.15.16            # via tabulator
-botocore==1.18.16         # via boto3, s3transfer
+boto3==1.15.3             # via tabulator
+botocore==1.18.3          # via boto3, s3transfer
 cached-property==1.5.2    # via tableschema
 certifi==2020.6.20        # via requests
 et-xmlfile==1.0.1         # via openpyxl
 flask-cors==3.0.9         # via -r requirements/development.in
 future==0.18.2            # via pyhive
-ijson==3.1.2              # via tabulator
+ijson==3.1.1              # via tabulator
 jdcal==1.4.1              # via openpyxl
 jmespath==0.10.0          # via boto3, botocore
 jsonlines==1.2.0          # via tabulator
@@ -29,8 +29,8 @@ requests==2.24.0          # via pydruid, tableschema, tabulator
 rfc3986==1.4.0            # via tableschema
 s3transfer==0.3.3         # via boto3
 sasl==0.2.1               # via pyhive, thrift-sasl
-tableschema==1.20.0       # via -r requirements/development.in
-tabulator==1.52.4         # via tableschema
+tableschema==1.19.4       # via -r requirements/development.in
+tabulator==1.52.3         # via tableschema
 thrift-sasl==0.4.2        # via pyhive
 thrift==0.13.0            # via -r requirements/development.in, pyhive, thrift-sasl
 unicodecsv==0.14.1        # via tableschema, tabulator

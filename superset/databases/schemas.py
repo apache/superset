@@ -109,6 +109,7 @@ extra_description = markdown(
     "whether or not the Explore button in SQL Lab results is shown.",
     True,
 )
+get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 sqlalchemy_uri_description = markdown(
     "Refer to the "
     "[SqlAlchemy docs]"
@@ -213,7 +214,9 @@ def extra_validator(value: str) -> str:
 
 class DatabasePostSchema(Schema):
     database_name = fields.String(
-        description=database_name_description, required=True, validate=Length(1, 250),
+        description=database_name_description,
+        required=True,
+        validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -253,7 +256,9 @@ class DatabasePostSchema(Schema):
 
 class DatabasePutSchema(Schema):
     database_name = fields.String(
-        description=database_name_description, allow_none=True, validate=Length(1, 250),
+        description=database_name_description,
+        allow_none=True,
+        validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -293,7 +298,9 @@ class DatabasePutSchema(Schema):
 
 class DatabaseTestConnectionSchema(Schema):
     database_name = fields.String(
-        description=database_name_description, allow_none=True, validate=Length(1, 250),
+        description=database_name_description,
+        allow_none=True,
+        validate=Length(1, 250),
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)

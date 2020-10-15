@@ -12,7 +12,7 @@ greenlet==0.4.17          # via gevent
 psycopg2-binary==2.8.6    # via -r requirements/docker.in
 redis==3.5.3              # via -r requirements/docker.in
 zope.event==4.5.0         # via gevent
-zope.interface==5.1.2     # via gevent
+zope.interface==5.1.0     # via gevent
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

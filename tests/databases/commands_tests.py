@@ -16,38 +16,33 @@
 # under the License.
 
 from unittest.mock import patch
-from zipfile import is_zipfile, ZipFile
 
 import yaml
 
 from superset import db, security_manager
 from superset.databases.commands.exceptions import DatabaseNotFoundError
-from superset.databases.commands.export import ExportDatabaseCommand
+from superset.databases.commands.export import ExportDatabasesCommand
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
 
 
-class TestExportDatabaseCommand(SupersetTestCase):
+class TestExportDatabasesCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     def test_export_database_command(self, mock_g):
-        self.maxDiff = None
-
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
-        command = ExportDatabaseCommand(database_id=example_db.id, filename="test.zip")
-        buf = command.run()
-
-        self.assertTrue(is_zipfile(buf))
+        command = ExportDatabasesCommand(database_ids=[example_db.id])
+        contents = dict(command.run())
 
         # TODO: this list shouldn't depend on the order in which unit tests are run
         # or on the backend; for now use a stable subset
         core_datasets = {
-            "test/databases/examples.yaml",
-            "test/datasets/energy_usage.yaml",
-            "test/datasets/wb_health_population.yaml",
-            "test/datasets/birth_names.yaml",
+            "databases/examples.yaml",
+            "datasets/energy_usage.yaml",
+            "datasets/wb_health_population.yaml",
+            "datasets/birth_names.yaml",
         }
         expected_extra = {
             "engine_params": {},
@@ -58,180 +53,173 @@ class TestExportDatabaseCommand(SupersetTestCase):
         if backend() == "presto":
             expected_extra = {"engine_params": {"connect_args": {"poll_interval": 0.1}}}
 
-        with ZipFile(buf) as bundle:
-            self.assertTrue(core_datasets.issubset(set(bundle.namelist())))
+        assert core_datasets.issubset(set(contents.keys()))
 
-            with bundle.open("test/databases/examples.yaml") as database:
-                metadata = yaml.safe_load(database.read())
-                self.assertEqual(
-                    metadata,
-                    {
-                        "allow_csv_upload": True,
-                        "allow_ctas": True,
-                        "allow_cvas": True,
-                        "allow_run_async": False,
-                        "cache_timeout": None,
-                        "database_name": "examples",
-                        "expose_in_sqllab": True,
-                        "extra": expected_extra,
-                        "sqlalchemy_uri": example_db.sqlalchemy_uri,
-                        "uuid": str(example_db.uuid),
-                        "version": "1.0.0",
-                    },
-                )
+        metadata = yaml.safe_load(contents["databases/examples.yaml"])
+        assert metadata == (
+            {
+                "allow_csv_upload": True,
+                "allow_ctas": True,
+                "allow_cvas": True,
+                "allow_run_async": False,
+                "cache_timeout": None,
+                "database_name": "examples",
+                "expose_in_sqllab": True,
+                "extra": expected_extra,
+                "sqlalchemy_uri": example_db.sqlalchemy_uri,
+                "uuid": str(example_db.uuid),
+                "version": "1.0.0",
+            }
+        )
 
-            with bundle.open("test/datasets/birth_names.yaml") as dataset:
-                metadata = yaml.safe_load(dataset.read())
-                metadata.pop("uuid")
-                self.assertEqual(
-                    metadata,
-                    {
-                        "table_name": "birth_names",
-                        "main_dttm_col": None,
-                        "description": "Adding a DESCRip",
-                        "default_endpoint": "",
-                        "offset": 66,
-                        "cache_timeout": 55,
-                        "schema": "",
-                        "sql": "",
-                        "params": None,
-                        "template_params": None,
-                        "filter_select_enabled": True,
-                        "fetch_values_predicate": None,
-                        "metrics": [
-                            {
-                                "metric_name": "ratio",
-                                "verbose_name": "Ratio Boys/Girls",
-                                "metric_type": None,
-                                "expression": "sum(sum_boys) / sum(sum_girls)",
-                                "description": "This represents the ratio of boys/girls",
-                                "d3format": ".2%",
-                                "extra": None,
-                                "warning_text": "no warning",
-                            },
-                            {
-                                "metric_name": "sum__num",
-                                "verbose_name": "Babies",
-                                "metric_type": None,
-                                "expression": "SUM(num)",
-                                "description": "",
-                                "d3format": "",
-                                "extra": None,
-                                "warning_text": "",
-                            },
-                            {
-                                "metric_name": "count",
-                                "verbose_name": "",
-                                "metric_type": None,
-                                "expression": "count(1)",
-                                "description": None,
-                                "d3format": None,
-                                "extra": None,
-                                "warning_text": None,
-                            },
-                        ],
-                        "columns": [
-                            {
-                                "column_name": "num_california",
-                                "verbose_name": None,
-                                "is_dttm": False,
-                                "is_active": None,
-                                "type": "NUMBER",
-                                "groupby": False,
-                                "filterable": False,
-                                "expression": "CASE WHEN state = 'CA' THEN num ELSE 0 END",
-                                "description": None,
-                                "python_date_format": None,
-                            },
-                            {
-                                "column_name": "ds",
-                                "verbose_name": "",
-                                "is_dttm": True,
-                                "is_active": None,
-                                "type": "DATETIME",
-                                "groupby": True,
-                                "filterable": True,
-                                "expression": "",
-                                "description": None,
-                                "python_date_format": None,
-                            },
-                            {
-                                "column_name": "sum_girls",
-                                "verbose_name": None,
-                                "is_dttm": False,
-                                "is_active": None,
-                                "type": "BIGINT(20)",
-                                "groupby": False,
-                                "filterable": False,
-                                "expression": "",
-                                "description": None,
-                                "python_date_format": None,
-                            },
-                            {
-                                "column_name": "gender",
-                                "verbose_name": None,
-                                "is_dttm": False,
-                                "is_active": None,
-                                "type": "VARCHAR(16)",
-                                "groupby": True,
-                                "filterable": True,
-                                "expression": "",
-                                "description": None,
-                                "python_date_format": None,
-                            },
-                            {
-                                "column_name": "state",
-                                "verbose_name": None,
-                                "is_dttm": None,
-                                "is_active": None,
-                                "type": "VARCHAR(10)",
-                                "groupby": True,
-                                "filterable": True,
-                                "expression": None,
-                                "description": None,
-                                "python_date_format": None,
-                            },
-                            {
-                                "column_name": "sum_boys",
-                                "verbose_name": None,
-                                "is_dttm": None,
-                                "is_active": None,
-                                "type": "BIGINT(20)",
-                                "groupby": True,
-                                "filterable": True,
-                                "expression": None,
-                                "description": None,
-                                "python_date_format": None,
-                            },
-                            {
-                                "column_name": "num",
-                                "verbose_name": None,
-                                "is_dttm": None,
-                                "is_active": None,
-                                "type": "BIGINT(20)",
-                                "groupby": True,
-                                "filterable": True,
-                                "expression": None,
-                                "description": None,
-                                "python_date_format": None,
-                            },
-                            {
-                                "column_name": "name",
-                                "verbose_name": None,
-                                "is_dttm": None,
-                                "is_active": None,
-                                "type": "VARCHAR(255)",
-                                "groupby": True,
-                                "filterable": True,
-                                "expression": None,
-                                "description": None,
-                                "python_date_format": None,
-                            },
-                        ],
-                        "version": "1.0.0",
-                        "database_uuid": str(example_db.uuid),
-                    },
-                )
+        metadata = yaml.safe_load(contents["datasets/birth_names.yaml"])
+        metadata.pop("uuid")
+        assert metadata == {
+            "table_name": "birth_names",
+            "main_dttm_col": None,
+            "description": "Adding a DESCRip",
+            "default_endpoint": "",
+            "offset": 66,
+            "cache_timeout": 55,
+            "schema": "",
+            "sql": "",
+            "params": None,
+            "template_params": None,
+            "filter_select_enabled": True,
+            "fetch_values_predicate": None,
+            "metrics": [
+                {
+                    "metric_name": "ratio",
+                    "verbose_name": "Ratio Boys/Girls",
+                    "metric_type": None,
+                    "expression": "sum(sum_boys) / sum(sum_girls)",
+                    "description": "This represents the ratio of boys/girls",
+                    "d3format": ".2%",
+                    "extra": None,
+                    "warning_text": "no warning",
+                },
+                {
+                    "metric_name": "sum__num",
+                    "verbose_name": "Babies",
+                    "metric_type": None,
+                    "expression": "SUM(num)",
+                    "description": "",
+                    "d3format": "",
+                    "extra": None,
+                    "warning_text": "",
+                },
+                {
+                    "metric_name": "count",
+                    "verbose_name": "",
+                    "metric_type": None,
+                    "expression": "count(1)",
+                    "description": None,
+                    "d3format": None,
+                    "extra": None,
+                    "warning_text": None,
+                },
+            ],
+            "columns": [
+                {
+                    "column_name": "num_california",
+                    "verbose_name": None,
+                    "is_dttm": False,
+                    "is_active": None,
+                    "type": "NUMBER",
+                    "groupby": False,
+                    "filterable": False,
+                    "expression": "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    "description": None,
+                    "python_date_format": None,
+                },
+                {
+                    "column_name": "ds",
+                    "verbose_name": "",
+                    "is_dttm": True,
+                    "is_active": None,
+                    "type": "DATETIME",
+                    "groupby": True,
+                    "filterable": True,
+                    "expression": "",
+                    "description": None,
+                    "python_date_format": None,
+                },
+                {
+                    "column_name": "sum_girls",
+                    "verbose_name": None,
+                    "is_dttm": False,
+                    "is_active": None,
+                    "type": "BIGINT(20)",
+                    "groupby": False,
+                    "filterable": False,
+                    "expression": "",
+                    "description": None,
+                    "python_date_format": None,
+                },
+                {
+                    "column_name": "gender",
+                    "verbose_name": None,
+                    "is_dttm": False,
+                    "is_active": None,
+                    "type": "VARCHAR(16)",
+                    "groupby": True,
+                    "filterable": True,
+                    "expression": "",
+                    "description": None,
+                    "python_date_format": None,
+                },
+                {
+                    "column_name": "state",
+                    "verbose_name": None,
+                    "is_dttm": None,
+                    "is_active": None,
+                    "type": "VARCHAR(10)",
+                    "groupby": True,
+                    "filterable": True,
+                    "expression": None,
+                    "description": None,
+                    "python_date_format": None,
+                },
+                {
+                    "column_name": "sum_boys",
+                    "verbose_name": None,
+                    "is_dttm": None,
+                    "is_active": None,
+                    "type": "BIGINT(20)",
+                    "groupby": True,
+                    "filterable": True,
+                    "expression": None,
+                    "description": None,
+                    "python_date_format": None,
+                },
+                {
+                    "column_name": "num",
+                    "verbose_name": None,
+                    "is_dttm": None,
+                    "is_active": None,
+                    "type": "BIGINT(20)",
+                    "groupby": True,
+                    "filterable": True,
+                    "expression": None,
+                    "description": None,
+                    "python_date_format": None,
+                },
+                {
+                    "column_name": "name",
+                    "verbose_name": None,
+                    "is_dttm": None,
+                    "is_active": None,
+                    "type": "VARCHAR(255)",
+                    "groupby": True,
+                    "filterable": True,
+                    "expression": None,
+                    "description": None,
+                    "python_date_format": None,
+                },
+            ],
+            "version": "1.0.0",
+            "database_uuid": str(example_db.uuid),
+        }
 
     @patch("superset.security.manager.g")
     def test_export_database_command_no_access(self, mock_g):
@@ -239,17 +227,19 @@ class TestExportDatabaseCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("gamma")
 
         example_db = get_example_database()
-        command = ExportDatabaseCommand(database_id=example_db.id, filename="test.zip")
+        command = ExportDatabasesCommand(database_ids=[example_db.id])
+        contents = command.run()
         with self.assertRaises(DatabaseNotFoundError):
-            buf = command.run()
+            next(contents)
 
     @patch("superset.security.manager.g")
     def test_export_database_command_invalid_database(self, mock_g):
         """Test that an error is raised when exporting an invalid database"""
         mock_g.user = security_manager.find_user("admin")
-        command = ExportDatabaseCommand(database_id=-1, filename="test.zip")
+        command = ExportDatabasesCommand(database_ids=[-1])
+        contents = command.run()
         with self.assertRaises(DatabaseNotFoundError):
-            buf = command.run()
+            next(contents)
 
     @patch("superset.security.manager.g")
     def test_export_database_command_key_order(self, mock_g):
@@ -257,26 +247,20 @@ class TestExportDatabaseCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
-        command = ExportDatabaseCommand(database_id=example_db.id, filename="test.zip")
-        buf = command.run()
+        command = ExportDatabasesCommand(database_ids=[example_db.id])
+        contents = dict(command.run())
 
-        self.maxDiff = None
-        with ZipFile(buf) as bundle:
-            with bundle.open("test/databases/examples.yaml") as database:
-                metadata = yaml.safe_load(database.read())
-                self.assertEqual(
-                    list(metadata.keys()),
-                    [
-                        "database_name",
-                        "sqlalchemy_uri",
-                        "cache_timeout",
-                        "expose_in_sqllab",
-                        "allow_run_async",
-                        "allow_ctas",
-                        "allow_cvas",
-                        "allow_csv_upload",
-                        "extra",
-                        "uuid",
-                        "version",
-                    ],
-                )
+        metadata = yaml.safe_load(contents["databases/examples.yaml"])
+        assert list(metadata.keys()) == [
+            "database_name",
+            "sqlalchemy_uri",
+            "cache_timeout",
+            "expose_in_sqllab",
+            "allow_run_async",
+            "allow_ctas",
+            "allow_cvas",
+            "allow_csv_upload",
+            "extra",
+            "uuid",
+            "version",
+        ]

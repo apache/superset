@@ -18,9 +18,7 @@
 
 import json
 import os.path
-from io import BytesIO
-from typing import Any, cast, Dict, Optional
-from zipfile import ZipFile
+from typing import Any, cast, Dict, Iterator, List, Tuple
 
 import yaml
 
@@ -31,29 +29,26 @@ from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
 from superset.models.core import Database
 
 
-class ExportDatabaseCommand(BaseCommand):
-    def __init__(self, database_id: int, filename: str):
-        self.database_id = database_id
-        self.filename = filename
+class ExportDatabasesCommand(BaseCommand):
+    def __init__(self, database_ids: List[int]):
+        self.database_ids = database_ids
 
         # this will be set when calling validate()
-        self._model: Optional[Database] = None
+        self._models: List[Database] = []
 
-    def run(self) -> BytesIO:
-        self.validate()
-        database = cast(Database, self._model)
-
-        root = os.path.splitext(self.filename)[0]
+    @staticmethod
+    def export_database(database: Database) -> Iterator[Tuple[str, str]]:
         name = sanitize(database.database_name)
-        database_filename = f"{root}/databases/{name}.yaml"
+        file_name = f"databases/{name}.yaml"
 
-        payload: Dict[Any, Any]
         payload = database.export_to_dict(
             recursive=False,
             include_parent_ref=False,
             include_defaults=True,
             export_uuids=True,
         )
+        # TODO (betodealmeida): move this logic to export_to_dict once this
+        # becomes the default export endpoint
         if "extra" in payload:
             try:
                 payload["extra"] = json.loads(payload["extra"])
@@ -62,32 +57,34 @@ class ExportDatabaseCommand(BaseCommand):
 
         payload["version"] = IMPORT_EXPORT_VERSION
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open(database_filename, "w") as fp:
-                fp.write(yaml.safe_dump(payload, sort_keys=False).encode())
+        file_content = yaml.safe_dump(payload, sort_keys=False).encode()
+        yield file_name, file_content
 
-            for dataset in database.tables:
-                name = sanitize(dataset.table_name)
-                dataset_filename = f"{root}/datasets/{name}.yaml"
+        # TODO (betodealmeida): reuse logic from ExportDatasetCommand once
+        # it's implemented
+        for dataset in database.tables:
+            name = sanitize(dataset.table_name)
+            file_name = f"datasets/{name}.yaml"
 
-                # TODO (betodealmeida): reuse logic from ExportDatasetCommand
-                # once it's implemented
-                payload = dataset.export_to_dict(
-                    recursive=True,
-                    include_parent_ref=False,
-                    include_defaults=True,
-                    export_uuids=True,
-                )
-                payload["version"] = IMPORT_EXPORT_VERSION
-                payload["database_uuid"] = str(database.uuid)
+            payload = dataset.export_to_dict(
+                recursive=True,
+                include_parent_ref=False,
+                include_defaults=True,
+                export_uuids=True,
+            )
+            payload["version"] = IMPORT_EXPORT_VERSION
+            payload["database_uuid"] = str(database.uuid)
 
-                with bundle.open(dataset_filename, "w") as fp:
-                    fp.write(yaml.safe_dump(payload, sort_keys=False).encode())
+            file_content = yaml.safe_dump(payload, sort_keys=False).encode()
+            yield file_name, file_content
 
-        return buf
+    def run(self) -> Iterator[Tuple[str, str]]:
+        self.validate()
+
+        for database in self._models:
+            yield from self.export_database(database)
 
     def validate(self) -> None:
-        self._model = DatabaseDAO.find_by_id(self.database_id)
-        if not self._model:
+        self._models = DatabaseDAO.find_by_ids(self.database_ids)
+        if len(self._models) != len(self.database_ids):
             raise DatabaseNotFoundError()

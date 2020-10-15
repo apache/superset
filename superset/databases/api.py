@@ -18,6 +18,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Optional
+from zipfile import ZipFile
 
 from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -45,7 +46,7 @@ from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseUpdateFailedError,
 )
-from superset.databases.commands.export import ExportDatabaseCommand
+from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.dao import DatabaseDAO
@@ -57,6 +58,7 @@ from superset.databases.schemas import (
     DatabasePutSchema,
     DatabaseRelatedObjectsResponse,
     DatabaseTestConnectionSchema,
+    get_export_ids_schema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
@@ -66,7 +68,6 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
-from superset.utils.dict_import_export import sanitize
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -659,44 +660,57 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             dashboards={"count": len(dashboards), "result": dashboards},
         )
 
-    @expose("/<int:pk>/export/", methods=["GET"])
+    @expose("/export/", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
-    def export(self, pk: int) -> Response:
-        """Export database with associated datasets
+    @rison(get_export_ids_schema)
+    def export(self, **kwargs: Any) -> Response:
+        """Export database(s) with associated datasets
         ---
         get:
-          description: Download database and associated tables as a zip file
+          description: Download database(s) and associated dataset(s) as a zip file
           parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-            description: The database id
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: integer
           responses:
             200:
-              description: A zip file with database and tables as YAML
+              description: A zip file with database(s) and dataset(s) as YAML
               content:
                 application/zip:
                   schema:
                     type: string
                     format: binary
+            401:
+              $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
-        database = DatabaseDAO.find_by_id(pk)
-        if database is None:
-            return self.response_404()
-
-        name = sanitize(database.database_name)
+        requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-        filename = f"database_{name}_{timestamp}.zip"
+        root = f"database_export_{timestamp}"
+        filename = f"{root}.zip"
 
-        buf: BytesIO = ExportDatabaseCommand(pk, filename).run()
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            try:
+                for file_name, file_content in ExportDatabasesCommand(
+                    requested_ids
+                ).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content)
+            except DatabaseNotFoundError:
+                return self.response_404()
         buf.seek(0)
+
         return send_file(
             buf,
             mimetype="application/zip",

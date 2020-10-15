@@ -810,7 +810,8 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="admin")
         database = get_example_database()
-        uri = f"api/v1/database/{database.id}/export/"
+        argument = [database.id]
+        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
 
         assert rv.status_code == 200
@@ -824,12 +825,13 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="gamma")
         database = get_example_database()
-        uri = f"api/v1/database/{database.id}/export/"
+        argument = [database.id]
+        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
 
         assert rv.status_code == 401
 
-    def test_export_database_not_existing(self):
+    def test_export_database_non_existing(self):
         """
         Database API: Test export database not allowed
         """
@@ -838,7 +840,8 @@ class TestDatabaseApi(SupersetTestCase):
         invalid_id = max_id + 1
 
         self.login(username="admin")
-        uri = f"api/v1/database/{invalid_id}/export/"
+        argument = [invalid_id]
+        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
 
         assert rv.status_code == 404
