@@ -439,7 +439,7 @@ class DateFilterControl extends React.Component {
           className="time-filter-tabs"
           onSelect={this.changeTab}
         >
-          <Tabs.TabPane key="1" tab="Defaults">
+          <Tabs.TabPane key="1" tab="Defaults" forceRender>
             <div style={{ marginLeft: '8px' }}>
               <FormGroup>{timeFrames}</FormGroup>
             </div>
