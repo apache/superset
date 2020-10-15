@@ -57,6 +57,9 @@ export const Pill = styled.div`
     background: ${({ theme }) => theme.colors.grayscale.light1};
     padding: ${({ theme }) => theme.gridUnit}px;
     text-align: center;
+    height: 22px;
+    width: 22px;
+
     &:hover {
       background: ${({ theme }) => theme.colors.grayscale.base};
     }
