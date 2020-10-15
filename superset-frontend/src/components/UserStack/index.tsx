@@ -42,6 +42,7 @@ export default function UserStack({ users, maxCount = 4 }: UserStackProps) {
         return (
           <Tooltip key={name} title={name} placement="top">
             <Avatar
+              key={name}
               style={{
                 backgroundColor: getRandomColor(name, colorList),
                 ...AVATAR_STYLE,
