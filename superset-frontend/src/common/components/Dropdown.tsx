@@ -32,6 +32,7 @@ const MenuDots = styled.div`
   ${dotStyle};
   font-weight: ${({ theme }) => theme.typography.weights.normal};
   display: inline-flex;
+  position: relative;
 
   &:hover {
     background-color: ${({ theme }) => theme.colors.primary.base};
@@ -50,11 +51,11 @@ const MenuDots = styled.div`
   }
 
   &::before {
-    transform: translateY(-${({ theme }) => theme.gridUnit}px);
+    top: ${({ theme }) => theme.gridUnit}px;
   }
 
   &::after {
-    transform: translateY(${({ theme }) => theme.gridUnit}px);
+    bottom: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
