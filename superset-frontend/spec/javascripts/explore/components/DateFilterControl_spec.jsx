@@ -18,11 +18,12 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { OverlayTrigger, Tab, Tabs, Radio } from 'react-bootstrap';
+import { OverlayTrigger, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import Popover from 'src/common/components/Popover';
+import Tabs from 'src/common/components/Tabs';
 import Label from 'src/components/Label';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -85,13 +86,13 @@ describe('DateFilterControl', () => {
     const popoverContentWrapper = mount(popoverContent);
 
     expect(popoverContentWrapper.find(Tabs)).toExist();
-    expect(popoverContentWrapper.find(Tab)).toHaveLength(2);
+    expect(popoverContentWrapper.find(Tabs.TabPane)).toHaveLength(2);
   });
 
   it('renders default time options', () => {
     const popoverContent = wrapper.find(Popover).first().props().content;
     const popoverContentWrapper = mount(popoverContent);
-    const defaultTab = popoverContentWrapper.find(Tab).first();
+    const defaultTab = popoverContentWrapper.find(Tabs.TabPane).first();
 
     expect(defaultTab.find(Radio)).toExist();
     expect(defaultTab.find(Radio)).toHaveLength(6);
@@ -100,7 +101,7 @@ describe('DateFilterControl', () => {
   it('renders tooltips over timeframe options', () => {
     const popoverContent = wrapper.find(Popover).first().props().content;
     const popoverContentWrapper = mount(popoverContent);
-    const defaultTab = popoverContentWrapper.find(Tab).first();
+    const defaultTab = popoverContentWrapper.find(Tabs.TabPane).first();
     const radioTrigger = defaultTab.find(OverlayTrigger);
 
     expect(radioTrigger).toExist();
@@ -110,7 +111,7 @@ describe('DateFilterControl', () => {
   it('renders the correct time range in tooltip', () => {
     const popoverContent = wrapper.find(Popover).first().props().content;
     const popoverContentWrapper = mount(popoverContent);
-    const defaultTab = popoverContentWrapper.find(Tab).first();
+    const defaultTab = popoverContentWrapper.find(Tabs.TabPane).first();
     const triggers = defaultTab.find(OverlayTrigger);
 
     const expectedLabels = {
