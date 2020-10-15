@@ -51,11 +51,11 @@ const MenuDots = styled.div`
   }
 
   &::before {
-    top: 4px;
+    top: ${({ theme }) => theme.gridUnit}px;
   }
 
   &::after {
-    bottom: 4px;
+    bottom: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
