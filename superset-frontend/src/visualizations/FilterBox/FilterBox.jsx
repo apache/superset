@@ -132,7 +132,7 @@ class FilterBox extends React.Component {
 
   onCloseDateFilterControl = () => {
     return this.onFilterMenuClose(TIME_RANGE);
-  }
+  };
 
   getControlData(controlName) {
     const { selectedValues } = this.state;
@@ -390,7 +390,8 @@ class FilterBox extends React.Component {
             this.changeFilter(key, newValue);
           }
         }}
-        onFocus={() => this.onFilterMenuOpen(key)}
+        // TODO try putting this back once react-select is upgraded
+        // onFocus={() => this.onFilterMenuOpen(key)}
         onMenuOpen={() => this.onFilterMenuOpen(key)}
         onBlur={() => this.onFilterMenuClose(key)}
         onMenuClose={() => this.onFilterMenuClose(key)}
