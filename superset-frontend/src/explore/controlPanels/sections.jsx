@@ -213,6 +213,7 @@ export const NVD3TimeSeries = [
               '30 days',
               '52 weeks',
               '1 year',
+              '104 weeks',
               '2 years',
             ]),
             description: t(
