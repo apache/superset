@@ -19,7 +19,7 @@
 import React, { FunctionComponent, useState, useRef, useMemo } from 'react';
 import { Alert, FormControl, FormControlProps, Modal } from 'react-bootstrap';
 import { SupersetClient, t } from '@superset-ui/core';
-import { TableView } from '../components/ListView';
+import TableView from 'src/components/TableView';
 
 import getClientErrorObject from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
