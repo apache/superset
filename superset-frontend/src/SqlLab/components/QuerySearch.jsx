@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t, SupersetClient } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 
 import Loading from '../../components/Loading';
 import QueryTable from './QueryTable';
@@ -38,6 +38,15 @@ const propTypes = {
   height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   displayLimit: PropTypes.number.isRequired,
 };
+
+const TableStyles = styled.div`
+  height: ${props => props.height};
+
+  .table > thead > tr > th {
+    border-bottom: 2px solid #cfd8dc;
+    background: #f5f5f5;
+  }
+`;
 
 class QuerySearch extends React.PureComponent {
   constructor(props) {
@@ -278,9 +287,9 @@ class QuerySearch extends React.PureComponent {
           {this.state.queriesLoading ? (
             <Loading />
           ) : (
-            <div
+            <TableStyles
               className="scrollbar-content"
-              style={{ height: this.props.height }}
+              height={this.props.height}
             >
               <QueryTable
                 columns={[
@@ -299,7 +308,7 @@ class QuerySearch extends React.PureComponent {
                 actions={this.props.actions}
                 displayLimit={this.props.displayLimit}
               />
-            </div>
+            </TableStyles>
           )}
         </div>
       </div>

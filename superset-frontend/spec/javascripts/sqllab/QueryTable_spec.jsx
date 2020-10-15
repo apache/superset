@@ -19,8 +19,8 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import QueryTable from 'src/SqlLab/components/QueryTable';
-import { TableView } from 'src/components/ListView/TableView';
-import TableCollection from 'src/components/ListView/TableCollection';
+import TableView from 'src/components/TableView';
+import { TableCollection } from 'src/components/dataViewCommon';
 import { queries } from './fixtures';
 
 describe('QueryTable', () => {

@@ -24,7 +24,7 @@ import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
 import memoize from 'lodash/memoize';
 
-import { TableView } from 'src/components/ListView';
+import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
 import Link from '../../components/Link';
