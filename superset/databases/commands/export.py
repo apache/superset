@@ -17,8 +17,7 @@
 # isort:skip_file
 
 import json
-import os.path
-from typing import Any, cast, Dict, Iterator, List, Tuple
+from typing import Iterator, List, Tuple
 
 import yaml
 
