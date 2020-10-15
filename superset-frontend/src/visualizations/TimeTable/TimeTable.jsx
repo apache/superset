@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import memoize from 'lodash/memoize';
 import { scaleLinear } from 'd3-scale';
-import { TableView } from 'src/components/ListView';
+import TableView from 'src/components/TableView';
 import { formatNumber, formatTime, styled } from '@superset-ui/core';
 import {
   InfoTooltipWithTrigger,
