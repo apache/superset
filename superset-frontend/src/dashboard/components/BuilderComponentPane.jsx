@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { CardTabs } from 'src/common/components/Tabs';
+import Tabs from 'src/common/components/Tabs';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 
@@ -47,21 +47,25 @@ class BuilderComponentPane extends React.PureComponent {
   renderTabs(height) {
     const { isSticky } = this.props;
     return (
-      <CardTabs className="tabs-components" style={{ marginTop: '10px' }} data-test="tabs-component">
-        <CardTabs.TabPane key={1} tab={t('Components')}>
+      <Tabs
+        className="tabs-components"
+        style={{ marginTop: '10px' }}
+        data-test="tabs-component"
+      >
+        <Tabs.TabPane key={1} tab={t('Components')}>
           <NewTabs />
           <NewRow />
           <NewColumn />
           <NewHeader />
           <NewMarkdown />
           <NewDivider />
-        </CardTabs.TabPane>
-        <CardTabs.TabPane key={2} tab={t('Charts')} className="tab-charts">
+        </Tabs.TabPane>
+        <Tabs.TabPane key={2} tab={t('Charts')} className="tab-charts">
           <SliceAdder
             height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
           />
-        </CardTabs.TabPane>
-      </CardTabs>
+        </Tabs.TabPane>
+      </Tabs>
     );
   }
 

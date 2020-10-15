@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import { t } from '@superset-ui/core';
 
-import { CardTabs } from 'src/common/components/Tabs';
+import Tabs from 'src/common/components/Tabs';
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import AdhocFilter, { EXPRESSION_TYPES } from '../AdhocFilter';
@@ -46,7 +46,7 @@ const propTypes = {
 };
 
 const startingWidth = 300;
-const startingHeight = 190;
+const startingHeight = 220;
 
 export default class AdhocFilterEditPopover extends React.Component {
   constructor(props) {
@@ -137,14 +137,14 @@ export default class AdhocFilterEditPopover extends React.Component {
         {...popoverProps}
         data-test="filter-edit-popover"
       >
-        <CardTabs
+        <Tabs
           id="adhoc-filter-edit-tabs"
           defaultActiveKey={adhocFilter.expressionType}
           className="adhoc-filter-edit-tabs"
           data-test="adhoc-filter-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
         >
-          <CardTabs.TabPane
+          <Tabs.TabPane
             className="adhoc-filter-edit-tab"
             key={EXPRESSION_TYPES.SIMPLE}
             tab="Simple"
@@ -157,8 +157,8 @@ export default class AdhocFilterEditPopover extends React.Component {
               onHeightChange={this.adjustHeight}
               partitionColumn={partitionColumn}
             />
-          </CardTabs.TabPane>
-          <CardTabs.TabPane
+          </Tabs.TabPane>
+          <Tabs.TabPane
             className="adhoc-filter-edit-tab"
             key={EXPRESSION_TYPES.SQL}
             tab="Custom SQL"
@@ -176,8 +176,8 @@ export default class AdhocFilterEditPopover extends React.Component {
                 Custom SQL Filters are not available on druid datasources
               </div>
             )}
-          </CardTabs.TabPane>
-        </CardTabs>
+          </Tabs.TabPane>
+        </Tabs>
         <div>
           <Button buttonSize="small" onClick={this.props.onClose} cta>
             {t('Close')}

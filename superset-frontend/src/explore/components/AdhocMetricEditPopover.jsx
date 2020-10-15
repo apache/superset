@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import { CardTabs } from 'src/common/components/Tabs';
+import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/core';
@@ -51,7 +51,7 @@ const defaultProps = {
 };
 
 const startingWidth = 300;
-const startingHeight = 180;
+const startingHeight = 220;
 
 export default class AdhocMetricEditPopover extends React.Component {
   constructor(props) {
@@ -217,7 +217,7 @@ export default class AdhocMetricEditPopover extends React.Component {
         data-test="metrics-edit-popover"
         {...popoverProps}
       >
-        <CardTabs
+        <Tabs
           id="adhoc-metric-edit-tabs"
           data-test="adhoc-metric-edit-tabs"
           defaultActiveKey={adhocMetric.expressionType}
@@ -225,7 +225,7 @@ export default class AdhocMetricEditPopover extends React.Component {
           style={{ height: this.state.height, width: this.state.width }}
           onChange={this.refreshAceEditor}
         >
-          <CardTabs.TabPane
+          <Tabs.TabPane
             className="adhoc-metric-edit-tab"
             key={EXPRESSION_TYPES.SIMPLE}
             tab="Simple"
@@ -251,8 +251,8 @@ export default class AdhocMetricEditPopover extends React.Component {
                 autoFocus
               />
             </FormGroup>
-          </CardTabs.TabPane>
-          <CardTabs.TabPane
+          </Tabs.TabPane>
+          <Tabs.TabPane
             className="adhoc-metric-edit-tab"
             key={EXPRESSION_TYPES.SQL}
             tab="Custom SQL"
@@ -282,8 +282,8 @@ export default class AdhocMetricEditPopover extends React.Component {
                 Custom SQL Metrics are not available on druid datasources
               </div>
             )}
-          </CardTabs.TabPane>
-        </CardTabs>
+          </Tabs.TabPane>
+        </Tabs>
         <div>
           <Button
             disabled={!stateIsValid}

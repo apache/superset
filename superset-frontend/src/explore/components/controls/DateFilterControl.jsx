@@ -35,7 +35,7 @@ import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
 import { t, styled, withTheme } from '@superset-ui/core';
 
-import { CardTabs } from 'src/common/components/Tabs';
+import Tabs from 'src/common/components/Tabs';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -433,18 +433,18 @@ class DateFilterControl extends React.Component {
           this.popoverContainer = ref;
         }}
       >
-        <CardTabs
+        <Tabs
           defaultActiveKey={this.state.tab === TABS.DEFAULTS ? 1 : 2}
           id="type"
           className="time-filter-tabs"
           onSelect={this.changeTab}
         >
-          <CardTabs.TabPane key={1} tab="Defaults">
+          <Tabs.TabPane key={1} tab="Defaults">
             <div style={{ marginLeft: '8px' }}>
               <FormGroup>{timeFrames}</FormGroup>
             </div>
-          </CardTabs.TabPane>
-          <CardTabs.TabPane key={2} tab="Custom">
+          </Tabs.TabPane>
+          <Tabs.TabPane key={2} tab="Custom">
             <FormGroup>
               <PopoverSection
                 title="Relative to today"
@@ -574,8 +574,8 @@ class DateFilterControl extends React.Component {
                 </div>
               </PopoverSection>
             </FormGroup>
-          </CardTabs.TabPane>
-        </CardTabs>
+          </Tabs.TabPane>
+        </Tabs>
         <div className="clearfix">
           <Button
             data-test="date-ok-button"
