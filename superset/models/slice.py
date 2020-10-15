@@ -143,11 +143,10 @@ class Slice(
             if self.table.schema:
                 return f"{self.table.schema}.{self.table.table_name}"
             return self.table.table_name
-        datasource = self.datasource
-        if datasource:
-            if datasource.schema:
-                return f"{datasource.schema}.{datasource.name}"
-            return datasource.name
+        if self.datasource:
+            if self.datasource.schema:
+                return f"{self.datasource.schema}.{self.datasource.name}"
+            return self.datasource.name
         return None
 
     @property
