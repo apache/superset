@@ -434,17 +434,17 @@ class DateFilterControl extends React.Component {
         }}
       >
         <Tabs
-          defaultActiveKey={this.state.tab === TABS.DEFAULTS ? 1 : 2}
+          defaultActiveKey={this.state.tab === TABS.DEFAULTS ? "1" : "2"}
           id="type"
           className="time-filter-tabs"
           onSelect={this.changeTab}
         >
-          <Tabs.TabPane key={1} tab="Defaults">
+          <Tabs.TabPane key="1" tab="Defaults">
             <div style={{ marginLeft: '8px' }}>
               <FormGroup>{timeFrames}</FormGroup>
             </div>
           </Tabs.TabPane>
-          <Tabs.TabPane key={2} tab="Custom">
+          <Tabs.TabPane key="2" tab="Custom">
             <FormGroup>
               <PopoverSection
                 title="Relative to today"

@@ -50,6 +50,9 @@ describe('Datasource control', () => {
       cy.contains('Metrics').click();
     });
     // create new metric
+    cy.get('.modal-content').within(() => {
+      cy.get('[data-test="collection-tab-Metrics"]').click();
+    });
     cy.get('[data-test="crud-add-table-item"]', { timeout: 10000 }).click();
     cy.get('[data-test="table-content-rows"]')
       .find('input[value="<new metric>"]')
@@ -70,7 +73,7 @@ describe('Datasource control', () => {
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
     cy.get('.ant-modal-content').within(() => {
-      cy.get('a[role="tab"]').contains('Metrics').click();
+      cy.get('[data-test="collection-tab-Metrics"]').contains('Metrics').click();
     });
     cy.get(`input[value="${newMetricName}"]`)
       .closest('tr')
@@ -140,7 +143,7 @@ describe('Time range filter', () => {
     });
 
     cy.get('#filter-popover').within(() => {
-      cy.get('div.tab-pane.active').within(() => {
+      cy.get('div.ant-tabs-tabpane-active').within(() => {
         cy.get('div.PopoverSection :not(.dimmed)').within(() => {
           cy.get('input[value="100 years ago"]');
           cy.get('input[value="now"]');
