@@ -264,7 +264,12 @@ class Tabs extends React.PureComponent {
             <TabsComponent
               id={tabsComponent.id}
               activeKey={activeKey}
-              onChange={key => this.handleClickTab(tabIds.indexOf(key))}
+              onChange={key => {
+                this.handleClickTab(tabIds.indexOf(key));
+                if (renderTabContent) {
+                  this.props.setMountedTab(activeKey);
+                }
+              }}
               onEdit={this.handleEdit}
               hideAdd={tabIds.length >= MAX_TAB_COUNT}
               data-test="nav-list"
