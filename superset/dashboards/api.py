@@ -97,9 +97,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "published",
         "url",
         "slug",
-        "table_names",
         "thumbnail_url",
     ]
+    show_select_columns = ["changed_by"]
     list_columns = [
         "id",
         "published",
@@ -126,7 +126,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.last_name",
     ]
-    list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
+    list_select_columns = list_columns + ["changed_on", "changed_by_fk", "created_by_fk"]
     order_columns = [
         "changed_by.first_name",
         "changed_on_delta_humanized",

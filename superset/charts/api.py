@@ -98,7 +98,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name",
         "viz_type",
     ]
-    show_select_columns = show_columns + ["table.id"]
+    show_select_columns = show_columns
     list_columns = [
         "cache_timeout",
         "changed_by.first_name",
@@ -128,7 +128,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "url",
         "viz_type",
     ]
-    list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
+    list_select_columns = list_columns + ["changed_by_fk", "changed_on", "created_by_fk"]
     order_columns = [
         "changed_by.first_name",
         "changed_on_delta_humanized",
