@@ -706,7 +706,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                     requested_ids
                 ).run():
                     with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content)
+                        fp.write(file_content.encode())
             except DatabaseNotFoundError:
                 return self.response_404()
         buf.seek(0)

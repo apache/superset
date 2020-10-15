@@ -57,7 +57,7 @@ class ExportDatabasesCommand(BaseCommand):
 
         payload["version"] = IMPORT_EXPORT_VERSION
 
-        file_content = yaml.safe_dump(payload, sort_keys=False).encode()
+        file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
 
         # TODO (betodealmeida): reuse logic from ExportDatasetCommand once
@@ -75,7 +75,7 @@ class ExportDatabasesCommand(BaseCommand):
             payload["version"] = IMPORT_EXPORT_VERSION
             payload["database_uuid"] = str(database.uuid)
 
-            file_content = yaml.safe_dump(payload, sort_keys=False).encode()
+            file_content = yaml.safe_dump(payload, sort_keys=False)
             yield file_name, file_content
 
     def run(self) -> Iterator[Tuple[str, str]]:
