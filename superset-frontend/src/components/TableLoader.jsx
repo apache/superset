@@ -24,6 +24,7 @@ import TableView from 'src/components/TableView';
 import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from './Loading';
 import '../../stylesheets/reactable-pagination.less';
+import { EmptyWrapperType } from './TableView/TableView';
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
@@ -77,10 +78,12 @@ class TableLoader extends React.PureComponent {
       if (!columns && data.length > 0) {
         tableColumns = Object.keys(data[0]).filter(col => col[0] !== '_');
       }
-      return tableColumns.map(column => ({
-        accessor: column,
-        Header: column,
-      }));
+      return tableColumns
+        ? tableColumns.map(column => ({
+            accessor: column,
+            Header: column,
+          }))
+        : [];
     });
 
     delete tableProps.dataEndpoint;
@@ -93,6 +96,7 @@ class TableLoader extends React.PureComponent {
         data={this.state.data}
         pageSize={50}
         loading={this.state.isLoading}
+        emptyWrapperType={EmptyWrapperType.Small}
         {...tableProps}
       />
     );
