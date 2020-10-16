@@ -61,7 +61,6 @@ let queryCount = 1;
 const TabTitleWrapper = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
 `;
 
 const TabTitle = styled.span`
