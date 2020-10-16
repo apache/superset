@@ -290,7 +290,7 @@ export default function TableCollection({
                   const columnCellProps = cell.column.cellProps || {};
                   return (
                     <td
-                      data-test="table-cell"
+                      data-test="table-row-cell"
                       className={cx('table-cell', {
                         'table-cell-loader': loading,
                         [cell.column.size || '']: cell.column.size,

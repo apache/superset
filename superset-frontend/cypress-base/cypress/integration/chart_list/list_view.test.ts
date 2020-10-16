@@ -44,7 +44,7 @@ describe('chart list view', () => {
     cy.get('[data-test="sort-header"]').eq(2).click();
     cy.get('[data-test="table-row"]')
       .first()
-      .find('[data-test="row-cell"]')
+      .find('[data-test="table-row-cell"]')
       .find('[data-test="cell-text"]')
       .contains('% Rural');
   });
