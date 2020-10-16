@@ -52,7 +52,6 @@ logger = logging.getLogger(__name__)
 def setup_database():
     with app.app_context():
         example_database = utils.get_example_database()
-        # example_database.get_sqla_engine().execute("DROP TABLE test_table")
         example_database.get_sqla_engine().execute(
             "CREATE TABLE test_table AS SELECT 1 as first, 2 as second"
         )
