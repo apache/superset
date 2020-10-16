@@ -33,6 +33,8 @@ from sqlalchemy.sql import func
 from tests.test_app import app
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils.core import AnnotationType, get_example_database
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
 from superset.models.annotations import AnnotationLayer
@@ -830,7 +832,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             self.assertEqual(item["slice_name"], expected_response[index]["slice_name"])
             self.assertEqual(item["viz_type"], expected_response[index]["viz_type"])
 
-    @pytest.mark.usefixtures("load_charts")
+    @pytest.mark.usefixtures("load_energy_table_with_slice", "load_charts")
     def test_admin_gets_filtered_energy_slices(self):
         # test filtering on datasource_name
         arguments = {
@@ -942,7 +944,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             if res["id"] in users_favorite_ids:
                 assert res["value"]
 
-    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
+    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice",  "load_energy_table_with_slice")
     def test_get_charts_page(self):
         """
         Chart API: Test get charts filter
