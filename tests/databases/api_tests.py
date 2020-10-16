@@ -18,6 +18,8 @@
 """Unit tests for Superset"""
 import datetime
 import json
+from io import BytesIO
+from zipfile import is_zipfile
 
 import pandas as pd
 import prison
@@ -801,3 +803,45 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{database.id}/related_objects/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_export_database(self):
+        """
+        Database API: Test export database
+        """
+        self.login(username="admin")
+        database = get_example_database()
+        argument = [database.id]
+        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+
+        buf = BytesIO(rv.data)
+        assert is_zipfile(buf)
+
+    def test_export_database_not_allowed(self):
+        """
+        Database API: Test export database not allowed
+        """
+        self.login(username="gamma")
+        database = get_example_database()
+        argument = [database.id]
+        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 401
+
+    def test_export_database_non_existing(self):
+        """
+        Database API: Test export database not allowed
+        """
+        max_id = db.session.query(func.max(Database.id)).scalar()
+        # id does not exist and we get 404
+        invalid_id = max_id + 1
+
+        self.login(username="admin")
+        argument = [invalid_id]
+        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 404
