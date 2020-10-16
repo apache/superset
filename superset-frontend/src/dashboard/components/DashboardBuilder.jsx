@@ -93,19 +93,6 @@ const StyledDashboardContent = styled.div`
     transition: opacity 0.2s, border-color 0.2s, box-shadow 0.2s;
     border: 2px solid transparent;
   }
-  .dashboard-component-chart-holder {
-    &.scoped-to-focused-filter,
-    &.contains-focused-filter {
-      border-color: ${({ theme }) => theme.colors.primary.light2};
-      opacity: 1;
-      box-shadow: 0px 0px 8px ${({ theme }) => theme.colors.primary.light2};
-      pointer-events: auto;
-    }
-    &.unscoped-to-focused-filter {
-      opacity: 0.3;
-      pointer-events: none;
-    }
-  }
 `;
 
 class DashboardBuilder extends React.Component {

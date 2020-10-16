@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { useTheme } from '@superset-ui/core';
 
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import Chart from '../../containers/Chart';
@@ -70,6 +71,50 @@ const defaultProps = {
   directPathToChild: [],
   directPathLastUpdated: 0,
 };
+
+/**
+ * Renders any styles necessary to highlight the chart's relationship to the focused filter.
+ *
+ * If there is no focused filter scope (i.e. most of the time), this will be just a pass-through.
+ *
+ * If the chart is outside the scope of the focused filter, dims the chart.
+ *
+ * If the chart is in the scope of the focused filter,
+ * renders a highlight around the chart.
+ *
+ * If ChartHolder were a function component, this could be implemented as a hook instead.
+ */
+const FilterFocusHighlight = React.forwardRef(
+  ({ chartId, focusedFilterScope, ref, ...otherProps }) => {
+    const theme = useTheme();
+    if (!focusedFilterScope) return <div ref={ref} {...otherProps} />;
+
+    // we use local styles here instead of a conditionally-applied class,
+    // because adding any conditional class to this container
+    // causes performance issues in Chrome.
+
+    // default to the "de-emphasized" state
+    let styles = { opacity: 0.3, pointerEvents: 'none' };
+
+    if (
+      chartId === focusedFilterScope.chartId ||
+      getChartIdsInFilterScope({
+        filterScope: focusedFilterScope.scope,
+      }).includes(chartId)
+    ) {
+      // apply the "highlighted" state if this chart
+      // contains a filter being focused, or is in scope of a focused filter.
+      styles = {
+        borderColor: theme.colors.primary.light2,
+        opacity: 1,
+        boxShadow: `0px 0px 8px ${theme.colors.primary.light2}`,
+        pointerEvents: 'auto',
+      };
+    }
+
+    return <div ref={ref} style={styles} {...otherProps} />;
+  },
+);
 
 class ChartHolder extends React.Component {
   static renderInFocusCSS(columnName) {
@@ -210,20 +255,7 @@ class ChartHolder extends React.Component {
       );
     }
 
-    // figure out if this chart is in the focused filter's scope
     const { chartId } = component.meta;
-    function getFilterScopeClass() {
-      if (!focusedFilterScope) return null;
-      if (chartId === focusedFilterScope.chartId)
-        return 'contains-focused-filter';
-      if (
-        getChartIdsInFilterScope({
-          filterScope: focusedFilterScope.scope,
-        }).includes(chartId)
-      )
-        return 'scoped-to-focused-filter';
-      return 'unscoped-to-focused-filter';
-    }
 
     return (
       <DragDroppable
@@ -253,13 +285,14 @@ class ChartHolder extends React.Component {
             onResizeStop={onResizeStop}
             editMode={editMode}
           >
-            <div
+            <FilterFocusHighlight
+              chartId={chartId}
+              focusedFilterScope={focusedFilterScope}
               ref={dragSourceRef}
               className={cx(
                 'dashboard-component dashboard-component-chart-holder',
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
                 this.state.isFullSize && 'full-size',
-                getFilterScopeClass(),
               )}
             >
               {!editMode && (
@@ -294,7 +327,7 @@ class ChartHolder extends React.Component {
                   />
                 </HoverMenu>
               )}
-            </div>
+            </FilterFocusHighlight>
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </ResizableContainer>

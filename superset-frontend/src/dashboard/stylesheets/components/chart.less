@@ -24,6 +24,10 @@
   position: relative;
   padding: 16px;
 
+  // transitionable traits for when a filter is being actively focused
+  transition: opacity 0.2s, border-color 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
+
   .missing-chart-container {
     display: flex;
     flex-direction: column;
