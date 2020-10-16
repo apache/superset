@@ -44,7 +44,7 @@ const TableStyles = styled.div`
 
   .table > thead > tr > th {
     border-bottom: 2px solid #cfd8dc;
-    background: #f5f5f5;
+    background: ${({ theme }) => theme.colors.grayscale.light4};
   }
 `;
 
