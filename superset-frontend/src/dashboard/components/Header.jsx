@@ -79,6 +79,7 @@ const propTypes = {
   logEvent: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   maxUndoHistoryExceeded: PropTypes.bool.isRequired,
+  lastModifiedTime: PropTypes.number.isRequired,
 
   // redux
   onUndo: PropTypes.func.isRequired,
@@ -269,6 +270,7 @@ class Header extends React.PureComponent {
       dashboardInfo,
       refreshFrequency: currentRefreshFrequency,
       shouldPersistRefreshFrequency,
+      lastModifiedTime,
     } = this.props;
 
     const scale = CategoricalColorNamespace.getScale(
@@ -290,7 +292,7 @@ class Header extends React.PureComponent {
       label_colors: labelColors,
       dashboard_title: dashboardTitle,
       refresh_frequency: refreshFrequency,
-      last_modified_time: dashboardInfo.lastModifiedTime,
+      last_modified_time: lastModifiedTime,
     };
 
     // make sure positions data less than DB storage limitation:
@@ -345,6 +347,7 @@ class Header extends React.PureComponent {
       refreshFrequency,
       shouldPersistRefreshFrequency,
       setRefreshFrequency,
+      lastModifiedTime,
     } = this.props;
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
@@ -516,6 +519,7 @@ class Header extends React.PureComponent {
             showPropertiesModal={this.showPropertiesModal}
             refreshLimit={refreshLimit}
             refreshWarning={refreshWarning}
+            lastModifiedTime={lastModifiedTime}
           />
         </div>
       </StyledDashboardHeader>
