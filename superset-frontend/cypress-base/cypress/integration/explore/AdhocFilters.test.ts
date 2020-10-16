@@ -74,8 +74,9 @@ describe('AdhocFilters', () => {
     cy.get('[data-test=adhoc_filters] input[type=text]')
       .focus()
       .type('name{enter}');
-    cy.get('.adhoc-filter-option').click();
-
+    cy.get('[data-test="adhoc_filters"]').within(() => {
+      cy.contains('name = ');
+    });
     cy.wait('@filterValues');
 
     cy.get('#filter-edit-popover #adhoc-filter-edit-tabs-tab-SQL').click();

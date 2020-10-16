@@ -891,6 +891,7 @@ class DatasourceEditor extends React.PureComponent {
         </div>
         <Tabs
           id="table-tabs"
+          data-test="edit-dataset-tabs"
           onSelect={this.handleTabSelect}
           defaultActiveKey={activeTabKey}
         >
