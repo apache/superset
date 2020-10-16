@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import memoize from 'lodash/memoize';
 import { t, SupersetClient } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
 import withToasts from '../messageToasts/enhancers/withToasts';
@@ -36,72 +35,65 @@ const propTypes = {
   addWarningToast: PropTypes.func.isRequired,
 };
 
-class TableLoader extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      isLoading: true,
-      data: [],
-    };
-  }
+const TableLoader = props => {
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  UNSAFE_componentWillMount() {
-    const { dataEndpoint, mutator } = this.props;
-
+  useEffect(() => {
+    const { dataEndpoint, mutator } = props;
     SupersetClient.get({ endpoint: dataEndpoint })
       .then(({ json }) => {
         const data = mutator ? mutator(json) : json;
-        this.setState({ data, isLoading: false });
+        setData(data);
+        setIsLoading(false);
       })
       .catch(() => {
-        this.setState({ isLoading: false });
-        this.props.addDangerToast(t('An error occurred'));
+        setIsLoading(false);
+        props.addDangerToast(t('An error occurred'));
       });
-  }
+  }, [props]);
 
-  render() {
-    if (this.state.isLoading) {
-      return <Loading />;
+  const {
+    addDangerToast,
+    addInfoToast,
+    addSuccessToast,
+    addWarningToast,
+    columns,
+    ...tableProps
+  } = props;
+
+  const memoizedColumns = useMemo(() => {
+    let tableColumns = columns;
+    if (!columns && data.length > 0) {
+      tableColumns = Object.keys(data[0]).filter(col => col[0] !== '_');
     }
+    return tableColumns
+      ? tableColumns.map(column => ({
+          accessor: column,
+          Header: column,
+        }))
+      : [];
+  }, [columns, data]);
 
-    const {
-      addDangerToast,
-      addInfoToast,
-      addSuccessToast,
-      addWarningToast,
-      columns,
-      ...tableProps
-    } = this.props;
+  delete tableProps.dataEndpoint;
+  delete tableProps.mutator;
+  delete tableProps.columns;
 
-    const memoizedColumns = memoize((columns, data) => {
-      let tableColumns = columns;
-      if (!columns && data.length > 0) {
-        tableColumns = Object.keys(data[0]).filter(col => col[0] !== '_');
-      }
-      return tableColumns
-        ? tableColumns.map(column => ({
-            accessor: column,
-            Header: column,
-          }))
-        : [];
-    });
-
-    delete tableProps.dataEndpoint;
-    delete tableProps.mutator;
-    delete tableProps.columns;
-
-    return (
-      <TableView
-        columns={memoizedColumns(columns, this.state.data)}
-        data={this.state.data}
-        pageSize={50}
-        loading={this.state.isLoading}
-        emptyWrapperType={EmptyWrapperType.Small}
-        {...tableProps}
-      />
-    );
+  if (isLoading) {
+    return <Loading />;
   }
-}
+
+  return (
+    <TableView
+      columns={memoizedColumns}
+      data={data}
+      pageSize={50}
+      loading={isLoading}
+      emptyWrapperType={EmptyWrapperType.Small}
+      {...tableProps}
+    />
+  );
+};
 
 TableLoader.propTypes = propTypes;
 
