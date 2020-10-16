@@ -61,6 +61,7 @@ const propTypes = {
   showPropertiesModal: PropTypes.func.isRequired,
   refreshLimit: PropTypes.number,
   refreshWarning: PropTypes.string,
+  lastModifiedTime: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -138,6 +139,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       isLoading,
       refreshLimit,
       refreshWarning,
+      lastModifiedTime,
     } = this.props;
 
     const emailTitle = t('Superset Dashboard');
@@ -166,6 +168,7 @@ class HeaderActionsDropdown extends React.PureComponent {
               expandedSlices={expandedSlices}
               refreshFrequency={refreshFrequency}
               shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
+              lastModifiedTime={lastModifiedTime}
               customCss={customCss}
               colorNamespace={colorNamespace}
               colorScheme={colorScheme}
