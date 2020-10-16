@@ -40,7 +40,8 @@ If applicable, add screenshots to help explain your problem.
 Make sure to follow these steps before submitting your issue - thank you!
 
 - [ ] I have checked the superset logs for python stacktraces and included it here as text if there are any.
-- [ ] I have reproduced the issue with at least the latest released version of superset (current version: {insert version here})
+- [ ] I have reproduced the issue with at least the latest released version of superset. This issue has been reproduced on the following versions:
+  - `insert version here`
 - [ ] I have checked the issue tracker for the same issue and I haven't found one similar.
 
 ### Additional context
