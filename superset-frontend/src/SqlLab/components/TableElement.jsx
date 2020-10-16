@@ -110,9 +110,9 @@ class TableElement extends React.PureComponent {
           />
         );
       }
-      const latestPartition = Object.entries(table?.partitions?.latest || []).map(
-        ([key, value]) => `${key}=${value}`,
-      );
+      const latestPartition = Object.entries(
+        table?.partitions?.latest || [],
+      ).map(([key, value]) => `${key}=${value}`);
       if (latestPartition) {
         return (
           <Well bsSize="small">
