@@ -21,7 +21,6 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 
 import { shallow } from 'enzyme';
-import sinon from 'sinon';
 
 import App from 'src/SqlLab/components/App';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
