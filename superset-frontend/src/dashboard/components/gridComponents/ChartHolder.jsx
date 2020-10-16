@@ -211,15 +211,15 @@ class ChartHolder extends React.Component {
     }
 
     // figure out if this chart is in the focused filter's scope
-    // const { chartId } = component.meta;
-    // const isFocusedFilterChart =
-    //   focusedFilterScope && chartId === focusedFilterScope.chartId;
-    // const includedInFilterScope =
-    //   focusedFilterScope &&
-    //   !isFocusedFilterChart &&
-    //   getChartIdsInFilterScope({
-    //     filterScope: focusedFilterScope.scope,
-    //   }).includes(chartId);
+    const { chartId } = component.meta;
+    const isFocusedFilterChart =
+      focusedFilterScope && chartId === focusedFilterScope.chartId;
+    const includedInFilterScope =
+      focusedFilterScope &&
+      !isFocusedFilterChart &&
+      getChartIdsInFilterScope({
+        filterScope: focusedFilterScope.scope,
+      }).includes(chartId);
 
     return (
       <DragDroppable
