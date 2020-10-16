@@ -20,9 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
-// import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
-// import Select from 'react-select-v3';
-import AsyncSelect from 'react-select-v3/async';
+import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import Button from 'src/components/Button';
 import { t, styled, SupersetClient } from '@superset-ui/core';
 
@@ -33,10 +31,10 @@ import ControlRow from 'src/explore/components/ControlRow';
 import Control from 'src/explore/components/Control';
 import { controls } from 'src/explore/controls';
 import { getExploreUrl } from 'src/explore/exploreUtils';
-// import OnPasteSelect from 'src/components/Select/OnPasteSelect';
+import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 import {
   FILTER_CONFIG_ATTRIBUTES,
-  // FILTER_OPTIONS_LIMIT,
+  FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
 } from 'src/explore/constants';
 
@@ -379,54 +377,36 @@ class FilterBox extends React.Component {
     }
 
     return (
-      <AsyncSelect
+      <OnPasteSelect
         cacheOptions
+        loadOptions={this.debounceLoadOptions(key)}
+        defaultOptions={this.transformOptions(data)}
+        key={key}
+        placeholder={t('Type or Select [%s]', label)}
         isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
         isClearable={filterConfig[FILTER_CONFIG_ATTRIBUTES.CLEARABLE]}
-        defaultOptions={this.transformOptions(data)}
-        loadOptions={this.debounceLoadOptions(key)}
         value={value}
+        options={this.transformOptions(data)}
         onChange={newValue => {
           // avoid excessive re-renders
           if (newValue !== value) {
             this.changeFilter(key, newValue);
           }
         }}
+        // TODO try putting this back once react-select is upgraded
+        // onFocus={() => this.onFilterMenuOpen(key)}
         onMenuOpen={() => this.onFilterMenuOpen(key)}
+        onBlur={() => this.onFilterMenuClose(key)}
         onMenuClose={() => this.onFilterMenuClose(key)}
-        placeholder={t('Type or Select [%s]', label)}
+        selectWrap={
+          filterConfig[FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
+          data.length >= FILTER_OPTIONS_LIMIT
+            ? AsyncCreatableSelect
+            : CreatableSelect
+        }
+        noResultsText={t('No results found')}
       />
     );
-
-    // return (
-    //   <OnPasteSelect
-    //     cacheOptions
-    //     loadOptions={this.debounceLoadOptions(key)}
-    //     defaultOptions={this.transformOptions(data)}
-    //     key={key}
-    //     placeholder={t('Type or Select [%s]', label)}
-    //     isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
-    //     isClearable={filterConfig[FILTER_CONFIG_ATTRIBUTES.CLEARABLE]}
-    //     value={value}
-    //     options={this.transformOptions(data)}
-    //     onChange={newValue => {
-    //       // avoid excessive re-renders
-    //       if (newValue !== value) {
-    //         this.changeFilter(key, newValue);
-    //       }
-    //     }}
-    //     // TODO try putting this back once react-select is upgraded
-    //     // onFocus={() => this.onFilterMenuOpen(key)}
-    //     onMenuOpen={() => this.onFilterMenuOpen(key)}
-    //     onBlur={() => this.onFilterMenuClose(key)}
-    //     onMenuClose={() => this.onFilterMenuClose(key)}
-    //     selectWrap={
-    //       filterConfig[FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
-    //       data.length >= FILTER_OPTIONS_LIMIT
-    //     }
-    //     noResultsText={t('No results found')}
-    //   />
-    // );
   }
 
   renderFilters() {
