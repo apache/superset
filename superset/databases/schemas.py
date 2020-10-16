@@ -109,6 +109,7 @@ extra_description = markdown(
     "whether or not the Explore button in SQL Lab results is shown.",
     True,
 )
+get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 sqlalchemy_uri_description = markdown(
     "Refer to the "
     "[SqlAlchemy docs]"

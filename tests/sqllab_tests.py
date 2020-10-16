@@ -384,6 +384,10 @@ class TestSqlLab(SupersetTestCase):
         view_menu = security_manager.find_view_menu(table.get_perm())
         assert view_menu is not None
 
+        # Cleanup
+        db.session.delete(table)
+        db.session.commit()
+
     def test_sqllab_viz_bad_payload(self):
         self.login("admin")
         payload = {
