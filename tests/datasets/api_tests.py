@@ -216,10 +216,9 @@ class TestDatasetApi(SupersetTestCase):
                 "admin_database",
                 "information_schema",
                 "public",
-                "superset",
             ]
             expected_response = {
-                "count": 5,
+                "count": 4,
                 "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
@@ -243,14 +242,14 @@ class TestDatasetApi(SupersetTestCase):
 
             query_parameter = {"page": 0, "page_size": 1}
             pg_test_query_parameter(
-                query_parameter, {"count": 5, "result": [{"text": "", "value": ""}]},
+                query_parameter, {"count": 4, "result": [{"text": "", "value": ""}]},
             )
 
             query_parameter = {"page": 1, "page_size": 1}
             pg_test_query_parameter(
                 query_parameter,
                 {
-                    "count": 5,
+                    "count": 4,
                     "result": [{"text": "admin_database", "value": "admin_database"}],
                 },
             )

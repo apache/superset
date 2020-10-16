@@ -962,7 +962,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             }
         ]
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        print(rv.data)
         self.assertEqual(rv.status_code, 200)
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
