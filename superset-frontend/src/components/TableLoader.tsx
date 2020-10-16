@@ -18,7 +18,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, JsonObject } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
 import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from './Loading';
@@ -35,15 +35,22 @@ const propTypes = {
   addWarningToast: PropTypes.func.isRequired,
 };
 
-const TableLoader = props => {
-  const [data, setData] = useState([]);
+interface TableLoaderProps {
+  dataEndpoint: string;
+  mutator(data: JsonObject): any[];
+  columns?: string[];
+  addDangerToast(text: string): any;
+}
+
+const TableLoader = (props: TableLoaderProps) => {
+  const [data, setData] = useState<Array<any>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const { dataEndpoint, mutator } = props;
     SupersetClient.get({ endpoint: dataEndpoint })
       .then(({ json }) => {
-        const data = mutator ? mutator(json) : json;
+        const data = (mutator ? mutator(json) : json) as Array<any>;
         setData(data);
         setIsLoading(false);
       })
@@ -53,14 +60,7 @@ const TableLoader = props => {
       });
   }, [props]);
 
-  const {
-    addDangerToast,
-    addInfoToast,
-    addSuccessToast,
-    addWarningToast,
-    columns,
-    ...tableProps
-  } = props;
+  const { columns, ...tableProps } = props;
 
   const memoizedColumns = useMemo(() => {
     let tableColumns = columns;
@@ -68,7 +68,7 @@ const TableLoader = props => {
       tableColumns = Object.keys(data[0]).filter(col => col[0] !== '_');
     }
     return tableColumns
-      ? tableColumns.map(column => ({
+      ? tableColumns.map((column: string) => ({
           accessor: column,
           Header: column,
         }))
@@ -77,7 +77,6 @@ const TableLoader = props => {
 
   delete tableProps.dataEndpoint;
   delete tableProps.mutator;
-  delete tableProps.columns;
 
   if (isLoading) {
     return <Loading />;
