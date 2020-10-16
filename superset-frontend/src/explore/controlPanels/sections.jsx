@@ -213,12 +213,14 @@ export const NVD3TimeSeries = [
               '30 days',
               '52 weeks',
               '1 year',
+              '104 weeks',
+              '2 years',
             ]),
             description: t(
               'Overlay one or more timeseries from a ' +
                 'relative time period. Expects relative time deltas ' +
                 'in natural language (example:  24 hours, 7 days, ' +
-                '56 weeks, 365 days)',
+                '52 weeks, 365 days). Free text is supported.',
             ),
           },
         },
