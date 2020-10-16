@@ -17,45 +17,55 @@
  * under the License.
  */
 import React from 'react';
-import { getCategoricalSchemeRegistry, supersetTheme } from '@superset-ui/core';
+import { getCategoricalSchemeRegistry, styled } from '@superset-ui/core';
 import { Avatar, Tooltip } from 'src/common/components';
 import { getRandomColor } from './utils';
 
-interface UserStackProps {
+interface FacePileProps {
   users: { first_name: string; last_name: string }[];
   maxCount?: number;
 }
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
-const AVATAR_STYLE = {
-  width: `${supersetTheme.gridUnit * 6}px`,
-  height: `${supersetTheme.gridUnit * 6}px`,
-  fontSize: `${supersetTheme.typography.sizes.xl}px`,
-  lineHeight: `${supersetTheme.gridUnit * 6}px`,
-};
 
-export default function UserStack({ users, maxCount = 4 }: UserStackProps) {
+const StyledAvatar = styled(Avatar)`
+  width: ${({ theme }) => theme.gridUnit * 6}px;
+  height: ${({ theme }) => theme.gridUnit * 6}px;
+  line-height: ${({ theme }) => theme.gridUnit * 6}px;
+  font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+`;
+
+// to apply styling to the maxCount avatar
+const StyledGroup = styled(Avatar.Group)`
+  .ant-avatar {
+    width: ${({ theme }) => theme.gridUnit * 6}px;
+    height: ${({ theme }) => theme.gridUnit * 6}px;
+    line-height: ${({ theme }) => theme.gridUnit * 6}px;
+    font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+  }
+`;
+
+export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
   return (
-    <Avatar.Group maxCount={maxCount} maxStyle={AVATAR_STYLE}>
+    <StyledGroup maxCount={maxCount}>
       {users.map(({ first_name, last_name }) => {
         const name = `${first_name} ${last_name}`;
         const color = getRandomColor(name, colorList);
         return (
           <Tooltip key={name} title={name} placement="top">
-            <Avatar
+            <StyledAvatar
               key={name}
               style={{
                 backgroundColor: color,
                 borderColor: color,
-                ...AVATAR_STYLE,
               }}
             >
               {first_name[0].toLocaleUpperCase()}
               {last_name[0].toLocaleUpperCase()}
-            </Avatar>
+            </StyledAvatar>
           </Tooltip>
         );
       })}
-    </Avatar.Group>
+    </StyledGroup>
   );
 }

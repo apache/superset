@@ -43,7 +43,7 @@ import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
-import UserStack from 'src/components/UserStack';
+import FacePile from 'src/components/FacePile';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
@@ -235,7 +235,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { owners = [], table_name: tableName },
           },
-        }: any) => <UserStack users={owners} />,
+        }: any) => <FacePile users={owners} />,
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,

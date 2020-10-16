@@ -20,7 +20,7 @@ import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import { Avatar } from 'src/common/components';
-import UserStack from '.';
+import FacePile from '.';
 import { getRandomColor } from './utils';
 
 const users = [...new Array(10)].map((_, i) => ({
@@ -28,11 +28,11 @@ const users = [...new Array(10)].map((_, i) => ({
   last_name: `${i}`,
 }));
 
-describe('UserStack', () => {
-  const wrapper = mount(<UserStack users={users} />);
+describe('FacePile', () => {
+  const wrapper = mount(<FacePile users={users} />);
 
   it('is a valid element', () => {
-    expect(wrapper.find(UserStack)).toExist();
+    expect(wrapper.find(FacePile)).toExist();
   });
 
   it('renders an Avatar', () => {

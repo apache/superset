@@ -25,7 +25,7 @@ import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import UserStack from 'src/components/UserStack';
+import FacePile from 'src/components/FacePile';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
@@ -477,7 +477,7 @@ function ChartList(props: ChartListProps) {
         imgFallbackURL="/static/assets/images/chart-card-fallback.png"
         imgPosition="bottom"
         description={t('Last modified %s', chart.changed_on_delta_humanized)}
-        coverLeft={<UserStack users={chart.owners || []} />}
+        coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={
           <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
         }

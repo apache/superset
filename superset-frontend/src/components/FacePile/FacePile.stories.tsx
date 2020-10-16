@@ -18,11 +18,11 @@
  */
 import React from 'react';
 import { withKnobs, number } from '@storybook/addon-knobs';
-import UserStack from '.';
+import FacePile from '.';
 
 export default {
   title: 'UerStack',
-  component: UserStack,
+  component: FacePile,
   decorators: [withKnobs],
 };
 
@@ -54,6 +54,6 @@ const users = [...new Array(10)].map(() => ({
   last_name: lastNames[Math.floor(Math.random() * lastNames.length)],
 }));
 
-export const SupersetUserStack = () => {
-  return <UserStack users={users} maxCount={number('maxCount', 4)} />;
+export const SupersetFacePile = () => {
+  return <FacePile users={users} maxCount={number('maxCount', 4)} />;
 };
