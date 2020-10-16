@@ -255,8 +255,8 @@ class ChartHolder extends React.Component {
                 'dashboard-component dashboard-component-chart-holder',
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
                 this.state.isFullSize && 'full-size',
-                // includedInFilterScope && 'scoped-to-focused-filter',
-                // isFocusedFilterChart && 'contains-focused-filter',
+                includedInFilterScope && 'scoped-to-focused-filter',
+                isFocusedFilterChart && 'contains-focused-filter',
               )}
             >
               {!editMode && (
