@@ -314,49 +314,33 @@ def _get_energy_slices():
         {
             "slice_title": "Energy Sankey",
             "viz_type": "sankey",
-            "params": textwrap.dedent(
-                """\
-            {
+            "params": {
                 "collapsed_fieldsets": "",
-                "groupby": [
-                    "source",
-                    "target"
-                ],
+                "groupby": ["source", "target"],
                 "metric": "sum__value",
                 "row_limit": "5000",
                 "slice_name": "Energy Sankey",
-                "viz_type": "sankey"
-            }
-            """
-            ),
+                "viz_type": "sankey",
+            },
         },
         {
             "slice_title": "Energy Force Layout",
             "viz_type": "directed_force",
-            "params": textwrap.dedent(
-                """\
-            {
+            "params": {
                 "charge": "-500",
                 "collapsed_fieldsets": "",
-                "groupby": [
-                    "source",
-                    "target"
-                ],
+                "groupby": ["source", "target"],
                 "link_length": "200",
                 "metric": "sum__value",
                 "row_limit": "5000",
                 "slice_name": "Force",
-                "viz_type": "directed_force"
-            }
-            """
-            ),
+                "viz_type": "directed_force",
+            },
         },
         {
             "slice_title": "Heatmap",
             "viz_type": "heatmap",
-            "params": textwrap.dedent(
-                """\
-            {
+            "params": {
                 "all_columns_x": "source",
                 "all_columns_y": "target",
                 "canvas_image_rendering": "pixelated",
@@ -367,9 +351,7 @@ def _get_energy_slices():
                 "slice_name": "Heatmap",
                 "viz_type": "heatmap",
                 "xscale_interval": "1",
-                "yscale_interval": "1"
-            }
-            """
-            ),
+                "yscale_interval": "1",
+            },
         },
     ]
