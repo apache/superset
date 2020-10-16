@@ -26,6 +26,7 @@ import AntdPopover from './Popover';
 import AntdTooltip from './Tooltip';
 import { Menu } from '.';
 import { Dropdown } from './Dropdown';
+import InfoTooltip from './InfoTooltip';
 
 export default {
   title: 'Common Components',
@@ -175,3 +176,51 @@ export const Tooltip = () => (
     <Button>A button with tooltip</Button>
   </AntdTooltip>
 );
+
+export const StyledInfoTooltip = (args: any) => {
+  const styles = {
+    padding: '100px 0 0 200px',
+  };
+
+  return (
+    <div style={styles}>
+      <InfoTooltip tooltip="This is the text that will display!" {...args} />
+    </div>
+  );
+};
+
+StyledInfoTooltip.args = {
+  placement: 'right',
+  trigger: 'hover',
+};
+
+StyledInfoTooltip.argTypes = {
+  placement: {
+    name: 'Placement',
+    control: {
+      type: 'select',
+      options: [
+        'bottom',
+        'left',
+        'right',
+        'top',
+        'topLeft',
+        'topRight',
+        'bottomLeft',
+        'bottomRight',
+        'leftTop',
+        'leftBottom',
+        'rightTop',
+        'rightBottom',
+      ],
+    },
+  },
+
+  trigger: {
+    name: 'Trigger',
+    control: {
+      type: 'select',
+      options: ['hover', 'click'],
+    },
+  },
+};
