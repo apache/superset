@@ -33,7 +33,6 @@ describe('Dashboard save action', () => {
       dashboardId = dashboard.id;
       cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
       cy.route('POST', `/superset/explore_json/**`).as('exploreRequest');
-
     });
 
     cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
@@ -55,7 +54,7 @@ describe('Dashboard save action', () => {
   it('should save/overwrite dashboard', () => {
     cy.wait('@exploreRequest').then(xhr => {
       expect(xhr.status).to.eq(200);
-      });
+    });
 
     // should have box_plot chart
     cy.get('[data-test="grid-container"]')
