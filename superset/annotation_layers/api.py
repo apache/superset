@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from flask import g, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
-from superset.annotation_layers.commands.bulk_delete import BulkDeleteCssTemplateCommand
+from superset.annotation_layers.commands.bulk_delete import (
+    BulkDeleteAnnotationLayerCommand,
+)
 from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerBulkDeleteFailedError,
     AnnotationLayerNotFoundError,
@@ -108,7 +110,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteCssTemplateCommand(g.user, item_ids).run()
+            BulkDeleteAnnotationLayerCommand(g.user, item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -117,7 +119,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
                     num=len(item_ids),
                 ),
             )
-        except CssTemplateNotFoundError:
+        except AnnotationLayerNotFoundError:
             return self.response_404()
-        except CssTemplateBulkDeleteFailedError as ex:
+        except AnnotationLayerBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
