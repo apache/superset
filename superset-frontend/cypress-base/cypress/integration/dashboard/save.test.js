@@ -32,7 +32,6 @@ describe('Dashboard save action', () => {
       const dashboard = bootstrapData.dashboard_data;
       dashboardId = dashboard.id;
       cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
-      cy.route('POST', `/superset/explore_json/**`).as('exploreRequest');
     });
 
     cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
@@ -52,14 +51,10 @@ describe('Dashboard save action', () => {
   });
 
   it('should save/overwrite dashboard', () => {
-    cy.wait('@exploreRequest').then(xhr => {
-      expect(xhr.status).to.eq(200);
-    });
-
     // should have box_plot chart
-    cy.get('[data-test="grid-container"]')
-      .find('.box_plot', { timeout: 20000 })
-      .should('be.visible');
+    cy.get('[data-test="grid-row-background--transparent"]').within(() => {
+      cy.get('.box_plot', { timeout: 10000 }).should('be.visible');
+    });
 
     // remove box_plot chart from dashboard
     cy.get('[data-test="edit-alt"]').click({ timeout: 5000 });
