@@ -26,6 +26,7 @@ import logging
 from typing import Dict, List
 from urllib.parse import quote
 
+import pytest
 import pytz
 import random
 import re
@@ -37,6 +38,7 @@ import sqlalchemy as sqla
 
 from superset.models.cache import CacheKey
 from superset.utils.core import get_example_database
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.test_app import app  # isort:skip
 import superset.views.utils
 from superset import (
@@ -60,6 +62,7 @@ from superset.result_set import SupersetResultSet
 from superset.utils import core as utils
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
+from tests.utils import read_fixture
 
 from .base_tests import SupersetTestCase
 
@@ -236,6 +239,7 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Alpha", self.assertNotIn)
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
         self.login(username="admin")
         slice_name = f"Energy Sankey"
@@ -302,6 +306,7 @@ class TestCore(SupersetTestCase):
             db.session.delete(slc)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_filter_endpoint(self):
         self.login(username="admin")
         slice_name = "Energy Sankey"
@@ -333,6 +338,7 @@ class TestCore(SupersetTestCase):
         assert "modified" in slc_data_attributes
         assert "owners" in slc_data_attributes
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
         self.login(username="admin")
@@ -409,6 +415,7 @@ class TestCore(SupersetTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
         # Test all slice urls as user with with explore-v2-beta role
@@ -570,6 +577,7 @@ class TestCore(SupersetTestCase):
         database.allow_run_async = False
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_warm_up_cache(self):
         self.login()
         slc = self.get_slice("Girls", db.session)
