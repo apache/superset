@@ -245,7 +245,7 @@ class FilterBox extends React.Component {
         method: 'GET',
       }),
     });
-    const options = (json?.data?.[key] || []).filter(x => x.id).slice(0, 10);
+    const options = (json?.data?.[key] || []).filter(x => x.id);
     if (!options || options.length === 0) {
       return [];
     }
