@@ -39,11 +39,16 @@ const propTypes = {
   displayLimit: PropTypes.number.isRequired,
 };
 
-const TableStyles = styled.div`
-  height: ${props => props.height};
+const TableWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+`;
 
+const TableStyles = styled.div`
   .table > thead > tr > th {
-    border-bottom: ${({ theme }) => theme.gridUnit}px solid
+    border-bottom: ${({ theme }) => theme.gridUnit / 2}px solid
       ${({ theme }) => theme.colors.grayscale.light2};
     background: ${({ theme }) => theme.colors.grayscale.light4};
   }
@@ -211,7 +216,7 @@ class QuerySearch extends React.PureComponent {
 
   render() {
     return (
-      <div>
+      <TableWrapper>
         <div id="search-header" className="row space-1">
           <div className="col-sm-2">
             <AsyncSelect
@@ -288,10 +293,7 @@ class QuerySearch extends React.PureComponent {
           {this.state.queriesLoading ? (
             <Loading />
           ) : (
-            <TableStyles
-              className="scrollbar-content"
-              height={this.props.height}
-            >
+            <TableStyles className="scrollbar-content">
               <QueryTable
                 columns={[
                   'state',
@@ -312,7 +314,7 @@ class QuerySearch extends React.PureComponent {
             </TableStyles>
           )}
         </div>
-      </div>
+      </TableWrapper>
     );
   }
 }

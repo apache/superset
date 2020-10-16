@@ -41,14 +41,6 @@ describe('SqlLab App', () => {
     expect(React.isValidElement(<App />)).toBe(true);
   });
 
-  it('should handler resize', () => {
-    const inner = wrapper.dive();
-    sinon.spy(inner.instance(), 'getHeight');
-    inner.instance().handleResize();
-    expect(inner.instance().getHeight.callCount).toBe(1);
-    inner.instance().getHeight.restore();
-  });
-
   it('should render', () => {
     const inner = wrapper.dive();
     expect(inner.find('.SqlLab')).toHaveLength(1);
