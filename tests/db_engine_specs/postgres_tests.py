@@ -19,6 +19,7 @@ from unittest import mock
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
+from superset.db_engine_specs import engines
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
@@ -117,3 +118,9 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         cursor.description = []
         results = PostgresEngineSpec.fetch_data(cursor, 1000)
         self.assertEqual(results, [])
+
+    def test_engine_alias_name(self):
+        """
+        DB Eng Specs (postgres): Test "postgres" in engine spec
+        """
+        self.assertIn("postgres", engines)

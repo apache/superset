@@ -53,8 +53,13 @@ function AddSliceCard({
 }) {
   return (
     <div ref={innerRef} className="chart-card-container" style={style}>
-      <div className={cx('chart-card', isSelected && 'is-selected')}>
-        <div className="card-title">{sliceName}</div>
+      <div
+        className={cx('chart-card', isSelected && 'is-selected')}
+        data-test="chart-card"
+      >
+        <div className="card-title" data-test="card-title">
+          {sliceName}
+        </div>
         <div className="card-body">
           <div className="item">
             <span>{t('Modified')} </span>

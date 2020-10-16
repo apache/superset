@@ -31,6 +31,7 @@ import traceback
 import uuid
 import zlib
 from datetime import date, datetime, time, timedelta
+from distutils.util import strtobool
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -1418,6 +1419,17 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     return columns
 
 
+def indexed(
+    items: List[Any], key: Union[str, Callable[[Any], Any]]
+) -> Dict[Any, List[Any]]:
+    """Build an index for a list of objects"""
+    idx: Dict[Any, Any] = {}
+    for item in items:
+        key_ = getattr(item, key) if isinstance(key, str) else key(item)
+        idx.setdefault(key_, []).append(item)
+    return idx
+
+
 class LenientEnum(Enum):
     """Enums that do not raise ValueError when value is invalid"""
 
@@ -1553,3 +1565,7 @@ class AdhocMetricExpressionType(str, Enum):
 class RowLevelSecurityFilterType(str, Enum):
     REGULAR = "Regular"
     BASE = "Base"
+
+
+def is_test() -> bool:
+    return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))

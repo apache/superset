@@ -171,7 +171,9 @@ class HeaderActionsDropdown extends React.PureComponent {
               colorScheme={colorScheme}
               onSave={onSave}
               isMenuItem
-              triggerNode={<span>{t('Save as')}</span>}
+              triggerNode={
+                <span data-test="save-as-menu-item">{t('Save as')}</span>
+              }
               canOverwrite={userCanEdit}
             />
           </>

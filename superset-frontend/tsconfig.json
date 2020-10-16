@@ -30,5 +30,6 @@
     "./node_modules/*superset-ui*/**/types/**/*",
     // and the type defs of their dependencies
     "./node_modules/*superset-ui*/**/node_modules/**/*.d.ts"
-  ]
+  ],
+  "exclude": ["./node_modules/*superset-ui*/**/node_modules/@superset-ui/**/*"]
 }

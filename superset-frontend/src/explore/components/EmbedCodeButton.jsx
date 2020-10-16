@@ -83,11 +83,12 @@ export default class EmbedCodeButton extends React.Component {
   renderPopover() {
     const html = this.generateEmbedHTML();
     return (
-      <Popover id="embed-code-popover">
+      <Popover id="embed-code-popover" data-test="embed-code-popover">
         <div>
           <div className="row">
             <div className="col-sm-10">
               <textarea
+                data-test="embed-code-textarea"
                 name="embedCode"
                 value={html}
                 rows="4"

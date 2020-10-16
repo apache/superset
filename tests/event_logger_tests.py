@@ -15,9 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 import unittest
+from datetime import datetime
+from unittest.mock import patch
 
-from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.log import (
+    AbstractEventLogger,
+    DBEventLogger,
+    get_event_logger_from_cfg_value,
+)
+from tests.test_app import app
 
 
 class TestEventLogger(unittest.TestCase):
@@ -42,3 +50,34 @@ class TestEventLogger(unittest.TestCase):
         # test that assignment of non AbstractEventLogger derived type raises TypeError
         with self.assertRaises(TypeError):
             get_event_logger_from_cfg_value(logging.getLogger())
+
+    @patch.object(DBEventLogger, "log")
+    def test_log_this_decorator(self, mock_log):
+        logger = DBEventLogger()
+
+        @logger.log_this
+        def test_func():
+            time.sleep(0.05)
+            return 1
+
+        with app.test_request_context():
+            result = test_func()
+            self.assertEqual(result, 1)
+            assert mock_log.call_args[1]["duration_ms"] >= 50
+
+    @patch.object(DBEventLogger, "log")
+    def test_log_manually_decorator(self, mock_log):
+        logger = DBEventLogger()
+
+        @logger.log_manually
+        def test_func(arg1, update_log_payload, karg1=1):
+            time.sleep(0.1)
+            update_log_payload(foo="bar")
+            return arg1 * karg1
+
+        with app.test_request_context():
+            result = test_func(1, karg1=2)  # pylint: disable=no-value-for-parameter
+            self.assertEqual(result, 2)
+            # should contain only manual payload
+            self.assertEqual(mock_log.call_args[1]["records"], [{"foo": "bar"}])
+            assert mock_log.call_args[1]["duration_ms"] >= 100

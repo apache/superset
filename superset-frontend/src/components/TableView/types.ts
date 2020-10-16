@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './ListView';
-export * from './types';
+export interface SortColumn {
+  id: string;
+  desc?: boolean;
+}
 
-export { default } from './ListView';
+export type SortColumns = SortColumn[];

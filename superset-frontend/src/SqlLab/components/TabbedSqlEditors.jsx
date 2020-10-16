@@ -58,6 +58,12 @@ const defaultProps = {
 
 let queryCount = 1;
 
+const TabTitleWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 const TabTitle = styled.span`
   margin-right: ${({ theme }) => theme.gridUnit * 2}px;
 `;
@@ -354,12 +360,12 @@ class TabbedSqlEditors extends React.PureComponent {
       );
 
       const tabHeader = (
-        <>
+        <TabTitleWrapper>
           <div data-test="dropdown-toggle-button">
             <Dropdown overlay={menu} trigger={['click']} />
           </div>
           <TabTitle>{qe.title}</TabTitle> <TabStatusIcon tabState={state} />{' '}
-        </>
+        </TabTitleWrapper>
       );
       return (
         <EditableTabs.TabPane

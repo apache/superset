@@ -33,8 +33,7 @@ interface TableCollectionProps {
   highlightRowId?: number;
 }
 
-const Table = styled.table`
-  background-color: white;
+export const Table = styled.table`
   border-collapse: separate;
   border-radius: ${({ theme }) => theme.borderRadius}px;
 
@@ -200,6 +199,8 @@ const Table = styled.table`
   }
 `;
 
+Table.displayName = 'table';
+
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -211,7 +212,11 @@ export default function TableCollection({
   highlightRowId,
 }: TableCollectionProps) {
   return (
-    <Table {...getTableProps()} className="table table-hover">
+    <Table
+      {...getTableProps()}
+      className="table table-hover"
+      data-test="listview-table"
+    >
       <thead>
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
@@ -268,13 +273,16 @@ export default function TableCollection({
         {rows.length > 0 &&
           rows.map(row => {
             prepareRow(row);
+            // @ts-ignore
+            const rowId = row.original.id;
             return (
               <tr
+                data-test="table-row"
                 {...row.getRowProps()}
                 className={cx('table-row', {
                   'table-row-selected':
-                    // @ts-ignore
-                    row.isSelected || row.original.id === highlightRowId,
+                    row.isSelected ||
+                    (typeof rowId !== 'undefined' && rowId === highlightRowId),
                 })}
               >
                 {row.cells.map(cell => {
@@ -283,6 +291,7 @@ export default function TableCollection({
                   const columnCellProps = cell.column.cellProps || {};
                   return (
                     <td
+                      data-test="table-cell"
                       className={cx('table-cell', {
                         'table-cell-loader': loading,
                         [cell.column.size || '']: cell.column.size,
@@ -291,7 +300,7 @@ export default function TableCollection({
                       {...columnCellProps}
                     >
                       <span className={cx({ 'loading-bar': loading })}>
-                        <span>{cell.render('Cell')}</span>
+                        <span data-test="cell-text">{cell.render('Cell')}</span>
                       </span>
                     </td>
                   );

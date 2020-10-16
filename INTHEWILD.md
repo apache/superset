@@ -57,6 +57,7 @@ Join our growing community!
 - [Shopkick](https://www.shopkick.com) [@LAlbertalli]
 - [Tails.com](https://tails.com) [@alanmcruickshank]
 - [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
+- [Utair](https://www.utair.ru) [@utair-digital]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
 

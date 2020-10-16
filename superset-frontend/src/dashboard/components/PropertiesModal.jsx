@@ -23,7 +23,7 @@ import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
@@ -32,6 +32,11 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 import '../stylesheets/buttons.less';
+
+const StyledJsonEditor = styled(JsonEditor)`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+`;
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
@@ -219,7 +224,7 @@ class PropertiesModal extends React.PureComponent {
     return (
       <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <form onSubmit={this.submit}>
-          <Modal.Header closeButton>
+          <Modal.Header closeButton data-test="dashboard-properties-modal">
             <Modal.Title>
               <div>
                 <span className="float-left">{t('Dashboard Properties')}</span>
@@ -236,6 +241,7 @@ class PropertiesModal extends React.PureComponent {
               <Col md={6}>
                 <FormLabel htmlFor="embed-height">{t('Title')}</FormLabel>
                 <FormControl
+                  data-test="dashboard-title-input"
                   name="dashboard_title"
                   type="text"
                   bsSize="sm"
@@ -306,7 +312,7 @@ class PropertiesModal extends React.PureComponent {
                     <FormLabel htmlFor="json_metadata">
                       {t('JSON Metadata')}
                     </FormLabel>
-                    <JsonEditor
+                    <StyledJsonEditor
                       showLoadingForImport
                       name="json_metadata"
                       defaultValue={this.defaultMetadataValue}
@@ -329,6 +335,15 @@ class PropertiesModal extends React.PureComponent {
           <Modal.Footer>
             <span className="float-right">
               <Button
+                type="button"
+                buttonSize="sm"
+                onClick={onHide}
+                data-test="properties-modal-cancel-button"
+                cta
+              >
+                {t('Cancel')}
+              </Button>
+              <Button
                 type="submit"
                 buttonSize="sm"
                 buttonStyle="primary"
@@ -337,9 +352,6 @@ class PropertiesModal extends React.PureComponent {
                 cta
               >
                 {saveLabel}
-              </Button>
-              <Button type="button" buttonSize="sm" onClick={onHide} cta>
-                {t('Cancel')}
               </Button>
               <Dialog
                 ref={ref => {

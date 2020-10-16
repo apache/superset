@@ -263,9 +263,12 @@ class DashboardBuilder extends React.Component {
         </Sticky>
 
         <StyledDashboardContent
-          className={cx(focusedFilterField && 'focused-filter-field')}
+          className={cx(
+            'dashboard-content',
+            focusedFilterField && 'focused-filter-field',
+          )}
         >
-          <div className="grid-container">
+          <div className="grid-container" data-test="grid-container">
             <ParentSize>
               {({ width }) => (
                 /*

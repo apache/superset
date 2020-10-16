@@ -45,7 +45,12 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
 
   render() {
     const content = (
-      <StyledLink href="#" onClick={this.onClick} className="fave-unfave-icon">
+      <StyledLink
+        href="#"
+        onClick={this.onClick}
+        className="fave-unfave-icon"
+        data-test="fave-unfave-icon"
+      >
         <Icon
           name={
             this.props.isStarred ? 'favorite-selected' : 'favorite-unselected'
