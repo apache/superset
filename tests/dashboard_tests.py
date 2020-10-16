@@ -32,6 +32,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 
 from .base_tests import SupersetTestCase
 
@@ -302,6 +303,7 @@ class TestDashboard(SupersetTestCase):
                 if key not in ["modified", "changed_on", "changed_on_humanized"]:
                     self.assertEqual(slc[key], resp["slices"][index][key])
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_add_slices(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -453,7 +455,7 @@ class TestDashboard(SupersetTestCase):
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn("/superset/dashboard/empty_dashboard/", resp)
 
-    @pytest.mark.usefixtures("load_dashboard")
+    @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
     def test_users_can_view_published_dashboard(self):
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn(f"/superset/dashboard/{pytest.hidden_dash_slug}/", resp)
