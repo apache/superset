@@ -37,7 +37,7 @@
             </table>
             <div class="filter-action" style="display:none">
             <button type="submit" class="btn btn-sm btn-primary" id="search-action">
-                Search&nbsp;&nbsp;<i class="fa fa-search"></i>
+                {{_("Search")}}&nbsp;&nbsp;<i class="fa fa-search"></i>
             </button>
             </div>
         </div>
@@ -54,7 +54,7 @@
                 $('.filter-action').toggle(true);
             } else {
                 $('.filter-action').toggle(true);
-                $('.filter-action > button').html('Refresh&nbsp;&nbsp;<i class="fa fa-refresh"></i>');
+                $('.filter-action > button').html('{{_("Refresh")}}&nbsp;&nbsp;<i class="fa fa-refresh"></i>');
             }
         }
 
