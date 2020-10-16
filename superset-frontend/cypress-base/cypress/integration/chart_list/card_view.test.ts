@@ -27,40 +27,42 @@ describe('chart card view', () => {
   });
 
   it('should load cards', () => {
-    cy.get('.chart-list-view');
-    cy.get('.ant-card').should('be.visible');
-    cy.get('.ant-card').should('have.length', 25);
+    cy.get('[data-test="chart-list-view"]');
+    cy.get('[data-test="styled-card"]').should('be.visible');
+    cy.get('[data-test="styled-card"]').should('have.length', 25);
   });
 
   it('should allow to favorite/unfavorite chart card', () => {
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-selected']")
       .should('not.exist');
-    cy.get(".ant-card .card-actions [data-test='favorite-unselected']")
+    cy.get("[data-test='card-actions']")
+      .find("[data-test='favorite-unselected']")
       .first()
       .click();
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-selected']")
-      .should('exist');
-    cy.get('.ant-card .card-actions')
+      .should('be.visible');
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-unselected']")
       .should('not.exist');
 
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-unselected']")
       .should('not.exist');
-    cy.get(".ant-card .card-actions [data-test='favorite-selected']")
+    cy.get("[data-test='card-actions']")
       .first()
+      .find("[data-test='favorite-selected']")
       .click();
-    cy.get('.ant-card .card-actions')
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-unselected']")
-      .should('exist');
-    cy.get('.ant-card .card-actions')
+      .should('be.visible');
+    cy.get("[data-test='card-actions']")
       .first()
       .find("[data-test='favorite-selected']")
       .should('not.exist');
@@ -71,37 +73,45 @@ describe('chart card view', () => {
     cy.get('.Select__control').last().should('be.visible');
     cy.get('.Select__control').last().click();
     cy.get('.Select__menu').contains('Alphabetical').click();
-    cy.get('.chart-list-view').should('be.visible');
-    cy.get('.ant-card').first().contains('% Rural');
+    cy.get('[data-test="chart-list-view"]').should('be.visible');
+    cy.get('[data-test="styled-card"]').first().contains('% Rural');
 
     // sort Recently Modified
     cy.get('.Select__control').last().should('be.visible');
     cy.get('.Select__control').last().click();
     cy.get('.Select__menu').contains('Recently Modified').click();
-    cy.get('.chart-list-view').should('be.visible');
-    cy.get('.ant-card').first().contains('Unicode Cloud');
-    cy.get('.ant-card').last().contains('Life Expectancy VS Rural %');
+    cy.get('[data-test="chart-list-view"]').should('be.visible');
+    cy.get('[data-test="styled-card"]').first().contains('Unicode Cloud');
+    cy.get('[data-test="styled-card"]')
+      .last()
+      .contains('Life Expectancy VS Rural %');
   });
 
   it('should delete correctly', () => {
     // show delete modal
-    cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
-    cy.get('.ant-dropdown-menu-item').contains('Delete').should('exist');
-    cy.get('.ant-dropdown-menu-item').contains('Delete').click();
-    cy.get('.modal-dialog').should('be.visible');
-    cy.get('.modal-dialog .btn-danger').should('have.attr', 'disabled');
-    cy.get(".modal-dialog input[id='delete']").type('DELETE');
-    cy.get('.modal-dialog .btn-danger').should('not.have.attr', 'disabled');
-    cy.get('.modal-dialog .btn-default').contains('Cancel').click();
+    cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
+    cy.get('[data-test="chart-list-delete-option"]').should('be.visible');
+    cy.get('[data-test="chart-list-delete-option"]').contains('Delete').click();
+    cy.get('[data-test="Please Confirm-modal-header"]').should('be.visible');
+    cy.get('[data-test="modal-delete-button"]').should('have.attr', 'disabled');
+    cy.get('[data-test="Please Confirm-modal-header"]').should('be.visible');
+    cy.get("[data-test='delete-modal-input']").type('DELETE');
+    cy.get('[data-test="modal-delete-button"]').should(
+      'not.have.attr',
+      'disabled',
+    );
+    cy.get('[data-test="modal-cancel-button"]').click();
   });
 
   it('should edit correctly', () => {
     // show edit modal
-    cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
-    cy.get('.ant-dropdown-menu-item').contains('Edit').should('exist');
-    cy.get('.ant-dropdown-menu-item').contains('Edit').click();
-    cy.get('.modal-dialog').should('be.visible');
-    cy.get('.modal-dialog input[name="name"]').should('not.have.value');
-    cy.get('.modal-dialog .btn-default').contains('Cancel').click();
+    cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
+    cy.get('[data-test="chart-list-edit-option"]').should('be.visible');
+    cy.get('[data-test="chart-list-edit-option"]').click();
+    cy.get('[data-test="properties-edit-modal"]').should('be.visible');
+    cy.get('[data-test="properties-name-input"]').should('not.have.value');
+    cy.get('[data-test="properties-modal-cancel-button"]')
+      .contains('Cancel')
+      .click();
   });
 });
