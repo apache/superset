@@ -55,6 +55,7 @@ describe('Tabs', () => {
     deleteComponent() {},
     updateComponents() {},
     logEvent() {},
+    setMountedTab() {},
   };
 
   function setup(overrideProps) {

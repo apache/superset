@@ -170,7 +170,7 @@ class Tabs extends React.PureComponent {
   };
 
   handleClickTab(tabIndex) {
-    const { component } = this.props;
+    const { component, renderTabContent } = this.props;
 
     if (tabIndex !== this.state.tabIndex) {
       const pathToTabIndex = getDirectPathToTabIndex(component, tabIndex);
@@ -181,6 +181,11 @@ class Tabs extends React.PureComponent {
       });
 
       this.props.onChangeTab({ pathToTabIndex });
+    }
+    if (renderTabContent) {
+      const tabIds = component.children;
+      const activeKey = tabIds[this.state.tabIndex];
+      this.props.setMountedTab(activeKey);
     }
   }
 
@@ -266,9 +271,6 @@ class Tabs extends React.PureComponent {
               activeKey={activeKey}
               onChange={key => {
                 this.handleClickTab(tabIds.indexOf(key));
-                if (renderTabContent) {
-                  this.props.setMountedTab(activeKey);
-                }
               }}
               onEdit={this.handleEdit}
               hideAdd={tabIds.length >= MAX_TAB_COUNT}
