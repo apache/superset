@@ -85,7 +85,7 @@ const defaultProps = {
  * If ChartHolder were a function component, this could be implemented as a hook instead.
  */
 const FilterFocusHighlight = React.forwardRef(
-  ({ chartId, focusedFilterScope, ref, ...otherProps }) => {
+  ({ chartId, focusedFilterScope, ...otherProps }, ref) => {
     const theme = useTheme();
     if (!focusedFilterScope) return <div ref={ref} {...otherProps} />;
 
