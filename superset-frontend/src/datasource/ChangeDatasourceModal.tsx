@@ -33,7 +33,14 @@ interface ChangeDatasourceModalProps {
   show: boolean;
 }
 
-const TABLE_COLUMNS = ['name', 'type', 'schema', 'connection', 'creator'];
+const TABLE_COLUMNS = [
+  'name',
+  'type',
+  'schema',
+  'connection',
+  'creator',
+].map(col => ({ accessor: col, Header: col }));
+
 const TABLE_FILTERABLE = ['rawName', 'type', 'schema', 'connection', 'creator'];
 const CHANGE_WARNING_MSG = t(
   'Changing the dataset may break the chart if the chart relies ' +
@@ -119,11 +126,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setFilter((event.currentTarget?.value as string) ?? '');
   };
 
-  const columns = useMemo(
-    () => TABLE_COLUMNS.map(col => ({ accessor: col, Header: col })),
-    [],
-  );
-
   const data = useMemo(
     () =>
       filter && datasources
@@ -158,7 +160,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         {loading && <Loading />}
         {datasources && (
           <TableView
-            columns={columns}
+            columns={TABLE_COLUMNS}
             data={data}
             pageSize={20}
             className="table-condensed"
