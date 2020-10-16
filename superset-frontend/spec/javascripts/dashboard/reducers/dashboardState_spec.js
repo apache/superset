@@ -120,14 +120,29 @@ describe('dashboardState reducer', () => {
   });
 
   it('should set unsaved changes, max undo history, and editMode to false on save', () => {
+    const result = dashboardStateReducer(
+      { hasUnsavedChanges: true },
+      { type: ON_SAVE },
+    );
+    expect(result.hasUnsavedChanges).toBe(false);
+    expect(result.maxUndoHistoryExceeded).toBe(false);
+    expect(result.editMode).toBe(false);
+    expect(result.updatedColorScheme).toBe(false);
+  });
+
+  it('should set lastModifiedTime on save', () => {
+    const lastModifiedTime = new Date().getTime() / 1000;
+    dashboardStateReducer(
+      {
+        lastModifiedTime,
+      },
+      {},
+    );
+
     expect(
-      dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE }),
-    ).toEqual({
-      hasUnsavedChanges: false,
-      maxUndoHistoryExceeded: false,
-      editMode: false,
-      updatedColorScheme: false,
-    });
+      dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE })
+        .lastModifiedTime,
+    ).toBeGreaterThanOrEqual(lastModifiedTime);
   });
 
   it('should clear focused filter field', () => {
