@@ -43,7 +43,8 @@ const TableStyles = styled.div`
   height: ${props => props.height};
 
   .table > thead > tr > th {
-    border-bottom: ${({ theme }) => theme.gridUnit}px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-bottom: ${({ theme }) => theme.gridUnit}px solid
+      ${({ theme }) => theme.colors.grayscale.light2};
     background: ${({ theme }) => theme.colors.grayscale.light4};
   }
 `;
