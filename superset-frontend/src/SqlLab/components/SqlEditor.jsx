@@ -414,7 +414,7 @@ class SqlEditor extends React.PureComponent {
 
       ctasControls = (
         <FormGroup>
-          <InputGroup>
+          <InputGroup bsSize="small">
             <FormControl
               type="text"
               bsSize="small"
