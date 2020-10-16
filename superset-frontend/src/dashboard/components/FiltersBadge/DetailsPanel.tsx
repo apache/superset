@@ -79,7 +79,9 @@ const DetailsPanelPopover = ({
     return ['unset'];
   }
 
-  const [activePanels, setActivePanels] = useState<string | string[]>(defaultActivePanels);
+  const [activePanels, setActivePanels] = useState<string | string[]>(
+    defaultActivePanels,
+  );
 
   function handlePopoverStatus(isOpen: boolean) {
     // every time the popover opens, choose the active panel anew

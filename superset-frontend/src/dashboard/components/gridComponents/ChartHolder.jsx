@@ -212,14 +212,18 @@ class ChartHolder extends React.Component {
 
     // figure out if this chart is in the focused filter's scope
     const { chartId } = component.meta;
-    const isFocusedFilterChart =
-      focusedFilterScope && chartId === focusedFilterScope.chartId;
-    const includedInFilterScope =
-      focusedFilterScope &&
-      !isFocusedFilterChart &&
-      getChartIdsInFilterScope({
-        filterScope: focusedFilterScope.scope,
-      }).includes(chartId);
+    function getFilterScopeClass() {
+      if (!focusedFilterScope) return null;
+      if (chartId === focusedFilterScope.chartId)
+        return 'contains-focused-filter';
+      if (
+        getChartIdsInFilterScope({
+          filterScope: focusedFilterScope.scope,
+        }).includes(chartId)
+      )
+        return 'scoped-to-focused-filter';
+      return 'unscoped-to-focused-filter';
+    }
 
     return (
       <DragDroppable
@@ -255,8 +259,7 @@ class ChartHolder extends React.Component {
                 'dashboard-component dashboard-component-chart-holder',
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
                 this.state.isFullSize && 'full-size',
-                includedInFilterScope && 'scoped-to-focused-filter',
-                isFocusedFilterChart && 'contains-focused-filter',
+                getFilterScopeClass(),
               )}
             >
               {!editMode && (

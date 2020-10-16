@@ -93,17 +93,17 @@ const StyledDashboardContent = styled.div`
     transition: opacity 0.2s, border-color 0.2s, box-shadow 0.2s;
     border: 2px solid transparent;
   }
-  &.focused-filter-field {
-    .dashboard-component-chart-holder {
+  .dashboard-component-chart-holder {
+    &.scoped-to-focused-filter,
+    &.contains-focused-filter {
+      border-color: ${({ theme }) => theme.colors.primary.light2};
+      opacity: 1;
+      box-shadow: 0px 0px 8px ${({ theme }) => theme.colors.primary.light2};
+      pointer-events: auto;
+    }
+    &.unscoped-to-focused-filter {
       opacity: 0.3;
       pointer-events: none;
-      &.scoped-to-focused-filter,
-      &.contains-focused-filter {
-        border-color: ${({ theme }) => theme.colors.primary.light2};
-        opacity: 1;
-        box-shadow: 0px 0px 8px ${({ theme }) => theme.colors.primary.light2};
-        pointer-events: auto;
-      }
     }
   }
 `;
@@ -198,7 +198,6 @@ class DashboardBuilder extends React.Component {
       handleComponentDrop,
       dashboardLayout,
       editMode,
-      focusedFilterField,
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
@@ -262,12 +261,7 @@ class DashboardBuilder extends React.Component {
           )}
         </Sticky>
 
-        <StyledDashboardContent
-          className={cx(
-            'dashboard-content',
-            focusedFilterField && 'focused-filter-field',
-          )}
-        >
+        <StyledDashboardContent className="dashboard-content">
           <div className="grid-container" data-test="grid-container">
             <ParentSize>
               {({ width }) => (

@@ -27,7 +27,6 @@ export const Pill = styled.div`
   padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
   font-weight: normal;
-  transition: ${({ theme }) => theme.transitionTiming}s all;
   min-width: 1em;
   min-height: 1em;
   line-height: 1em;
