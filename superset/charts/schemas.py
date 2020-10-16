@@ -22,7 +22,7 @@ from marshmallow.validate import Length, Range
 
 from superset.common.query_context import QueryContext
 from superset.utils import schema as utils
-from superset.utils.core import FilterOperator
+from superset.utils.core import ExtraFiltersTimeColumnType, FilterOperator
 
 #
 # RISON/JSON schemas for query parameters
@@ -705,6 +705,11 @@ class ChartDataExtrasSchema(Schema):
 
 
 class ChartDataQueryObjectSchema(Schema):
+    applied_time_extras = fields.Dict(
+        description="A mapping of temporal extras that have been applied to the query",
+        required=False,
+        example={"__time_range": "1 year ago : now"},
+    )
     filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
     granularity = fields.String(
         description="Name of temporal column used for time filtering. For legacy Druid "
@@ -816,6 +821,13 @@ class ChartDataQueryObjectSchema(Schema):
         "as `having_druid`.",
         deprecated=True,
     )
+    druid_time_origin = fields.String(
+        description="Starting point for time grain counting on legacy Druid "
+        "datasources. Used to change e.g. Monday/Sunday first-day-of-week. "
+        "This field is deprecated and should be passed to `extras` "
+        "as `druid_time_origin`.",
+        allow_none=True,
+    )
 
 
 class ChartDataDatasourceSchema(Schema):
@@ -894,6 +906,12 @@ class ChartDataResponseResult(Schema):
         description="Amount of rows in result set", allow_none=False,
     )
     data = fields.List(fields.Dict(), description="A list with results")
+    applied_filters = fields.List(
+        fields.Dict(), description="A list with applied filters"
+    )
+    rejected_filters = fields.List(
+        fields.Dict(), description="A list with rejected filters"
+    )
 
 
 class ChartDataResponseSchema(Schema):
