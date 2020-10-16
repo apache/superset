@@ -27,6 +27,7 @@ import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import { JsonEditor } from 'src/components/AsyncAceEditor';
 import { DatabaseObject } from './types';
 
 interface DatabaseModalProps {
@@ -44,6 +45,10 @@ const StyledIcon = styled(Icon)`
 
 const StyledInputContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+
+  &.extra-container {
+    padding-top: 8px;
+  }
 
   .helper {
     display: block;
@@ -105,6 +110,12 @@ const StyledInputContainer = styled.div`
       margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     }
   }
+`;
+
+const StyledJsonEditor = styled(JsonEditor)`
+  flex: 1 1 auto;
+  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
@@ -238,6 +249,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     };
 
     data[target.name] = target.value;
+    setDB(data);
+  };
+
+  const onEditorChange = (json: string, name: string) => {
+    const data = {
+      database_name: db ? db.database_name : '',
+      sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
+      ...db,
+    };
+
+    data[name] = json;
     setDB(data);
   };
 
@@ -494,11 +516,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <StyledInputContainer>
             <div className="control-label">{t('Secure Extra')}</div>
             <div className="input-container">
-              <textarea
+              <StyledJsonEditor
                 name="encrypted_extra"
                 value={db ? db.encrypted_extra || '' : ''}
                 placeholder={t('Secure Extra')}
-                onChange={onTextChange}
+                onChange={(json: string) =>
+                  onEditorChange(json, 'encrypted_extra')
+                }
+                width="100%"
+                height="160px"
               />
             </div>
             <div className="helper">
@@ -571,13 +597,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               />
             </div>
           </StyledInputContainer>
-          <StyledInputContainer>
+          <StyledInputContainer className="extra-container">
             <div className="control-label">{t('Extra')}</div>
             <div className="input-container">
-              <textarea
+              <StyledJsonEditor
                 name="extra"
                 value={(db && db.extra) ?? defaultExtra}
-                onChange={onTextChange}
+                placeholder={t('Secure Extra')}
+                onChange={(json: string) => onEditorChange(json, 'extra')}
+                width="100%"
+                height="160px"
               />
             </div>
             <div className="helper">
