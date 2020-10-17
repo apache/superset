@@ -92,21 +92,31 @@ def create_alert(
     return alert
 
 
-@pytest.mark.parametrize("description, query, value", [
-    ("Test int SQL return", "SELECT 55", 55.0),
-    ("Test double SQL return", "SELECT 30.0 as wage", 30.0),
-    ("Test NULL result", "SELECT null as null_result", None),
-    ("Test empty SQL return", "SELECT first FROM test_table WHERE first = -1", None),
-    ("Test multi line query",
-        """
+@pytest.mark.parametrize(
+    "description, query, value",
+    [
+        ("Test int SQL return", "SELECT 55", 55.0),
+        ("Test double SQL return", "SELECT 30.0 as wage", 30.0),
+        ("Test NULL result", "SELECT null as null_result", None),
+        (
+            "Test empty SQL return",
+            "SELECT first FROM test_table WHERE first = -1",
+            None,
+        ),
+        (
+            "Test multi line query",
+            """
         -- comment
         SELECT
             1 -- comment
         FROM test_table
             WHERE first = 1
-        """, 1.0),
-    ("Test jinja", "SELECT {{ 2 }}", 2.0)
-])
+        """,
+            1.0,
+        ),
+        ("Test jinja", "SELECT {{ 2 }}", 2.0),
+    ],
+)
 def test_alert_observer_no_error_msg(setup_database, description, query, value):
     logger.info(description)
     db_session = setup_database
@@ -119,11 +129,17 @@ def test_alert_observer_no_error_msg(setup_database, description, query, value):
     assert alert.observations[-1].error_msg is None
 
 
-@pytest.mark.parametrize("description, query", [
-    ("Test str result", "SELECT 'test_string' as string_value"),
-    ("Test two row result", "SELECT first FROM test_table"),
-    ("Test two column result", "SELECT first, second FROM test_table WHERE first = 1"),
-])
+@pytest.mark.parametrize(
+    "description, query",
+    [
+        ("Test str result", "SELECT 'test_string' as string_value"),
+        ("Test two row result", "SELECT first FROM test_table"),
+        (
+            "Test two column result",
+            "SELECT first, second FROM test_table WHERE first = 1",
+        ),
+    ],
+)
 def test_alert_observer_error_msg(setup_database, description, query):
     logger.info(description)
     db_session = setup_database
@@ -156,35 +172,57 @@ def test_evaluate_alert(mock_deliver_alert, setup_database):
     assert alert3.logs[-1].state == AlertState.TRIGGER
 
 
-@pytest.mark.parametrize("description, validator_type, config", [
-    ("Test with invalid operator type", "greater than", "{}"),
-    ("Test with empty config", "operator", "{}"),
-    ("Test with invalid operator", "operator", '{"op": "is", "threshold":50.0}'),
-    ("Test with invalid threshold", "operator", '{"op": "is", "threshold":"hello"}'),
-])
+@pytest.mark.parametrize(
+    "description, validator_type, config",
+    [
+        ("Test with invalid operator type", "greater than", "{}"),
+        ("Test with empty config", "operator", "{}"),
+        ("Test with invalid operator", "operator", '{"op": "is", "threshold":50.0}'),
+        (
+            "Test with invalid threshold",
+            "operator",
+            '{"op": "is", "threshold":"hello"}',
+        ),
+    ],
+)
 def test_check_validator_error(description, validator_type, config):
     logger.info(description)
     with pytest.raises(SupersetException):
         check_validator(validator_type, config)
 
 
-@pytest.mark.parametrize("description, validator_type, config", [
-    ("Test with float threshold and no errors", "operator", 
-    '{"op": ">=", "threshold": 50.0}'),
-    ("Test with int threshold and no errors", "operator", 
-    '{"op": ">=", "threshold": 50}')
-])
+@pytest.mark.parametrize(
+    "description, validator_type, config",
+    [
+        (
+            "Test with float threshold and no errors",
+            "operator",
+            '{"op": ">=", "threshold": 50.0}',
+        ),
+        (
+            "Test with int threshold and no errors",
+            "operator",
+            '{"op": ">=", "threshold": 50}',
+        ),
+    ],
+)
 def test_check_validator_no_error(description, validator_type, config):
     logger.info(description)
     assert check_validator(validator_type, config) is None
 
 
-@pytest.mark.parametrize("description, query, value", [
-    ("Test passing with 'null' SQL result", "SELECT 0", False),
-    ("Test passing with empty SQL result",
-    "SELECT first FROM test_table WHERE first = -1", False),
-    ("Test triggering alert with non-null SQL result", "SELECT 55", True),
-])
+@pytest.mark.parametrize(
+    "description, query, value",
+    [
+        ("Test passing with 'null' SQL result", "SELECT 0", False),
+        (
+            "Test passing with empty SQL result",
+            "SELECT first FROM test_table WHERE first = -1",
+            False,
+        ),
+        ("Test triggering alert with non-null SQL result", "SELECT 55", True),
+    ],
+)
 def test_not_null_validator(setup_database, description, query, value):
     logger.info(description)
     db_session = setup_database
@@ -224,12 +262,16 @@ def test_operator_validator(setup_database):
     assert operator_validator(alert2, '{"op": "==", "threshold": 55}') is True
 
 
-@pytest.mark.parametrize("description, query, validator_type, config", [
-    ("Test False on alert with no validator", "SELECT 55", "operator", ""),
-    ("Test False on alert with no observations", "SELECT 0", "not null", "{}"),
-])
-def test_validate_observations_no_observe(setup_database, description, 
-query, validator_type, config):
+@pytest.mark.parametrize(
+    "description, query, validator_type, config",
+    [
+        ("Test False on alert with no validator", "SELECT 55", "operator", ""),
+        ("Test False on alert with no observations", "SELECT 0", "not null", "{}"),
+    ],
+)
+def test_validate_observations_no_observe(
+    setup_database, description, query, validator_type, config
+):
     db_session = setup_database
     logger.info(description)
 
@@ -237,14 +279,28 @@ query, validator_type, config):
     assert validate_observations(alert.id, alert.label, db_session) is False
 
 
-@pytest.mark.parametrize("description, query, validator_type, config, expected", [
-    ("Test False on alert that should not be triggered", 
-    "SELECT 0", "not null", "{}", False),
-    ("Test True on alert that should be triggered", 
-    "SELECT 55", "operator", '{"op": "<=", "threshold": 60}', True),
-])
-def test_validate_observations_with_observe(setup_database, description, 
-query, validator_type, config, expected):
+@pytest.mark.parametrize(
+    "description, query, validator_type, config, expected",
+    [
+        (
+            "Test False on alert that should not be triggered",
+            "SELECT 0",
+            "not null",
+            "{}",
+            False,
+        ),
+        (
+            "Test True on alert that should be triggered",
+            "SELECT 55",
+            "operator",
+            '{"op": "<=", "threshold": 60}',
+            True,
+        ),
+    ],
+)
+def test_validate_observations_with_observe(
+    setup_database, description, query, validator_type, config, expected
+):
     db_session = setup_database
     logger.info(description)
 
