@@ -210,7 +210,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       onHide={hide}
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
-      width="800px"
+      width="55%"
       title={
         <h4 data-test="css-template-modal-title">
           {isEditMode ? (
@@ -245,7 +245,6 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
           <span className="required">*</span>
         </div>
         <StyledCssEditor
-          height="240px"
           onChange={onCssChange}
           value={currentCssTemplate?.css}
           width="100%"
