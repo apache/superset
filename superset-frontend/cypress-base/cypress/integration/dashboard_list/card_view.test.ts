@@ -89,8 +89,10 @@ describe('Dashboard card view', () => {
   it('should delete correctly', () => {
     // show delete modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
-    cy.get('[data-test="dashboard-card-view-trash-icon"]').should('be.visible');
-    cy.get('[data-test="dashboard-card-view-trash-icon"]').click();
+    cy.get('[data-test="dashboard-list-view-card-trash-icon"]').should(
+      'be.visible',
+    );
+    cy.get('[data-test="dashboard-list-view-card-trash-icon"]').click();
     cy.get('[data-test="Please Confirm-modal-footer"]').should('be.visible');
     cy.get('[data-test="modal-delete-button"]').should('have.attr', 'disabled');
     cy.get('[data-test="Please Confirm-modal-body"]').should('be.visible');
@@ -105,7 +107,9 @@ describe('Dashboard card view', () => {
   it('should edit correctly', () => {
     // show edit modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
-    cy.get('[data-test="dashboard-list-edit-option"]').should('be.visible');
+    cy.get('[data-test="dashboard-list-edit-option"]', {
+      timeout: 10000,
+    }).should('be.visible');
     cy.get('[data-test="dashboard-list-edit-option"]').click();
     cy.get('[data-test="dashboard-properties-modal"]').should('be.visible');
     cy.get('[data-test="dashboard-title-input"]').should('not.have.value');

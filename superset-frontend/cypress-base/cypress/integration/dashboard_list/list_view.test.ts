@@ -31,7 +31,7 @@ describe('dashboard list view', () => {
     // check dashboard list view header
     cy.get('[data-test="sort-header"]').eq(1).contains('Title');
     cy.get('[data-test="sort-header"]').eq(2).contains('Modified By');
-    cy.get('[data-test="sort-header"]').eq(3).contains('Published');
+    cy.get('[data-test="sort-header"]').eq(3).contains('Status');
     cy.get('[data-test="sort-header"]').eq(4).contains('Modified');
     cy.get('[data-test="sort-header"]').eq(5).contains('Created By');
     cy.get('[data-test="sort-header"]').eq(6).contains('Owners');
