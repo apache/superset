@@ -39,6 +39,10 @@ const propTypes = {
   onResize: PropTypes.func.isRequired,
   columns: PropTypes.arrayOf(columnType),
   datasourceType: PropTypes.string,
+  title: PropTypes.shape({
+    label: PropTypes.string,
+    hasCustomLabel: PropTypes.bool,
+  }),
 };
 
 const defaultProps = {
@@ -80,7 +84,10 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onSave() {
-    this.props.onChange(this.state.adhocMetric);
+    this.props.onChange({
+      ...this.state.adhocMetric,
+      ...this.props.title,
+    });
     this.props.onClose();
   }
 
