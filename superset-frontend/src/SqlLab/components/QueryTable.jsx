@@ -142,7 +142,6 @@ const QueryTable = props => {
         if (q.resultsKey) {
           q.output = (
             <ModalTrigger
-              bsSize="large"
               className="ResultsModal"
               triggerNode={
                 <Label bsStyle="info" className="pointer">

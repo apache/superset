@@ -124,7 +124,6 @@ export default class TextAreaControl extends React.Component {
         {this.renderEditor()}
         {this.props.offerEditInModal && (
           <ModalTrigger
-            bsSize="large"
             modalTitle={controlHeader}
             triggerNode={
               <Button buttonSize="small" className="m-t-5">
