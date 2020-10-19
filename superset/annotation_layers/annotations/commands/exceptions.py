@@ -50,3 +50,7 @@ class AnnotationInvalidError(CommandInvalidError):
 
 class AnnotationCreateFailedError(CreateFailedError):
     message = _("Annotation could not be created.")
+
+
+class AnnotationUpdateFailedError(CreateFailedError):
+    message = _("Annotation could not be updated.")

@@ -15,14 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.extensions import db
-from superset.models.annotations import AnnotationLayer
+from superset.models.annotations import Annotation, AnnotationLayer
 
 logger = logging.getLogger(__name__)
 
@@ -45,3 +45,19 @@ class AnnotationLayerDAO(BaseDAO):
             if commit:
                 db.session.rollback()
             raise DAODeleteFailedError()
+
+    @staticmethod
+    def has_annotations(model_id: Union[int, List[int]]) -> bool:
+        if isinstance(model_id, list):
+            return (
+                db.session.query(AnnotationLayer)
+                .filter(AnnotationLayer.id.in_(model_id))
+                .join(Annotation)
+                .first()
+            ) is not None
+        return (
+            db.session.query(AnnotationLayer)
+            .filter(AnnotationLayer.id == model_id)
+            .join(Annotation)
+            .first()
+        ) is not None

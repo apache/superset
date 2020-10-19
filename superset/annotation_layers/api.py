@@ -18,15 +18,19 @@ import logging
 from typing import Any
 
 from flask import g, Response
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
 from superset.annotation_layers.commands.bulk_delete import (
     BulkDeleteAnnotationLayerCommand,
 )
+from superset.annotation_layers.commands.delete import DeleteAnnotationLayerCommand
 from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerBulkDeleteFailedError,
+    AnnotationLayerBulkDeleteIntegrityError,
+    AnnotationLayerDeleteFailedError,
+    AnnotationLayerDeleteIntegrityError,
     AnnotationLayerNotFoundError,
 )
 from superset.annotation_layers.filters import AnnotationLayerAllTextFilter
@@ -71,17 +75,63 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Annotation Layers"
     openapi_spec_methods = openapi_spec_methods_override
 
+    @expose("/<int:layer_id>", methods=["DELETE"])
+    @protect()
+    @safe
+    @permission_name("delete")
+    def delete(self, layer_id: int) -> Response:
+        """Delete an annotation layer
+        ---
+        post:
+          description: >-
+            Delete an annotation layer
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: layer_id
+            description: The annotation layer pk for this annotation
+          responses:
+            200:
+              description: Item deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            DeleteAnnotationLayerCommand(g.user, layer_id).run()
+            return self.response(200, message="OK")
+        except AnnotationLayerNotFoundError as ex:
+            return self.response_404()
+        except AnnotationLayerDeleteIntegrityError as ex:
+            return self.response_422(message=str(ex))
+        except AnnotationLayerDeleteFailedError as ex:
+            logger.error(
+                "Error deleting annotation %s: %s", self.__class__.__name__, str(ex)
+            )
+            return self.response_422(message=str(ex))
+
     @expose("/", methods=["DELETE"])
     @protect()
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk CSS Templates
+        """Delete bulk Annotation layers
         ---
         delete:
           description: >-
-            Deletes multiple css templates in a bulk operation.
+            Deletes multiple annotation layers in a bulk operation.
           parameters:
           - in: query
             name: q
@@ -114,12 +164,14 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             return self.response(
                 200,
                 message=ngettext(
-                    "Deleted %(num)d css template",
-                    "Deleted %(num)d css templates",
+                    "Deleted %(num)d annotation layer",
+                    "Deleted %(num)d annotation layers",
                     num=len(item_ids),
                 ),
             )
         except AnnotationLayerNotFoundError:
             return self.response_404()
+        except AnnotationLayerBulkDeleteIntegrityError as ex:
+            return self.response_422(message=str(ex))
         except AnnotationLayerBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))

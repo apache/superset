@@ -14,26 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_babel import lazy_gettext as _
-
-from superset.commands.exceptions import CommandException, DeleteFailedError
-
-
-class AnnotationLayerBulkDeleteFailedError(DeleteFailedError):
-    message = _("Annotation layer could not be deleted.")
-
-
-class AnnotationLayerNotFoundError(CommandException):
-    message = _("Annotation layer not found.")
-
-
-class AnnotationLayerDeleteFailedError(CommandException):
-    message = _("Annotation layer delete failed.")
-
-
-class AnnotationLayerDeleteIntegrityError(CommandException):
-    message = _("Annotation layer has associated annotations.")
-
-
-class AnnotationLayerBulkDeleteIntegrityError(CommandException):
-    message = _("Annotation layer has associated annotations.")

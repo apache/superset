@@ -62,8 +62,21 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
 
     show_columns = [
         "short_descr",
+        "long_descr",
+        "start_dttm",
+        "end_dttm",
+        "json_metadata",
+        "layer.id",
+        "layer.name",
     ]
-    list_columns = ["short_descr", "long_descr"]
+    list_columns = [
+        "short_descr",
+        "created_by.id",
+        "created_by.first_name",
+        "changed_by.id",
+        "changed_by.first_name",
+        "changed_on_delta_humanized",
+    ]
     add_columns = [
         "short_descr",
         "long_descr",
@@ -240,14 +253,141 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            item = self.add_model_schema.load(request.json)
+            item["layer"] = layer_id
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            new_model = CreateAnnotationCommand(g.user, item).run()
+            return self.response(201, id=new_model.id, result=item)
+        except AnnotationLayerNotFoundError as ex:
+            return self.response_400(message=str(ex))
+        except AnnotationInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except AnnotationCreateFailedError as ex:
+            logger.error(
+                "Error creating annotation %s: %s", self.__class__.__name__, str(ex)
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:layer_id>/annotation/<int:annotation_id>", methods=["PUT"])
+    @protect()
+    @safe
+    @permission_name("put")
+    def put(self, layer_id: int, annotation_id: int) -> Response:
+        """Updates an Annotation
+        ---
+        post:
+          description: >-
+            Update an annotation
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: layer_id
+            description: The annotation layer pk for this annotation
+          - in: path
+            schema:
+              type: integer
+            name: annotation_id
+            description: The annotation pk for this annotation
+          requestBody:
+            description: Annotation schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Annotation changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            item = self.add_model_schema.load(request.json)
+            item["layer"] = layer_id
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            new_model = CreateAnnotationCommand(g.user, item).run()
+            return self.response(201, id=new_model.id, result=item)
+        except AnnotationLayerNotFoundError as ex:
+            return self.response_400(message=str(ex))
+        except AnnotationInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except AnnotationCreateFailedError as ex:
+            logger.error(
+                "Error creating annotation %s: %s", self.__class__.__name__, str(ex)
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:layer_id>/annotation/<int:annotation_id>", methods=["DELETE"])
+    @protect()
+    @safe
+    @permission_name("post")
+    def delete(self, layer_id: int, annotation_id: int) -> Response:
+        """Updates an Annotation
+        ---
+        post:
+          description: >-
+            Update an annotation
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: layer_id
+            description: The annotation layer pk for this annotation
+          - in: path
+            schema:
+              type: integer
+            name: annotation_id
+            description: The annotation pk for this annotation
+          responses:
+            200:
+              description: Item deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
