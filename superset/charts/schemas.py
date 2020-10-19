@@ -22,7 +22,7 @@ from marshmallow.validate import Length, Range
 
 from superset.common.query_context import QueryContext
 from superset.utils import schema as utils
-from superset.utils.core import ExtraFiltersTimeColumnType, FilterOperator
+from superset.utils.core import FilterOperator
 
 #
 # RISON/JSON schemas for query parameters

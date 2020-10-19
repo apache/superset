@@ -1585,7 +1585,7 @@ def is_test() -> bool:
     return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
 
 
-def get_time_filter_status(
+def get_time_filter_status(  # pylint: disable=too-many-branches
     datasource: "BaseDatasource", applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
     temporal_columns = {
@@ -1608,7 +1608,7 @@ def get_time_filter_status(
     if ExtraFiltersTimeColumnType.TIME_GRAIN in applied_time_extras:
         # are there any temporal columns to assign the time grain to?
         if temporal_columns:
-            applied.append({"column": ExtraFiltersTimeColumnType.TIME_COL})
+            applied.append({"column": ExtraFiltersTimeColumnType.TIME_GRAIN})
         else:
             rejected.append(
                 {
