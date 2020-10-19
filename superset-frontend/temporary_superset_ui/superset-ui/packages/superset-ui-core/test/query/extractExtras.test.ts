@@ -39,6 +39,11 @@ describe('extractExtras', () => {
         ],
       }),
     ).toEqual({
+      applied_time_extras: {
+        __time_col: 'ds2',
+        __time_grain: 'PT5M',
+        __time_range: '2009-07-17T00:00:00 : 2020-07-17T00:00:00',
+      },
       extras: {
         time_grain_sqla: 'PT5M',
         time_range_endpoints: ['inclusive', 'exclusive'],
@@ -68,6 +73,7 @@ describe('extractExtras', () => {
         ],
       }),
     ).toEqual({
+      applied_time_extras: {},
       extras: {
         time_grain_sqla: 'PT1M',
       },

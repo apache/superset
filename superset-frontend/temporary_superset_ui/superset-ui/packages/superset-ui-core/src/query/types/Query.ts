@@ -2,7 +2,7 @@
 import { DatasourceType } from './Datasource';
 import { AdhocMetric } from './Metric';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
-import { TimeRange } from './Time';
+import { AppliedTimeExtras, TimeRange } from './Time';
 import { QueryFormDataMetric, QueryFormResidualDataValue } from './QueryFormData';
 
 export type QueryObjectFilterClause = {
@@ -46,6 +46,8 @@ export type ResidualQueryObjectData = {
 };
 
 export type QueryObject = {
+  /** Time filters that have been applied to the query object */
+  applied_time_extras?: AppliedTimeExtras;
   /** Columns to group by */
   groupby?: string[];
   /** Metrics */
