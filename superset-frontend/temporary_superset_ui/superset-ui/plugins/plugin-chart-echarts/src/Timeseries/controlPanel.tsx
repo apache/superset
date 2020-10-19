@@ -300,7 +300,7 @@ const config: ControlPanelConfig = {
               type: 'BoundsControl',
               label: t('Y Axis Bounds'),
               renderTrigger: true,
-              default: [null, null],
+              default: [undefined, undefined],
               description: t(
                 'Bounds for the Y-axis. When left empty, the bounds are ' +
                   'dynamically defined based on the min/max of the data. Note that ' +
