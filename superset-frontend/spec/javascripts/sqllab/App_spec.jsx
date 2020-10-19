@@ -21,7 +21,6 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 
 import { shallow } from 'enzyme';
-import sinon from 'sinon';
 
 import App from 'src/SqlLab/components/App';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
@@ -39,14 +38,6 @@ describe('SqlLab App', () => {
 
   it('is valid', () => {
     expect(React.isValidElement(<App />)).toBe(true);
-  });
-
-  it('should handler resize', () => {
-    const inner = wrapper.dive();
-    sinon.spy(inner.instance(), 'getHeight');
-    inner.instance().handleResize();
-    expect(inner.instance().getHeight.callCount).toBe(1);
-    inner.instance().getHeight.restore();
   });
 
   it('should render', () => {
