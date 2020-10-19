@@ -24,7 +24,6 @@ import pytest
 import yaml
 from sqlalchemy.sql import func
 
-import tests.test_app
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.exceptions import (
     DAOCreateFailedError,
@@ -1019,7 +1018,7 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["charts"]["count"], 18)
-        self.assertEqual(response["dashboards"]["count"], 2)
+        self.assertEqual(response["dashboards"]["count"], 1)
 
     def test_get_dataset_related_objects_not_found(self):
         """
