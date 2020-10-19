@@ -20,6 +20,7 @@ import {
   SupersetClient,
   SupersetClientResponse,
   logging,
+  styled,
 } from '@superset-ui/core';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
@@ -53,27 +54,82 @@ const createFetchResourceMethod = (method: string) => (
   return [];
 };
 
-export const createBatchMethod = (queryParams: string, created?: string) => {
+export const getBatchData = (userId: string, recent: string) => {
+  const getParams = (filters?: Array<any>) => {
+    const params = {
+      order_column: 'changed_on_delta_humanized',
+      order_direction: 'desc',
+      page: 0,
+      page_size: 3,
+      filters,
+    };
+    if (!filters) delete params.filters;
+    return rison.encode(params);
+  };
+  const filters = {
+    // chart and dashbaord uses same filters
+    // for edited and created
+    edited: [
+      {
+        col: 'changed_by',
+        opr: 'rel_o_m',
+        value: `${userId}`,
+      },
+    ],
+    created: [
+      {
+        col: 'created_by',
+        opr: 'rel_o_m',
+        value: `${userId}`,
+      },
+    ],
+  };
   const baseBatch = [
-    SupersetClient.get({ endpoint: `/api/v1/dashboard/?q=${queryParams}` }),
-    SupersetClient.get({ endpoint: `/api/v1/chart/?q=${queryParams}` }),
+    SupersetClient.get({ endpoint: recent }),
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/?q=${getParams(filters.edited)}`,
+    }),
+    SupersetClient.get({
+      endpoint: `/api/v1/chart/?q=${getParams(filters.edited)}`,
+    }),
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/?q=${getParams(filters.created)}`,
+    }),
+    SupersetClient.get({
+      endpoint: `/api/v1/chart/?q=${getParams(filters.created)}`,
+    }),
   ];
-  if (created)
-    baseBatch.push(
-      SupersetClient.get({ endpoint: `/api/v1/saved_query/?q=${queryParams}` }),
-    );
-  return Promise.all(baseBatch).then(([dashboardRes, chartRes, savedQuery]) => {
-    const results = [];
-    const ifQuery = savedQuery ? savedQuery.json?.result.slice(0, 3) : [];
-    results.push(
-      ...[
-        ...dashboardRes.json?.result.slice(0, 3),
-        ...chartRes.json?.result.slice(0, 3),
-        ...ifQuery,
-      ],
-    );
-    return results;
-  });
+  return Promise.all(baseBatch).then(
+    // @ts-ignore
+    ([recentsRes, editedDash, editedChart, createdByDash, createdByChart]) => {
+      const res: any = {
+        editedDash: editedDash.json?.result.slice(0, 3),
+        editedChart: editedChart.json?.result.slice(0, 3),
+        createdByDash: createdByDash.json?.result.slice(0, 3),
+        createdByChart: createdByChart.json?.result.slice(0, 3),
+      };
+      if (recentsRes.json.length === 0) {
+        const newBatch = [
+          SupersetClient.get({ endpoint: `/api/v1/chart/?q=${getParams()}` }),
+          SupersetClient.get({
+            endpoint: `/api/v1/dashboard/?q=${getParams()}`,
+          }),
+        ];
+        // @ts-ignore
+        return Promise.all(newBatch)
+          .then(([chartRes, dashboardRes]) => {
+            res.examples = [
+              ...chartRes.json.result,
+              ...dashboardRes.json.result,
+            ];
+            return res;
+          })
+          .catch(e => console.log('err', e));
+      }
+      res.viewed = recentsRes.json;
+      return res;
+    },
+  );
 };
 
 export const createFetchRelated = createFetchResourceMethod('related');
@@ -86,3 +142,39 @@ export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
     handleErrorFunc(parsedError.message || parsedError.error);
   };
 }
+
+export function handleDashboardDelete(id: string) {
+  return SupersetClient.delete({
+    endpoint: `/api/v1/dashboard/${id}`,
+  });
+}
+
+const breakpoints = [576, 768, 992, 1200];
+export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
+
+export const CardContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+  ${[mq[3]]} {
+    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+  }
+
+  ${[mq[2]]} {
+    grid-template-columns: repeat(auto-fit, minmax(48%, max-content));
+  }
+
+  ${[mq[1]]} {
+    grid-template-columns: repeat(auto-fit, minmax(48%, max-content));
+  }
+  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
+  justify-content: left;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 6}px;
+`;
+
+export const IconContainer = styled.div`
+  svg {
+    vertical-align: -7px;
+    color: ${({ theme }) => theme.colors.primary.dark1};
+  }
+`;

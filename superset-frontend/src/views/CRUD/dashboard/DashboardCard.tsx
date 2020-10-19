@@ -27,11 +27,12 @@ function DashboardCard({
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canExport = hasPerm('can_mulexport');
-  const [favoriteStatusRef, fetchFaveStar, saveFaveStar] = useFavoriteStatus(
-    {},
-    FAVESTAR_BASE_URL,
-    addDangerToast,
-  );
+  const [
+    favoriteStatusRef,
+    fetchFaveStar,
+    saveFaveStar,
+    favoriteStatus,
+  ] = useFavoriteStatus({}, FAVESTAR_BASE_URL, addDangerToast);
 
   function handleDashboardDelete({
     id,
@@ -126,7 +127,7 @@ function DashboardCard({
             itemId={dashboard.id}
             fetchFaveStar={fetchFaveStar}
             saveFaveStar={saveFaveStar}
-            isStarred={!!favoriteStatusRef.current[dashboard.id]}
+            isStarred={!!favoriteStatus[dashboard.id]}
           />
           <Dropdown overlay={menu}>
             <Icon name="more-horiz" />

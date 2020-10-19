@@ -17,16 +17,30 @@
  * under the License.
  */
 import React from 'react';
-import { SavedQueries } from 'src/views/CRUD/welcome/SavedQueries'
-import { shallow } from 'enzyme';
+import SavedQueries from 'src/views/CRUD/welcome/SavedQueries';
+import { mount } from 'enzyme';
+import thunk from 'redux-thunk';
+
+import configureStore from 'redux-mock-store';
+// store needed for withToasts(DashboardTable)
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 describe('SavedQueries', () => {
-  const 
+  const savedQueryProps = {
+    user: {
+      userId: '1',
+    },
+    activityFilter: 'Edit',
+  };
+
+  const wrapper = mount(<SavedQueries {...savedQueryProps} />);
+
   it('is valid', () => {
     expect(React.isValidElement(<SavedQueries />)).toBe(true);
   });
-  it('SaveQueries renders up to three saved queries', ()=>{
-    //expect() 
-  })
-  
+ it('takes in props', () => {
+
+    // expect()
+  }); 
 });

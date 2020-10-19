@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { useListViewResource, useChartEditModal } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
-import Owner from 'src/types/Owner';
+import Icon from 'src/components/Icon';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
+import SubMenu from 'src/components/Menu/SubMenu';
+import EmptyState from './EmptyState';
+import { CardContainer, IconContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -37,7 +40,6 @@ interface ChartTableProps {
 }
 
 function ChartTable({
-  chartFilter,
   user,
   addDangerToast,
   addSuccessToast,
@@ -56,6 +58,8 @@ function ChartTable({
     handleChartUpdated,
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
+
+  const [chartFilter, setChartFilter] = useState('Favorite');
 
   const getFilters = () => {
     const filters = [];
@@ -110,19 +114,64 @@ function ChartTable({
         />
       )}
 
-      {charts.map((e, i) => (
-        <ChartCard
-          key={`${i}`}
-          openChartEditModal={openChartEditModal}
-          loading={loading}
-          chart={e}
-          hasPerm={hasPerm}
-          bulkSelectEnabled={bulkSelectEnabled}
-          refreshData={refreshData}
-          addDangerToast={addDangerToast}
-          addSuccessToast={addSuccessToast}
-        />
-      ))}
+      <SubMenu
+        activeChild={chartFilter}
+        name=""
+        // eslint-disable-next-line react/no-children-prop
+        children={[
+          {
+            name: 'Favorite',
+            label: t('Favorite'),
+            onClick: () => setChartFilter('Favorite'),
+          },
+          {
+            name: 'Mine',
+            label: t('Mine'),
+            onClick: () => setChartFilter('Mine'),
+          },
+        ]}
+        buttons={[
+          {
+            name: (
+              <IconContainer>
+                <Icon name="plus-small" /> Chart{' '}
+              </IconContainer>
+            ),
+            buttonStyle: 'tertiary',
+            onClick: () => {
+              // @ts-ignore
+              window.location = '/chart/add';
+            },
+          },
+          {
+            name: 'View All »',
+            buttonStyle: 'link',
+            onClick: () => {
+              // @ts-ignore
+              window.location = '/chart/list';
+            },
+          },
+        ]}
+      />
+      {charts.length ? (
+        <CardContainer>
+          {charts.map((e, i) => (
+            <ChartCard
+              key={`${i}`}
+              openChartEditModal={openChartEditModal}
+              loading={loading}
+              chart={e}
+              hasPerm={hasPerm}
+              bulkSelectEnabled={bulkSelectEnabled}
+              refreshData={refreshData}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+            />
+          ))}
+        </CardContainer>
+      ) : (
+        <EmptyState tableName="CHARTS" tab={chartFilter} />
+      )}
     </>
   );
 }

@@ -17,48 +17,78 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { act } from 'react-dom/test-utils';
 
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import SubMenu from 'src/components/Menu/SubMenu';
 import DashboardTable from 'src/views/CRUD/welcome/DashboardTable';
-import DashboardCard from 'src/views/CRUD/welcome/DashboardCard';
+import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 
 // store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const dashboardsEndpoint = 'glob:*/api/v1/dashboard/*';
-const mockDashboards = [{ id: 1, url: 'url', dashboard_title: 'title' }];
+const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
+const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
+const mockDashboards = [
+  {
+    id: 1,
+    url: 'url',
+    dashboard_title: 'title',
+    changed_on_utc: '24 Feb 2014 10:13:14',
+  },
+];
 
 fetchMock.get(dashboardsEndpoint, { result: mockDashboards });
-
-function setup() {
-  // use mount because data fetching is triggered on mount
-  return mount(<DashboardTable />, {
-    context: { store },
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
-  });
-}
+//fetchMock.get(dashboardsEndpointNoData, { result: [] });
+fetchMock.get(chartsInfoEndpoint, {
+  permissions: ['can_list', 'can_edit', 'can_delete'],
+});
 
 describe('DashboardTable', () => {
-  beforeEach(fetchMock.resetHistory);
-
-  it('fetches dashboards and renders a ', () => {
-    return new Promise(done => {
-      const wrapper = setup();
-
-      setTimeout(() => {
-        expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(1);
-        // there's a delay between response and updating state, so manually set it
-        // rather than adding a timeout which could introduce flakiness
-        wrapper.setState({ dashboards: mockDashboards });
-        expect(wrapper.find(DashboardCard)).toExist();
-        done();
-      });
-    });
+  const dashboardProps = {
+    dashboardFilter: 'Favorite',
+    user: {
+      userId: '2',
+    },
+  };
+  const wrapper = mount(<DashboardTable {...dashboardProps} />, {
+    context: { store },
   });
+  // console.log('wrapper', wrapper.debug())
+  // beforeEach(fetchMock.resetHistory);
+
+  beforeAll(async () => {
+    await waitForComponentToPaint(wrapper);
+  });
+
+  it('renders', () => {
+    expect(wrapper.find(DashboardTable)).toExist();
+    console.log('wrapper', wrapper.debug())
+  });
+
+  it('render a submenu with clickable tabs and buttons', async () => {
+    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find('MenuItem')).toHaveLength(2);
+    expect(wrapper.find('Button')).toHaveLength(2);
+    act(() => {
+      wrapper.find('MenuItem').at(1).simulate('click');
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(fetchMock.calls(/dashboard\/\?q/)).toHaveLength(1);
+  });
+
+  it('fetches dashboards and renders a card', () => {
+    expect(fetchMock.calls(/dashboard\/\?q/)).toHaveLength(1);
+    wrapper.setState({ dashboards: mockDashboards });
+    expect(wrapper.find(DashboardCard)).toExist();
+  });
+  /*it('display EmptyState if there is no data', ()=>{
+    (const wrapper = mount(<DashboardTable {...dashboardProps} />)
+    console.log('wrapper', wrapper);
+  });*/
 });

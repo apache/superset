@@ -21,7 +21,6 @@ import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import configureStore from 'redux-mock-store';
 import ChartTable from 'src/views/CRUD/welcome/ChartTable';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';

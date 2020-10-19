@@ -17,18 +17,24 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { t, styled, SupersetClient } from '@superset-ui/core';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Dropdown, Menu } from 'src/common/components';
-import { useListViewResource } from 'src/views/CRUD/hooks';
+import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
+import DeleteModal from 'src/components/DeleteModal';
 import Icon from 'src/components/Icon';
-import { addDangerToast } from 'src/messageToasts/actions';
+import { SavedQueryObject } from 'src/views/CRUD/types';
+import SubMenu from 'src/components/Menu/SubMenu';
+import EmptyState from './EmptyState';
+
+import { IconContainer, CardContainer, createErrorHandler } from '../utils';
 
 const PAGE_SIZE = 3;
 
 interface Query {
-  sql_tables: array;
+  id: number;
+  sql_tables: Array<any>;
   database: {
     database_name: string;
   };
@@ -36,6 +42,7 @@ interface Query {
   description: string;
   end_time: string;
   addDangerToast: () => void;
+  label: string;
 }
 
 interface SavedQueriesProps {
@@ -45,11 +52,46 @@ interface SavedQueriesProps {
   queryFilter: string;
 }
 
-const SavedQueries = ({ user, queryFilter }: SavedQueriesProps) => {
+const NoData = styled.div`
+  .create-your-query {
+    display: block;
+    margin: 0 auto;
+  }
+`;
+
+const SavedQueries = ({
+  user,
+  addDangerToast,
+  addSuccessToast,
+}: SavedQueriesProps) => {
   const {
     state: { loading, resourceCollection: queries },
+    hasPerm,
     fetchData,
+    refreshData,
   } = useListViewResource<Query>('saved_query', t('query'), addDangerToast);
+  const [queryFilter, setQueryFilter] = useState('Favorite');
+  const [queryDeleteModal, setQueryDeleteModal] = useState(false);
+  const [currentlyEdited, setCurrentlyEdited] = useState(null);
+
+  const canEdit = hasPerm('can_edit');
+  const canDelete = hasPerm('can_delete');
+
+  const handleQueryDelete = ({ id, label }: SavedQueryObject) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/saved_query/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        setQueryDeleteModal(false);
+        addSuccessToast(t('Deleted: %s', label));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(t('There was an issue deleting %s: %s', label, errMsg)),
+      ),
+    );
+  };
+
   const getFilters = () => {
     const filters = [];
 
@@ -83,36 +125,117 @@ const SavedQueries = ({ user, queryFilter }: SavedQueriesProps) => {
     });
   }, [queryFilter]);
 
-  const menu = (
+  const renderMenu = (query: Query) => (
     <Menu>
-      <Menu.Item>Delete</Menu.Item>
+      {canEdit && (
+        <Menu.Item
+          onClick={() => {
+            // @ts-ignore
+            window.location = `/superset/sqllab?savedQueryId=${query.id}`;
+          }}
+        >
+          Edit
+        </Menu.Item>
+      )}
+      <Menu.Item
+        onClick={() => copyQueryLink(query.id, addDangerToast, addSuccessToast)}
+      >Share</Menu.Item>
+      {canDelete && (
+        <Menu.Item
+          onClick={() => {
+            setQueryDeleteModal(true);
+            setCurrentlyEdited(query);
+          }}
+        >
+          Delete
+        </Menu.Item>
+      )}
     </Menu>
   );
 
   return (
     <>
-      {queries ? (
-        queries.map(q => (
-          <ListViewCard
-            imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
-            imgURL=""
-            title={q.database.database_name}
-            rows={q.rows}
-            tableName={q.sql_tables[0].table}
-            loading={loading}
-            description={t('Last run ', q.end_time)}
-            showImg={false}
-            actions={
-              <ListViewCard.Actions>
-                <Dropdown overlay={menu}>
-                  <Icon name="more-horiz" />
-                </Dropdown>
-              </ListViewCard.Actions>
+      {queryDeleteModal && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete the saved query.',
+          )}
+          onConfirm={() => {
+            if (queryDeleteModal) {
+              handleQueryDelete(currentlyEdited);
             }
-          />
-        ))
+          }}
+          onHide={() => {
+            setQueryDeleteModal(false);
+          }}
+          open
+          title={t('Delete Query?')}
+        />
+      )}
+      <SubMenu
+        activeChild={queryFilter}
+        name=""
+        // eslint-disable-next-line react/no-children-prop
+        children={[
+          {
+            name: 'Favorite',
+            label: t('Favorite'),
+            onClick: () => setQueryFilter('Favorite'),
+          },
+          {
+            name: 'Mine',
+            label: t('Mine'),
+            onClick: () => setQueryFilter('Mine'),
+          },
+        ]}
+        buttons={[
+          {
+            name: (
+              <IconContainer>
+                <Icon name="plus-small" /> SQL Query{' '}
+              </IconContainer>
+            ),
+            buttonStyle: 'tertiary',
+            onClick: () => {
+              // @ts-ignore
+              window.location = '/superset/sqllab';
+            },
+          },
+          {
+            name: 'View All »',
+            buttonStyle: 'link',
+            onClick: () => {
+              // @ts-ignore
+              window.location = '/savedqueryview/list';
+            },
+          },
+        ]}
+      />
+      {queries.length > 0 ? (
+        <CardContainer>
+          {queries.map(q => (
+            <ListViewCard
+              imgFallbackURL=""
+              imgURL=""
+              title={q.label}
+              rows={q.rows}
+              tableName={q.sql_tables[0]?.table}
+              tables={q.sql_tables?.length}
+              loading={loading}
+              description={t('Last run ', q.end_time)}
+              showImg={false}
+              actions={
+                <ListViewCard.Actions>
+                  <Dropdown overlay={renderMenu(q)}>
+                    <Icon name="more-horiz" />
+                  </Dropdown>
+                </ListViewCard.Actions>
+              }
+            />
+          ))}
+        </CardContainer>
       ) : (
-        <span>You have no Saved Queries!</span>
+        <EmptyState tableName="SAVED_QUERIES" tab={queryFilter} />
       )}
     </>
   );

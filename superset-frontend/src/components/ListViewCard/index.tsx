@@ -139,11 +139,26 @@ const SkeletonActions = styled(Skeleton.Button)`
   width: ${({ theme }) => theme.gridUnit * 10}px;
 `;
 
+const QueryData = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  border-bottom: 1px solid #e0e0e0;
+  .title {
+    font-weight: 500;
+    color: #b2b2b2;
+  }
+  .holder {
+    margin: 10px 10px 10px 10px;
+  }
+`;
+
 const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
   title: React.ReactNode;
   url?: string;
   imgURL: string;
+  tables?: string | number;
   imgFallbackURL: string;
   imgPosition?: BackgroundPosition;
   description: string;
@@ -167,6 +182,7 @@ function ListViewCard({
   imgFallbackURL,
   description,
   coverLeft,
+  tables,
   coverRight,
   actions,
   avatar,
@@ -174,7 +190,6 @@ function ListViewCard({
   loading,
   imgPosition = 'top',
   showImg = true,
-  rows,
   isRecent,
 }: CardProps) {
   return (
@@ -205,16 +220,12 @@ function ListViewCard({
           </Cover>
         ) : (
           <QueryData>
-            <div>
-              <div>Tables</div>
-              <div>{}</div>
+            <div className="holder">
+              <div className="title">Tables</div>
+              <div>{tables}</div>
             </div>
-            <div>
-              <div>Rows</div>
-              <div>{rows}</div>
-            </div>
-            <div>
-              <div>Datasource Name</div>
+            <div className="holder">
+              <div className="title">Datasource Name</div>
               <div>{tableName}</div>
             </div>
           </QueryData>

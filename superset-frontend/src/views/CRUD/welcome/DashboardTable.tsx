@@ -16,29 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
-import { t } from '@superset-ui/core';
-import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import React, { useEffect, useState } from 'react';
+import { SupersetClient, t } from '@superset-ui/core';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import Owner from 'src/types/Owner';
-import { DashboardTableProps } from 'src/views/CRUD/types';
+import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
+import SubMenu from 'src/components/Menu/SubMenu';
+import Icon from 'src/components/Icon';
+import EmptyState from './EmptyState';
+import { createErrorHandler, CardContainer, IconContainer } from '../utils';
 
 const PAGE_SIZE = 3;
-
-interface Dashboard {
-  changed_by_name: string;
-  changed_by_url: string;
-  changed_on_delta_humanized: string;
-  changed_by: string;
-  dashboard_title: string;
-  id: number;
-  published: boolean;
-  url: string;
-  thumbnail_url: string;
-  owners: Owner[];
-  loading: boolean;
-}
 
 export interface FilterValue {
   col: string;
@@ -47,14 +37,13 @@ export interface FilterValue {
 }
 
 function DashboardTable({
-  dashboardFilter,
   user,
   addDangerToast,
   addSuccessToast,
-  search,
 }: DashboardTableProps) {
   const {
     state: { loading, resourceCollection: dashboards, bulkSelectEnabled },
+    setResourceCollection: setDashboards,
     hasPerm,
     refreshData,
     fetchData,
@@ -63,6 +52,31 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
   );
+
+  const [editModal, setEditModal] = useState<Dashboard | null>(null);
+  const [dashboardFilter, setDashboardFilter] = useState('Favorite');
+
+  const handleDashboardEdit = (edits: Dashboard) => {
+    return SupersetClient.get({
+      endpoint: `/api/v1/dashboard/${edits.id}`,
+    }).then(
+      ({ json = {} }) => {
+        setDashboards(
+          dashboards.map(dashboard => {
+            if (dashboard.id === json.id) {
+              return json.result;
+            }
+            return dashboard;
+          }),
+        );
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('An error occurred while fetching dashboards: %s', errMsg),
+        ),
+      ),
+    );
+  };
 
   const getFilters = () => {
     const filters = [];
@@ -80,15 +94,16 @@ function DashboardTable({
         value: true,
       });
     }
-    filters.concat([
-      {
-        id: 'dashboard_title',
-        operator: 'ct',
-        value: search,
-      },
-    ]);
     return filters;
   };
+  const subMenus = [];
+  if (dashboards.length > 0 && dashboardFilter === 'favorite') {
+    subMenus.push({
+      name: 'Favorite',
+      label: t('Favorite'),
+      onClick: () => setDashboardFilter('Favorite'),
+    });
+  }
 
   useEffect(() => {
     fetchData({
@@ -106,18 +121,73 @@ function DashboardTable({
 
   return (
     <>
-      {dashboards.map(e => (
-        <DashboardCard
-          {...{
-            dashboard: e,
-            hasPerm,
-            bulkSelectEnabled,
-            refreshData,
-            addDangerToast,
-            addSuccessToast,
-          }}
+      <SubMenu
+        activeChild={dashboardFilter}
+        name=""
+        // eslint-disable-next-line react/no-children-prop
+        children={[
+          {
+            name: 'Favorite',
+            label: t('Favorite'),
+            onClick: () => setDashboardFilter('Favorite'),
+          },
+          {
+            name: 'Mine',
+            label: t('Mine'),
+            onClick: () => setDashboardFilter('Mine'),
+          },
+        ]}
+        buttons={[
+          {
+            name: (
+              <IconContainer>
+                <Icon name="plus-small" /> Dashboard{' '}
+              </IconContainer>
+            ),
+            buttonStyle: 'tertiary',
+            onClick: () => {
+              // @ts-ignore
+              window.location = '/dashboard/new';
+            },
+          },
+          {
+            name: 'View All »',
+            buttonStyle: 'link',
+            onClick: () => {
+              // @ts-ignore
+              window.location = '/dashboard/list/';
+            },
+          },
+        ]}
+      />
+      {editModal && (
+        <PropertiesModal
+          dashboardId={editModal?.id}
+          show
+          onHide={() => setEditModal(null)}
+          onSubmit={handleDashboardEdit}
         />
-      ))}
+      )}
+      {dashboards.length > 0 ? (
+        <CardContainer>
+          {dashboards.map(e => (
+            <DashboardCard
+              {...{
+                dashboard: e,
+                hasPerm,
+                bulkSelectEnabled,
+                refreshData,
+                addDangerToast,
+                addSuccessToast,
+                loading,
+                openDashboardEditModal: dashboard => setEditModal(dashboard),
+              }}
+            />
+          ))}
+        </CardContainer>
+      ) : (
+        <EmptyState tableName="DASHBOARDS" tab={dashboardFilter} />
+      )}
     </>
   );
 }

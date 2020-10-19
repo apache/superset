@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 
 import Welcome from 'src/views/CRUD/welcome/Welcome';
 
@@ -33,12 +33,12 @@ describe('Welcome', () => {
       isActive: true,
     },
   };
-  it('is valid', () => {
-    expect(React.isValidElement(<Welcome {...mockedProps} />)).toBe(true);
+  const wrapper = mount(<Welcome {...mockedProps} />);
+  it('is renders', () => {
+    expect(wrapper.find(Welcome)).toExist();
   });
-  it('renders 3 submenu components', () => {
-    const wrapper = shallow(<Welcome {...mockedProps} />);
-    expect(wrapper.find('SubMenu')).toHaveLength(4);
+  it('renders first submenu on page load', () => {
+    expect(wrapper.find('SubMenu')).toHaveLength(1);
+    expect(wrapper.find('PanelContent')).toHaveLength(4);
   });
-  console.log('wrapper', )
 });

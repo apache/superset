@@ -27,7 +27,6 @@ export interface DashboardTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
   search: string;
-  dashboardFilter?: string;
   user?: User;
 }
 
@@ -56,3 +55,17 @@ export interface DashboardCardProps {
   addSuccessToast: (msg: string) => void;
   openDashboardEditModal?: (d: Dashboard) => void;
 }
+
+export type SavedQueryObject = {
+  database: {
+    database_name: string;
+    id: number;
+  };
+  db_id: number;
+  description?: string;
+  id: number;
+  label: string;
+  schema: string;
+  sql: string;
+  sql_tables: Array<{ catalog?: string; schema: string; table: string }>;
+};

@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import SubMenu from 'src/components/Menu/SubMenu';
+import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import { User } from 'src/types/bootstrapTypes';
@@ -35,213 +34,57 @@ interface WelcomeProps {
 }
 
 const WelcomeContainer = styled.div`
+  background-color: ${({ theme }) => theme.colors.grayscale.light4};
   nav {
+    margin-top: -15px;
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     &:after {
       content: '';
       display: block;
       border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
       margin: 0px 26px;
+      position: relative;
+      top: -13px;
+    }
+    .nav.navbar-nav {
+      & > li:nth-child(1),
+      & > li:nth-child(2),
+      & > li:nth-child(3) {
+        margin-top: 8px;
+      }
+    }
+    button {
+      padding: 3px 21px;
+    }
+    .navbar-right {
+      position: relative;
+      top: 11px;
     }
   }
   .ant-card.ant-card-bordered {
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
-`;
-
-const ActivityContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: center;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 4}px;
-`;
-
-const IconContainer = styled.div`
-  svg {
-    vertical-align: -7px;
-    color: ${({ theme }) => theme.colors.primary.dark1};
+  .ant-collapse-header {
+    font-weight: 500;
+    font-size: 16px;
   }
-`;
-export const CardContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(459px, 1fr));
-  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: left;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
 export default function Welcome({ user }: WelcomeProps) {
-  const [queryFilter, setQueryFilter] = useState('Favorite');
-  const [activityFilter, setActivityFilter] = useState('Edited');
-  const [dashboardFilter, setDashboardFilter] = useState('Favorite');
-  const [chartFilter, setChartFilter] = useState('Favorite');
-
-  function ExpandIcon(): React.ReactNode {
-    return <Icon name="caret-right" />;
-  }
-
   return (
     <WelcomeContainer>
       <Collapse defaultActiveKey={['1']} ghost>
         <Panel header={t('Recents')} key="1">
-          <SubMenu
-            activeChild={activityFilter}
-            name=""
-            // eslint-disable-next-line react/no-children-prop
-            children={[
-              {
-                name: 'Edited',
-                label: t('Edited'),
-                onClick: () => setActivityFilter('Edited'),
-              },
-              {
-                name: 'Created',
-                label: t('Created'),
-                onClick: () => setActivityFilter('Created'),
-              },
-            ]}
-          />
-          <ActivityContainer>
-            <ActivityTable user={user} activityFilter={activityFilter} />
-          </ActivityContainer>
+          <ActivityTable user={user} />
         </Panel>
-
-        <Panel header={t('Dashboards')} key="2">
-          <SubMenu
-            activeChild={dashboardFilter}
-            name=""
-            // eslint-disable-next-line react/no-children-prop
-            children={[
-              {
-                name: 'Favorite',
-                label: t('Favorite'),
-                onClick: () => setDashboardFilter('Favorite'),
-              },
-              {
-                name: 'Mine',
-                label: t('Mine'),
-                onClick: () => setDashboardFilter('Mine'),
-              },
-            ]}
-            buttons={[
-              {
-                name: (
-                  <IconContainer>
-                    <Icon name="plus-small" /> Dashboard{' '}
-                  </IconContainer>
-                ),
-                buttonStyle: 'tertiary',
-                onClick: () => {
-                  // @ts-ignore
-                  window.location = '/dashboard/new';
-                },
-              },
-              {
-                name: 'View All »',
-                buttonStyle: 'link',
-                onClick: () => {
-                  // @ts-ignore
-                  window.location = '/dashboard/list/';
-                },
-              },
-            ]}
-          />
-          <CardContainer>
-            <DashboardTable dashboardFilter={dashboardFilter} user={user} />
-          </CardContainer>
+        <Panel header={t('Dashboards')} key="1">
+          <DashboardTable user={user} />
         </Panel>
-
-        <Panel header={t('Saved Queries')} key="3">
-          <SubMenu
-            activeChild={queryFilter}
-            name=""
-            // eslint-disable-next-line react/no-children-prop
-            children={[
-              {
-                name: 'Favorite',
-                label: t('Favorite'),
-                onClick: () => setQueryFilter('Favorite'),
-              },
-              {
-                name: 'Mine',
-                label: t('Mine'),
-                onClick: () => setQueryFilter('Mine'),
-              },
-            ]}
-            buttons={[
-              {
-                name: (
-                  <IconContainer>
-                    <Icon name="plus-small" /> SQL Query{' '}
-                  </IconContainer>
-                ),
-                buttonStyle: 'tertiary',
-                onClick: () => {
-                  // @ts-ignore
-                  window.location = '/superset/sqllab';
-                },
-              },
-              {
-                name: 'View All »',
-                buttonStyle: 'link',
-                onClick: () => {
-                  // @ts-ignore
-                  window.location = '/savedqueryview/list';
-                },
-              },
-            ]}
-          />
-          <CardContainer>
-            <SavedQueries user={user} queryFilter={queryFilter} />
-          </CardContainer>
+        <Panel header={t('Saved Queries')} key="1">
+          <SavedQueries user={user} />
         </Panel>
-        <Panel header={t('Charts')} key="4">
-          <SubMenu
-            activeChild={chartFilter}
-            name=""
-            // eslint-disable-next-line react/no-children-prop
-            children={[
-              {
-                name: 'Favorite',
-                label: t('Favorite'),
-                onClick: () => setChartFilter('Favorite'),
-              },
-              {
-                name: 'Mine',
-                label: t('Mine'),
-                onClick: () => setChartFilter('Mine'),
-              },
-            ]}
-            buttons={[
-              {
-                name: (
-                  <IconContainer>
-                    <Icon name="plus-small" /> Chart{' '}
-                  </IconContainer>
-                ),
-                buttonStyle: 'tertiary',
-                onClick: () => {
-                  // @ts-ignore
-                  window.location = '/chart/add';
-                },
-              },
-              {
-                name: 'View All »',
-                buttonStyle: 'link',
-                onClick: () => {
-                  // @ts-ignore
-                  window.location = '/chart/list';
-                },
-              },
-            ]}
-          />
-
-          <CardContainer>
-            <ChartTable chartFilter={chartFilter} user={user} />
-          </CardContainer>
+        <Panel header={t('Charts')} key="1">
+          <ChartTable user={user} />
         </Panel>
       </Collapse>
     </WelcomeContainer>
