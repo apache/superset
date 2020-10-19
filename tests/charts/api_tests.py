@@ -818,6 +818,30 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["result"][0]["rowcount"], 45)
 
+    def test_chart_data_applied_time_extras(self):
+        """
+        Chart data API: Test chart data query with applied time extras
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["queries"][0]["applied_time_extras"] = {
+            "__time_range": "100 years ago : now",
+            "__time_origin": "now",
+        }
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"][0]["applied_filters"],
+            [{"column": "gender"}, {"column": "__time_range"},],
+        )
+        self.assertEqual(
+            data["result"][0]["rejected_filters"],
+            [{"column": "__time_origin", "reason": "not_druid_datasource"},],
+        )
+        self.assertEqual(data["result"][0]["rowcount"], 45)
+
     def test_chart_data_limit_offset(self):
         """
         Chart data API: Test chart data query with limit and offset

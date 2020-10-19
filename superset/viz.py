@@ -485,14 +485,18 @@ class BaseViz:
         filters = self.form_data.get("filters", [])
         filter_columns = [flt.get("col") for flt in filters]
         columns = set(self.datasource.column_names)
+        applied_time_extras = self.form_data.get("applied_time_extras", {})
+        applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
+            self.datasource, applied_time_extras
+        )
         payload["applied_filters"] = [
             {"column": col} for col in filter_columns if col in columns
-        ]
+        ] + applied_time_columns
         payload["rejected_filters"] = [
             {"reason": "not_in_datasource", "column": col}
             for col in filter_columns
             if col not in columns
-        ]
+        ] + rejected_time_columns
 
         return payload
 
