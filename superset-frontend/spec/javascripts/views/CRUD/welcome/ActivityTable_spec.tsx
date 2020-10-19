@@ -79,10 +79,6 @@ describe('ActivityTable', () => {
     expect(wrapper.find(ActivityTable)).toExist();
   });
 
-  it('renders a EmptyState', () => {
-    console.log('wrapper', wrapper.debug())
-  });
-
   it('calls batch method and renders ListViewCArd', () => {
     const chartCall = fetchMock.calls(/chart\/\?q/);
     const dashboardCall = fetchMock.calls(/dashboard\/\?q/);

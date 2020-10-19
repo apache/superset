@@ -44,7 +44,6 @@ const mockDashboards = [
 ];
 
 fetchMock.get(dashboardsEndpoint, { result: mockDashboards });
-//fetchMock.get(dashboardsEndpointNoData, { result: [] });
 fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_list', 'can_edit', 'can_delete'],
 });
@@ -59,8 +58,6 @@ describe('DashboardTable', () => {
   const wrapper = mount(<DashboardTable {...dashboardProps} />, {
     context: { store },
   });
-  // console.log('wrapper', wrapper.debug())
-  // beforeEach(fetchMock.resetHistory);
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
@@ -68,13 +65,12 @@ describe('DashboardTable', () => {
 
   it('renders', () => {
     expect(wrapper.find(DashboardTable)).toExist();
-    console.log('wrapper', wrapper.debug())
   });
 
   it('render a submenu with clickable tabs and buttons', async () => {
     expect(wrapper.find(SubMenu)).toExist();
     expect(wrapper.find('MenuItem')).toHaveLength(2);
-    expect(wrapper.find('Button')).toHaveLength(2);
+    expect(wrapper.find('Button')).toHaveLength(4);
     act(() => {
       wrapper.find('MenuItem').at(1).simulate('click');
     });
@@ -87,8 +83,9 @@ describe('DashboardTable', () => {
     wrapper.setState({ dashboards: mockDashboards });
     expect(wrapper.find(DashboardCard)).toExist();
   });
-  /*it('display EmptyState if there is no data', ()=>{
-    (const wrapper = mount(<DashboardTable {...dashboardProps} />)
-    console.log('wrapper', wrapper);
-  });*/
+
+  it('display EmptyState if there is no data', () => {
+    fetchMock.resetHistory();
+    expect(wrapper.find('EmptyState')).toExist();
+  });
 });

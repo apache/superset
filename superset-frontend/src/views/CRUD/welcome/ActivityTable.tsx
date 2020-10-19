@@ -143,6 +143,7 @@ export default function ActivityTable({ user }: ActivityProps) {
           Created: [...r.createdByChart, ...r.createdByDash],
           Edited: [...r.editedChart, ...r.editedDash],
         };
+        console.log('r.viewed', r)
         if (r.viewed) {
           const filtered = reject(r.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;

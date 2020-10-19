@@ -32,7 +32,7 @@ const Container = styled.div`
   flex-direction: column;
   justify-content: center;
   img {
-    width: 87px;
+    width: 114px;
     display: block;
     margin: 0 auto;
   }
@@ -73,13 +73,19 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
         }}
       >
         <IconContainer>
-          <Icon name="plus-small" /> {tableName}
+          <Icon name="plus-small" />{' '}
+          {tableName === 'SAVED_QUERIES'
+            ? 'SQL LAB QUERY'
+            : tableName
+                .split('')
+                .slice(0, tableName.length - 1)
+                .join('')}{' '}
         </IconContainer>
       </Button>
     </div>
   );
   const span = (
-    <div>
+    <div className="no-recents">
       Recently viewed charts, dashboards, and saved queries will appear here
     </div>
   );
@@ -97,14 +103,15 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     <Container>
       <img src="/static/assets/images/star-circle.png" alt="star.png" />
       <div>
-        <div>You don't have any favorites yets!</div>
+        <div className="no-favorites">You don't have any favorites yet!</div>
         <Button
           buttonStyle="primary"
           onClick={() => {
             window.location = favRedirects[tableName];
           }}
         >
-          SEE ALL {tableName}
+          SEE ALL{' '}
+          {tableName === 'SAVED_QUERIES' ? 'SQL LAB QUERIES' : tableName }
         </Button>
       </div>
     </Container>

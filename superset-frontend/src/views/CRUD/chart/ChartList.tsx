@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient, getChartMetadataRegistry, t } from '@superset-ui/core';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -416,7 +416,7 @@ function ChartList(props: ChartListProps) {
         openChartEditModal={openChartEditModal}
         bulkSelectEnabled={bulkSelectEnabled}
         addDangerToast={props.addDangerToast}
-        addSuccessToast={addSuccessToast}
+        addSuccessToast={props.addSuccessToast}
         refreshData={refreshData}
         loading={loading}
       />

@@ -77,15 +77,6 @@ function ChartTable({
         value: true,
       });
     }
-    // Do we need search?
-    /* filters.concat([
-      {
-        id: 'dashboard_title',
-        operator: 'ct',
-        value: search,
-      },
-    ]);
-    */
     return filters;
   };
 

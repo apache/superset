@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
@@ -41,7 +41,6 @@ interface Query {
   rows: string;
   description: string;
   end_time: string;
-  addDangerToast: () => void;
   label: string;
 }
 
@@ -50,14 +49,9 @@ interface SavedQueriesProps {
     userId: string | number;
   };
   queryFilter: string;
+  addDangerToast: (arg0: string) => void;
+  addSuccessToast: (arg0: string) => void;
 }
-
-const NoData = styled.div`
-  .create-your-query {
-    display: block;
-    margin: 0 auto;
-  }
-`;
 
 const SavedQueries = ({
   user,
@@ -139,7 +133,9 @@ const SavedQueries = ({
       )}
       <Menu.Item
         onClick={() => copyQueryLink(query.id, addDangerToast, addSuccessToast)}
-      >Share</Menu.Item>
+      >
+        Share
+      </Menu.Item>
       {canDelete && (
         <Menu.Item
           onClick={() => {
