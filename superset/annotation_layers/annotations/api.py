@@ -356,7 +356,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @expose("/<int:layer_id>/annotation/<int:annotation_id>", methods=["DELETE"])
     @protect()
     @safe
-    @permission_name("post")
+    @permission_name("delete")
     def delete(self, layer_id: int, annotation_id: int) -> Response:
         """Updates an Annotation
         ---

@@ -82,7 +82,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     def delete(self, layer_id: int) -> Response:
         """Delete an annotation layer
         ---
-        post:
+        delete:
           description: >-
             Delete an annotation layer
           parameters:
