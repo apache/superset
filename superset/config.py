@@ -843,7 +843,7 @@ DOCUMENTATION_ICON = None  # Recommended size: 16x16
 # Enables the replacement react views for all the FAB views (list, edit, show) with
 # designs introduced in SIP-34: https://github.com/apache/incubator-superset/issues/8976
 # This is a work in progress so not all features available in FAB have been implemented
-ENABLE_REACT_CRUD_VIEWS = False
+ENABLE_REACT_CRUD_VIEWS = True
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
@@ -956,7 +956,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        from superset_config import *  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
