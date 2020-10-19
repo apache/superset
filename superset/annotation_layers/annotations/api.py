@@ -360,7 +360,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     def delete(self, layer_id: int, annotation_id: int) -> Response:
         """Updates an Annotation
         ---
-        post:
+        delete:
           description: >-
             Update an annotation
           parameters:
