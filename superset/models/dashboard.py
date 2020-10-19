@@ -156,7 +156,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     ]
 
     def __repr__(self) -> str:
-        return f"Dashboard<{self.slug or self.id}>"
+        return f"Dashboard<{self.id or self.slug}>"
 
     @property
     def table_names(self) -> str:
@@ -253,7 +253,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @cache.memoize(
         # manage cache version manually
-        make_name=lambda fname: f"{fname}-v2",
+        make_name=lambda fname: f"{fname}-v2.1",
         timeout=config["DASHBOARD_CACHE_TIMEOUT"],
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
