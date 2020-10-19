@@ -25,6 +25,7 @@ const propTypes = {
     label: PropTypes.string,
     hasCustomLabel: PropTypes.bool,
   }),
+  defaultLabel: PropTypes.string,
   onChange: PropTypes.func.isRequired,
 };
 
@@ -35,6 +36,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
     this.onMouseOut = this.onMouseOut.bind(this);
     this.onClick = this.onClick.bind(this);
     this.onBlur = this.onBlur.bind(this);
+    this.onInputBlur = this.onInputBlur.bind(this);
     this.state = {
       isHovered: false,
       isEditable: false,
@@ -57,6 +59,14 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
     this.setState({ isEditable: false });
   }
 
+  onInputBlur(e) {
+    if (e.target.value === '') {
+      e.target.value = this.props.defaultLabel;
+      this.props.onChange(e);
+    }
+    this.onBlur();
+  }
+
   render() {
     const { title, onChange } = this.props;
 
@@ -72,7 +82,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
         value={title.hasCustomLabel ? title.label : ''}
         autoFocus
         onChange={onChange}
-        onBlur={this.onBlur}
+        onBlur={this.onInputBlur}
         data-test="AdhocMetricEditTitle#input"
       />
     ) : (

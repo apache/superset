@@ -67,15 +67,15 @@ describe('AdhocMetricOption', () => {
   it('overwrites the adhocMetric in state with onLabelChange', () => {
     const { wrapper } = setup();
     wrapper.instance().onLabelChange({ target: { value: 'new label' } });
-    expect(wrapper.state('adhocMetric').label).toBe('new label');
-    expect(wrapper.state('adhocMetric').hasCustomLabel).toBe(true);
+    expect(wrapper.state('title').label).toBe('new label');
+    expect(wrapper.state('title').hasCustomLabel).toBe(true);
   });
 
   it('returns to default labels when the custom label is cleared', () => {
     const { wrapper } = setup();
     wrapper.instance().onLabelChange({ target: { value: 'new label' } });
     wrapper.instance().onLabelChange({ target: { value: '' } });
-    expect(wrapper.state('adhocMetric').label).toBe('SUM(value)');
-    expect(wrapper.state('adhocMetric').hasCustomLabel).toBe(false);
+    expect(wrapper.state('title').label).toBe('SUM(value)');
+    expect(wrapper.state('title').hasCustomLabel).toBe(false);
   });
 });

@@ -109,6 +109,7 @@ class AdhocMetricOption extends React.PureComponent {
     const popoverTitle = (
       <AdhocMetricEditPopoverTitle
         title={this.state.title}
+        defaultLabel={adhocMetric.label}
         onChange={this.onLabelChange}
       />
     );
