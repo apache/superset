@@ -51,7 +51,6 @@ class TestDatasource(SupersetTestCase):
         self.login(username="admin")
         tbl_id = self.get_table_by_name("birth_names").id
         datasource_post["id"] = tbl_id
-        datasource_post["table_name"] = "birth_names"
         data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data)
         for k in datasource_post:
@@ -77,7 +76,6 @@ class TestDatasource(SupersetTestCase):
         tbl_id = tbl.id
         db_id = tbl.database_id
         datasource_post["id"] = tbl_id
-        datasource_post["table_name"] = "birth_names"
 
         new_db = self.create_fake_db()
 
