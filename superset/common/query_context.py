@@ -282,7 +282,7 @@ class QueryContext:
             "cache_timeout": self.cache_timeout,
             "df": df,
             "error": error_message,
-            "is_cached": cache_key is not None,
+            "is_cached": cache_value is not None,
             "query": query,
             "status": status,
             "stacktrace": stacktrace,
