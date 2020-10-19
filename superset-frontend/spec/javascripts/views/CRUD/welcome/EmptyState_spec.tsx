@@ -31,6 +31,5 @@ describe('EmptyState', () => {
     };
     const wrapper = mount(<EmptyState {...props} />);
     expect(wrapper).toExist();
-    console.log('wrapper', wrapper.debug());
   });
 });

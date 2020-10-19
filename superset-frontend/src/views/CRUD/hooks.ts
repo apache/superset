@@ -330,7 +330,6 @@ export function useFavoriteStatus(
       endpoint: `${baseURL}/${id}/count/`,
     }).then(
       ({ json }) => {
-        console.log('json', json);
         updateFavoriteStatus({ [id]: json.count > 0 });
       },
       createErrorHandler(errMsg =>
@@ -439,8 +438,6 @@ export const copyQueryLink = (
     } else {
       selection.removeAllRanges();
     }
-    console.log('-----Success Toast--------')
     addSuccessToast(t('Link Copied!'));
-    console.log('-----Success Toast--------')
   }
 };
