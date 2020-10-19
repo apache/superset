@@ -122,16 +122,16 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         )
         self.assertEqual(result, expected_result)
 
-    def test_normalize_index(self):
+    def test_normalize_indexes(self):
         """
         DB Eng Specs (bigquery): Test extra table metadata
         """
         indexes = [{"name": "partition", "column_names": [None], "unique": False}]
-        normalized_idx = BigQueryEngineSpec.normalize_index(indexes)
+        normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
         self.assertEqual(normalized_idx, [])
 
         indexes = [{"name": "partition", "column_names": ["dttm"], "unique": False}]
-        normalized_idx = BigQueryEngineSpec.normalize_index(indexes)
+        normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
         self.assertEqual(normalized_idx, indexes)
 
     def test_df_to_sql(self):
