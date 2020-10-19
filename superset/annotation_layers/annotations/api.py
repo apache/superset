@@ -290,7 +290,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     def put(self, layer_id: int, annotation_id: int) -> Response:
         """Updates an Annotation
         ---
-        post:
+        put:
           description: >-
             Update an annotation
           parameters:
