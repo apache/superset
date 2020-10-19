@@ -75,6 +75,9 @@ describe('AdhocMetricOption', () => {
     const { wrapper } = setup();
     wrapper.instance().onLabelChange({ target: { value: 'new label' } });
     wrapper.instance().onLabelChange({ target: { value: '' } });
+    // close and open the popover
+    wrapper.instance().closeMetricEditOverlay();
+    wrapper.instance().onOverlayEntered();
     expect(wrapper.state('title').label).toBe('SUM(value)');
     expect(wrapper.state('title').hasCustomLabel).toBe(false);
   });
