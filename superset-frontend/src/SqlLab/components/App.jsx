@@ -20,7 +20,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import $ from 'jquery';
 import { t, supersetTheme, ThemeProvider } from '@superset-ui/core';
 import throttle from 'lodash/throttle';
 import TabbedSqlEditors from './TabbedSqlEditors';
@@ -39,7 +38,6 @@ class App extends React.PureComponent {
     super(props);
     this.state = {
       hash: window.location.hash,
-      contentHeight: '0px',
     };
 
     this.showLocalStorageUsageWarning = throttle(
@@ -50,10 +48,7 @@ class App extends React.PureComponent {
   }
 
   componentDidMount() {
-    /* eslint-disable react/no-did-mount-set-state */
-    this.setState({ contentHeight: this.getHeight() });
     window.addEventListener('hashchange', this.onHashChanged.bind(this));
-    window.addEventListener('resize', this.handleResize.bind(this));
   }
 
   componentDidUpdate() {
@@ -69,37 +64,10 @@ class App extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('hashchange', this.onHashChanged.bind(this));
-    window.removeEventListener('resize', this.handleResize.bind(this));
   }
 
   onHashChanged() {
     this.setState({ hash: window.location.hash });
-  }
-
-  getHeight() {
-    const warningEl = $('#navbar-warning');
-    const tabsEl = $('.nav-tabs');
-    const searchHeaderEl = $('#search-header');
-    const alertEl = $('#sqllab-alerts');
-    const headerEl = $('header .navbar');
-    const headerHeight =
-      headerEl.outerHeight() + parseInt(headerEl.css('marginBottom'), 10);
-    const searchHeaderHeight =
-      searchHeaderEl.length > 0
-        ? searchHeaderEl.outerHeight() +
-          parseInt(searchHeaderEl.css('marginBottom'), 10)
-        : 0;
-    const tabsHeight =
-      tabsEl.length > 0 ? tabsEl.outerHeight() : searchHeaderHeight;
-    const warningHeight = warningEl.length > 0 ? warningEl.outerHeight() : 0;
-    const alertHeight = alertEl.length > 0 ? alertEl.outerHeight() : 0;
-    return `${
-      window.innerHeight -
-      headerHeight -
-      tabsHeight -
-      warningHeight -
-      alertHeight
-    }px`;
   }
 
   showLocalStorageUsageWarning(currentUsage) {
@@ -116,16 +84,11 @@ class App extends React.PureComponent {
     );
   }
 
-  handleResize() {
-    this.setState({ contentHeight: this.getHeight() });
-  }
-
   render() {
     let content;
     if (this.state.hash) {
       content = (
         <QuerySearch
-          height={this.state.contentHeight}
           actions={this.props.actions}
           displayLimit={this.props.common.conf.DISPLAY_MAX_ROW}
         />

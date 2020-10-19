@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t, SupersetClient } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 
 import Loading from '../../components/Loading';
 import QueryTable from './QueryTable';
@@ -38,6 +38,21 @@ const propTypes = {
   height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   displayLimit: PropTypes.number.isRequired,
 };
+
+const TableWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+`;
+
+const TableStyles = styled.div`
+  .table > thead > tr > th {
+    border-bottom: ${({ theme }) => theme.gridUnit / 2}px solid
+      ${({ theme }) => theme.colors.grayscale.light2};
+    background: ${({ theme }) => theme.colors.grayscale.light4};
+  }
+`;
 
 class QuerySearch extends React.PureComponent {
   constructor(props) {
@@ -201,7 +216,7 @@ class QuerySearch extends React.PureComponent {
 
   render() {
     return (
-      <div>
+      <TableWrapper>
         <div id="search-header" className="row space-1">
           <div className="col-sm-2">
             <AsyncSelect
@@ -278,10 +293,7 @@ class QuerySearch extends React.PureComponent {
           {this.state.queriesLoading ? (
             <Loading />
           ) : (
-            <div
-              className="scrollbar-content"
-              style={{ height: this.props.height }}
-            >
+            <TableStyles className="scrollbar-content">
               <QueryTable
                 columns={[
                   'state',
@@ -299,10 +311,10 @@ class QuerySearch extends React.PureComponent {
                 actions={this.props.actions}
                 displayLimit={this.props.displayLimit}
               />
-            </div>
+            </TableStyles>
           )}
         </div>
-      </div>
+      </TableWrapper>
     );
   }
 }
