@@ -28,8 +28,6 @@ from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
 
-logger = logging.getLogger(__name__)
-
 
 class ExportDatasetsCommand(BaseCommand):
     def __init__(self, dataset_ids: List[int]):
