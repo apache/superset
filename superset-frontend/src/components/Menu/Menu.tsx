@@ -25,6 +25,7 @@ import MenuObject, {
   MenuObjectChildProps,
 } from './MenuObject';
 import LanguagePicker, { Languages } from './LanguagePicker';
+import NewMenu from './NewMenu';
 
 interface BrandProps {
   path: string;
@@ -133,10 +134,6 @@ const StyledHeader = styled.header`
   .navbar-right {
     display: flex;
     align-items: center;
-    .dropdown:first-of-type {
-      /* this is the "+ NEW" button. Sweep this up when it's replaced */
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-    }
   }
 `;
 
@@ -188,6 +185,7 @@ export function Menu({
           ))}
         </Nav>
         <Nav className="navbar-right">
+          {!navbarRight.user_is_anonymous && <NewMenu />}
           {settings && settings.length > 0 && (
             <NavDropdown id="settings-dropdown" title={t('Settings')}>
               {flatSettings.map((section, index) => {
