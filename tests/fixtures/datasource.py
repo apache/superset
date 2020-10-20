@@ -23,6 +23,7 @@ datasource_post = {
     "default_endpoint": "",
     "filter_select_enabled": True,
     "name": "birth_names",
+    "table_name": "birth_names",
     "datasource_name": "birth_names",
     "type": "table",
     "schema": "",
