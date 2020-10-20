@@ -143,8 +143,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
         # Here we're returning only non-None indexes
         for ix in indexes:
             column_names = ix.get("column_names") or []
-            column_names = [col for col in column_names if col is not None]
-            if column_names:
+            ix["column_names"] = [col for col in column_names if col is not None]
+            if ix["column_names"]:
                 normalized_idxs.append(ix)
         return normalized_idxs
 

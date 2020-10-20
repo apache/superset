@@ -134,6 +134,15 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
         self.assertEqual(normalized_idx, indexes)
 
+        indexes = [
+            {"name": "partition", "column_names": ["dttm", None], "unique": False}
+        ]
+        normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
+        self.assertEqual(
+            normalized_idx,
+            [{"name": "partition", "column_names": ["dttm"], "unique": False}],
+        )
+
     def test_df_to_sql(self):
         """
         DB Eng Specs (bigquery): Test DataFrame to SQL contract
