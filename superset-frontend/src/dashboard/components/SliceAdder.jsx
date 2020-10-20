@@ -214,6 +214,7 @@ class SliceAdder extends React.Component {
             className="search-input"
             onChange={this.searchUpdated}
             onKeyPress={this.handleKeyPress}
+            data-test="dashboard-charts-filter-search-input"
           />
           <DropdownButton
             title={`Sort by ${KEYS_TO_SORT[this.state.sortBy].label}`}
