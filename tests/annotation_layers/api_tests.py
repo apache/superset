@@ -544,7 +544,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
         assert response == expected_response
 
     @pytest.mark.usefixtures("create_annotation_layers")
-    def test_bulk_delete_annotation_layer_not_found(self):
+    def test_bulk_delete_annotation_not_found(self):
         """
         Annotation Api: Test bulk delete annotation not found
         """
