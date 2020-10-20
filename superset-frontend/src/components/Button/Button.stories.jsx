@@ -66,7 +66,6 @@ export const SIZES = {
 //     MR3: 'm-r-3',
 //     cancelQuery: 'cancelQuery',
 //     toggleSave: 'toggleSave',
-//     toggleSchedule: 'toggleSchedule',
 //     autocomplete: 'autocomplete',
 //     OK: 'ok',
 //     None: null,
