@@ -239,9 +239,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleDatabaseEdit(original);
           const handleDelete = () => openDatabaseDeleteModal(original);
-          if (!canEdit && !canDelete) {
-            return null;
-          }
+
           return (
             <span className="actions">
               {canEdit && (
@@ -282,6 +280,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        hidden: !canEdit && !canDelete,
         disableSortBy: true,
       },
     ],

@@ -266,9 +266,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
-          if (!canEdit && !canDelete) {
-            return null;
-          }
+
           return (
             <span className="actions">
               {canDelete && (
@@ -309,6 +307,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Actions'),
         id: 'actions',
+        hidden: !canEdit && !canDelete,
         disableSortBy: true,
       },
     ],
