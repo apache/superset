@@ -16,14 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { withKnobs, number } from '@storybook/addon-knobs';
+import FacePile from '.';
 
-/**
- * The Owner model as returned from the API
- */
+export default {
+  title: 'FacePile',
+  component: FacePile,
+  decorators: [withKnobs],
+};
 
-export default interface Owner {
-  first_name: string;
-  id: number;
-  last_name: string;
-  username: string;
-}
+const firstNames = [
+  'James',
+  'Mary',
+  'John',
+  'Patricia',
+  'Mohamed',
+  'Venkat',
+  'Lao',
+  'Robert',
+  'Jennifer',
+  'Michael',
+  'Linda',
+];
+const lastNames = [
+  'Smith',
+  'Johnson',
+  'Williams',
+  'Saeed',
+  'Jones',
+  'Brown',
+  'Tzu',
+];
+
+const users = [...new Array(10)].map((_, i) => ({
+  first_name: firstNames[Math.floor(Math.random() * firstNames.length)],
+  last_name: lastNames[Math.floor(Math.random() * lastNames.length)],
+  id: i,
+}));
+
+export const SupersetFacePile = () => {
+  return <FacePile users={users} maxCount={number('maxCount', 4)} />;
+};
