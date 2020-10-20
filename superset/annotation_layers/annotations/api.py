@@ -424,6 +424,11 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
           description: >-
             Deletes multiple annotation in a bulk operation.
           parameters:
+          - in: path
+            schema:
+              type: integer
+            name: layer_id
+            description: The annotation layer pk for this annotation
           - in: query
             name: q
             content:
