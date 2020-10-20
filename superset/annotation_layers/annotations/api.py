@@ -465,7 +465,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
                     num=len(item_ids),
                 ),
             )
-        except AnnotationLayerNotFoundError:
+        except AnnotationNotFoundError:
             return self.response_404()
         except AnnotationBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
