@@ -23,6 +23,7 @@ import cx from 'classnames';
 import { t } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';
@@ -259,7 +260,7 @@ class Markdown extends React.PureComponent {
             ? MARKDOWN_ERROR_MESSAGE
             : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
         }
-        escapeHtml={false}
+        escapeHtml={isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML)}
         allowNode={isSafeMarkup}
       />
     );
