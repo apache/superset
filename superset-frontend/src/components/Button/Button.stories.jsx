@@ -55,10 +55,6 @@ export const SIZES = {
 };
 
 // TODO remove the use of these in the codebase where they're not necessary
-// const classKnob = {
-//   label: 'Known Classes',
-//   options: {
-//     Primary: 'btn-primary',
 //     Reset: 'reset',
 //     Fetch: 'fetch',
 //     Query: 'query',
@@ -68,9 +64,6 @@ export const SIZES = {
 //     autocomplete: 'autocomplete',
 //     OK: 'ok',
 //     None: null,
-//   },
-//   defaultValue: null,
-// };
 
 const TYPES = {
   label: 'Type',
