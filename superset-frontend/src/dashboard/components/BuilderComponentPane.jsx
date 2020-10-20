@@ -48,9 +48,10 @@ class BuilderComponentPane extends React.PureComponent {
     const { isSticky } = this.props;
     return (
       <Tabs
+        id="tabs"
         className="tabs-components"
         style={{ marginTop: '10px' }}
-        data-test="tabs-component"
+        data-test="dashboard-builder-component-pane-tabs-navigation"
       >
         <Tabs.TabPane key={1} tab={t('Components')}>
           <NewTabs />
