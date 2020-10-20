@@ -73,7 +73,9 @@ describe('Datasource control', () => {
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
     cy.get('.ant-modal-content').within(() => {
-      cy.get('[data-test="collection-tab-Metrics"]').contains('Metrics').click();
+      cy.get('[data-test="collection-tab-Metrics"]')
+        .contains('Metrics')
+        .click();
     });
     cy.get(`input[value="${newMetricName}"]`)
       .closest('tr')
