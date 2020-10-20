@@ -87,9 +87,6 @@ function isSafeMarkup(node) {
 
   return true;
 }
-const parseHtml = htmlParser({
-  isValidNode: node => node.type !== 'script',
-});
 
 class Markdown extends React.PureComponent {
   constructor(props) {
@@ -269,7 +266,11 @@ class Markdown extends React.PureComponent {
         escapeHtml={isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML)}
         skipHtml={!isFeatureEnabled(FeatureFlag.DISPLAY_MARKDOWN_HTML)}
         allowNode={isSafeMarkup}
-        astPlugins={[parseHtml]}
+        astPlugins={[
+          htmlParser({
+            isValidNode: node => node.type !== 'script',
+          }),
+        ]}
       />
     );
   }
