@@ -24,9 +24,8 @@ import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import AvatarIcon from 'src/components/AvatarIcon';
+import FacePile from 'src/components/FacePile';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
-import ExpandableList from 'src/components/ExpandableList';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
@@ -246,17 +245,9 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { owners },
+            original: { owners = [] },
           },
-        }: any) => (
-          <ExpandableList
-            items={owners.map(
-              ({ first_name: firstName, last_name: lastName }: any) =>
-                `${firstName} ${lastName}`,
-            )}
-            display={2}
-          />
-        ),
+        }: any) => <FacePile users={owners} />,
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
@@ -496,16 +487,7 @@ function DashboardList(props: DashboardListProps) {
           'Last modified %s',
           dashboard.changed_on_delta_humanized,
         )}
-        coverLeft={(dashboard.owners || []).slice(0, 5).map(owner => (
-          <AvatarIcon
-            key={owner.id}
-            uniqueKey={`${owner.username}-${dashboard.id}`}
-            firstName={owner.first_name}
-            lastName={owner.last_name}
-            iconSize={24}
-            textSize={9}
-          />
-        ))}
+        coverLeft={<FacePile users={dashboard.owners || []} />}
         actions={
           <ListViewCard.Actions>
             {renderFaveStar(dashboard.id)}
