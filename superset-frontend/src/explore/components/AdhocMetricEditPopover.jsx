@@ -51,7 +51,7 @@ const defaultProps = {
 };
 
 const startingWidth = 300;
-const startingHeight = 220;
+const startingHeight = 240;
 
 export default class AdhocMetricEditPopover extends React.Component {
   constructor(props) {
