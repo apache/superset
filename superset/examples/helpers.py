@@ -51,6 +51,7 @@ def update_slice_ids(layout_dict: Dict[Any, Any], slices: List[Slice]) -> None:
     for i, chart_component in enumerate(sorted_charts):
         if i < len(slices):
             chart_component["meta"]["chartId"] = int(slices[i].id)
+            chart_component["meta"]["uuid"] = str(slices[i].uuid)
 
 
 def merge_slice(slc: Slice) -> None:
