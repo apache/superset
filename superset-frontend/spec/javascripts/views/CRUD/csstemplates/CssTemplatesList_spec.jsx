@@ -124,7 +124,7 @@ describe('CssTemplatesList', () => {
 
   it('deletes', async () => {
     act(() => {
-      wrapper.find('span[data-test="delete-action"]').first().props().onClick();
+      wrapper.find('[data-test="delete-action"]').first().props().onClick();
     });
     await waitForComponentToPaint(wrapper);
 

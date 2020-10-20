@@ -144,7 +144,7 @@ function CssTemplatesList({
           return (
             <TooltipWrapper
               label="allow-run-async-header"
-              tooltip={`${t('Last modified by')} ${name}`}
+              tooltip={t('Last modified by %s', name)}
               placement="right"
             >
               <span>{changedOn}</span>
