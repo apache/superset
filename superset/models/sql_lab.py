@@ -181,6 +181,10 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
         foreign_keys=[db_id],
         backref=backref("saved_queries", cascade="all, delete-orphan"),
     )
+    rows = Column(Integer)
+    last_run = Column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True
+    )
 
     def __repr__(self) -> str:
         return str(self.label)

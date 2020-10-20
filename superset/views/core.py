@@ -80,7 +80,7 @@ from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
-from superset.models.sql_lab import Query, TabState
+from superset.models.sql_lab import Query, SavedQuery, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.security.analytics_db_safety import (
     check_sqlalchemy_uri,
@@ -2212,6 +2212,19 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     expand_data=expand_data,
                     log_params=log_params,
                 )
+
+            # Update saved query if needed
+            query = db.session.query(Query).get(query.id)
+            related_saved_queries = (
+                db.session(SavedQuery)
+                .filter(SavedQuery.database == query.database)
+                .filter(SavedQuery.created_by == g.user)
+                .filter(SavedQuery.sql == query.sql)
+            ).all()
+            if related_saved_queries:
+                for saved_query in related_saved_queries:
+                    saved_query.rows = query.rows
+                db.session.commit()
 
             payload = json.dumps(
                 apply_display_max_row_limit(data),
