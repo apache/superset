@@ -77,28 +77,6 @@ function CssTemplatesList({
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
-  const menuData: SubMenuProps = {
-    name: t('CSS Templates'),
-  };
-
-  const subMenuButtons: Array<ButtonProps> = [];
-
-  if (canDelete) {
-    subMenuButtons.push({
-      name: t('Bulk Select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
-    });
-  }
-
-  /* subMenuButtons.push({
-    name: t('+ CSS Template'),
-    onClick: openNewTemplate,
-    buttonStyle: 'primary',
-  }); */
-
-  menuData.buttons = subMenuButtons;
-
   const [
     templateCurrentlyDeleting,
     setTemplateCurrentlyDeleting,
@@ -260,6 +238,10 @@ function CssTemplatesList({
     [canDelete, canCreate],
   );
 
+  const menuData: SubMenuProps = {
+    name: t('CSS Templates'),
+  };
+
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
   if (canCreate) {
@@ -277,6 +259,16 @@ function CssTemplatesList({
       },
     });
   }
+
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk Select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
+  menuData.buttons = subMenuButtons;
 
   const filters: Filters = useMemo(
     () => [
