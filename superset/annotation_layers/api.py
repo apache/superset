@@ -89,7 +89,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: integer
-            name: layer_id
+            name: pk
             description: The annotation layer pk for this annotation
           responses:
             200:
