@@ -560,6 +560,6 @@ class TestAnnotationLayerApi(SupersetTestCase):
 
         annotations_ids.append(max_id + 1)
         self.login(username="admin")
-        uri = f"api/v1/annotation_layer/?q={prison.dumps(annotations_ids)}"
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(annotations_ids)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 404
