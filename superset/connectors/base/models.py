@@ -247,6 +247,7 @@ class BaseDatasource(
             "filter_select_enabled": self.filter_select_enabled,
             "name": self.name,
             "datasource_name": self.datasource_name,
+            "table_name": self.datasource_name,
             "type": self.type,
             "schema": self.schema,
             "offset": self.offset,
