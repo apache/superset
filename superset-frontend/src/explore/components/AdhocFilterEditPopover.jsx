@@ -18,9 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Popover, Tab, Tabs } from 'react-bootstrap';
+import { Tab, Tabs } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import { ThemeProvider } from '@superset-ui/core';
 
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
@@ -132,80 +131,78 @@ export default class AdhocFilterEditPopover extends React.Component {
     const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
 
     return (
-      <Popover
+      <div
         id="filter-edit-popover"
         {...popoverProps}
         data-test="filter-edit-popover"
       >
-        <ThemeProvider theme={theme}>
-          <Tabs
-            id="adhoc-filter-edit-tabs"
-            defaultActiveKey={adhocFilter.expressionType}
-            className="adhoc-filter-edit-tabs"
-            data-test="adhoc-filter-edit-tabs"
-            style={{ height: this.state.height, width: this.state.width }}
+        <Tabs
+          id="adhoc-filter-edit-tabs"
+          defaultActiveKey={adhocFilter.expressionType}
+          className="adhoc-filter-edit-tabs"
+          data-test="adhoc-filter-edit-tabs"
+          style={{ height: this.state.height, width: this.state.width }}
+        >
+          <Tab
+            className="adhoc-filter-edit-tab"
+            eventKey={EXPRESSION_TYPES.SIMPLE}
+            title="Simple"
           >
-            <Tab
-              className="adhoc-filter-edit-tab"
-              eventKey={EXPRESSION_TYPES.SIMPLE}
-              title="Simple"
-            >
-              <AdhocFilterEditPopoverSimpleTabContent
+            <AdhocFilterEditPopoverSimpleTabContent
+              adhocFilter={this.state.adhocFilter}
+              onChange={this.onAdhocFilterChange}
+              options={options}
+              datasource={datasource}
+              onHeightChange={this.adjustHeight}
+              partitionColumn={partitionColumn}
+            />
+          </Tab>
+          <Tab
+            className="adhoc-filter-edit-tab"
+            eventKey={EXPRESSION_TYPES.SQL}
+            title="Custom SQL"
+          >
+            {!this.props.datasource ||
+            this.props.datasource.type !== 'druid' ? (
+              <AdhocFilterEditPopoverSqlTabContent
                 adhocFilter={this.state.adhocFilter}
                 onChange={this.onAdhocFilterChange}
-                options={options}
-                datasource={datasource}
-                onHeightChange={this.adjustHeight}
-                partitionColumn={partitionColumn}
+                options={this.props.options}
+                height={this.state.height}
               />
-            </Tab>
-            <Tab
-              className="adhoc-filter-edit-tab"
-              eventKey={EXPRESSION_TYPES.SQL}
-              title="Custom SQL"
-            >
-              {!this.props.datasource ||
-              this.props.datasource.type !== 'druid' ? (
-                <AdhocFilterEditPopoverSqlTabContent
-                  adhocFilter={this.state.adhocFilter}
-                  onChange={this.onAdhocFilterChange}
-                  options={this.props.options}
-                  height={this.state.height}
-                />
-              ) : (
-                <div className="custom-sql-disabled-message">
-                  Custom SQL Filters are not available on druid datasources
-                </div>
-              )}
-            </Tab>
-          </Tabs>
-          <div>
-            <Button
-              data-test="adhoc-filter-edit-popover-save-button"
-              disabled={!stateIsValid}
-              buttonStyle={
-                hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
-              }
-              buttonSize="small"
-              className="m-r-5"
-              onClick={this.onSave}
-              cta
-            >
-              Save
-            </Button>
-            <Button buttonSize="small" onClick={this.props.onClose} cta>
-              Close
-            </Button>
-            <i
-              role="button"
-              aria-label="Resize"
-              tabIndex={0}
-              onMouseDown={this.onDragDown}
-              className="fa fa-expand edit-popover-resize text-muted"
-            />
-          </div>
-        </ThemeProvider>
-      </Popover>
+            ) : (
+              <div className="custom-sql-disabled-message">
+                Custom SQL Filters are not available on druid datasources
+              </div>
+            )}
+          </Tab>
+        </Tabs>
+        <div>
+          <Button
+            data-test="adhoc-filter-edit-popover-save-button"
+            disabled={!stateIsValid}
+            buttonStyle={
+              hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
+            }
+            buttonSize="small"
+            className="m-r-5"
+            onClick={this.onSave}
+            cta
+          >
+            Save
+          </Button>
+          <Button buttonSize="small" onClick={this.props.onClose} cta>
+            Close
+          </Button>
+          <i
+            role="button"
+            aria-label="Resize"
+            tabIndex={0}
+            onMouseDown={this.onDragDown}
+            className="fa fa-expand edit-popover-resize text-muted"
+          />
+        </div>
+      </div>
     );
   }
 }

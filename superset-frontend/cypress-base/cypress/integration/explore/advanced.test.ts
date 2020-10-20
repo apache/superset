@@ -74,7 +74,7 @@ describe('Annotations', () => {
       cy.get('button').click();
     });
 
-    cy.get('.popover-content').within(() => {
+    cy.get('[data-test="popover-content"]').within(() => {
       cy.get('[data-test=annotation-layer-name-header]')
         .siblings()
         .first()

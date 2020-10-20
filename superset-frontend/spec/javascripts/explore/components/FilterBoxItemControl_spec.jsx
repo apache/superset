@@ -20,8 +20,8 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { OverlayTrigger } from 'react-bootstrap';
 
+import Popover from 'src/common/components/Popover';
 import FilterBoxItemControl from 'src/explore/components/controls/FilterBoxItemControl';
 import FormRow from 'src/components/FormRow';
 import datasources from '../../../fixtures/mockDatasource';
@@ -45,8 +45,8 @@ describe('FilterBoxItemControl', () => {
     inst = wrapper.instance();
   });
 
-  it('renders an OverlayTrigger', () => {
-    expect(wrapper.find(OverlayTrigger)).toExist();
+  it('renders a Popover', () => {
+    expect(wrapper.find(Popover)).toExist();
   });
 
   it('renderForms does the job', () => {

@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { OverlayTrigger } from 'react-bootstrap';
+import Popover from 'src/common/components/Popover';
 
 import Label from 'src/components/Label';
 import ViewportControl from 'src/explore/components/controls/ViewportControl';
@@ -48,7 +48,7 @@ describe('ViewportControl', () => {
   it('renders a OverlayTrigger', () => {
     const controlHeader = wrapper.find(ControlHeader);
     expect(controlHeader).toHaveLength(1);
-    expect(wrapper.find(OverlayTrigger)).toExist();
+    expect(wrapper.find(Popover)).toExist();
   });
 
   it('renders a Popover with 5 TextControl', () => {
