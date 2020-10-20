@@ -160,8 +160,9 @@ export class SouthPane extends React.PureComponent {
     return (
       <div className="SouthPane" ref={this.southPaneRef}>
         <Tabs
-          defaultActiveKey={this.props.activeSouthPaneTab}
+          activeKey={this.props.activeSouthPaneTab}
           className="SouthPaneTabs"
+          onChange={this.switchTab}
           id={shortid.generate()}
           fullWidth={false}
         >
