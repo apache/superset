@@ -309,7 +309,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     "ALLOW_MARKDOWN_HTML": True,
-    "ESCAPE_MARKDOWN_HTML": True,
+    "ESCAPE_MARKDOWN_HTML": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.

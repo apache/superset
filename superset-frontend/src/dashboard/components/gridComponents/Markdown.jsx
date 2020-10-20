@@ -19,6 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
+import htmlParser from 'react-markdown/plugins/html-parser';
+
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
@@ -85,6 +87,10 @@ function isSafeMarkup(node) {
 
   return true;
 }
+const parseHtml = htmlParser({
+  isValidNode: node => node.type !== 'script',
+});
+
 class Markdown extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -263,6 +269,7 @@ class Markdown extends React.PureComponent {
         escapeHtml={isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML)}
         skipHtml={!isFeatureEnabled(FeatureFlag.ALLOW_MARKDOWN_HTML)}
         allowNode={isSafeMarkup}
+        astPlugins={[parseHtml]}
       />
     );
   }
