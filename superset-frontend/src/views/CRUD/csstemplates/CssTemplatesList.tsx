@@ -17,16 +17,18 @@
  * under the License.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 // import ListView, { Filters } from 'src/components/ListView';
 import ListView from 'src/components/ListView';
+import CssTemplateModal from './CssTemplateModal';
+import { TemplateObject } from './types';
 
 const PAGE_SIZE = 25;
 
@@ -34,19 +36,6 @@ interface CssTemplatesListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
-
-type TemplateObject = {
-  id?: number;
-  changed_on_delta_humanized: string;
-  created_on: string;
-  created_by: {
-    id: number;
-    first_name: string;
-    last_name: string;
-  };
-  css: string;
-  template_name: string;
-};
 
 function CssTemplatesList({
   addDangerToast,
@@ -60,16 +49,28 @@ function CssTemplatesList({
     },
     hasPerm,
     fetchData,
-    // refreshData,
+    refreshData,
   } = useListViewResource<TemplateObject>(
     'css_template',
     t('css templates'),
     addDangerToast,
   );
+  const [cssTemplateModalOpen, setCssTemplateModalOpen] = useState<boolean>(
+    false,
+  );
+  const [
+    currentCssTemplate,
+    setCurrentCssTemplate,
+  ] = useState<TemplateObject | null>(null);
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
+
+  function handleCssTemplateEdit(cssTemplate: TemplateObject) {
+    setCurrentCssTemplate(cssTemplate);
+    setCssTemplateModalOpen(true);
+  }
 
   const initialSort = [{ id: 'template_name', desc: true }];
   const columns = useMemo(
@@ -127,7 +128,7 @@ function CssTemplatesList({
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => {}; // handleDatabaseEdit(original);
+          const handleEdit = () => handleCssTemplateEdit(original);
           const handleDelete = () => {}; // openDatabaseDeleteModal(original);
 
           const actions = [
@@ -166,9 +167,34 @@ function CssTemplatesList({
     [canDelete, canCreate],
   );
 
+  const subMenuButtons: SubMenuProps['buttons'] = [];
+
+  if (canCreate) {
+    subMenuButtons.push({
+      name: (
+        <>
+          {' '}
+          <i className="fa fa-plus" /> {t('Css Template')}
+        </>
+      ),
+      buttonStyle: 'primary',
+      onClick: () => {
+        setCurrentCssTemplate(null);
+        setCssTemplateModalOpen(true);
+      },
+    });
+  }
+
   return (
     <>
-      <SubMenu name={t('CSS Templates')} />
+      <SubMenu name={t('CSS Templates')} buttons={subMenuButtons} />
+      <CssTemplateModal
+        addDangerToast={addDangerToast}
+        cssTemplate={currentCssTemplate}
+        onCssTemplateAdd={() => refreshData()}
+        onHide={() => setCssTemplateModalOpen(false)}
+        show={cssTemplateModalOpen}
+      />
       <ListView<TemplateObject>
         className="css-templates-list-view"
         columns={columns}
