@@ -543,23 +543,23 @@ class TestAnnotationLayerApi(SupersetTestCase):
         expected_response = {"message": f"Deleted {len(annotations_ids)} annotations"}
         assert response == expected_response
 
-    # @pytest.mark.usefixtures("create_annotation_layers")
-    # def test_bulk_delete_annotation_layer_not_found(self):
-    #     """
-    #     Annotation Api: Test bulk delete annotation layers not found
-    #     """
-    #     all_annotation_layers = (
-    #         db.session.query(AnnotationLayer)
-    #             .filter(AnnotationLayer.name.like("name%")).all()
-    #     )
-    #     all_annotation_layers_ids = [
-    #         annotation_layer.id
-    #         for annotation_layer in all_annotation_layers
-    #     ]
-    #     max_id = db.session.query(func.max(AnnotationLayer.id)).scalar()
-    #     all_annotation_layers_ids.append(max_id + 1)
-    #     self.login(username="admin")
-    #     uri = f"api/v1/annotation_layer/?q={prison.dumps(all_annotation_layers_ids)}"
-    #     rv = self.client.delete(uri)
-    #     assert rv.status_code == 404
-    #
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_bulk_delete_annotation_layer_not_found(self):
+        """
+        Annotation Api: Test bulk delete annotation not found
+        """
+        layer = self.get_layer_with_annotation()
+        query_annotations = db.session.query(Annotation).filter(
+            Annotation.layer == layer
+        )
+
+        annotations = query_annotations.all()
+        annotations_ids = [annotation.id for annotation in annotations]
+
+        max_id = db.session.query(func.max(Annotation.id)).scalar()
+
+        annotations_ids.append(max_id + 1)
+        self.login(username="admin")
+        uri = f"api/v1/annotation_layer/?q={prison.dumps(annotations_ids)}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404

@@ -18,6 +18,7 @@ import json
 from typing import Union
 
 from marshmallow import fields, Schema, ValidationError
+from marshmallow.validate import Length
 
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
@@ -56,7 +57,9 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
 
 
 class AnnotationPostSchema(Schema):
-    short_descr = fields.String(description=annotation_short_descr, allow_none=False)
+    short_descr = fields.String(
+        description=annotation_short_descr, allow_none=False, validate=[Length(1, 500)]
+    )
     long_descr = fields.String(description=annotation_long_descr, allow_none=True)
     start_dttm = fields.DateTime(description=annotation_start_dttm, allow_none=False)
     end_dttm = fields.DateTime(description=annotation_end_dttm, allow_none=False)
@@ -66,7 +69,9 @@ class AnnotationPostSchema(Schema):
 
 
 class AnnotationPutSchema(Schema):
-    short_descr = fields.String(description=annotation_short_descr, required=False)
+    short_descr = fields.String(
+        description=annotation_short_descr, required=False, validate=[Length(1, 500)]
+    )
     long_descr = fields.String(description=annotation_long_descr, required=False)
     start_dttm = fields.DateTime(description=annotation_start_dttm, required=False)
     end_dttm = fields.DateTime(description=annotation_end_dttm, required=False)
