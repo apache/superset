@@ -111,7 +111,7 @@ class ParsedQuery:
         return self._parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
-        # Parsing SQL statement for EXPLAIN and filtering out commente
+        # Parsing SQL statement for EXPLAIN and filtering out comments
         for statement in self.stripped().upper().splitlines():
             if statement.upper().startswith("EXPLAIN"):
                 return True
