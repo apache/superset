@@ -18,17 +18,14 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
+
 import rison from 'rison';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import SubMenu, {
-  SubMenuProps,
-  ButtonProps,
-} from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
