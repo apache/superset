@@ -205,6 +205,11 @@ class TestCore(SupersetTestCase):
         )
         self.assertIn("my_annotation", layer)
 
+        # Rollback changes
+        db.session.delete(annotation)
+        db.session.delete(layer)
+        db.session.commit()
+
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
