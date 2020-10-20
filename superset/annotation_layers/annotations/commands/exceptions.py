@@ -27,7 +27,7 @@ from superset.commands.exceptions import (
 
 class AnnotationDatesValidationError(ValidationError):
     """
-    Marshmallow validation error for dashboard slug already exists
+    Marshmallow validation error for start date is after end date
     """
 
     def __init__(self) -> None:

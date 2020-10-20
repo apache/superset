@@ -16,12 +16,29 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import CommandException, DeleteFailedError
+from superset.commands.exceptions import (
+    CommandException,
+    DeleteFailedError,
+    CommandInvalidError,
+    CreateFailedError,
+    ValidationError
+)
+
+
+class AnnotationLayerInvalidError(CommandInvalidError):
+    message = _("Annotation layer parameters are invalid.")
 
 
 class AnnotationLayerBulkDeleteFailedError(DeleteFailedError):
     message = _("Annotation layer could not be deleted.")
 
+
+class AnnotationLayerCreateFailedError(CreateFailedError):
+    message = _("Annotation layer could not be created.")
+
+
+class AnnotationLayerUpdateFailedError(CreateFailedError):
+    message = _("Annotation layer could not be updated.")
 
 class AnnotationLayerNotFoundError(CommandException):
     message = _("Annotation layer not found.")
@@ -37,3 +54,13 @@ class AnnotationLayerDeleteIntegrityError(CommandException):
 
 class AnnotationLayerBulkDeleteIntegrityError(CommandException):
     message = _("Annotation layer has associated annotations.")
+
+class AnnotationLayerNameUniquenessValidationError(ValidationError):
+    """
+    Marshmallow validation error for annotation layer name already exists
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Name must be unique")], field_name="name"
+        )

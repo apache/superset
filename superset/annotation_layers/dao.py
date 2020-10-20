@@ -61,3 +61,15 @@ class AnnotationLayerDAO(BaseDAO):
             .join(Annotation)
             .first()
         ) is not None
+
+    @staticmethod
+    def validate_name_uniqueness(name: str) -> bool:
+        query = db.session.query(AnnotationLayer).filter(AnnotationLayer.name == name)
+        return not db.session.query(query.exists()).scalar()
+
+    @staticmethod
+    def validate_update_name_uniqueness(layer_id: int, name: str) -> bool:
+        query = db.session.query(AnnotationLayer).filter(
+            AnnotationLayer.name == name, AnnotationLayer.id != layer_id
+        )
+        return not db.session.query(query.exists()).scalar()
