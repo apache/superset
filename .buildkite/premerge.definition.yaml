@@ -5,5 +5,5 @@ github:
 teams:
 - name: Everyone
   permission: BUILD_AND_READ
-- name: china-infra
+- name: gen/team/chinainfra
   permission: MANAGE_BUILD_AND_READ
