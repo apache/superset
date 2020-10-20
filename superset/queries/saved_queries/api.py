@@ -88,6 +88,8 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "sql_tables",
+        "rows",
+        "last_run"
     ]
     add_columns = ["db_id", "description", "label", "schema", "sql"]
     edit_columns = add_columns
@@ -96,6 +98,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "label",
         "description",
         "sql",
+        "rows",
         "created_by.first_name",
         "database.database_name",
         "created_on",

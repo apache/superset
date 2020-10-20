@@ -2201,6 +2201,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE")
                 and not query.select_as_cta
             )
+            query_id = query.id
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
@@ -2214,11 +2215,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 )
 
             # Update saved query if needed
-            query = db.session.query(Query).get(query.id)
+            query = db.session.query(Query).get(query_id)
             related_saved_queries = (
-                db.session(SavedQuery)
+                db.session.query(SavedQuery)
                 .filter(SavedQuery.database == query.database)
-                .filter(SavedQuery.created_by == g.user)
                 .filter(SavedQuery.sql == query.sql)
             ).all()
             if related_saved_queries:
