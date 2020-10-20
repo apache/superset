@@ -237,6 +237,7 @@ class ChartHolder extends React.Component {
           >
             <div
               ref={dragSourceRef}
+              data-test="dashboard-component-chart-holder"
               className={`dashboard-component dashboard-component-chart-holder ${
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out'
               } ${this.state.isFullSize ? 'full-size' : ''}`}
@@ -270,10 +271,11 @@ class ChartHolder extends React.Component {
               )}
               {editMode && (
                 <HoverMenu position="top">
-                  <DeleteComponentButton
-                    data-test="chart-delete-button"
-                    onDelete={this.handleDeleteComponent}
-                  />
+                  <div data-test="dashboard-delete-component-button">
+                    <DeleteComponentButton
+                      onDelete={this.handleDeleteComponent}
+                    />
+                  </div>
                 </HoverMenu>
               )}
             </div>

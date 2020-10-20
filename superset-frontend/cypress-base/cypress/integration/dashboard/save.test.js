@@ -34,9 +34,11 @@ describe('Dashboard save action', () => {
       cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
     });
 
-    cy.get('#save-dash-split-button').trigger('click', { force: true });
-    cy.contains('Save as').trigger('click', { force: true });
-    cy.get('.modal-footer').contains('Save').trigger('click', { force: true });
+    cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
+    cy.get('[data-test="save-as-menu-item"]').trigger('click', { force: true });
+    cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
+      force: true,
+    });
   });
 
   it('should save as new dashboard', () => {
@@ -50,21 +52,32 @@ describe('Dashboard save action', () => {
 
   it('should save/overwrite dashboard', () => {
     // should have box_plot chart
-    cy.get('.grid-container .box_plot', { timeout: 5000 }); // wait for 5 secs
+    cy.get('[data-test="grid-row-background--transparent"]').within(() => {
+      cy.get('.box_plot', { timeout: 10000 }).should('be.visible');
+    });
 
     // remove box_plot chart from dashboard
-    cy.get('.dashboard-header [data-test=edit-alt]').click();
-    cy.get('.fa.fa-trash').last().trigger('click', { force: true });
-    cy.get('.grid-container .box_plot').should('not.exist');
+    cy.get('[data-test="edit-alt"]').click({ timeout: 5000 });
+    cy.get('[data-test="dashboard-delete-component-button"]')
+      .should('be.visible', { timeout: 10000 })
+      .last()
+      .trigger('click');
+    cy.get('[data-test="grid-container"]')
+      .find('.box_plot')
+      .should('not.be.visible');
 
     cy.route('POST', '/superset/save_dash/**/').as('saveRequest');
-    cy.get('.dashboard-header')
+    cy.get('[data-test="dashboard-header"]')
+      .find('[data-test="header-save-button"]')
       .contains('Save')
       .trigger('click', { force: true });
-
     // go back to view mode
     cy.wait('@saveRequest');
-    cy.get('.dashboard-header [data-test=edit-alt]').click();
-    cy.get('.grid-container .box_plot').should('not.exist');
+    cy.get('[data-test="dashboard-header"]')
+      .find('[data-test="edit-alt"]')
+      .click();
+    cy.get('[data-test="grid-container"]')
+      .find('.box_plot', { timeout: 20000 })
+      .should('not.be.visible');
   });
 });

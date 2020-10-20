@@ -23,47 +23,81 @@ describe('Dashboard edit mode', () => {
     cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.get('.dashboard-header [data-test=edit-alt]').click();
+    cy.get('[data-test="dashboard-header"]')
+      .find('[data-test=edit-alt]')
+      .click();
   });
 
-  xit('remove, and add chart flow', () => {
+  it('remove, and add chart flow', () => {
     // wait for box plot to appear
-    cy.get('.grid-container .box_plot');
+    cy.get('[data-test="grid-container"]').find('.box_plot', {
+      timeout: 10000,
+    });
+    const elementsCount = 10;
 
-    cy.get('.fa.fa-trash')
+    cy.get('[data-test="dashboard-component-chart-holder"]')
+      .find('[data-test="dashboard-delete-component-button"]')
       .last()
       .then($el => {
         cy.wrap($el).invoke('show').click();
         // box plot should be gone
-        cy.get('.grid-container .box_plot').should('not.exist');
+        cy.get('[data-test="grid-container"]')
+          .find('.box_plot')
+          .should('not.be.visible');
       });
 
-    cy.get('.tabs-components .nav-tabs li a').contains('Charts').click();
-
-    // wait for tab-switching animation to complete
-    cy.wait(1000);
+    cy.get('[data-test="dashboard-builder-component-pane-tabs-navigation"]')
+      .children()
+      .last()
+      .click();
 
     // find box plot is available from list
-    cy.get('.tabs-components')
-      .find('.chart-card-container')
-      .contains('Box plot');
+    cy.get('[data-test="dashboard-charts-filter-search-input"]').type(
+      'Box plot',
+    );
+    cy.get('[data-test="card-title"]').should('have.length', 1);
 
-    drag('.chart-card', 'Box plot').to(
+    drag('[data-test="card-title"]', 'Box plot').to(
       '.grid-row.background--transparent:last',
     );
 
     // add back to dashboard
-    cy.get('.grid-container .box_plot').should('be.exist');
+    cy.get('[data-test="grid-container"]')
+      .find('.box_plot')
+      .should('be.visible');
 
     // should show Save changes button
-    cy.get('.dashboard-header .button-container').contains('Save');
+    cy.get('[data-test="header-save-button"]').should('be.visible');
 
-    // undo 2 steps
-    cy.get('.dashboard-header .undo-action').click().click();
+    // undo first step and expect deleted item
+    cy.get('[data-test="undo-action"]').click();
+    cy.get('[data-test="grid-container"]')
+      .find('[data-test="chart-container"]')
+      .should('have.length', elementsCount - 1);
+
+    // Box plot chart should be gone
+    cy.get('[data-test="grid-container"]')
+      .find('.box_plot')
+      .should('not.be.visible');
+
+    // undo second step and expect initial items count
+    cy.get('[data-test="undo-action"]').click();
+    cy.get('[data-test="grid-container"]')
+      .find('[data-test="chart-container"]')
+      .should('have.length', elementsCount);
+    cy.get('[data-test="card-title"]').contains('Box plot', { timeout: 5000 });
+
+    // save changes button should be disabled
+    cy.get('[data-test="header-save-button"]').should('be.disabled');
 
     // no changes, can switch to view mode
-    cy.get('.dashboard-header .button-container')
-      .contains('Discard Changes')
+    cy.get('[data-test="dashboard-edit-actions"]')
+      .find('[data-test="discard-changes-button"]')
+      .should('be.visible')
       .click();
+    cy.get('[data-test="dashboard-header"]').within(() => {
+      cy.get('[data-test="dashboard-edit-actions"]').should('not.be.visible');
+      cy.get('[data-test="edit-alt"]').should('be.visible');
+    });
   });
 });

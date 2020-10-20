@@ -172,7 +172,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
               </FormLabel>
               <FormControl
                 name="name"
-                data-test="properties-name-input"
+                data-test="properties-modal-name-input"
                 type="text"
                 bsSize="sm"
                 value={name}
@@ -260,7 +260,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
           {t('Cancel')}
         </Button>
         <Button
-          data-test="properties-save-button"
+          data-test="properties-modal-save-button"
           type="submit"
           buttonSize="sm"
           buttonStyle="primary"

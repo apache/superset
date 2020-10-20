@@ -50,7 +50,7 @@ class BuilderComponentPane extends React.PureComponent {
       <Tabs
         className="m-t-10 tabs-components"
         id="tabs"
-        data-test="tabs-component"
+        data-test="dashboard-builder-component-pane-tabs-navigation"
       >
         <Tab eventKey={1} title={t('Components')}>
           <NewTabs />
