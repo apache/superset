@@ -57,7 +57,7 @@ export function useListViewResource<D extends object = any>(
 
   useEffect(() => {
     SupersetClient.get({
-      endpoint: `/api/v1/${resource}/_info`,
+      endpoint: `/api/v1/${resource}/_info?q=(keys:!(permissions))`,
     }).then(
       ({ json: infoJson = {} }) => {
         updateState({
