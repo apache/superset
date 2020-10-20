@@ -261,6 +261,7 @@ class Markdown extends React.PureComponent {
             : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
         }
         escapeHtml={isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML)}
+        skipHtml={!isFeatureEnabled(FeatureFlag.ALLOW_MARKDOWN_HTML)}
         allowNode={isSafeMarkup}
       />
     );
