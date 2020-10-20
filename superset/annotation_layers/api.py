@@ -75,11 +75,11 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Annotation Layers"
     openapi_spec_methods = openapi_spec_methods_override
 
-    @expose("/<int:layer_id>", methods=["DELETE"])
+    @expose("/<int:pk>", methods=["DELETE"])
     @protect()
     @safe
     @permission_name("delete")
-    def delete(self, layer_id: int) -> Response:  # pylint: disable=arguments-differ
+    def delete(self, pk: int) -> Response:
         """Delete an annotation layer
         ---
         delete:
@@ -109,7 +109,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteAnnotationLayerCommand(g.user, layer_id).run()
+            DeleteAnnotationLayerCommand(g.user, pk).run()
             return self.response(200, message="OK")
         except AnnotationLayerNotFoundError as ex:
             return self.response_404()

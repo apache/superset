@@ -114,12 +114,12 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             {"col": "layer", "opr": "rel_o_m", "value": layer_id}
         )
 
-    @expose("/<int:layer_id>/annotation/", methods=["GET"])
+    @expose("/<int:pk>/annotation/", methods=["GET"])
     @protect()
     @safe
     @permission_name("get")
     @rison(get_list_schema)
-    def get_list(self, layer_id: int, **kwargs: Dict[str, Any]) -> Response:
+    def get_list(self, pk: int, **kwargs: Dict[str, Any]) -> Response:
         """Get a list of annotations
         ---
         get:
@@ -130,7 +130,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             description: The annotation layer id for this annotation
-            name: layer_id
+            name: pk
           - in: query
             name: q
             content:
@@ -170,15 +170,15 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self._apply_layered_relation_to_rison(layer_id, kwargs["rison"])
+        self._apply_layered_relation_to_rison(pk, kwargs["rison"])
         return self.get_list_headless(**kwargs)
 
-    @expose("/<int:layer_id>/annotation/<int:pk>", methods=["GET"])
+    @expose("/<int:pk>/annotation/<int:annotation_id>", methods=["GET"])
     @protect()
     @safe
     @permission_name("get")
     @rison(get_item_schema)
-    def get(self, layer_id: int, pk: int, **kwargs: Dict[str, Any]) -> Response:
+    def get(self, pk: int, annotation_id: int, **kwargs: Dict[str, Any]) -> Response:
         """Get item from Model
         ---
         get:
@@ -188,12 +188,12 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: integer
-            name: layer_id
+            name: pk
             description: The annotation layer pk for this annotation
           - in: path
             schema:
               type: integer
-            name: pk
+            name: annotation_id
             description: The annotation pk
           - in: query
             name: q
@@ -225,14 +225,14 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self._apply_layered_relation_to_rison(layer_id, kwargs["rison"])
-        return self.get_headless(pk, **kwargs)
+        self._apply_layered_relation_to_rison(pk, kwargs["rison"])
+        return self.get_headless(annotation_id, **kwargs)
 
-    @expose("/<int:layer_id>/annotation/", methods=["POST"])
+    @expose("/<int:pk>/annotation/", methods=["POST"])
     @protect()
     @safe
     @permission_name("post")
-    def post(self, layer_id: int) -> Response:
+    def post(self, pk: int) -> Response:
         """Creates a new Annotation
         ---
         post:
@@ -242,7 +242,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: integer
-            name: layer_id
+            name: pk
             description: The annotation layer pk for this annotation
           requestBody:
             description: Annotation schema
@@ -276,7 +276,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
-            item["layer"] = layer_id
+            item["layer"] = pk
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -293,11 +293,11 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:layer_id>/annotation/<int:annotation_id>", methods=["PUT"])
+    @expose("/<int:pk>/annotation/<int:annotation_id>", methods=["PUT"])
     @protect()
     @safe
     @permission_name("put")
-    def put(self, layer_id: int, annotation_id: int) -> Response:
+    def put(self, pk: int, annotation_id: int) -> Response:
         """Updates an Annotation
         ---
         put:
@@ -307,7 +307,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: integer
-            name: layer_id
+            name: pk
             description: The annotation layer pk for this annotation
           - in: path
             schema:
@@ -346,15 +346,15 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
-            item["layer"] = layer_id
+            item["layer"] = pk
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
             new_model = UpdateAnnotationCommand(g.user, annotation_id, item).run()
             return self.response(200, id=new_model.id, result=item)
-        except AnnotationNotFoundError as ex:
-            return self.response_400(message=str(ex))
+        except (AnnotationNotFoundError, AnnotationLayerNotFoundError) as ex:
+            return self.response_404()
         except AnnotationInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except AnnotationUpdateFailedError as ex:
@@ -363,11 +363,11 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:layer_id>/annotation/<int:annotation_id>", methods=["DELETE"])
+    @expose("/<int:pk>/annotation/<int:annotation_id>", methods=["DELETE"])
     @protect()
     @safe
     @permission_name("delete")
-    def delete(self, layer_id: int, annotation_id: int) -> Response:
+    def delete(self, pk: int, annotation_id: int) -> Response:
         """Deletes an Annotation
         ---
         delete:
@@ -377,7 +377,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: integer
-            name: layer_id
+            name: pk
             description: The annotation layer pk for this annotation
           - in: path
             schema:
@@ -404,7 +404,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         try:
             DeleteAnnotationCommand(g.user, annotation_id).run()
             return self.response(200, message="OK")
-        except AnnotationLayerNotFoundError as ex:
+        except AnnotationNotFoundError as ex:
             return self.response_404()
         except AnnotationDeleteFailedError as ex:
             logger.error(
@@ -412,7 +412,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:layer_id>/annotation/", methods=["DELETE"])
+    @expose("/<int:pk>/annotation/", methods=["DELETE"])
     @protect()
     @safe
     @statsd_metrics
@@ -427,7 +427,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: integer
-            name: layer_id
+            name: pk
             description: The annotation layer pk for this annotation
           - in: query
             name: q
