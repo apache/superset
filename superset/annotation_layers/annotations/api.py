@@ -25,20 +25,29 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 
 from superset.annotation_layers.annotations.commands.bulk_delete import (
-    BulkDeleteCssTemplateCommand,
+    BulkDeleteAnnotationCommand,
 )
 from superset.annotation_layers.annotations.commands.create import (
     CreateAnnotationCommand,
 )
+from superset.annotation_layers.annotations.commands.delete import (
+    DeleteAnnotationCommand,
+)
 from superset.annotation_layers.annotations.commands.exceptions import (
     AnnotationBulkDeleteFailedError,
     AnnotationCreateFailedError,
+    AnnotationDeleteFailedError,
     AnnotationInvalidError,
     AnnotationNotFoundError,
+    AnnotationUpdateFailedError,
+)
+from superset.annotation_layers.annotations.commands.update import (
+    UpdateAnnotationCommand,
 )
 from superset.annotation_layers.annotations.filters import AnnotationAllTextFilter
 from superset.annotation_layers.annotations.schemas import (
     AnnotationPostSchema,
+    AnnotationPutSchema,
     get_delete_ids_schema,
     openapi_spec_methods_override,
 )
@@ -85,6 +94,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         "json_metadata",
     ]
     add_model_schema = AnnotationPostSchema()
+    edit_model_schema = AnnotationPutSchema()
     edit_columns = add_columns
     order_columns = ["short_descr"]
 
@@ -335,21 +345,21 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
-            item = self.add_model_schema.load(request.json)
+            item = self.edit_model_schema.load(request.json)
             item["layer"] = layer_id
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateAnnotationCommand(g.user, item).run()
-            return self.response(201, id=new_model.id, result=item)
-        except AnnotationLayerNotFoundError as ex:
+            new_model = UpdateAnnotationCommand(g.user, annotation_id, item).run()
+            return self.response(200, id=new_model.id, result=item)
+        except AnnotationNotFoundError as ex:
             return self.response_400(message=str(ex))
         except AnnotationInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
-        except AnnotationCreateFailedError as ex:
+        except AnnotationUpdateFailedError as ex:
             logger.error(
-                "Error creating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error updating annotation %s: %s", self.__class__.__name__, str(ex)
             )
             return self.response_422(message=str(ex))
 
@@ -358,11 +368,11 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @permission_name("delete")
     def delete(self, layer_id: int, annotation_id: int) -> Response:
-        """Updates an Annotation
+        """Deletes an Annotation
         ---
         delete:
           description: >-
-            Update an annotation
+            Delete an annotation
           parameters:
           - in: path
             schema:
@@ -391,23 +401,66 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
-            item = self.add_model_schema.load(request.json)
-            item["layer"] = layer_id
-        # This validates custom Schema with custom validations
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        try:
-            new_model = CreateAnnotationCommand(g.user, item).run()
-            return self.response(201, id=new_model.id, result=item)
+            DeleteAnnotationCommand(g.user, annotation_id).run()
+            return self.response(200, message="OK")
         except AnnotationLayerNotFoundError as ex:
-            return self.response_400(message=str(ex))
-        except AnnotationInvalidError as ex:
-            return self.response_422(message=ex.normalized_messages())
-        except AnnotationCreateFailedError as ex:
+            return self.response_404()
+        except AnnotationDeleteFailedError as ex:
             logger.error(
-                "Error creating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting annotation %s: %s", self.__class__.__name__, str(ex)
             )
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:layer_id>/annotation/", methods=["DELETE"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @rison(get_delete_ids_schema)
+    def bulk_delete(self, **kwargs: Any) -> Response:
+        """Delete bulk Annotation layers
+        ---
+        delete:
+          description: >-
+            Deletes multiple annotation in a bulk operation.
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_delete_ids_schema'
+          responses:
+            200:
+              description: Annotations bulk delete
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item_ids = kwargs["rison"]
+        try:
+            BulkDeleteAnnotationCommand(g.user, item_ids).run()
+            return self.response(
+                200,
+                message=ngettext(
+                    "Deleted %(num)d annotation",
+                    "Deleted %(num)d annotations",
+                    num=len(item_ids),
+                ),
+            )
+        except AnnotationLayerNotFoundError:
+            return self.response_404()
+        except AnnotationBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))

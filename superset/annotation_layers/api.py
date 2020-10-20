@@ -117,7 +117,9 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except AnnotationLayerDeleteFailedError as ex:
             logger.error(
-                "Error deleting annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting annotation layer %s: %s",
+                self.__class__.__name__,
+                str(ex),
             )
             return self.response_422(message=str(ex))
 

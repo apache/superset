@@ -19,35 +19,35 @@ from typing import List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset.commands.base import BaseCommand
-from superset.css_templates.commands.exceptions import (
-    CssTemplateBulkDeleteFailedError,
-    CssTemplateNotFoundError,
+from superset.annotation_layers.annotations.commands.exceptions import (
+    AnnotationBulkDeleteFailedError,
+    AnnotationNotFoundError,
 )
-from superset.css_templates.dao import CssTemplateDAO
+from superset.annotation_layers.annotations.dao import AnnotationDAO
+from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
-from superset.models.core import CssTemplate
+from superset.models.annotations import Annotation
 
 logger = logging.getLogger(__name__)
 
 
-class BulkDeleteCssTemplateCommand(BaseCommand):
+class BulkDeleteAnnotationCommand(BaseCommand):
     def __init__(self, user: User, model_ids: List[int]):
         self._actor = user
         self._model_ids = model_ids
-        self._models: Optional[List[CssTemplate]] = None
+        self._models: Optional[List[Annotation]] = None
 
     def run(self) -> None:
         self.validate()
         try:
-            CssTemplateDAO.bulk_delete(self._models)
+            AnnotationDAO.bulk_delete(self._models)
             return None
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise CssTemplateBulkDeleteFailedError()
+            raise AnnotationBulkDeleteFailedError()
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._models = CssTemplateDAO.find_by_ids(self._model_ids)
+        self._models = AnnotationDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
-            raise CssTemplateNotFoundError()
+            raise AnnotationNotFoundError()

@@ -29,6 +29,8 @@ from superset.annotation_layers.annotations.commands.exceptions import (
     AnnotationUpdateFailedError,
 )
 from superset.annotation_layers.annotations.dao import AnnotationDAO
+from superset.annotation_layers.commands.exceptions import AnnotationLayerNotFoundError
+from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.models.annotations import Annotation
@@ -46,9 +48,7 @@ class UpdateAnnotationCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            annotation = AnnotationDAO.update(
-                self._model, self._properties, commit=False
-            )
+            annotation = AnnotationDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
             raise AnnotationUpdateFailedError()
@@ -56,10 +56,20 @@ class UpdateAnnotationCommand(BaseCommand):
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = list()
+        layer_id: Optional[int] = self._properties.get("layer")
+
         # Validate/populate model exists
         self._model = AnnotationDAO.find_by_id(self._model_id)
         if not self._model:
             raise AnnotationNotFoundError()
+        # Validate/populate layer exists
+        if layer_id:
+            annotation_layer = AnnotationLayerDAO.find_by_id(layer_id)
+            if not annotation_layer:
+                raise AnnotationLayerNotFoundError()
+            self._properties["layer"] = annotation_layer
+        else:
+            self._properties["layer"] = self._model.layer
 
         start_dttm: Optional[datetime] = self._properties.get("start_dttm")
         end_dttm: Optional[datetime] = self._properties.get("end_dttm")

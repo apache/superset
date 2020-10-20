@@ -47,9 +47,9 @@ class TestAnnotationLayerApi(SupersetTestCase):
     def insert_annotation(
         self,
         layer: AnnotationLayer,
-        short_descr: str = "",
-        long_descr: str = "",
-        json_metadata: str = "",
+        short_descr: str,
+        long_descr: str,
+        json_metadata: Optional[str] = "",
         start_dttm: Optional[datetime] = None,
         end_dttm: Optional[datetime] = None,
     ) -> Annotation:
@@ -74,6 +74,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
         """
         with self.create_app().app_context():
             annotation_layers = []
+            annotations = []
             for cx in range(ANNOTATION_LAYERS_COUNT - 1):
                 annotation_layers.append(
                     self.insert_annotation_layer(name=f"name{cx}", descr=f"descr{cx}")
@@ -83,16 +84,20 @@ class TestAnnotationLayerApi(SupersetTestCase):
             )
             annotation_layers.append(layer_with_annotations)
             for cx in range(ANNOTATIONS_COUNT):
-                self.insert_annotation(
-                    layer_with_annotations,
-                    short_descr=f"short_descr{cx}",
-                    long_descr=f"long_descr{cx}",
+                annotations.append(
+                    self.insert_annotation(
+                        layer_with_annotations,
+                        short_descr=f"short_descr{cx}",
+                        long_descr=f"long_descr{cx}",
+                    )
                 )
             yield annotation_layers
 
             # rollback changes
             for annotation_layer in annotation_layers:
                 db.session.delete(annotation_layer)
+            for annotation in annotations:
+                db.session.delete(annotation)
             db.session.commit()
 
     @staticmethod
@@ -355,8 +360,8 @@ class TestAnnotationLayerApi(SupersetTestCase):
             "end_dttm": None,
             "json_metadata": "",
             "layer": {"id": annotation.layer_id, "name": "layer_with_annotations"},
-            "long_descr": annotation.short_descr,
-            "short_descr": annotation.long_descr,
+            "long_descr": annotation.long_descr,
+            "short_descr": annotation.short_descr,
             "start_dttm": None,
         }
 
@@ -394,11 +399,14 @@ class TestAnnotationLayerApi(SupersetTestCase):
         """
         Annotation Api: Test filters on get list annotation layers
         """
+        layer = self.get_layer_with_annotation()
         self.login(username="admin")
         arguments = {
-            "filters": [{"col": "name", "opr": "annotation_all_text", "value": "2"}]
+            "filters": [
+                {"col": "short_descr", "opr": "annotation_all_text", "value": "2"}
+            ]
         }
-        uri = f"api/v1/annotation_layer/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -410,7 +418,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
                 {"col": "short_descr", "opr": "annotation_all_text", "value": "descr3"}
             ]
         }
-        uri = f"api/v1/annotation_layer/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -467,86 +475,73 @@ class TestAnnotationLayerApi(SupersetTestCase):
         assert updated_model.short_descr == annotation_layer_data["short_descr"]
         assert updated_model.long_descr == annotation_layer_data["long_descr"]
 
-    # @pytest.mark.usefixtures("create_annotation_layers")
-    # def test_update_annotation_layer_not_found(self):
-    #     """
-    #     Annotation Api: Test update annotation layer not found
-    #     """
-    #     max_id = db.session.query(func.max(AnnotationLayer.id)).scalar()
-    #
-    #     self.login(username="admin")
-    #     annotation_layer_data = {
-    #         "name": "changed_name",
-    #         "descr": "changed_description"
-    #     }
-    #     uri = f"api/v1/annotation_layer/{max_id + 1}"
-    #     rv = self.client.put(uri, json=annotation_layer_data)
-    #     assert rv.status_code == 404
-    #
-    # @pytest.mark.usefixtures("create_annotation_layers")
-    # def test_delete_annotation_layer(self):
-    #     """
-    #     Annotation Api: Test update annotation layer
-    #     """
-    #     annotation_layer = db.session.query(AnnotationLayer).filter(
-    #         AnnotationLayer.name == "name1"
-    #     ).one_or_none()
-    #     self.login(username="admin")
-    #     uri = f"api/v1/annotation_layer/{annotation_layer.id}"
-    #     rv = self.client.delete(uri)
-    #     assert rv.status_code == 200
-    #     updated_model = db.session.query(AnnotationLayer).get(annotation_layer.id)
-    #     assert updated_model is None
-    #
-    # @pytest.mark.usefixtures("create_annotation_layers")
-    # def test_delete_annotation_layer_not_found(self):
-    #     """
-    #     Annotation Api: Test delete annotation layer not found
-    #     """
-    #     max_id = db.session.query(func.max(AnnotationLayer.id)).scalar()
-    #     self.login(username="admin")
-    #     uri = f"api/v1/annotation_layer/{max_id + 1}"
-    #     rv = self.client.delete(uri)
-    #     assert rv.status_code == 404
-    #
-    # @pytest.mark.usefixtures("create_annotation_layers")
-    # def test_delete_annotation_layer_integrity(self):
-    #     """
-    #     Annotation Api: Test delete annotation layer integrity error
-    #     """
-    #     query_child_layer = db.session.query(AnnotationLayer).filter(
-    #         AnnotationLayer.name == "layer_with_annotations"
-    #     )
-    #     child_layer = query_child_layer.one_or_none()
-    #     self.login(username="admin")
-    #     uri = f"api/v1/annotation_layer/{child_layer.id}"
-    #     rv = self.client.delete(uri)
-    #     assert rv.status_code == 422
-    #
-    # @pytest.mark.usefixtures("create_annotation_layers")
-    # def test_bulk_delete_annotation_layer(self):
-    #     """
-    #     Annotation Api: Test bulk delete annotation layers
-    #     """
-    #     query_no_child_layers = db.session.query(AnnotationLayer).filter(
-    #         AnnotationLayer.name.like("name%")
-    #     )
-    #
-    #     no_child_layers = query_no_child_layers.all()
-    #     no_child_layers_ids = [
-    #         annotation_layer.id
-    #         for annotation_layer in no_child_layers
-    #     ]
-    #     self.login(username="admin")
-    #     uri = f"api/v1/annotation_layer/?q={prison.dumps(no_child_layers_ids)}"
-    #     rv = self.client.delete(uri)
-    #     assert rv.status_code == 200
-    #     deleted_annotation_layers = query_no_child_layers.all()
-    #     assert deleted_annotation_layers == []
-    #     response = json.loads(rv.data.decode("utf-8"))
-    #     expected_response = {"message": f"Deleted {len(no_child_layers_ids)} annotation layers"}
-    #     assert response == expected_response
-    #
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_update_annotation_not_found(self):
+        """
+        Annotation Api: Test update annotation not found
+        """
+        max_id = db.session.query(func.max(Annotation.id)).scalar()
+
+        self.login(username="admin")
+        annotation_layer_data = {
+            "short_descr": "changed_name",
+        }
+        uri = f"api/v1/annotation_layer/{max_id + 1}"
+        rv = self.client.put(uri, json=annotation_layer_data)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_delete_annotation(self):
+        """
+        Annotation Api: Test update annotation
+        """
+        layer = self.get_layer_with_annotation()
+        annotation = (
+            db.session.query(Annotation)
+            .filter(Annotation.short_descr == "short_descr1")
+            .one_or_none()
+        )
+        self.login(username="admin")
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/{annotation.id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 200
+        updated_model = db.session.query(Annotation).get(annotation.id)
+        assert updated_model is None
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_delete_annotation_not_found(self):
+        """
+        Annotation Api: Test delete annotation not found
+        """
+        layer = self.get_layer_with_annotation()
+        max_id = db.session.query(func.max(Annotation.id)).scalar()
+        self.login(username="admin")
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation{max_id + 1}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_bulk_delete_annotation(self):
+        """
+        Annotation Api: Test bulk delete annotation
+        """
+        layer = self.get_layer_with_annotation()
+        query_annotations = db.session.query(Annotation).filter(
+            Annotation.layer == layer
+        )
+
+        annotations = query_annotations.all()
+        annotations_ids = [annotation.id for annotation in annotations]
+        self.login(username="admin")
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(annotations_ids)}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 200
+        deleted_annotations = query_annotations.all()
+        assert deleted_annotations == []
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": f"Deleted {len(annotations_ids)} annotations"}
+        assert response == expected_response
+
     # @pytest.mark.usefixtures("create_annotation_layers")
     # def test_bulk_delete_annotation_layer_not_found(self):
     #     """

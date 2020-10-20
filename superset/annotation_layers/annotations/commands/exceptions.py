@@ -54,3 +54,7 @@ class AnnotationCreateFailedError(CreateFailedError):
 
 class AnnotationUpdateFailedError(CreateFailedError):
     message = _("Annotation could not be updated.")
+
+
+class AnnotationDeleteFailedError(CommandException):
+    message = _("Annotation delete failed.")

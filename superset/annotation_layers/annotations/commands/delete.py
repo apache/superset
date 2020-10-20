@@ -15,42 +15,40 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 
-from superset.annotation_layers.commands.exceptions import (
-    AnnotationLayerBulkDeleteFailedError,
-    AnnotationLayerBulkDeleteIntegrityError,
-    AnnotationLayerNotFoundError,
+from superset.annotation_layers.annotations.commands.exceptions import (
+    AnnotationDeleteFailedError,
+    AnnotationNotFoundError,
 )
-from superset.annotation_layers.dao import AnnotationLayerDAO
+from superset.annotation_layers.annotations.dao import AnnotationDAO
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
-from superset.models.annotations import AnnotationLayer
+from superset.models.annotations import Annotation
 
 logger = logging.getLogger(__name__)
 
 
-class BulkDeleteAnnotationLayerCommand(BaseCommand):
-    def __init__(self, user: User, model_ids: List[int]):
+class DeleteAnnotationCommand(BaseCommand):
+    def __init__(self, user: User, model_id: int):
         self._actor = user
-        self._model_ids = model_ids
-        self._models: Optional[List[AnnotationLayer]] = None
+        self._model_id = model_id
+        self._model: Optional[Annotation] = None
 
-    def run(self) -> None:
+    def run(self) -> Model:
         self.validate()
         try:
-            AnnotationLayerDAO.bulk_delete(self._models)
-            return None
+            annotation = AnnotationDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise AnnotationLayerBulkDeleteFailedError()
+            raise AnnotationDeleteFailedError()
+        return annotation
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._models = AnnotationLayerDAO.find_by_ids(self._model_ids)
-        if not self._models or len(self._models) != len(self._model_ids):
-            raise AnnotationLayerNotFoundError()
-        if AnnotationLayerDAO.has_annotations(self._model_ids):
-            raise AnnotationLayerBulkDeleteIntegrityError()
+        self._model = AnnotationDAO.find_by_id(self._model_id)
+        if not self._model:
+            raise AnnotationNotFoundError()
