@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
+import Popover from 'src/common/components/Popover';
 import CopyToClipboard from './CopyToClipboard';
 import { getShortUrl } from '../utils/common';
 import withToasts from '../messageToasts/enhancers/withToasts';
@@ -57,7 +57,7 @@ class URLShortLinkButton extends React.Component {
   renderPopover() {
     const emailBody = t('%s%s', this.props.emailContent, this.state.shortUrl);
     return (
-      <Popover id="shorturl-popover" data-test="shorturl-popover">
+      <div id="shorturl-popover" data-test="shorturl-popover">
         <CopyToClipboard
           text={this.state.shortUrl}
           copyNode={
@@ -70,19 +70,17 @@ class URLShortLinkButton extends React.Component {
         >
           <i className="fa fa-envelope" />
         </a>
-      </Popover>
+      </div>
     );
   }
 
   render() {
     return (
-      <OverlayTrigger
+      <Popover
         trigger="click"
-        rootClose
-        shouldUpdatePosition
         placement={this.props.placement}
-        onEnter={this.getCopyUrl}
-        overlay={this.renderPopover()}
+        onClick={this.getCopyUrl}
+        content={this.renderPopover()}
       >
         <span
           className="short-link-trigger btn btn-default btn-sm"
@@ -91,7 +89,7 @@ class URLShortLinkButton extends React.Component {
           <i className="short-link-trigger fa fa-link" />
           &nbsp;
         </span>
-      </OverlayTrigger>
+      </Popover>
     );
   }
 }

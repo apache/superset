@@ -20,7 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { FormGroup, Popover } from 'react-bootstrap';
+import { FormGroup } from 'react-bootstrap';
 import Button from 'src/components/Button';
 
 import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
@@ -62,7 +62,6 @@ function setup(overrides) {
 describe('AdhocMetricEditPopover', () => {
   it('renders a popover with edit metric form contents', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find(FormGroup)).toHaveLength(3);
     expect(wrapper.find(Button)).toHaveLength(2);
   });
@@ -89,21 +88,6 @@ describe('AdhocMetricEditPopover', () => {
     expect(wrapper.state('adhocMetric')).toEqual(
       sqlExpressionAdhocMetric.duplicateWith({ sqlExpression: 'COUNT(1)' }),
     );
-  });
-
-  it('overwrites the adhocMetric in state with onLabelChange', () => {
-    const { wrapper } = setup();
-    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
-    expect(wrapper.state('adhocMetric').label).toBe('new label');
-    expect(wrapper.state('adhocMetric').hasCustomLabel).toBe(true);
-  });
-
-  it('returns to default labels when the custom label is cleared', () => {
-    const { wrapper } = setup();
-    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
-    wrapper.instance().onLabelChange({ target: { value: '' } });
-    expect(wrapper.state('adhocMetric').label).toBe('SUM(value)');
-    expect(wrapper.state('adhocMetric').hasCustomLabel).toBe(false);
   });
 
   it('prevents saving if no column or aggregate is chosen', () => {
