@@ -25,18 +25,18 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
-import DeleteComponentButton from '../DeleteComponentButton';
-import DragDroppable from '../dnd/DragDroppable';
-import ResizableContainer from '../resizable/ResizableContainer';
-import MarkdownModeDropdown from '../menu/MarkdownModeDropdown';
-import WithPopoverMenu from '../menu/WithPopoverMenu';
-import { componentShape } from '../../util/propShapes';
-import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
+import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import { componentShape } from 'src/dashboard/util/propShapes';
+import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
-} from '../../util/constants';
+} from 'src/dashboard/util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
