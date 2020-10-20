@@ -17,16 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import {
-  FormGroup,
-  FormControl,
-  Overlay,
-  Popover,
-  FormControlProps,
-} from 'react-bootstrap';
-import Button from 'src/components/Button';
+import { FormGroup, FormControl, FormControlProps } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
 
+import Popover from 'src/common/components/Popover';
+import Button from 'src/components/Button';
 import Label from 'src/components/Label';
 import ControlHeader from '../../explore/components/ControlHeader';
 
@@ -57,7 +52,7 @@ export default class LimitControl extends React.PureComponent<
       textValue: (value || defaultQueryLimit).toString(),
       showOverlay: false,
     };
-    this.handleHide = this.handleHide.bind(this);
+    this.handleVisibleChange = this.handleVisibleChange.bind(this);
     this.handleToggle = this.handleToggle.bind(this);
     this.submitAndClose = this.submitAndClose.bind(this);
   }
@@ -86,8 +81,8 @@ export default class LimitControl extends React.PureComponent<
     this.setState(prevState => ({ showOverlay: !prevState.showOverlay }));
   }
 
-  handleHide() {
-    this.setState({ showOverlay: false });
+  handleVisibleChange(visible: boolean) {
+    this.setState({ showOverlay: visible });
   }
 
   renderPopover() {
@@ -99,68 +94,65 @@ export default class LimitControl extends React.PureComponent<
         ? t(' and not greater than %s', this.props.maxRow)
         : '');
     return (
-      <Popover id="sqllab-limit-results">
-        <StyledPopoverContent>
-          <ControlHeader
-            label={t('Row limit')}
-            validationErrors={!isValid ? [errorMsg] : []}
+      <StyledPopoverContent id="sqllab-limit-results">
+        <ControlHeader
+          label={t('Row limit')}
+          validationErrors={!isValid ? [errorMsg] : []}
+        />
+        <FormGroup>
+          <FormControl
+            type="text"
+            value={textValue}
+            placeholder={t(`Max: ${this.props.maxRow}`)}
+            bsSize="small"
+            onChange={(
+              event: React.FormEvent<FormControl & FormControlProps>,
+            ) =>
+              this.setState({
+                textValue: (event.currentTarget?.value as string) ?? '',
+              })
+            }
           />
-          <FormGroup>
-            <FormControl
-              type="text"
-              value={textValue}
-              placeholder={t(`Max: ${this.props.maxRow}`)}
-              bsSize="small"
-              onChange={(
-                event: React.FormEvent<FormControl & FormControlProps>,
-              ) =>
-                this.setState({
-                  textValue: (event.currentTarget?.value as string) ?? '',
-                })
-              }
-            />
-          </FormGroup>
-          <div className="clearfix">
-            <Button
-              buttonSize="small"
-              buttonStyle="primary"
-              className="float-right ok m-l-5"
-              disabled={!isValid}
-              onClick={this.submitAndClose}
-            >
-              {t('Ok')}
-            </Button>
-            <Button
-              buttonSize="small"
-              className="float-right reset"
-              onClick={this.setValueAndClose.bind(
-                this,
-                this.props.defaultQueryLimit.toString(),
-              )}
-            >
-              {t('Cancel')}
-            </Button>
-          </div>
-        </StyledPopoverContent>
-      </Popover>
+        </FormGroup>
+        <div className="clearfix">
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
+            className="float-right ok"
+            disabled={!isValid}
+            onClick={this.submitAndClose}
+          >
+            {t('Ok')}
+          </Button>
+          <Button
+            buttonSize="small"
+            className="float-right reset"
+            onClick={this.setValueAndClose.bind(
+              this,
+              this.props.defaultQueryLimit.toString(),
+            )}
+          >
+            {t('Cancel')}
+          </Button>
+        </div>
+      </StyledPopoverContent>
     );
   }
 
   render() {
     return (
       <div>
-        <Label onClick={this.handleToggle}>
-          LIMIT {this.props.value || this.props.maxRow}
-        </Label>
-        <Overlay
-          rootClose
-          show={this.state.showOverlay}
-          onHide={this.handleHide}
+        <Popover
+          content={this.renderPopover()}
+          visible={this.state.showOverlay}
           placement="right"
-          target={this}
+          onVisibleChange={this.handleVisibleChange}
+          trigger="click"
         >
-          {this.renderPopover()}
-        </Overlay>
+          <Label onClick={this.handleToggle}>
+            LIMIT {this.props.value || this.props.maxRow}
+          </Label>
+        </Popover>
       </div>
     );
   }

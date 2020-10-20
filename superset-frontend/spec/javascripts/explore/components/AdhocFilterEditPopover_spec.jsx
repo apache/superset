@@ -20,7 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { Popover, Tab, Tabs } from 'react-bootstrap';
+import { Tab, Tabs } from 'react-bootstrap';
 import Button from 'src/components/Button';
 
 import AdhocFilter, {
@@ -81,7 +81,6 @@ function setup(overrides) {
 describe('AdhocFilterEditPopover', () => {
   it('renders simple tab content by default', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find(Tabs)).toExist();
     expect(wrapper.find(Tab)).toHaveLength(2);
     expect(wrapper.find(Button)).toHaveLength(2);
@@ -92,7 +91,6 @@ describe('AdhocFilterEditPopover', () => {
 
   it('renders sql tab content when the adhoc filter expressionType is sql', () => {
     const { wrapper } = setup({ adhocFilter: sqlAdhocFilter });
-    expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find(Tabs)).toExist();
     expect(wrapper.find(Tab)).toHaveLength(2);
     expect(wrapper.find(Button)).toHaveLength(2);
