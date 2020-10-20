@@ -488,9 +488,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         "filter_select_enabled",
         "fetch_values_predicate",
     ]
-    update_from_object_fields = [
-        f for f in export_fields if f not in ("table_name", "database_id")
-    ]
+    update_from_object_fields = [f for f in export_fields if not f == "database_id"]
     export_parent = "database"
     export_children = ["metrics", "columns"]
 
