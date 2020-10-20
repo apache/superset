@@ -59,7 +59,6 @@ export const SIZES = {
 //     Fetch: 'fetch',
 //     Query: 'query',
 //     MR3: 'm-r-3',
-//     toggleSave: 'toggleSave',
 //     autocomplete: 'autocomplete',
 //     OK: 'ok',
 //     None: null,

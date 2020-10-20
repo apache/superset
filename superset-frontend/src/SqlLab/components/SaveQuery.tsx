@@ -195,7 +195,7 @@ export default function SaveQuery({
 
   return (
     <span className="SaveQuery">
-      <Button buttonSize="small" className="toggleSave" onClick={toggleSave}>
+      <Button buttonSize="small" onClick={toggleSave}>
         <i className="fa fa-save" /> {t('Save')}
       </Button>
       <Modal
