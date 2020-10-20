@@ -89,7 +89,6 @@ class ParsedQuery:
 
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
         self._parsed = sqlparse.parse(self.stripped())
-        logger.debug(self._parsed[0])
         for statement in self._parsed:
             self._limit = _extract_limit_from_query(statement)
 
