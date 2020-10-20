@@ -75,7 +75,7 @@ describe('AdhocFilters', () => {
       .focus()
       .type('name{enter}', { delay: 20 });
     cy.get('[data-test="adhoc_filters"]').within(() => {
-      cy.contains('name = ').should('be.visible');
+      cy.contains('name = ').should('be.visible').click();
     });
     cy.wait('@filterValues');
 
