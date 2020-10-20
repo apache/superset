@@ -24,7 +24,6 @@ import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
 import Icon from 'src/components/Icon';
-import { SavedQueryObject } from 'src/views/CRUD/types';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
 
@@ -33,15 +32,15 @@ import { IconContainer, CardContainer, createErrorHandler } from '../utils';
 const PAGE_SIZE = 3;
 
 interface Query {
-  id: number;
-  sql_tables: Array<any>;
-  database: {
+  id?: number;
+  sql_tables?: Array<any>;
+  database?: {
     database_name: string;
   };
-  rows: string;
-  description: string;
-  end_time: string;
-  label: string;
+  rows?: string;
+  description?: string;
+  end_time?: string;
+  label?: string;
 }
 
 interface SavedQueriesProps {
@@ -66,12 +65,12 @@ const SavedQueries = ({
   } = useListViewResource<Query>('saved_query', t('query'), addDangerToast);
   const [queryFilter, setQueryFilter] = useState('Favorite');
   const [queryDeleteModal, setQueryDeleteModal] = useState(false);
-  const [currentlyEdited, setCurrentlyEdited] = useState(null);
+  const [currentlyEdited, setCurrentlyEdited] = useState<Query>({});
 
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
-  const handleQueryDelete = ({ id, label }: SavedQueryObject) => {
+  const handleQueryDelete = ({ id, label }: Query) => {
     SupersetClient.delete({
       endpoint: `/api/v1/saved_query/${id}`,
     }).then(
@@ -132,7 +131,10 @@ const SavedQueries = ({
         </Menu.Item>
       )}
       <Menu.Item
-        onClick={() => copyQueryLink(query.id, addDangerToast, addSuccessToast)}
+        onClick={() => {
+          if (query.id)
+            copyQueryLink(query.id, addDangerToast, addSuccessToast);
+        }}
       >
         Share
       </Menu.Item>
@@ -215,8 +217,8 @@ const SavedQueries = ({
               imgURL=""
               title={q.label}
               rows={q.rows}
-              tableName={q.sql_tables[0]?.table}
-              tables={q.sql_tables?.length}
+              tableName={q?.sql_tables && q.sql_tables[0].table}
+              tables={q?.sql_tables?.length}
               loading={loading}
               description={t('Last run ', q.end_time)}
               showImg={false}

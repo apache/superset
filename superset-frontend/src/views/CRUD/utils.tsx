@@ -54,7 +54,7 @@ const createFetchResourceMethod = (method: string) => (
   return [];
 };
 
-export const getBatchData = (userId: string, recent: string) => {
+export const getBatchData = (userId: string | number, recent: string) => {
   const getParams = (filters?: Array<any>) => {
     const params = {
       order_column: 'changed_on_delta_humanized',

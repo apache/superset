@@ -24,7 +24,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import { addDangerToast } from 'src/messageToasts/actions';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { reject } from 'lodash';
-import { getBatchData, createErrorHandler } from '../utils';
+import { getBatchData } from '../utils';
 import EmptyState from './EmptyState';
 
 interface MapProps {
@@ -44,15 +44,15 @@ interface MapProps {
 
 interface ActivityProps {
   user: {
-    userId: string;
+    userId: string | number;
   };
 }
 
 interface ActivityData {
-  Created: Array<object>;
-  Edited: Array<object>;
-  Viewed: Array<object>;
-  Examples: Array<object>;
+  Created?: Array<object>;
+  Edited?: Array<object>;
+  Viewed?: Array<object>;
+  Examples?: Array<object>;
 }
 
 const ActivityContainer = styled.div`
@@ -73,7 +73,7 @@ const ActivityContainer = styled.div`
 `;
 
 export default function ActivityTable({ user }: ActivityProps) {
-  const [activityData, setActivityData] = useState<ActivityData | {}>({});
+  const [activityData, setActivityData] = useState<ActivityData>({});
   const [loading, setLoading] = useState(true);
   const [activeChild, setActiveChild] = useState('Viewed');
   // this api uses log for data which in some cases is can be empty
@@ -143,7 +143,6 @@ export default function ActivityTable({ user }: ActivityProps) {
           Created: [...r.createdByChart, ...r.createdByDash],
           Edited: [...r.editedChart, ...r.editedDash],
         };
-        console.log('r.viewed', r)
         if (r.viewed) {
           const filtered = reject(r.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
@@ -157,7 +156,9 @@ export default function ActivityTable({ user }: ActivityProps) {
       })
       .catch(e => {
         setLoading(false);
-        addDangerToast(`e ${e}`);
+        addDangerToast(
+          `There was an issue fetching your recent Acitivity: ${e}`,
+        );
       });
   }, []);
 

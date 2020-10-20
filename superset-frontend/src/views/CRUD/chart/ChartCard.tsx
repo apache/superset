@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { useFavoriteStatus } from 'src/views/CRUD/hooks';
-// import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { SupersetClient, t } from '@superset-ui/core';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import AvatarIcon from 'src/components/AvatarIcon';
@@ -141,8 +140,6 @@ export default function ChartCard({
             fetchFaveStar={fetchFaveStar}
             saveFaveStar={saveFaveStar}
             isStarred={!!favoriteStatus[chart.id]}
-            height={20}
-            width={20}
           />
           <Dropdown overlay={menu}>
             <Icon name="more-horiz" />
