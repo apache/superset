@@ -37,11 +37,6 @@ const RefreshOverlayWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-
-  .refresh-btn {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
 `;
 
 class RefreshChartOverlay extends React.PureComponent<Props> {
@@ -50,7 +45,6 @@ class RefreshChartOverlay extends React.PureComponent<Props> {
       <RefreshOverlayWrapper>
         <div>
           <Button
-            className="refresh-btn"
             onClick={this.props.onQuery}
             buttonStyle="primary"
           >

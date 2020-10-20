@@ -58,7 +58,6 @@ export const SIZES = {
 // const classKnob = {
 //   label: 'Known Classes',
 //   options: {
-//     Refresh: 'refresh-btn',
 //     Primary: 'btn-primary',
 //     Reset: 'reset',
 //     Fetch: 'fetch',
