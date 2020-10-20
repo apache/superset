@@ -65,4 +65,4 @@ class Annotation(Model, AuditMixinNullable):
         }
 
     def __repr__(self) -> str:
-        return self.short_descr
+        return str(self.short_descr)

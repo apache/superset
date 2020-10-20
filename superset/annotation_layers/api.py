@@ -79,7 +79,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @permission_name("delete")
-    def delete(self, layer_id: int) -> Response:
+    def delete(self, layer_id: int) -> Response:  # pylint: disable=arguments-differ
         """Delete an annotation layer
         ---
         delete:

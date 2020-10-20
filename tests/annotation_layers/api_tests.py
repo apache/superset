@@ -480,13 +480,14 @@ class TestAnnotationLayerApi(SupersetTestCase):
         """
         Annotation Api: Test update annotation not found
         """
+        layer = self.get_layer_with_annotation()
         max_id = db.session.query(func.max(Annotation.id)).scalar()
 
         self.login(username="admin")
         annotation_layer_data = {
             "short_descr": "changed_name",
         }
-        uri = f"api/v1/annotation_layer/{max_id + 1}"
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/{max_id + 1}"
         rv = self.client.put(uri, json=annotation_layer_data)
         assert rv.status_code == 404
 
