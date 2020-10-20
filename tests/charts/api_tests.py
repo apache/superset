@@ -698,11 +698,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {
-                    "col": "slice_name",
-                    "opr": "chart_all_text",
-                    "value": "energy",
-                }
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -720,11 +716,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {
-                    "col": "slice_name",
-                    "opr": "chart_all_text",
-                    "value": "energy",
-                }
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -858,8 +850,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(result["data"][0]["name"], expected_name)
 
     @mock.patch(
-        "superset.common.query_object.config",
-        {**app.config, "ROW_LIMIT": 7},
+        "superset.common.query_object.config", {**app.config, "ROW_LIMIT": 7},
     )
     def test_chart_data_default_row_limit(self):
         """
@@ -875,8 +866,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(result["rowcount"], 7)
 
     @mock.patch(
-        "superset.common.query_context.config",
-        {**app.config, "SAMPLES_ROW_LIMIT": 5},
+        "superset.common.query_context.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
     )
     def test_chart_data_default_sample_limit(self):
         """

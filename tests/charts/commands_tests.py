@@ -48,10 +48,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "viz_type": "sankey",
             "params": {
                 "collapsed_fieldsets": "",
-                "groupby": [
-                    "source",
-                    "target",
-                ],
+                "groupby": ["source", "target",],
                 "metric": "sum__value",
                 "row_limit": "5000",
                 "slice_name": "Energy Sankey",
