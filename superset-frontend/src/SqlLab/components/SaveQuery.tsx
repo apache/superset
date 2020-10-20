@@ -184,7 +184,7 @@ export default function SaveQuery({
             >
               {isSaved ? t('Save New') : t('Save')}
             </Button>
-            <Button onClick={close} className="cancelQuery" cta>
+            <Button onClick={close} data-test="cancel-query" cta>
               {t('Cancel')}
             </Button>
           </Col>
