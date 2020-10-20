@@ -89,6 +89,7 @@ class ParsedQuery:
 
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
         self._parsed = sqlparse.parse(self.stripped())
+        logger.debug(self._parsed[0])
         for statement in self._parsed:
             self._limit = _extract_limit_from_query(statement)
 
@@ -111,7 +112,11 @@ class ParsedQuery:
         return self._parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
-        return self.stripped().upper().startswith("EXPLAIN")
+        # Parsing SQL statement for EXPLAIN and filtering out commente
+        for statement in self.stripped().upper().splitlines():
+            if statement.upper().startswith("EXPLAIN"):
+                return True
+        return False
 
     def is_readonly(self) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
