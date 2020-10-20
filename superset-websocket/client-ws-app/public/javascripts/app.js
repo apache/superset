@@ -2,25 +2,31 @@ console.log('hello');
 let socketCount = 0;
 let messageCount = 0;
 
-const numClients = 100;
+const jwtSecret = "test-secret-change-me";
 
 function ts() {
     return (new Date()).getTime();
 }
 
-for (let i=0; i < numClients; i++) {
+const tokenData = document.getElementById('tokens').innerHTML;
+const tokens = JSON.parse(tokenData);
+console.log('tokens', tokens);
+
+function connect() {
+    if(socketCount >= tokens.length) return;
+
+    // using https://github.com/js-cookie/js-cookie
+    Cookies.set('jwt', tokens[socketCount], { expires: 1, path: '' });
+
     // Create WebSocket connection.
-    const channelPrefix = 'c';
-    const channelId = `${channelPrefix}${i}`;
-    const lastIdReceived = ts();
-    let url = `ws://localhost:8080?channel=${channelId}`;
-    if(lastIdReceived) url += `&last_id=${lastIdReceived}`
+    let url = `ws://localhost:8080?last_id=${ts()}`;
     const socket = new WebSocket(url);
 
     // Connection opened
     socket.addEventListener('open', function (event) {
         socketCount++;
         console.log(`socket count ${socketCount}`);
+        connect();
 
         socket.send('Hello Server!');
     });
@@ -31,4 +37,6 @@ for (let i=0; i < numClients; i++) {
         messageCount++;
         console.log(`message count ${messageCount}`);
     });
-};
+}
+
+connect();

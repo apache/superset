@@ -5,5 +5,9 @@
         "family": 4,
         "password": "",
         "db": 0
-      }
+      },
+    "streamPrefix": "async-events-",
+    "jwtSecret": "test-secret-change-me",
+    "jwtCookieName": "jwt",
+    "debug": true
 }

@@ -9,10 +9,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.1",
+    "cookie": "^0.4.1",
     "ioredis": "^4.16.1",
-    "lodash": "^4.17.15",
-    "uuid": "^7.0.3",
+    "jsonwebtoken": "^8.5.1",
     "ws": "^7.2.3"
   }
 }

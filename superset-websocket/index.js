@@ -1,28 +1,27 @@
 const config = require('./config.json');
 const http = require('http');
 const WebSocket = require('ws');
+const jwt = require('jsonwebtoken');
+const cookie = require('cookie');
 const Redis = require('ioredis');
 const redis = new Redis(config.redis);
 
 const server = http.createServer();
 const wss = new WebSocket.Server({ noServer: true });
 
+const globalEventStreamName = `${config.streamPrefix}full`;
 let channels = {};
 let lastFirehoseId = '$';
 let redisRequestCount = 0;
 
-const firehoseStream = 'fullstream';
 
-/* 
+/*
 NOT using Redis Stream consumer groups due to the fact that they only read
 a subset of the data for a stream, and Websocket clients have a persistent
 connection to each app instance, requiring access to all data in a stream.
 Horizontal scaling of the websocket app means having multiple websocket servers,
 each with full access to the Redis Stream.
-*/
-//const appId = 'app01';  // NOTE: this value should be unique for all running instances of the app
 
-/*
 Stream options:
 
 1. Stream for each Superset installation (including all horizontal nodes)
@@ -56,10 +55,11 @@ function sendToChannel(channel, value) {
   console.log(`${strData} sent to ${channel} with lastId ${channels[channel].lastId}`);
 }
 
-async function fetchRangeFromStream({channel, startId, endId, listener}) {
-  console.log('fetchRangeFromStream', channel, startId, endId);
+async function fetchRangeFromStream({sessionId, startId, endId, listener}) {
+  console.log('fetchRangeFromStream', sessionId, startId, endId);
+  const streamName = `${config.streamPrefix}${sessionId}`;
   try {
-    const reply = await redis.xrange(channel, startId, endId);
+    const reply = await redis.xrange(streamName, startId, endId);
     console.log('*** fetchRangeFromStream reply', reply);
     if (!reply || !reply.length) return;
     listener(reply);
@@ -68,8 +68,8 @@ async function fetchRangeFromStream({channel, startId, endId, listener}) {
   }
 }
 
-async function subscribeToStream(stream, listener) {
-  console.log(`subscribeToStream`, stream, listener);
+async function subscribeToGlobalStream(stream, listener) {
+  console.log(`subscribeToGlobalStream`, stream, listener);
 
   while (true) {
     try {
@@ -98,7 +98,7 @@ function processStreamResults(results) {
   results.forEach((item) => {
     const data = JSON.parse(item[1][1]);
     console.log('data', data);
-    sendToChannel(data['channel_id'], data);
+    sendToChannel(data['session_id'], data);
   });
 }
 
@@ -116,15 +116,16 @@ wss.on('connection', function connection(ws, request) {
   if(ws.lastId) {
     const endId = (lastFirehoseId === '$' ? '+' : lastFirehoseId);
     fetchRangeFromStream({
-      channel: ws.channel,
+      sessionId: ws.channel,
       startId: ws.lastId,   // TODO: inclusive?
       endId,                // TODO: inclusive?
       listener: processStreamResults
     });
   }
-  
+
   ws.on('message', function message(msg) {
     console.log(`Received message ${msg} on channel ${ws.channel}`);
+    sendToChannel(ws.channel, { msg: `received message on channel ${ws.channel}`});
   });
 });
 
@@ -133,30 +134,42 @@ server.on('upgrade', function upgrade(request, socket, head) {
     const url = new URL(request.url, 'http://0.0.0.0');
     const queryParams = url.searchParams;
     console.log('queryParams', queryParams);
-    const channel = queryParams.get('channel'); // TODO: parse User ID from channel name for auth check
-    const lastId = queryParams.get('last_id'); // TODO: parse User ID from channel name for auth check
-    const lastEventId = queryParams.get('last_event_id');
-    
-//   authenticate(request, (err, client) => {
-//     if (err || !client) {
-//       socket.destroy();
-//       return;
-//     }
+    const lastId = queryParams.get('last_id');
+    let jwtPayload;
+
+    const cookies = cookie.parse(request.headers.cookie);
+    const token = cookies[config.jwtCookieName];
+    console.log('cookies', cookies, token);
+
+    try {
+      if(!token) throw new Error('JWT not present');
+      jwtPayload = jwt.verify(token, config.jwtSecret);
+    } catch(err) {
+      console.log(err);
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    // console.log('jwtPayload', jwtPayload);
+    // return;
 
     wss.handleUpgrade(request, socket, head, function done(ws) {
-      ws.channel = channel;
+      ws.channel = jwtPayload.channel;
       ws.lastId = lastId;
       wss.emit('connection', ws, request);
     });
 //   });
 });
 
-subscribeToStream(firehoseStream, processStreamResults);
+subscribeToGlobalStream(globalEventStreamName, processStreamResults);
 
 server.listen(8080);
 console.log('websocket server started on 8080');
 
-setInterval(() => {
-  console.log('total connected sockets', wss.clients.size);
-  console.log('redis request count', redisRequestCount);
-}, 1000)
+if(config.debug) {
+  setInterval(() => {
+    console.log('total connected sockets', wss.clients.size);
+    console.log('redis request count', redisRequestCount);
+  }, 1000)
+}
