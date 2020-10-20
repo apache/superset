@@ -29,7 +29,7 @@ import {
 import { t, getChartMetadataRegistry } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
-import ControlHeader from '../ControlHeader';
+import ControlHeader from 'src/explore/components/ControlHeader';
 import './VizTypeControl.less';
 
 const propTypes = {
@@ -198,7 +198,7 @@ export default class VizTypeControl extends React.PureComponent {
           }
         >
           <>
-            <Label onClick={this.toggleModal} style={LABEL_STYLE}>
+            <Label onClick={this.toggleModal} style={LABEL_STYLE} bsStyle="info">
               {registry.has(value) ? registry.get(value).name : `${value}`}
             </Label>
             {!registry.has(value) && (
