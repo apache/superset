@@ -160,6 +160,7 @@ const QueryTable = props => {
                   displayLimit={props.displayLimit}
                 />
               }
+              responsive
             />
           );
         } else {

@@ -132,6 +132,7 @@ export default class TextAreaControl extends React.Component {
               </Button>
             }
             modalBody={this.renderModalBody(true)}
+            responsive
           />
         )}
       </div>

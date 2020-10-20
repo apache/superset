@@ -266,6 +266,7 @@ export class DisplayQueryButton extends React.PureComponent {
           modalTitle={t('View query')}
           beforeOpen={() => this.beforeOpen('query')}
           modalBody={this.renderQueryModalBody()}
+          responsive
         />
         <ModalTrigger
           isMenuItem
@@ -273,6 +274,7 @@ export class DisplayQueryButton extends React.PureComponent {
           modalTitle={t('View results')}
           beforeOpen={() => this.beforeOpen('results')}
           modalBody={this.renderResultsModalBody()}
+          responsive
         />
         <ModalTrigger
           isMenuItem
@@ -280,6 +282,7 @@ export class DisplayQueryButton extends React.PureComponent {
           modalTitle={t('View samples')}
           beforeOpen={() => this.beforeOpen('samples')}
           modalBody={this.renderSamplesModalBody()}
+          responsive
         />
         {this.state.sqlSupported && (
           <MenuItem eventKey="3" onClick={this.redirectSQLLab.bind(this)}>

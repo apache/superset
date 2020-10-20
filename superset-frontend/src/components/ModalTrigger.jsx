@@ -34,6 +34,9 @@ const propTypes = {
   isMenuItem: PropTypes.bool,
   className: PropTypes.string,
   tooltip: PropTypes.string,
+  width: PropTypes.string,
+  maxWidth: PropTypes.string,
+  responsive: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -76,6 +79,8 @@ export default class ModalTrigger extends React.Component {
         title={this.props.modalTitle}
         footer={this.props.modalFooter}
         hideFooter={!this.props.modalFooter}
+        maxWidth={this.props.maxWidth}
+        responsive={this.props.responsive}
       >
         {this.props.modalBody}
       </Modal>
