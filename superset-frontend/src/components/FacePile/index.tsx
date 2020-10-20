@@ -22,7 +22,7 @@ import { Avatar, Tooltip } from 'src/common/components';
 import { getRandomColor } from './utils';
 
 interface FacePileProps {
-  users: { first_name: string; last_name: string }[];
+  users: { first_name: string; last_name: string; id: number }[];
   maxCount?: number;
 }
 
@@ -48,9 +48,10 @@ const StyledGroup = styled(Avatar.Group)`
 export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
   return (
     <StyledGroup maxCount={maxCount}>
-      {users.map(({ first_name, last_name }) => {
+      {users.map(({ first_name, last_name, id }) => {
         const name = `${first_name} ${last_name}`;
-        const color = getRandomColor(name, colorList);
+        const uniqueKey = `${id}-${first_name}-${last_name}`;
+        const color = getRandomColor(uniqueKey, colorList);
         return (
           <Tooltip key={name} title={name} placement="top">
             <StyledAvatar

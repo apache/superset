@@ -21,7 +21,7 @@ import { withKnobs, number } from '@storybook/addon-knobs';
 import FacePile from '.';
 
 export default {
-  title: 'UerStack',
+  title: 'FacePile',
   component: FacePile,
   decorators: [withKnobs],
 };
@@ -49,9 +49,10 @@ const lastNames = [
   'Tzu',
 ];
 
-const users = [...new Array(10)].map(() => ({
+const users = [...new Array(10)].map((_, i) => ({
   first_name: firstNames[Math.floor(Math.random() * firstNames.length)],
   last_name: lastNames[Math.floor(Math.random() * lastNames.length)],
+  id: i,
 }));
 
 export const SupersetFacePile = () => {

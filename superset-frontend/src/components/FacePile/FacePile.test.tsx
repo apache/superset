@@ -26,6 +26,7 @@ import { getRandomColor } from './utils';
 const users = [...new Array(10)].map((_, i) => ({
   first_name: 'user',
   last_name: `${i}`,
+  id: i,
 }));
 
 describe('FacePile', () => {
