@@ -285,6 +285,9 @@ LANGUAGES = {
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
 }
+# Turning off i18n by default as translation in most languages are
+# incomplete and not well maintained.
+LANGUAGES = {}
 
 # ---------------------------------------------------
 # Feature flags

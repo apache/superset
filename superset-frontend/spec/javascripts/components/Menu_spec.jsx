@@ -173,6 +173,6 @@ describe('Menu', () => {
   });
 
   it('renders MenuItems in NavDropdown (settings)', () => {
-    expect(wrapper.find(NavDropdown).find(MenuItem)).toHaveLength(2);
+    expect(wrapper.find(NavDropdown).find(MenuItem)).toHaveLength(6);
   });
 });
