@@ -150,7 +150,6 @@ const SavedQueries = ({
       )}
     </Menu>
   );
-
   return (
     <>
       {queryDeleteModal && (
@@ -211,13 +210,15 @@ const SavedQueries = ({
       />
       {queries.length > 0 ? (
         <CardContainer>
-          {queries.map(q => (
+          {queries.map((q, i) => (
             <ListViewCard
+              key={`${i}`}
               imgFallbackURL=""
               imgURL=""
+              url={`/superset/sqllab?savedQueryId=${q.id}`}
               title={q.label}
               rows={q.rows}
-              tableName={q?.sql_tables && q.sql_tables[0].table}
+              tableName={q?.sql_tables && q.sql_tables[0]?.table}
               tables={q?.sql_tables?.length}
               loading={loading}
               description={t('Last run ', q.end_time)}

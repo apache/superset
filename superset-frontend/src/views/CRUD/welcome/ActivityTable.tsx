@@ -24,7 +24,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import { addDangerToast } from 'src/messageToasts/actions';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { reject } from 'lodash';
-import { getBatchData } from '../utils';
+import { getBatchData, mq } from '../utils';
 import EmptyState from './EmptyState';
 
 interface MapProps {
@@ -60,12 +60,22 @@ const ActivityContainer = styled.div`
   margin-top: -15px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+  ${[mq[3]]} {
+    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+  }
+  ${[mq[2]]} {
+    grid-template-columns: repeat(auto-fit, minmax(42%, max-content));
+  }
+  ${[mq[1]]} {
+    grid-template-columns: repeat(auto-fit, minmax(63%, max-content));
+  }
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
   .ant-card-meta-avatar {
-    margin-top: 5px;
+    margin-top: 10px;
+    margin-left: 5px;
   }
   .ant-card-meta-title {
     font-weight: 700;
@@ -181,7 +191,6 @@ export default function ActivityTable({ user }: ActivityProps) {
     ));
   };
   if (loading) return <>loading ...</>;
-  console.log('activity', activeChild)
   return (
     <>
       <>

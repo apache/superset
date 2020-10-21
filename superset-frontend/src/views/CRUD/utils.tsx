@@ -164,7 +164,7 @@ export const CardContainer = styled.div`
   }
 
   ${[mq[1]]} {
-    grid-template-columns: repeat(auto-fit, minmax(48%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(50%, max-content));
   }
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;

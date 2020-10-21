@@ -31,10 +31,12 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
+  margin-top: 20px;
   img {
     width: 114px;
     display: block;
     margin: 0 auto;
+    margin-bottom: 15px;
   }
   div:nth-child(2) {
     text-align: center;
@@ -100,7 +102,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
       appear here
     </div>
   );
-
+  // Mine and Recent Activity(all tabs) tab empty state
   if (tab === 'Mine' || tableName === 'RECENTS') {
     return (
       <Container>
@@ -112,7 +114,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
       </Container>
     );
   }
-
+  // Favorite tab empty state
   return (
     <Container>
       <img src="/static/assets/images/star-circle.png" alt="star.png" />

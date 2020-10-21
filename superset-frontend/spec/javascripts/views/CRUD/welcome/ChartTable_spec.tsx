@@ -24,6 +24,7 @@ import fetchMock from 'fetch-mock';
 import configureStore from 'redux-mock-store';
 import ChartTable from 'src/views/CRUD/welcome/ChartTable';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
 // store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
@@ -59,20 +60,15 @@ describe('DashboardTable', () => {
     context: { store },
   });
 
-  /*beforeAll(async () => {
+  beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
-  });*/
+  });
 
   it('it renders', () => {
     expect(wrapper.find(ChartTable)).toExist();
   });
   it('fetches chart favorites and renders chart cards ', () => {
-      console.log('mock call', fetchMock.calls(/chart\/\?q/))
     expect(fetchMock.calls(chartsEndpoint)).toHaveLength(1);
-    console.log('wrapper', wrapper.dive());
-    // there's a delay between response and updating state, so manually set it
-    // rather than adding a timeout which could introduce flakiness
-    // wrapper.setState({ dashboards: mockDashboards });
     expect(wrapper.find(ChartCard)).toExist();
   });
 });
