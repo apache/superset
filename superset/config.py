@@ -313,6 +313,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
+    # When True, this flag allows display of HTML tags in Markdown components
+    "DISPLAY_MARKDOWN_HTML": True,
+    # When True, this escapes HTML (rather than rendering it) in Markdown components
+    "ESCAPE_MARKDOWN_HTML": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
