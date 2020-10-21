@@ -191,6 +191,7 @@ function ChartList(props: ChartListProps) {
         }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
         Header: t('Dataset'),
         accessor: 'datasource_id',
+        disableSortBy: true,
         size: 'xl',
       },
       {
