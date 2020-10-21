@@ -20,13 +20,14 @@ import React from 'react';
 import { useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { SupersetClient, t } from '@superset-ui/core';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import AvatarIcon from 'src/components/AvatarIcon';
 import Icon from 'src/components/Icon';
 import Chart from 'src/types/Chart';
+
 import ListViewCard from 'src/components/ListViewCard';
 import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
 import FaveStar from 'src/components/FaveStar';
+import FacePile from 'src/components/FacePile';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
@@ -120,16 +121,7 @@ export default function ChartCard({
       imgURL={chart.thumbnail_url ?? ''}
       imgFallbackURL="/static/assets/images/chart-card-fallback.png"
       description={t('Last modified %s', chart.changed_on_delta_humanized)}
-      coverLeft={(chart.owners || []).slice(0, 5).map(owner => (
-        <AvatarIcon
-          key={owner.id}
-          uniqueKey={`${owner.username}-${chart.id}`}
-          firstName={owner.first_name}
-          lastName={owner.last_name}
-          iconSize={24}
-          textSize={9}
-        />
-      ))}
+      coverLeft={<FacePile users={chart.owners || []} />}
       coverRight={
         <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
       }
