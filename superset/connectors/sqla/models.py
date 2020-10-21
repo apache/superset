@@ -638,8 +638,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     def external_metadata(self) -> List[Dict[str, str]]:
         db_engine_spec = self.database.db_engine_spec
         if self.sql:
-            engine = self.database.get_sqla_engine()
-            parsed_query = ParsedQuery(self.sql)
+            engine = self.database.get_sqla_engine(schema=self.schema)
+            sql = self.get_template_processor().process_template(self.sql)
+            parsed_query = ParsedQuery(sql)
             if not parsed_query.is_readonly():
                 raise SupersetSecurityException(
                     SupersetError(
@@ -659,7 +660,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 )
             with closing(engine.raw_connection()) as conn:
                 with closing(conn.cursor()) as cursor:
-                    query = statements[0]
+                    query = self.database.apply_limit_to_sql(statements[0])
                     db_engine_spec.execute(cursor, query)
                     result = db_engine_spec.fetch_data(cursor, limit=1)
                     result_set = SupersetResultSet(
