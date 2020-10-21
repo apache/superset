@@ -213,7 +213,7 @@ export function Menu({
                     href={section.url}
                     eventKey={index}
                   >
-                    {section.label}
+                    <i className={`fa ${section.icon}`} /> {section.label}
                   </MenuItem>
                 );
               })}

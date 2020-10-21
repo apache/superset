@@ -42,11 +42,12 @@ export default function MenuObject({
   childs,
   url,
   index,
+  icon,
 }: MenuObjectProps) {
   if (url) {
     return (
       <NavItem eventKey={index} href={url}>
-        {label}
+        <i className={`fa ${icon}`} /> {label}
       </NavItem>
     );
   }
@@ -64,7 +65,7 @@ export default function MenuObject({
               href={child.url}
               eventKey={parseFloat(`${index}.${index1}`)}
             >
-              &nbsp; {child.label}
+              <i className={`fa ${child.icon}`} /> {child.label}
             </MenuItem>
           );
         }
