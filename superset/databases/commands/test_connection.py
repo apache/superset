@@ -19,7 +19,7 @@ from contextlib import closing
 from typing import Any, Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy import select
+from sqlalchemy.exc import DBAPIError
 
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import DatabaseSecurityUnsafeError
@@ -54,8 +54,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 database.db_engine_spec.mutate_db_for_connection_test(database)
                 username = self._actor.username if self._actor is not None else None
                 engine = database.get_sqla_engine(user_name=username)
-            with closing(engine.connect()) as conn:
-                conn.scalar(select([1]))
+            with closing(engine.raw_connection()) as conn:
+                if not engine.dialect.do_ping(conn):
+                    raise DBAPIError(None, None, None)
         except DBSecurityException as ex:
             logger.warning(ex)
             raise DatabaseSecurityUnsafeError()
