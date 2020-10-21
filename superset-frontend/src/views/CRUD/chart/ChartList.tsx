@@ -323,6 +323,7 @@ function ChartList(props: ChartListProps) {
         ),
       ),
       paginate: true,
+      sort: true,
     },
     {
       Header: t('Created By'),
@@ -343,6 +344,7 @@ function ChartList(props: ChartListProps) {
         ),
       ),
       paginate: true,
+      sort: true,
     },
     {
       Header: t('Viz Type'),
@@ -352,7 +354,21 @@ function ChartList(props: ChartListProps) {
       unfilteredLabel: 'All',
       selects: getChartMetadataRegistry()
         .keys()
-        .map(k => ({ label: k, value: k })),
+        .map(k => ({ label: k, value: k }))
+        .sort((a, b) => {
+          if (!a.label || !b.label) {
+            return 0;
+          }
+
+          if (a.label > b.label) {
+            return 1;
+          }
+          if (a.label < b.label) {
+            return -1;
+          }
+
+          return 0;
+        }),
     },
     {
       Header: t('Dataset'),
@@ -371,6 +387,7 @@ function ChartList(props: ChartListProps) {
         ),
       ),
       paginate: false,
+      sort: true,
     },
     {
       Header: t('Search'),

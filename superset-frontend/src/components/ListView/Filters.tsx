@@ -45,6 +45,7 @@ interface SelectFilterProps extends BaseFilter {
   name?: string;
   onSelect: (selected: any) => any;
   paginate?: boolean;
+  sort?: boolean;
   selects: Filter['selects'];
   theme: SupersetThemeProps['theme'];
 }
@@ -71,6 +72,7 @@ function SelectFilter({
   onSelect,
   paginate = false,
   selects = [],
+  sort = false,
   theme,
 }: SelectFilterProps) {
   const filterSelectTheme: PartialThemeConfig = {
@@ -119,6 +121,25 @@ function SelectFilter({
         setSelectedOption(matchingOption);
       }
     }
+
+    // Check whether list should be sorted (alphanumerically, ascending)
+    if (sort) {
+      result.sort((a, b) => {
+        if (!a.label || !b.label) {
+          return 0;
+        }
+
+        if (a.label > b.label) {
+          return 1;
+        }
+        if (a.label < b.label) {
+          return -1;
+        }
+
+        return 0;
+      });
+    }
+
     return {
       options: result,
       hasMore,
@@ -229,6 +250,7 @@ function UIFilters({
             paginate,
             selects,
             unfilteredLabel,
+            sort,
           },
           index,
         ) => {
@@ -245,6 +267,7 @@ function UIFilters({
                 name={id}
                 onSelect={(value: any) => updateFilterValue(index, value)}
                 paginate={paginate}
+                sort={sort}
                 selects={selects}
               />
             );
