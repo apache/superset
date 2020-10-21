@@ -258,9 +258,7 @@ function DashboardList(props: DashboardListProps) {
           const handleDelete = () => handleDashboardDelete(original);
           const handleEdit = () => openDashboardEditModal(original);
           const handleExport = () => handleBulkDashboardExport([original]);
-          if (!canEdit && !canDelete && !canExport) {
-            return null;
-          }
+
           return (
             <span className="actions">
               {canDelete && (
@@ -332,6 +330,7 @@ function DashboardList(props: DashboardListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        hidden: !canEdit && !canDelete && !canExport,
         disableSortBy: true,
       },
     ],

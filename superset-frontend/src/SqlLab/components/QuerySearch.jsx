@@ -47,6 +47,10 @@ const TableWrapper = styled.div`
 `;
 
 const TableStyles = styled.div`
+  table {
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  }
+
   .table > thead > tr > th {
     border-bottom: ${({ theme }) => theme.gridUnit / 2}px solid
       ${({ theme }) => theme.colors.grayscale.light2};
