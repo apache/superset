@@ -113,6 +113,9 @@ class ParsedQuery:
     def is_explain(self) -> bool:
         return self.stripped().upper().startswith("EXPLAIN")
 
+    def is_unknown(self) -> bool:
+        return self._parsed[0].get_type() == "UNKNOWN"
+
     def is_readonly(self) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return self.is_select() or self.is_explain()
