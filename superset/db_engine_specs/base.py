@@ -377,6 +377,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def normalize_indexes(cls, indexes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Normalizes indexes for more consistency across db engines
+
+        noop by default
+
+        :param indexes: Raw indexes as returned by SQLAlchemy
+        :return: cleaner, more aligned index definition
+        """
+        return indexes
+
+    @classmethod
     def extra_table_metadata(
         cls, database: "Database", table_name: str, schema_name: str
     ) -> Dict[str, Any]:
