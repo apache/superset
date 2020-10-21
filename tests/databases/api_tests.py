@@ -826,7 +826,7 @@ class TestDatabaseApi(SupersetTestCase):
         database = get_example_database()
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
-        rv = self.get_assert_metric(uri, "export")
+        rv = self.client.get(uri)
         assert rv.status_code == 401
 
     def test_export_database_non_existing(self):
