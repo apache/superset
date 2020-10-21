@@ -127,7 +127,7 @@ export default class LimitControl extends React.PureComponent<
           </Button>
           <Button
             buttonSize="small"
-            className="float-right"
+            className="float-right m-r-3"
             data-test="limit-control-cancel"
             onClick={this.setValueAndClose.bind(
               this,
