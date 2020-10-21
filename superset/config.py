@@ -312,7 +312,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When set to True, this flag allows display of HTML tags in Markdown components
     "DISPLAY_MARKDOWN_HTML": True,
 
-    # When set to True, this flag escapes/shows HTML (rather than rendering it) in Markdown components
+    # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
 }
 
