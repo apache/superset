@@ -308,7 +308,11 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
+
+    # When set to True, this flag allows display of HTML tags in Markdown components
     "DISPLAY_MARKDOWN_HTML": True,
+
+    # When set to True, this flag escapes/shows HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
 }
 
