@@ -41,7 +41,6 @@ class TestDatasource(SupersetTestCase):
         self.login(username="admin")
         session = db.session
         table = SqlaTable(
-            schema="main",
             table_name="dummy_sql_table",
             database=get_example_database(),
             sql="select 123 as intcol, 'abc' as strcol",
@@ -60,7 +59,6 @@ class TestDatasource(SupersetTestCase):
         self.login(username="admin")
         session = db.session
         table = SqlaTable(
-            schema="main",
             table_name="malicious_sql_table",
             database=get_example_database(),
             sql="delete table birth_names",
@@ -80,7 +78,6 @@ class TestDatasource(SupersetTestCase):
         self.login(username="admin")
         session = db.session
         table = SqlaTable(
-            schema="main",
             table_name="multistatement_sql_table",
             database=get_example_database(),
             sql="select 123 as intcol, 'abc' as strcol;"
