@@ -70,13 +70,24 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     list_columns = [
         "name",
         "descr",
+        "created_by.first_name",
+        "created_by.last_name",
+        "changed_by.first_name",
+        "changed_by.last_name",
+        "changed_on_delta_humanized",
     ]
     add_columns = ["name", "descr"]
     edit_columns = add_columns
     add_model_schema = AnnotationLayerPostSchema()
     edit_model_schema = AnnotationLayerPutSchema()
 
-    order_columns = ["name", "descr"]
+    order_columns = [
+        "name",
+        "descr",
+        "created_by.first_name",
+        "changed_by.first_name",
+        "changed_on_delta_humanized",
+    ]
 
     search_filters = {"name": [AnnotationLayerAllTextFilter]}
 

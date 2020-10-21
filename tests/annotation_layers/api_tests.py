@@ -131,6 +131,15 @@ class TestAnnotationLayerApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"] == expected_result
 
+    def test_info_annotation(self):
+        """
+        Annotation API: Test info
+        """
+        self.login(username="admin")
+        uri = f"api/v1/annotation_layer/_info"
+        rv = self.get_assert_metric(uri, "info")
+        assert rv.status_code == 200
+
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_get_annotation_layer_not_found(self):
         """
@@ -151,9 +160,40 @@ class TestAnnotationLayerApi(SupersetTestCase):
         uri = f"api/v1/annotation_layer/"
         rv = self.get_assert_metric(uri, "get_list")
 
+        expected_fields = [
+            "name",
+            "descr",
+            "created_by",
+            "changed_by",
+            "changed_on_delta_humanized",
+        ]
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == ANNOTATION_LAYERS_COUNT
+        for expected_field in expected_fields:
+            assert expected_field in data["result"][0]
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_get_list_annotation_layer_sorting(self):
+        """
+        Annotation Api: Test sorting on get list annotation layers
+        """
+        self.login(username="admin")
+        uri = f"api/v1/annotation_layer/"
+
+        order_columns = [
+            "name",
+            "descr",
+            "created_by.first_name",
+            "changed_by.first_name",
+            "changed_on_delta_humanized",
+        ]
+
+        for order_column in order_columns:
+            arguments = {"order_column": order_column, "order_direction": "asc"}
+            uri = f"api/v1/annotation_layer/?q={prison.dumps(arguments)}"
+            rv = self.get_assert_metric(uri, "get_list")
+            assert rv.status_code == 200
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_get_list_annotation_layer_filter(self):
@@ -162,9 +202,10 @@ class TestAnnotationLayerApi(SupersetTestCase):
         """
         self.login(username="admin")
         arguments = {
+            "columns": ["name", "descr"],
             "filters": [
                 {"col": "name", "opr": "annotation_layer_all_text", "value": "2"}
-            ]
+            ],
         }
         uri = f"api/v1/annotation_layer/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
@@ -173,16 +214,16 @@ class TestAnnotationLayerApi(SupersetTestCase):
             "name": "name2",
             "descr": "descr2",
         }
-
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 1
         assert data["result"][0] == expected_result
 
         arguments = {
+            "columns": ["name", "descr"],
             "filters": [
                 {"col": "name", "opr": "annotation_layer_all_text", "value": "descr3"}
-            ]
+            ],
         }
         uri = f"api/v1/annotation_layer/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
@@ -422,9 +463,41 @@ class TestAnnotationLayerApi(SupersetTestCase):
         uri = f"api/v1/annotation_layer/{layer.id}/annotation/"
         rv = self.get_assert_metric(uri, "get_list")
 
+        expected_fields = [
+            "short_descr",
+            "created_by",
+            "changed_by",
+            "start_dttm",
+            "end_dttm",
+        ]
+
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == ANNOTATIONS_COUNT
+        for expected_field in expected_fields:
+            assert expected_field in data["result"][0]
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_get_list_annotation_sorting(self):
+        """
+        Annotation Api: Test sorting on get list of annotations
+        """
+        layer = self.get_layer_with_annotation()
+        self.login(username="admin")
+
+        order_columns = [
+            "short_descr",
+            "created_by.first_name",
+            "changed_by.first_name",
+            "changed_on_delta_humanized",
+            "start_dttm",
+            "end_dttm",
+        ]
+        for order_column in order_columns:
+            arguments = {"order_column": order_column, "order_direction": "asc"}
+            uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"
+            rv = self.get_assert_metric(uri, "get_list")
+            assert rv.status_code == 200
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_get_list_annotation_filter(self):
