@@ -117,10 +117,7 @@ class ParsedQuery:
         )
 
         # Explain statements will only be the first statement
-        if statements_without_comments.startswith("EXPLAIN"):
-            return True
-
-        return False
+        return statements_without_comments.startswith("EXPLAIN")
 
     def is_readonly(self) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
