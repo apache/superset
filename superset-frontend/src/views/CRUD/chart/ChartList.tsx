@@ -61,7 +61,6 @@ const createFetchDatasets = (handleError: (err: Response) => void) => async (
     const queryParams = rison.encode({
       columns: ['datasource_name', 'datasource_id'],
       keys: ['none'],
-      // order_by: 'table_name',
       order_column: 'table_name',
       order_direction: 'asc',
       ...(pageIndex ? { page: pageIndex } : {}),
