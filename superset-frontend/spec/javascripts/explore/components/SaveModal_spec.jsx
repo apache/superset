@@ -23,11 +23,12 @@ import { bindActionCreators } from 'redux';
 
 import { shallow } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { FormControl, Modal, Radio } from 'react-bootstrap';
+import { FormControl, Radio } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
+import Modal from 'src/common/components/Modal';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal from 'src/explore/components/SaveModal';
@@ -79,8 +80,10 @@ describe('SaveModal', () => {
     const wrapper = getWrapper();
     expect(wrapper.find(Modal)).toExist();
     expect(wrapper.find(FormControl)).toExist();
-    expect(wrapper.find(Button)).toHaveLength(3);
     expect(wrapper.find(Radio)).toHaveLength(2);
+
+    const footerWrapper = shallow(wrapper.find('Modal').props().footer);
+    expect(footerWrapper.find(Button)).toHaveLength(3);
   });
 
   it('overwrite radio button is disabled for new slice', () => {
