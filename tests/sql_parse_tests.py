@@ -589,12 +589,16 @@ class TestSupersetSqlParse(unittest.TestCase):
         parsed = ParsedQuery(query)
         self.assertEqual(parsed.is_explain(), True)
 
-        # query = """
-        #     -- comment  
-        #     EXPLAIN select * from table
-        #     where col1 = 'something'
-        #     -- comment 2
-        # """
-        # parsed = ParsedQuery(query)
-        # self.assertEqual(parsed.is_explain(), True)
-        self.assertEqual(True, True)
+        query = """
+            -- comment  
+            EXPLAIN select * from table
+            where col1 = 'something'
+            -- comment 2
+
+            -- comment 3
+            EXPLAIN select * from table
+            where col1 = 'something'
+            -- comment 4
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
