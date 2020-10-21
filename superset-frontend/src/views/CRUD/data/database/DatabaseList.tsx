@@ -130,7 +130,6 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {
         name: (
           <>
-            {' '}
             <i className="fa fa-plus" /> {t('Database')}{' '}
           </>
         ),
