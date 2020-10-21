@@ -278,7 +278,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] == 0
-        assert data["result"] == []
+        assert response["result"] == []
 
         db.session.delete(dataset)
         db.session.commit()
