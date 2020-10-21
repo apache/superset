@@ -147,7 +147,6 @@ function SavedQueryList({
   subMenuButtons.push({
     name: (
       <>
-        {' '}
         <i className="fa fa-plus" /> {t('Query')}
       </>
     ),

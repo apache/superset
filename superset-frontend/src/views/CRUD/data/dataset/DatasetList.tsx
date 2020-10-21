@@ -389,7 +389,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     buttonArr.push({
       name: (
         <>
-          {' '}
           <i className="fa fa-plus" /> {t('Dataset')}{' '}
         </>
       ),
