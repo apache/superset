@@ -582,7 +582,7 @@ class TestSupersetSqlParse(unittest.TestCase):
 
     def test_is_explain(self):
         query = """
-            -- comment  
+            -- comment
             EXPLAIN select * from table
             -- comment 2
         """
@@ -590,7 +590,7 @@ class TestSupersetSqlParse(unittest.TestCase):
         self.assertEqual(parsed.is_explain(), True)
 
         query = """
-            -- comment  
+            -- comment
             EXPLAIN select * from table
             where col1 = 'something'
             -- comment 2
@@ -604,7 +604,7 @@ class TestSupersetSqlParse(unittest.TestCase):
         self.assertEqual(parsed.is_explain(), True)
 
         query = """
-            -- comment  
+            -- comment
             select * from table
             where col1 = 'something'
             -- comment 2
