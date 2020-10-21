@@ -55,11 +55,9 @@ export const SIZES = {
 };
 
 // TODO remove the use of these in the codebase where they're not necessary
-//     Reset: 'reset',
 //     Fetch: 'fetch',
 //     Query: 'query',
 //     MR3: 'm-r-3',
-//     OK: 'ok',
 //     None: null,
 
 const TYPES = {
