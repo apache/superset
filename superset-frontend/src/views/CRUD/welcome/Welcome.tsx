@@ -20,7 +20,7 @@ import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import { User } from 'src/types/bootstrapTypes';
-
+import { mq } from '../utils';
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
@@ -43,7 +43,10 @@ const WelcomeContainer = styled.div`
       border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
       margin: 0px 26px;
       position: relative;
-      top: -13px;
+      ${[mq[1]]} {
+        margin-top: 5px;
+        margin: 0px 2px;
+      }
     }
     .nav.navbar-nav {
       & > li:nth-child(1),
