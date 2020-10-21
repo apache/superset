@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model

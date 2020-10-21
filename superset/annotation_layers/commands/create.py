@@ -15,8 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
@@ -26,7 +25,6 @@ from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerCreateFailedError,
     AnnotationLayerInvalidError,
     AnnotationLayerNameUniquenessValidationError,
-    AnnotationLayerNotFoundError,
 )
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
