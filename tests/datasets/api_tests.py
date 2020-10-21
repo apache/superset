@@ -1003,7 +1003,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
 
         self.login(username="gamma")
-        rv = self.get_assert_metric(uri, "export")
+        rv = self.client.get(uri)
         assert rv.status_code == 401
 
     def test_get_dataset_related_objects(self):
