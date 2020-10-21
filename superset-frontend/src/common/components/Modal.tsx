@@ -137,7 +137,7 @@ export default function Modal({
       ]
     : footer;
 
-  const modalWidth = width || responsive ? 'calc(100vw - 24px)' : '600px';
+  const modalWidth = width || (responsive ? 'calc(100vw - 24px)' : '600px');
   return (
     <StyledModal
       centered={!!centered}
@@ -154,6 +154,7 @@ export default function Modal({
         </span>
       }
       footer={!hideFooter ? modalFooter : null}
+      data-test={`${title}-modal`}
       {...rest}
     >
       {children}
