@@ -51,6 +51,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
+from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -676,9 +677,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
             for col in cols:
                 try:
-                    col["type"] = db_engine_spec.column_datatype_to_string(
-                        col["type"], db_dialect
-                    )
+                    if isinstance(col["type"], TypeEngine):
+                        col["type"] = db_engine_spec.column_datatype_to_string(
+                            col["type"], db_dialect
+                        )
                 except CompileError:
                     col["type"] = "UNKNOWN"
         return cols
