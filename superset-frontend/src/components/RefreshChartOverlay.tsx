@@ -44,10 +44,7 @@ class RefreshChartOverlay extends React.PureComponent<Props> {
     return (
       <RefreshOverlayWrapper>
         <div>
-          <Button
-            onClick={this.props.onQuery}
-            buttonStyle="primary"
-          >
+          <Button onClick={this.props.onQuery} buttonStyle="primary">
             {t('Run Query')}
           </Button>
         </div>
