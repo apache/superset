@@ -112,14 +112,12 @@ class ParsedQuery:
 
     def is_explain(self) -> bool:
         # Remove comments
-        statements_without_comments = [
-            statement.strip(" \t\n;")
-            for statement in self.stripped().upper().splitlines()
-            if not statement.startswith("--")
-        ]
+        statements_without_comments = sqlparse.format(
+            self.stripped(), strip_comments=True
+        )
 
         # Explain statements will only be the first statement
-        if statements_without_comments[0].startswith("EXPLAIN"):
+        if statements_without_comments.startswith("EXPLAIN"):
             return True
 
         return False

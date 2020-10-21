@@ -604,6 +604,22 @@ class TestSupersetSqlParse(unittest.TestCase):
         self.assertEqual(parsed.is_explain(), True)
 
         query = """
+            -- This is a comment
+                -- this is another comment but with a space in the front
+            EXPLAIN SELECT * FROM TABLE
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
+            /* This is a comment
+                 with stars instead */
+            EXPLAIN SELECT * FROM TABLE
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
             -- comment
             select * from table
             where col1 = 'something'
