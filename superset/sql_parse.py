@@ -111,7 +111,13 @@ class ParsedQuery:
         return self._parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
-        return self.stripped().upper().startswith("EXPLAIN")
+        # Remove comments
+        statements_without_comments = sqlparse.format(
+            self.stripped(), strip_comments=True
+        )
+
+        # Explain statements will only be the first statement
+        return statements_without_comments.startswith("EXPLAIN")
 
     def is_unknown(self) -> bool:
         return self._parsed[0].get_type() == "UNKNOWN"
