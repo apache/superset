@@ -22,6 +22,7 @@ import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -184,6 +185,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       </Modal.Body>
       <Modal.Footer>
         <span className="float-left">
+        { isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) &&
           <Button
             buttonSize="sm"
             buttonStyle="default"
@@ -192,6 +194,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           >
             {t('Use Legacy Datasource Editor')}
           </Button>
+        }
         </span>
 
         <span className="float-right">
