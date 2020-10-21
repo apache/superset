@@ -183,6 +183,14 @@ export function handleChartDelete(
   );
 }
 
+export function handleBulkChartExport(chartsToExport: Chart[]) {
+  return window.location.assign(
+    `/api/v1/chart/export/?q=${rison.encode(
+      chartsToExport.map(({ id }) => id),
+    )}`,
+  );
+}
+
 export function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
   return window.location.assign(
     `/api/v1/dashboard/export/?q=${rison.encode(

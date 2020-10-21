@@ -113,6 +113,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canCreate = hasPerm('can_add');
+  const canExport = hasPerm('can_mulexport');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -282,7 +283,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
-
+          const handleExport = () => handleBulkDatasetExport([original]);
+          if (!canEdit && !canDelete && !canExport) {
+            return null;
+          }
           return (
             <span className="actions">
               {canDelete && (
@@ -301,7 +305,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   </span>
                 </TooltipWrapper>
               )}
-
+              {canExport && (
+                <TooltipWrapper
+                  label="export-action"
+                  tooltip={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icon name="share" />
+                  </span>
+                </TooltipWrapper>
+              )}
               {canEdit && (
                 <TooltipWrapper
                   label="edit-action"
@@ -327,7 +346,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, openDatasetEditModal],
+    [canEdit, canDelete, canExport, openDatasetEditModal],
   );
 
   const filterTypes: Filters = useMemo(
@@ -408,7 +427,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const buttonArr: Array<ButtonProps> = [];
 
-  if (canDelete) {
+  if (canDelete || canExport) {
     buttonArr.push({
       name: t('Bulk Select'),
       onClick: toggleBulkSelect,
@@ -473,6 +492,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
+  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+    return window.location.assign(
+      `/api/v1/dataset/export/?q=${rison.encode(
+        datasetsToExport.map(({ id }) => id),
+      )}`,
+    );
+  };
+
   return (
     <>
       <SubMenu {...menuData} />
@@ -515,17 +542,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         onConfirm={handleBulkDatasetDelete}
       >
         {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = canDelete
-            ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
-            : [];
-
+          const bulkActions: ListViewProps['bulkActions'] = [];
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              onSelect: confirmDelete,
+              type: 'danger',
+            });
+          }
+          if (canExport) {
+            bulkActions.push({
+              key: 'export',
+              name: t('Export'),
+              type: 'primary',
+              onSelect: handleBulkDatasetExport,
+            });
+          }
           return (
             <ListView<Dataset>
               className="dataset-list-view"
