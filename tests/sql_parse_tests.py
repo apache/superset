@@ -579,3 +579,51 @@ class TestSupersetSqlParse(unittest.TestCase):
                 reindent=True,
             ),
         )
+
+    def test_is_explain(self):
+        query = """
+            -- comment
+            EXPLAIN select * from table
+            -- comment 2
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
+            -- comment
+            EXPLAIN select * from table
+            where col1 = 'something'
+            -- comment 2
+
+            -- comment 3
+            EXPLAIN select * from table
+            where col1 = 'something'
+            -- comment 4
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
+            -- This is a comment
+                -- this is another comment but with a space in the front
+            EXPLAIN SELECT * FROM TABLE
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
+            /* This is a comment
+                 with stars instead */
+            EXPLAIN SELECT * FROM TABLE
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
+            -- comment
+            select * from table
+            where col1 = 'something'
+            -- comment 2
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), False)
