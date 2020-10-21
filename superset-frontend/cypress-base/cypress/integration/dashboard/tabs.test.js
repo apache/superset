@@ -95,46 +95,60 @@ describe('Dashboard tabs', () => {
     cy.wait('@filterRequest');
     cy.wait('@treemapRequest');
 
-    cy.get('.dashboard-component-tabs')
+    cy.get('[data-test="dashboard-component-tabs"]')
       .first()
-      .find('ul.nav.nav-tabs li')
-      .as('tabs');
+      .find('[data-test="nav-list"]')
+      .children()
+      .as('top-level-tabs');
 
-    cy.get('@tabs').first().click().should('have.class', 'active');
-    cy.get('@tabs').last().should('not.have.class', 'active');
+    cy.get('@top-level-tabs').first().click().should('have.class', 'active');
+    cy.get('@top-level-tabs').last().should('not.have.class', 'active');
 
-    cy.get('@tabs').last().click().should('have.class', 'active');
-    cy.get('@tabs').first().should('not.have.class', 'active');
+    cy.get('@top-level-tabs').last().click().should('have.class', 'active');
+    cy.get('@top-level-tabs').first().should('not.have.class', 'active');
   });
 
   it('should load charts when tab is visible', () => {
     // landing in first tab, should see 2 charts
     cy.wait('@filterRequest');
-    cy.get('.grid-container .filter_box').should('be.exist');
+    cy.get('[data-test="grid-container"]')
+      .find('.filter_box')
+      .should('be.visible');
     cy.wait('@treemapRequest');
-    cy.get('.grid-container .treemap').should('be.exist');
-    cy.get('.grid-container .box_plot').should('not.be.exist');
-    cy.get('.grid-container .line').should('not.be.exist');
+    cy.get('[data-test="grid-container"]')
+      .find('.treemap')
+      .should('be.visible');
+    cy.get('[data-test="grid-container"]')
+      .find('.box_plot')
+      .should('not.be.visible');
+    cy.get('[data-test="grid-container"]')
+      .find('.line')
+      .should('not.be.visible');
 
     // click row level tab, see 1 more chart
-    cy.get('.tab-content ul.nav.nav-tabs li')
+    cy.get('[data-test="dashboard-component-tabs"]')
       .last()
-      .find('.editable-title input')
-      .click();
+      .find('[data-test="nav-list"]')
+      .children()
+      .as('row-level-tabs');
+
+    cy.get('@row-level-tabs').last().click();
+
     cy.wait('@linechartRequest');
-    cy.get('.grid-container .line').should('be.exist');
+    cy.get('[data-test="grid-container"]').find('.line').should('be.visible');
 
     // click top level tab, see 1 more chart
     handleException();
-    cy.get('.dashboard-component-tabs')
+    cy.get('[data-test="dashboard-component-tabs"]')
       .first()
-      .find('ul.nav.nav-tabs li')
-      .last()
-      .find('.editable-title input')
-      .click();
+      .find('[data-test="nav-list"]')
+      .children()
+      .as('top-level-tabs');
+
+    cy.get('@top-level-tabs').last().click();
 
     // should exist a visible box_plot element
-    cy.get('.grid-container .box_plot');
+    cy.get('[data-test="grid-container"]').find('.box_plot');
   });
 
   it('should send new queries when tab becomes visible', () => {
@@ -162,7 +176,13 @@ describe('Dashboard tabs', () => {
     });
 
     // click row level tab, send 1 more query
-    cy.get('.tab-content ul.nav.nav-tabs li').last().click();
+    cy.get('[data-test="dashboard-component-tabs"]')
+      .last()
+      .find('[data-test="nav-list"]')
+      .children()
+      .as('row-level-tabs');
+    cy.get('@row-level-tabs').last().click();
+
     cy.wait('@linechartRequest').then(xhr => {
       const requestFormData = xhr.request.body;
       const requestParams = JSON.parse(requestFormData.get('form_data'));
@@ -174,13 +194,13 @@ describe('Dashboard tabs', () => {
     });
 
     // click top level tab, send 1 more query
-    handleException();
-    cy.get('.dashboard-component-tabs')
+    cy.get('[data-test="dashboard-component-tabs"]')
       .first()
-      .find('ul.nav.nav-tabs li')
-      .last()
-      .find('.editable-title input')
-      .click();
+      .find('[data-test="nav-list"]')
+      .children()
+      .as('top-level-tabs');
+
+    cy.get('@top-level-tabs').last().click();
 
     cy.wait('@boxplotRequest').then(xhr => {
       const requestFormData = xhr.request.body;
@@ -193,15 +213,10 @@ describe('Dashboard tabs', () => {
     });
 
     // navigate to filter and clear filter
-    cy.get('.dashboard-component-tabs')
-      .first()
-      .find('ul.nav.nav-tabs li')
-      .first()
-      .click();
-    cy.get('.tab-content ul.nav.nav-tabs li')
-      .first()
-      .should('be.visible')
-      .click();
+    cy.get('@top-level-tabs').first().click();
+
+    cy.get('@top-level-tabs').first().click();
+
     cy.get('.Select__clear-indicator').click();
 
     // trigger 1 new query

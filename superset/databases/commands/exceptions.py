@@ -28,7 +28,7 @@ from superset.security.analytics_db_safety import DBSecurityException
 
 
 class DatabaseInvalidError(CommandInvalidError):
-    message = _("Dashboard parameters are invalid.")
+    message = _("Database parameters are invalid.")
 
 
 class DatabaseExistsValidationError(ValidationError):

@@ -24,7 +24,6 @@ import pytest
 import yaml
 from sqlalchemy.sql import func
 
-import tests.test_app
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.exceptions import (
     DAOCreateFailedError,
@@ -216,10 +215,9 @@ class TestDatasetApi(SupersetTestCase):
                 "admin_database",
                 "information_schema",
                 "public",
-                "superset",
             ]
             expected_response = {
-                "count": 5,
+                "count": 4,
                 "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
@@ -243,14 +241,14 @@ class TestDatasetApi(SupersetTestCase):
 
             query_parameter = {"page": 0, "page_size": 1}
             pg_test_query_parameter(
-                query_parameter, {"count": 5, "result": [{"text": "", "value": ""}]},
+                query_parameter, {"count": 4, "result": [{"text": "", "value": ""}]},
             )
 
             query_parameter = {"page": 1, "page_size": 1}
             pg_test_query_parameter(
                 query_parameter,
                 {
-                    "count": 5,
+                    "count": 4,
                     "result": [{"text": "admin_database", "value": "admin_database"}],
                 },
             )
@@ -1020,7 +1018,7 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["charts"]["count"], 18)
-        self.assertEqual(response["dashboards"]["count"], 2)
+        self.assertEqual(response["dashboards"]["count"], 1)
 
     def test_get_dataset_related_objects_not_found(self):
         """

@@ -69,7 +69,7 @@ export default class PublishedStatus extends React.Component {
                 this.togglePublished();
               }}
             >
-              Draft
+              {t('Draft')}
             </Label>
           </TooltipWrapper>
         );
@@ -80,7 +80,7 @@ export default class PublishedStatus extends React.Component {
           placement="bottom"
           tooltip={draftDivTooltip}
         >
-          <Label>Draft</Label>
+          <Label>{t('Draft')}</Label>
         </TooltipWrapper>
       );
     }
@@ -98,7 +98,7 @@ export default class PublishedStatus extends React.Component {
               this.togglePublished();
             }}
           >
-            Published
+            {t('Published')}
           </Label>
         </TooltipWrapper>
       );

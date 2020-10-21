@@ -110,7 +110,7 @@ class TableElement extends React.PureComponent {
           />
         );
       }
-      let latest = Object.entries(table.partitions.latest).map(
+      let latest = Object.entries(table.partitions?.latest || []).map(
         ([key, value]) => `${key}=${value}`,
       );
       latest = latest.join('/');
