@@ -61,7 +61,9 @@ const createFetchDatasets = (handleError: (err: Response) => void) => async (
     const queryParams = rison.encode({
       columns: ['datasource_name', 'datasource_id'],
       keys: ['none'],
-      order_by: 'datasource_name',
+      // order_by: 'table_name',
+      order_column: 'table_name',
+      order_direction: 'asc',
       ...(pageIndex ? { page: pageIndex } : {}),
       ...(pageSize ? { page_size: pageSize } : {}),
       ...filters,
@@ -324,7 +326,6 @@ function ChartList(props: ChartListProps) {
         ),
       ),
       paginate: true,
-      sort: true,
     },
     {
       Header: t('Created By'),
@@ -345,7 +346,6 @@ function ChartList(props: ChartListProps) {
         ),
       ),
       paginate: true,
-      sort: true,
     },
     {
       Header: t('Viz Type'),
@@ -388,7 +388,6 @@ function ChartList(props: ChartListProps) {
         ),
       ),
       paginate: false,
-      sort: true,
     },
     {
       Header: t('Search'),

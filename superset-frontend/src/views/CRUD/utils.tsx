@@ -32,7 +32,13 @@ const createFetchResourceMethod = (method: string) => (
   resource: string,
   relation: string,
   handleError: (error: Response) => void,
-) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
+) => async (
+  filterValue = '',
+  pageIndex?: number,
+  pageSize?: number,
+  sortValue?: string,
+  sortDirection = 'asc',
+) => {
   const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
 
   try {
@@ -40,6 +46,10 @@ const createFetchResourceMethod = (method: string) => (
       ...(pageIndex ? { page: pageIndex } : {}),
       ...(pageSize ? { page_size: pageSize } : {}),
       ...(filterValue ? { filter: filterValue } : {}),
+      ...(filterValue ? { filter: filterValue } : {}),
+      ...(sortValue
+        ? { order_column: sortValue, order_direction: sortDirection }
+        : {}),
     });
     const { json = {} } = await SupersetClient.get({
       endpoint: `${resourceEndpoint}?q=${queryParams}`,

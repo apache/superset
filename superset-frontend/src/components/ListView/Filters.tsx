@@ -45,7 +45,6 @@ interface SelectFilterProps extends BaseFilter {
   name?: string;
   onSelect: (selected: any) => any;
   paginate?: boolean;
-  sort?: boolean;
   selects: Filter['selects'];
   theme: SupersetThemeProps['theme'];
 }
@@ -72,7 +71,6 @@ function SelectFilter({
   onSelect,
   paginate = false,
   selects = [],
-  sort = false,
   theme,
 }: SelectFilterProps) {
   const filterSelectTheme: PartialThemeConfig = {
@@ -108,7 +106,12 @@ function SelectFilter({
     let result = inputValue || page > 0 ? [] : [clearFilterSelect];
     let hasMore = paginate;
     if (fetchSelects) {
-      const selectValues = await fetchSelects(inputValue, page);
+      const selectValues = await fetchSelects(
+        inputValue,
+        page,
+        undefined,
+        'text',
+      );
       // update matching option at initial load
       if (!selectValues.length) {
         hasMore = false;
@@ -120,24 +123,6 @@ function SelectFilter({
       if (matchingOption) {
         setSelectedOption(matchingOption);
       }
-    }
-
-    // Check whether list should be sorted (alphanumerically, ascending)
-    if (sort) {
-      result.sort((a, b) => {
-        if (!a.label || !b.label) {
-          return 0;
-        }
-
-        if (a.label > b.label) {
-          return 1;
-        }
-        if (a.label < b.label) {
-          return -1;
-        }
-
-        return 0;
-      });
     }
 
     return {
@@ -250,7 +235,6 @@ function UIFilters({
             paginate,
             selects,
             unfilteredLabel,
-            sort,
           },
           index,
         ) => {
@@ -267,7 +251,6 @@ function UIFilters({
                 name={id}
                 onSelect={(value: any) => updateFilterValue(index, value)}
                 paginate={paginate}
-                sort={sort}
                 selects={selects}
               />
             );
