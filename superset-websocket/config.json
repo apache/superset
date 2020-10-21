@@ -8,6 +8,6 @@
       },
     "streamPrefix": "async-events-",
     "jwtSecret": "test-secret-change-me",
-    "jwtCookieName": "jwt",
+    "jwtCookieName": "async-token",
     "debug": true
 }
