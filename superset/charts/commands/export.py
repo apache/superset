@@ -74,8 +74,12 @@ class ExportChartsCommand(BaseCommand):
     def run(self) -> Iterator[Tuple[str, str]]:
         self.validate()
 
+        seen = set()
         for chart in self._models:
-            yield from self.export_chart(chart)
+            for file_name, file_content in self.export_chart(chart):
+                if file_name not in seen:
+                    yield file_name, file_content
+                    seen.add(file_name)
 
     def validate(self) -> None:
         self._models = ChartDAO.find_by_ids(self.chart_ids)

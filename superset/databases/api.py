@@ -165,6 +165,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "database_schemas_query_schema": database_schemas_query_schema,
+        "get_export_ids_schema": get_export_ids_schema,
     }
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (

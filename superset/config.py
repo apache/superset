@@ -310,6 +310,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
+    "VERSIONED_EXPORT": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.

@@ -113,6 +113,8 @@ function ChartList(props: ChartListProps) {
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
+  const canExport =
+    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   function openChartEditModal(chart: Chart) {
@@ -165,6 +167,14 @@ function ChartList(props: ChartListProps) {
           t('There was an issue deleting the selected charts: %s', errMsg),
         ),
       ),
+    );
+  }
+
+  function handleBulkChartExport(chartsToExport: Chart[]) {
+    return window.location.assign(
+      `/api/v1/chart/export/?q=${rison.encode(
+        chartsToExport.map(({ id }) => id),
+      )}`,
     );
   }
 
@@ -268,7 +278,8 @@ function ChartList(props: ChartListProps) {
         Cell: ({ row: { original } }: any) => {
           const handleDelete = () => handleChartDelete(original);
           const openEditModal = () => openChartEditModal(original);
-          if (!canEdit && !canDelete) {
+          const handleExport = () => handleBulkChartExport([original]);
+          if (!canEdit && !canDelete && !canExport) {
             return null;
           }
 
@@ -303,6 +314,22 @@ function ChartList(props: ChartListProps) {
                   )}
                 </ConfirmStatusChange>
               )}
+              {canExport && (
+                <TooltipWrapper
+                  label="export-action"
+                  tooltip={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icon name="share" />
+                  </span>
+                </TooltipWrapper>
+              )}
               {canEdit && (
                 <TooltipWrapper
                   label="edit-action"
@@ -327,7 +354,7 @@ function ChartList(props: ChartListProps) {
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete],
+    [canEdit, canDelete, canExport],
   );
 
   const filters: Filters = [
@@ -457,6 +484,15 @@ function ChartList(props: ChartListProps) {
             </ConfirmStatusChange>
           </Menu.Item>
         )}
+        {canExport && (
+          <Menu.Item
+            role="button"
+            tabIndex={0}
+            onClick={() => handleBulkChartExport([chart])}
+          >
+            <ListViewCard.MenuIcon name="share" /> Export
+          </Menu.Item>
+        )}
         {canEdit && (
           <Menu.Item
             data-test="chart-list-edit-option"
@@ -495,7 +531,7 @@ function ChartList(props: ChartListProps) {
     );
   }
   const subMenuButtons: SubMenuProps['buttons'] = [];
-  if (canDelete) {
+  if (canDelete || canExport) {
     subMenuButtons.push({
       name: t('Bulk Select'),
       buttonStyle: 'secondary',
@@ -533,17 +569,23 @@ function ChartList(props: ChartListProps) {
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = canDelete
-            ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
-            : [];
-
+          const bulkActions: ListViewProps['bulkActions'] = [];
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              type: 'danger',
+              onSelect: confirmDelete,
+            });
+          }
+          if (canExport) {
+            bulkActions.push({
+              key: 'export',
+              name: t('Export'),
+              type: 'primary',
+              onSelect: handleBulkChartExport,
+            });
+          }
           return (
             <ListView<Chart>
               bulkActions={bulkActions}

@@ -71,8 +71,12 @@ class ExportDashboardsCommand(BaseCommand):
     def run(self) -> Iterator[Tuple[str, str]]:
         self.validate()
 
+        seen = set()
         for dashboard in self._models:
-            yield from self.export_dashboard(dashboard)
+            for file_name, file_content in self.export_dashboard(dashboard):
+                if file_name not in seen:
+                    yield file_name, file_content
+                    seen.add(file_name)
 
     def validate(self) -> None:
         self._models = DashboardDAO.find_by_ids(self.dashboard_ids)

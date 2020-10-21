@@ -174,6 +174,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     apispec_parameter_schemas = {
         "screenshot_query_schema": screenshot_query_schema,
         "get_delete_ids_schema": get_delete_ids_schema,
+        "get_export_ids_schema": get_export_ids_schema,
     }
     """ Add extra schemas to the OpenAPI components schema section """
     openapi_spec_methods = openapi_spec_methods_override

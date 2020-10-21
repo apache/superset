@@ -50,7 +50,7 @@ stats_logger = config["STATS_LOGGER"]
 
 def sqlalchemy_uri_form_validator(_: _, field: StringField) -> None:
     """
-        Check if user has submitted a valid SQLAlchemy URI
+    Check if user has submitted a valid SQLAlchemy URI
     """
 
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
@@ -58,7 +58,7 @@ def sqlalchemy_uri_form_validator(_: _, field: StringField) -> None:
 
 def certificate_form_validator(_: _, field: StringField) -> None:
     """
-        Check if user has submitted a valid SSL certificate
+    Check if user has submitted a valid SSL certificate
     """
     if field.data:
         try:
