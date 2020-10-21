@@ -141,7 +141,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        assert ["result"] == []
+        assert response["result"] == []
 
     def test_get_dataset_related_database_gamma(self):
         """
@@ -153,7 +153,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] == 0
-        assert ["result"] == []
+        assert response["result"] == []
 
     def test_get_dataset_item(self):
         """
