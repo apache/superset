@@ -111,10 +111,13 @@ class ParsedQuery:
         return self._parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
-        # Parsing SQL statement for EXPLAIN and filtering out comments
-        for statement in self.stripped().upper().splitlines():
-            if statement.upper().startswith("EXPLAIN"):
-                return True
+        # Remove comments
+        statements_without_comments = [statement.strip(" \t\n;") for statement in self.stripped().upper().splitlines() if not statement.startswith("--")]
+
+        # Explain statements will only be the first statement
+        if statements_without_comments[0].startswith("EXPLAIN"):
+            return True
+
         return False
 
     def is_readonly(self) -> bool:
