@@ -758,7 +758,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 raise QueryObjectValidationError(
                     _("Virtual dataset query cannot consist of multiple statements")
                 )
-            if not ParsedQuery(from_sql).is_readonly():
+            parsed_query = ParsedQuery(from_sql)
+            if not (parsed_query.is_unknown() or parsed_query.is_readonly()):
                 raise QueryObjectValidationError(
                     _("Virtual dataset query must be read-only")
                 )
