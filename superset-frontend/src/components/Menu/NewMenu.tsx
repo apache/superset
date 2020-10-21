@@ -17,10 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
-import Button, { DropdownItemProps } from '../Button';
+import { t, styled } from '@superset-ui/core';
+import { MenuItem } from 'react-bootstrap';
+import NavDropdown from 'src/components/NavDropdown';
 
-const dropdownItems: DropdownItemProps[] = [
+const dropdownItems = [
   {
     label: t('SQL Query'),
     url: '/superset/sqllab',
@@ -37,13 +38,18 @@ const dropdownItems: DropdownItemProps[] = [
     icon: 'fa-fw fa-dashboard',
   },
 ];
+const StyledI = styled.div`
+  color: ${({ theme }) => theme.colors.primary.dark1};
+`;
 
 export default function NewMenu() {
   return (
-    <li className="dropdown">
-      <Button buttonStyle="primary" dropdownItems={dropdownItems}>
-        <i className="fa fa-plus" /> New
-      </Button>
-    </li>
+    <NavDropdown id="new-dropdown" title={<StyledI className="fa fa-plus" />}>
+      {dropdownItems.map((menu, i) => (
+        <MenuItem key={i} href={menu.url}>
+          <i className={`fa ${menu.icon}`} /> {menu.label}
+        </MenuItem>
+      ))}
+    </NavDropdown>
   );
 }
