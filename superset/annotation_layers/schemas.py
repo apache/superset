@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from marshmallow import fields, Schema
+from marshmallow.validate import Length
 
 openapi_spec_methods_override = {
     "get": {"get": {"description": "Get an Annotation layer"}},
@@ -31,3 +33,20 @@ openapi_spec_methods_override = {
 }
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
+annotation_layer_name = "The annotation layer name"
+annotation_layer_descr = "Give a description for this annotation layer"
+
+
+class AnnotationLayerPostSchema(Schema):
+    name = fields.String(
+        description=annotation_layer_name, allow_none=False, validate=[Length(1, 250)]
+    )
+    descr = fields.String(description=annotation_layer_descr, allow_none=True)
+
+
+class AnnotationLayerPutSchema(Schema):
+    name = fields.String(
+        description=annotation_layer_name, required=False, validate=[Length(1, 250)]
+    )
+    descr = fields.String(description=annotation_layer_descr, required=False)

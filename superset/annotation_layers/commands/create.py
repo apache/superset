@@ -23,10 +23,10 @@ from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.annotation_layers.commands.exceptions import (
+    AnnotationLayerCreateFailedError,
     AnnotationLayerInvalidError,
-    AnnotationLayerNotFoundError,
     AnnotationLayerNameUniquenessValidationError,
-    AnnotationLayerCreateFailedError
+    AnnotationLayerNotFoundError,
 )
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
@@ -52,10 +52,10 @@ class CreateAnnotationLayerCommand(BaseCommand):
     def validate(self) -> None:
         exceptions: List[ValidationError] = list()
 
-        name = self._properties.get('name', '')
+        name = self._properties.get("name", "")
 
         if not AnnotationLayerDAO.validate_name_uniqueness(name):
-            exceptions.append(AnnotationLayerNameUniuenessValidationError())
+            exceptions.append(AnnotationLayerNameUniquenessValidationError())
 
         if exceptions:
             exception = AnnotationLayerInvalidError()

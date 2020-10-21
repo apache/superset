@@ -26,6 +26,7 @@ from superset.annotation_layers.annotations.commands.exceptions import (
     AnnotationCreateFailedError,
     AnnotationDatesValidationError,
     AnnotationInvalidError,
+    AnnotationUniquenessValidationError,
 )
 from superset.annotation_layers.annotations.dao import AnnotationDAO
 from superset.annotation_layers.commands.exceptions import AnnotationLayerNotFoundError
@@ -55,6 +56,7 @@ class CreateAnnotationCommand(BaseCommand):
         layer_id: Optional[int] = self._properties.get("layer")
         start_dttm: Optional[datetime] = self._properties.get("start_dttm")
         end_dttm: Optional[datetime] = self._properties.get("end_dttm")
+        short_descr = self._properties.get("short_descr", "")
 
         # Validate/populate model exists
         if not layer_id and not isinstance(layer_id, int):
@@ -64,6 +66,11 @@ class CreateAnnotationCommand(BaseCommand):
             raise AnnotationLayerNotFoundError()
         self._properties["layer"] = annotation_layer
 
+        # Validate short descr uniqueness on this layer
+        if not AnnotationDAO.validate_uniqueness(layer_id, short_descr):
+            exceptions.append(AnnotationUniquenessValidationError())
+
+        # validate date time sanity
         if start_dttm and end_dttm and end_dttm < start_dttm:
             exceptions.append(AnnotationDatesValidationError)
 

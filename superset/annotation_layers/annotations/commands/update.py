@@ -26,6 +26,7 @@ from superset.annotation_layers.annotations.commands.exceptions import (
     AnnotationDatesValidationError,
     AnnotationInvalidError,
     AnnotationNotFoundError,
+    AnnotationUniquenessValidationError,
     AnnotationUpdateFailedError,
 )
 from superset.annotation_layers.annotations.dao import AnnotationDAO
@@ -57,6 +58,7 @@ class UpdateAnnotationCommand(BaseCommand):
     def validate(self) -> None:
         exceptions: List[ValidationError] = list()
         layer_id: Optional[int] = self._properties.get("layer")
+        short_descr: str = self._properties.get("short_descr", "")
 
         # Validate/populate model exists
         self._model = AnnotationDAO.find_by_id(self._model_id)
@@ -71,6 +73,13 @@ class UpdateAnnotationCommand(BaseCommand):
         else:
             self._properties["layer"] = self._model.layer
 
+        # Validate short descr uniqueness on this layer
+        if not AnnotationDAO.validate_update_uniqueness(
+            self._model_id, layer_id, short_descr
+        ):
+            exceptions.append(AnnotationUniquenessValidationError())
+
+        # validate date time sanity
         start_dttm: Optional[datetime] = self._properties.get("start_dttm")
         end_dttm: Optional[datetime] = self._properties.get("end_dttm")
 

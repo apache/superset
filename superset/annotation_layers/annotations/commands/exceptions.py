@@ -36,6 +36,18 @@ class AnnotationDatesValidationError(ValidationError):
         )
 
 
+class AnnotationUniquenessValidationError(ValidationError):
+    """
+    Marshmallow validation error for annotation layer name already exists
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Short description must be unique for this layer")],
+            field_name="short_descr",
+        )
+
+
 class AnnotationBulkDeleteFailedError(DeleteFailedError):
     message = _("Annotations could not be deleted.")
 

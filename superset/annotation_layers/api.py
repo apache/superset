@@ -17,34 +17,32 @@
 import logging
 from typing import Any
 
-from flask import g, Response
+from flask import g, request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
+from marshmallow import ValidationError
 
 from superset.annotation_layers.commands.bulk_delete import (
     BulkDeleteAnnotationLayerCommand,
 )
-from superset.annotation_layers.commands.create import (
-    CreateAnnotationLayerCommand,
-)
-
-from superset.annotation_layers.commands.update import (
-    UpdateAnnotationLayerCommand,
-)
+from superset.annotation_layers.commands.create import CreateAnnotationLayerCommand
 from superset.annotation_layers.commands.delete import DeleteAnnotationLayerCommand
 from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerBulkDeleteFailedError,
     AnnotationLayerBulkDeleteIntegrityError,
+    AnnotationLayerCreateFailedError,
     AnnotationLayerDeleteFailedError,
     AnnotationLayerDeleteIntegrityError,
+    AnnotationLayerInvalidError,
     AnnotationLayerNotFoundError,
-    AnnotationLayerCreateFailedError,
     AnnotationLayerUpdateFailedError,
-    AnnotationLayerInvalidError
 )
+from superset.annotation_layers.commands.update import UpdateAnnotationLayerCommand
 from superset.annotation_layers.filters import AnnotationLayerAllTextFilter
 from superset.annotation_layers.schemas import (
+    AnnotationLayerPostSchema,
+    AnnotationLayerPutSchema,
     get_delete_ids_schema,
     openapi_spec_methods_override,
 )
@@ -75,6 +73,9 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     ]
     add_columns = ["name", "descr"]
     edit_columns = add_columns
+    add_model_schema = AnnotationLayerPostSchema()
+    edit_model_schema = AnnotationLayerPutSchema()
+
     order_columns = ["name", "descr"]
 
     search_filters = {"name": [AnnotationLayerAllTextFilter]}
@@ -175,7 +176,6 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
-            item["layer"] = pk
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)

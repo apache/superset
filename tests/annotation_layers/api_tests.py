@@ -218,6 +218,19 @@ class TestAnnotationLayerApi(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("create_annotation_layers")
+    def test_create_annotation_layer_uniqueness(self):
+        """
+        Annotation Api: Test create annotation layer uniqueness
+        """
+        self.login(username="admin")
+        annotation_layer_data = {"name": "name3", "descr": "description"}
+        uri = "api/v1/annotation_layer/"
+        rv = self.client.post(uri, json=annotation_layer_data)
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {"message": {"name": ["Name must be unique"]}}
+
+    @pytest.mark.usefixtures("create_annotation_layers")
     def test_update_annotation_layer(self):
         """
         Annotation Api: Test update annotation layer
@@ -237,6 +250,25 @@ class TestAnnotationLayerApi(SupersetTestCase):
         assert updated_model is not None
         assert updated_model.name == annotation_layer_data["name"]
         assert updated_model.descr == annotation_layer_data["descr"]
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_update_annotation_layer_uniqueness(self):
+        """
+        Annotation Api: Test update annotation layer uniqueness
+        """
+        annotation_layer = (
+            db.session.query(AnnotationLayer)
+            .filter(AnnotationLayer.name == "name2")
+            .one_or_none()
+        )
+
+        self.login(username="admin")
+        annotation_layer_data = {"name": "name3", "descr": "changed_description"}
+        uri = f"api/v1/annotation_layer/{annotation_layer.id}"
+        rv = self.client.put(uri, json=annotation_layer_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert data == {"message": {"name": ["Name must be unique"]}}
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_update_annotation_layer_not_found(self):
@@ -451,6 +483,28 @@ class TestAnnotationLayerApi(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("create_annotation_layers")
+    def test_create_annotation_uniqueness(self):
+        """
+        Annotation Api: Test create annotation uniqueness
+        """
+        layer = self.get_layer_with_annotation()
+
+        self.login(username="admin")
+        annotation_data = {
+            "short_descr": "short_descr2",
+            "long_descr": "description",
+        }
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/"
+        rv = self.client.post(uri, json=annotation_data)
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {
+                "short_descr": ["Short description must be unique for this layer"]
+            }
+        }
+
+    @pytest.mark.usefixtures("create_annotation_layers")
     def test_update_annotation(self):
         """
         Annotation Api: Test update annotation
@@ -474,6 +528,33 @@ class TestAnnotationLayerApi(SupersetTestCase):
         assert updated_model is not None
         assert updated_model.short_descr == annotation_layer_data["short_descr"]
         assert updated_model.long_descr == annotation_layer_data["long_descr"]
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_update_annotation_uniqueness(self):
+        """
+        Annotation Api: Test update annotation uniqueness
+        """
+        layer = self.get_layer_with_annotation()
+        annotation = (
+            db.session.query(Annotation)
+            .filter(Annotation.short_descr == "short_descr2")
+            .one_or_none()
+        )
+
+        self.login(username="admin")
+        annotation_layer_data = {
+            "short_descr": "short_descr3",
+            "long_descr": "changed_description",
+        }
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/{annotation.id}"
+        rv = self.client.put(uri, json=annotation_layer_data)
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {
+                "short_descr": ["Short description must be unique for this layer"]
+            }
+        }
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_update_annotation_not_found(self):

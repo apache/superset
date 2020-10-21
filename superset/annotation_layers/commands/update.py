@@ -24,13 +24,13 @@ from marshmallow import ValidationError
 
 from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerInvalidError,
-    AnnotationLayerNotFoundError,
     AnnotationLayerNameUniquenessValidationError,
-    AnnotationLayerUpdateFailedError
+    AnnotationLayerNotFoundError,
+    AnnotationLayerUpdateFailedError,
 )
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.dao.exceptions import DAOUpdateFailedError
 from superset.models.annotations import AnnotationLayer
 
 logger = logging.getLogger(__name__)
@@ -49,19 +49,19 @@ class UpdateAnnotationLayerCommand(BaseCommand):
             annotation_layer = AnnotationLayerDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise AnnotationUpdateFailedError()
+            raise AnnotationLayerUpdateFailedError()
         return annotation_layer
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = list()
-
+        name = self._properties.get("name", "")
         self._model = AnnotationLayerDAO.find_by_id(self._model_id)
 
         if not self._model:
             raise AnnotationLayerNotFoundError()
 
-        if not AnnotationLayerDAO.validate_update_name_uniqueness(self._model_id, self._properties.get('name')):
-            exceptions.append(AnnotationLayerNameUniuenessValidationError())
+        if not AnnotationLayerDAO.validate_update_name_uniqueness(self._model_id, name):
+            exceptions.append(AnnotationLayerNameUniquenessValidationError())
 
         if exceptions:
             exception = AnnotationLayerInvalidError()
