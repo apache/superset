@@ -966,8 +966,3 @@ elif importlib.util.find_spec("superset_config") and not is_test():
         logger.exception("Found but failed to import local superset_config")
         raise
 
-
-ENABLE_ALERTS = True
-SQLALCHEMY_DATABASE_URI = 'postgresql://superset:superset@localhost:5432/superset'
-ENABLE_SCHEDULED_EMAIL_REPORTS = True
-
