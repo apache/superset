@@ -58,7 +58,6 @@ export const SIZES = {
 //     Fetch: 'fetch',
 //     Query: 'query',
 //     MR3: 'm-r-3',
-//     None: null,
 
 const TYPES = {
   label: 'Type',
