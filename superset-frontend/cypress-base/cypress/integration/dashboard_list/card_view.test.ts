@@ -89,11 +89,11 @@ describe('Dashboard card view', () => {
     cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
     cy.get('.ant-dropdown-menu-item').contains('Delete').should('exist');
     cy.get('.ant-dropdown-menu-item').contains('Delete').click();
-    cy.get('.modal-dialog').should('be.visible');
-    cy.get('.modal-dialog .btn-danger').should('have.attr', 'disabled');
-    cy.get(".modal-dialog input[id='delete']").type('DELETE');
-    cy.get('.modal-dialog .btn-danger').should('not.have.attr', 'disabled');
-    cy.get('.modal-dialog .btn-default').contains('Cancel').click();
+    cy.get('.ant-modal').should('be.visible');
+    cy.get('.ant-modal .btn-danger').should('have.attr', 'disabled');
+    cy.get(".ant-modal input[id='delete']").type('DELETE');
+    cy.get('.ant-modal .btn-danger').should('not.have.attr', 'disabled');
+    cy.get('.ant-modal .btn-default').contains('Cancel').click();
   });
 
   it('should edit correctly', () => {
@@ -101,11 +101,11 @@ describe('Dashboard card view', () => {
     cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
     cy.get('.ant-dropdown-menu-item').contains('Edit').should('exist');
     cy.get('.ant-dropdown-menu-item').contains('Edit').click();
-    cy.get('.modal-dialog').should('be.visible');
-    cy.get('.modal-dialog input[name="dashboard_title"]').should(
+    cy.get('.ant-modal').should('be.visible');
+    cy.get('.ant-modal input[name="dashboard_title"]').should(
       'not.have.value',
     );
-    cy.get('.modal-dialog input[name="slug"]').should('not.have.value');
-    cy.get('.modal-dialog .btn-default').contains('Cancel').click();
+    cy.get('.ant-modal input[name="slug"]').should('not.have.value');
+    cy.get('.ant-modal .btn-default').contains('Cancel').click();
   });
 });
