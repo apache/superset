@@ -268,9 +268,6 @@ function ChartList(props: ChartListProps) {
         Cell: ({ row: { original } }: any) => {
           const handleDelete = () => handleChartDelete(original);
           const openEditModal = () => openChartEditModal(original);
-          if (!canEdit && !canDelete) {
-            return null;
-          }
 
           return (
             <span className="actions">
@@ -325,6 +322,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
+        hidden: !canEdit && !canDelete,
       },
     ],
     [canEdit, canDelete],
