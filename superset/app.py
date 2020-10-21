@@ -30,6 +30,7 @@ from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
+    async_query_manager,
     cache_manager,
     celery_app,
     csrf,
@@ -485,6 +486,7 @@ class SupersetAppInitializer:
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
+        self.configure_async_queries()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -638,6 +640,11 @@ class SupersetAppInitializer:
             csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
+
+    def configure_async_queries(self) -> None:
+        if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            logger.info("*************** Init async queries")
+            async_query_manager.init_app(self.flask_app)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:

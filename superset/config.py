@@ -323,6 +323,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
     "SIP_34_ANNOTATIONS_UI": False,
+    "GLOBAL_ASYNC_QUERIES": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
@@ -943,6 +944,15 @@ SIP_15_TOAST_MESSAGE = (
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
 SQLA_TABLE_MUTATOR = lambda table: table
+
+# Global async query config options.
+# Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
+GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {}
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = (
+    False  # this should likely be True in production
+)
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
