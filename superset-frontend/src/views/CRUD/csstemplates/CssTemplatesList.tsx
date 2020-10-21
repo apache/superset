@@ -152,15 +152,12 @@ function CssTemplatesList({
               : null,
           ].filter(item => !!item);
 
-          if (!canEdit && !canDelete) {
-            return null;
-          }
-
           return <ActionsBar actions={actions as ActionProps[]} />;
         },
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
+        hidden: !canEdit && !canDelete,
         size: 'xl',
       },
     ],
