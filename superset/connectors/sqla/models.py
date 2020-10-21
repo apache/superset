@@ -658,6 +658,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         level=ErrorLevel.ERROR,
                     )
                 )
+            # TODO(villebro): refactor to use same code that's used by
+            #  sql_lab.py:execute_sql_statements
             with closing(engine.raw_connection()) as conn:
                 with closing(conn.cursor()) as cursor:
                     query = self.database.apply_limit_to_sql(statements[0])
