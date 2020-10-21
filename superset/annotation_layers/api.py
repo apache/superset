@@ -100,6 +100,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>", methods=["DELETE"])
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("delete")
     def delete(self, pk: int) -> Response:
         """Delete an annotation layer
@@ -148,6 +149,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     @expose("/", methods=["POST"])
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("post")
     def post(self) -> Response:
         """Creates a new Annotation Layer
@@ -206,6 +208,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>", methods=["PUT"])
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("put")
     def put(self, pk: int) -> Response:
         """Updates an Annotation Layer

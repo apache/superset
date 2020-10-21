@@ -240,6 +240,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/annotation/", methods=["POST"])
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("post")
     def post(self, pk: int) -> Response:
         """Creates a new Annotation
@@ -305,6 +306,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/annotation/<int:annotation_id>", methods=["PUT"])
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("put")
     def put(self, pk: int, annotation_id: int) -> Response:
         """Updates an Annotation
@@ -375,6 +377,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/annotation/<int:annotation_id>", methods=["DELETE"])
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("delete")
     def delete(self, pk: int, annotation_id: int) -> Response:
         """Deletes an Annotation
