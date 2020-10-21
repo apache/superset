@@ -173,7 +173,6 @@ function CssTemplatesList({
     subMenuButtons.push({
       name: (
         <>
-          {' '}
           <i className="fa fa-plus" /> {t('Css Template')}
         </>
       ),
