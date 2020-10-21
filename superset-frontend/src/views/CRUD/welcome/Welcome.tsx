@@ -20,7 +20,6 @@ import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import { User } from 'src/types/bootstrapTypes';
-import Icon from 'src/components/Icon';
 
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';

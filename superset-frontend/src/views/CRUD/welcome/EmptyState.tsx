@@ -63,9 +63,19 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     CHARTS: '/chart/list',
     SAVED_QUERIES: '/savedqueryview/list/',
   };
-  const Mine = (
+  const tableIcon = {
+    RECENTS: 'union.png',
+    DASHBOARDS: 'empty-dashboard.png',
+    CHARTS: 'empty-charts.png',
+    SAVED_QUERIES: 'empty-queries.png',
+  };
+  const mine = (
     <div>
-      <div>{`No ${tableName.toLowerCase()} yet`}</div>
+      <div>{`No ${
+        tableName === 'SAVED_QUERIES'
+          ? 'saved queries'
+          : tableName.toLowerCase()
+      } yet`}</div>
       <Button
         buttonStyle="primary"
         onClick={() => {
@@ -75,7 +85,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
         <IconContainer>
           <Icon name="plus-small" />{' '}
           {tableName === 'SAVED_QUERIES'
-            ? 'SQL LAB QUERY'
+            ? 'SQL QUERY'
             : tableName
                 .split('')
                 .slice(0, tableName.length - 1)
@@ -86,15 +96,19 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   );
   const span = (
     <div className="no-recents">
-      Recently viewed charts, dashboards, and saved queries will appear here
+      Recently {tab?.toLowerCase()} charts, dashboards, and saved queries will
+      appear here
     </div>
   );
 
-  if (tab === 'Mine') {
+  if (tab === 'Mine' || tableName === 'RECENTS') {
     return (
       <Container>
-        <img src="/static/assets/images/union.png" alt="union.png" />
-        {tableName === 'RECENTS' ? span : Mine}
+        <img
+          src={`/static/assets/images/${tableIcon[tableName]}`}
+          alt={`${tableName}`}
+        />
+        {tableName === 'RECENTS' ? span : mine}
       </Container>
     );
   }
@@ -111,7 +125,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
           }}
         >
           SEE ALL{' '}
-          {tableName === 'SAVED_QUERIES' ? 'SQL LAB QUERIES' : tableName }
+          {tableName === 'SAVED_QUERIES' ? 'SQL LAB QUERIES' : tableName}
         </Button>
       </div>
     </Container>

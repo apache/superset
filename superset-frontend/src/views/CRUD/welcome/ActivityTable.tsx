@@ -76,7 +76,7 @@ export default function ActivityTable({ user }: ActivityProps) {
   const [activityData, setActivityData] = useState<ActivityData>({});
   const [loading, setLoading] = useState(true);
   const [activeChild, setActiveChild] = useState('Viewed');
-  // this api uses log for data which in some cases is can be empty
+  // this api uses log for data which in some cases can be empty
   const recent = `/superset/recent_activity/${user.userId}/?limit=5`;
 
   const getFilterTitle = (e: MapProps) => {
@@ -181,6 +181,7 @@ export default function ActivityTable({ user }: ActivityProps) {
     ));
   };
   if (loading) return <>loading ...</>;
+  console.log('activity', activeChild)
   return (
     <>
       <>
@@ -194,7 +195,7 @@ export default function ActivityTable({ user }: ActivityProps) {
           {activityData[activeChild]?.length > 0 ? (
             <ActivityContainer>{renderActivity()}</ActivityContainer>
           ) : (
-            <EmptyState tableName="RECENTS" tab="Mine" />
+            <EmptyState tableName="RECENTS" tab={activeChild} />
           )}
         </>
       </>
