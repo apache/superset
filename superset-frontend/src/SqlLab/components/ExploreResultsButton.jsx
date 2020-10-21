@@ -55,8 +55,7 @@ class ExploreResultsButton extends React.PureComponent {
 
   onClick() {
     const { timeout } = this.props;
-    // const msg = this.renderInvalidColumnMessage();
-    const msg = true;
+    const msg = this.renderInvalidColumnMessage();
     if (Math.round(this.getQueryDuration()) > timeout) {
       this.dialog.show({
         title: t('Explore'),
