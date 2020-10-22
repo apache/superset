@@ -109,12 +109,20 @@ function copyHeaders(originalResponse, response) {
 function processHTML(proxyResponse, response) {
   let body = Buffer.from([]);
   let originalResponse = proxyResponse;
+  let uncompress;
+  const responseEncoding = originalResponse.headers['content-encoding'];
 
   // decode GZIP response
-  if (originalResponse.headers['content-encoding'] === 'gzip') {
-    const gunzip = zlib.createGunzip();
-    originalResponse.pipe(gunzip);
-    originalResponse = gunzip;
+  if (responseEncoding === 'gzip') {
+    uncompress = zlib.createGunzip();
+  } else if (responseEncoding === 'br') {
+    uncompress = zlib.createBrotliDecompress();
+  } else if (responseEncoding === 'deflate') {
+    uncompress = zlib.createInflate();
+  }
+  if (uncompress) {
+    originalResponse.pipe(uncompress);
+    originalResponse = uncompress;
   }
 
   originalResponse
