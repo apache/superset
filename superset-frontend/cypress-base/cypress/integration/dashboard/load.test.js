@@ -22,6 +22,7 @@ import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard load', () => {
   const aliases = [];
+  let dashboard;
 
   beforeEach(() => {
     cy.server();
@@ -31,25 +32,29 @@ describe('Dashboard load', () => {
 
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
-      const { slices } = dashboard;
-
-      // then define routes and create alias for each requests
-      slices.forEach(slice => {
-        const vizType = slice.form_data.viz_type;
-        const isLegacy = isLegacyChart(vizType);
-        const alias = `getJson_${slice.slice_id}_${vizType}_${isLegacy}`;
-        const formData = `{"slice_id":${slice.slice_id}}`;
-        const route = isLegacy
-          ? `/superset/explore_json/?*${slice.slice_id}*`
-          : `/api/v1/chart/data?dashboard_id=${dashboard.id}`;
-        cy.route('POST', `${route}`).as(alias);
-        aliases.push(`@${alias}`);
-      });
+      dashboard = bootstrapData.dashboard_data;
     });
   });
 
   it('should load dashboard', () => {
+    const { slices } = dashboard;
+
+    // then define routes and create alias for each requests
+    slices.forEach(slice => {
+      const vizType = slice.form_data.viz_type;
+      const isLegacy = isLegacyChart(vizType);
+      // TODO(villebro): enable non-legacy charts
+      if (isLegacy) {
+        const alias = `getJson_${slice.slice_id}_${vizType}_${isLegacy}`;
+        const formData = `{"slice_id":${slice.slice_id}}`;
+        const route = isLegacy
+          ? `/superset/explore_json/?*${formData}*`
+          : `/api/v1/chart/data?dashboard_id=${dashboard.id}`;
+        cy.route('POST', `${route}`).as(alias);
+        aliases.push(`@${alias}`);
+      }
+    });
+
     // wait and verify one-by-one
     cy.wait(aliases).then(requests => {
       return Promise.all(
