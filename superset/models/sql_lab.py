@@ -219,12 +219,12 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
         return naturaltime(datetime.now() - self.changed_on)
 
     @property
-    def last_run_delta_humanized(self) -> str:
+    def _last_run_delta_humanized(self) -> str:
         return naturaltime(datetime.now() - self.changed_on)
 
     @renders("changed_on")
     def last_run_delta_humanized(self) -> str:
-        return self.changed_on_humanized
+        return self._last_run_delta_humanized
 
 
 class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
