@@ -795,13 +795,13 @@ class TestDatabaseApi(SupersetTestCase):
         invalid_id = max_id + 1
         uri = f"api/v1/database/{invalid_id}/related_objects/"
         self.login(username="admin")
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 404)
         self.logout()
         self.login(username="gamma")
         database = get_example_database()
         uri = f"api/v1/database/{database.id}/related_objects/"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 404)
 
     def test_export_database(self):
@@ -812,8 +812,7 @@ class TestDatabaseApi(SupersetTestCase):
         database = get_example_database()
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
-        rv = self.client.get(uri)
-
+        rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 200
 
         buf = BytesIO(rv.data)
@@ -828,7 +827,6 @@ class TestDatabaseApi(SupersetTestCase):
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
-
         assert rv.status_code == 401
 
     def test_export_database_non_existing(self):
@@ -842,6 +840,5 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         argument = [invalid_id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
-        rv = self.client.get(uri)
-
+        rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
