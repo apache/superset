@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { css ,styled } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
 import { Tabs as AntdTabs } from 'src/common/components';
 import Icon from 'src/components/Icon';
 
