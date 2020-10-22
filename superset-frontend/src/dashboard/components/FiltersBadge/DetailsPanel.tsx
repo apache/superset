@@ -25,7 +25,7 @@ import {
   ExclamationCircleFilled,
 } from '@ant-design/icons';
 import { Collapse, Popover } from 'src/common/components/index';
-import { Indent, Item, ItemIcon, Panel, Reset, Title } from './Styles';
+import { Indent, Item, ItemIcon, Panel, Reset, Title, Summary } from './Styles';
 import { IndicatorStatus } from './selectors';
 
 export type Indicator = {
@@ -97,14 +97,14 @@ const DetailsPanelPopover = ({
 
   const content = (
     <Panel>
-      <div>{`${total} Scoped Filters`}</div>
+      <Summary>{`${total} Scoped Filters`}</Summary>
       <Reset>
         <Collapse ghost activeKey={activePanels} onChange={setActivePanels}>
           {appliedIndicators.length ? (
             <Collapse.Panel
               key="applied"
               header={
-                <Title color={theme.colors.success.base}>
+                <Title bold color={theme.colors.success.base}>
                   <CheckCircleFilled />
                   {` Applied (${appliedIndicators.length})`}
                 </Title>
@@ -125,7 +125,7 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="incompatible"
               header={
-                <Title color={theme.colors.alert.base}>
+                <Title bold color={theme.colors.alert.base}>
                   <ExclamationCircleFilled />
                   {` Incompatible (${incompatibleIndicators.length})`}
                 </Title>
@@ -145,7 +145,7 @@ const DetailsPanelPopover = ({
           <Collapse.Panel
             key="unset"
             header={
-              <Title color={theme.colors.grayscale.dark1}>
+              <Title bold color={theme.colors.grayscale.dark1}>
                 <MinusCircleFilled />
                 {` Unset (${unsetIndicators.length})`}
               </Title>

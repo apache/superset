@@ -20,13 +20,13 @@ import { styled } from '@superset-ui/core';
 
 export const Pill = styled.div`
   display: inline-block;
-  background: ${({ theme }) => theme.colors.grayscale.dark1};
+  background: ${({ theme }) => theme.colors.grayscale.base};
   color: ${({ theme }) => theme.colors.grayscale.light5};
   border-radius: 1em;
   vertical-align: text-top;
   padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  font-weight: normal;
+  font-weight: bold;
   min-width: 1em;
   min-height: 1em;
   line-height: 1em;
@@ -40,7 +40,7 @@ export const Pill = styled.div`
 
   &:hover {
     cursor: pointer;
-    background: ${({ theme }) => theme.colors.grayscale.dark2};
+    background: ${({ theme }) => theme.colors.grayscale.dark1};
   }
 
   &.has-incompatible-filters {
@@ -86,6 +86,10 @@ export const Title = styled.span`
   & > .anticon * {
     color: ${({ color }) => color || 'auto'};
   }
+`;
+
+export const Summary = styled.div`
+  font-weight: bold;
 `;
 
 export const ItemIcon = styled.i`
