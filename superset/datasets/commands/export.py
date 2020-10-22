@@ -72,7 +72,7 @@ class ExportDatasetsCommand(BaseCommand):
             try:
                 payload["extra"] = json.loads(payload["extra"])
             except json.decoder.JSONDecodeError:
-                logger.info(f"Unable to decode `extra` field: {payload['extra']}")
+                logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
         payload["version"] = IMPORT_EXPORT_VERSION
 
