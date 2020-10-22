@@ -873,6 +873,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "form_data": slc.form_data,
             "slice": slc.data,
             "dashboard_url": dash.url if dash else None,
+            "dashboard_id": dash.id if dash else None,
         }
 
         if dash and request.args.get("goto_dash") == "true":
