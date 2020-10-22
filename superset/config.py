@@ -947,12 +947,18 @@ SQLA_TABLE_MUTATOR = lambda table: table
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
-GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {}
+GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
+    "port": 6379,
+    "host": "127.0.0.1",
+    "family": 4,
+    "password": "",
+    "db": 0,
+}
+GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = (
-    False  # this should likely be True in production
-)
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
+GLOBAL_ASYNC_QUERIES_TRANSPORT = "ws"
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful

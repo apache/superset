@@ -33,10 +33,13 @@ from werkzeug.wsgi import FileWrapper
 from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
+from superset.charts.commands.data import ChartDataCommand
 from superset.charts.commands.delete import DeleteChartCommand
 from superset.charts.commands.exceptions import (
     ChartBulkDeleteFailedError,
     ChartCreateFailedError,
+    ChartDataQueryFailedError,
+    ChartDataValidationError,
     ChartDeleteFailedError,
     ChartForbiddenError,
     ChartInvalidError,
@@ -59,9 +62,10 @@ from superset.charts.schemas import (
 )
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import event_logger
+from superset.extensions import async_query_manager, event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
+from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import ChartDataResultFormat, json_int_dttm_ser
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
@@ -475,6 +479,26 @@ class ChartRestApi(BaseSupersetModelRestApi):
             json_body = json.loads(request.form["form_data"])
         else:
             return self.response_400(message="Request is not JSON")
+
+        # try:
+        #     query_context = ChartDataQueryContextSchema().load(json_body)
+        # except KeyError:
+        #     return self.response_400(message="Request is incorrect")
+        # except ValidationError as error:
+        #     return self.response_400(
+        #         message=_("Request is incorrect: %(error)s", error=error.messages)
+        #     )
+        # logger.info('************* legacy query_context')
+        # logger.info(query_context.queries[0].__dict__);
+
+        try:
+            command = ChartDataCommand(g.user, json_body)
+        except ChartDataValidationError as exc:
+            logger.error("********* failed validation")
+            return self.response_400(message=exc.message)
+        except SupersetSecurityException:
+            return self.response_401()
+
         try:
             query_context = ChartDataQueryContextSchema().load(json_body)
         except KeyError:
@@ -483,25 +507,39 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(
                 message=_("Request is incorrect: %(error)s", error=error.messages)
             )
-        try:
-            query_context.raise_for_access()
-        except SupersetSecurityException:
-            return self.response_401()
-        payload = query_context.get_payload()
-        for query in payload:
-            if query.get("error"):
-                return self.response_400(message=f"Error: {query['error']}")
-        result_format = query_context.result_format
+        # try:
+        #     query_context.raise_for_access()
+        # except SupersetSecurityException:
+        #     return self.response_401()
 
+        if is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            try:
+                jwt_data = async_query_manager.parse_jwt_from_request(request)
+                async_channel_id = jwt_data["async_channel_id"]
+            except AsyncQueryTokenException:
+                return self.response_401()
+
+            result = command.run_async(async_channel_id)
+            return self.response(202)
+            # return self.response(
+            #     202, cache_key=cache_key, chart_url=chart_url, image_url=image_url
+            # )
+
+        try:
+            result = command.run()
+        except ChartDataQueryFailedError as exc:
+            return self.response_400(message=exc.message)
+
+        result_format = result["query_context"].result_format
         response = self.response_400(
             message=f"Unsupported result_format: {result_format}"
         )
 
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
-            result = payload[0]["data"]
+            data = result["payload"][0]["data"]
             response = CsvResponse(
-                result,
+                data,
                 status=200,
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv",
@@ -509,7 +547,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
-                {"result": payload}, default=json_int_dttm_ser, ignore_nan=True
+                {"result": result["payload"]},
+                default=json_int_dttm_ser,
+                ignore_nan=True,
             )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"

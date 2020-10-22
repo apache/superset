@@ -1,0 +1,76 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+import logging
+from typing import Dict, List, Optional
+
+from flask_appbuilder.models.sqla import Model
+from flask_appbuilder.security.sqla.models import User
+from marshmallow import ValidationError
+
+from superset.charts.commands.exceptions import (
+    ChartDataQueryFailedError,
+    ChartDataValidationError,
+)
+from superset.charts.dao import ChartDAO
+from superset.charts.schemas import ChartDataQueryContextSchema
+from superset.commands.base import BaseCommand
+from superset.common.query_context import QueryContext
+from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.tasks.async_queries import load_chart_data_into_cache
+from superset.views.base import check_ownership
+
+logger = logging.getLogger(__name__)
+
+
+class ChartDataCommand(BaseCommand):
+    def __init__(self, user: User, form_data: Dict):
+        self._actor = user
+        self._form_data = form_data
+        self._query_context: Optional[QueryContext] = None
+        # self._async_channel_id = async_channel_id
+        self.validate()
+
+    def run(self):
+        logger.info("******** ChartDataCommand run_sync")
+        # logger.info('************ new query_context')
+        # logger.info(self._query_context.queries[0].__dict__);
+
+        # caching is handled in query_context.get_df_payload (also evals `force` property)
+        payload = self._query_context.get_payload()
+
+        for query in payload:
+            if query.get("error"):
+                raise ChartDataQueryFailedError(f"Error: {query['error']}")
+
+        return {"query_context": self._query_context, "payload": payload}
+
+    def run_async(self, async_channel_id: str):
+        # TODO: confirm cache backend is configured
+        job_info = load_chart_data_into_cache.delay(self._actor, self._form_data)
+
+    def validate(self) -> None:
+        try:
+            self._query_context = ChartDataQueryContextSchema().load(self._form_data)
+            self._query_context.raise_for_access()
+        except KeyError:
+            raise ChartDataValidationError("Request is incorrect")
+        except ValidationError as error:
+            raise ChartDataValidationError(
+                "Request is incorrect: %(error)s", error=error.messages
+            )

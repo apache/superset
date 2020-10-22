@@ -83,3 +83,11 @@ class ChartForbiddenError(ForbiddenError):
 
 class ChartBulkDeleteFailedError(CreateFailedError):
     message = _("Charts could not be deleted.")
+
+
+class ChartDataValidationError(CommandException):
+    pass
+
+
+class ChartDataQueryFailedError(CommandException):
+    pass

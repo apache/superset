@@ -24,18 +24,24 @@ from flask import Flask, Response, session
 logger = logging.getLogger(__name__)
 
 
+class AsyncQueryTokenException(Exception):
+    pass
+
+
 class AsyncQueryManager:
     def __init__(self) -> None:
         super().__init__()
         self._jwt_cookie_name = None
+        self._jwt_cookie_secure = None
         self._jwt_secret = None
 
     def init_app(self, app: Flask) -> None:
         self._jwt_cookie_name = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
+        self._jwt_cookie_secure = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
         self._jwt_secret = app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
         @app.after_request
-        def set_async_jwt_cookie(response: Response) -> Response:
+        def validate_session(response: Response) -> Response:
             reset_token = False
             user_id = None
 
@@ -53,23 +59,38 @@ class AsyncQueryManager:
                 session["async_channel_id"] = async_channel_id
                 session["async_user_id"] = user_id
 
-                token = self.get_jwt({"channel": async_channel_id, "user_id": user_id})
+                token = self.generate_jwt(
+                    {"channel": async_channel_id, "user_id": user_id}
+                )
 
                 response.set_cookie(
                     self._jwt_cookie_name,
                     value=token,
                     httponly=True,
+                    secure=self._jwt_cookie_secure,
                     # max_age=max_age or config.cookie_max_age,
-                    # secure=config.cookie_secure,
                     # domain=config.cookie_domain,
                     # path=config.access_cookie_path,
                     # samesite=config.cookie_samesite
                 )
 
-            # logger.info("session", session)
-
             return response
 
-    def get_jwt(self, data: Dict) -> Dict[str, Any]:
+    def generate_jwt(self, data: Dict) -> Dict[str, Any]:
         encoded_jwt = jwt.encode(data, self._jwt_secret, algorithm="HS256")
         return encoded_jwt
+
+    def parse_jwt(self, token: str) -> Dict[str, Any]:
+        data = jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
+        return data
+
+    def parse_jwt_from_request(self, request: Dict) -> Dict[str, Any]:
+        token = request.cookies.get(self._jwt_cookie_name)
+        if not token:
+            raise AsyncQueryTokenException("Token not preset")
+
+        try:
+            return self.parse_jwt(token)
+        except Exception as exc:
+            logger.warning(exc)
+            raise AsyncQueryTokenException("Failed to parse token")
