@@ -118,7 +118,7 @@ describe('LimitControl', () => {
       wrappingComponentProps: { theme: supersetTheme },
     });
     popoverContentWrapper
-      .find('"limit-control-cancel"')
+      .find('[data-test="limit-control-cancel"]')
       .first()
       .simulate('click');
     expect(wrapper.state().textValue).toEqual(
