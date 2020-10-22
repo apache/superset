@@ -19,10 +19,9 @@ from unittest.mock import patch
 
 import yaml
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.commands.export import ExportDatabasesCommand
-from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
 
@@ -38,11 +37,11 @@ class TestExportDatabasesCommand(SupersetTestCase):
 
         # TODO: this list shouldn't depend on the order in which unit tests are run
         # or on the backend; for now use a stable subset
-        core_datasets = {
+        core_files = {
             "databases/examples.yaml",
-            "datasets/energy_usage.yaml",
-            "datasets/wb_health_population.yaml",
-            "datasets/birth_names.yaml",
+            "datasets/examples/energy_usage.yaml",
+            "datasets/examples/wb_health_population.yaml",
+            "datasets/examples/birth_names.yaml",
         }
         expected_extra = {
             "engine_params": {},
@@ -53,7 +52,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         if backend() == "presto":
             expected_extra = {"engine_params": {"connect_args": {"poll_interval": 0.1}}}
 
-        assert core_datasets.issubset(set(contents.keys()))
+        assert core_files.issubset(set(contents.keys()))
 
         metadata = yaml.safe_load(contents["databases/examples.yaml"])
         assert metadata == (
@@ -72,7 +71,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             }
         )
 
-        metadata = yaml.safe_load(contents["datasets/birth_names.yaml"])
+        metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"])
         metadata.pop("uuid")
         assert metadata == {
             "table_name": "birth_names",
