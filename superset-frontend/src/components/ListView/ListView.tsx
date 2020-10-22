@@ -384,7 +384,9 @@ function ListView<T extends object = any>({
           {!loading && rows.length === 0 && (
             <EmptyWrapper>
               <Empty
-                image={<EmptyImage />}
+                image={
+                  <EmptyImage />
+                }
                 description={emptyState.message || 'No Data'}
               >
                 {emptyState.slot || null}

@@ -28,6 +28,7 @@ from superset.constants import RouteMethod
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.typing import FlaskResponse
 from superset.views.base import SupersetModelView
+from superset.typing import FlaskResponse
 
 
 class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
