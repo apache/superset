@@ -69,7 +69,8 @@ class AnnotationLayerDAO(BaseDAO):
         and serves for validating on updates
 
         :param name: The annotation layer name
-        :param layer_id: The annotation layer current id (only for validating on updates)
+        :param layer_id: The annotation layer current id
+        (only for validating on updates)
         :return: bool
         """
         query = db.session.query(AnnotationLayer).filter(AnnotationLayer.name == name)
