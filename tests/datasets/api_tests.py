@@ -1070,68 +1070,6 @@ class TestDatasetApi(SupersetTestCase):
 
         assert rv.status_code == 401
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
-    def test_export_dataset_bundle(self):
-        """
-        Dataset API: Test export dataset
-        """
-        birth_names_dataset = self.get_birth_names_dataset()
-        # TODO: fix test for presto
-        # debug with dump: https://github.com/apache/incubator-superset/runs/1092546855
-        if birth_names_dataset.database.backend in {"presto", "hive"}:
-            return
-
-        argument = [birth_names_dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
-
-        self.login(username="admin")
-        rv = self.get_assert_metric(uri, "export")
-
-        assert rv.status_code == 200
-
-        buf = BytesIO(rv.data)
-        assert is_zipfile(buf)
-
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
-    def test_export_dataset_bundle_not_found(self):
-        """
-        Dataset API: Test export dataset not found
-        """
-        # Just one does not exist and we get 404
-        argument = [-1, 1]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
-        self.login(username="admin")
-        rv = self.get_assert_metric(uri, "export")
-
-        assert rv.status_code == 404
-
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
-    def test_export_dataset_bundle_gamma(self):
-        """
-        Dataset API: Test export dataset has gamma
-        """
-        birth_names_dataset = self.get_birth_names_dataset()
-
-        argument = [birth_names_dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
-
-        self.login(username="gamma")
-        rv = self.client.get(uri)
-
-        assert rv.status_code == 401
-
     def test_get_dataset_related_objects(self):
         """
         Dataset API: Test get chart and dashboard count related to a dataset
