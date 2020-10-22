@@ -57,7 +57,7 @@ const StyledModal = styled(BaseModal)`
 
     .close {
       flex: 1 1 auto;
-      margin-bottom: 3px;
+      margin-bottom: ${({ theme }) => theme.gridUnit}px;
       color: ${({ theme }) => theme.colors.secondary.dark1};
       font-size: 32px;
       font-weight: ${({ theme }) => theme.typography.weights.light};
@@ -65,12 +65,13 @@ const StyledModal = styled(BaseModal)`
   }
 
   .ant-modal-body {
-    padding: 18px;
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
   }
 
   .ant-modal-footer {
-    border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    padding: 16px;
+    border-top: ${({ theme }) => theme.gridUnit / 4}px solid
+      ${({ theme }) => theme.colors.grayscale.light2};
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
 
     .btn {
       font-size: 12px;
@@ -78,8 +79,13 @@ const StyledModal = styled(BaseModal)`
     }
 
     .btn + .btn {
-      margin-left: 8px;
+      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
     }
+  }
+
+  // styling for Tabs component
+  .ant-tabs {
+    margin-top: -${({ theme }) => theme.gridUnit * 4}px;
   }
 `;
 
