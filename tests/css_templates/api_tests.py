@@ -76,6 +76,7 @@ class TestCssTemplateApi(SupersetTestCase):
         assert data["count"] == len(css_templates)
         expected_columns = [
             "changed_on_delta_humanized",
+            "changed_by",
             "created_on",
             "created_by",
             "template_name",
