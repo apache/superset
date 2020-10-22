@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useRef } from 'react';
+import { useHistory } from 'react-router-dom';
 import { Alert, Modal } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
@@ -28,6 +29,7 @@ import getClientErrorObject from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
+const history = useHistory()
 
 const StyledDatasourceModal = styled(Modal)`
   .modal-content {
@@ -191,9 +193,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <Button
             buttonSize="sm"
             buttonStyle="default"
-            target="_blank"
             data-test="datasource-modal-legacy-edit"
-            href={currentDatasource.edit_url || currentDatasource.url}
+            className="m-r-5"
+            // href={currentDatasource.edit_url || currentDatasource.url}
+            onClick={() => {history.push(currentDatasource.edit_url || currentDatasource.url)}}
           >
             {t('Use Legacy Datasource Editor')}
           </Button>
@@ -211,7 +214,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           >
             {t('Save')}
           </Button>
-          <Button buttonSize="sm" onClick={onHide}>
+          <Button data-test="datasource-modal-cancel" buttonSize="sm" onClick={onHide}>
             {t('Cancel')}
           </Button>
           <Dialog ref={dialog} />
