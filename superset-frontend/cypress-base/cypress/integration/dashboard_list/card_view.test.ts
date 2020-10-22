@@ -102,9 +102,7 @@ describe('Dashboard card view', () => {
     cy.get('.ant-dropdown-menu-item').contains('Edit').should('exist');
     cy.get('.ant-dropdown-menu-item').contains('Edit').click();
     cy.get('.ant-modal').should('be.visible');
-    cy.get('.ant-modal input[name="dashboard_title"]').should(
-      'not.have.value',
-    );
+    cy.get('.ant-modal input[name="dashboard_title"]').should('not.have.value');
     cy.get('.ant-modal input[name="slug"]').should('not.have.value');
     cy.get('.ant-modal .btn-default').contains('Cancel').click();
   });
