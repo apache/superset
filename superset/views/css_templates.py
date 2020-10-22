@@ -21,7 +21,6 @@ from flask_babel import lazy_gettext as _
 
 from superset import app
 from superset.constants import RouteMethod
-from superset.extensions import feature_flag_manager
 from superset.models import core as models
 from superset.typing import FlaskResponse
 from superset.views.base import DeleteMixin, SupersetModelView
@@ -46,10 +45,7 @@ class CssTemplateModelView(  # pylint: disable=too-many-ancestors
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not (
-            app.config["ENABLE_REACT_CRUD_VIEWS"]
-            and feature_flag_manager.is_feature_enabled("SIP_34_CSS_TEMPLATES_UI")
-        ):
+        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
             return super().list()
 
         return super().render_app_template()
