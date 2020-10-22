@@ -42,7 +42,7 @@ export default function RecentActivity({ user }: RecentActivityProps) {
   return (
     <div>
       <TableLoader
-        className="table table-condensed"
+        className="table-condensed"
         mutator={mutator}
         sortable
         dataEndpoint={`/superset/recent_activity/${user.userId}/?limit=${rowLimit}`}
