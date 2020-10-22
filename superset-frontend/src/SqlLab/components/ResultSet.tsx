@@ -57,9 +57,14 @@ interface ResultSetState {
   data: Record<string, any>[];
 }
 
+// Making text render line breaks/tabs as is as monospace,
+// but wrapping text too so text doesn't overflow
 const MonospaceDiv = styled.div`
   font-family: ${({ theme }) => theme.typography.families.monospace};
   white-space: pre;
+  word-break: break-word;
+  overflow-x: auto;
+  white-space: pre-wrap;
 `;
 
 export default class ResultSet extends React.PureComponent<
