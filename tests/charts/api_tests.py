@@ -19,7 +19,9 @@
 import json
 from typing import List, Optional
 from datetime import datetime
+from io import BytesIO
 from unittest import mock
+from zipfile import is_zipfile
 
 import humanize
 import prison
@@ -1073,3 +1075,44 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         result = response_payload["result"][0]["query"]
         if get_example_database().backend != "presto":
             assert "('boy' = 'boy')" in result
+
+    def test_export_chart(self):
+        """
+        Chart API: Test export dataset
+        """
+        example_chart = db.session.query(Slice).all()[0]
+        argument = [example_chart.id]
+        uri = f"api/v1/chart/export/?q={prison.dumps(argument)}"
+
+        self.login(username="admin")
+        rv = self.get_assert_metric(uri, "export")
+
+        assert rv.status_code == 200
+
+        buf = BytesIO(rv.data)
+        assert is_zipfile(buf)
+
+    def test_export_chart_not_found(self):
+        """
+        Dataset API: Test export dataset not found
+        """
+        # Just one does not exist and we get 404
+        argument = [-1, 1]
+        uri = f"api/v1/chart/export/?q={prison.dumps(argument)}"
+        self.login(username="admin")
+        rv = self.get_assert_metric(uri, "export")
+
+        assert rv.status_code == 404
+
+    def test_export_chart_gamma(self):
+        """
+        Dataset API: Test export dataset has gamma
+        """
+        example_chart = db.session.query(Slice).all()[0]
+        argument = [example_chart.id]
+        uri = f"api/v1/chart/export/?q={prison.dumps(argument)}"
+
+        self.login(username="gamma")
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 404
