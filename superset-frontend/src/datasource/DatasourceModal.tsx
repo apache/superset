@@ -161,6 +161,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     });
   };
 
+  console.log("FeatureFlag", isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS))
+
   return (
     <StyledDatasourceModal show={show} onHide={onHide} bsSize="large">
       <Modal.Header closeButton>
@@ -190,6 +192,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             buttonSize="sm"
             buttonStyle="default"
             target="_blank"
+            data-test="datasource-modal-legacy-edit"
             href={currentDatasource.edit_url || currentDatasource.url}
           >
             {t('Use Legacy Datasource Editor')}

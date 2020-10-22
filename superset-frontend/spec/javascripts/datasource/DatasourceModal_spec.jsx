@@ -29,6 +29,7 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
+import * as featureFlags from 'src/featureFlags';
 import mockDatasource from '../../fixtures/mockDatasource';
 
 const mockStore = configureStore([thunk]);
@@ -61,10 +62,17 @@ async function mountAndWait(props = mockedProps) {
 
 describe('DatasourceModal', () => {
   let wrapper;
+  let isFeatureEnabledMock = jest
+  .spyOn(featureFlags, 'isFeatureEnabled')
+  .mockImplementation(feature => feature === 'ENABLE_REACT_CRUD_VIEWS');
 
   beforeEach(async () => {
     fetchMock.reset();
     wrapper = await mountAndWait();
+  });
+
+  afterAll(() => {
+    isFeatureEnabledMock.restore();
   });
 
   it('renders', () => {
@@ -97,5 +105,16 @@ describe('DatasourceModal', () => {
     expect(callsP._calls.map(call => call[0])).toEqual(
       expected,
     ); /* eslint no-underscore-dangle: 0 */
+  });
+
+  it('renders a legacy data source btn', () => {
+    expect(wrapper.find('button[data-test="datasource-modal-legacy-edit"]')).toExist();
+  });
+
+  it('hides a legacy data source btn', () => {
+    isFeatureEnabledMock = jest
+    .spyOn(featureFlags, 'isFeatureEnabled')
+    .mockImplementation(() => false);
+    expect(wrapper.find('button[data-test="datasource-modal-legacy-edit"]')).not.toExist();
   });
 });
