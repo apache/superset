@@ -132,4 +132,5 @@ Join our growing community!
  - [komoot](https://www.komoot.com/) [@christophlingg]
  - [Let's Roam](https://www.letsroam.com/)
  - [Twitter](https://twitter.com/)
+ - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
  - [Yahoo!](https://yahoo.com/)
