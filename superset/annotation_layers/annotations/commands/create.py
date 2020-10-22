@@ -60,7 +60,7 @@ class CreateAnnotationCommand(BaseCommand):
 
         # Validate/populate model exists
         if not layer_id and not isinstance(layer_id, int):
-            raise AnnotationLayerNotFoundError
+            raise AnnotationLayerNotFoundError()
         annotation_layer = AnnotationLayerDAO.find_by_id(layer_id)
         if not annotation_layer:
             raise AnnotationLayerNotFoundError()
