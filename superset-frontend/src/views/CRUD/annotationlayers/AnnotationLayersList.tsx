@@ -162,6 +162,16 @@ function AnnotationLayersList({
         size: 'xl',
       },
       {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => changedOn,
+        Header: t('Last Modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
+      },
+      {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleAnnotationLayerEdit(original);
           const handleDelete = () => {}; // openAnnotationLayerDeleteModal(original);
