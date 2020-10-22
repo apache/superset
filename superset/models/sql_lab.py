@@ -37,7 +37,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
-from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
+from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin, ImportMixin
 from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.utils.core import QueryStatus, user_label
@@ -160,7 +160,7 @@ class Query(Model, ExtraJSONMixin):
         security_manager.raise_for_access(query=self)
 
 
-class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
+class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportMixin):
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
@@ -181,6 +181,15 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
         foreign_keys=[db_id],
         backref=backref("saved_queries", cascade="all, delete-orphan"),
     )
+
+    export_parent = "database"
+    export_fields = [
+        "db_id",
+        "schema",
+        "label",
+        "description",
+        "sql",
+    ]
 
     def __repr__(self) -> str:
         return str(self.label)
