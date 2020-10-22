@@ -89,7 +89,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "sql",
         "sql_tables",
         "rows",
-        "last_run"
+        "last_run_delta_humanized",
     ]
     add_columns = ["db_id", "description", "label", "schema", "sql"]
     edit_columns = add_columns
@@ -103,6 +103,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "database.database_name",
         "created_on",
         "changed_on_delta_humanized",
+        "last_run_delta_humanized",
     ]
 
     search_columns = ["id", "label"]

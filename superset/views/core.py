@@ -82,6 +82,7 @@ from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, SavedQuery, TabState
 from superset.models.user_attributes import UserAttribute
+from superset.queries.dao import QueryDAO
 from superset.security.analytics_db_safety import (
     check_sqlalchemy_uri,
     DBSecurityException,
@@ -2141,6 +2142,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         logger.info("Query %i: Running query on a Celery worker", query.id)
         # Ignore the celery future object and the request may time out.
+        query_id = query.id
         try:
             task = sql_lab.get_sql_results.delay(
                 query.id,
@@ -2167,6 +2169,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query.error_message = msg
             session.commit()
             return json_error_response("{}".format(msg))
+
+        # Update saved query with execution info from the query execution
+        QueryDAO.update_saved_query_exec_info(query_id)
+
         resp = json_success(
             json.dumps(
                 {"query": query.to_dict()},
@@ -2215,16 +2221,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 )
 
             # Update saved query if needed
-            query = db.session.query(Query).get(query_id)
-            related_saved_queries = (
-                db.session.query(SavedQuery)
-                .filter(SavedQuery.database == query.database)
-                .filter(SavedQuery.sql == query.sql)
-            ).all()
-            if related_saved_queries:
-                for saved_query in related_saved_queries:
-                    saved_query.rows = query.rows
-                db.session.commit()
+            QueryDAO.update_saved_query_exec_info(query_id)
 
             payload = json.dumps(
                 apply_display_max_row_limit(data),
