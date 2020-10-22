@@ -277,11 +277,20 @@ class Header extends React.PureComponent {
       colorScheme,
       colorNamespace,
     );
-    const labelColors = colorScheme ? scale.getColorMap() : {};
+
+    // use the colorScheme for default labels
+    let labelColors = colorScheme ? scale.getColorMap() : {};
+    // but allow metadata to overwrite if it exists
+    // eslint-disable-next-line camelcase
+    const metadataLabelColors = dashboardInfo.metadata?.label_colors;
+    if (metadataLabelColors) {
+      labelColors = { ...labelColors, ...metadataLabelColors };
+    }
+
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
-      : dashboardInfo.metadata.refresh_frequency; // eslint-disable camelcase
+      : dashboardInfo.metadata?.refresh_frequency; // eslint-disable-line camelcase
 
     const data = {
       positions,
