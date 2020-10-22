@@ -43,6 +43,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(CssTemplate)
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
     class_permission_name = "CssTemplateModelView"
@@ -59,6 +60,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     ]
     list_columns = [
         "changed_on_delta_humanized",
+        "changed_by",
         "created_on",
         "created_by.first_name",
         "created_by.id",
@@ -72,6 +74,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     order_columns = ["template_name"]
 
     search_filters = {"template_name": [CssTemplateAllTextFilter]}
+    allowed_rel_fields = {"created_by"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

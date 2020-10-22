@@ -17,16 +17,23 @@
  * under the License.
  */
 
-import React, { useMemo } from 'react';
-import { t } from '@superset-ui/core';
+import React, { useMemo, useState } from 'react';
+import { t, SupersetClient } from '@superset-ui/core';
+
+import rison from 'rison';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import DeleteModal from 'src/components/DeleteModal';
+import TooltipWrapper from 'src/components/TooltipWrapper';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-// import ListView, { Filters } from 'src/components/ListView';
-import ListView from 'src/components/ListView';
+import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import CssTemplateModal from './CssTemplateModal';
+import { TemplateObject } from './types';
 
 const PAGE_SIZE = 25;
 
@@ -34,19 +41,6 @@ interface CssTemplatesListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
-
-type TemplateObject = {
-  id?: number;
-  changed_on_delta_humanized: string;
-  created_on: string;
-  created_by: {
-    id: number;
-    first_name: string;
-    last_name: string;
-  };
-  css: string;
-  template_name: string;
-};
 
 function CssTemplatesList({
   addDangerToast,
@@ -57,19 +51,73 @@ function CssTemplatesList({
       loading,
       resourceCount: templatesCount,
       resourceCollection: templates,
+      bulkSelectEnabled,
     },
     hasPerm,
     fetchData,
-    // refreshData,
+    refreshData,
+    toggleBulkSelect,
   } = useListViewResource<TemplateObject>(
     'css_template',
     t('css templates'),
     addDangerToast,
   );
+  const [cssTemplateModalOpen, setCssTemplateModalOpen] = useState<boolean>(
+    false,
+  );
+  const [
+    currentCssTemplate,
+    setCurrentCssTemplate,
+  ] = useState<TemplateObject | null>(null);
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
+
+  const [
+    templateCurrentlyDeleting,
+    setTemplateCurrentlyDeleting,
+  ] = useState<TemplateObject | null>(null);
+
+  const handleTemplateDelete = ({ id, template_name }: TemplateObject) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/css_template/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        setTemplateCurrentlyDeleting(null);
+        addSuccessToast(t('Deleted: %s', template_name));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', template_name, errMsg),
+        ),
+      ),
+    );
+  };
+
+  const handleBulkTemplateDelete = (templatesToDelete: TemplateObject[]) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/css_template/?q=${rison.encode(
+        templatesToDelete.map(({ id }) => id),
+      )}`,
+    }).then(
+      ({ json = {} }) => {
+        refreshData();
+        addSuccessToast(json.message);
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting the selected templates: %s', errMsg),
+        ),
+      ),
+    );
+  };
+
+  function handleCssTemplateEdit(cssTemplate: TemplateObject) {
+    setCurrentCssTemplate(cssTemplate);
+    setCssTemplateModalOpen(true);
+  }
 
   const initialSort = [{ id: 'template_name', desc: true }];
   const columns = useMemo(
@@ -77,6 +125,36 @@ function CssTemplatesList({
       {
         accessor: 'template_name',
         Header: t('Name'),
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by: changedBy,
+            },
+          },
+        }: any) => {
+          let name = 'null';
+
+          if (changedBy) {
+            name = `${changedBy.first_name} ${changedBy.last_name}`;
+          }
+
+          return (
+            <TooltipWrapper
+              label="allow-run-async-header"
+              tooltip={t('Last modified by %s', name)}
+              placement="right"
+            >
+              <span>{changedOn}</span>
+            </TooltipWrapper>
+          );
+        },
+        Header: t('Last Modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
+        disableSortBy: true,
       },
       {
         Cell: ({
@@ -102,6 +180,7 @@ function CssTemplatesList({
         Header: t('Created On'),
         accessor: 'created_on',
         size: 'xl',
+        disableSortBy: true,
       },
       {
         accessor: 'created_by',
@@ -116,19 +195,9 @@ function CssTemplatesList({
         size: 'xl',
       },
       {
-        Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => changedOn,
-        Header: t('Last Modified'),
-        accessor: 'changed_on_delta_humanized',
-        size: 'xl',
-      },
-      {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => {}; // handleDatabaseEdit(original);
-          const handleDelete = () => {}; // openDatabaseDeleteModal(original);
+          const handleEdit = () => handleCssTemplateEdit(original);
+          const handleDelete = () => setTemplateCurrentlyDeleting(original);
 
           const actions = [
             canEdit
@@ -151,35 +220,139 @@ function CssTemplatesList({
               : null,
           ].filter(item => !!item);
 
-          if (!canEdit && !canDelete) {
-            return null;
-          }
-
           return <ActionsBar actions={actions as ActionProps[]} />;
         },
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
+        hidden: !canEdit && !canDelete,
         size: 'xl',
       },
     ],
     [canDelete, canCreate],
   );
 
+  const menuData: SubMenuProps = {
+    name: t('CSS Templates'),
+  };
+
+  const subMenuButtons: SubMenuProps['buttons'] = [];
+
+  if (canCreate) {
+    subMenuButtons.push({
+      name: (
+        <>
+          <i className="fa fa-plus" /> {t('Css Template')}
+        </>
+      ),
+      buttonStyle: 'primary',
+      onClick: () => {
+        setCurrentCssTemplate(null);
+        setCssTemplateModalOpen(true);
+      },
+    });
+  }
+
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk Select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
+  menuData.buttons = subMenuButtons;
+
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Created By'),
+        id: 'created_by',
+        input: 'select',
+        operator: 'rel_o_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'css_template',
+          'created_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Search'),
+        id: 'template_name',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [],
+  );
+
   return (
     <>
-      <SubMenu name={t('CSS Templates')} />
-      <ListView<TemplateObject>
-        className="css-templates-list-view"
-        columns={columns}
-        count={templatesCount}
-        data={templates}
-        fetchData={fetchData}
-        // filters={filters}
-        initialSort={initialSort}
-        loading={loading}
-        pageSize={PAGE_SIZE}
+      <SubMenu {...menuData} />
+      <CssTemplateModal
+        addDangerToast={addDangerToast}
+        cssTemplate={currentCssTemplate}
+        onCssTemplateAdd={() => refreshData()}
+        onHide={() => setCssTemplateModalOpen(false)}
+        show={cssTemplateModalOpen}
       />
+      {templateCurrentlyDeleting && (
+        <DeleteModal
+          description={t('This action will permanently delete the template.')}
+          onConfirm={() => {
+            if (templateCurrentlyDeleting) {
+              handleTemplateDelete(templateCurrentlyDeleting);
+            }
+          }}
+          onHide={() => setTemplateCurrentlyDeleting(null)}
+          open
+          title={t('Delete Template?')}
+        />
+      )}
+      <ConfirmStatusChange
+        title={t('Please confirm')}
+        description={t(
+          'Are you sure you want to delete the selected templates?',
+        )}
+        onConfirm={handleBulkTemplateDelete}
+      >
+        {confirmDelete => {
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
+          return (
+            <ListView<TemplateObject>
+              className="css-templates-list-view"
+              columns={columns}
+              count={templatesCount}
+              data={templates}
+              fetchData={fetchData}
+              filters={filters}
+              initialSort={initialSort}
+              loading={loading}
+              pageSize={PAGE_SIZE}
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={toggleBulkSelect}
+            />
+          );
+        }}
+      </ConfirmStatusChange>
     </>
   );
 }

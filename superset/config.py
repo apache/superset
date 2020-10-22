@@ -285,6 +285,9 @@ LANGUAGES = {
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
 }
+# Turning off i18n by default as translation in most languages are
+# incomplete and not well maintained.
+LANGUAGES = {}
 
 # ---------------------------------------------------
 # Feature flags
@@ -310,6 +313,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
+    # When True, this flag allows display of HTML tags in Markdown components
+    "DISPLAY_MARKDOWN_HTML": True,
+    # When True, this escapes HTML (rather than rendering it) in Markdown components
+    "ESCAPE_MARKDOWN_HTML": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
@@ -843,7 +850,7 @@ DOCUMENTATION_ICON = None  # Recommended size: 16x16
 # Enables the replacement react views for all the FAB views (list, edit, show) with
 # designs introduced in SIP-34: https://github.com/apache/incubator-superset/issues/8976
 # This is a work in progress so not all features available in FAB have been implemented
-ENABLE_REACT_CRUD_VIEWS = False
+ENABLE_REACT_CRUD_VIEWS = True
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
@@ -956,7 +963,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

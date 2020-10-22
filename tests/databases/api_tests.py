@@ -18,6 +18,8 @@
 """Unit tests for Superset"""
 import datetime
 import json
+from io import BytesIO
+from zipfile import is_zipfile
 
 import pandas as pd
 import prison
@@ -782,7 +784,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["charts"]["count"], 33)
-        self.assertEqual(response["dashboards"]["count"], 6)
+        self.assertEqual(response["dashboards"]["count"], 3)
 
     def test_get_database_related_objects_not_found(self):
         """
@@ -793,11 +795,50 @@ class TestDatabaseApi(SupersetTestCase):
         invalid_id = max_id + 1
         uri = f"api/v1/database/{invalid_id}/related_objects/"
         self.login(username="admin")
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 404)
         self.logout()
         self.login(username="gamma")
         database = get_example_database()
         uri = f"api/v1/database/{database.id}/related_objects/"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 404)
+
+    def test_export_database(self):
+        """
+        Database API: Test export database
+        """
+        self.login(username="admin")
+        database = get_example_database()
+        argument = [database.id]
+        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
+        rv = self.get_assert_metric(uri, "export")
+        assert rv.status_code == 200
+
+        buf = BytesIO(rv.data)
+        assert is_zipfile(buf)
+
+    def test_export_database_not_allowed(self):
+        """
+        Database API: Test export database not allowed
+        """
+        self.login(username="gamma")
+        database = get_example_database()
+        argument = [database.id]
+        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 401
+
+    def test_export_database_non_existing(self):
+        """
+        Database API: Test export database not allowed
+        """
+        max_id = db.session.query(func.max(Database.id)).scalar()
+        # id does not exist and we get 404
+        invalid_id = max_id + 1
+
+        self.login(username="admin")
+        argument = [invalid_id]
+        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
+        rv = self.get_assert_metric(uri, "export")
+        assert rv.status_code == 404

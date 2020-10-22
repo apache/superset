@@ -52,6 +52,23 @@ def json_to_dict(json_str: str) -> Dict[Any, Any]:
     return {}
 
 
+def convert_uuids(obj: Any) -> Any:
+    """
+    Convert UUID objects to str so we can use yaml.safe_dump
+    """
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+
+    if isinstance(obj, list):
+        return [convert_uuids(el) for el in obj]
+
+    if isinstance(obj, dict):
+        return {k: convert_uuids(v) for k, v in obj.items()}
+
+    return obj
+
+
+# TODO (betodealmeida): rename to ImportExportMixin
 class ImportMixin:
     uuid = sa.Column(
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
@@ -247,8 +264,15 @@ class ImportMixin:
         recursive: bool = True,
         include_parent_ref: bool = False,
         include_defaults: bool = False,
+        export_uuids: bool = False,
     ) -> Dict[Any, Any]:
         """Export obj to dictionary"""
+        export_fields = set(self.export_fields)
+        if export_uuids:
+            export_fields.add("uuid")
+            if "id" in export_fields:
+                export_fields.remove("id")
+
         cls = self.__class__
         parent_excludes = set()
         if recursive and not include_parent_ref:
@@ -259,7 +283,7 @@ class ImportMixin:
             c.name: getattr(self, c.name)
             for c in cls.__table__.columns  # type: ignore
             if (
-                c.name in self.export_fields
+                c.name in export_fields
                 and c.name not in parent_excludes
                 and (
                     include_defaults
@@ -270,6 +294,13 @@ class ImportMixin:
                 )
             )
         }
+
+        # sort according to export_fields using DSU (decorate, sort, undecorate)
+        order = {field: i for i, field in enumerate(self.export_fields)}
+        decorated_keys = [(order.get(k, len(order)), k) for k in dict_rep]
+        decorated_keys.sort()
+        dict_rep = {k: dict_rep[k] for _, k in decorated_keys}
+
         if recursive:
             for cld in self.export_children:
                 # sorting to make lists of children stable
@@ -285,7 +316,7 @@ class ImportMixin:
                     key=lambda k: sorted(str(k.items())),
                 )
 
-        return dict_rep
+        return convert_uuids(dict_rep)
 
     def override(self, obj: Any) -> None:
         """Overrides the plain fields of the dashboard."""

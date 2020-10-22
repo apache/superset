@@ -25,7 +25,7 @@ import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import AvatarIcon from 'src/components/AvatarIcon';
+import FacePile from 'src/components/FacePile';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
@@ -268,9 +268,6 @@ function ChartList(props: ChartListProps) {
         Cell: ({ row: { original } }: any) => {
           const handleDelete = () => handleChartDelete(original);
           const openEditModal = () => openChartEditModal(original);
-          if (!canEdit && !canDelete) {
-            return null;
-          }
 
           return (
             <span className="actions">
@@ -325,6 +322,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
+        hidden: !canEdit && !canDelete,
       },
     ],
     [canEdit, canDelete],
@@ -479,16 +477,7 @@ function ChartList(props: ChartListProps) {
         imgFallbackURL="/static/assets/images/chart-card-fallback.png"
         imgPosition="bottom"
         description={t('Last modified %s', chart.changed_on_delta_humanized)}
-        coverLeft={(chart.owners || []).slice(0, 5).map(owner => (
-          <AvatarIcon
-            key={owner.id}
-            uniqueKey={`${owner.username}-${chart.id}`}
-            firstName={owner.first_name}
-            lastName={owner.last_name}
-            iconSize={24}
-            textSize={9}
-          />
-        ))}
+        coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={
           <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
         }
@@ -515,7 +504,6 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          {' '}
           <i className="fa fa-plus" /> {t('Chart')}
         </>
       ),

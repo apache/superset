@@ -109,10 +109,6 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
   }
 
-  closePopover(ref) {
-    this.refs[ref].hide();
-  }
-
   render() {
     const shouldShowReset = window.location.search === '?reset=1';
     const tableMetaDataHeight = this.props.height - 130; // 130 is the height of the selects above

@@ -42,6 +42,7 @@ describe('AdhocMetrics', () => {
       .trigger('mousedown')
       .click();
 
+    cy.get('[data-test="option-label"]').first().click();
     cy.get('[data-test="AdhocMetricEditTitle#trigger"]').click();
     cy.get('[data-test="AdhocMetricEditTitle#input"]').type(metricName);
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();

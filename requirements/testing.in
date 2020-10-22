@@ -16,8 +16,9 @@
 #
 -r development.in
 -r integration.in
-flask-testing
 docker
+flask-testing
+freezegun
 ipdb
 # pinning ipython as pip-compile-multi was bringing higher version
 # of the ipython that was not found in CI

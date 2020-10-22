@@ -24,6 +24,7 @@ import prison
 from sqlalchemy.sql import func
 
 import tests.test_app
+from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
@@ -955,12 +956,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         argument = [1, 2]
         uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
-        rv = self.get_assert_metric(uri, "export")
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(
-            rv.headers["Content-Disposition"],
-            generate_download_headers("json")["Content-Disposition"],
-        )
+
+        # freeze time to ensure filename is deterministic
+        with freeze_time("2020-01-01T00:00:00Z"):
+            rv = self.get_assert_metric(uri, "export")
+            headers = generate_download_headers("json")["Content-Disposition"]
+
+        assert rv.status_code == 200
+        assert rv.headers["Content-Disposition"] == headers
 
     def test_export_not_found(self):
         """

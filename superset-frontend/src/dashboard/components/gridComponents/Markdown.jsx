@@ -19,23 +19,26 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
+import htmlParser from 'react-markdown/plugins/html-parser';
+
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
-import DeleteComponentButton from '../DeleteComponentButton';
-import DragDroppable from '../dnd/DragDroppable';
-import ResizableContainer from '../resizable/ResizableContainer';
-import MarkdownModeDropdown from '../menu/MarkdownModeDropdown';
-import WithPopoverMenu from '../menu/WithPopoverMenu';
-import { componentShape } from '../../util/propShapes';
-import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
+import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import { componentShape } from 'src/dashboard/util/propShapes';
+import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
-} from '../../util/constants';
+} from 'src/dashboard/util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -84,6 +87,7 @@ function isSafeMarkup(node) {
 
   return true;
 }
+
 class Markdown extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -260,8 +264,14 @@ class Markdown extends React.PureComponent {
             ? MARKDOWN_ERROR_MESSAGE
             : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
         }
-        escapeHtml={false}
+        escapeHtml={isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML)}
+        skipHtml={!isFeatureEnabled(FeatureFlag.DISPLAY_MARKDOWN_HTML)}
         allowNode={isSafeMarkup}
+        astPlugins={[
+          htmlParser({
+            isValidNode: node => node.type !== 'script',
+          }),
+        ]}
       />
     );
   }

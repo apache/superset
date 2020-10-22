@@ -20,8 +20,8 @@
 import React from 'react';
 import sinon from 'sinon';
 import { styledShallow as shallow } from 'spec/helpers/theming';
-import { OverlayTrigger } from 'react-bootstrap';
 
+import Popover from 'src/common/components/Popover';
 import Label from 'src/components/Label';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
@@ -53,7 +53,7 @@ function setup(overrides) {
 describe('AdhocMetricOption', () => {
   it('renders an overlay trigger wrapper for the label', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OverlayTrigger)).toExist();
+    expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find(Label)).toExist();
   });
 
@@ -61,6 +61,24 @@ describe('AdhocMetricOption', () => {
     const { wrapper } = setup({
       adhocMetric: sumValueAdhocMetric.duplicateWith({ isNew: true }),
     });
-    expect(wrapper.find(OverlayTrigger).props().defaultOverlayShown).toBe(true);
+    expect(wrapper.find(Popover).props().defaultVisible).toBe(true);
+  });
+
+  it('overwrites the adhocMetric in state with onLabelChange', () => {
+    const { wrapper } = setup();
+    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
+    expect(wrapper.state('title').label).toBe('new label');
+    expect(wrapper.state('title').hasCustomLabel).toBe(true);
+  });
+
+  it('returns to default labels when the custom label is cleared', () => {
+    const { wrapper } = setup();
+    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
+    wrapper.instance().onLabelChange({ target: { value: '' } });
+    // close and open the popover
+    wrapper.instance().closeMetricEditOverlay();
+    wrapper.instance().onOverlayEntered();
+    expect(wrapper.state('title').label).toBe('SUM(value)');
+    expect(wrapper.state('title').hasCustomLabel).toBe(false);
   });
 });

@@ -145,7 +145,11 @@ function SavedQueryList({
   }
 
   subMenuButtons.push({
-    name: t('+ Query'),
+    name: (
+      <>
+        <i className="fa fa-plus" /> {t('Query')}
+      </>
+    ),
     onClick: openNewQuery,
     buttonStyle: 'primary',
   });
@@ -331,7 +335,7 @@ function SavedQueryList({
           const handleCopy = () => {
             copyQueryLink(original.id);
           };
-          const handleDelete = () => setQueryCurrentlyDeleting(original); // openQueryDeleteModal(original);
+          const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
             {

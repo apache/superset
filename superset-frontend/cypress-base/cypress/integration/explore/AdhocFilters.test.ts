@@ -74,6 +74,7 @@ describe('AdhocFilters', () => {
     cy.get('[data-test=adhoc_filters] input[type=text]')
       .focus()
       .type('name{enter}');
+    cy.get('.adhoc-filter-option').click();
 
     cy.wait('@filterValues');
 

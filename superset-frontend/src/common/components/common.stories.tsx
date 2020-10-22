@@ -18,11 +18,13 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean } from '@storybook/addon-knobs';
+import { withKnobs, boolean, select } from '@storybook/addon-knobs';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
+import AntdPopover from './Popover';
 import { Menu } from '.';
 import { Dropdown } from './Dropdown';
+import Button from '../../components/Button';
 
 export default {
   title: 'Common Components',
@@ -115,4 +117,32 @@ export const TabsWithDropdownMenu = () => (
       Tab 1 Content!
     </Tabs.TabPane>
   </EditableTabs>
+);
+
+export const Popover = () => (
+  <AntdPopover
+    trigger={select('Trigger', ['click', 'hover', 'focus'], 'click')}
+    placement={select(
+      'Placement',
+      [
+        'topLeft',
+        'top',
+        'topRight',
+        'leftTop',
+        'left',
+        'leftBottom',
+        'rightTop',
+        'right',
+        'rightBottom',
+        'bottomLeft',
+        'bottom',
+        'bottomRight',
+      ],
+      'topLeft',
+    )}
+    arrowPointAtCenter={boolean('Arrow point at center', false)}
+    content={<div>CONTENT</div>}
+  >
+    <Button>TRIGGER</Button>
+  </AntdPopover>
 );

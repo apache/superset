@@ -508,7 +508,7 @@ class Database(
                 utils.DatasourceName(table=table, schema=schema) for table in tables
             ]
         except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
+            logger.warning(ex)
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: f"db:{{}}:schema:{kwargs.get('schema')}:view_list",  # type: ignore
@@ -538,7 +538,7 @@ class Database(
             )
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
+            logger.warning(ex)
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: "db:{}:schema_list", attribute_in_key="id"
@@ -619,7 +619,8 @@ class Database(
     def get_indexes(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        return self.inspector.get_indexes(table_name, schema)
+        indexes = self.inspector.get_indexes(table_name, schema)
+        return self.db_engine_spec.normalize_indexes(indexes)
 
     def get_pk_constraint(
         self, table_name: str, schema: Optional[str] = None
