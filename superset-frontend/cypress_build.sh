@@ -22,7 +22,7 @@ cd "$(dirname "$0")"
 #run all the python steps in a background process
 time superset db upgrade
 time superset load_test_users
-time superset load_examples --load-test-data
+time superset load_examples
 time superset init
 echo "[completed python build steps]"
 PORT='8081'
