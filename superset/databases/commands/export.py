@@ -17,6 +17,7 @@
 # isort:skip_file
 
 import json
+import logging
 from typing import Iterator, List, Tuple
 
 import yaml
@@ -26,6 +27,8 @@ from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.dao import DatabaseDAO
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
 from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
 
 
 class ExportDatabasesCommand(BaseCommand):
@@ -52,7 +55,7 @@ class ExportDatabasesCommand(BaseCommand):
             try:
                 payload["extra"] = json.loads(payload["extra"])
             except json.decoder.JSONDecodeError:
-                pass
+                logger.info(f"Unable to decode `extra` field: {payload['extra']}")
 
         payload["version"] = IMPORT_EXPORT_VERSION
 

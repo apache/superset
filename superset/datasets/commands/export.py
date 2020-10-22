@@ -17,6 +17,7 @@
 # isort:skip_file
 
 import json
+import logging
 from typing import Iterator, List, Tuple
 
 import yaml
@@ -26,6 +27,8 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
+
+logger = logging.getLogger(__name__)
 
 
 class ExportDatasetsCommand(BaseCommand):
@@ -69,7 +72,7 @@ class ExportDatasetsCommand(BaseCommand):
             try:
                 payload["extra"] = json.loads(payload["extra"])
             except json.decoder.JSONDecodeError:
-                pass
+                logger.info(f"Unable to decode `extra` field: {payload['extra']}")
 
         payload["version"] = IMPORT_EXPORT_VERSION
 
