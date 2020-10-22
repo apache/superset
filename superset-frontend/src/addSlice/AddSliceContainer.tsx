@@ -103,7 +103,7 @@ export default class AddSliceContainer extends React.PureComponent<
                   name="select-datasource"
                   onChange={this.changeDatasource}
                   options={this.props.datasources}
-                  placeholder={t('Choose a datasource')}
+                  placeholder={t('Choose a dataset')}
                   value={
                     this.state.datasourceValue
                       ? {
@@ -134,6 +134,7 @@ export default class AddSliceContainer extends React.PureComponent<
                 name="select-vis-type"
                 onChange={this.changeVisType}
                 value={this.state.visType}
+                labelBsStyle="primary"
               />
             </div>
             <br />
