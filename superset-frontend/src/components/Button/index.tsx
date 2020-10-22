@@ -221,7 +221,7 @@ const SupersetButton = styled(BootstrapButton)`
     &[disabled],
     &[disabled]:hover {
       background-color: ${({ theme }) => theme.colors.grayscale.light2};
-      color: ${({ theme }) => theme.colors.grayscale.light1};
+      color: ${({ theme }) => theme.colors.grayscale.base};
     }
   }
 
