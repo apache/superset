@@ -16,10 +16,13 @@
 # under the License.
 import json
 import logging
+from datetime import datetime
+from io import BytesIO
 from typing import Any, Dict
+from zipfile import ZipFile
 
 import simplejson
-from flask import g, make_response, redirect, request, Response, url_for
+from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
@@ -40,6 +43,7 @@ from superset.charts.commands.exceptions import (
     ChartNotFoundError,
     ChartUpdateFailedError,
 )
+from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
 from superset.charts.schemas import (
@@ -48,6 +52,7 @@ from superset.charts.schemas import (
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
+    get_export_ids_schema,
     openapi_spec_methods_override,
     screenshot_query_schema,
     thumbnail_query_schema,
@@ -708,4 +713,63 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
+        )
+
+    @expose("/export/", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @rison(get_export_ids_schema)
+    def export(self, **kwargs: Any) -> Response:
+        """Export charts
+        ---
+        get:
+          description: >-
+            Exports multiple charts and downloads them as YAML files
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: integer
+          responses:
+            200:
+              description: A zip file with chart(s), dataset(s) and database(s) as YAML
+              content:
+                application/zip:
+                  schema:
+                    type: string
+                    format: binary
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        requested_ids = kwargs["rison"]
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"chart_export_{timestamp}"
+        filename = f"{root}.zip"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            try:
+                for file_name, file_content in ExportChartsCommand(requested_ids).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+            except ChartNotFoundError:
+                return self.response_404()
+        buf.seek(0)
+
+        return send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            attachment_filename=filename,
         )

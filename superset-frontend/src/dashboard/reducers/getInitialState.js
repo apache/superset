@@ -276,6 +276,7 @@ export default function getInitialState(bootstrapData) {
         flash_messages: common.flash_messages,
         conf: common.conf,
       },
+      lastModifiedTime: dashboard.last_modified_time,
     },
     dashboardFilters,
     dashboardState: {
