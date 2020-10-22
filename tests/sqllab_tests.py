@@ -87,19 +87,19 @@ class TestSqlLab(SupersetTestCase):
 
         with freeze_time("2020-01-01T00:00:00Z"):
             self.run_sql(sql_statement, "1")
-            saved_query = (
+            saved_query_ = (
                 db.session.query(SavedQuery)
                 .filter(
                     SavedQuery.db_id == examples_db_id, SavedQuery.sql == sql_statement
                 )
                 .one_or_none()
             )
-            assert saved_query.rows is not None
-            assert saved_query.last_run == datetime.now()
+            assert saved_query_.rows is not None
+            assert saved_query_.last_run == datetime.now()
 
-        # Rollback changes
-        db.session.delete(saved_query)
-        db.session.commit()
+            # Rollback changes
+            db.session.delete(saved_query_)
+            db.session.commit()
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     def test_sql_json_cta_dynamic_db(self, ctas_method):
