@@ -17,6 +17,7 @@
 # isort:skip_file
 
 import json
+import logging
 from typing import Iterator, List, Tuple
 
 import yaml
@@ -27,6 +28,8 @@ from superset.charts.dao import ChartDAO
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
 from superset.models.slice import Slice
+
+logger = logging.getLogger(__name__)
 
 
 # keys present in the standard export that are not needed
@@ -59,7 +62,7 @@ class ExportChartsCommand(BaseCommand):
             try:
                 payload["params"] = json.loads(payload["params"])
             except json.decoder.JSONDecodeError:
-                pass
+                logger.info("Unable to decode `params` field: %s", payload["params"])
 
         payload["version"] = IMPORT_EXPORT_VERSION
         if chart.table:

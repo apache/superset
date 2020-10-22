@@ -17,6 +17,7 @@
 # isort:skip_file
 
 import json
+import logging
 from typing import Iterator, List, Tuple
 
 import yaml
@@ -27,6 +28,8 @@ from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.dao import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
+
+logger = logging.getLogger(__name__)
 
 
 # keys stored as JSON are loaded and the prefix/suffix removed
@@ -55,10 +58,11 @@ class ExportDashboardsCommand(BaseCommand):
         # becomes the default export endpoint
         for key, new_name in JSON_KEYS.items():
             if payload.get(key):
+                value = payload.pop(key)
                 try:
-                    payload[new_name] = json.loads(payload.pop(key))
+                    payload[new_name] = json.loads(value)
                 except json.decoder.JSONDecodeError:
-                    pass
+                    logger.info("Unable to decode `%s` field: %s", key, value)
 
         payload["version"] = IMPORT_EXPORT_VERSION
 
