@@ -75,7 +75,7 @@ class UpdateAnnotationCommand(BaseCommand):
 
         # Validate short descr uniqueness on this layer
         if not AnnotationDAO.validate_update_uniqueness(
-            self._model_id, layer_id, short_descr
+            layer_id, short_descr, annotation_id=self._model_id,
         ):
             exceptions.append(AnnotationUniquenessValidationError())
 

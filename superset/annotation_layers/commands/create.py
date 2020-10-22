@@ -52,7 +52,7 @@ class CreateAnnotationLayerCommand(BaseCommand):
 
         name = self._properties.get("name", "")
 
-        if not AnnotationLayerDAO.validate_name_uniqueness(name):
+        if not AnnotationLayerDAO.validate_update_uniqueness(name):
             exceptions.append(AnnotationLayerNameUniquenessValidationError())
 
         if exceptions:

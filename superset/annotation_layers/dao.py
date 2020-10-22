@@ -73,3 +73,18 @@ class AnnotationLayerDAO(BaseDAO):
             AnnotationLayer.name == name, AnnotationLayer.id != layer_id
         )
         return not db.session.query(query.exists()).scalar()
+
+    @staticmethod
+    def validate_update_uniqueness(name: str, layer_id: int = None) -> bool:
+        """
+        Validate if this layer name is unique. `layer_id` is optional
+        and serves for validating on updates
+
+        :param name: The annotation layer name
+        :param layer_id: The annotation layer current id (only for validating on updates)
+        :return: bool
+        """
+        query = db.session.query(AnnotationLayer).filter(AnnotationLayer.name == name)
+        if layer_id:
+            query = query.filter(AnnotationLayer.id != layer_id)
+        return not db.session.query(query.exists()).scalar()

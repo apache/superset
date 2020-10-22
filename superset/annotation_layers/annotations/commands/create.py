@@ -67,7 +67,7 @@ class CreateAnnotationCommand(BaseCommand):
         self._properties["layer"] = annotation_layer
 
         # Validate short descr uniqueness on this layer
-        if not AnnotationDAO.validate_uniqueness(layer_id, short_descr):
+        if not AnnotationDAO.validate_update_uniqueness(layer_id, short_descr):
             exceptions.append(AnnotationUniquenessValidationError())
 
         # validate date time sanity

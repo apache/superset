@@ -59,7 +59,9 @@ class UpdateAnnotationLayerCommand(BaseCommand):
         if not self._model:
             raise AnnotationLayerNotFoundError()
 
-        if not AnnotationLayerDAO.validate_update_name_uniqueness(self._model_id, name):
+        if not AnnotationLayerDAO.validate_update_uniqueness(
+            name, layer_id=self._model_id
+        ):
             exceptions.append(AnnotationLayerNameUniquenessValidationError())
 
         if exceptions:
