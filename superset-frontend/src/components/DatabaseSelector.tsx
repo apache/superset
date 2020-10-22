@@ -228,7 +228,7 @@ export default function DatabaseSelector({
         value={currentDbId}
         valueKey="id"
         valueRenderer={(db: any) => (
-          <div>
+          <div data-test="database-selector-input">
             <span className="text-muted m-r-5">{t('Database:')}</span>
             {renderDatabaseOption(db)}
           </div>

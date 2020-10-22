@@ -477,10 +477,14 @@ class SqlEditor extends React.PureComponent {
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
     return (
-      <div className="sql-toolbar" id="js-sql-toolbar">
+      <div
+        className="sql-toolbar"
+        id="js-sql-toolbar"
+        data-test="sql-editor-actions-toolbar"
+      >
         <div className="leftItems">
           <Form inline>
-            <span>
+            <span data-test="sql-editor-run-query-action-button">
               <RunQueryActionButton
                 allowAsync={
                   this.props.database
@@ -526,7 +530,7 @@ class SqlEditor extends React.PureComponent {
                 />
               </span>
             )}
-            <span>
+            <span data-test="sql-editor-save-query-action-button">
               <SaveQuery
                 query={qe}
                 defaultLabel={qe.title || qe.description}
@@ -594,7 +598,10 @@ class SqlEditor extends React.PureComponent {
           in={!this.props.hideLeftBar}
           timeout={300}
         >
-          <div className="schemaPane">
+          <div
+            className="schemaPane"
+            data-test="sql-editor-left-schema-pane-bar"
+          >
             <SqlEditorLeftBar
               database={this.props.database}
               queryEditor={this.props.queryEditor}

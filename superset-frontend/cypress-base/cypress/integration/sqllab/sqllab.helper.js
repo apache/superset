@@ -17,7 +17,9 @@
  * under the License.
  */
 export const selectResultsTab = () =>
-  cy.get('.SouthPane .ReactVirtualized__Table', { timeout: 10000 });
+  cy
+    .get('[data-test="filterable-table-container"]', { timeout: 15000 })
+    .find('.ReactVirtualized__Table');
 
 // this function asserts that the result set for two SQL lab table results are equal
 export const assertSQLLabResultsAreEqual = (resultsA, resultsB) => {

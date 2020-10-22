@@ -554,6 +554,7 @@ export default class FilterableTable extends PureComponent<
       <div
         style={{ height }}
         className="filterable-table-container"
+        data-test="filterable-table-container"
         ref={this.container}
       >
         {this.state.fitted && (
