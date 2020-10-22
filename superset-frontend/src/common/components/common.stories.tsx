@@ -19,13 +19,13 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select } from '@storybook/addon-knobs';
+import Button from 'src/components/Button';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import AntdPopover from './Popover';
 import AntdTooltip from './Tooltip';
 import { Menu } from '.';
 import { Dropdown } from './Dropdown';
-import Button from 'src/components/Button';
 
 export default {
   title: 'Common Components',

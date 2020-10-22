@@ -85,8 +85,6 @@ describe('DatasourceControl', () => {
     menuWrapper = shallow(
       <div>{wrapper.find('#datasource_menu').prop('overlay')}</div>,
     );
-    expect(menuWrapper.find(Menu.Item)).toHaveLength(
-      2,
-    );
+    expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
   });
 });
