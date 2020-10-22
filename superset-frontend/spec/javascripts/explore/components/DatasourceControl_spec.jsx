@@ -20,7 +20,7 @@ import React from 'react';
 import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
-import { MenuItem } from 'react-bootstrap';
+import { Menu } from 'src/common/components';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
@@ -73,15 +73,19 @@ describe('DatasourceControl', () => {
   it('show or hide Edit Datasource option', () => {
     let wrapper = setup();
     expect(wrapper.find('#datasource_menu')).toExist();
-    expect(wrapper.find('#datasource_menu').dive().find(MenuItem)).toHaveLength(
-      3,
+    let menuWrapper = shallow(
+      <div>{wrapper.find('#datasource_menu').prop('overlay')}</div>,
     );
+    expect(menuWrapper.find(Menu.Item)).toHaveLength(3);
 
     wrapper = setup({
       isEditable: false,
     });
     expect(wrapper.find('#datasource_menu')).toExist();
-    expect(wrapper.find('#datasource_menu').dive().find(MenuItem)).toHaveLength(
+    menuWrapper = shallow(
+      <div>{wrapper.find('#datasource_menu').prop('overlay')}</div>,
+    );
+    expect(menuWrapper.find(Menu.Item)).toHaveLength(
       2,
     );
   });

@@ -49,7 +49,7 @@ const defaultProps = {
 };
 
 const Styles = styled.div`
-  #datasource_menu {
+  .ant-dropdown-trigger {
     margin-left: ${({ theme }) => theme.gridUnit}px;
     box-shadow: none;
     &:active {
@@ -190,9 +190,11 @@ class DatasourceControl extends React.PureComponent {
             {t('Explore in SQL Lab')}
           </a>
         </Menu.Item>
-        <Menu.Item key="3" data-test="edit-dataset">
-          {t('Edit Dataset')}
-        </Menu.Item>
+        {this.props.isEditable && (
+          <Menu.Item key="3" data-test="edit-dataset">
+            {t('Edit Dataset')}
+          </Menu.Item>
+        )}
       </Menu>
     );
 
@@ -220,11 +222,7 @@ class DatasourceControl extends React.PureComponent {
             data-test="datasource-menu"
           >
             <Tooltip title={t('More dataset related options')}>
-              <Icon
-                id="datasource_menu"
-                data-test="datasource-menu"
-                name="more-horiz"
-              />
+              <Icon data-test="datasource-menu" name="more-horiz" />
             </Tooltip>
           </Dropdown>
         </div>
