@@ -23,7 +23,12 @@ import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  SupersetClient,
+  getCategoricalSchemeRegistry,
+} from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
@@ -42,7 +47,7 @@ const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   show: PropTypes.bool,
   onHide: PropTypes.func,
-  colorScheme: PropTypes.object,
+  colorScheme: PropTypes.string,
   setColorSchemeAndUnsavedChanges: PropTypes.func,
   onSubmit: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
@@ -88,7 +93,34 @@ class PropertiesModal extends React.PureComponent {
     JsonEditor.preload();
   }
 
-  onColorSchemeChange(value) {
+  onColorSchemeChange(value, { updateMetadata = true } = {}) {
+    // check that color_scheme is valid
+    const colorChoices = getCategoricalSchemeRegistry().keys();
+    const { json_metadata: jsonMetadata } = this.state.values;
+    const jsonMetadataObj = jsonMetadata?.length
+      ? JSON.parse(jsonMetadata)
+      : {};
+
+    if (!colorChoices.includes(value)) {
+      this.dialog.show({
+        title: 'Error',
+        bsSize: 'medium',
+        bsStyle: 'danger',
+        actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
+        body: t('A valid color scheme is required'),
+      });
+      throw new Error('A valid color scheme is required');
+    }
+
+    // update metadata to match selection
+    if (
+      updateMetadata &&
+      Object.keys(jsonMetadataObj).includes('color_scheme')
+    ) {
+      jsonMetadataObj.color_scheme = value;
+      this.onMetadataChange(JSON.stringify(jsonMetadataObj));
+    }
+
     this.updateFormState('colorScheme', value);
   }
 
@@ -114,6 +146,10 @@ class PropertiesModal extends React.PureComponent {
       endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
     }).then(response => {
       const dashboard = response.json.result;
+      const jsonMetadataObj = dashboard.json_metadata?.length
+        ? JSON.parse(dashboard.json_metadata)
+        : {};
+
       this.setState(state => ({
         isDashboardLoaded: true,
         values: {
@@ -121,6 +157,7 @@ class PropertiesModal extends React.PureComponent {
           dashboard_title: dashboard.dashboard_title || '',
           slug: dashboard.slug || '',
           json_metadata: dashboard.json_metadata || '',
+          colorScheme: jsonMetadataObj.color_scheme,
         },
       }));
       const initialSelectedOwners = dashboard.owners.map(owner => ({
@@ -178,17 +215,37 @@ class PropertiesModal extends React.PureComponent {
   submit(e) {
     e.preventDefault();
     e.stopPropagation();
-    const { values } = this.state;
+    const {
+      values: {
+        json_metadata: jsonMetadata,
+        slug,
+        dashboard_title: dashboardTitle,
+        colorScheme,
+        owners: ownersValue,
+      },
+    } = this.state;
     const { onlyApply } = this.props;
-    const owners = values.owners.map(o => o.value);
+    const owners = ownersValue.map(o => o.value);
+    let metadataColorScheme;
+
+    // update color scheme to match metadata
+    if (jsonMetadata?.length) {
+      const { color_scheme: metadataColorScheme } = JSON.parse(jsonMetadata);
+      if (metadataColorScheme) {
+        this.onColorSchemeChange(metadataColorScheme, {
+          updateMetadata: false,
+        });
+      }
+    }
+
     if (onlyApply) {
       this.props.onSubmit({
         id: this.props.dashboardId,
-        title: values.dashboard_title,
-        slug: values.slug,
-        jsonMetadata: values.json_metadata,
+        title: dashboardTitle,
+        slug,
+        jsonMetadata,
         ownerIds: owners,
-        colorScheme: values.colorScheme,
+        colorScheme: metadataColorScheme || colorScheme,
       });
       this.props.onHide();
     } else {
@@ -196,20 +253,20 @@ class PropertiesModal extends React.PureComponent {
         endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          dashboard_title: values.dashboard_title,
-          slug: values.slug || null,
-          json_metadata: values.json_metadata || null,
+          dashboard_title: dashboardTitle,
+          slug: slug || null,
+          json_metadata: jsonMetadata || null,
           owners,
         }),
-      }).then(({ json }) => {
+      }).then(({ json: { result } }) => {
         this.props.addSuccessToast(t('The dashboard has been saved'));
         this.props.onSubmit({
           id: this.props.dashboardId,
-          title: json.result.dashboard_title,
-          slug: json.result.slug,
-          jsonMetadata: json.result.json_metadata,
-          ownerIds: json.result.owners,
-          colorScheme: values.colorScheme,
+          title: result.dashboard_title,
+          slug: result.slug,
+          jsonMetadata: result.json_metadata,
+          ownerIds: result.owners,
+          colorScheme: metadataColorScheme || colorScheme,
         });
         this.props.onHide();
       }, this.handleErrorResponse);
@@ -221,6 +278,7 @@ class PropertiesModal extends React.PureComponent {
     const { onHide, onlyApply } = this.props;
 
     const saveLabel = onlyApply ? t('Apply') : t('Save');
+
     return (
       <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <form onSubmit={this.submit}>
@@ -321,6 +379,7 @@ class PropertiesModal extends React.PureComponent {
                       tabSize={2}
                       width="100%"
                       height="200px"
+                      wrapEnabled
                     />
                     <p className="help-block">
                       {t(
