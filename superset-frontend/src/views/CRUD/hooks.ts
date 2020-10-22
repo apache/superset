@@ -37,6 +37,7 @@ export function useListViewResource<D extends object = any>(
   resource: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
+  infoEnable = true,
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -56,8 +57,9 @@ export function useListViewResource<D extends object = any>(
   }
 
   useEffect(() => {
+    const infoParam = infoEnable ? '_info?q=(keys:!(permissions))' : '';
     SupersetClient.get({
-      endpoint: `/api/v1/${resource}/_info?q=(keys:!(permissions))`,
+      endpoint: `/api/v1/${resource}/${infoParam}`,
     }).then(
       ({ json: infoJson = {} }) => {
         updateState({
