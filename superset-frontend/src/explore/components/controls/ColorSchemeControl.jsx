@@ -76,7 +76,7 @@ export default class ColorSchemeControl extends React.PureComponent {
         label={`${currentScheme.id}-tooltip`}
         tooltip={currentScheme.label}
       >
-        <ul className="color-scheme-container">
+        <ul className="color-scheme-container" data-test={currentScheme.id}>
           {colors.map((color, i) => (
             <li
               key={`${currentScheme.id}-${i}`}

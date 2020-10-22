@@ -25,6 +25,7 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         ...action.newInfo,
+        lastModifiedTime: new Date().getTime() / 1000,
       };
     default:
       return state;
