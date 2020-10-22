@@ -45,7 +45,18 @@ class AnnotationDAO(BaseDAO):
             raise DAODeleteFailedError()
 
     @staticmethod
-    def validate_update_uniqueness(layer_id: int, short_descr: str, annotation_id=None):
+    def validate_update_uniqueness(
+        layer_id: int, short_descr: str, annotation_id: Optional[int] = None
+    ):
+        """
+        Validate if this annotation short description is unique. `id` is optional
+        and serves for validating on updates
+
+        :param short_descr: The annotation short description
+        :param layer_id: The annotation layer current id
+        :param annotation_id: This annotation is (only for validating on updates)
+        :return: bool
+        """
         query = db.session.query(Annotation).filter(
             Annotation.short_descr == short_descr, Annotation.layer_id == layer_id
         )
