@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from functools import partial
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
@@ -590,7 +591,12 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
+        prophet_logger = logging.getLogger("fbprophet.plot")
+
+        prophet_logger.setLevel(logging.CRITICAL)
         from fbprophet import Prophet  # pylint: disable=import-error
+
+        prophet_logger.setLevel(logging.NOTSET)
     except ModuleNotFoundError:
         raise QueryObjectValidationError(_("`fbprophet` package not installed"))
     model = Prophet(

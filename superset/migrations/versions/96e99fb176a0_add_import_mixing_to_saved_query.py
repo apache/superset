@@ -22,10 +22,8 @@ Create Date: 2020-10-21 21:09:55.945956
 
 """
 
-import json
 import os
 import time
-from json.decoder import JSONDecodeError
 from uuid import uuid4
 
 import sqlalchemy as sa
@@ -34,11 +32,9 @@ from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import load_only
 from sqlalchemy_utils import UUIDType
 
 from superset import db
-from superset.utils import core as utils
 
 # revision identifiers, used by Alembic.
 revision = "96e99fb176a0"
@@ -72,7 +68,7 @@ def add_uuids(session, batch_size=default_batch_size):
     objects_query = session.query(SavedQuery)
     count = objects_query.count()
 
-    # silently skip if the table is empty (suitable for db initialization)
+    # Silently skip if the table is empty (suitable for db initialization)
     if count == 0:
         return
 
@@ -86,7 +82,7 @@ def add_uuids(session, batch_size=default_batch_size):
             print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.")
             return
 
-    # Othwewise Use Python uuid function
+    # Otherwise use Python uuid function
     start = 0
     while start < count:
         end = min(start + batch_size, count)
@@ -105,7 +101,7 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    # add uuid column
+    # Add uuid column
     try:
         with op.batch_alter_table("saved_query") as batch_op:
             batch_op.add_column(
@@ -114,15 +110,15 @@ def upgrade():
                 ),
             )
     except OperationalError:
-        # ignore collumn update errors so that we can run upgrade multiple times
+        # Ignore column update errors so that we can run upgrade multiple times
         pass
 
     add_uuids(session)
 
     try:
-        # add uniqueness constraint
+        # Add uniqueness constraint
         with op.batch_alter_table("saved_query") as batch_op:
-            # batch mode is required for sqllite
+            # Batch mode is required for sqllite
             batch_op.create_unique_constraint("uq_saved_query_uuid", ["uuid"])
     except OperationalError:
         pass
@@ -132,7 +128,7 @@ def downgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    # remove uuid column
+    # Remove uuid column
     with op.batch_alter_table("saved_query") as batch_op:
         batch_op.drop_constraint("uq_saved_query_uuid", type_="unique")
         batch_op.drop_column("uuid")
