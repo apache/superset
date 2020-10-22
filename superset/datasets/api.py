@@ -347,7 +347,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
-        """Export dashboards
+        """Export datasets
         ---
         get:
           description: >-
