@@ -53,7 +53,7 @@ class AnnotationDAO(BaseDAO):
 
     @staticmethod
     def validate_update_uniqueness(
-        annotation_id, layer_id: int, short_descr: str
+        annotation_id: int, layer_id: int, short_descr: str
     ) -> bool:
         query = db.session.query(Annotation).filter(
             Annotation.short_descr == short_descr,
