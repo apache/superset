@@ -84,6 +84,7 @@ export default class Field extends React.PureComponent {
             </OverlayTrigger>
           )}
         </FormLabel>
+        {' '}
         {hookedControl}
         <FormControl.Feedback />
         {!compact && description && <HelpBlock>{description}</HelpBlock>}
