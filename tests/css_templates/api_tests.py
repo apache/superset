@@ -196,7 +196,7 @@ class TestCssTemplateApi(SupersetTestCase):
         max_id = db.session.query(func.max(CssTemplate.id)).scalar()
         self.login(username="admin")
         uri = f"api/v1/css_template/{max_id + 1}"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 404
 
     def test_create_css_template(self):
@@ -210,7 +210,7 @@ class TestCssTemplateApi(SupersetTestCase):
 
         self.login(username="admin")
         uri = f"api/v1/css_template/"
-        rv = self.client.post(uri, json=post_data)
+        rv = self.post_assert_metric(uri, post_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
 
@@ -241,7 +241,7 @@ class TestCssTemplateApi(SupersetTestCase):
 
         self.login(username="admin")
         uri = f"api/v1/css_template/{css_template.id}"
-        rv = self.client.put(uri, json=put_data)
+        rv = self.put_assert_metric(uri, put_data, "put")
         assert rv.status_code == 200
 
         model = db.session.query(CssTemplate).get(css_template.id)
@@ -262,7 +262,7 @@ class TestCssTemplateApi(SupersetTestCase):
         }
 
         uri = f"api/v1/css_template/{max_id + 1}"
-        rv = self.client.put(uri, json=put_data)
+        rv = self.put_assert_metric(uri, put_data, "put")
         assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_css_templates")
@@ -278,7 +278,7 @@ class TestCssTemplateApi(SupersetTestCase):
 
         self.login(username="admin")
         uri = f"api/v1/css_template/{css_template.id}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "delete")
         assert rv.status_code == 200
 
         model = db.session.query(CssTemplate).get(css_template.id)
@@ -292,7 +292,7 @@ class TestCssTemplateApi(SupersetTestCase):
         max_id = db.session.query(func.max(CssTemplate.id)).scalar()
         self.login(username="admin")
         uri = f"api/v1/css_template/{max_id + 1}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "delete")
         assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_css_templates")
