@@ -203,7 +203,7 @@ class TestCore(SupersetTestCase):
             f"/superset/annotation_json/{layer.id}?form_data="
             + quote(json.dumps({"time_range": "100 years ago : now"}))
         )
-        self.assertIn("my_annotation", response)
+        assert "my_annotation" in response
 
         # Rollback changes
         db.session.delete(annotation)
