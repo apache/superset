@@ -25,6 +25,11 @@ import { SortColumns } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
 
+export enum EmptyWrapperType {
+  Default,
+  Small,
+}
+
 export interface TableViewProps {
   columns: any[];
   data: any[];
@@ -33,6 +38,8 @@ export interface TableViewProps {
   initialSortBy?: SortColumns;
   loading?: boolean;
   withPagination?: boolean;
+  emptyWrapperType?: EmptyWrapperType;
+  noDataText?: string;
   className?: string;
 }
 
@@ -65,6 +72,8 @@ const TableView = ({
   initialSortBy = [],
   loading = false,
   withPagination = true,
+  emptyWrapperType = EmptyWrapperType.Default,
+  noDataText,
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -95,6 +104,21 @@ const TableView = ({
   );
 
   const content = withPagination ? page : rows;
+
+  let EmptyWrapperComponent;
+  switch (emptyWrapperType) {
+    case EmptyWrapperType.Small:
+      EmptyWrapperComponent = ({ children }: any) => <>{children}</>;
+      break;
+    case EmptyWrapperType.Default:
+    default:
+      EmptyWrapperComponent = ({ children }: any) => (
+        <EmptyWrapper>{children}</EmptyWrapper>
+      );
+  }
+
+  const isEmpty = !loading && content.length === 0;
+
   return (
     <TableViewStyles {...props}>
       <TableCollection
@@ -106,10 +130,17 @@ const TableView = ({
         columns={columns}
         loading={loading}
       />
-      {!loading && content.length === 0 && (
-        <EmptyWrapper>
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        </EmptyWrapper>
+      {isEmpty && (
+        <EmptyWrapperComponent>
+          {noDataText ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={noDataText}
+            />
+          ) : (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          )}
+        </EmptyWrapperComponent>
       )}
       {pageCount > 1 && withPagination && (
         <div className="pagination-container">

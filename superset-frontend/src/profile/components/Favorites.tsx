@@ -40,7 +40,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
     return (
       <TableLoader
         dataEndpoint={`/superset/fave_slices/${this.props.user.userId}/`}
-        className="table table-condensed"
+        className="table-condensed"
         columns={['slice', 'creator', 'favorited']}
         mutator={mutator}
         noDataText={t('No favorite charts yet, go click on stars!')}
@@ -58,7 +58,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       }));
     return (
       <TableLoader
-        className="table table-condensed"
+        className="table-condensed"
         mutator={mutator}
         dataEndpoint={`/superset/fave_dashboards/${this.props.user.userId}/`}
         noDataText={t('No favorite dashboards yet, go click on stars!')}
