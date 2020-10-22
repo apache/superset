@@ -114,6 +114,15 @@ const selectIndicatorsForChartFromFilter = (
     }));
 };
 
+export type Indicator = {
+  id: string;
+  name: string;
+  nameLowercase: string;
+  value: string[];
+  status: IndicatorStatus;
+  path: string[];
+};
+
 export const selectIndicatorsForChart = (
   chartId: number,
   filters: { [key: number]: Filter },
@@ -133,7 +142,7 @@ export const selectIndicatorsForChart = (
       (filter: any) => filter.column,
     ),
   );
-  return Object.values(filters)
+  const indicators = Object.values(filters)
     .filter(filter => filter.chartId !== chartId)
     .reduce(
       (acc, filter) =>
@@ -148,4 +157,6 @@ export const selectIndicatorsForChart = (
         ),
       [] as any[],
     );
+  indicators.sort((a, b) => a.name.localeCompare(b.name));
+  return indicators;
 };

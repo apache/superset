@@ -23,7 +23,7 @@ import { t } from '@superset-ui/core';
 import EditableTitle from '../../components/EditableTitle';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import SliceHeaderControls from './SliceHeaderControls';
-import FiltersBadge from './FiltersBadge';
+import FiltersBadge from '../containers/FiltersBadge';
 
 const propTypes = {
   innerRef: PropTypes.func,

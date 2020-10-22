@@ -18,63 +18,14 @@
  */
 import React from 'react';
 import cx from 'classnames';
-import { connect, Dispatch } from 'react-redux';
-import { bindActionCreators } from 'redux';
 import Icon from 'src/components/Icon';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import DetailsPanelPopover, { Indicator } from './DetailsPanel';
+import DetailsPanelPopover from './DetailsPanel';
 import { Pill } from './Styles';
-import { selectIndicatorsForChart, IndicatorStatus } from './selectors';
+import { Indicator } from './selectors';
 
-const mapDispatchToProps = (dispatch: Dispatch<any>) => {
-  return bindActionCreators(
-    {
-      onHighlightFilterSource: setDirectPathToChild,
-    },
-    dispatch,
-  );
-};
-
-interface FiltersBadgeProps {
+export interface FiltersBadgeProps {
   chartId: number;
 }
-
-const mapStateToProps = (
-  { datasources, dashboardFilters, charts }: any,
-  { chartId }: FiltersBadgeProps,
-) => {
-  const indicators = selectIndicatorsForChart(
-    chartId,
-    dashboardFilters,
-    datasources,
-    charts,
-  );
-
-  const alphabetically = (a: Indicator, b: Indicator) => {
-    if (a.name < b.name) return -1;
-    if (a.name > b.name) return 1;
-    return 0;
-  };
-
-  indicators.sort(alphabetically);
-
-  const appliedIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Applied,
-  );
-  const unsetIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Unset,
-  );
-  const incompatibleIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Incompatible,
-  );
-
-  return {
-    chartId,
-    appliedIndicators,
-    unsetIndicators,
-    incompatibleIndicators,
-  };
-};
 
 const FiltersBadge = ({
   appliedIndicators,
@@ -132,4 +83,4 @@ const FiltersBadge = ({
   );
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(FiltersBadge);
+export default FiltersBadge;

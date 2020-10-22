@@ -22,7 +22,7 @@ import { supersetTheme } from '@superset-ui/core';
 import * as SupersetUI from '@superset-ui/core';
 import { CHART_UPDATE_SUCCEEDED } from 'src/chart/chartAction';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import FiltersBadge from 'src/dashboard/components/FiltersBadge';
+import FiltersBadge from 'src/dashboard/containers/FiltersBadge';
 import { getMockStoreWithFilters } from '../fixtures/mockStore';
 import { sliceId } from '../fixtures/mockChartQueries';
 import { dashboardFilters } from '../fixtures/mockDashboardFilters';

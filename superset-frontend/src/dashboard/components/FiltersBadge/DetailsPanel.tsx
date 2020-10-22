@@ -26,15 +26,7 @@ import {
 } from '@ant-design/icons';
 import { Collapse, Popover } from 'src/common/components/index';
 import { Indent, Item, ItemIcon, Panel, Reset, Title, Summary } from './Styles';
-import { IndicatorStatus } from './selectors';
-
-export type Indicator = {
-  id: string;
-  name: string;
-  value: string[];
-  status: IndicatorStatus;
-  path: string[];
-};
+import { Indicator } from './selectors';
 
 export interface IndicatorProps {
   indicator: Indicator;
