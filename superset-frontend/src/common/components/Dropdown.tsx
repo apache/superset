@@ -18,18 +18,14 @@
  */
 import React from 'react';
 import { Dropdown as AntdDropdown } from 'src/common/components';
-import { css } from '@emotion/core';
 import { styled } from '@superset-ui/core';
 
-const dotStyle = css`
-  width: 3px;
-  height: 3px;
-  border-radius: 1.5px;
-  background-color: #bababa;
-`;
-
 const MenuDots = styled.div`
-  ${dotStyle};
+  width: ${({ theme }) => theme.gridUnit * 0.75}px;
+  height: ${({ theme }) => theme.gridUnit * 0.75}px;
+  border-radius: 50%;
+  background-color: ${({ theme }) => theme.colors.grayscale.light1};
+
   font-weight: ${({ theme }) => theme.typography.weights.normal};
   display: inline-flex;
   position: relative;
@@ -47,7 +43,10 @@ const MenuDots = styled.div`
   &::after {
     position: absolute;
     content: ' ';
-    ${dotStyle};
+    width: ${({ theme }) => theme.gridUnit * 0.75}px;
+    height: ${({ theme }) => theme.gridUnit * 0.75}px;
+    border-radius: 50%;
+    background-color: ${({ theme }) => theme.colors.grayscale.light1};
   }
 
   &::before {

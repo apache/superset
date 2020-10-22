@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
+import { css ,styled } from '@superset-ui/core';
 import { Tabs as AntdTabs } from 'src/common/components';
-import { css } from '@emotion/core';
-import Icon from '../../components/Icon';
+import Icon from 'src/components/Icon';
 
 interface TabsProps {
   fullWidth?: boolean;
