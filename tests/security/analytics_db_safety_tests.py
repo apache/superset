@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from tests.base_tests import SupersetTestCase
+
 from superset.security.analytics_db_safety import (
     check_sqlalchemy_uri,
     DBSecurityException,
 )
-from tests.base_tests import SupersetTestCase
 
 
 class TestDBConnections(SupersetTestCase):

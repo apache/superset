@@ -19,11 +19,12 @@ from tests.test_app import app  # isort:skip
 import datetime
 from unittest import mock
 
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
+
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.base import BaseEngineSpec, builtin_time_grains
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.utils.core import get_example_database
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 from ..fixtures.pyodbcRow import Row
 

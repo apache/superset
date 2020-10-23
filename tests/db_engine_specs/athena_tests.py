@@ -16,8 +16,9 @@
 # under the License.
 from tests.test_app import app  # isort:skip
 
-from superset.db_engine_specs.athena import AthenaEngineSpec
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
+
+from superset.db_engine_specs.athena import AthenaEngineSpec
 
 
 class TestAthenaDbEngineSpec(TestDbEngineSpec):

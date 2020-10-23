@@ -17,8 +17,9 @@
 
 from unittest import skipUnless
 
-from superset import is_feature_enabled
 from tests.base_tests import SupersetTestCase
+
+from superset import is_feature_enabled
 
 
 class TestTagging(SupersetTestCase):

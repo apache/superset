@@ -19,13 +19,13 @@ from operator import itemgetter
 from unittest.mock import patch
 
 import yaml
+from tests.base_tests import SupersetTestCase
 
 from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.utils.core import backend, get_example_database
-from tests.base_tests import SupersetTestCase
 
 
 class TestExportDatasetsCommand(SupersetTestCase):

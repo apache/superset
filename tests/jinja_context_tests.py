@@ -17,9 +17,10 @@
 import json
 
 import tests.test_app
+from tests.base_tests import SupersetTestCase
+
 from superset import app
 from superset.jinja_context import ExtraCache, filter_values
-from tests.base_tests import SupersetTestCase
 
 
 class TestJinja2Context(SupersetTestCase):

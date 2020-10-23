@@ -16,8 +16,9 @@
 # under the License.
 from unittest.mock import call, Mock
 
-from superset.utils import decorators
 from tests.base_tests import SupersetTestCase
+
+from superset.utils import decorators
 
 
 class UtilsDecoratorsTests(SupersetTestCase):

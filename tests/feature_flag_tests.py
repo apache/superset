@@ -16,8 +16,9 @@
 # under the License.
 from unittest.mock import patch
 
-from superset import is_feature_enabled
 from tests.base_tests import SupersetTestCase
+
+from superset import is_feature_enabled
 
 
 class TestFeatureFlag(SupersetTestCase):

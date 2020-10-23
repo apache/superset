@@ -20,12 +20,13 @@ import unittest
 from datetime import datetime
 from unittest.mock import patch
 
+from tests.test_app import app
+
 from superset.utils.log import (
     AbstractEventLogger,
     DBEventLogger,
     get_event_logger_from_cfg_value,
 )
-from tests.test_app import app
 
 
 class TestEventLogger(unittest.TestCase):

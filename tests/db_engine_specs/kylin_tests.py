@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.db_engine_specs.kylin import KylinEngineSpec
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
+
+from superset.db_engine_specs.kylin import KylinEngineSpec
 
 
 class TestKylinDbEngineSpec(TestDbEngineSpec):

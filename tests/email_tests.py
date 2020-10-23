@@ -24,9 +24,10 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from unittest import mock
 
+from tests.base_tests import SupersetTestCase
+
 from superset import app
 from superset.utils import core as utils
-from tests.base_tests import SupersetTestCase
 
 from .utils import read_fixture
 

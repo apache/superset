@@ -20,9 +20,9 @@ import pandas as pd
 from sqlalchemy import types
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql import select
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestPrestoDbEngineSpec(TestDbEngineSpec):

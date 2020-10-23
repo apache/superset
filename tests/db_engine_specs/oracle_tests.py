@@ -17,9 +17,9 @@
 from sqlalchemy import column
 from sqlalchemy.dialects import oracle
 from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 from superset.db_engine_specs.oracle import OracleEngineSpec
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestOracleDbEngineSpec(TestDbEngineSpec):

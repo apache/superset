@@ -25,6 +25,8 @@ import prison
 import pytest
 import yaml
 from sqlalchemy.sql import func
+from tests.base_tests import SupersetTestCase
+from tests.conftest import CTAS_SCHEMA_NAME
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.exceptions import (
@@ -36,8 +38,6 @@ from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
-from tests.base_tests import SupersetTestCase
-from tests.conftest import CTAS_SCHEMA_NAME
 
 
 class TestDatasetApi(SupersetTestCase):

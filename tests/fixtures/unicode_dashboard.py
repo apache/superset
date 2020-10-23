@@ -18,18 +18,18 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 from sqlalchemy import String
-
-from superset import db
-from superset.connectors.sqla.models import SqlaTable
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
-from superset.utils.core import get_example_database
 from tests.dashboard_utils import (
     create_dashboard,
     create_slice,
     create_table_for_dashboard,
 )
 from tests.test_app import app
+
+from superset import db
+from superset.connectors.sqla.models import SqlaTable
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.utils.core import get_example_database
 
 
 @pytest.fixture()

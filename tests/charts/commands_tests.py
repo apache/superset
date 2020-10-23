@@ -18,12 +18,12 @@
 from unittest.mock import patch
 
 import yaml
+from tests.base_tests import SupersetTestCase
 
 from superset import db, security_manager
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.export import ExportChartsCommand
 from superset.models.slice import Slice
-from tests.base_tests import SupersetTestCase
 
 
 class TestExportChartsCommand(SupersetTestCase):

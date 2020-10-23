@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from tests.base_tests import SupersetTestCase
 from wtforms.form import Form
 
 from superset.forms import CommaSeparatedListField, filter_not_empty_values
-from tests.base_tests import SupersetTestCase
 
 
 class TestForm(SupersetTestCase):

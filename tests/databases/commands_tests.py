@@ -18,12 +18,12 @@
 from unittest.mock import patch
 
 import yaml
+from tests.base_tests import SupersetTestCase
 
 from superset import security_manager
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.utils.core import backend, get_example_database
-from tests.base_tests import SupersetTestCase
 
 
 class TestExportDatabasesCommand(SupersetTestCase):

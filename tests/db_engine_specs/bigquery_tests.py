@@ -19,10 +19,10 @@ import unittest.mock as mock
 
 from pandas import DataFrame
 from sqlalchemy import column
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestBigQueryDbEngineSpec(TestDbEngineSpec):

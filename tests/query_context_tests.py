@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import tests.test_app
+from tests.base_tests import SupersetTestCase
+from tests.fixtures.query_context import get_query_context
+
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -26,8 +29,6 @@ from superset.utils.core import (
     FilterOperator,
     TimeRangeEndpoint,
 )
-from tests.base_tests import SupersetTestCase
-from tests.fixtures.query_context import get_query_context
 
 
 class TestQueryContext(SupersetTestCase):

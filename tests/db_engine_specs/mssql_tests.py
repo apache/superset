@@ -21,10 +21,10 @@ from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
 from sqlalchemy.sql import select
 from sqlalchemy.types import String, UnicodeText
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestMssqlEngineSpec(TestDbEngineSpec):

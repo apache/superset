@@ -18,10 +18,10 @@ from unittest import mock
 
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.postgres import PostgresEngineSpec
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestPostgresDbEngineSpec(TestDbEngineSpec):

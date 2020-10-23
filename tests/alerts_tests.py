@@ -22,6 +22,8 @@ from unittest.mock import patch
 
 import pytest
 from sqlalchemy.orm import Session
+from tests.test_app import app
+from tests.utils import read_fixture
 
 from superset import db
 from superset.exceptions import SupersetException
@@ -41,8 +43,6 @@ from superset.tasks.schedules import (
     validate_observations,
 )
 from superset.utils import core as utils
-from tests.test_app import app
-from tests.utils import read_fixture
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

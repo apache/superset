@@ -15,9 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 from sqlalchemy import column
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 from superset.db_engine_specs.pinot import PinotEngineSpec
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestPinotDbEngineSpec(TestDbEngineSpec):

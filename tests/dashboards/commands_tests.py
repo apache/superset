@@ -18,12 +18,12 @@
 from unittest.mock import patch
 
 import yaml
+from tests.base_tests import SupersetTestCase
 
 from superset import db, security_manager
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.commands.export import ExportDashboardsCommand
 from superset.models.dashboard import Dashboard
-from tests.base_tests import SupersetTestCase
 
 
 class TestExportDashboardsCommand(SupersetTestCase):

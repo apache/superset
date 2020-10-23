@@ -16,9 +16,10 @@
 # under the License.
 import json
 
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
+
 from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.models.core import Database
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestSnowflakeDbEngineSpec(TestDbEngineSpec):

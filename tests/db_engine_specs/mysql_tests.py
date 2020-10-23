@@ -18,10 +18,10 @@ import unittest
 
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.mysql import DATE, NVARCHAR, TEXT, VARCHAR
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.utils.core import DbColumnType
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
