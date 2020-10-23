@@ -39,7 +39,8 @@ def load_energy_table_with_slice():
     table_name = "energy_usage"
     df = _get_dataframe()
     with app.app_context():
-        yield _create_energy_table(df, table_name)
+        _create_energy_table(df, table_name)
+        yield
         _cleanup()
 
 

@@ -39,7 +39,7 @@ import sqlalchemy as sqla
 from superset.models.cache import CacheKey
 from superset.utils.core import get_example_database
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
-from tests.test_app import app  # isort:skip
+from tests.test_app import app
 import superset.views.utils
 from superset import (
     dataframe,
@@ -62,7 +62,6 @@ from superset.result_set import SupersetResultSet
 from superset.utils import core as utils
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
-from tests.utils import read_fixture
 
 from .base_tests import SupersetTestCase
 

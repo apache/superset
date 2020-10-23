@@ -25,11 +25,10 @@ from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.test_app import app
 
 from ..fixtures.energy_dashboard import load_energy_table_with_slice
 from ..fixtures.pyodbcRow import Row
-
-from tests.test_app import app  # isort:skip
 
 
 class TestDbEngineSpecs(TestDbEngineSpec):
