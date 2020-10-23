@@ -30,7 +30,6 @@ import DatasourceModal from 'src/datasource/DatasourceModal';
 import Label from 'src/components/Label';
 
 import ControlHeader from '../ControlHeader';
-import './DatasourceControl.less';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -56,11 +55,22 @@ const Styles = styled.div`
       box-shadow: none;
     }
   }
+
   .btn-group .open .dropdown-toggle {
     box-shadow: none;
     &.button-default {
       background: none;
     }
+  }
+
+  i.angle {
+    color: ${({ theme }) => theme.colors.primary.base};
+  }
+
+  svg.datasource-modal-trigger {
+    color: ${({ theme }) => theme.colors.primary.base};
+    vertical-align: middle;
+    cursor: pointer;
   }
 `;
 
@@ -222,11 +232,14 @@ class DatasourceControl extends React.PureComponent {
           <Dropdown
             overlay={datasourceMenu}
             trigger={['click']}
-            id="datasource_menu"
             data-test="datasource-menu"
           >
             <Tooltip title={t('More dataset related options')}>
-              <Icon data-test="datasource-menu" name="more-horiz" />
+              <Icon
+                className="datasource-modal-trigger"
+                data-test="datasource-menu"
+                name="more-horiz"
+              />
             </Tooltip>
           </Dropdown>
         </div>
