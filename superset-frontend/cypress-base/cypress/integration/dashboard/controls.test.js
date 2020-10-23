@@ -84,7 +84,7 @@ describe('Dashboard top-level controls', () => {
       .should('have.class', 'disabled');
 
     cy.wait(`@postJson_${mapId}_force`);
-    cy.contains('[data-test="refresh-dashboard-menu-item"]')
+    cy.get('[data-test="refresh-dashboard-menu-item"]')
       .parent()
       .not('have.class', 'disabled');
   });
