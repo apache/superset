@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Tab, Tabs } from 'react-bootstrap';
 import Button from 'src/components/Button';
+import { t } from '@superset-ui/core';
 
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
@@ -178,6 +179,9 @@ export default class AdhocFilterEditPopover extends React.Component {
           </Tab>
         </Tabs>
         <div>
+          <Button buttonSize="small" onClick={this.props.onClose} cta>
+            {t('Close')}
+          </Button>
           <Button
             data-test="adhoc-filter-edit-popover-save-button"
             disabled={!stateIsValid}
@@ -185,14 +189,12 @@ export default class AdhocFilterEditPopover extends React.Component {
               hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
             }
             buttonSize="small"
+            buttonStyle="primary"
             className="m-r-5"
             onClick={this.onSave}
             cta
           >
-            Save
-          </Button>
-          <Button buttonSize="small" onClick={this.props.onClose} cta>
-            Close
+            {t('Save')}
           </Button>
           <i
             role="button"
