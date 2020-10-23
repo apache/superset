@@ -102,7 +102,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
     ]
 
-    search_columns = ["id", "label"]
+    search_columns = ["id", "database", "label", "schema"]
     search_filters = {
         "id": [SavedQueryFavoriteFilter],
         "label": [SavedQueryAllTextFilter],

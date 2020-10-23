@@ -319,6 +319,30 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self.send_stats_metrics(response, self.get_list.__name__, duration)
         return response
 
+    def post_headless(self) -> Response:
+        """
+        Add statsd metrics to builtin FAB POST endpoint
+        """
+        duration, response = time_function(super().post_headless)
+        self.send_stats_metrics(response, self.post.__name__, duration)
+        return response
+
+    def put_headless(self, pk: int) -> Response:
+        """
+        Add statsd metrics to builtin FAB PUT endpoint
+        """
+        duration, response = time_function(super().put_headless, pk)
+        self.send_stats_metrics(response, self.put.__name__, duration)
+        return response
+
+    def delete_headless(self, pk: int) -> Response:
+        """
+        Add statsd metrics to builtin FAB DELETE endpoint
+        """
+        duration, response = time_function(super().delete_headless, pk)
+        self.send_stats_metrics(response, self.delete.__name__, duration)
+        return response
+
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
     @safe

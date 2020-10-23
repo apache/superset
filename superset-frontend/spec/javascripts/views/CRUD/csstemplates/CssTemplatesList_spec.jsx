@@ -25,9 +25,12 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import CssTemplatesList from 'src/views/CRUD/csstemplates/CssTemplatesList';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
-// import Filters from 'src/components/ListView/Filters';
+import Filters from 'src/components/ListView/Filters';
+import DeleteModal from 'src/components/DeleteModal';
+import Button from 'src/components/Button';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-// import { act } from 'react-dom/test-utils';
+import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
@@ -35,6 +38,8 @@ const store = mockStore({});
 
 const templatesInfoEndpoint = 'glob:*/api/v1/css_template/_info*';
 const templatesEndpoint = 'glob:*/api/v1/css_template/?*';
+const templateEndpoint = 'glob:*/api/v1/css_template/*';
+const templatesRelatedEndpoint = 'glob:*/api/v1/css_template/related/*';
 
 const mocktemplates = [...new Array(3)].map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
@@ -56,6 +61,16 @@ fetchMock.get(templatesEndpoint, {
   templates_count: 3,
 });
 
+fetchMock.delete(templateEndpoint, {});
+fetchMock.delete(templatesEndpoint, {});
+
+fetchMock.get(templatesRelatedEndpoint, {
+  created_by: {
+    count: 0,
+    result: [],
+  },
+});
+
 describe('CssTemplatesList', () => {
   const wrapper = mount(<CssTemplatesList />, { context: { store } });
 
@@ -73,5 +88,77 @@ describe('CssTemplatesList', () => {
 
   it('renders a ListView', () => {
     expect(wrapper.find(ListView)).toExist();
+  });
+
+  it('fetches templates', () => {
+    const callsQ = fetchMock.calls(/css_template\/\?q/);
+    expect(callsQ).toHaveLength(1);
+    expect(callsQ[0][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/css_template/?q=(order_column:template_name,order_direction:desc,page:0,page_size:25)"`,
+    );
+  });
+
+  it('renders Filters', () => {
+    expect(wrapper.find(Filters)).toExist();
+  });
+
+  it('searches', async () => {
+    const filtersWrapper = wrapper.find(Filters);
+    act(() => {
+      filtersWrapper
+        .find('[name="template_name"]')
+        .first()
+        .props()
+        .onSubmit('fooo');
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/css_template/?q=(filters:!((col:template_name,opr:ct,value:fooo)),order_column:template_name,order_direction:desc,page:0,page_size:25)"`,
+    );
+  });
+
+  it('renders a DeleteModal', () => {
+    expect(wrapper.find(DeleteModal)).toExist();
+  });
+
+  it('deletes', async () => {
+    act(() => {
+      wrapper.find('[data-test="delete-action"]').first().props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(
+      wrapper.find(DeleteModal).first().props().description,
+    ).toMatchInlineSnapshot(
+      `"This action will permanently delete the template."`,
+    );
+
+    act(() => {
+      wrapper
+        .find('#delete')
+        .first()
+        .props()
+        .onChange({ target: { value: 'DELETE' } });
+    });
+    await waitForComponentToPaint(wrapper);
+    act(() => {
+      wrapper.find('button').last().props().onClick();
+    });
+
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.calls(/css_template\/0/, 'DELETE')).toHaveLength(1);
+  });
+
+  it('shows/hides bulk actions when bulk actions is clicked', async () => {
+    const button = wrapper.find(Button).at(0);
+    act(() => {
+      button.props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+      mocktemplates.length + 1, // 1 for each row and 1 for select all
+    );
   });
 });

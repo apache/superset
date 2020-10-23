@@ -335,7 +335,7 @@ function SavedQueryList({
           const handleCopy = () => {
             copyQueryLink(original.id);
           };
-          const handleDelete = () => setQueryCurrentlyDeleting(original); // openQueryDeleteModal(original);
+          const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
             {

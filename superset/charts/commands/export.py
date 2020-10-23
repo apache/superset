@@ -23,27 +23,32 @@ from typing import Iterator, List, Tuple
 import yaml
 
 from superset.commands.base import BaseCommand
-from superset.databases.commands.exceptions import DatabaseNotFoundError
-from superset.databases.dao import DatabaseDAO
+from superset.charts.commands.exceptions import ChartNotFoundError
+from superset.charts.dao import ChartDAO
+from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
-from superset.models.core import Database
+from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
 
-class ExportDatabasesCommand(BaseCommand):
-    def __init__(self, database_ids: List[int]):
-        self.database_ids = database_ids
+# keys present in the standard export that are not needed
+REMOVE_KEYS = ["datasource_type", "datasource_name"]
+
+
+class ExportChartsCommand(BaseCommand):
+    def __init__(self, chart_ids: List[int]):
+        self.chart_ids = chart_ids
 
         # this will be set when calling validate()
-        self._models: List[Database] = []
+        self._models: List[Slice] = []
 
     @staticmethod
-    def export_database(database: Database) -> Iterator[Tuple[str, str]]:
-        database_slug = sanitize(database.database_name)
-        file_name = f"databases/{database_slug}.yaml"
+    def export_chart(chart: Slice) -> Iterator[Tuple[str, str]]:
+        chart_slug = sanitize(chart.slice_name)
+        file_name = f"charts/{chart_slug}.yaml"
 
-        payload = database.export_to_dict(
+        payload = chart.export_to_dict(
             recursive=False,
             include_parent_ref=False,
             include_defaults=True,
@@ -51,40 +56,31 @@ class ExportDatabasesCommand(BaseCommand):
         )
         # TODO (betodealmeida): move this logic to export_to_dict once this
         # becomes the default export endpoint
-        if "extra" in payload:
+        for key in REMOVE_KEYS:
+            del payload[key]
+        if "params" in payload:
             try:
-                payload["extra"] = json.loads(payload["extra"])
+                payload["params"] = json.loads(payload["params"])
             except json.decoder.JSONDecodeError:
-                logger.info("Unable to decode `extra` field: %s", payload["extra"])
+                logger.info("Unable to decode `params` field: %s", payload["params"])
 
         payload["version"] = IMPORT_EXPORT_VERSION
+        if chart.table:
+            payload["dataset_uuid"] = str(chart.table.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
 
-        for dataset in database.tables:
-            dataset_slug = sanitize(dataset.table_name)
-            file_name = f"datasets/{database_slug}/{dataset_slug}.yaml"
-
-            payload = dataset.export_to_dict(
-                recursive=True,
-                include_parent_ref=False,
-                include_defaults=True,
-                export_uuids=True,
-            )
-            payload["version"] = IMPORT_EXPORT_VERSION
-            payload["database_uuid"] = str(database.uuid)
-
-            file_content = yaml.safe_dump(payload, sort_keys=False)
-            yield file_name, file_content
+        if chart.table:
+            yield from ExportDatasetsCommand([chart.table.id]).run()
 
     def run(self) -> Iterator[Tuple[str, str]]:
         self.validate()
 
-        for database in self._models:
-            yield from self.export_database(database)
+        for chart in self._models:
+            yield from self.export_chart(chart)
 
     def validate(self) -> None:
-        self._models = DatabaseDAO.find_by_ids(self.database_ids)
-        if len(self._models) != len(self.database_ids):
-            raise DatabaseNotFoundError()
+        self._models = ChartDAO.find_by_ids(self.chart_ids)
+        if len(self._models) != len(self.chart_ids):
+            raise ChartNotFoundError()
