@@ -161,8 +161,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     });
   };
 
-  console.log("FeatureFlag", isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS))
-
   return (
     <StyledDatasourceModal show={show} onHide={onHide} bsSize="large">
       <Modal.Header closeButton>
