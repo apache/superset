@@ -34,13 +34,13 @@ describe('Datasource control', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('#datasource_menu').click();
+    cy.get('[data-test="datasource-menu-trigger"]').click();
 
     cy.get('script').then(nodes => {
       numScripts = nodes.length;
     });
 
-    cy.get('a').contains('Edit Dataset').click();
+    cy.get('[data-test="edit-dataset"]').click();
 
     // should load additional scripts for the modal
     cy.get('script').then(nodes => {
@@ -65,8 +65,8 @@ describe('Datasource control', () => {
       .focus()
       .type(newMetricName, { force: true });
     // delete metric
-    cy.get('#datasource_menu').click();
-    cy.get('a').contains('Edit Dataset').click();
+    cy.get('[data-test="datasource-menu-trigger"]').click();
+    cy.get('[data-test="edit-dataset"]').click();
     cy.get('.modal-content').within(() => {
       cy.get('a[role="tab"]').contains('Metrics').click();
     });
