@@ -41,6 +41,12 @@ from .helpers import (
 )
 
 admin = security_manager.find_user("admin")
+if admin is None:
+    raise Exception(
+        "Admin user does not exist. "
+        "Please, check if test users are properly loaded "
+        "(`superset load_test_users`)."
+    )
 
 
 def gen_filter(
