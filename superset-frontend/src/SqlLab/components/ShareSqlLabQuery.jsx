@@ -108,7 +108,7 @@ class ShareSqlLabQuery extends React.Component {
         onClick={this.getCopyUrl}
         content={this.renderPopover()}
       >
-        <Button buttonSize="small" className="toggleSave">
+        <Button buttonSize="small">
           <i className="fa fa-share" /> {t('Share')}
         </Button>
       </Popover>

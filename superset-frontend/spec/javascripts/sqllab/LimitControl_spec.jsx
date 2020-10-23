@@ -99,7 +99,10 @@ describe('LimitControl', () => {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },
     });
-    popoverContentWrapper.find('.ok').first().simulate('click');
+    popoverContentWrapper
+      .find('[data-test="limit-control-confirm"]')
+      .first()
+      .simulate('click');
     expect(wrapper.state().showOverlay).toBe(false);
   });
   it('resets and closes', () => {
@@ -114,7 +117,10 @@ describe('LimitControl', () => {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },
     });
-    popoverContentWrapper.find('.reset').first().simulate('click');
+    popoverContentWrapper
+      .find('[data-test="limit-control-cancel"]')
+      .first()
+      .simulate('click');
     expect(wrapper.state().textValue).toEqual(
       defaultProps.defaultQueryLimit.toString(),
     );

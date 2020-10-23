@@ -70,11 +70,6 @@ const StyledInputContainer = styled.div`
     i {
       margin: 0 ${({ theme }) => theme.gridUnit}px;
     }
-
-    .btn-primary {
-      height: 36px;
-      font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
-    }
   }
 
   input,
