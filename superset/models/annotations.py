@@ -63,3 +63,6 @@ class Annotation(Model, AuditMixinNullable):
             "long_descr": self.long_descr,
             "layer": self.layer.name if self.layer else None,
         }
+
+    def __repr__(self) -> str:
+        return str(self.short_descr)
