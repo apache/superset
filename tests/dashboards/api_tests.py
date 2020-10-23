@@ -17,7 +17,10 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+from io import BytesIO
 from typing import List, Optional
+from unittest.mock import patch
+from zipfile import is_zipfile
 
 import pytest
 import prison
@@ -987,5 +990,61 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"VERSIONED_EXPORT": True},
+        clear=True,
+    )
+    def test_export_bundle(self):
+        """
+        Dashboard API: Test dashboard export
+        """
+        argument = [1, 2]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+
+        self.login(username="admin")
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+
+        buf = BytesIO(rv.data)
+        assert is_zipfile(buf)
+
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"VERSIONED_EXPORT": True},
+        clear=True,
+    )
+    def test_export_bundle_not_found(self):
+        """
+        Dashboard API: Test dashboard export not found
+        """
+        self.login(username="admin")
+        argument = [1000]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"VERSIONED_EXPORT": True},
+        clear=True,
+    )
+    def test_export_bundle_not_allowed(self):
+        """
+        Dashboard API: Test dashboard export not allowed
+        """
+        admin_id = self.get_user("admin").id
+        dashboard = self.insert_dashboard("title", "slug1", [admin_id], published=False)
+
+        self.login(username="gamma")
+        argument = [dashboard.id]
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
         db.session.delete(dashboard)
         db.session.commit()
