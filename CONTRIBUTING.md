@@ -197,6 +197,23 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 #### Authoring
 
 - Fill in all sections of the PR template.
+- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html])):
+  - `feat` (new feature)
+  - `fix` (bug fix)
+  - `docs` (changes to the documentation)
+  - `style` (formatting, missing semi colons, etc; no application logic change)
+  - `refactor` (refactoring code)
+  - `test` (adding missing tests, refactoring tests; no application logic change)
+  - `chore` (updating tasks etc; no application logic change)
+  - `perf` (performance-related change)
+  - `build` (build tooling, Docker configuration change)
+  - `ci` (test runner, Github Actions workflow changes)
+  - `other` (changes that don't correspond to the above -- should be rare!)
+  - Examples:
+    - `feat: export charts as ZIP files`
+    - `perf(api): improve API info performance`
+    - `fix(chart-api): cached-indicator always shows value is cached`
+
 - Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress). We recommend creating a PR with `[WIP]` first and remove it once you have passed CI test and read through your code changes at least once.
 - **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
   - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
