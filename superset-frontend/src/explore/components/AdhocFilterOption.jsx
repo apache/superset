@@ -109,6 +109,7 @@ class AdhocFilterOption extends React.PureComponent {
           placement="right"
           trigger="click"
           disabled
+          title={t('Edit Filter')}
           content={content}
           visible={this.state.overlayShown}
           onVisibleChange={this.handleVisibleChange}
