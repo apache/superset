@@ -54,25 +54,9 @@ export const SIZES = {
   defaultValue: null,
 };
 
-// TODO remove the use of these in the codebase where they're not necessary
-// const classKnob = {
-//   label: 'Known Classes',
-//   options: {
-//     Refresh: 'refresh-btn',
-//     Primary: 'btn-primary',
-//     Reset: 'reset',
-//     Fetch: 'fetch',
-//     Query: 'query',
-//     MR3: 'm-r-3',
-//     cancelQuery: 'cancelQuery',
-//     toggleSave: 'toggleSave',
-//     toggleSchedule: 'toggleSchedule',
-//     autocomplete: 'autocomplete',
-//     OK: 'ok',
-//     None: null,
-//   },
-//   defaultValue: null,
-// };
+// TODO remove the use of these class names in the codebase where they're not necessary
+//   'fetch' // haven't yet seen this (in ResultSet.tsx) actually show up to verify the styles are needed
+//   'm-r-3' // open a PR with a prop of `pullRight` that adds an automatic right-margin for second and subseqent sibling buttons.
 
 const TYPES = {
   label: 'Type',
