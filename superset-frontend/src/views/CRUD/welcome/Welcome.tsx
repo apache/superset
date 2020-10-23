@@ -75,17 +75,17 @@ const WelcomeContainer = styled.div`
 export default function Welcome({ user }: WelcomeProps) {
   return (
     <WelcomeContainer>
-      <Collapse defaultActiveKey={['1']} ghost>
+      <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost>
         <Panel header={t('Recents')} key="1">
           <ActivityTable user={user} />
         </Panel>
-        <Panel header={t('Dashboards')} key="1">
+        <Panel header={t('Dashboards')} key="2">
           <DashboardTable user={user} />
         </Panel>
-        <Panel header={t('Saved Queries')} key="1">
+        <Panel header={t('Saved Queries')} key="3">
           <SavedQueries user={user} />
         </Panel>
-        <Panel header={t('Charts')} key="1">
+        <Panel header={t('Charts')} key="4">
           <ChartTable user={user} />
         </Panel>
       </Collapse>

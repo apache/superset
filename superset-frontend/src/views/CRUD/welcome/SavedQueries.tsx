@@ -123,7 +123,6 @@ const SavedQueries = ({
       {canEdit && (
         <Menu.Item
           onClick={() => {
-            // @ts-ignore
             window.location.href = `/superset/sqllab?savedQueryId=${query.id}`;
           }}
         >
@@ -201,7 +200,6 @@ const SavedQueries = ({
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              // @ts-ignore
               window.location.href = '/savedqueryview/list';
             },
           },

@@ -143,13 +143,13 @@ const QueryData = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .title {
     font-weight: 500;
     color: #b2b2b2;
   }
   .holder {
-    margin: 10px 10px 10px 10px;
+    margin: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
 

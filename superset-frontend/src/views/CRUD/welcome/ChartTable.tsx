@@ -125,7 +125,8 @@ function ChartTable({
           {
             name: (
               <IconContainer>
-                <Icon name="plus-small" /> Chart{' '}
+                <Icon name="plus-small" />
+                {t('Chart')}
               </IconContainer>
             ),
             buttonStyle: 'tertiary',

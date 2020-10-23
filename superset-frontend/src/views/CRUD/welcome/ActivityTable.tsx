@@ -56,8 +56,8 @@ interface ActivityData {
 }
 
 const ActivityContainer = styled.div`
-  margin-left: 10px;
-  margin-top: -15px;
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => theme.gridUnit * -4}px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
   ${[mq[3]]} {
@@ -74,8 +74,8 @@ const ActivityContainer = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
   .ant-card-meta-avatar {
-    margin-top: 10px;
-    margin-left: 5px;
+    margin-top: ${({ theme }) => theme.gridUnit * 3}px;
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
   .ant-card-meta-title {
     font-weight: ${({ theme }) => theme.typography.weights.bold};

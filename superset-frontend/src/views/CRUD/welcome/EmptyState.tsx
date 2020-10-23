@@ -60,7 +60,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
         : t(`${tableName.toLowerCase()}`)
     } yet`}</div>
   );
-  const span = (
+  const recent = (
     <div className="no-recents">
       {t(`Recently ${tab?.toLowerCase()} charts, dashboards, and saved queries will
       appear here`)}
@@ -71,7 +71,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     return (
       <Empty
         image={`/static/assets/images/${tableIcon[tableName]}`}
-        description={tableName === 'RECENTS' ? span : mine}
+        description={tableName === 'RECENTS' ? recent : mine}
       >
         {tableName !== 'RECENTS' && (
           <ButtonContainer>
