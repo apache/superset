@@ -24,7 +24,7 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
 
-  it('should allow edit dataset', () => {
+  it.only('should allow edit dataset', () => {
     let numScripts = 0;
 
     cy.login();
@@ -60,7 +60,7 @@ describe('Datasource control', () => {
       .clear()
       .type(`${newMetricName}{enter}`);
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.modal-footer button').contains('OK').click();
+    cy.get('.ant-modal-footer button').contains('OK').click();
     // select new metric
     cy.get('[data-test=metrics]')
       .find('.Select__control input')
@@ -69,7 +69,7 @@ describe('Datasource control', () => {
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
-    cy.get('.modal-content').within(() => {
+    cy.get('.ant-modal-content').within(() => {
       cy.get('a[role="tab"]').contains('Metrics').click();
     });
     cy.get(`input[value="${newMetricName}"]`)
@@ -77,7 +77,7 @@ describe('Datasource control', () => {
       .find('.fa-trash')
       .click();
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.modal-footer button').contains('OK').click();
+    cy.get('.ant-modal-footer button').contains('OK').click();
     cy.get('.Select__multi-value__label')
       .contains(newMetricName)
       .should('not.exist');
