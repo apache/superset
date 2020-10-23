@@ -31,3 +31,4 @@ openapi_spec_methods_override = {
 }
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}

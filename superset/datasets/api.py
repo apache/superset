@@ -164,6 +164,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
 
+    apispec_parameter_schemas = {
+        "get_export_ids_schema": get_export_ids_schema,
+    }
     openapi_spec_component_schemas = (DatasetRelatedObjectsResponse,)
 
     @expose("/", methods=["POST"])
@@ -358,9 +361,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: integer
+                  $ref: '#/components/schemas/get_export_ids_schema'
           responses:
             200:
               description: Dataset export
