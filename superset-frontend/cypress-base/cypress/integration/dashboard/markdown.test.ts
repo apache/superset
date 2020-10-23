@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TABBED_DASHBOARD, drag } from './dashboard.helper';
+import { TABBED_DASHBOARD, drag, resize } from './dashboard.helper';
 
 describe('Dashboard edit markdown', () => {
   beforeEach(() => {
@@ -56,9 +56,20 @@ describe('Dashboard edit markdown', () => {
         '✨Markdown✨Markdown✨MarkdownClick here to edit markdown',
       )
       .click();
+
     cy.get('[data-test="dashboard-component-chart-holder"]')
       .find('.ace_content')
       .contains('Click here to edit [markdown](https://bit.ly/1dQOfRK)');
+
+    cy.get('[data-test="dashboard-markdown-editor"]')
+      .click()
+      .type('Test resize');
+
+    resize(
+      '[data-test="dashboard-markdown-editor"] .resizable-container span div',
+    ).to(500, 600);
+
+    cy.get('[data-test="dashboard-markdown-editor"]').contains('Test resize');
 
     // entering edit mode does not add new scripts
     // (though scripts may still be removed by others)
