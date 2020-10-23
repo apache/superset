@@ -194,7 +194,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             data-test="datasource-modal-legacy-edit"
             className="m-r-5"
             onClick={() => {
-              console.log('goto legacy editor')
+              window.location.href = currentDatasource.edit_url || currentDatasource.url
             }}
           >
             {t('Use Legacy Datasource Editor')}
