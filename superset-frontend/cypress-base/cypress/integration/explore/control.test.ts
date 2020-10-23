@@ -65,7 +65,7 @@ describe('Datasource control', () => {
       .focus()
       .type(newMetricName, { force: true });
     // delete metric
-    cy.get('[data-test="datasource_menu"]').click();
+    cy.get('[data-test="datasource-menu"]').click();
     cy.get('[data-test="edit-dataset"]').click();
     cy.get('.modal-content').within(() => {
       cy.get('a[role="tab"]').contains('Metrics').click();
