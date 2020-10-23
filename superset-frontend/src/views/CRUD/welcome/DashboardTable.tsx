@@ -146,16 +146,14 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              // @ts-ignore
-              window.location = '/dashboard/new';
+              window.location.href = '/dashboard/new';
             },
           },
           {
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              // @ts-ignore
-              window.location = '/dashboard/list/';
+              window.location.href = '/dashboard/list/';
             },
           },
         ]}

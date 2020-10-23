@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import Button from 'src/components/Button';
-import { styled } from '@superset-ui/core';
+import { Empty } from 'src/common/components';
+import { t, styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import { IconContainer } from '../utils';
 
@@ -27,29 +28,10 @@ interface EmptyStateProps {
   tab?: string;
 }
 
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin-top: 20px;
-  img {
-    width: 114px;
-    display: block;
-    margin: 0 auto;
-    margin-bottom: 15px;
-  }
-  div:nth-child(2) {
-    text-align: center;
-    margin-top: 15px;
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
-    font-weight: 400;
-  }
-  button {
-    margin: 0 auto;
-    padding: 6px 27px;
-    margin-top: 10px;
+const ButtonContainer = styled.div`
+  Button {
     svg {
-      color: white;
+      color: ${({ theme }) => theme.colors.grayscale.light5};
     }
   }
 `;
@@ -72,64 +54,70 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     SAVED_QUERIES: 'empty-queries.png',
   };
   const mine = (
-    <div>
-      <div>{`No ${
-        tableName === 'SAVED_QUERIES'
-          ? 'saved queries'
-          : tableName.toLowerCase()
-      } yet`}</div>
-      <Button
-        buttonStyle="primary"
-        onClick={() => {
-          window.location = mineRedirects[tableName];
-        }}
-      >
-        <IconContainer>
-          <Icon name="plus-small" />{' '}
-          {tableName === 'SAVED_QUERIES'
-            ? 'SQL QUERY'
-            : tableName
-                .split('')
-                .slice(0, tableName.length - 1)
-                .join('')}{' '}
-        </IconContainer>
-      </Button>
-    </div>
+    <div>{`No ${
+      tableName === 'SAVED_QUERIES'
+        ? t('saved queries')
+        : t(`${tableName.toLowerCase()}`)
+    } yet`}</div>
   );
   const span = (
     <div className="no-recents">
-      Recently {tab?.toLowerCase()} charts, dashboards, and saved queries will
-      appear here
+      {t(`Recently ${tab?.toLowerCase()} charts, dashboards, and saved queries will
+      appear here`)}
     </div>
   );
   // Mine and Recent Activity(all tabs) tab empty state
   if (tab === 'Mine' || tableName === 'RECENTS') {
     return (
-      <Container>
-        <img
-          src={`/static/assets/images/${tableIcon[tableName]}`}
-          alt={`${tableName}`}
-        />
-        {tableName === 'RECENTS' ? span : mine}
-      </Container>
+      <Empty
+        image={`/static/assets/images/${tableIcon[tableName]}`}
+        description={tableName === 'RECENTS' ? span : mine}
+      >
+        {tableName !== 'RECENTS' && (
+          <ButtonContainer>
+            <Button
+              buttonStyle="primary"
+              onClick={() => {
+                window.location = mineRedirects[tableName];
+              }}
+            >
+              <IconContainer>
+                <Icon name="plus-small" />{' '}
+                {tableName === 'SAVED_QUERIES'
+                  ? t('SQL QUERY')
+                  : t(`${tableName
+                      .split('')
+                      .slice(0, tableName.length - 1)
+                      .join('')}
+                    `)}
+              </IconContainer>
+            </Button>
+          </ButtonContainer>
+        )}
+      </Empty>
     );
   }
   // Favorite tab empty state
   return (
-    <Container>
-      <img src="/static/assets/images/star-circle.png" alt="star.png" />
-      <div>
-        <div className="no-favorites">You don't have any favorites yet!</div>
-        <Button
-          buttonStyle="primary"
-          onClick={() => {
-            window.location = favRedirects[tableName];
-          }}
-        >
-          SEE ALL{' '}
-          {tableName === 'SAVED_QUERIES' ? 'SQL LAB QUERIES' : tableName}
-        </Button>
-      </div>
-    </Container>
+    <Empty
+      image="/static/assets/images/star-circle.png"
+      description={
+        <div className="no-favorites">
+          {t("You don't have any favorites yet!")}
+        </div>
+      }
+    >
+      <Button
+        buttonStyle="primary"
+        onClick={() => {
+          window.location = favRedirects[tableName];
+        }}
+      >
+        SEE ALL{' '}
+        {tableName === 'SAVED_QUERIES'
+          ? t('SQL LAB QUERIES')
+          : t(`${tableName}`)}
+      </Button>
+    </Empty>
   );
 }

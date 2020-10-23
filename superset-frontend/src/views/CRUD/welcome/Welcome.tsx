@@ -41,7 +41,7 @@ const WelcomeContainer = styled.div`
       content: '';
       display: block;
       border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-      margin: 0px 26px;
+      margin: 0px ${({ theme }) => theme.gridUnit * 6}px;
       position: relative;
       ${[mq[1]]} {
         margin-top: 5px;
@@ -52,7 +52,7 @@ const WelcomeContainer = styled.div`
       & > li:nth-child(1),
       & > li:nth-child(2),
       & > li:nth-child(3) {
-        margin-top: 8px;
+        margin-top: ${({ theme }) => theme.gridUnit * 2}px;
       }
     }
     button {
@@ -67,8 +67,8 @@ const WelcomeContainer = styled.div`
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .ant-collapse-header {
-    font-weight: 500;
-    font-size: 16px;
+    font-weight: ${({ theme }) => theme.typography.weights.normal};
+    font-size: ${({ theme }) => theme.gridUnit * 4}px;
   }
 `;
 

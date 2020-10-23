@@ -130,25 +130,23 @@ function ChartTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              // @ts-ignore
-              window.location = '/chart/add';
+              window.location.href = '/chart/add';
             },
           },
           {
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              // @ts-ignore
-              window.location = '/chart/list';
+              window.location.href = '/chart/list';
             },
           },
         ]}
       />
       {charts.length ? (
         <CardContainer>
-          {charts.map((e, i) => (
+          {charts.map(e => (
             <ChartCard
-              key={`${i}`}
+              key={`${e.id}`}
               openChartEditModal={openChartEditModal}
               loading={loading}
               chart={e}

@@ -96,7 +96,7 @@ export default function ChartCard({
                 className="action-button"
                 onClick={confirmDelete}
               >
-                <ListViewCard.MenuIcon name="trash" /> Delete
+                <ListViewCard.MenuIcon name="trash" /> {t('Delete')}
               </div>
             )}
           </ConfirmStatusChange>
@@ -108,7 +108,7 @@ export default function ChartCard({
           tabIndex={0}
           onClick={() => openChartEditModal(chart)}
         >
-          <ListViewCard.MenuIcon name="edit-alt" /> Edit
+          <ListViewCard.MenuIcon name="edit-alt" /> {t('Edit')}
         </Menu.Item>
       )}
     </Menu>

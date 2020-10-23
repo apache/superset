@@ -99,7 +99,7 @@ export interface ButtonProps {
 
 export interface SubMenuProps {
   buttons?: Array<ButtonProps>;
-  name: string;
+  name?: string;
   children?: MenuChild[];
   activeChild?: MenuChild['name'];
   /* If usesRouter is true, a react-router <Link> component will be used instead of href.

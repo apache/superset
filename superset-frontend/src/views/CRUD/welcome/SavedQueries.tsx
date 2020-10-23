@@ -124,10 +124,10 @@ const SavedQueries = ({
         <Menu.Item
           onClick={() => {
             // @ts-ignore
-            window.location = `/superset/sqllab?savedQueryId=${query.id}`;
+            window.location.href = `/superset/sqllab?savedQueryId=${query.id}`;
           }}
         >
-          Edit
+          {t('Edit')}
         </Menu.Item>
       )}
       <Menu.Item
@@ -136,7 +136,7 @@ const SavedQueries = ({
             copyQueryLink(query.id, addDangerToast, addSuccessToast);
         }}
       >
-        Share
+        {t('Share')}
       </Menu.Item>
       {canDelete && (
         <Menu.Item
@@ -145,7 +145,7 @@ const SavedQueries = ({
             setCurrentlyEdited(query);
           }}
         >
-          Delete
+          {t('Delete')}
         </Menu.Item>
       )}
     </Menu>
@@ -194,8 +194,7 @@ const SavedQueries = ({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              // @ts-ignore
-              window.location = '/superset/sqllab';
+              window.location.href = '/superset/sqllab';
             },
           },
           {
@@ -203,16 +202,16 @@ const SavedQueries = ({
             buttonStyle: 'link',
             onClick: () => {
               // @ts-ignore
-              window.location = '/savedqueryview/list';
+              window.location.href = '/savedqueryview/list';
             },
           },
         ]}
       />
       {queries.length > 0 ? (
         <CardContainer>
-          {queries.map((q, i) => (
+          {queries.map(q => (
             <ListViewCard
-              key={`${i}`}
+              key={`${q.id}`}
               imgFallbackURL=""
               imgURL=""
               url={`/superset/sqllab?savedQueryId=${q.id}`}

@@ -35,11 +35,6 @@ interface ListViewResourceState<D extends object = any> {
   bulkSelectEnabled: boolean;
 }
 
-interface EditChartModal {
-  setCharts: () => void;
-  charts: Array<any>;
-}
-
 export function useListViewResource<D extends object = any>(
   resource: string,
   resourceLabel: string, // resourceLabel for translations

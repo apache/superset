@@ -78,7 +78,7 @@ const ActivityContainer = styled.div`
     margin-left: 5px;
   }
   .ant-card-meta-title {
-    font-weight: 700;
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
 `;
 
@@ -105,7 +105,7 @@ export default function ActivityTable({ user }: ActivityProps) {
     if (e.url?.indexOf('explore') !== -1) {
       return 'nav-charts';
     }
-    if (e.item_url?.indexOf('explore') !== -1) {
+    if (e.url?.includes('explore') || e.item_url?.includes('explore')) {
       return 'nav-charts';
     }
     return '';
@@ -148,17 +148,17 @@ export default function ActivityTable({ user }: ActivityProps) {
 
   useEffect(() => {
     getBatchData(user.userId, recent)
-      .then(r => {
+      .then(res => {
         const data: any = {
-          Created: [...r.createdByChart, ...r.createdByDash],
-          Edited: [...r.editedChart, ...r.editedDash],
+          Created: [...res.createdByChart, ...res.createdByDash],
+          Edited: [...res.editedChart, ...res.editedDash],
         };
-        if (r.viewed) {
-          const filtered = reject(r.viewed, ['item_url', null]).map(r => r);
+        if (res.viewed) {
+          const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
           setActiveChild('Viewed');
         } else {
-          data.Examples = r.examples;
+          data.Examples = res.examples;
           setActiveChild('Examples');
         }
         setActivityData(data);
@@ -173,7 +173,7 @@ export default function ActivityTable({ user }: ActivityProps) {
   }, []);
 
   const renderActivity = () => {
-    return activityData[activeChild].map((e: MapProps, i: any) => (
+    return activityData[activeChild].map((e: MapProps, i: number) => (
       <ListViewCard
         key={`${i}`}
         isRecent
@@ -193,20 +193,17 @@ export default function ActivityTable({ user }: ActivityProps) {
   if (loading) return <>loading ...</>;
   return (
     <>
+      <SubMenu
+        activeChild={activeChild}
+        // eslint-disable-next-line react/no-children-prop
+        children={tabs}
+      />
       <>
-        <SubMenu
-          activeChild={activeChild}
-          name=""
-          // eslint-disable-next-line react/no-children-prop
-          children={tabs}
-        />
-        <>
-          {activityData[activeChild]?.length > 0 ? (
-            <ActivityContainer>{renderActivity()}</ActivityContainer>
-          ) : (
-            <EmptyState tableName="RECENTS" tab={activeChild} />
-          )}
-        </>
+        {activityData[activeChild]?.length > 0 ? (
+          <ActivityContainer>{renderActivity()}</ActivityContainer>
+        ) : (
+          <EmptyState tableName="RECENTS" tab={activeChild} />
+        )}
       </>
     </>
   );
