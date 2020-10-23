@@ -74,7 +74,9 @@ describe('DatasourceControl', () => {
     let wrapper = setup();
     expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
     let menuWrapper = shallow(
-      <div>{wrapper.find('[data-test="datasource-menu"]').prop('overlay')}</div>,
+      <div>
+        {wrapper.find('[data-test="datasource-menu"]').prop('overlay')}
+      </div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(3);
 
@@ -83,7 +85,9 @@ describe('DatasourceControl', () => {
     });
     expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
     menuWrapper = shallow(
-      <div>{wrapper.find('[data-test="datasource-menu"]').prop('overlay')}</div>,
+      <div>
+        {wrapper.find('[data-test="datasource-menu"]').prop('overlay')}
+      </div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
   });
