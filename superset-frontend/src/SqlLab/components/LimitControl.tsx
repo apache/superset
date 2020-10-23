@@ -118,7 +118,8 @@ export default class LimitControl extends React.PureComponent<
           <Button
             buttonSize="small"
             buttonStyle="primary"
-            className="float-right ok"
+            className="float-right"
+            data-test="limit-control-confirm"
             disabled={!isValid}
             onClick={this.submitAndClose}
           >
@@ -126,7 +127,8 @@ export default class LimitControl extends React.PureComponent<
           </Button>
           <Button
             buttonSize="small"
-            className="float-right reset"
+            className="float-right m-r-3"
+            data-test="limit-control-cancel"
             onClick={this.setValueAndClose.bind(
               this,
               this.props.defaultQueryLimit.toString(),

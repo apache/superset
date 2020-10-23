@@ -200,7 +200,6 @@ class ScheduleQueryButton extends React.PureComponent {
           triggerNode={
             <Button
               buttonSize="small"
-              className="toggleSchedule"
               onClick={this.toggleSchedule}
               disabled={this.props.disabled}
               tooltip={this.props.tooltip}

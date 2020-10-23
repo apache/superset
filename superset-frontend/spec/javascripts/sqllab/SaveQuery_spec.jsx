@@ -48,7 +48,7 @@ describe('SavedQuery', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
     const modal = wrapper.find(Modal);
 
-    expect(modal.find('.cancelQuery')).toHaveLength(1);
+    expect(modal.find('[data-test="cancel-query"]')).toHaveLength(1);
   });
   it('has 2 FormControls', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
