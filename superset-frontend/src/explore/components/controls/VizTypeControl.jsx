@@ -178,8 +178,6 @@ const VizTypeControl = props => {
     );
   }
 
-  console.log({ searchRef });
-  console.log({ current: searchRef?.current });
   return (
     <div>
       <ControlHeader {...props} />
