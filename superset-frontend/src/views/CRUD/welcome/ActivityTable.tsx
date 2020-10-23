@@ -99,7 +99,7 @@ export default function ActivityTable({ user }: ActivityProps) {
 
   const getIconName = (e: MapProps) => {
     if (e.sql) return 'sql';
-    if (e.url?.indexOf('dashboard') !== -1) {
+    if (e.url?.includes('dashboard')) {
       return 'nav-dashboard';
     }
     if (e.url?.indexOf('explore') !== -1) {
