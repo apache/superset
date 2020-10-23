@@ -105,6 +105,7 @@ class Markdown extends React.PureComponent {
     this.handleChangeEditorMode = this.handleChangeEditorMode.bind(this);
     this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
+    this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
   }
 
@@ -204,14 +205,14 @@ class Markdown extends React.PureComponent {
       editorMode: mode,
     };
     if (mode === 'preview') {
-      this.updateMarkdownContent()
+      this.updateMarkdownContent();
       nextState.hasError = false;
     }
 
     this.setState(nextState);
   }
 
-  updateMarkdownContent(){
+  updateMarkdownContent() {
     const { updateComponents, component } = this.props;
     if (component.meta.code !== this.state.markdownSource) {
       updateComponents({
@@ -237,7 +238,7 @@ class Markdown extends React.PureComponent {
     deleteComponent(id, parentId);
   }
 
-  handleResizeStart(e){
+  handleResizeStart(e) {
     const { editorMode } = this.state;
     const { editMode, onResizeStart } = this.props;
     const isEditing = editorMode === 'edit';
