@@ -237,7 +237,7 @@ class DatasourceControl extends React.PureComponent {
             <Tooltip title={t('More dataset related options')}>
               <Icon
                 className="datasource-modal-trigger"
-                data-test="datasource-menu"
+                data-test="datasource-menu-trigger"
                 name="more-horiz"
               />
             </Tooltip>

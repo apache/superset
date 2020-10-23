@@ -72,18 +72,18 @@ describe('DatasourceControl', () => {
 
   it('show or hide Edit Datasource option', () => {
     let wrapper = setup();
-    expect(wrapper.find('#datasource_menu')).toExist();
+    expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
     let menuWrapper = shallow(
-      <div>{wrapper.find('#datasource_menu').prop('overlay')}</div>,
+      <div>{wrapper.find('[data-test="datasource-menu"]').prop('overlay')}</div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(3);
 
     wrapper = setup({
       isEditable: false,
     });
-    expect(wrapper.find('#datasource_menu')).toExist();
+    expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
     menuWrapper = shallow(
-      <div>{wrapper.find('#datasource_menu').prop('overlay')}</div>,
+      <div>{wrapper.find('[data-test="datasource-menu"]').prop('overlay')}</div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
   });
