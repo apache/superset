@@ -75,6 +75,10 @@ const ColumnsCol = styled(Col)`
   }
 `;
 
+const CHANGE_DATASET = 'change_dataset';
+const EXPLORE_IN_SQL_LAB = 'explore_in_sql_lab';
+const EDIT_DATASET = 'edit_dataset';
+
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -118,10 +122,10 @@ class DatasourceControl extends React.PureComponent {
   }
 
   handleMenuItemClick({ key }) {
-    if (key === '1') {
+    if (key === CHANGE_DATASET) {
       this.toggleChangeDatasourceModal();
     }
-    if (key === '3') {
+    if (key === EDIT_DATASET) {
       this.toggleEditDatasourceModal();
     }
   }
@@ -180,8 +184,8 @@ class DatasourceControl extends React.PureComponent {
 
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
-        <Menu.Item key="1">{t('Change Dataset')}</Menu.Item>
-        <Menu.Item key="2">
+        <Menu.Item key={CHANGE_DATASET}>{t('Change Dataset')}</Menu.Item>
+        <Menu.Item key={EXPLORE_IN_SQL_LAB}>
           <a
             href={`/superset/sqllab?datasourceKey=${value}`}
             target="_blank"
@@ -191,7 +195,7 @@ class DatasourceControl extends React.PureComponent {
           </a>
         </Menu.Item>
         {this.props.isEditable && (
-          <Menu.Item key="3" data-test="edit-dataset">
+          <Menu.Item key={EDIT_DATASET} data-test="edit-dataset">
             {t('Edit Dataset')}
           </Menu.Item>
         )}
