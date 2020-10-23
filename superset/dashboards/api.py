@@ -15,9 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
+from io import BytesIO
 from typing import Any, Dict
+from zipfile import ZipFile
 
-from flask import g, make_response, redirect, request, Response, url_for
+from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -39,6 +42,7 @@ from superset.dashboards.commands.exceptions import (
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
+from superset.dashboards.commands.export import ExportDashboardsCommand
 from superset.dashboards.commands.update import UpdateDashboardCommand
 from superset.dashboards.filters import (
     DashboardFavoriteFilter,
@@ -459,8 +463,34 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        requested_ids = kwargs["rison"]
+
+        if is_feature_enabled("VERSIONED_EXPORT"):
+            timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+            root = f"dashboard_export_{timestamp}"
+            filename = f"{root}.zip"
+
+            buf = BytesIO()
+            with ZipFile(buf, "w") as bundle:
+                try:
+                    for file_name, file_content in ExportDashboardsCommand(
+                        requested_ids
+                    ).run():
+                        with bundle.open(f"{root}/{file_name}", "w") as fp:
+                            fp.write(file_content.encode())
+                except DashboardNotFoundError:
+                    return self.response_404()
+            buf.seek(0)
+
+            return send_file(
+                buf,
+                mimetype="application/zip",
+                as_attachment=True,
+                attachment_filename=filename,
+            )
+
         query = self.datamodel.session.query(Dashboard).filter(
-            Dashboard.id.in_(kwargs["rison"])
+            Dashboard.id.in_(requested_ids)
         )
         query = self._base_filters.apply_all(query)
         ids = [item.id for item in query.all()]
