@@ -301,6 +301,7 @@ class Chart extends React.Component {
           addDangerToast={addDangerToast}
           handleToggleFullSize={handleToggleFullSize}
           isFullSize={isFullSize}
+          chartStatus={chart.chartStatus}
         />
 
         {/*

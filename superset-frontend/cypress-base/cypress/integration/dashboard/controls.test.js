@@ -32,6 +32,7 @@ describe('Dashboard top-level controls', () => {
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
+      const dashboardId = dashboard.id;
       mapId = dashboard.slices.find(
         slice => slice.form_data.viz_type === 'world_map',
       ).slice_id;
@@ -40,15 +41,16 @@ describe('Dashboard top-level controls', () => {
         const sliceRequest = `getJson_${slice.slice_id}`;
         sliceRequests.push(`@${sliceRequest}`);
         const formData = `{"slice_id":${slice.slice_id}}`;
-        cy.route('POST', `/superset/explore_json/?form_data=${formData}`).as(
-          sliceRequest,
-        );
+        cy.route(
+          'POST',
+          `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`,
+        ).as(sliceRequest);
 
         const forceRefresh = `postJson_${slice.slice_id}_force`;
         forceRefreshRequests.push(`@${forceRefresh}`);
         cy.route(
           'POST',
-          `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}&force=true`,
+          `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}&force=true&dashboard_id=${dashboardId}`,
         ).as(forceRefresh);
       });
     });
@@ -58,54 +60,52 @@ describe('Dashboard top-level controls', () => {
     forceRefreshRequests.length = 0;
   });
 
-  it.skip('should allow chart level refresh', () => {
+  it('should allow chart level refresh', () => {
     cy.wait(sliceRequests);
-    cy.get('.grid-container .world_map').should('be.exist');
+    cy.get('[data-test="grid-container"]')
+      .find('.world_map')
+      .should('be.exist');
     cy.get(`#slice_${mapId}-controls`).click();
     cy.get(`#slice_${mapId}-controls`)
       .next()
-      .find('.refresh-tooltip')
+      .find('[data-test="dashboard-slice-refresh-tooltip"]')
       .trigger('click', { force: true });
 
     // not allow dashboard level force refresh when any chart is loading
-    cy.get('#save-dash-split-button').trigger('click', { force: true });
-    cy.contains('Force refresh dashboard')
+    cy.get('[data-test="refresh-dashboard-menu-item"]')
       .parent()
       .should('have.class', 'disabled');
     // not allow chart level force refresh when it is loading
     cy.get(`#slice_${mapId}-controls`)
       .next()
-      .find('.refresh-tooltip')
+      .find('[data-test="dashboard-slice-refresh-tooltip"]')
       .parent()
       .parent()
       .should('have.class', 'disabled');
 
     cy.wait(`@postJson_${mapId}_force`);
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard')
+    cy.get('[data-test="refresh-dashboard-menu-item"]')
       .parent()
       .not('have.class', 'disabled');
   });
 
-  it.skip('should allow dashboard level force refresh', () => {
+  it('should allow dashboard level force refresh', () => {
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard')
+    cy.get('[data-test="more-horiz"]').click();
+    cy.get('[data-test="refresh-dashboard-menu-item"]')
       .parent()
       .not('have.class', 'disabled');
 
     // wait the all dash finish loading.
     cy.wait(sliceRequests);
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard').trigger('click', { force: true });
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard')
+    cy.get('[data-test="refresh-dashboard-menu-item"]').click();
+    cy.get('[data-test="refresh-dashboard-menu-item"]')
       .parent()
       .should('have.class', 'disabled');
 
     // wait all charts force refreshed
-    cy.wait(forceRefreshRequests).then(xhrs => {
+    cy.wait(forceRefreshRequests, { responseTimeout: 15000 }).then(xhrs => {
       // is_cached in response should be false
       xhrs.forEach(xhr => {
         readResponseBlob(xhr.response.body).then(responseBody => {
@@ -114,8 +114,8 @@ describe('Dashboard top-level controls', () => {
       });
     });
 
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard')
+    cy.get('[data-test="more-horiz"]').click();
+    cy.get('[data-test="refresh-dashboard-menu-item"]')
       .parent()
       .not('have.class', 'disabled');
   });
