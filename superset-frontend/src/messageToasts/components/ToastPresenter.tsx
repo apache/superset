@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import { ToastType } from 'src/messageToasts/types';
+import { ToastMeta } from 'src/messageToasts/types';
 import Toast from './Toast';
 
 const StyledToastPresenter = styled.div`
@@ -67,25 +67,22 @@ const StyledToastPresenter = styled.div`
   }
 `;
 
-type ToastShape = {
-  id: string;
-  toastType: ToastType;
-  text: string;
-  duration: number;
+type ToastPresenterProps = {
+  toasts: Array<ToastMeta>;
+  removeToast: () => void;
 };
 
-interface ToastPresenterProps {
-  toasts: Array<ToastShape>;
-  removeToast: () => void;
-}
-
-const ToastPresenter = ({ toasts, removeToast }: ToastPresenterProps) =>
-  toasts.length > 0 && (
-    <StyledToastPresenter id="toast-presenter">
-      {toasts.map(toast => (
-        <Toast key={toast.id} toast={toast} onCloseToast={removeToast} />
-      ))}
-    </StyledToastPresenter>
+export default function ToastPresenter({
+  toasts,
+  removeToast,
+}: ToastPresenterProps) {
+  return (
+    toasts.length > 0 && (
+      <StyledToastPresenter id="toast-presenter">
+        {toasts.map(toast => (
+          <Toast key={toast.id} toast={toast} onCloseToast={removeToast} />
+        ))}
+      </StyledToastPresenter>
+    )
   );
-
-export default ToastPresenter;
+}
