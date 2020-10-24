@@ -29,14 +29,14 @@ export type ControlProps = {
   // signature to the original action factory.
   actions: ExploreActions;
   type: ControlType;
-  name: string;
   label: string;
-  description: string;
-  tooltipOnClick: () => ReactNode;
-  places: number;
-  rightNode: ReactNode;
-  formData: QueryFormData;
-  value: JsonValue;
+  name: string;
+  description?: string;
+  tooltipOnClick?: () => ReactNode;
+  places?: number;
+  rightNode?: ReactNode;
+  formData?: QueryFormData | null;
+  value?: JsonValue;
   validationErrors?: any[];
   hidden?: boolean;
   renderTrigger?: boolean;

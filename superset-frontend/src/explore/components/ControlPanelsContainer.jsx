@@ -106,8 +106,8 @@ class ControlPanelsContainer extends React.Component {
 
     return (
       <Control
-        name={name}
         key={`control-${name}`}
+        name={name}
         validationErrors={validationErrors}
         actions={actions}
         formData={provideFormDataToProps ? formData : null}
