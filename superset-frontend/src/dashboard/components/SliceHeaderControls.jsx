@@ -128,7 +128,6 @@ class SliceHeaderControls extends React.PureComponent {
       ? t('Cached %s', cachedWhen)
       : (updatedWhen && t('Fetched %s', updatedWhen)) || '';
     const resizeLabel = isFullSize ? t('Minimize') : t('Maximize');
-
     return (
       <Dropdown
         id={`slice_${slice.slice_id}-controls`}
@@ -147,7 +146,12 @@ class SliceHeaderControls extends React.PureComponent {
             disabled={this.props.chartStatus === 'loading'}
           >
             {t('Force refresh')}
-            <div className="refresh-tooltip">{refreshTooltip}</div>
+            <div
+              className="refresh-tooltip"
+              data-test="dashboard-slice-refresh-tooltip"
+            >
+              {refreshTooltip}
+            </div>
           </MenuItem>
 
           <MenuItem divider />
