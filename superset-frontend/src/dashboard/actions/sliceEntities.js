@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { t, SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 
 import { addDangerToast } from 'src/messageToasts/actions';
 import { getDatasourceParameter } from 'src/modules/utils';
@@ -38,6 +39,7 @@ export function fetchAllSlicesFailed(error) {
   return { type: FETCH_ALL_SLICES_FAILED, payload: { error } };
 }
 
+const FETCH_SLICES_PAGE_SIZE = 200;
 export function fetchAllSlices(userId) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
@@ -45,7 +47,27 @@ export function fetchAllSlices(userId) {
       dispatch(fetchAllSlicesStarted());
 
       return SupersetClient.get({
-        endpoint: `/sliceasync/api/read?_flt_0_created_by=${userId}`,
+        endpoint: `/api/v1/chart/?q=${rison.encode({
+          columns: [
+            'changed_on_humanized',
+            'changed_on',
+            'datasource_id',
+            'datasource_type',
+            'datasource_link',
+            'datasource_name_text',
+            'description_markeddown',
+            'description',
+            'edit_url',
+            'id',
+            'modified',
+            'params',
+            'slice_name',
+            'slice_url',
+            'viz_type',
+          ],
+          filters: [{ col: 'owners', opr: 'rel_m_m', value: userId }],
+          page_size: FETCH_SLICES_PAGE_SIZE,
+        })}`,
       })
         .then(({ json }) => {
           const slices = {};
@@ -83,19 +105,21 @@ export function fetchAllSlices(userId) {
 
           return dispatch(setAllSlices(slices));
         })
-        .catch(errorResponse =>
-          getClientErrorObject(errorResponse).then(({ error }) => {
-            dispatch(
-              fetchAllSlicesFailed(
-                error || t('Could not fetch all saved charts'),
-              ),
-            );
-            dispatch(
-              addDangerToast(
-                t('Sorry there was an error fetching saved charts: ') + error,
-              ),
-            );
-          }),
+        .catch(
+          errorResponse =>
+            console.log(errorResponse) ||
+            getClientErrorObject(errorResponse).then(({ error }) => {
+              dispatch(
+                fetchAllSlicesFailed(
+                  error || t('Could not fetch all saved charts'),
+                ),
+              );
+              dispatch(
+                addDangerToast(
+                  t('Sorry there was an error fetching saved charts: ') + error,
+                ),
+              );
+            }),
         );
     }
 
