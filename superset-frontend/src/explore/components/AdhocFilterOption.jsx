@@ -49,7 +49,7 @@ class AdhocFilterOption extends React.PureComponent {
     this.onOverlayEntered = this.onOverlayEntered.bind(this);
     this.onOverlayExited = this.onOverlayExited.bind(this);
     this.handleVisibleChange = this.handleVisibleChange.bind(this);
-    this.state = { overlayShown: props.adhocFilter.isNew };
+    this.state = { overlayShown: false };
   }
 
   onPopoverResize() {
@@ -60,6 +60,7 @@ class AdhocFilterOption extends React.PureComponent {
     // isNew is used to indicate whether to automatically open the overlay
     // once the overlay has been opened, the metric/filter will never be
     // considered new again.
+    this.props.adhocFilter.isNew = false;
     this.setState({ overlayShown: true });
   }
 
@@ -109,8 +110,8 @@ class AdhocFilterOption extends React.PureComponent {
           placement="right"
           trigger="click"
           disabled
-          title={t('Edit Filter')}
           content={content}
+          defaultVisible={adhocFilter.isNew}
           visible={this.state.overlayShown}
           onVisibleChange={this.handleVisibleChange}
         >
