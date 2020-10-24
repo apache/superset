@@ -19,20 +19,15 @@
 import React, { ReactNode } from 'react';
 import { ControlType } from '@superset-ui/chart-controls';
 import { JsonValue, QueryFormData } from '@superset-ui/core';
+import { ExploreActions } from '../actions/exploreActions';
 import controlMap from './controls';
 
 import './Control.less';
 
-type ControlActions = {
-  setControlValue: (
-    controlName: string,
-    value: JsonValue,
-    validationErrors: any[],
-  ) => void;
-};
-
-type ControlProps = {
-  actions: ControlActions;
+export type ControlProps = {
+  // the actual action dispatcher (via bindActionCreators) has identical
+  // signature to the original action factory.
+  actions: ExploreActions;
   type: ControlType;
   name: string;
   label: string;

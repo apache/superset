@@ -28,7 +28,7 @@ import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { sectionsToRender } from '../controlUtils';
-import * as exploreActions from '../actions/exploreActions';
+import { exploreActions } from '../actions/exploreActions';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,

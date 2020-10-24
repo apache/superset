@@ -146,3 +146,23 @@ export const SLICE_UPDATED = 'SLICE_UPDATED';
 export function sliceUpdated(slice: Slice) {
   return { type: SLICE_UPDATED, slice };
 }
+
+export const exploreActions = {
+  setDatasourceType,
+  setDatasource,
+  setDatasources,
+  fetchDatasourcesStarted,
+  fetchDatasourcesSucceeded,
+  resetControls,
+  toggleFaveStar,
+  fetchFaveStar,
+  saveFaveStar,
+  setControlValue,
+  setExploreControls,
+  removeControlPanelAlert,
+  updateChartTitle,
+  createNewSlice,
+  sliceUpdated,
+};
+
+export type ExploreActions = typeof exploreActions;
