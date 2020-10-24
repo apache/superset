@@ -113,7 +113,7 @@ function DashboardCard({
   );
   return (
     <ListViewCard
-      loading={dashboard.loading}
+      loading={dashboard.loading || false}
       title={dashboard.dashboard_title}
       titleRight={<Label>{dashboard.published ? 'published' : 'draft'}</Label>}
       url={bulkSelectEnabled ? undefined : dashboard.url}

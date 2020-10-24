@@ -31,7 +31,8 @@ import SavedQueries from 'src/views/CRUD/welcome/SavedQueries';
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const queriesEndpoint = 'glob:*/api/v1/saved_queries/?*';
+const queriesEndpoint = 'glob:*/api/v1/saved_query/?*';
+const savedQueriesInfo = 'glob:*/api/v1/saved_query/_info';
 
 const mockqueries = [...new Array(3)].map((_, i) => ({
   created_by: {
@@ -64,6 +65,10 @@ fetchMock.get(queriesEndpoint, {
   result: mockqueries,
 });
 
+fetchMock.get(savedQueriesInfo, {
+  permissions: ['can_list', 'can_edit', 'can_delete'],
+});
+
 describe('SavedQueries', () => {
   const savedQueryProps = {
     user: {
@@ -82,19 +87,22 @@ describe('SavedQueries', () => {
     expect(wrapper.find(SavedQueries)).toExist();
   });
 
-  it('it renders a submenu with clickable tabls and buttons', async () => {
+  it('it renders a submenu with clickable tables and buttons', async () => {
     expect(wrapper.find(SubMenu)).toExist();
     expect(wrapper.find('MenuItem')).toHaveLength(2);
-    expect(wrapper.find('Button')).toHaveLength(4);
+    console.log('button', wrapper.find('button').length);
     act(() => {
       wrapper.find('MenuItem').at(1).simulate('click');
     });
+
+    console.log('menu item', wrapper.find('MenuItem').at(1).debug());
     await waitForComponentToPaint(wrapper);
-    expect(fetchMock.calls(/chart\/\?q/)).toHaveLength(1);
+    expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
   });
 
-  it('fetches queries favorites and renders chart cards', () => {
-    expect(fetchMock.calls(/chart\/\?q/)).toHaveLength(1);
+  it('fetches queries favorites and renders listviewcard cards', () => {
+    expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
     expect(wrapper.find('ListViewCard')).toExist();
+    console.log('wrapper', wrapper);
   });
 });

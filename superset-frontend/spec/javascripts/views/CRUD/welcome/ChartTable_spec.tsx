@@ -31,7 +31,6 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
-// fetchMock.get(chartsEndpoint, { result: mockDashboards });
 
 const mockCharts = [...new Array(3)].map((_, i) => ({
   changed_on_utc: new Date().toISOString(),
@@ -44,15 +43,11 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   thumbnail_url: '/thumbnail',
 }));
 
-/* fetchMock.get(chartsEndpoint, {
-  result: [],
-});
-*/
 fetchMock.get(chartsEndpoint, {
   result: mockCharts,
 });
 
-describe('DashboardTable', () => {
+describe('ChartTable', () => {
   beforeEach(fetchMock.resetHistory);
 
   const mockedProps = {};
@@ -67,6 +62,7 @@ describe('DashboardTable', () => {
   it('it renders', () => {
     expect(wrapper.find(ChartTable)).toExist();
   });
+
   it('fetches chart favorites and renders chart cards ', () => {
     expect(fetchMock.calls(chartsEndpoint)).toHaveLength(1);
     expect(wrapper.find(ChartCard)).toExist();

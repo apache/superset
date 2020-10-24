@@ -62,8 +62,9 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   );
   const recent = (
     <div className="no-recents">
-      {t(`Recently ${tab?.toLowerCase()} charts, dashboards, and saved queries will
-      appear here`)}
+      {t(
+        `Recently ${tab?.toLowerCase()} charts, dashboards, and saved queries will appear here`,
+      )}
     </div>
   );
   // Mine and Recent Activity(all tabs) tab empty state

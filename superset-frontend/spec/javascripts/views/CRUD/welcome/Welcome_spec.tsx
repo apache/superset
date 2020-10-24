@@ -37,8 +37,7 @@ describe('Welcome', () => {
   it('is renders', () => {
     expect(wrapper.find(Welcome)).toExist();
   });
-  it('renders first submenu on page load', () => {
-    expect(wrapper.find('SubMenu')).toHaveLength(1);
+  it('renders all panels on the page on page load', () => {
     expect(wrapper.find('PanelContent')).toHaveLength(4);
   });
 });
