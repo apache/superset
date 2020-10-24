@@ -61,16 +61,6 @@ export function fetchDatasourcesSucceeded() {
   return { type: FETCH_DATASOURCES_SUCCEEDED };
 }
 
-export const FETCH_DATASOURCES_FAILED = 'FETCH_DATASOURCES_FAILED';
-export function fetchDatasourcesFailed(error: Error) {
-  return { type: FETCH_DATASOURCES_FAILED, error };
-}
-
-export const POST_DATASOURCES_FAILED = 'POST_DATASOURCES_FAILED';
-export function postDatasourcesFailed(error: Error) {
-  return { type: POST_DATASOURCES_FAILED, error };
-}
-
 export const RESET_FIELDS = 'RESET_FIELDS';
 export function resetControls() {
   return { type: RESET_FIELDS };
@@ -102,9 +92,11 @@ export function saveFaveStar(sliceId: string, isStarred: boolean) {
       endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`,
     })
       .then(() => dispatch(toggleFaveStar(!isStarred)))
-      .catch(() =>
-        addDangerToast(t('An error occurred while starring this chart')),
-      );
+      .catch(() => {
+        dispatch(
+          addDangerToast(t('An error occurred while starring this chart')),
+        );
+      });
   };
 }
 
