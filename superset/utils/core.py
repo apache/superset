@@ -1243,7 +1243,8 @@ def get_calendar_since_until(
     datetime(2019, 1, 1), datetime(2019, 12, 31)
     >>> get_calendar_since_until('previous 1 weeks')
     datetime(2020, 11, 12), datetime(2020, 11, 18)
-    :param calendar_range:
+
+    :param calendar_range: 
     :return: since datetime and until datetime
     """
     today = parse_human_datetime("today")
