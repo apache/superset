@@ -30,8 +30,8 @@ interface TimerProps {
 }
 
 const TimerLabel = styled(Label)`
-  width: 80px;
-  text-align: right;
+  width: 96px;
+  text-align: center;
 `;
 
 export default function Timer({
