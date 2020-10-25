@@ -238,11 +238,9 @@ export default function Button(props: ButtonProps) {
     ...props,
     bsSize: props.buttonSize,
     disabled: props.disabled || false,
-    placement: props.placement || 'top',
   };
   const { tooltip, placement, dropdownItems } = props;
   delete buttonProps.tooltip;
-  delete buttonProps.placement;
 
   if (tooltip && props.disabled) {
     // Working around the fact that tooltips don't get triggered when buttons are disabled
