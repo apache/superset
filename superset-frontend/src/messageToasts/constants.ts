@@ -16,24 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
+// Toast types
+import { ToastType } from './types';
 
-import {
-  INFO_TOAST,
-  SUCCESS_TOAST,
-  WARNING_TOAST,
-  DANGER_TOAST,
-} from './constants';
+export { ToastType } from './types';
 
-// eslint-disable-next-line import/prefer-default-export
-export const toastShape = PropTypes.shape({
-  id: PropTypes.string.isRequired,
-  toastType: PropTypes.oneOf([
-    INFO_TOAST,
-    SUCCESS_TOAST,
-    WARNING_TOAST,
-    DANGER_TOAST,
-  ]).isRequired,
-  text: PropTypes.string.isRequired,
-  duration: PropTypes.number,
-});
+// for backward compatibility
+export const INFO_TOAST = ToastType.INFO;
+export const SUCCES_TOAST = ToastType.SUCCESS;
+export const WARNING_TOAST = ToastType.WARNING;
+export const DANGER_TOAST = ToastType.DANGER;

@@ -34,8 +34,8 @@ import ListView, {
   SelectOption,
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
-import Chart from 'src/types/Chart';
+import PropertiesModal from 'src/explore/components/PropertiesModal';
+import Chart, { Slice } from 'src/types/Chart';
 import ListViewCard from 'src/components/ListViewCard';
 import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
