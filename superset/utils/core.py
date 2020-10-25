@@ -15,12 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+import calendar
 import decimal
 import errno
 import functools
 import hashlib
 import json
 import logging
+import operator
 import os
 import re
 import signal
@@ -447,8 +449,12 @@ def parse_human_datetime(human_readable: str) -> datetime:
     >>> date.today() - timedelta(1) == parse_human_datetime('yesterday').date()
     True
     >>> year_ago_1 = parse_human_datetime('one year ago').date()
-    >>> year_ago_2 = (datetime.now() - relativedelta(years=1) ).date()
+    >>> year_ago_2 = (datetime.now() - relativedelta(years=1)).date()
     >>> year_ago_1 == year_ago_2
+    True
+    >>> year_after_1 = parse_human_datetime('2 years after').date()
+    >>> year_after_2 = (datetime.now() + relativedelta(years=2)).date()
+    >>> year_after_1 == year_after_2
     True
     """
     try:
@@ -508,15 +514,7 @@ def parse_human_timedelta(human_readable: Optional[str]) -> timedelta:
     """
     cal = parsedatetime.Calendar()
     dttm = dttm_from_timetuple(datetime.now().timetuple())
-    date_ = cal.parse(human_readable or "", dttm)[0]
-    date_ = datetime(
-        date_.tm_year,
-        date_.tm_mon,
-        date_.tm_mday,
-        date_.tm_hour,
-        date_.tm_min,
-        date_.tm_sec,
-    )
+    date_ = dttm_from_timetuple(cal.parse(human_readable or "", dttm)[0])
     return date_ - dttm
 
 
@@ -1229,6 +1227,55 @@ def ensure_path_exists(path: str) -> None:
     except OSError as exc:
         if not (os.path.isdir(path) and exc.errno == errno.EEXIST):
             raise
+
+
+def get_calendar_since_until(
+    calendar_range: str,
+) -> Tuple[Optional[datetime], Optional[datetime]]:
+    """
+    Getting since datetime and until datetime tuple from calendar grains
+
+    >>> datetime.now()
+    datetime.datetime(2020, 10, 25, 22, 37, 11, 493402)
+    >>> get_calendar_since_until('previous 1 months')
+    datetime(2020, 9, 1), datetime(2016, 9, 30)
+    >>> get_calendar_since_until('previous 1 years')
+    datetime(2019, 1, 1), datetime(2019, 12, 31)
+    >>> get_calendar_since_until('previous 1 weeks')
+    datetime(2020, 11, 12), datetime(2020, 11, 18)
+    :param calendar_range:
+    :return: since datetime and until datetime
+    """
+    today = parse_human_datetime("today")
+    try:
+        rel, num, grain = calendar_range.lower().split()
+    except ValueError:
+        raise ValueError("Invalid calendar_range string")
+
+    if rel == "previous":
+        # get past calendar
+        func = operator.sub
+    else:
+        # rel == 'following' get future calendar
+        func = operator.add
+    anchor = func(today, relativedelta(**{grain: int(num)}),)  # type: ignore
+    if grain == "days":
+        if rel == "previous":
+            since, until = anchor, today
+        else:
+            since, until = today, anchor
+    elif grain == "weeks":
+        since = anchor + relativedelta(days=-anchor.weekday())
+        until = since + relativedelta(days=6)
+    elif grain == "months":
+        since = anchor.replace(day=1)
+        until = anchor.replace(day=calendar.monthrange(anchor.year, anchor.month)[1])
+    elif grain == "years":
+        since = anchor.replace(month=1, day=1)
+        until = anchor.replace(month=12, day=31)
+    else:
+        since, until = None, None  # type: ignore
+    return since, until
 
 
 def get_since_until(  # pylint: disable=too-many-arguments
