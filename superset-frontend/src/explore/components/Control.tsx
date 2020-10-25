@@ -16,52 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-
-import './Control.less';
+import React, { ReactNode } from 'react';
+import { ControlType } from '@superset-ui/chart-controls';
+import { JsonValue, QueryFormData } from '@superset-ui/core';
+import { ExploreActions } from '../actions/exploreActions';
 import controlMap from './controls';
 
-const controlTypes = Object.keys(controlMap);
+import './Control.less';
 
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  name: PropTypes.string.isRequired,
-  type: PropTypes.oneOfType([
-    PropTypes.oneOf(controlTypes).isRequired,
-    PropTypes.func.isRequired,
-  ]),
-  hidden: PropTypes.bool,
-  label: PropTypes.string.isRequired,
-  choices: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.array),
-    PropTypes.func,
-  ]),
-  description: PropTypes.string,
-  tooltipOnClick: PropTypes.func,
-  places: PropTypes.number,
-  validationErrors: PropTypes.array,
-  renderTrigger: PropTypes.bool,
-  rightNode: PropTypes.node,
-  formData: PropTypes.object,
-  value: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.number,
-    PropTypes.object,
-    PropTypes.bool,
-    PropTypes.array,
-    PropTypes.func,
-  ]),
+export type ControlProps = {
+  // the actual action dispatcher (via bindActionCreators) has identical
+  // signature to the original action factory.
+  actions: ExploreActions;
+  type: ControlType;
+  label: string;
+  name: string;
+  description?: string;
+  tooltipOnClick?: () => ReactNode;
+  places?: number;
+  rightNode?: ReactNode;
+  formData?: QueryFormData | null;
+  value?: JsonValue;
+  validationErrors?: any[];
+  hidden?: boolean;
+  renderTrigger?: boolean;
 };
 
-const defaultProps = {
-  renderTrigger: false,
-  hidden: false,
-  validationErrors: [],
-};
+export default class Control extends React.PureComponent<
+  ControlProps,
+  { hovered: boolean }
+> {
+  onMouseEnter: () => void;
 
-export default class Control extends React.PureComponent {
-  constructor(props) {
+  onMouseLeave: () => void;
+
+  constructor(props: ControlProps) {
     super(props);
     this.state = { hovered: false };
     this.onChange = this.onChange.bind(this);
@@ -69,11 +58,11 @@ export default class Control extends React.PureComponent {
     this.onMouseLeave = this.setHover.bind(this, false);
   }
 
-  onChange(value, errors) {
+  onChange(value: any, errors: any[]) {
     this.props.actions.setControlValue(this.props.name, value, errors);
   }
 
-  setHover(hovered) {
+  setHover(hovered: boolean) {
     this.setState({ hovered });
   }
 
@@ -98,6 +87,3 @@ export default class Control extends React.PureComponent {
     );
   }
 }
-
-Control.propTypes = propTypes;
-Control.defaultProps = defaultProps;

@@ -20,11 +20,10 @@ import { Alert } from 'react-bootstrap';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import Interweave from 'interweave';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Icon from 'src/components/Icon';
-import { ToastType } from 'src/messageToasts/types';
-
-import { SUCCESS_TOAST, WARNING_TOAST, DANGER_TOAST } from '../constants';
+import { ToastType } from 'src/messageToasts/constants';
+import { ToastMeta } from '../types';
 
 const ToastContianer = styled.div`
   display: flex;
@@ -37,19 +36,21 @@ const ToastContianer = styled.div`
 `;
 
 interface ToastPresenterProps {
-  toast: { id: string; toastType: ToastType; text: string; duration: number };
+  toast: ToastMeta;
   onCloseToast: (id: string) => void;
 }
 
 export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
-  let hideTimer: ReturnType<typeof setTimeout>;
+  const hideTimer = useRef<ReturnType<typeof setTimeout>>();
   const [visible, setVisible] = useState(false);
   const showToast = () => {
     setVisible(true);
   };
 
-  const handleClosePress = () => {
-    clearTimeout(hideTimer);
+  const handleClosePress = useCallback(() => {
+    if (hideTimer.current) {
+      clearTimeout(hideTimer.current);
+    }
     // Wait for the transition
     setVisible(() => {
       setTimeout(() => {
@@ -57,18 +58,20 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       }, 150);
       return false;
     });
-  };
+  }, [onCloseToast, toast.id]);
 
   useEffect(() => {
     setTimeout(showToast);
 
     if (toast.duration > 0) {
-      hideTimer = setTimeout(handleClosePress, toast.duration);
+      hideTimer.current = setTimeout(handleClosePress, toast.duration);
     }
     return () => {
-      clearTimeout(hideTimer);
+      if (hideTimer.current) {
+        clearTimeout(hideTimer.current);
+      }
     };
-  }, []);
+  }, [handleClosePress, toast.duration]);
 
   return (
     <Alert
@@ -77,17 +80,17 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
         'alert',
         'toast',
         visible && 'toast--visible',
-        toast.toastType === SUCCESS_TOAST && 'toast--success',
-        toast.toastType === WARNING_TOAST && 'toast--warning',
-        toast.toastType === DANGER_TOAST && 'toast--danger',
+        toast.toastType === ToastType.SUCCESS && 'toast--success',
+        toast.toastType === ToastType.WARNING && 'toast--warning',
+        toast.toastType === ToastType.DANGER && 'toast--danger',
       )}
     >
       <ToastContianer>
-        {toast.toastType === SUCCESS_TOAST && (
+        {toast.toastType === ToastType.SUCCESS && (
           <Icon name="circle-check-solid" />
         )}
-        {toast.toastType === WARNING_TOAST ||
-          (toast.toastType === DANGER_TOAST && <Icon name="error-solid" />)}
+        {toast.toastType === ToastType.WARNING ||
+          (toast.toastType === ToastType.DANGER && <Icon name="error-solid" />)}
         <Interweave content={toast.text} />
       </ToastContianer>
     </Alert>
