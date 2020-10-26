@@ -143,6 +143,7 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
         "compare_suffix": "o10Y",
         "limit": "25",
         "time_range": "No filter",
+        "time_range_endpoints": ["inclusive", "exclusive"],
         "granularity_sqla": "ds",
         "groupby": [],
         "row_limit": config["ROW_LIMIT"],
