@@ -42,6 +42,7 @@ const SupersetLabel = styled(BootstrapLabel)`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  vertical-align: middle;
 
   &:first-of-type {
     margin-left: 0;
