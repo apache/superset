@@ -63,13 +63,17 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   );
   const [owners, setOwners] = useState<OptionsType<OwnerOption> | null>(null);
 
-  function showError({ error, statusText }: any) {
+  function showError({ error, statusText, message }: any) {
+    let errorText = error || statusText || t('An error has occurred');
+    if (message === 'Forbidden') {
+      errorText = t('You do not have permission to edit this chart');
+    }
     errorDialog.current.show({
       title: 'Error',
       bsSize: 'medium',
       bsStyle: 'danger',
       actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-      body: error || statusText || t('An error has occurred'),
+      body: errorText,
     });
   }
 
