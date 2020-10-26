@@ -38,7 +38,7 @@ import ListView, {
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import Chart, { Slice } from 'src/types/Chart';
+import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
 
