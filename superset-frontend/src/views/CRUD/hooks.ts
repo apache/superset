@@ -21,9 +21,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
-import { Slice } from 'src/explore/components/PropertiesModal';
 import { FetchDataConfig } from 'src/components/ListView';
-import Chart from 'src/types/Chart';
+import Chart, { Slice } from 'src/types/Chart';
 import { FavoriteStatus } from './types';
 
 interface ListViewResourceState<D extends object = any> {

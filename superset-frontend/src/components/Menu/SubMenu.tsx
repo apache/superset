@@ -131,7 +131,7 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
                     key={`${tab.label}`}
                   >
                     <div>
-                      <Link to={tab.url}>{tab.label}</Link>
+                      <Link to={tab.url || ''}>{tab.label}</Link>
                     </div>
                   </li>
                 );

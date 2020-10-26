@@ -202,8 +202,8 @@ function ListViewCard({
             <a href={url}>
               <div className="gradient-container">
                 <ImageLoader
-                  src={imgURL}
-                  fallback={imgFallbackURL}
+                  src={imgURL || ''}
+                  fallback={imgFallbackURL || ''}
                   isLoading={loading}
                   position={imgPosition}
                 />
