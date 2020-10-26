@@ -108,7 +108,7 @@ export default function Modal({
   disablePrimaryButton = false,
   onHide,
   onHandledPrimaryAction,
-  primaryButtonName = 'OK',
+  primaryButtonName = t('OK'),
   primaryButtonType = 'primary',
   show,
   title,
