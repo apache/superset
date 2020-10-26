@@ -30,6 +30,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
+from ..exceptions import NoDataException
 from .helpers import (
     config,
     get_example_data,
@@ -42,7 +43,7 @@ from .helpers import (
 
 admin = security_manager.find_user("admin")
 if admin is None:
-    raise Exception(
+    raise NoDataException(
         "Admin user does not exist. "
         "Please, check if test users are properly loaded "
         "(`superset load_test_users`)."
