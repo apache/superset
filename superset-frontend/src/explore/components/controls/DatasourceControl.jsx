@@ -18,28 +18,18 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  Col,
-  Collapse,
-  DropdownButton,
-  MenuItem,
-  OverlayTrigger,
-  Row,
-  Tooltip,
-  Well,
-} from 'react-bootstrap';
+import { Col, Collapse, Row, Well } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
-import TooltipWrapper from 'src/components/TooltipWrapper';
-
+import { Dropdown, Menu } from 'src/common/components';
+import Tooltip from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import Label from 'src/components/Label';
 
 import ControlHeader from '../ControlHeader';
-import './DatasourceControl.less';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -58,18 +48,29 @@ const defaultProps = {
 };
 
 const Styles = styled.div`
-  #datasource_menu {
+  .ant-dropdown-trigger {
     margin-left: ${({ theme }) => theme.gridUnit}px;
     box-shadow: none;
     &:active {
       box-shadow: none;
     }
   }
+
   .btn-group .open .dropdown-toggle {
     box-shadow: none;
     &.button-default {
       background: none;
     }
+  }
+
+  i.angle {
+    color: ${({ theme }) => theme.colors.primary.base};
+  }
+
+  svg.datasource-modal-trigger {
+    color: ${({ theme }) => theme.colors.primary.base};
+    vertical-align: middle;
+    cursor: pointer;
   }
 `;
 
@@ -83,6 +84,10 @@ const ColumnsCol = styled(Col)`
     padding-left: 38px;
   }
 `;
+
+const CHANGE_DATASET = 'change_dataset';
+const EXPLORE_IN_SQL_LAB = 'explore_in_sql_lab';
+const EDIT_DATASET = 'edit_dataset';
 
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
@@ -98,6 +103,7 @@ class DatasourceControl extends React.PureComponent {
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.renderDatasource = this.renderDatasource.bind(this);
+    this.handleMenuItemClick = this.handleMenuItemClick.bind(this);
   }
 
   onDatasourceSave(datasource) {
@@ -123,6 +129,15 @@ class DatasourceControl extends React.PureComponent {
     this.setState(({ showEditDatasourceModal }) => ({
       showEditDatasourceModal: !showEditDatasourceModal,
     }));
+  }
+
+  handleMenuItemClick({ key }) {
+    if (key === CHANGE_DATASET) {
+      this.toggleChangeDatasourceModal();
+    }
+    if (key === EDIT_DATASET) {
+      this.toggleEditDatasourceModal();
+    }
   }
 
   renderDatasource() {
@@ -176,18 +191,32 @@ class DatasourceControl extends React.PureComponent {
       showDatasource,
     } = this.state;
     const { datasource, onChange, value } = this.props;
+
+    const datasourceMenu = (
+      <Menu onClick={this.handleMenuItemClick}>
+        <Menu.Item key={CHANGE_DATASET}>{t('Change Dataset')}</Menu.Item>
+        <Menu.Item key={EXPLORE_IN_SQL_LAB}>
+          <a
+            href={`/superset/sqllab?datasourceKey=${value}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('Explore in SQL Lab')}
+          </a>
+        </Menu.Item>
+        {this.props.isEditable && (
+          <Menu.Item key={EDIT_DATASET} data-test="edit-dataset">
+            {t('Edit Dataset')}
+          </Menu.Item>
+        )}
+      </Menu>
+    );
+
     return (
       <Styles className="DatasourceControl">
         <ControlHeader {...this.props} />
         <div>
-          <OverlayTrigger
-            placement="top"
-            overlay={
-              <Tooltip id="toggle-dataset-tooltip">
-                {t('Expand/collapse dataset configuration')}
-              </Tooltip>
-            }
-          >
+          <Tooltip title={t('Expand/collapse dataset configuration')}>
             <Label
               style={{ textTransform: 'none' }}
               onClick={this.toggleShowDatasource}
@@ -199,43 +228,20 @@ class DatasourceControl extends React.PureComponent {
                 }`}
               />
             </Label>
-          </OverlayTrigger>
-          <TooltipWrapper
-            label="change-datasource"
-            tooltip={t('More dataset related options')}
-            trigger={['hover']}
+          </Tooltip>
+          <Dropdown
+            overlay={datasourceMenu}
+            trigger={['click']}
+            data-test="datasource-menu"
           >
-            <DropdownButton
-              title={<Icon name="more-horiz" />}
-              className=""
-              bsSize="sm"
-              id="datasource_menu"
-              data-test="datasource-menu"
-            >
-              <MenuItem eventKey="3" onClick={this.toggleChangeDatasourceModal}>
-                {t('Change Dataset')}
-              </MenuItem>
-              {datasource.type === 'table' && (
-                <MenuItem
-                  eventKey="3"
-                  href={`/superset/sqllab?datasourceKey=${value}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t('Explore in SQL Lab')}
-                </MenuItem>
-              )}
-              {this.props.isEditable && (
-                <MenuItem
-                  data-test="edit-dataset"
-                  eventKey="3"
-                  onClick={this.toggleEditDatasourceModal}
-                >
-                  {t('Edit Dataset')}
-                </MenuItem>
-              )}
-            </DropdownButton>
-          </TooltipWrapper>
+            <Tooltip title={t('More dataset related options')}>
+              <Icon
+                className="datasource-modal-trigger"
+                data-test="datasource-menu-trigger"
+                name="more-horiz"
+              />
+            </Tooltip>
+          </Dropdown>
         </div>
         <Collapse in={this.state.showDatasource}>
           {this.renderDatasource()}

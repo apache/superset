@@ -558,7 +558,7 @@ class SqlEditor extends React.PureComponent {
         </div>
         <div className="rightItems">
           <Button
-            className="autocomplete"
+            data-test="autocomplete"
             buttonSize="small"
             onClick={this.handleToggleAutocompleteEnabled}
           >

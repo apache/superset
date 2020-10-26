@@ -19,12 +19,13 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select } from '@storybook/addon-knobs';
+import Button from 'src/components/Button';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import AntdPopover from './Popover';
+import AntdTooltip from './Tooltip';
 import { Menu } from '.';
 import { Dropdown } from './Dropdown';
-import Button from '../../components/Button';
 
 export default {
   title: 'Common Components',
@@ -145,4 +146,32 @@ export const Popover = () => (
   >
     <Button>TRIGGER</Button>
   </AntdPopover>
+);
+
+export const Tooltip = () => (
+  <AntdTooltip
+    title="This is a Tooltip"
+    trigger={select('Trigger', ['click', 'hover', 'focus'], 'click')}
+    placement={select(
+      'Placement',
+      [
+        'topLeft',
+        'top',
+        'topRight',
+        'leftTop',
+        'left',
+        'leftBottom',
+        'rightTop',
+        'right',
+        'rightBottom',
+        'bottomLeft',
+        'bottom',
+        'bottomRight',
+      ],
+      'topLeft',
+    )}
+    arrowPointAtCenter={boolean('Arrow point at center', false)}
+  >
+    <Button>A button with tooltip</Button>
+  </AntdTooltip>
 );

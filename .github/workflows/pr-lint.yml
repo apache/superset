@@ -12,7 +12,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: morrisoncole/pr-lint-action@v1.3.0
+      - uses: morrisoncole/pr-lint-action@v1.4.1
         with:
           title-regex: "^(build|chore|ci|docs|feat|fix|perf|refactor|style|test|other)((.+))?:\\s.+"
           on-failed-regex-fail-action: true

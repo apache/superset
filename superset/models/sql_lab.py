@@ -23,6 +23,8 @@ import simplejson as json
 import sqlalchemy as sqla
 from flask import Markup
 from flask_appbuilder import Model
+from flask_appbuilder.models.decorators import renders
+from humanize import naturaltime
 from sqlalchemy import (
     Boolean,
     Column,
@@ -181,6 +183,8 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportMixin):
         foreign_keys=[db_id],
         backref=backref("saved_queries", cascade="all, delete-orphan"),
     )
+    rows = Column(Integer, nullable=True)
+    last_run = Column(DateTime, nullable=True)
 
     export_parent = "database"
     export_fields = [
@@ -218,6 +222,18 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportMixin):
     @property
     def sql_tables(self) -> List[Table]:
         return list(ParsedQuery(self.sql).tables)
+
+    @property
+    def last_run_humanized(self) -> str:
+        return naturaltime(datetime.now() - self.changed_on)
+
+    @property
+    def _last_run_delta_humanized(self) -> str:
+        return naturaltime(datetime.now() - self.changed_on)
+
+    @renders("changed_on")
+    def last_run_delta_humanized(self) -> str:
+        return self._last_run_delta_humanized
 
 
 class TabState(Model, AuditMixinNullable, ExtraJSONMixin):

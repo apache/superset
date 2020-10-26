@@ -49,7 +49,9 @@ const propTypes = {
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
-  owners: PropTypes.arrayOf(PropTypes.string),
+  owners: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  ),
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,

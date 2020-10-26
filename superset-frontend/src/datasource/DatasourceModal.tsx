@@ -83,15 +83,16 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 
   const onConfirmSave = () => {
     // Pull out extra fields into the extra object
-
+    const schema =
+      currentDatasource.schema ||
+      currentDatasource.databaseSelector?.schema ||
+      currentDatasource.tableSelector?.schema;
     SupersetClient.post({
       endpoint: '/datasource/save/',
       postPayload: {
         data: {
           ...currentDatasource,
-          schema:
-            currentDatasource.databaseSelector?.schema ||
-            currentDatasource.tableSelector?.schema,
+          schema,
           metrics: currentDatasource?.metrics?.map(
             (metric: Record<string, unknown>) => ({
               ...metric,
