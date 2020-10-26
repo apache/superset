@@ -50,13 +50,17 @@ describe('AdhocFilters', () => {
   });
 
   it('Set simple adhoc filter', () => {
-    cy.get('#filter-edit-popover').within(() => {
-      cy.get('[data-test=adhoc-filter-simple-value]').within(() => {
-        cy.get('.Select__control').click();
-        cy.get('input[type=text]').focus().type('Any{enter}');
-      });
-      cy.get('button').contains('Save').click();
-    });
+    cy.get('[data-test=adhoc-filter-simple-value] .Select__control').click();
+    cy.get('[data-test=adhoc-filter-simple-value] input[type=text]')
+      .focus()
+      .type('Jack{enter}', { delay: 20 });
+
+    cy.get('[data-test="adhoc-filter-edit-popover-save-button"]').click();
+
+    cy.get(
+      '[data-test=adhoc_filters] .Select__control span.option-label',
+    ).contains('name = Jack');
+
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
@@ -65,26 +69,34 @@ describe('AdhocFilters', () => {
   });
 
   it('Set custom adhoc filter', () => {
-    cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    const filterType = 'name';
+    const filterContent = "'Amy' OR name = 'Donald'";
 
     cy.get('[data-test=adhoc_filters] .Select__control')
       .scrollIntoView()
       .click();
+
+    // remove previous input
     cy.get('[data-test=adhoc_filters] input[type=text]')
       .focus()
-      .type('name{enter}', { delay: 20 });
-    cy.get('[data-test="adhoc_filters"]').within(() => {
-      cy.contains('name = ').should('be.visible').click();
-    });
+      .type('{backspace}');
+
+    cy.get('[data-test=adhoc_filters] input[type=text]')
+      .focus()
+      .type(`${filterType}{enter}`);
+
     cy.wait('@filterValues');
 
+    // selecting a new filter should auto-open the popup,
+    // so the tabshould be visible by now
     cy.get('#filter-edit-popover #adhoc-filter-edit-tabs-tab-SQL').click();
     cy.get('#filter-edit-popover .ace_content').click();
-    cy.get('#filter-edit-popover .ace_text-input').type(
-      "'Amy' OR name = 'Bob'",
-    );
-    cy.get('#filter-edit-popover button').contains('Save').click();
+    cy.get('#filter-edit-popover .ace_text-input').type(filterContent);
+    cy.get('[data-test="adhoc-filter-edit-popover-save-button"]').click();
+
+    cy.get(
+      '[data-test=adhoc_filters] .Select__control span.option-label',
+    ).contains(`${filterType} = ${filterContent}`);
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({

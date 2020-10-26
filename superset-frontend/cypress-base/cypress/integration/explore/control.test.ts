@@ -152,45 +152,6 @@ describe('Time range filter', () => {
   });
 });
 
-describe('AdhocFilter control', () => {
-  beforeEach(() => {
-    cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
-  });
-
-  it('Sets an adhoc filter', () => {
-    const filterType = 'gender';
-    const filterValue = 'boy or girl';
-
-    cy.visitChartByName('Participants');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
-
-    cy.get('[data-test=adhoc-filter-control]').within(() => {
-      cy.wait(1000);
-      cy.get('input[type=text]').focus().type(`${filterType}{enter}`);
-    });
-
-    cy.get('[data-test="filter-edit-popover"]').should('be.visible');
-    cy.get('[data-test="filter-edit-popover"]').within(() => {
-      cy.get('[data-test="adhoc-filter-edit-tabs"]').within(() => {
-        cy.get('#adhoc-filter-edit-tabs-tab-SQL').click();
-      });
-      cy.wait(1000);
-      cy.get('textarea.ace_text-input').focus().type(`${filterValue}`);
-      cy.get('[data-test="adhoc-filter-edit-popover-save-button"]').click();
-    });
-
-    cy.get('[data-test="filter-edit-popover"]').should('not.be.visible');
-    cy.get('[data-test="adhoc-filter-control"]').within(() => {
-      cy.get('.Select__control').within(() => {
-        cy.get('span.option-label').contains(`${filterType} = ${filterValue}`);
-      });
-    });
-  });
-});
-
 describe('Groupby control', () => {
   it('Set groupby', () => {
     cy.server();
