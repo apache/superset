@@ -46,6 +46,7 @@ const propTypes = {
   ]),
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
+  isLoading: PropTypes.bool,
   multi: PropTypes.bool,
   clearable: PropTypes.bool,
   datasourceType: PropTypes.string,
@@ -335,6 +336,7 @@ export default class MetricsControl extends React.PureComponent {
       <div className="metrics-select">
         <ControlHeader {...this.props} />
         <OnPasteSelect
+          isLoading={this.props.isLoading}
           isMulti={this.props.multi}
           name={`select-${this.props.name}`}
           placeholder={t('choose a column or aggregate function')}

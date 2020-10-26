@@ -39,7 +39,6 @@ import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricsControl';
 import AdhocFilterControl from './AdhocFilterControl';
 import FilterBoxItemControl from './FilterBoxItemControl';
-import withVerification from './withVerification';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -65,20 +64,5 @@ const controlMap = {
   MetricsControl,
   AdhocFilterControl,
   FilterBoxItemControl,
-  MetricsControlVerifiedOptions: withVerification(
-    MetricsControl,
-    'metric_name',
-    'savedMetrics',
-  ),
-  SelectControlVerifiedOptions: withVerification(
-    SelectControl,
-    'column_name',
-    'options',
-  ),
-  AdhocFilterControlVerifiedOptions: withVerification(
-    AdhocFilterControl,
-    'column_name',
-    'columns',
-  ),
 };
 export default controlMap;
