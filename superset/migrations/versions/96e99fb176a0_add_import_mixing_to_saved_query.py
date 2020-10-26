@@ -23,18 +23,18 @@ Create Date: 2020-10-21 21:09:55.945956
 """
 
 import os
-import time
 from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.mysql.base import MySQLDialect
-from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import UUIDType
 
 from superset import db
+from superset.migrations.versions.b56500de1855_add_uuid_column_to_import_mixin import (
+    add_uuids,
+)
 
 # revision identifiers, used by Alembic.
 revision = "96e99fb176a0"
@@ -55,47 +55,6 @@ class SavedQuery(Base, ImportMixin):
 
 default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 
-# Add uuids directly using built-in SQL uuid function
-add_uuids_by_dialect = {
-    MySQLDialect: """UPDATE saved_query SET uuid = UNHEX(REPLACE(uuid(), "-", ""));""",
-    PGDialect: """UPDATE saved_query SET uuid = uuid_in(md5(random()::text || clock_timestamp()::text)::cstring);""",
-}
-
-
-def add_uuids(session, batch_size=default_batch_size):
-    """Populate columns with pre-computed uuids"""
-    bind = op.get_bind()
-    objects_query = session.query(SavedQuery)
-    count = objects_query.count()
-
-    # Silently skip if the table is empty (suitable for db initialization)
-    if count == 0:
-        return
-
-    print(f"\nAdding uuids for `saved_query`...")
-    start_time = time.time()
-
-    # Use dialect specific native SQL queries if possible
-    for dialect, sql in add_uuids_by_dialect.items():
-        if isinstance(bind.dialect, dialect):
-            op.execute(sql)
-            print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.")
-            return
-
-    # Otherwise use Python uuid function
-    start = 0
-    while start < count:
-        end = min(start + batch_size, count)
-        for obj, uuid in map(lambda obj: (obj, uuid4()), objects_query[start:end]):
-            obj.uuid = uuid
-            session.merge(obj)
-        session.commit()
-        if start + batch_size < count:
-            print(f"  uuid assigned to {end} out of {count}\r", end="")
-        start += batch_size
-
-    print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.")
-
 
 def upgrade():
     bind = op.get_bind()
@@ -113,7 +72,7 @@ def upgrade():
         # Ignore column update errors so that we can run upgrade multiple times
         pass
 
-    add_uuids(session)
+    add_uuids(SavedQuery, "saved_query", session)
 
     try:
         # Add uniqueness constraint
