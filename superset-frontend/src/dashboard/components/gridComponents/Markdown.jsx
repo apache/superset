@@ -105,6 +105,7 @@ class Markdown extends React.PureComponent {
     this.handleChangeEditorMode = this.handleChangeEditorMode.bind(this);
     this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
+    this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
   }
 
@@ -203,24 +204,27 @@ class Markdown extends React.PureComponent {
       ...this.state,
       editorMode: mode,
     };
-
     if (mode === 'preview') {
-      const { updateComponents, component } = this.props;
-      if (component.meta.code !== this.state.markdownSource) {
-        updateComponents({
-          [component.id]: {
-            ...component,
-            meta: {
-              ...component.meta,
-              code: this.state.markdownSource,
-            },
-          },
-        });
-      }
+      this.updateMarkdownContent();
       nextState.hasError = false;
     }
 
     this.setState(nextState);
+  }
+
+  updateMarkdownContent() {
+    const { updateComponents, component } = this.props;
+    if (component.meta.code !== this.state.markdownSource) {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            code: this.state.markdownSource,
+          },
+        },
+      });
+    }
   }
 
   handleMarkdownChange(nextValue) {
@@ -232,6 +236,16 @@ class Markdown extends React.PureComponent {
   handleDeleteComponent() {
     const { deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
+  }
+
+  handleResizeStart(e) {
+    const { editorMode } = this.state;
+    const { editMode, onResizeStart } = this.props;
+    const isEditing = editorMode === 'edit';
+    onResizeStart(e);
+    if (editMode && isEditing) {
+      this.updateMarkdownContent();
+    }
   }
 
   renderEditMode() {
@@ -286,7 +300,6 @@ class Markdown extends React.PureComponent {
       depth,
       availableColumnCount,
       columnWidth,
-      onResizeStart,
       onResize,
       onResizeStop,
       handleComponentDrop,
@@ -343,11 +356,9 @@ class Markdown extends React.PureComponent {
                 minWidthMultiple={GRID_MIN_COLUMN_COUNT}
                 minHeightMultiple={GRID_MIN_ROW_UNITS}
                 maxWidthMultiple={availableColumnCount + widthMultiple}
-                onResizeStart={onResizeStart}
+                onResizeStart={this.handleResizeStart}
                 onResize={onResize}
                 onResizeStop={onResizeStop}
-                // disable resize when editing because if state is not synced
-                // with props it will reset the editor text to whatever props is
                 editMode={isFocused ? false : editMode}
               >
                 <div
