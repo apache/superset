@@ -183,8 +183,7 @@ export default function DatabaseSelector({
   function renderDatabaseOption(db: any) {
     return (
       <span title={db.database_name}>
-        <Label bsStyle="default">{db.backend}</Label>
-        {db.database_name}
+        <Label bsStyle="default">{db.backend}</Label> {db.database_name}
       </span>
     );
   }
