@@ -241,10 +241,14 @@ function SavedQueryList({
         Header: t('Name'),
       },
       {
-        id: 'database',
         accessor: 'database.database_name',
         Header: t('Database'),
         size: 'xl',
+      },
+      {
+        accessor: 'database',
+        hidden: true,
+        disableSortBy: true,
       },
       {
         accessor: 'schema',
