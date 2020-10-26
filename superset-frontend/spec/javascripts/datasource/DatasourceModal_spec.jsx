@@ -62,7 +62,7 @@ async function mountAndWait(props = mockedProps) {
 
 describe('DatasourceModal', () => {
   let wrapper;
-  let isFeatureEnabledMock
+  let isFeatureEnabledMock;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
       .spyOn(featureFlags, 'isFeatureEnabled')
@@ -108,13 +108,15 @@ describe('DatasourceModal', () => {
   });
 
   it('renders a legacy data source btn', () => {
-    expect(wrapper.find('button[data-test="datasource-modal-legacy-edit"]')).toExist();
+    expect(
+      wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
+    ).toExist();
   });
 });
 
 describe('DatasourceModal without legacy data btn', () => {
   let wrapper;
-  let isFeatureEnabledMock
+  let isFeatureEnabledMock;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
       .spyOn(featureFlags, 'isFeatureEnabled')
@@ -131,6 +133,8 @@ describe('DatasourceModal without legacy data btn', () => {
     isFeatureEnabledMock = jest
       .spyOn(featureFlags, 'isFeatureEnabled')
       .mockReturnValue(false);
-    expect(wrapper.find('button[data-test="datasource-modal-legacy-edit"]')).not.toExist();
+    expect(
+      wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
+    ).not.toExist();
   });
-})
+});
