@@ -94,6 +94,7 @@ describe('AdhocFilters', () => {
     cy.get('#filter-edit-popover .ace_text-input').type(filterContent);
     cy.get('[data-test="adhoc-filter-edit-popover-save-button"]').click();
 
+    // check if the filter was saved correctly
     cy.get(
       '[data-test=adhoc_filters] .Select__control span.option-label',
     ).contains(`${filterType} = ${filterContent}`);
