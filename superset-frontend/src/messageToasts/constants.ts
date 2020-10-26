@@ -16,33 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../../stylesheets/less/variables.less';
+// Toast types
+import { ToastType } from './types';
 
-#datasource_menu {
-  border-radius: @border-radius-normal;
-  padding: 0px;
-  border: none;
-}
+export { ToastType } from './types';
 
-#datasource_menu .caret {
-  position: relative;
-  padding-right: 8px;
-  margin-left: 4px;
-  color: @lightest;
-  top: -8px;
-}
-
-#datasource_menu .caret {
-  display: none;
-}
-#datasource_menu:hover {
-  background-color: transparent;
-}
-.DatasourceControl svg {
-  vertical-align: middle;
-  color: @brand-primary;
-  cursor: pointer;
-}
-.DatasourceControl .angle {
-  color: @brand-primary;
-}
+// for backward compatibility
+export const INFO_TOAST = ToastType.INFO;
+export const SUCCES_TOAST = ToastType.SUCCESS;
+export const WARNING_TOAST = ToastType.WARNING;
+export const DANGER_TOAST = ToastType.DANGER;

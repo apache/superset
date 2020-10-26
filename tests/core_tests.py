@@ -199,11 +199,16 @@ class TestCore(SupersetTestCase):
         self.assertIn("id", resp_annotations["result"][0])
         self.assertIn("name", resp_annotations["result"][0])
 
-        layer = self.get_resp(
+        response = self.get_resp(
             f"/superset/annotation_json/{layer.id}?form_data="
             + quote(json.dumps({"time_range": "100 years ago : now"}))
         )
-        self.assertIn("my_annotation", layer)
+        assert "my_annotation" in response
+
+        # Rollback changes
+        db.session.delete(annotation)
+        db.session.delete(layer)
+        db.session.commit()
 
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):

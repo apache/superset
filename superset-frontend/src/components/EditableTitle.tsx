@@ -56,7 +56,7 @@ export default function EditableTitle({
   const contentRef = useRef<any | HTMLInputElement | HTMLTextAreaElement>();
 
   useEffect(() => {
-    if (currentTitle !== lastTitle) {
+    if (title !== currentTitle) {
       setLastTitle(currentTitle);
       setCurrentTitle(title);
     }

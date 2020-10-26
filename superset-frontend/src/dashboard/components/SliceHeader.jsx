@@ -49,6 +49,7 @@ const propTypes = {
   filters: PropTypes.object.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   handleToggleFullSize: PropTypes.func.isRequired,
+  chartStatus: PropTypes.string.isRequired,
 };
 
 const defaultProps = {
@@ -100,6 +101,7 @@ class SliceHeader extends React.PureComponent {
       addDangerToast,
       handleToggleFullSize,
       isFullSize,
+      chartStatus,
     } = this.props;
 
     return (
@@ -158,6 +160,7 @@ class SliceHeader extends React.PureComponent {
                 addDangerToast={addDangerToast}
                 handleToggleFullSize={handleToggleFullSize}
                 isFullSize={isFullSize}
+                chartStatus={chartStatus}
               />
             </>
           )}

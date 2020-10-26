@@ -16,45 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import readResponseBlob from '../../utils/readResponseBlob';
+
+import shortid from 'shortid';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
-describe('Dashboard save action', () => {
-  let dashboardId;
+function openDashboardEditProperties() {
+  cy.get('.dashboard-header [data-test=edit-alt]').click();
+  cy.get('#save-dash-split-button').trigger('click', { force: true });
+  cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
+}
 
+describe('Dashboard save action', () => {
   beforeEach(() => {
     cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-
-    cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
-      dashboardId = dashboard.id;
-      cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
-    });
-
-    cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
-    cy.get('[data-test="save-as-menu-item"]').trigger('click', { force: true });
-    cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
-      force: true,
-    });
   });
 
   it('should save as new dashboard', () => {
-    cy.wait('@copyRequest').then(xhr => {
-      expect(xhr.status).to.eq(200);
-      readResponseBlob(xhr.response.body).then(json => {
-        expect(json.id).to.be.gt(dashboardId);
+    cy.get('#app').then(data => {
+      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
+      const dashboard = bootstrapData.dashboard_data;
+      const dashboardId = dashboard.id;
+      cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
+
+      cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
+      cy.get('[data-test="save-as-menu-item"]').trigger('click', {
+        force: true,
+      });
+      cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
+        force: true,
       });
     });
   });
 
   it('should save/overwrite dashboard', () => {
-    // should have box_plot chart
     cy.get('[data-test="grid-row-background--transparent"]').within(() => {
       cy.get('.box_plot', { timeout: 10000 }).should('be.visible');
     });
+    // should load chart
+    cy.get('.dashboard-grid', { timeout: 50000 }); // wait for 50 secs
 
     // remove box_plot chart from dashboard
     cy.get('[data-test="edit-alt"]').click({ timeout: 5000 });
@@ -79,5 +80,64 @@ describe('Dashboard save action', () => {
     cy.get('[data-test="grid-container"]')
       .find('.box_plot', { timeout: 20000 })
       .should('not.be.visible');
+  });
+
+  it('should save after edit', () => {
+    cy.get('.dashboard-grid', { timeout: 50000 }) // wait for 50 secs to load dashboard
+      .then(() => {
+        const dashboardTitle = `Test dashboard [${shortid.generate()}]`;
+
+        openDashboardEditProperties();
+
+        // open color scheme dropdown
+        cy.get('.modal-body')
+          .contains('Color Scheme')
+          .parents('.ControlHeader')
+          .next('.Select')
+          .click()
+          .then($colorSelect => {
+            // select a new color scheme
+            cy.wrap($colorSelect)
+              .find('.Select__option')
+              .first()
+              .next()
+              .click();
+          });
+
+        // remove json metadata
+        cy.get('.modal-body')
+          .contains('Advanced')
+          .click()
+          .then(() => {
+            cy.get('#json_metadata').type('{selectall}{backspace}');
+          });
+
+        // update title
+        cy.get('.modal-body')
+          .contains('Title')
+          .siblings('input')
+          .type(`{selectall}{backspace}${dashboardTitle}`);
+
+        // save edit changes
+        cy.get('.modal-footer')
+          .contains('Save')
+          .click()
+          .then(() => {
+            // assert that modal edit window has closed
+            cy.get('.modal-body').should('not.exist');
+
+            // save dashboard changes
+            cy.get('.dashboard-header').contains('Save').click();
+
+            // assert success flash
+            cy.contains('saved successfully').should('be.visible');
+
+            // assert title has been updated
+            cy.get('.editable-title input').should(
+              'have.value',
+              dashboardTitle,
+            );
+          });
+      });
   });
 });

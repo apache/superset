@@ -16,24 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
+import React from 'react';
+import { Tooltip as BaseTooltip } from 'src/common/components';
+import { TooltipProps } from 'antd/lib/tooltip';
 
-import {
-  INFO_TOAST,
-  SUCCESS_TOAST,
-  WARNING_TOAST,
-  DANGER_TOAST,
-} from './constants';
+const Tooltip = (props: TooltipProps) => (
+  <BaseTooltip overlayStyle={{ fontSize: '12px' }} {...props} />
+);
 
-// eslint-disable-next-line import/prefer-default-export
-export const toastShape = PropTypes.shape({
-  id: PropTypes.string.isRequired,
-  toastType: PropTypes.oneOf([
-    INFO_TOAST,
-    SUCCESS_TOAST,
-    WARNING_TOAST,
-    DANGER_TOAST,
-  ]).isRequired,
-  text: PropTypes.string.isRequired,
-  duration: PropTypes.number,
-});
+export default Tooltip;

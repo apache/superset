@@ -17,6 +17,7 @@
 # isort:skip_file
 
 import json
+import logging
 from typing import Iterator, List, Tuple
 
 import yaml
@@ -26,6 +27,8 @@ from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.dao import DatabaseDAO
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
 from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
 
 
 class ExportDatabasesCommand(BaseCommand):
@@ -37,8 +40,8 @@ class ExportDatabasesCommand(BaseCommand):
 
     @staticmethod
     def export_database(database: Database) -> Iterator[Tuple[str, str]]:
-        name = sanitize(database.database_name)
-        file_name = f"databases/{name}.yaml"
+        database_slug = sanitize(database.database_name)
+        file_name = f"databases/{database_slug}.yaml"
 
         payload = database.export_to_dict(
             recursive=False,
@@ -52,18 +55,16 @@ class ExportDatabasesCommand(BaseCommand):
             try:
                 payload["extra"] = json.loads(payload["extra"])
             except json.decoder.JSONDecodeError:
-                pass
+                logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
         payload["version"] = IMPORT_EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
 
-        # TODO (betodealmeida): reuse logic from ExportDatasetCommand once
-        # it's implemented
         for dataset in database.tables:
-            name = sanitize(dataset.table_name)
-            file_name = f"datasets/{name}.yaml"
+            dataset_slug = sanitize(dataset.table_name)
+            file_name = f"datasets/{database_slug}/{dataset_slug}.yaml"
 
             payload = dataset.export_to_dict(
                 recursive=True,

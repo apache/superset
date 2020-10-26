@@ -193,7 +193,11 @@ class HeaderActionsDropdown extends React.PureComponent {
           isMenuItem
           triggerNode={<span>{t('Share dashboard')}</span>}
         />
-        <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
+        <MenuItem
+          data-test="refresh-dashboard-menu-item"
+          onClick={forceRefreshAllCharts}
+          disabled={isLoading}
+        >
           {t('Refresh dashboard')}
         </MenuItem>
         <MenuItem divider />

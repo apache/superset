@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
 import { Tabs as AntdTabs } from 'src/common/components';
-import { css } from '@emotion/core';
-import Icon from '../../components/Icon';
+import Icon from 'src/components/Icon';
 
 interface TabsProps {
   fullWidth?: boolean;
@@ -52,7 +51,10 @@ const StyledTabs = styled(AntdTabs, {
     `};
 
   .ant-tabs-tab-btn {
+    display: flex;
     flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     text-align: center;
     text-transform: uppercase;

@@ -45,6 +45,7 @@ screenshot_query_schema = {
         "thumb_size": width_height_schema,
     },
 }
+get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 #
 # Column schema descriptions

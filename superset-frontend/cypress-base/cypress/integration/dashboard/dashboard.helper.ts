@@ -45,3 +45,14 @@ export function drag(selector: string, content: string | number | RegExp) {
     },
   };
 }
+
+export function resize(selector: string) {
+  return {
+    to(cordX: number, cordY: number) {
+      cy.get(selector)
+        .trigger('mousedown', { which: 1 })
+        .trigger('mousemove', { which: 1, cordX, cordY, force: true })
+        .trigger('mouseup', { which: 1, force: true });
+    },
+  };
+}
