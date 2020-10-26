@@ -185,6 +185,7 @@ def load_deck_dash() -> None:
         "max_radius": 250,
         "row_limit": 5000,
         "time_range": " : ",
+        "time_range_endpoints": ["inclusive", "exclusive"],
         "size": "count",
         "time_grain_sqla": None,
         "viewport": {
