@@ -17,20 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-
 import configureStore from 'redux-mock-store';
+
 import ChartTable from 'src/views/CRUD/welcome/ChartTable';
-import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
-// store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
+const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 
 const mockCharts = [...new Array(3)].map((_, i) => ({
   changed_on_utc: new Date().toISOString(),
@@ -40,31 +39,41 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   url: 'url',
   viz_type: 'bar',
   datasource_title: `ds${i}`,
-  thumbnail_url: '/thumbnail',
+  thumbnail_url: '',
 }));
 
 fetchMock.get(chartsEndpoint, {
   result: mockCharts,
 });
 
-describe('ChartTable', () => {
-  beforeEach(fetchMock.resetHistory);
+fetchMock.get(chartsInfoEndpoint, {
+  permissions: ['can_add', 'can_edit', 'can_delete'],
+});
 
-  const mockedProps = {};
+describe('ChartTable', () => {
+  const mockedProps = {
+    user: {
+      userId: '2',
+    },
+  };
   const wrapper = mount(<ChartTable {...mockedProps} />, {
     context: { store },
   });
-
-  beforeAll(async () => {
-    await waitForComponentToPaint(wrapper);
-  });
-
   it('it renders', () => {
     expect(wrapper.find(ChartTable)).toExist();
   });
 
-  it('fetches chart favorites and renders chart cards ', () => {
+  it('fetches chart favorites and renders chart cards ', async () => {
     expect(fetchMock.calls(chartsEndpoint)).toHaveLength(1);
-    expect(wrapper.find(ChartCard)).toExist();
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find('ChartCard')).toExist();
+  });
+
+  it('display EmptyState if there is no data', () => {
+    fetchMock.resetHistory();
+    const wrapper = mount(<ChartTable {...mockedProps} />, {
+      context: { store },
+    });
+    expect(wrapper.find('EmptyState')).toExist();
   });
 });

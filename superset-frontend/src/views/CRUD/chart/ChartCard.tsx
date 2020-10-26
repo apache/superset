@@ -59,7 +59,6 @@ export default function ChartCard({
     FAVESTAR_BASE_URL,
     addDangerToast,
   );
-
   function handleChartDelete({ id, slice_name: sliceName }: Chart) {
     SupersetClient.delete({
       endpoint: `/api/v1/chart/${id}`,
@@ -117,7 +116,7 @@ export default function ChartCard({
       loading={loading}
       title={chart.slice_name}
       url={bulkSelectEnabled ? undefined : chart.url}
-      imgURL={chart.thumbnail_url ?? ''}
+      imgURL={chart.thumbnail_url || ''}
       imgFallbackURL="/static/assets/images/chart-card-fallback.png"
       description={t('Last modified %s', chart.changed_on_delta_humanized)}
       coverLeft={<FacePile users={chart.owners || []} />}

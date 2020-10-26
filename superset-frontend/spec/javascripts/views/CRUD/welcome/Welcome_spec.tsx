@@ -17,9 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-
+import { shallow } from 'enzyme';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
 import Welcome from 'src/views/CRUD/welcome/Welcome';
+
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 describe('Welcome', () => {
   const mockedProps = {
@@ -33,11 +37,15 @@ describe('Welcome', () => {
       isActive: true,
     },
   };
-  const wrapper = mount(<Welcome {...mockedProps} />);
-  it('is renders', () => {
-    expect(wrapper.find(Welcome)).toExist();
+  const wrapper = shallow(<Welcome {...mockedProps} />, {
+    context: { store },
   });
+
+  it('is renders', () => {
+    expect(wrapper).toExist();
+  });
+
   it('renders all panels on the page on page load', () => {
-    expect(wrapper.find('PanelContent')).toHaveLength(4);
+    expect(wrapper.find('CollapsePanel')).toHaveLength(4);
   });
 });

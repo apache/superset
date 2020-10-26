@@ -33,7 +33,7 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
-const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
+const dashboardInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
 const mockDashboards = [
   {
     id: 1,
@@ -44,7 +44,7 @@ const mockDashboards = [
 ];
 
 fetchMock.get(dashboardsEndpoint, { result: mockDashboards });
-fetchMock.get(chartsInfoEndpoint, {
+fetchMock.get(dashboardInfoEndpoint, {
   permissions: ['can_list', 'can_edit', 'can_delete'],
 });
 
@@ -86,6 +86,9 @@ describe('DashboardTable', () => {
 
   it('display EmptyState if there is no data', () => {
     fetchMock.resetHistory();
+    const wrapper = mount(<DashboardTable {...dashboardProps} />, {
+      context: { store },
+    });
     expect(wrapper.find('EmptyState')).toExist();
   });
 });

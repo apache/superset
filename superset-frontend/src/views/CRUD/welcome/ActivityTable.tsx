@@ -147,7 +147,7 @@ export default function ActivityTable({ user }: ActivityProps) {
     getRecentAcitivtyObjs(user.userId, recent)
       .then(res => {
         const data: any = {
-          Created: [...res.createdByChart, ...res.createdByDash],
+          Created: [...res.createdByChart, ...res.createdByDash, ...res.createdByQuery],
           Edited: [...res.editedChart, ...res.editedDash],
         };
         if (res.viewed) {

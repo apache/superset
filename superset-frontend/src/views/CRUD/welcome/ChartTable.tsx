@@ -51,7 +51,6 @@ function ChartTable({
     refreshData,
     fetchData,
   } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
-
   const {
     sliceCurrentlyEditing,
     openChartEditModal,
@@ -142,7 +141,7 @@ function ChartTable({
           },
         ]}
       />
-      {charts.length ? (
+      {charts?.length ? (
         <CardContainer>
           {charts.map(e => (
             <ChartCard

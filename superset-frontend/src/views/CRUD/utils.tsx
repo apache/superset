@@ -101,15 +101,26 @@ export const getRecentAcitivtyObjs = (
     SupersetClient.get({
       endpoint: `/api/v1/chart/?q=${getParams(filters.created)}`,
     }),
+    SupersetClient.get({
+      endpoint: `/api/v1/saved_query/?q=${getParams(filters.created)}`,
+    }),
   ];
   return Promise.all(baseBatch).then(
     // @ts-ignore
-    ([recentsRes, editedDash, editedChart, createdByDash, createdByChart]) => {
+    ([
+      recentsRes,
+      editedDash,
+      editedChart,
+      createdByDash,
+      createdByChart,
+      createdByQuery,
+    ]) => {
       const res: any = {
         editedDash: editedDash.json?.result.slice(0, 3),
         editedChart: editedChart.json?.result.slice(0, 3),
         createdByDash: createdByDash.json?.result.slice(0, 3),
         createdByChart: createdByChart.json?.result.slice(0, 3),
+        createdByQuery: createdByQuery.json?.result.slice(0, 3),
       };
       if (recentsRes.json.length === 0) {
         const newBatch = [

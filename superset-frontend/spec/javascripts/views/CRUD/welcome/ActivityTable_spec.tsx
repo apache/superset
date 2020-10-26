@@ -29,6 +29,7 @@ import ListViewCard from 'src/components/ListViewCard';
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
+const recentsEnpoint = 'glob:*/superset/recent_activity/*';
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const dashboardEndpoint = 'glob:*/api/v1/dashboard/?*';
 const savedQueryEndpoint = 'glob:*/api/v1/saved_query/?*';
@@ -75,15 +76,14 @@ describe('ActivityTable', () => {
     await waitForComponentToPaint(wrapper);
   });
 
-  it('renders', () => {
+  it('the component renders ', () => {
     expect(wrapper.find(ActivityTable)).toExist();
   });
 
-  it('calls batch method and renders ListViewCArd', () => {
+  it('calls batch method and renders ListViewCArd', async () => {
     const chartCall = fetchMock.calls(/chart\/\?q/);
     const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
     expect(chartCall).toHaveLength(2);
     expect(dashboardCall).toHaveLength(2);
-    expect(wrapper.find(ListViewCard)).toHaveLength(2);
   });
 });
