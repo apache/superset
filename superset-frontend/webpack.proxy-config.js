@@ -129,6 +129,10 @@ function processHTML(proxyResponse, response) {
     .on('data', data => {
       body = Buffer.concat([body, data]);
     })
+    .on('error', error => {
+      console.error(error);
+      response.end(`Error fetching proxied request: ${error.message}`);
+    })
     .on('end', () => {
       response.end(toDevHTML(body.toString()));
     });
