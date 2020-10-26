@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Popover from 'src/common/components/Popover';
-import { t, withTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import Label from 'src/components/Label';
@@ -44,12 +44,12 @@ const propTypes = {
 class AdhocFilterOption extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.closeFilterEditOverlay = this.closeFilterEditOverlay.bind(this);
     this.onPopoverResize = this.onPopoverResize.bind(this);
     this.onOverlayEntered = this.onOverlayEntered.bind(this);
     this.onOverlayExited = this.onOverlayExited.bind(this);
     this.handleVisibleChange = this.handleVisibleChange.bind(this);
-    this.state = { overlayShown: false };
+    this.getContent = this.getContent.bind(this);
+    this.state = { overlayShown: undefined };
   }
 
   onPopoverResize() {
@@ -60,7 +60,6 @@ class AdhocFilterOption extends React.PureComponent {
     // isNew is used to indicate whether to automatically open the overlay
     // once the overlay has been opened, the metric/filter will never be
     // considered new again.
-    this.props.adhocFilter.isNew = false;
     this.setState({ overlayShown: true });
   }
 
@@ -68,8 +67,20 @@ class AdhocFilterOption extends React.PureComponent {
     this.setState({ overlayShown: false });
   }
 
-  closeFilterEditOverlay() {
-    this.setState({ overlayShown: false });
+  getContent() {
+    const { adhocFilter } = this.props;
+    adhocFilter.isNew = false;
+    return (
+      <AdhocFilterEditPopover
+        onResize={this.onPopoverResize}
+        adhocFilter={adhocFilter}
+        onChange={this.props.onFilterEdit}
+        onClose={this.onOverlayExited}
+        options={this.props.options}
+        datasource={this.props.datasource}
+        partitionColumn={this.props.partitionColumn}
+      />
+    );
   }
 
   handleVisibleChange(visible) {
@@ -82,17 +93,7 @@ class AdhocFilterOption extends React.PureComponent {
 
   render() {
     const { adhocFilter } = this.props;
-    const content = (
-      <AdhocFilterEditPopover
-        onResize={this.onPopoverResize}
-        adhocFilter={adhocFilter}
-        onChange={this.props.onFilterEdit}
-        onClose={this.closeFilterEditOverlay}
-        options={this.props.options}
-        datasource={this.props.datasource}
-        partitionColumn={this.props.partitionColumn}
-      />
-    );
+
     return (
       <div
         role="button"
@@ -114,8 +115,7 @@ class AdhocFilterOption extends React.PureComponent {
         <Popover
           placement="right"
           trigger="click"
-          disabled
-          content={content}
+          content={this.getContent}
           defaultVisible={adhocFilter.isNew}
           visible={this.state.overlayShown}
           onVisibleChange={this.handleVisibleChange}
@@ -134,6 +134,6 @@ class AdhocFilterOption extends React.PureComponent {
   }
 }
 
-export default withTheme(AdhocFilterOption);
+export default AdhocFilterOption;
 
 AdhocFilterOption.propTypes = propTypes;
