@@ -27,12 +27,11 @@ function DashboardCard({
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canExport = hasPerm('can_mulexport');
-  const [
-    favoriteStatusRef,
-    fetchFaveStar,
-    saveFaveStar,
-    favoriteStatus,
-  ] = useFavoriteStatus({}, FAVESTAR_BASE_URL, addDangerToast);
+  const [, fetchFaveStar, saveFaveStar, favoriteStatus] = useFavoriteStatus(
+    {},
+    FAVESTAR_BASE_URL,
+    addDangerToast,
+  );
 
   function handleDashboardDelete({
     id,

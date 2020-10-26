@@ -54,12 +54,11 @@ export default function ChartCard({
 }: ChartCardProps) {
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
-  const [
-    favoriteStatusRef,
-    fetchFaveStar,
-    saveFaveStar,
-    favoriteStatus,
-  ] = useFavoriteStatus({}, FAVESTAR_BASE_URL, addDangerToast);
+  const [, fetchFaveStar, saveFaveStar, favoriteStatus] = useFavoriteStatus(
+    {},
+    FAVESTAR_BASE_URL,
+    addDangerToast,
+  );
 
   function handleChartDelete({ id, slice_name: sliceName }: Chart) {
     SupersetClient.delete({

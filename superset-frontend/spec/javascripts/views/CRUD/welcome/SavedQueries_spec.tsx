@@ -90,12 +90,11 @@ describe('SavedQueries', () => {
   it('it renders a submenu with clickable tables and buttons', async () => {
     expect(wrapper.find(SubMenu)).toExist();
     expect(wrapper.find('MenuItem')).toHaveLength(2);
-    console.log('button', wrapper.find('button').length);
+    expect(wrapper.find('button')).toHaveLength(2);
     act(() => {
       wrapper.find('MenuItem').at(1).simulate('click');
     });
 
-    console.log('menu item', wrapper.find('MenuItem').at(1).debug());
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
   });
@@ -103,6 +102,5 @@ describe('SavedQueries', () => {
   it('fetches queries favorites and renders listviewcard cards', () => {
     expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
     expect(wrapper.find('ListViewCard')).toExist();
-    console.log('wrapper', wrapper);
   });
 });

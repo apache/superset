@@ -24,7 +24,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import { addDangerToast } from 'src/messageToasts/actions';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { reject } from 'lodash';
-import { getBatchData, mq } from '../utils';
+import { getRecentAcitivtyObjs, mq } from '../utils';
 import EmptyState from './EmptyState';
 
 interface MapProps {
@@ -102,9 +102,6 @@ export default function ActivityTable({ user }: ActivityProps) {
     if (e.url?.includes('dashboard')) {
       return 'nav-dashboard';
     }
-    if (e.url?.indexOf('explore') !== -1) {
-      return 'nav-charts';
-    }
     if (e.url?.includes('explore') || e.item_url?.includes('explore')) {
       return 'nav-charts';
     }
@@ -147,7 +144,7 @@ export default function ActivityTable({ user }: ActivityProps) {
   }
 
   useEffect(() => {
-    getBatchData(user.userId, recent)
+    getRecentAcitivtyObjs(user.userId, recent)
       .then(res => {
         const data: any = {
           Created: [...res.createdByChart, ...res.createdByDash],
@@ -173,13 +170,11 @@ export default function ActivityTable({ user }: ActivityProps) {
   }, []);
 
   const renderActivity = () => {
-    return activityData[activeChild].map((e: MapProps, i: number) => (
+    return activityData[activeChild].map((e: MapProps) => (
       <ListViewCard
-        key={`${i}`}
+        key={`${e.id}`}
         isRecent
         loading={loading}
-        imgURL=""
-        imgFallbackURL=""
         url={e.sql ? `/supserset/sqllab?queryId=${e.id}` : e.url}
         title={getFilterTitle(e)}
         description={`Last Edited: ${moment(e.changed_on_utc).format(

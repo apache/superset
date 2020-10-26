@@ -75,9 +75,6 @@ describe('EmptyState', () => {
                 : variant.tableName.toLowerCase()
             } yet`,
       );
-      console.log('wrapper', wrapper.debug());
-      console.log('wrapper', wrapper.find('ant-empty-image').children().debug());
-      //expect(wrapper.find('ant-empty-image').children()).toHaveLength(1);
       expect(wrapper.find('button')).toHaveLength(1);
     });
   });

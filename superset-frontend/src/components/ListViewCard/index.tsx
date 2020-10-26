@@ -145,8 +145,8 @@ const QueryData = styled.div`
   justify-content: flex-start;
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .title {
-    font-weight: 500;
-    color: #b2b2b2;
+    font-weight: ${({ theme }) => theme.typography.weights.normal};
+    color: ${({ theme }) => theme.colors.grayscale.light2};
   }
   .holder {
     margin: ${({ theme }) => theme.gridUnit * 2}px;
@@ -157,9 +157,9 @@ const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
   title: React.ReactNode;
   url?: string;
-  imgURL: string;
+  imgURL?: string;
   tables?: string | number;
-  imgFallbackURL: string;
+  imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
   description: string;
   loading: boolean;
