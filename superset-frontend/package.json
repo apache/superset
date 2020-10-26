@@ -65,7 +65,7 @@
     "@data-ui/sparkline": "^0.0.84",
     "@emotion/core": "^10.0.28",
     "@superset-ui/chart-controls": "^0.15.5",
-    "@superset-ui/core": "^0.15.2",
+    "@superset-ui/core": "^0.15.9",
     "@superset-ui/legacy-plugin-chart-calendar": "^0.15.5",
     "@superset-ui/legacy-plugin-chart-chord": "^0.15.5",
     "@superset-ui/legacy-plugin-chart-country-map": "^0.15.5",
