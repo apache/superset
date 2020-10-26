@@ -36,8 +36,8 @@ const propTypes = {
 };
 
 interface TableLoaderProps {
-  dataEndpoint: string;
-  mutator(data: JsonObject): any[];
+  dataEndpoint?: string;
+  mutator?: (data: JsonObject) => any[];
   columns?: string[];
   addDangerToast(text: string): any;
 }
@@ -48,16 +48,18 @@ const TableLoader = (props: TableLoaderProps) => {
 
   useEffect(() => {
     const { dataEndpoint, mutator } = props;
-    SupersetClient.get({ endpoint: dataEndpoint })
-      .then(({ json }) => {
-        const data = (mutator ? mutator(json) : json) as Array<any>;
-        setData(data);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        setIsLoading(false);
-        props.addDangerToast(t('An error occurred'));
-      });
+    if (dataEndpoint) {
+      SupersetClient.get({ endpoint: dataEndpoint })
+        .then(({ json }) => {
+          const data = (mutator ? mutator(json) : json) as Array<any>;
+          setData(data);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          setIsLoading(false);
+          props.addDangerToast(t('An error occurred'));
+        });
+    }
   }, [props]);
 
   const { columns, ...tableProps } = props;

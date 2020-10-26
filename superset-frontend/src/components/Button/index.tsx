@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { CSSProperties } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
@@ -233,22 +233,23 @@ const SupersetButton = styled(BootstrapButton)`
   }
 `;
 
-export default function Button(props: ButtonProps) {
-  const buttonProps = {
-    ...props,
-    bsSize: props.buttonSize,
-    disabled: props.disabled || false,
-    placement: props.placement || 'top',
-  };
-  const { tooltip, placement, dropdownItems } = props;
-  delete buttonProps.tooltip;
-  delete buttonProps.placement;
-
-  if (tooltip && props.disabled) {
-    // Working around the fact that tooltips don't get triggered when buttons are disabled
-    // https://github.com/react-bootstrap/react-bootstrap/issues/1588
-    buttonProps.style = { pointerEvents: 'none' };
-  }
+export default function Button({
+  tooltip,
+  placement,
+  dropdownItems,
+  disabled = false,
+  buttonSize: bsSize,
+  buttonStyle: bsStyle,
+  className,
+  style: style_,
+  cta,
+  children,
+  ...restProps
+}: ButtonProps) {
+  // Working around the fact that tooltips don't get triggered when buttons are disabled
+  // https://github.com/react-bootstrap/react-bootstrap/issues/1588
+  const style: CSSProperties | undefined =
+    tooltip && disabled ? { ...style_, pointerEvents: 'none' } : style_;
 
   const officialBootstrapStyles = [
     'success',
@@ -260,31 +261,28 @@ export default function Button(props: ButtonProps) {
   ];
 
   const transformedProps = {
-    ...buttonProps,
-    bsStyle: officialBootstrapStyles.includes(props.buttonStyle || '')
-      ? props.buttonStyle
+    ...restProps,
+    disabled,
+    bsSize,
+    bsStyle: officialBootstrapStyles.includes(bsStyle || '')
+      ? bsStyle
       : 'default',
-    className: cx(props.className, {
-      cta: !!buttonProps.cta,
-      [`btn-${props.buttonStyle}`]: !officialBootstrapStyles.includes(
-        props.buttonStyle || '',
-      ),
+    className: cx(className, {
+      cta: !!cta,
+      [`btn-${bsStyle}`]: !officialBootstrapStyles.includes(bsStyle || ''),
     }),
+    style,
   };
-  delete transformedProps.dropdownItems;
-  delete transformedProps.buttonSize;
-  delete transformedProps.buttonStyle;
-  delete transformedProps.cta;
 
   let button = (
-    <SupersetButton {...transformedProps}>{props.children}</SupersetButton>
+    <SupersetButton {...transformedProps}>{children}</SupersetButton>
   );
 
   if (dropdownItems) {
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
         <SupersetButton {...transformedProps} data-toggle="dropdown">
-          {props.children}
+          {children}
         </SupersetButton>
         <ul className="dropdown-menu">
           {dropdownItems.map((dropdownItem: DropdownItemProps) => (
