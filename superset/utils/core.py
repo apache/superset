@@ -1235,16 +1235,7 @@ def get_calendar_since_until(
     """
     Getting since datetime and until datetime tuple from calendar grains
 
-    >>> datetime.now()
-    datetime.datetime(2020, 10, 25, 22, 37, 11, 493402)
-    >>> get_calendar_since_until('previous 1 months')
-    datetime(2020, 9, 1), datetime(2016, 9, 30)
-    >>> get_calendar_since_until('previous 1 years')
-    datetime(2019, 1, 1), datetime(2019, 12, 31)
-    >>> get_calendar_since_until('previous 1 weeks')
-    datetime(2020, 11, 12), datetime(2020, 11, 18)
-
-    :param calendar_range: 
+    :param calendar_range:
     :return: since datetime and until datetime
     """
     today = parse_human_datetime("today")
