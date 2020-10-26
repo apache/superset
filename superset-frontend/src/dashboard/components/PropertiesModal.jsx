@@ -202,13 +202,25 @@ class PropertiesModal extends React.PureComponent {
   }
 
   async handleErrorResponse(response) {
-    const { error, statusText } = await getClientErrorObject(response);
+    const { error, statusText, message } = await getClientErrorObject(response);
+    let errorText = error || statusText || t('An error has occurred');
+
+    if (typeof message === 'object' && message.json_metadata) {
+      errorText = message.json_metadata;
+    } else if (typeof message === 'string') {
+      errorText = message;
+
+      if (message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this dashboard');
+      }
+    }
+
     this.dialog.show({
       title: 'Error',
       bsSize: 'medium',
       bsStyle: 'danger',
       actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-      body: error || statusText || t('An error has occurred'),
+      body: errorText,
     });
   }
 
