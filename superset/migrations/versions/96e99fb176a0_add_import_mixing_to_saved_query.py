@@ -17,7 +17,7 @@
 """add_import_mixing_to_saved_query
 
 Revision ID: 96e99fb176a0
-Revises: af30ca79208f
+Revises: 585b0b1a7b18
 Create Date: 2020-10-21 21:09:55.945956
 
 """
@@ -38,7 +38,7 @@ from superset.migrations.versions.b56500de1855_add_uuid_column_to_import_mixin i
 
 # revision identifiers, used by Alembic.
 revision = "96e99fb176a0"
-down_revision = "af30ca79208f"
+down_revision = "585b0b1a7b18"
 
 
 Base = declarative_base()
