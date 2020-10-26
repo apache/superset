@@ -94,7 +94,12 @@ class AdhocFilterOption extends React.PureComponent {
       />
     );
     return (
-      <div role="button" tabIndex={0} onMouseDown={e => e.stopPropagation()}>
+      <div
+        role="button"
+        tabIndex={0}
+        onMouseDown={e => e.stopPropagation()}
+        onKeyDown={e => e.stopPropagation()}
+      >
         {adhocFilter.isExtra && (
           <InfoTooltipWithTrigger
             icon="exclamation-triangle"
