@@ -106,7 +106,7 @@ describe('chart card view', () => {
     cy.get('[data-test="modal-cancel-button"]').click();
   });
 
-  it.only('should edit correctly', () => {
+  it('should edit correctly', () => {
     // show edit modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
     cy.get('[data-test="chart-list-edit-option"]').should('be.visible');
