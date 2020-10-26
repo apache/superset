@@ -262,7 +262,7 @@ export default class AdhocFilterControl extends React.Component {
 
   render() {
     return (
-      <div className="metrics-select">
+      <div className="metrics-select" data-test="adhoc-filter-control">
         <ControlHeader {...this.props} />
         <OnPasteSelect
           isMulti
