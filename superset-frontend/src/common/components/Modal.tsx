@@ -18,9 +18,10 @@
  */
 import React from 'react';
 import { isNil } from 'lodash';
-import { styled, t } from '@superset-ui/core';
+import { styled, SupersetThemeProps, t } from '@superset-ui/core';
 import { Modal as BaseModal } from 'src/common/components';
 import Button from 'src/components/Button';
+import { css } from '@emotion/core';
 
 interface ModalProps {
   className?: string;
@@ -33,12 +34,25 @@ interface ModalProps {
   show: boolean;
   title: React.ReactNode;
   width?: string;
+  maxWidth?: string;
+  responsive?: boolean;
   hideFooter?: boolean;
   centered?: boolean;
   footer?: React.ReactNode;
 }
 
-const StyledModal = styled(BaseModal)`
+interface StyledModalProps extends SupersetThemeProps {
+  maxWidth?: string;
+  responsive?: boolean;
+}
+
+const StyledModal = styled(BaseModal)<StyledModalProps>`
+  ${({ responsive, maxWidth }) =>
+    responsive &&
+    css`
+      max-width: ${maxWidth ?? '900px'};
+    `}
+
   .ant-modal-header {
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     border-radius: ${({ theme }) => theme.borderRadius}px
@@ -94,11 +108,13 @@ export default function Modal({
   disablePrimaryButton = false,
   onHide,
   onHandledPrimaryAction,
-  primaryButtonName,
+  primaryButtonName = t('OK'),
   primaryButtonType = 'primary',
   show,
   title,
   width,
+  maxWidth,
+  responsive = false,
   centered,
   footer,
   hideFooter,
@@ -121,12 +137,15 @@ export default function Modal({
       ]
     : footer;
 
+  const modalWidth = width || responsive ? 'calc(100vw - 24px)' : '600px';
   return (
     <StyledModal
       centered={!!centered}
       onOk={onHandledPrimaryAction}
       onCancel={onHide}
-      width={width || '600px'}
+      width={modalWidth}
+      maxWidth={maxWidth}
+      responsive={responsive}
       visible={show}
       title={title}
       closeIcon={

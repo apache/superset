@@ -126,7 +126,7 @@ describe('Tabs', () => {
       wrapper.find(WithPopoverMenu).simulate('click'); // focus
       wrapper.find('.icon-button').simulate('click');
 
-      const modal = document.getElementsByClassName('modal');
+      const modal = document.getElementsByClassName('ant-modal');
       expect(modal).toHaveLength(1);
       expect(deleteComponent.callCount).toBe(0);
     });
