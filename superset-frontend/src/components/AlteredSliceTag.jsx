@@ -222,11 +222,10 @@ export default class AlteredSliceTag extends React.Component {
     // differences in the slice
     return (
       <ModalTrigger
-        animation
         triggerNode={this.renderTriggerNode()}
         modalTitle={t('Chart changes')}
-        bsSize="large"
         modalBody={this.renderModalBody()}
+        responsive
       />
     );
   }

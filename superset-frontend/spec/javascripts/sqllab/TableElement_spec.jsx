@@ -20,6 +20,7 @@ import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import Link from 'src/components/Link';
 import TableElement from 'src/SqlLab/components/TableElement';
@@ -54,6 +55,12 @@ describe('TableElement', () => {
       <Provider store={store}>
         <TableElement {...mockedProps} />
       </Provider>,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: {
+          theme: supersetTheme,
+        },
+      },
     );
   });
   it('sorts columns', () => {
@@ -71,6 +78,12 @@ describe('TableElement', () => {
       <Provider store={store}>
         <TableElement {...mockedProps} />
       </Provider>,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: {
+          theme: supersetTheme,
+        },
+      },
     );
     expect(mockedActions.collapseTable.called).toBe(false);
     wrapper.find('.table-name').simulate('click');

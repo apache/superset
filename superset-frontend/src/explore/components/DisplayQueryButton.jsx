@@ -58,15 +58,11 @@ SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
 const propTypes = {
   onOpenInEditor: PropTypes.func,
-  animation: PropTypes.bool,
   queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
   chartHeight: PropTypes.string.isRequired,
   latestQueryFormData: PropTypes.object.isRequired,
   slice: PropTypes.object,
-};
-const defaultProps = {
-  animation: true,
 };
 
 export class DisplayQueryButton extends React.PureComponent {
@@ -234,7 +230,7 @@ export class DisplayQueryButton extends React.PureComponent {
   }
 
   render() {
-    const { animation, chartHeight, slice } = this.props;
+    const { chartHeight, slice } = this.props;
     return (
       <DropdownButton
         noCaret
@@ -259,38 +255,34 @@ export class DisplayQueryButton extends React.PureComponent {
               show={this.state.isPropertiesModalOpen}
               onHide={this.closePropertiesModal}
               onSave={this.props.sliceUpdated}
-              animation={animation}
             />
           </>
         )}
         <ModalTrigger
           isMenuItem
-          animation={animation}
           triggerNode={
             <span data-test="view-query-menu-item">{t('View query')}</span>
           }
           modalTitle={t('View query')}
-          bsSize="large"
           beforeOpen={() => this.beforeOpen('query')}
           modalBody={this.renderQueryModalBody()}
+          responsive
         />
         <ModalTrigger
           isMenuItem
-          animation={animation}
           triggerNode={<span>{t('View results')}</span>}
           modalTitle={t('View results')}
-          bsSize="large"
           beforeOpen={() => this.beforeOpen('results')}
           modalBody={this.renderResultsModalBody()}
+          responsive
         />
         <ModalTrigger
           isMenuItem
-          animation={animation}
           triggerNode={<span>{t('View samples')}</span>}
           modalTitle={t('View samples')}
-          bsSize="large"
           beforeOpen={() => this.beforeOpen('samples')}
           modalBody={this.renderSamplesModalBody()}
+          responsive
         />
         {this.state.sqlSupported && (
           <MenuItem eventKey="3" onClick={this.redirectSQLLab.bind(this)}>
@@ -315,7 +307,6 @@ export class DisplayQueryButton extends React.PureComponent {
 }
 
 DisplayQueryButton.propTypes = propTypes;
-DisplayQueryButton.defaultProps = defaultProps;
 
 function mapDispatchToProps(dispatch) {
   return bindActionCreators({ sliceUpdated }, dispatch);
