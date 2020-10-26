@@ -87,19 +87,19 @@ describe('Dashboard edit action', () => {
     const dashboardTitle = `Test dashboard [${shortid.generate()}]`;
 
     // update title
-    cy.get('.modal-body')
+    cy.get('.ant-modal-body')
       .should('be.visible')
       .contains('Title')
       .siblings('input')
       .type(`{selectall}{backspace}${dashboardTitle}`);
 
     // save edit changes
-    cy.get('.modal-footer')
+    cy.get('.ant-modal-footer')
       .contains('Save')
       .click()
       .then(() => {
         // assert that modal edit window has closed
-        cy.get('.modal-body').should('not.exist');
+        cy.get('.ant-modal-body').should('not.exist');
 
         // assert title has been updated
         cy.get('.editable-title input').should('have.value', dashboardTitle);
