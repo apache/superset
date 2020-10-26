@@ -1588,9 +1588,7 @@ def is_test() -> bool:
 def get_time_filter_status(  # pylint: disable=too-many-branches
     datasource: "BaseDatasource", applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    temporal_columns = {
-        col.column_name for col in datasource.columns if col.is_temporal
-    }
+    temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
