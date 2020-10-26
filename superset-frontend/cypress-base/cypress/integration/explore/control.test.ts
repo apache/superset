@@ -24,7 +24,7 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
 
-  it.only('should allow edit dataset', () => {
+  it('should allow edit dataset', () => {
     let numScripts = 0;
 
     cy.login();
