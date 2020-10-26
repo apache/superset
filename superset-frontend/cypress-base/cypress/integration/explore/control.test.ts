@@ -160,7 +160,7 @@ describe('AdhocFilter control', () => {
     cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
-  it.only('Sets an adhoc filter', () => {
+  it('Sets an adhoc filter', () => {
     const filterType = 'gender';
     const filterValue = 'boy or girl';
 
