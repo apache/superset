@@ -22,6 +22,15 @@ import { mount, shallow } from 'enzyme';
 import ModalTrigger from 'src/components/ModalTrigger';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import { Alert } from 'react-bootstrap';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+
+const getMountWrapper = props =>
+  mount(<RefreshIntervalModal {...props} />, {
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: {
+      theme: supersetTheme,
+    },
+  });
 
 describe('RefreshIntervalModal', () => {
   const mockedProps = {
@@ -36,15 +45,15 @@ describe('RefreshIntervalModal', () => {
     ).toBe(true);
   });
   it('renders the trigger node', () => {
-    const wrapper = mount(<RefreshIntervalModal {...mockedProps} />);
+    const wrapper = getMountWrapper(mockedProps);
     expect(wrapper.find('.fa-edit')).toExist();
   });
   it('should render a interval seconds', () => {
-    const wrapper = mount(<RefreshIntervalModal {...mockedProps} />);
+    const wrapper = getMountWrapper(mockedProps);
     expect(wrapper.prop('refreshFrequency')).toEqual(10);
   });
   it('should change refreshFrequency with edit mode', () => {
-    const wrapper = mount(<RefreshIntervalModal {...mockedProps} />);
+    const wrapper = getMountWrapper(mockedProps);
     wrapper.instance().handleFrequencyChange({ value: 30 });
     wrapper.instance().onSave();
     expect(mockedProps.onChange).toHaveBeenCalled();

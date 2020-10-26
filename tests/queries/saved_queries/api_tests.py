@@ -168,8 +168,10 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         admin = self.get_user("admin")
         saved_queries = (
-            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).all()
-        )
+            db.session.query(SavedQuery)
+            .filter(SavedQuery.created_by == admin)
+            .order_by(SavedQuery.schema.asc())
+        ).all()
         self.login(username="admin")
         query_string = {"order_column": "schema", "order_direction": "asc"}
         uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"

@@ -22,6 +22,7 @@ import { mount, shallow } from 'enzyme';
 
 import HighlightedSql from 'src/SqlLab/components/HighlightedSql';
 import ModalTrigger from 'src/components/ModalTrigger';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 describe('HighlightedSql', () => {
   const sql =
@@ -45,6 +46,12 @@ describe('HighlightedSql', () => {
         shrink
         maxWidth={5}
       />,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: {
+          theme: supersetTheme,
+        },
+      },
     );
     const pre = wrapper.find('pre');
     expect(pre).toHaveLength(1);
