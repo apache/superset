@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
+// import React, { useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -27,9 +28,10 @@ import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 // import ListView, { Filters } from 'src/components/ListView';
 import ListView from 'src/components/ListView';
-import Button, { OnClickHandler } from 'src/components/Button';
+import Button from 'src/components/Button';
 
 const PAGE_SIZE = 25;
+const MOMENT_FORMAT = 'MMM DD, YYYY';
 
 interface AnnotationLayersListProps {
   addDangerToast: (msg: string) => void;
@@ -57,42 +59,33 @@ function AnnotationLayersList({
   addDangerToast,
   addSuccessToast,
 }: AnnotationLayersListProps) {
-  /*const {
-    state: {
-      loading,
-      resourceCount: layersCount,
-      resourceCollection: layers,
-    },
+  const {
+    state: { loading, resourceCount: layersCount, resourceCollection: layers },
     hasPerm,
     fetchData,
-    refreshData,
+    // refreshData,
   } = useListViewResource<AnnotationLayerObject>(
-    'annotation_layers',
+    'annotation_layer',
     t('annotation layers'),
     addDangerToast,
-  );*/
-  const [annotationLayerModalOpen, setAnnotationLayerModalOpen] = useState<boolean>(
-    false,
   );
+
+  // TODO: un-comment all instances when modal work begins
+  /* const [annotationLayerModalOpen, setAnnotationLayerModalOpen] = useState<
+    boolean
+  >(false);
   const [
     currentAnnotationLayer,
     setCurrentAnnotationLayer,
-  ] = useState<AnnotationLayerObject | null>(null);
+  ] = useState<AnnotationLayerObject | null>(null); */
 
-  // TEST DATA TODO: rm when api is up
-  const layers = [];
-  const layersCount = 0;
-  const loading = false;
-  const fetchData = () => {};
+  const canCreate = hasPerm('can_add');
+  const canEdit = hasPerm('can_edit');
+  const canDelete = hasPerm('can_delete');
 
-  // TODO: switch back to use hasPerm once api is up
-  const canCreate = true; // hasPerm('can_add');
-  const canEdit = true; // hasPerm('can_edit');
-  const canDelete = true; // hasPerm('can_delete');
-
-  function handleAnnotationLayerEdit(layer: AnnotationLayerObject) {
-    setCurrentAnnotationLayer(layer);
-    setAnnotationLayerModalOpen(true);
+  function handleAnnotationLayerEdit(layer: AnnotationLayerObject | null) {
+    // setCurrentAnnotationLayer(layer);
+    // setAnnotationLayerModalOpen(true);
   }
 
   const initialSort = [{ id: 'name', desc: true }];
@@ -101,6 +94,35 @@ function AnnotationLayersList({
       {
         accessor: 'name',
         Header: t('Name'),
+      },
+      {
+        accessor: 'descr',
+        Header: t('Description'),
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on: changedOn },
+          },
+        }: any) => {
+          const date = new Date(changedOn);
+          const utc = new Date(
+            Date.UTC(
+              date.getFullYear(),
+              date.getMonth(),
+              date.getDate(),
+              date.getHours(),
+              date.getMinutes(),
+              date.getSeconds(),
+              date.getMilliseconds(),
+            ),
+          );
+
+          return moment(utc).format(MOMENT_FORMAT);
+        },
+        Header: t('Last Modified'),
+        accessor: 'changed_on',
+        size: 'xl',
       },
       {
         Cell: ({
@@ -121,7 +143,7 @@ function AnnotationLayersList({
             ),
           );
 
-          return moment(utc).fromNow();
+          return moment(utc).format(MOMENT_FORMAT);
         },
         Header: t('Created On'),
         accessor: 'created_on',
@@ -137,16 +159,6 @@ function AnnotationLayersList({
           },
         }: any) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => changedOn,
-        Header: t('Last Modified'),
-        accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
       {
@@ -198,8 +210,7 @@ function AnnotationLayersList({
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        setCurrentAnnotationLayer(null);
-        setAnnotationLayerModalOpen(true);
+        handleAnnotationLayerEdit(null);
       },
     });
   }
@@ -208,8 +219,7 @@ function AnnotationLayersList({
     <Button
       buttonStyle="primary"
       onClick={() => {
-        setCurrentAnnotationLayer(null);
-        setAnnotationLayerModalOpen(true);
+        handleAnnotationLayerEdit(null);
       }}
     >
       <>
