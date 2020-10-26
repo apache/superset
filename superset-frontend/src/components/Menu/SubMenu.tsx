@@ -98,7 +98,7 @@ export interface ButtonProps {
 export interface SubMenuProps {
   buttons?: Array<ButtonProps>;
   name?: string;
-  children?: MenuChild[];
+  tabs?: MenuChild[];
   activeChild?: MenuChild['name'];
   /* If usesRouter is true, a react-router <Link> component will be used instead of href.
    *  ONLY set usesRouter to true if SubMenu is wrapped in a react-router <Router>;
@@ -122,16 +122,16 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
           <Navbar.Brand>{props.name}</Navbar.Brand>
         </Navbar.Header>
         <Nav>
-          {props.children &&
-            props.children.map(child => {
-              if ((props.usesRouter || hasHistory) && !!child.usesRouter) {
+          {props.tabs &&
+            props.tabs.map(tab => {
+              if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
                 return (
                   <li
-                    className={child.name === props.activeChild ? 'active' : ''}
-                    key={`${child.label}`}
+                    className={tab.name === props.activeChild ? 'active' : ''}
+                    key={`${tab.label}`}
                   >
                     <div>
-                      <Link to={child.url}>{child.label}</Link>
+                      <Link to={tab.url}>{tab.label}</Link>
                     </div>
                   </li>
                 );
@@ -140,12 +140,12 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
               return (
                 <MenuItem
                   className="no-router"
-                  active={child.name === props.activeChild}
-                  key={`${child.label}`}
-                  href={child.url}
-                  onClick={child.onClick}
+                  active={tab.name === props.activeChild}
+                  key={`${tab.label}`}
+                  href={tab.url}
+                  onClick={tab.onClick}
                 >
-                  {child.label}
+                  {tab.label}
                 </MenuItem>
               );
             })}

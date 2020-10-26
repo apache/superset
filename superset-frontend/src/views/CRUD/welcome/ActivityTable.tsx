@@ -191,7 +191,7 @@ export default function ActivityTable({ user }: ActivityProps) {
       <SubMenu
         activeChild={activeChild}
         // eslint-disable-next-line react/no-children-prop
-        children={tabs}
+        tabs={tabs}
       />
       <>
         {activityData[activeChild]?.length > 0 ? (

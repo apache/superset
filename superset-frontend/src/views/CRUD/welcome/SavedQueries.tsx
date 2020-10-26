@@ -170,9 +170,7 @@ const SavedQueries = ({
       )}
       <SubMenu
         activeChild={queryFilter}
-        name=""
-        // eslint-disable-next-line react/no-children-prop
-        children={[
+        tabs={[
           {
             name: 'Favorite',
             label: t('Favorite'),

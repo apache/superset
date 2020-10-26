@@ -123,9 +123,7 @@ function DashboardTable({
     <>
       <SubMenu
         activeChild={dashboardFilter}
-        name=""
-        // eslint-disable-next-line react/no-children-prop
-        children={[
+        tabs={[
           {
             name: 'Favorite',
             label: t('Favorite'),

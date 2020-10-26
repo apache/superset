@@ -107,9 +107,8 @@ function ChartTable({
 
       <SubMenu
         activeChild={chartFilter}
-        name=""
         // eslint-disable-next-line react/no-children-prop
-        children={[
+        tabs={[
           {
             name: 'Favorite',
             label: t('Favorite'),
