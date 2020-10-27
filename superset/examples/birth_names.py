@@ -25,6 +25,7 @@ from sqlalchemy.sql import column
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -41,6 +42,12 @@ from .helpers import (
 )
 
 admin = security_manager.find_user("admin")
+if admin is None:
+    raise NoDataException(
+        "Admin user does not exist. "
+        "Please, check if test users are properly loaded "
+        "(`superset load_test_users`)."
+    )
 
 
 def gen_filter(
