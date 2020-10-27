@@ -25,6 +25,7 @@ export { default as convertFilter } from './convertFilter';
 export { default as convertMetric } from './convertMetric';
 export { default as DatasourceKey } from './DatasourceKey';
 
+export * from './types/AnnotationLayer';
 export * from './types/QueryFormData';
 export * from './types/Column';
 export * from './types/Datasource';

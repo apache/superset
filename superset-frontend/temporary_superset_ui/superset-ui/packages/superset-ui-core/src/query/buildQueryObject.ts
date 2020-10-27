@@ -18,6 +18,7 @@ export const DTTM_ALIAS = '__timestamp';
  */
 export default function buildQueryObject<T extends QueryFormData>(formData: T): QueryObject {
   const {
+    annotation_layers = [],
     time_range,
     since,
     until,
@@ -28,6 +29,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     timeseries_limit_metric,
     queryFields,
     granularity,
+    url_params = {},
     ...residualFormData
   } = formData;
 
@@ -49,6 +51,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     granularity,
     ...extras,
     ...extrasAndfilters,
+    annotation_layers,
     groupby: processGroupby(Array.from(groupbySet)),
     is_timeseries: groupbySet.has(DTTM_ALIAS),
     metrics: metrics.map(convertMetric),
@@ -60,5 +63,6 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     timeseries_limit_metric: timeseries_limit_metric
       ? convertMetric(timeseries_limit_metric)
       : null,
+    url_params,
   };
 }

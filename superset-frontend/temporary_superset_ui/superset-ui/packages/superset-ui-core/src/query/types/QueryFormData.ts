@@ -4,6 +4,7 @@ import { AdhocMetric } from './Metric';
 import { TimeRange } from './Time';
 import { AdhocFilter } from './Filter';
 import { BinaryOperator, SetOperator } from './Operator';
+import { AnnotationLayer } from './AnnotationLayer';
 
 export type QueryFormDataMetric = string | AdhocMetric;
 export type QueryFormResidualDataValue = string | AdhocMetric;
@@ -72,6 +73,8 @@ export type BaseFormData = {
   result_type?: string;
   queryFields?: QueryFields;
   time_range_endpoints?: TimeRangeEndpoints;
+  annotation_layers?: AnnotationLayer[];
+  url_params?: Record<string, string>;
 } & TimeRange &
   QueryFormResidualData;
 
