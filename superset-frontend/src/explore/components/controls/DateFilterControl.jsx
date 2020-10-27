@@ -221,7 +221,6 @@ class DateFilterControl extends React.Component {
 
     this.close = this.close.bind(this);
     this.handleClick = this.handleClick.bind(this);
-    this.handleClickTrigger = this.handleClickTrigger.bind(this);
     this.isValidSince = this.isValidSince.bind(this);
     this.isValidUntil = this.isValidUntil.bind(this);
     this.onEnter = this.onEnter.bind(this);
@@ -306,17 +305,6 @@ class DateFilterControl extends React.Component {
     }
   }
 
-  handleClickTrigger() {
-    // when user clicks OverlayTrigger,
-    // popoverContainer component will be created after handleClickTrigger
-    // and before handleClick handler
-    if (!this.popoverContainer) {
-      this.props.onOpenDateFilterControl();
-    } else {
-      this.props.onCloseDateFilterControl();
-    }
-  }
-
   close() {
     let val;
     if (
@@ -369,6 +357,11 @@ class DateFilterControl extends React.Component {
   }
 
   handleVisibleChange(visible) {
+    if (visible) {
+      this.props.onOpenDateFilterControl();
+    } else {
+      this.props.onCloseDateFilterControl();
+    }
     this.setState({ popoverVisible: visible });
   }
 
@@ -606,7 +599,6 @@ class DateFilterControl extends React.Component {
           trigger="click"
           placement="right"
           content={this.renderPopover()}
-          onClick={this.handleClickTrigger}
           visible={this.state.popoverVisible}
           onVisibleChange={this.handleVisibleChange}
         >
