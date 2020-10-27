@@ -24,12 +24,10 @@ import fetchMock from 'fetch-mock';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import configureStore from 'redux-mock-store';
 import ActivityTable from 'src/views/CRUD/welcome/ActivityTable';
-import ListViewCard from 'src/components/ListViewCard';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const recentsEnpoint = 'glob:*/superset/recent_activity/*';
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const dashboardEndpoint = 'glob:*/api/v1/dashboard/?*';
 const savedQueryEndpoint = 'glob:*/api/v1/saved_query/?*';
