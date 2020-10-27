@@ -97,7 +97,7 @@ export const ItemIcon = styled.i`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  left: -20px;
+  left: -${({ theme }) => theme.gridUnit * 5}px;
 `;
 
 export const Item = styled.button`
@@ -120,12 +120,12 @@ export const Item = styled.button`
 `;
 
 export const Reset = styled.div`
-  margin: 0 -16px;
+  margin: 0 -${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 export const Indent = styled.div`
-  padding-left: 24px;
-  margin: -12px 0;
+  padding-left: ${({ theme }) => theme.gridUnit * 6}px;
+  margin: -${({ theme }) => theme.gridUnit * 3}px 0;
 `;
 
 export const Panel = styled.div`

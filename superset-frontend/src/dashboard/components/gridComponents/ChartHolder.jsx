@@ -112,6 +112,7 @@ const FilterFocusHighlight = React.forwardRef(
       };
     }
 
+    // inline styles are used here due to a performance issue when adding/changing a class, which causes a reflow
     return <div ref={ref} style={styles} {...otherProps} />;
   },
 );
