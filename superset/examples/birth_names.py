@@ -25,12 +25,12 @@ from sqlalchemy.sql import column
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
-from ..exceptions import NoDataException
 from .helpers import (
     config,
     get_example_data,
