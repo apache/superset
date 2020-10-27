@@ -225,7 +225,7 @@ function ListViewCard({
               <div>{tables}</div>
             </div>
             <div className="holder">
-              <div className="title">Datasource Name</div>
+              <div className="title">{t('Datasource Name')}</div>
               <div>{tableName}</div>
             </div>
           </QueryData>
