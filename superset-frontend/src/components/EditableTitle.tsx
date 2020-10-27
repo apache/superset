@@ -145,6 +145,7 @@ export default function EditableTitle({
   let titleComponent =
     multiLine && isEditing ? (
       <textarea
+        data-test="editable-title-input"
         ref={contentRef}
         required
         value={value}
@@ -188,7 +189,11 @@ export default function EditableTitle({
   }
   if (!canEdit) {
     // don't actually want an input in this case
-    titleComponent = <span title={value}>{value}</span>;
+    titleComponent = (
+      <span data-test="editable-title-input" title={value}>
+        {value}
+      </span>
+    );
   }
   return (
     <span
