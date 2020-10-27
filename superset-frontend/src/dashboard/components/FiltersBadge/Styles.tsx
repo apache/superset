@@ -125,7 +125,7 @@ export const Reset = styled.div`
 
 export const Indent = styled.div`
   padding-left: 24px;
-  margin: -12px 0;
+  margin: -${({ theme }) => theme.gridUnit * 3}px 0;
 `;
 
 export const Panel = styled.div`
