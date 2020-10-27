@@ -40,6 +40,7 @@ describe('FiltersBadge', () => {
   beforeEach(() => {
     // shallow rendering in enzyme doesn't propagate contexts correctly,
     // so we have to mock the hook.
+    // See https://medium.com/7shifts-engineering-blog/testing-usecontext-react-hook-with-enzyme-shallow-da062140fc83
     jest.spyOn(SupersetUI, 'useTheme').mockImplementation(() => supersetTheme);
   });
 
