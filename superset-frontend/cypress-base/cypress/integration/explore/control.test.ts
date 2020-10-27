@@ -46,18 +46,20 @@ describe('Datasource control', () => {
     cy.get('script').then(nodes => {
       expect(nodes.length).to.greaterThan(numScripts);
     });
-
-    // create new metric
-    cy.get('.modal-content').within(() => {
-      cy.get('a[role="tab"]').contains('Metrics').click();
+    cy.get('[data-test="edit-dataset-tabs"]').within(() => {
+      cy.contains('Metrics').click();
     });
-    cy.get('button').contains('Add Item', { timeout: 10000 }).click();
-    cy.get('input[value="<new metric>"]').click();
-    cy.get('input[value="<new metric>"]')
+    // create new metric
+    cy.get('[data-test="crud-add-table-item"]', { timeout: 10000 }).click();
+    cy.get('[data-test="table-content-rows"]')
+      .find('input[value="<new metric>"]')
+      .click();
+    cy.get('[data-test="table-content-rows"]')
+      .find('input[value="<new metric>"]')
       .focus()
       .clear()
       .type(`${newMetricName}{enter}`);
-    cy.get('.modal-footer button').contains('Save').click();
+    cy.get('[data-test="datasource-modal-save"]').click();
     cy.get('.modal-footer button').contains('OK').click();
     // select new metric
     cy.get('[data-test=metrics]')
@@ -74,7 +76,7 @@ describe('Datasource control', () => {
       .closest('tr')
       .find('.fa-trash')
       .click();
-    cy.get('.modal-footer button').contains('Save').click();
+    cy.get('[data-test="datasource-modal-save"]').click();
     cy.get('.modal-footer button').contains('OK').click();
     cy.get('.Select__multi-value__label')
       .contains(newMetricName)
