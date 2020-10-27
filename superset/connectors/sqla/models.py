@@ -181,6 +181,9 @@ class TableColumn(Model, BaseColumn):
 
     @property
     def is_numeric(self) -> bool:
+        """
+        Check if the column has a numeric datatype.
+        """
         db_engine_spec = self.table.database.db_engine_spec
         return db_engine_spec.is_db_column_type_match(
             self.type, utils.DbColumnType.NUMERIC
@@ -188,6 +191,9 @@ class TableColumn(Model, BaseColumn):
 
     @property
     def is_string(self) -> bool:
+        """
+        Check if the column has a string datatype.
+        """
         db_engine_spec = self.table.database.db_engine_spec
         return db_engine_spec.is_db_column_type_match(
             self.type, utils.DbColumnType.STRING
@@ -195,6 +201,14 @@ class TableColumn(Model, BaseColumn):
 
     @property
     def is_temporal(self) -> bool:
+        """
+        Check if the column has a temporal datatype. If column has been set as
+        temporal/non-temporal (`is_dttm` is True or False respectively), return that
+        value. This usually happens during initial metadata fetching or when a column
+        is manually set as temporal (for this `python_date_format` needs to be set).
+        """
+        if self.is_dttm is not None:
+            return self.is_dttm
         db_engine_spec = self.table.database.db_engine_spec
         return db_engine_spec.is_db_column_type_match(
             self.type, utils.DbColumnType.TEMPORAL
