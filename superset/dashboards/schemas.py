@@ -26,6 +26,7 @@ from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
 thumbnail_query_schema = {
     "type": "object",
     "properties": {"force": {"type": "boolean"}},
@@ -163,3 +164,15 @@ class DashboardPutSchema(BaseDashboardSchema):
         validate=validate_json_metadata,
     )
     published = fields.Boolean(description=published_description, allow_none=True)
+
+
+class ChartFavStarResponseResult(Schema):
+    id = fields.Integer(description="The Chart id")
+    value = fields.Boolean(description="The FaveStar value")
+
+
+class GetFavStarIdsSchema(Schema):
+    result = fields.List(
+        fields.Nested(ChartFavStarResponseResult),
+        description="A list of results for each corresponding chart in the request",
+    )

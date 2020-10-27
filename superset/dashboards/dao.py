@@ -23,6 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.dao.base import BaseDAO
 from superset.dashboards.filters import DashboardFilter
 from superset.extensions import db
+from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
@@ -154,3 +155,18 @@ class DashboardDAO(BaseDAO):
         if data.get("label_colors"):
             md["label_colors"] = data.get("label_colors")
         dashboard.json_metadata = json.dumps(md)
+
+    @staticmethod
+    def favorited_ids(ids: List[int], current_user_id: int) -> List[FavStar]:
+        dashboards = DashboardDAO.find_by_ids(ids)
+        dashboard_ids = [dash.id for dash in dashboards]
+        return [
+            star.obj_id
+            for star in db.session.query(FavStar.obj_id)
+            .filter(
+                FavStar.class_name == "dashboard",
+                FavStar.obj_id.in_(dashboard_ids),
+                FavStar.user_id == current_user_id,
+            )
+            .all()
+        ]
