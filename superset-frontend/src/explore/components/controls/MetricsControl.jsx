@@ -143,6 +143,7 @@ export default class MetricsControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onChange = this.onChange.bind(this);
+    this.onPaste = this.onPaste.bind(this);
     this.onMetricEdit = this.onMetricEdit.bind(this);
     this.checkIfAggregateInInput = this.checkIfAggregateInInput.bind(this);
     this.optionsForSelect = this.optionsForSelect.bind(this);
@@ -258,6 +259,14 @@ export default class MetricsControl extends React.PureComponent {
     this.props.onChange(this.props.multi ? optionValues : optionValues[0]);
   }
 
+  onPaste(evt) {
+    const clipboard = evt.clipboardData.getData('Text');
+    if (!clipboard) {
+      return;
+    }
+    this.checkIfAggregateInInput(clipboard);
+  }
+
   checkIfAggregateInInput(input) {
     const lowercaseInput = input.toLowerCase();
     const aggregateInInput =
@@ -344,6 +353,7 @@ export default class MetricsControl extends React.PureComponent {
           value={this.state.value}
           labelKey="label"
           valueKey="optionName"
+          onPaste={this.onPaste}
           clearable={this.props.clearable}
           closeOnSelect
           onChange={this.onChange}

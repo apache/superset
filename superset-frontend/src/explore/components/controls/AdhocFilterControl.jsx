@@ -279,6 +279,7 @@ export default class AdhocFilterControl extends React.Component {
           clearable
           closeOnSelect
           onChange={this.onChange}
+          onPaste={() => {}}
           optionRenderer={this.optionRenderer}
           valueRenderer={this.valueRenderer}
         />

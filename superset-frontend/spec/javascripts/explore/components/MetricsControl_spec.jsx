@@ -262,6 +262,18 @@ describe('MetricsControl', () => {
       wrapper.instance().checkIfAggregateInInput('colu');
       expect(wrapper.state('aggregateInInput')).toBeNull();
     });
+
+    it('handles an aggregate in the input when paste event fires', () => {
+      const { wrapper } = setup();
+      expect(wrapper.state('aggregateInInput')).toBeNull();
+
+      const mEvent = {
+        clipboardData: { getData: jest.fn().mockReturnValueOnce('AVG(') },
+      };
+      const select = wrapper.find(OnPasteSelect);
+      select.simulate('paste', mEvent);
+      expect(wrapper.state('aggregateInInput')).toBe(AGGREGATES.AVG);
+    });
   });
 
   describe('option filter', () => {
