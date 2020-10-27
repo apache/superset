@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { useTheme } from '@superset-ui/core';
+import { t, tn, useTheme } from '@superset-ui/core';
 import {
   SearchOutlined,
   MinusCircleFilled,
@@ -100,7 +100,9 @@ const DetailsPanelPopover = ({
 
   const content = (
     <Panel>
-      <Summary>{`${total} Scoped Filters`}</Summary>
+      <Summary>
+        {tn('%d Scoped Filter', '%d Scoped Filters', total, total)}
+      </Summary>
       <Reset>
         <Collapse
           ghost
@@ -112,8 +114,8 @@ const DetailsPanelPopover = ({
               key="applied"
               header={
                 <Title bold color={theme.colors.success.base}>
-                  <CheckCircleFilled />
-                  {` Applied (${appliedIndicators.length})`}
+                  <CheckCircleFilled />{' '}
+                  {t('Applied (%d)', appliedIndicators.length)}
                 </Title>
               }
             >
@@ -133,8 +135,8 @@ const DetailsPanelPopover = ({
               key="incompatible"
               header={
                 <Title bold color={theme.colors.alert.base}>
-                  <ExclamationCircleFilled />
-                  {` Incompatible (${incompatibleIndicators.length})`}
+                  <ExclamationCircleFilled />{' '}
+                  {t('Incompatible (%d)', incompatibleIndicators.length)}
                 </Title>
               }
             >
@@ -154,8 +156,8 @@ const DetailsPanelPopover = ({
               key="unset"
               header={
                 <Title bold color={theme.colors.grayscale.dark1}>
-                  <MinusCircleFilled />
-                  {` Unset (${unsetIndicators.length})`}
+                  <MinusCircleFilled />{' '}
+                  {t('Unset (%d)', unsetIndicators.length)}
                 </Title>
               }
               disabled={!unsetIndicators.length}
