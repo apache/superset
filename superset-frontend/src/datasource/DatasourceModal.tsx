@@ -22,6 +22,7 @@ import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -185,14 +186,20 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       </Modal.Body>
       <Modal.Footer>
         <span className="float-left">
-          <Button
-            buttonSize="sm"
-            buttonStyle="default"
-            target="_blank"
-            href={currentDatasource.edit_url || currentDatasource.url}
-          >
-            {t('Use Legacy Datasource Editor')}
-          </Button>
+          {isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) && (
+            <Button
+              buttonSize="sm"
+              buttonStyle="default"
+              data-test="datasource-modal-legacy-edit"
+              className="m-r-5"
+              onClick={() => {
+                window.location.href =
+                  currentDatasource.edit_url || currentDatasource.url;
+              }}
+            >
+              {t('Use Legacy Datasource Editor')}
+            </Button>
+          )}
         </span>
 
         <span className="float-right">
@@ -206,7 +213,11 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           >
             {t('Save')}
           </Button>
-          <Button buttonSize="sm" onClick={onHide}>
+          <Button
+            data-test="datasource-modal-cancel"
+            buttonSize="sm"
+            onClick={onHide}
+          >
             {t('Cancel')}
           </Button>
           <Dialog ref={dialog} />
