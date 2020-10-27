@@ -86,10 +86,10 @@ add_uuids_by_dialect = {
 }
 
 
-def add_uuids(table_name, session, batch_size=default_batch_size):
+def add_uuids(model, table_name, session, batch_size=default_batch_size):
     """Populate columns with pre-computed uuids"""
     bind = op.get_bind()
-    objects_query = session.query(models[table_name])
+    objects_query = session.query(model)
     count = objects_query.count()
 
     # silently skip if the table is empty (suitable for db initialization)
@@ -168,7 +168,7 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for table_name in models.keys():
+    for table_name, model in models.items():
         try:
             with op.batch_alter_table(table_name) as batch_op:
                 batch_op.add_column(
@@ -180,7 +180,7 @@ def upgrade():
             # ignore collumn update errors so that we can run upgrade multiple times
             pass
 
-        add_uuids(table_name, session)
+        add_uuids(model, table_name, session)
 
         try:
             # add uniqueness constraint
