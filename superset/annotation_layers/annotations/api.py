@@ -116,7 +116,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     openapi_spec_methods = openapi_spec_methods_override
 
     @staticmethod
-    def _apply_layered_relation_to_rison(layer_id: int, rison_parameters) -> None:
+    def _apply_layered_relation_to_rison(layer_id: int, rison_parameters: Any) -> None:
         if "filters" not in rison_parameters:
             rison_parameters["filters"] = []
         rison_parameters["filters"].append(
