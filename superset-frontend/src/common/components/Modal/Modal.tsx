@@ -47,10 +47,11 @@ interface StyledModalProps extends SupersetThemeProps {
 }
 
 const StyledModal = styled(BaseModal)<StyledModalProps>`
-  ${({ responsive, maxWidth }) =>
+  ${({ theme, responsive, maxWidth }) =>
     responsive &&
     css`
       max-width: ${maxWidth ?? '900px'};
+      padding: 0 ${theme.gridUnit * 3}px;
     `}
 
   .ant-modal-header {
@@ -137,7 +138,7 @@ export default function Modal({
       ]
     : footer;
 
-  const modalWidth = width || (responsive ? 'calc(100vw - 24px)' : '600px');
+  const modalWidth = width || (responsive ? '100vw' : '600px');
   return (
     <StyledModal
       centered={!!centered}
