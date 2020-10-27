@@ -290,7 +290,8 @@ export default class CRUDCollection extends React.PureComponent<
               onClick={this.onAddItem}
               data-test="add-item-button"
             >
-              <i className="fa fa-plus" /> {t('Add Item')}
+              <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
+              {t('Add Item')}
             </Button>
           )}
         </span>
