@@ -107,7 +107,7 @@ const FilterFocusHighlight = React.forwardRef(
       styles = {
         borderColor: theme.colors.primary.light2,
         opacity: 1,
-        boxShadow: `0px 0px 8px ${theme.colors.primary.light2}`,
+        boxShadow: `0px 0px ${({ theme }) => theme.gridUnit * 2}px ${theme.colors.primary.light2}`,
         pointerEvents: 'auto',
       };
     }
