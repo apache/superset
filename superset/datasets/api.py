@@ -93,6 +93,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "default_endpoint",
         "explore_url",
+        "extra",
         "kind",
         "owners.id",
         "owners.username",
@@ -134,6 +135,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics",
         "datasource_type",
         "url",
+        "extra",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
@@ -154,6 +156,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners",
         "columns",
         "metrics",
+        "extra",
     ]
     openapi_spec_tag = "Datasets"
     related_field_filters = {

@@ -86,6 +86,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "template_params": None,
             "filter_select_enabled": True,
             "fetch_values_predicate": None,
+            "extra": None,
             "metrics": [
                 {
                     "metric_name": "ratio",

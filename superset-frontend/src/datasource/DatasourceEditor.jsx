@@ -516,6 +516,25 @@ class DatasourceEditor extends React.PureComponent {
             control={<TextControl controlId="fetch_values_predicate" />}
           />
         )}
+        {this.state.isSqla && (
+          <Field
+            fieldKey="extra"
+            label={t('Extra')}
+            description={t(
+              'Extra data to specify table metadata. Currently supports ' +
+                'certification data of the format: `{ "certification": { "certified_by": ' +
+                '"Data Platform Team", "details": "This table is the source of truth." ' +
+                '} }`.',
+            )}
+            control={
+              <TextAreaControl
+                controlId="extra"
+                language="json"
+                offerEditInModal={false}
+              />
+            }
+          />
+        )}
         <Field
           fieldKey="owners"
           label={t('Owners')}
