@@ -313,6 +313,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
+    "ENABLE_REACT_CRUD_VIEWS": True,
     # When True, this flag allows display of HTML tags in Markdown components
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
@@ -850,7 +851,7 @@ DOCUMENTATION_ICON = None  # Recommended size: 16x16
 # Enables the replacement react views for all the FAB views (list, edit, show) with
 # designs introduced in SIP-34: https://github.com/apache/incubator-superset/issues/8976
 # This is a work in progress so not all features available in FAB have been implemented
-ENABLE_REACT_CRUD_VIEWS = True
+ENABLE_REACT_CRUD_VIEWS = DEFAULT_FEATURE_FLAGS["ENABLE_REACT_CRUD_VIEWS"]
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
