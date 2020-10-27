@@ -17,11 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { Modal } from 'react-bootstrap';
 import PropTypes from 'prop-types';
-import { t, SupersetClient } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import Omnibar from 'omnibar';
+import Modal from 'src/common/components/Modal';
 import { LOG_ACTIONS_OMNIBAR_TRIGGERED } from '../logger/LogUtils';
 
 const propTypes = {
@@ -43,6 +43,14 @@ const getDashboards = query =>
     .catch(() => ({
       title: t('An error occurred while fethching Dashboards'),
     }));
+
+const OmniModal = styled(Modal)`
+  margin-top: 20%;
+
+  .ant-modal-body {
+    padding: 0;
+  }
+`;
 
 class OmniContainer extends React.Component {
   constructor(props) {
@@ -79,13 +87,13 @@ class OmniContainer extends React.Component {
 
   render() {
     return (
-      <Modal show={this.state.showOmni} style={{ marginTop: '25%' }}>
+      <OmniModal show={this.state.showOmni} hideFooter closable={false}>
         <Omnibar
           className="Omnibar"
           placeholder="Search all dashboards"
           extensions={[getDashboards]}
         />
-      </Modal>
+      </OmniModal>
     );
   }
 }
