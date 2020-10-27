@@ -51,7 +51,8 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
     responsive &&
     css`
       max-width: ${maxWidth ?? '900px'};
-      padding: 0 ${theme.gridUnit * 3}px;
+      padding-left: ${theme.gridUnit * 3}px;
+      padding-right: ${theme.gridUnit * 3}px;
     `}
 
   .ant-modal-header {
