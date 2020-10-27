@@ -15,16 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Utility functions used across Superset"""
-
 import logging
-from typing import Dict, Optional
+from typing import Dict
 
 from flask import current_app
-from flask_appbuilder.security.sqla.models import User
 
-from superset import app, security_manager, thumbnail_cache
-from superset.extensions import celery_app
+from superset import app
+from superset.charts.commands.exceptions import (
+    ChartDataQueryFailedError,
+    ChartDataValidationError,
+)
+from superset.extensions import async_query_manager, celery_app
 
 logger = logging.getLogger(__name__)
 query_timeout = current_app.config[
@@ -33,34 +34,24 @@ query_timeout = current_app.config[
 
 
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
-def load_chart_data_into_cache(user: User, form_data: Dict,) -> None:
+def load_chart_data_into_cache(job_metadata: Dict, form_data: Dict,) -> None:
     from superset.charts.commands.data import (
         ChartDataCommand,
-    )  # load here to prevent circular imports
+    )  # load here due to circular imports
 
     with app.app_context():  # type: ignore
         try:
-            command = ChartDataCommand(user, form_data)
-        except ChartDataValidationError as exc:
-            # TODO: update job status
-            raise
-        except SupersetSecurityException:
-            # TODO: update job status
-            raise
+            command = ChartDataCommand(form_data)
+            command.set_query_context()
+            command.run()
+            async_query_manager.update_job(
+                job_metadata, async_query_manager.STATUS_DONE
+            )
+        except Exception as exc:
+            msg = exc.message if hasattr(exc, "message") else str(exc)
+            async_query_manager.update_job(
+                job_metadata, async_query_manager.STATUS_ERROR, msg
+            )
+            raise exc
 
-        command.run()
-
-        # if not thumbnail_cache:
-        #     logger.warning("No cache set, refusing to compute")
-        #     return None
-        # logger.info("Caching chart: %s", url)
-        # screenshot = ChartScreenshot(url, digest)
-        # user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
-        # screenshot.compute_and_cache(
-        #     user=user,
-        #     cache=thumbnail_cache,
-        #     force=force,
-        #     window_size=window_size,
-        #     thumb_size=thumb_size,
-        # )
         return None

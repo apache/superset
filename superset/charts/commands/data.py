@@ -17,40 +17,28 @@
 import logging
 from typing import Dict, List, Optional
 
-from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.charts.commands.exceptions import (
     ChartDataQueryFailedError,
     ChartDataValidationError,
 )
-from superset.charts.dao import ChartDAO
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.base import BaseCommand
 from superset.common.query_context import QueryContext
-from superset.exceptions import SupersetSecurityException
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
+from superset.extensions import async_query_manager
 from superset.tasks.async_queries import load_chart_data_into_cache
-from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
 class ChartDataCommand(BaseCommand):
-    def __init__(self, user: User, form_data: Dict):
-        self._actor = user
+    def __init__(self, form_data: Dict):
         self._form_data = form_data
         self._query_context: Optional[QueryContext] = None
-        # self._async_channel_id = async_channel_id
-        self.validate()
+        self._async_channel_id = None
 
     def run(self):
-        logger.info("******** ChartDataCommand run_sync")
-        # logger.info('************ new query_context')
-        # logger.info(self._query_context.queries[0].__dict__);
-
         # caching is handled in query_context.get_df_payload (also evals `force` property)
         payload = self._query_context.get_payload()
 
@@ -60,17 +48,27 @@ class ChartDataCommand(BaseCommand):
 
         return {"query_context": self._query_context, "payload": payload}
 
-    def run_async(self, async_channel_id: str):
+    def run_async(self):
         # TODO: confirm cache backend is configured
-        job_info = load_chart_data_into_cache.delay(self._actor, self._form_data)
+        job_metadata = async_query_manager.init_job(self._async_channel_id)
+        load_chart_data_into_cache.delay(job_metadata, self._form_data)
 
-    def validate(self) -> None:
+        return job_metadata
+
+    def set_query_context(self) -> None:
         try:
             self._query_context = ChartDataQueryContextSchema().load(self._form_data)
-            self._query_context.raise_for_access()
         except KeyError:
             raise ChartDataValidationError("Request is incorrect")
         except ValidationError as error:
             raise ChartDataValidationError(
                 "Request is incorrect: %(error)s", error=error.messages
             )
+
+    def validate(self) -> None:
+        self.set_query_context()
+        self._query_context.raise_for_access()
+
+    def validate_request(self, request: Dict):
+        jwt_data = async_query_manager.parse_jwt_from_request(request)
+        self._async_channel_id = jwt_data["channel"]

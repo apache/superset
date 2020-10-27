@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 import uuid
 from typing import Any, Dict
 
 import jwt
+import redis
 from flask import Flask, Response, session
 
 logger = logging.getLogger(__name__)
@@ -28,14 +30,33 @@ class AsyncQueryTokenException(Exception):
     pass
 
 
+class AsyncQueryJobException(Exception):
+    pass
+
+
 class AsyncQueryManager:
+    STATUS_PENDING = "pending"
+    STATUS_RUNNING = "running"
+    STATUS_ERROR = "error"
+    STATUS_DONE = "done"
+
     def __init__(self) -> None:
         super().__init__()
+        self._redis = None
+        self._stream_prefix = None
+        self._stream_limit = None
+        self._stream_limit_firehose = None
         self._jwt_cookie_name = None
         self._jwt_cookie_secure = None
         self._jwt_secret = None
 
     def init_app(self, app: Flask) -> None:
+        self._redis = redis.Redis(**app.config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"])
+        self._stream_prefix = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
+        self._stream_limit = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT"]
+        self._stream_limit_firehose = app.config[
+            "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE"
+        ]
         self._jwt_cookie_name = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
         self._jwt_cookie_secure = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
         self._jwt_secret = app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
@@ -43,10 +64,7 @@ class AsyncQueryManager:
         @app.after_request
         def validate_session(response: Response) -> Response:
             reset_token = False
-            user_id = None
-
-            if "user_id" in session:
-                user_id = session["user_id"]
+            user_id = session["user_id"] if "user_id" in session else None
 
             if "async_channel_id" not in session or "async_user_id" not in session:
                 reset_token = True
@@ -94,3 +112,37 @@ class AsyncQueryManager:
         except Exception as exc:
             logger.warning(exc)
             raise AsyncQueryTokenException("Failed to parse token")
+
+    def init_job(self, channel_id: str):
+        job_id = str(uuid.uuid4())
+        return self._build_job_metadata(channel_id, job_id, status=self.STATUS_PENDING)
+
+    def _build_job_metadata(self, channel_id: str, job_id: str, **kwargs):
+        return {
+            "channel_id": channel_id,
+            "job_id": job_id,
+            "user_id": session["user_id"] if "user_id" in session else None,
+            "status": kwargs["status"],
+            "msg": kwargs["msg"] if "msg" in kwargs else None,
+        }
+
+    def update_job(self, job_metadata: Dict, status: str, msg: str = None):
+        if "channel_id" not in job_metadata:
+            raise AsyncQueryJobException("No channel ID specified")
+
+        if "job_id" not in job_metadata:
+            raise AsyncQueryJobException("No job ID specified")
+
+        updates = {"status": status, "msg": msg}
+        event_data = {"data": json.dumps({**job_metadata, **updates})}
+
+        logger.info(
+            f"********** logging event data to stream {self._stream_prefix}{job_metadata['channel_id']}"
+        )
+        logger.info(event_data)
+
+        full_stream_name = f"{self._stream_prefix}full"
+        scoped_stream_name = f"{self._stream_prefix}{job_metadata['channel_id']}"
+
+        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
+        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)

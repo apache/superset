@@ -480,50 +480,22 @@ class ChartRestApi(BaseSupersetModelRestApi):
         else:
             return self.response_400(message="Request is not JSON")
 
-        # try:
-        #     query_context = ChartDataQueryContextSchema().load(json_body)
-        # except KeyError:
-        #     return self.response_400(message="Request is incorrect")
-        # except ValidationError as error:
-        #     return self.response_400(
-        #         message=_("Request is incorrect: %(error)s", error=error.messages)
-        #     )
-        # logger.info('************* legacy query_context')
-        # logger.info(query_context.queries[0].__dict__);
-
         try:
-            command = ChartDataCommand(g.user, json_body)
+            command = ChartDataCommand(json_body)
+            command.validate()
         except ChartDataValidationError as exc:
-            logger.error("********* failed validation")
             return self.response_400(message=exc.message)
         except SupersetSecurityException:
             return self.response_401()
 
-        try:
-            query_context = ChartDataQueryContextSchema().load(json_body)
-        except KeyError:
-            return self.response_400(message="Request is incorrect")
-        except ValidationError as error:
-            return self.response_400(
-                message=_("Request is incorrect: %(error)s", error=error.messages)
-            )
-        # try:
-        #     query_context.raise_for_access()
-        # except SupersetSecurityException:
-        #     return self.response_401()
-
         if is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
             try:
-                jwt_data = async_query_manager.parse_jwt_from_request(request)
-                async_channel_id = jwt_data["async_channel_id"]
+                command.validate_request(request)
             except AsyncQueryTokenException:
                 return self.response_401()
 
-            result = command.run_async(async_channel_id)
-            return self.response(202)
-            # return self.response(
-            #     202, cache_key=cache_key, chart_url=chart_url, image_url=image_url
-            # )
+            result = command.run_async()
+            return self.response(202, **result)
 
         try:
             result = command.run()
