@@ -415,9 +415,7 @@ class FilterBox extends React.Component {
       const { label, key } = filterConfig;
       return (
         <div key={key} className="m-b-5 filter-container">
-          <div>
-            <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
-          </div>
+          <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
           {this.renderSelect(filterConfig)}
         </div>
       );

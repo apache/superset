@@ -34,11 +34,11 @@ export interface IndicatorProps {
 }
 
 const Indicator = ({
-  indicator: { name, value = [], path },
+  indicator: { column, name, value = [], path },
   onClick,
 }: IndicatorProps) => {
   return (
-    <Item onClick={() => onClick(path)}>
+    <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
       <ItemIcon>
         <SearchOutlined />
       </ItemIcon>
