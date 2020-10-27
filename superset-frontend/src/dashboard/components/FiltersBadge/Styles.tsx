@@ -97,7 +97,7 @@ export const ItemIcon = styled.i`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  left: -20px;
+  left: -${({ theme }) => theme.gridUnit * 5}px;
 `;
 
 export const Item = styled.button`
