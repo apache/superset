@@ -68,6 +68,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         "descr",
     ]
     list_columns = [
+        "id",
         "name",
         "descr",
         "created_by.first_name",
