@@ -57,7 +57,7 @@ const StyledHeader = styled.header`
     li > div:hover {
       background: ${({ theme }) => theme.colors.secondary.light4};
       border-bottom: none;
-      border-radius: 4px;
+      border-radius: ${({ theme }) => theme.borderRadius}px;
       margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
