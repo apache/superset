@@ -133,7 +133,7 @@ describe('Dashboard save action', () => {
             cy.contains('saved successfully').should('be.visible');
 
             // assert title has been updated
-            cy.get('.editable-title input').should(
+            cy.get('.editable-title [data-test="editable-title-input"]').should(
               'have.value',
               dashboardTitle,
             );
