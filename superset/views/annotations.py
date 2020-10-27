@@ -27,8 +27,8 @@ from superset import app
 from superset.constants import RouteMethod
 from superset.extensions import feature_flag_manager
 from superset.models.annotations import Annotation, AnnotationLayer
-from superset.views.base import SupersetModelView
 from superset.typing import FlaskResponse
+from superset.views.base import SupersetModelView
 
 
 class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
@@ -98,10 +98,11 @@ class AnnotationModelView(
         self.pre_add(item)
 
     @expose("/<pk>/annotation/", methods=["GET"])
-    def annotation(self, pk: int) -> FlaskResponse:
+    @has_access
+    def annotation(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
         if not (
             app.config["ENABLE_REACT_CRUD_VIEWS"]
-            and feature_flag_manager.is_feature_enabled("SIP_34_ANNOTATIONS_CRUD_VIEW")
+            and feature_flag_manager.is_feature_enabled("SIP_34_ANNOTATIONS_UI")
         ):
             return super().list()
 

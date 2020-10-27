@@ -46,23 +46,23 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
       resourceCount: annotationsCount,
       resourceCollection: annotations,
     },
-    hasPerm,
+    // hasPerm,
     fetchData,
-    refreshData,
+    // refreshData,
   } = useListViewResource<AnnotationObject>(
     `annotation_layer/${annotationLayerId}/annotation`,
     t('annotation'),
     addDangerToast,
     false,
   );
-  const [annotationModalOpen, setAnnotationModalOpen] = useState<boolean>(
-    false,
-  );
+  // const [annotationModalOpen, setAnnotationModalOpen] = useState<boolean>(
+  //   false,
+  // );
   const [annotationLayerName, setAnnotationLayerName] = useState<string>('');
-  const [
-    currentAnnotation,
-    setCurrentAnnotation,
-  ] = useState<AnnotationObject | null>(null);
+  // const [
+  //   currentAnnotation,
+  //   setCurrentAnnotation,
+  // ] = useState<AnnotationObject | null>(null);
 
   // function handleAnnotationEdit(annotation: AnnotationObject) {
   //   setCurrentAnnotation(annotation);
@@ -120,7 +120,7 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
         accessor: 'end_dttm',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: () => {
           const handleEdit = () => {}; // handleAnnotationEdit(original);
           const handleDelete = () => {}; // openDatabaseDeleteModal(original);
           const actions = [
@@ -159,8 +159,8 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
     ),
     buttonStyle: 'primary',
     onClick: () => {
-      setCurrentAnnotation(null);
-      setAnnotationModalOpen(true);
+      // setCurrentAnnotation(null);
+      // setAnnotationModalOpen(true);
     },
   });
 
