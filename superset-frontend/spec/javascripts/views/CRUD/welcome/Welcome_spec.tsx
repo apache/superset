@@ -41,7 +41,7 @@ describe('Welcome', () => {
     context: { store },
   });
 
-  it('is renders', () => {
+  it('renders', () => {
     expect(wrapper).toExist();
   });
 
