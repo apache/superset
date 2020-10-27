@@ -149,26 +149,28 @@ const DetailsPanelPopover = ({
               </Indent>
             </Collapse.Panel>
           ) : null}
-          <Collapse.Panel
-            key="unset"
-            header={
-              <Title bold color={theme.colors.grayscale.dark1}>
-                <MinusCircleFilled />
-                {` Unset (${unsetIndicators.length})`}
-              </Title>
-            }
-            disabled={!unsetIndicators.length}
-          >
-            <Indent>
-              {unsetIndicators.map(indicator => (
-                <Indicator
-                  key={indicator.column}
-                  indicator={indicator}
-                  onClick={onHighlightFilterSource}
-                />
-              ))}
-            </Indent>
-          </Collapse.Panel>
+          {unsetIndicators.length ? (
+            <Collapse.Panel
+              key="unset"
+              header={
+                <Title bold color={theme.colors.grayscale.dark1}>
+                  <MinusCircleFilled />
+                  {` Unset (${unsetIndicators.length})`}
+                </Title>
+              }
+              disabled={!unsetIndicators.length}
+            >
+              <Indent>
+                {unsetIndicators.map(indicator => (
+                  <Indicator
+                    key={indicator.column}
+                    indicator={indicator}
+                    onClick={onHighlightFilterSource}
+                  />
+                ))}
+              </Indent>
+            </Collapse.Panel>
+          ) : null}
         </Collapse>
       </Reset>
     </Panel>
