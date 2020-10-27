@@ -89,7 +89,7 @@ const selectIndicatorsForChartFromFilter = (
   filterDataSource: Datasource,
   appliedColumns: Set<string>,
   rejectedColumns: Set<string>,
-) => {
+): Indicator[] => {
   // filters can be applied (if the filter is compatible with the datasource)
   // or rejected (if the filter is incompatible)
   // or the status can be unknown (if the filter has calculated parameters that we can't analyze)
@@ -106,7 +106,7 @@ const selectIndicatorsForChartFromFilter = (
       }).includes(chartId),
     )
     .map(column => ({
-      id: column,
+      column,
       name: filter.labels[column] || column,
       value: selectIndicatorValue(column, filter, filterDataSource),
       status: getStatus(column),
@@ -115,9 +115,8 @@ const selectIndicatorsForChartFromFilter = (
 };
 
 export type Indicator = {
-  id: string;
+  column: string;
   name: string;
-  nameLowercase: string;
   value: string[];
   status: IndicatorStatus;
   path: string[];
@@ -155,7 +154,7 @@ export const selectIndicatorsForChart = (
             rejectedColumns,
           ),
         ),
-      [] as any[],
+      [] as Indicator[],
     );
   indicators.sort((a, b) => a.name.localeCompare(b.name));
   return indicators;
