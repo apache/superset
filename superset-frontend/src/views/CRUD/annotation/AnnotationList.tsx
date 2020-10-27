@@ -30,7 +30,7 @@ import { IconName } from 'src/components/Icon';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 
 import { AnnotationObject } from './types';
-import AnnotationModal from './AnnotationModal';
+// import AnnotationModal from './AnnotationModal';
 
 const PAGE_SIZE = 25;
 
@@ -170,14 +170,14 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
         name={t(`Annotation Layer ${annotationLayerName}`)}
         buttons={subMenuButtons}
       />
-      <AnnotationModal
+      {/* <AnnotationModal
         addDangerToast={addDangerToast}
         annotation={currentAnnotation}
         show={annotationModalOpen}
         onAnnotationAdd={() => refreshData()}
         annnotationLayerId={annotationLayerId}
         onHide={() => setAnnotationModalOpen(false)}
-      />
+      /> */}
       <ListView<AnnotationObject>
         className="css-templates-list-view"
         columns={columns}
