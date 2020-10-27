@@ -90,7 +90,7 @@ describe('Dashboard save action', () => {
         openDashboardEditProperties();
 
         // open color scheme dropdown
-        cy.get('.modal-body')
+        cy.get('.ant-modal-body')
           .contains('Color Scheme')
           .parents('.ControlHeader')
           .next('.Select')
@@ -105,7 +105,7 @@ describe('Dashboard save action', () => {
           });
 
         // remove json metadata
-        cy.get('.modal-body')
+        cy.get('.ant-modal-body')
           .contains('Advanced')
           .click()
           .then(() => {
@@ -113,18 +113,18 @@ describe('Dashboard save action', () => {
           });
 
         // update title
-        cy.get('.modal-body')
+        cy.get('.ant-modal-body')
           .contains('Title')
           .siblings('input')
           .type(`{selectall}{backspace}${dashboardTitle}`);
 
         // save edit changes
-        cy.get('.modal-footer')
+        cy.get('.ant-modal-footer')
           .contains('Save')
           .click()
           .then(() => {
             // assert that modal edit window has closed
-            cy.get('.modal-body').should('not.exist');
+            cy.get('.ant-modal-body').should('not.exist');
 
             // save dashboard changes
             cy.get('.dashboard-header').contains('Save').click();
