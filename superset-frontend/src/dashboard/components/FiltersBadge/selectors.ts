@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isNil, get } from 'lodash';
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { TIME_FILTER_MAP } from '../../../visualizations/FilterBox/FilterBox';
 
@@ -57,7 +56,7 @@ const selectIndicatorValue = (
   const arrValues = Array.isArray(values) ? values : [values];
 
   if (
-    isNil(values) ||
+    values == null ||
     (filter.isDateFilter && values === 'No filter') ||
     arrValues.length === 0
   ) {
@@ -132,12 +131,12 @@ export const selectIndicatorsForChart = (
   // for now we only need to know which columns are compatible/incompatible,
   // so grab the columns from the applied/rejected filters
   const appliedColumns: Set<string> = new Set(
-    get(chart, 'queryResponse.applied_filters', []).map(
+    (chart?.queryResponse?.applied_filters || []).map(
       (filter: any) => filter.column,
     ),
   );
   const rejectedColumns: Set<string> = new Set(
-    get(chart, 'queryResponse.rejected_filters', []).map(
+    (chart?.queryResponse?.rejected_filters || []).map(
       (filter: any) => filter.column,
     ),
   );
