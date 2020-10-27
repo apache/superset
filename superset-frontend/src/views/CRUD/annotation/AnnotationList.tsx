@@ -64,10 +64,10 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
     setCurrentAnnotation,
   ] = useState<AnnotationObject | null>(null);
 
-  function handleAnnotationEdit(annotation: AnnotationObject) {
-    setCurrentAnnotation(annotation);
-    setAnnotationModalOpen(true);
-  }
+  // function handleAnnotationEdit(annotation: AnnotationObject) {
+  //   setCurrentAnnotation(annotation);
+  //   setAnnotationModalOpen(true);
+  // }
 
   const fetchAnnotationLayer = useCallback(
     async function fetchAnnotationLayer() {

@@ -31,12 +31,16 @@ import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const annotationsEndpoint = 'glob:*/api/v1/annotation_layer/*/annotation';
+const annotationsEndpoint = 'glob:*/api/v1/annotation_layer/*/annotation*';
 const annotationLayerEndpoint = 'glob:*/api/v1/annotation_layer/*';
 
-const mocktemplates = [...new Array(3)].map((_, i) => ({
+const mockannotation = [...new Array(3)].map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   created_by: {
+    first_name: `user`,
+    id: i,
+  },
+  changed_by: {
     first_name: `user`,
     id: i,
   },
@@ -48,7 +52,8 @@ const mocktemplates = [...new Array(3)].map((_, i) => ({
 }));
 
 fetchMock.get(annotationsEndpoint, {
-  result: mocktemplates,
+  ids: [2, 0, 1],
+  result: mockannotation,
   count: 3,
 });
 
@@ -56,6 +61,11 @@ fetchMock.get(annotationLayerEndpoint, {
   id: 1,
   result: { descr: 'annotations test 0', name: 'Test 0' },
 });
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'), // use actual for all non-hook parts
+  useParams: () => ({ annotationLayerId: '1' }),
+}));
 
 async function mountAndWait(props) {
   const mounted = mount(<AnnotationList {...props} />, {

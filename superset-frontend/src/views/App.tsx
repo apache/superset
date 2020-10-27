@@ -104,7 +104,7 @@ const App = () => (
                   <CssTemplatesList user={user} />
                 </ErrorBoundary>
               </Route>
-              <Route path="/annotationmodelview/:annotationLayerId/annotation">
+              <Route path="/annotationmodelview/:annotationLayerId/annotation/">
                 <ErrorBoundary>
                   <AnnotationList user={user} />
                 </ErrorBoundary>

@@ -16,9 +16,10 @@
 # under the License.
 from typing import Any, Dict
 
-from flask_appbuilder import CompactCRUDMixin, expose
+from flask_appbuilder import CompactCRUDMixin
+from flask_appbuilder.api import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access_api
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 from wtforms.validators import StopValidation
 
@@ -28,7 +29,6 @@ from superset.extensions import feature_flag_manager
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.views.base import SupersetModelView
 from superset.typing import FlaskResponse
-from .base import api
 
 
 class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
@@ -53,7 +53,7 @@ class AnnotationModelView(
     SupersetModelView, CompactCRUDMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Annotation)
-    include_route_methods = RouteMethod.CRUD_SET | {"annotations"}
+    include_route_methods = RouteMethod.CRUD_SET | {"annotation"}
 
     list_title = _("Annotations")
     show_title = _("Show Annotation")
@@ -97,8 +97,8 @@ class AnnotationModelView(
     def pre_update(self, item: "AnnotationModelView") -> None:
         self.pre_add(item)
 
-    @expose("/<pk>/annotation")
-    def annotations(self, pk: int) -> FlaskResponse:
+    @expose("/<pk>/annotation/", methods=["GET"])
+    def annotation(self, pk: int) -> FlaskResponse:
         if not (
             app.config["ENABLE_REACT_CRUD_VIEWS"]
             and feature_flag_manager.is_feature_enabled("SIP_34_ANNOTATIONS_CRUD_VIEW")
