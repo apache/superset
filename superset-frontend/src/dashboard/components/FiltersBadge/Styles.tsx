@@ -120,7 +120,7 @@ export const Item = styled.button`
 `;
 
 export const Reset = styled.div`
-  margin: 0 -16px;
+  margin: 0 -${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 export const Indent = styled.div`
