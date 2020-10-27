@@ -802,8 +802,8 @@ def schedule_window(
         for eta in next_schedules(
             schedule.crontab, schedule_start_at, stop_at, resolution=resolution
         ):
+            logging.info("Scheduled eta %s", eta)
             get_scheduler_action(report_type).apply_async(args, eta=eta)  # type: ignore
-            break
 
     return None
 

@@ -34,3 +34,40 @@
 .m-b-5 {
   margin-bottom: 5px;
 }
+
+.input-inline {
+  float: left;
+  padding-right: 3px;
+
+  .dropdown {
+    display: flex;
+    button {
+      padding-right: 20px;
+      .caret {
+        width: auto;
+        position: absolute;
+        right: 5px;
+        top: 6px;
+      }
+    }
+  }
+}
+
+.filter-container {
+  display: flex;
+
+  label {
+    display: flex;
+    font-weight: @font-weight-bold;
+    margin: 0 0 8px 8px;
+  }
+
+  .filter-badge-container {
+    width: 30px;
+    padding-right: 10px;
+  }
+
+  .filter-badge-container + div {
+    width: 100%;
+  }
+}

@@ -44,6 +44,18 @@ class TestDatabaseModel(SupersetTestCase):
         col = TableColumn(column_name="__not_time", type="INTEGER", table=tbl)
         self.assertEqual(col.is_temporal, False)
 
+    def test_temporal_varchar(self):
+        """Ensure a column with is_dttm set to true evaluates to is_temporal == True"""
+
+        database = get_example_database()
+        tbl = SqlaTable(table_name="test_tbl", database=database)
+        col = TableColumn(column_name="ds", type="VARCHAR", table=tbl)
+        # by default, VARCHAR should not be assumed to be temporal
+        assert col.is_temporal is False
+        # changing to `is_dttm = True`, calling `is_temporal` should return True
+        col.is_dttm = True
+        assert col.is_temporal is True
+
     def test_db_column_types(self):
         test_cases: Dict[str, DbColumnType] = {
             # string

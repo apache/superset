@@ -27,6 +27,7 @@ from flask_babel import gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import (
+    DBAPIError,
     NoSuchModuleError,
     NoSuchTableError,
     OperationalError,
@@ -589,7 +590,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
         except DatabaseSecurityUnsafeError as ex:
             return self.response_422(message=ex)
-        except OperationalError:
+        except DBAPIError:
             logger.warning("Connection failed")
             return self.response(
                 500,

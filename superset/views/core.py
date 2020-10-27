@@ -34,12 +34,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import (
-    ArgumentError,
-    NoSuchModuleError,
-    OperationalError,
-    SQLAlchemyError,
-)
+from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from werkzeug.urls import Href
 
@@ -1153,8 +1148,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             engine = database.get_sqla_engine(user_name=username)
 
             with closing(engine.raw_connection()) as conn:
-                engine.dialect.do_ping(conn)
-                return json_success('"OK"')
+                if engine.dialect.do_ping(conn):
+                    return json_success('"OK"')
+
+                raise DBAPIError(None, None, None)
         except CertificateException as ex:
             logger.info("Certificate exception")
             return json_error_response(ex.message)
@@ -1176,7 +1173,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
                 )
             )
-        except OperationalError:
+        except DBAPIError:
             logger.warning("Connection failed")
             return json_error_response(
                 _("Connection failed, please check your connection settings"), 400

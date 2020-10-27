@@ -180,7 +180,7 @@ function ColumnCollectionTable({
               control={
                 <TextControl
                   controlId="python_date_format"
-                  placeholder="%y/%m/%d"
+                  placeholder="%Y/%m/%d"
                 />
               }
             />
@@ -392,14 +392,9 @@ class DatasourceEditor extends React.PureComponent {
 
   syncMetadata() {
     const { datasource } = this.state;
-    // Handle carefully when the schema is empty
-    const endpoint =
-      `/datasource/external_metadata/${
-        datasource.type || datasource.datasource_type
-      }/${datasource.id}/` +
-      `?db_id=${datasource.database.id}` +
-      `&schema=${datasource.schema || ''}` +
-      `&table_name=${datasource.datasource_name || datasource.table_name}`;
+    const endpoint = `/datasource/external_metadata/${
+      datasource.type || datasource.datasource_type
+    }/${datasource.id}/`;
     this.setState({ metadataLoading: true });
 
     SupersetClient.get({ endpoint })
@@ -930,12 +925,6 @@ class DatasourceEditor extends React.PureComponent {
                   buttonStyle="primary"
                   onClick={this.syncMetadata}
                   className="sync-from-source"
-                  disabled={!!datasource.sql}
-                  tooltip={
-                    datasource.sql
-                      ? t('This option is not yet available for views')
-                      : null
-                  }
                 >
                   {t('Sync columns from source')}
                 </Button>
