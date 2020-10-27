@@ -68,17 +68,23 @@ class AdhocFilterOption extends React.PureComponent {
   }
 
   getContent() {
-    const { adhocFilter } = this.props;
+    const {
+      adhocFilter,
+      onFilterEdit,
+      options,
+      datasource,
+      partitionColumn,
+    } = this.props;
     adhocFilter.isNew = false;
     return (
       <AdhocFilterEditPopover
         onResize={this.onPopoverResize}
         adhocFilter={adhocFilter}
-        onChange={this.props.onFilterEdit}
+        onChange={onFilterEdit}
         onClose={this.onOverlayExited}
-        options={this.props.options}
-        datasource={this.props.datasource}
-        partitionColumn={this.props.partitionColumn}
+        options={options}
+        datasource={datasource}
+        partitionColumn={partitionColumn}
       />
     );
   }
