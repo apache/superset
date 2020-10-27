@@ -1,4 +1,4 @@
-import { buildQueryObject, QueryObject } from '@superset-ui/core/src/query';
+import { AnnotationLayer, buildQueryObject, QueryObject } from '@superset-ui/core/src/query';
 
 describe('buildQueryObject', () => {
   let query: QueryObject;
@@ -119,5 +119,65 @@ describe('buildQueryObject', () => {
     query = buildQueryObject({ ...baseQuery, row_limit: 'two hundred', row_offset: 'twenty' });
     expect(query.row_limit).toBeUndefined();
     expect(query.row_offset).toBeUndefined();
+  });
+
+  it('should populate annotation_layers', () => {
+    const annotationLayers: AnnotationLayer[] = [
+      {
+        annotationType: 'FORMULA',
+        color: '#ff7f44',
+        name: 'My Formula',
+        opacity: 'opacityLow',
+        show: true,
+        style: 'solid',
+        value: '10*sin(x)',
+        width: 1,
+      },
+      {
+        annotationType: 'INTERVAL',
+        color: null,
+        descriptionColumns: [],
+        name: 'My Interval',
+        overrides: { time_range: null },
+        sourceType: 'NATIVE',
+        style: 'dashed',
+        value: 1,
+        width: 100,
+      },
+      {
+        annotationType: 'EVENT',
+        color: null,
+        descriptionColumns: [],
+        name: 'My Interval',
+        overrides: {
+          granularity: null,
+          time_grain_sqla: null,
+          time_range: null,
+        },
+        sourceType: 'table',
+        timeColumn: 'ds',
+        style: 'dashed',
+        value: 'asdf',
+        width: 100,
+      },
+    ];
+    query = buildQueryObject({
+      datasource: '5__table',
+      granularity_sqla: 'ds',
+      viz_type: 'table',
+      annotation_layers: annotationLayers,
+    });
+    expect(query.annotation_layers).toEqual(annotationLayers);
+  });
+
+  it('should populate url_params', () => {
+    const urlParams = { abc: '123' };
+    query = buildQueryObject({
+      datasource: '5__table',
+      granularity_sqla: 'ds',
+      viz_type: 'table',
+      url_params: urlParams,
+    });
+    expect(query.url_params).toEqual(urlParams);
   });
 });
