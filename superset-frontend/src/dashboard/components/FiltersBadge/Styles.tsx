@@ -124,7 +124,7 @@ export const Reset = styled.div`
 `;
 
 export const Indent = styled.div`
-  padding-left: 24px;
+  padding-left: ${({ theme }) => theme.gridUnit * 6}px;
   margin: -${({ theme }) => theme.gridUnit * 3}px 0;
 `;
 
