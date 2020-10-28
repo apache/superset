@@ -64,7 +64,7 @@ describe('Dashboard filter', () => {
     });
   });
   // TODO fix and reactivate this flaky test
-  xit('should apply filter', () => {
+  it('should apply filter', () => {
     cy.get('.Select__control input[type=text]').first().focus();
 
     // should open the filter indicator
@@ -101,7 +101,10 @@ describe('Dashboard filter', () => {
     cy.get('.filter_box button').click({ force: true });
 
     // wait again after applied filters
-    cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
+    cy.wait(
+      aliases.filter(x => x !== getAlias(filterId)),
+      { timeout: 30000 },
+    ).then(requests => {
       requests.forEach(xhr => {
         const requestFormData = xhr.request.body as FormData;
         const requestParams = JSON.parse(
@@ -109,8 +112,8 @@ describe('Dashboard filter', () => {
         );
         expect(requestParams.extra_filters[0]).deep.eq({
           col: 'region',
-          op: 'in',
-          val: ['South Asia'],
+          op: '==',
+          val: 'South Asia',
         });
       });
     });
