@@ -390,15 +390,15 @@ class SupersetAppInitializer:
             appbuilder.add_view(
                 DashboardEmailScheduleView,
                 "Dashboard Email Schedules",
-                label=__("Dashboard Emails"),
+                label=__("Dashboard Emails (Beta)"),
                 category="Manage",
                 category_label=__("Manage"),
                 icon="fa-search",
             )
             appbuilder.add_view(
                 SliceEmailScheduleView,
-                "Chart Emails",
-                label=__("Chart Email Schedules"),
+                "Chart Email Schedules",
+                label=__("Chart Emails (Beta)"),
                 category="Manage",
                 category_label=__("Manage"),
                 icon="fa-search",
@@ -408,7 +408,7 @@ class SupersetAppInitializer:
             appbuilder.add_view(
                 AlertModelView,
                 "Alerts",
-                label=__("Alerts"),
+                label=__("Alerts (Beta)"),
                 category="Manage",
                 category_label=__("Manage"),
                 icon="fa-exclamation-triangle",
