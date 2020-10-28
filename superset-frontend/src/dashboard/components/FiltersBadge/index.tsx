@@ -24,7 +24,10 @@ import { Pill } from './Styles';
 import { Indicator } from './selectors';
 
 export interface FiltersBadgeProps {
-  chartId: number;
+  appliedIndicators: Indicator[];
+  unsetIndicators: Indicator[];
+  incompatibleIndicators: Indicator[];
+  onHighlightFilterSource: (path: string[]) => void;
 }
 
 const FiltersBadge = ({
@@ -32,12 +35,7 @@ const FiltersBadge = ({
   unsetIndicators,
   incompatibleIndicators,
   onHighlightFilterSource,
-}: {
-  appliedIndicators: Indicator[];
-  unsetIndicators: Indicator[];
-  incompatibleIndicators: Indicator[];
-  onHighlightFilterSource: (path: string[]) => void;
-}) => {
+}: FiltersBadgeProps) => {
   if (
     !appliedIndicators.length &&
     !incompatibleIndicators.length &&

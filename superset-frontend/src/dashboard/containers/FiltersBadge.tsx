@@ -23,9 +23,11 @@ import {
   selectIndicatorsForChart,
   IndicatorStatus,
 } from 'src/dashboard/components/FiltersBadge/selectors';
-import FiltersBadge, {
-  FiltersBadgeProps,
-} from 'src/dashboard/components/FiltersBadge';
+import FiltersBadge from 'src/dashboard/components/FiltersBadge';
+
+export interface FiltersBadgeProps {
+  chartId: number;
+}
 
 const mapDispatchToProps = (dispatch: Dispatch<any>) => {
   return bindActionCreators(

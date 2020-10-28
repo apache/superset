@@ -121,13 +121,17 @@ export type Indicator = {
   path: string[];
 };
 
+// inspects redux state to find what the filter indicators should be shown for a given chart
 export const selectIndicatorsForChart = (
   chartId: number,
   filters: { [key: number]: Filter },
   datasources: { [key: string]: Datasource },
   charts: any,
-) => {
+): Indicator[] => {
   const chart = charts[chartId];
+  // no indicators if chart is loading
+  if (chart.chartStatus === 'loading') return [];
+
   // for now we only need to know which columns are compatible/incompatible,
   // so grab the columns from the applied/rejected filters
   const appliedColumns: Set<string> = new Set(
