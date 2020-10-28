@@ -27,6 +27,12 @@ toposort==1.5             # via pip-compile-multi
 tox==3.20.1               # via -r requirements/integration.in
 virtualenv==20.1.0        # via pre-commit, tox
 zipp==3.4.0               # via importlib-metadata
+PyAthenaJDBC>1.0.9
+PyAthena>1.2.0
+psycopg2
+elasticsearch-dbapi
+python-crontab
+Authlib
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
