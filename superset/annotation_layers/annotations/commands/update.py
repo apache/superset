@@ -70,14 +70,14 @@ class UpdateAnnotationCommand(BaseCommand):
             if not annotation_layer:
                 raise AnnotationLayerNotFoundError()
             self._properties["layer"] = annotation_layer
+
+            # Validate short descr uniqueness on this layer
+            if not AnnotationDAO.validate_update_uniqueness(
+                layer_id, short_descr, annotation_id=self._model_id,
+            ):
+                exceptions.append(AnnotationUniquenessValidationError())
         else:
             self._properties["layer"] = self._model.layer
-
-        # Validate short descr uniqueness on this layer
-        if not AnnotationDAO.validate_update_uniqueness(
-            layer_id, short_descr, annotation_id=self._model_id,
-        ):
-            exceptions.append(AnnotationUniquenessValidationError())
 
         # validate date time sanity
         start_dttm: Optional[datetime] = self._properties.get("start_dttm")
