@@ -65,11 +65,19 @@ the wrong files/using wrong names. There's a script to help you set correctly al
 necessary environment variables. Change your current directory to `superset/RELEASING`
 and execute the `set_release_env.sh` script with the relevant parameters:
 
+Usage (BASH):
 ```bash
-    # usage (BASH): . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
-    # usage (ZSH): source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
-    #
-    # example: source set_release_env.sh 0.37.0rc1 myid@apache.org
+    . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
+```
+
+Usage (ZSH):
+```bash
+    source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
+```
+
+Example:
+```bash
+    source set_release_env.sh 0.37.0rc1 myid@apache.org
 ```
 
 The script will output the exported variables. Here's example for 0.37.0rc1:
