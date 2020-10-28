@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM python:3.7-jessie
+FROM python:3.7-buster
 ARG VERSION
 
 RUN git clone --depth 1 --branch ${VERSION} https://github.com/apache/incubator-superset.git /superset
