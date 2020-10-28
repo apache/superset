@@ -63,18 +63,6 @@ class GitChangeLog:
     def __init__(self, logs: List[GitLog]) -> None:
         self._logs = logs
         self._github_login_cache = {
-            "Daniel Vaz Gaspar": "dpgaspar",
-            "Grace Guo": "graceguo-supercat",
-            "Maxime Beauchemin": "mistercrunch",
-            "John Bodley": "john-bodley",
-            "Ville Brofeldt": "villebro",
-            "Beto Dealmeida": "betodealmeida",
-            "Phillip Kelley-Dotson": "pkdotson",
-            "Erik Ritter": "etr2460",
-            "Lily Kuang": "lilykuang",
-            "Bogdan": "bkyryliuk",
-            "Craig Rueda": "craig-rueda",
-            "Evan Rusackas": "rusackas",
         }
         self._wait = 10
 
