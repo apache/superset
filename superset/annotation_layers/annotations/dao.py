@@ -47,7 +47,7 @@ class AnnotationDAO(BaseDAO):
     @staticmethod
     def validate_update_uniqueness(
         layer_id: int, short_descr: str, annotation_id: Optional[int] = None
-    ):
+    ) -> bool:
         """
         Validate if this annotation short description is unique. `id` is optional
         and serves for validating on updates

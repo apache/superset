@@ -185,7 +185,7 @@ class SaveModal extends React.Component {
               data-test="new-chart-name"
             />
           </FormGroup>
-          <FormGroup>
+          <FormGroup data-test="save-chart-modal-select-dashboard-form">
             <FormLabel required>{t('Add to dashboard')}</FormLabel>
             <CreatableSelect
               id="dashboard-creatable-select"

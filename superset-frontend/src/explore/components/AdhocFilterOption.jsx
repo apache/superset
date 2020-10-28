@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Popover from 'src/common/components/Popover';
-import { t, withTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
+import Popover from 'src/common/components/Popover';
 import Label from 'src/components/Label';
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from '../AdhocFilter';
@@ -44,57 +44,63 @@ const propTypes = {
 class AdhocFilterOption extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.closeFilterEditOverlay = this.closeFilterEditOverlay.bind(this);
     this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.onOverlayEntered = this.onOverlayEntered.bind(this);
-    this.onOverlayExited = this.onOverlayExited.bind(this);
-    this.handleVisibleChange = this.handleVisibleChange.bind(this);
-    this.state = { overlayShown: false };
+    this.closePopover = this.closePopover.bind(this);
+    this.togglePopover = this.togglePopover.bind(this);
+    this.state = {
+      // automatically open the popover the the metric is new
+      popoverVisible: !!props.adhocFilter.isNew,
+    };
+  }
+
+  componentDidMount() {
+    const { adhocFilter } = this.props;
+    // isNew is used to auto-open the popup. Once popup is opened, it's not
+    // considered new anymore.
+    // put behind setTimeout so in case consequetive re-renderings are triggered
+    // for some reason, the popup can still show up.
+    setTimeout(() => {
+      adhocFilter.isNew = false;
+    });
   }
 
   onPopoverResize() {
     this.forceUpdate();
   }
 
-  onOverlayEntered() {
-    // isNew is used to indicate whether to automatically open the overlay
-    // once the overlay has been opened, the metric/filter will never be
-    // considered new again.
-    this.props.adhocFilter.isNew = false;
-    this.setState({ overlayShown: true });
+  closePopover() {
+    this.setState({ popoverVisible: false });
   }
 
-  onOverlayExited() {
-    this.setState({ overlayShown: false });
-  }
-
-  closeFilterEditOverlay() {
-    this.setState({ overlayShown: false });
-  }
-
-  handleVisibleChange(visible) {
-    if (visible) {
-      this.onOverlayEntered();
-    } else {
-      this.onOverlayExited();
-    }
+  togglePopover(visible) {
+    this.setState(({ popoverVisible }) => {
+      return {
+        popoverVisible: visible === undefined ? !popoverVisible : visible,
+      };
+    });
   }
 
   render() {
     const { adhocFilter } = this.props;
-    const content = (
+    const overlayContent = (
       <AdhocFilterEditPopover
-        onResize={this.onPopoverResize}
         adhocFilter={adhocFilter}
-        onChange={this.props.onFilterEdit}
-        onClose={this.closeFilterEditOverlay}
         options={this.props.options}
         datasource={this.props.datasource}
         partitionColumn={this.props.partitionColumn}
+        onResize={this.onPopoverResize}
+        onClose={this.closePopover}
+        onChange={this.props.onFilterEdit}
       />
     );
+
     return (
-      <div role="button" tabIndex={0} onMouseDown={e => e.stopPropagation()}>
+      <div
+        role="button"
+        tabIndex={0}
+        onMouseDown={e => e.stopPropagation()}
+        onKeyDown={e => e.stopPropagation()}
+      >
         {adhocFilter.isExtra && (
           <InfoTooltipWithTrigger
             icon="exclamation-triangle"
@@ -109,19 +115,14 @@ class AdhocFilterOption extends React.PureComponent {
         <Popover
           placement="right"
           trigger="click"
-          disabled
-          content={content}
+          content={overlayContent}
           defaultVisible={adhocFilter.isNew}
-          visible={this.state.overlayShown}
-          onVisibleChange={this.handleVisibleChange}
+          visible={this.state.popoverVisible}
+          onVisibleChange={this.togglePopover}
         >
           <Label className="option-label adhoc-option adhoc-filter-option">
             {adhocFilter.getDefaultLabel()}
-            <i
-              className={`fa fa-caret-${
-                this.state.overlayShown ? 'left' : 'right'
-              } adhoc-label-arrow`}
-            />
+            <i className="fa fa-caret-right adhoc-label-arrow" />
           </Label>
         </Popover>
       </div>
@@ -129,6 +130,6 @@ class AdhocFilterOption extends React.PureComponent {
   }
 }
 
-export default withTheme(AdhocFilterOption);
+export default AdhocFilterOption;
 
 AdhocFilterOption.propTypes = propTypes;
