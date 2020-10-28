@@ -36,7 +36,6 @@ import { useFavoriteStatus } from 'src/views/CRUD/hooks';
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
 
 function DashboardCard({
-  isChart,
   dashboard,
   hasPerm,
   bulkSelectEnabled,
@@ -54,8 +53,6 @@ function DashboardCard({
     addDangerToast,
   );
 
-  const cardTitle = isChart ? dashboard.slice_name : dashboard.dashboard_title;
-
   const menu = (
     <Menu>
       {canDelete && (
@@ -64,7 +61,8 @@ function DashboardCard({
             title={t('Please Confirm')}
             description={
               <>
-                {t('Are you sure you want to delete')} <b>{cardTitle}</b>?
+                {t('Are you sure you want to delete')}{' '}
+                <b>{dashboard.dashboard_title}</b>?
               </>
             }
             onConfirm={() =>
