@@ -109,7 +109,9 @@ describe('chart card view', () => {
     cy.get('[data-test="chart-list-edit-option"]').should('be.visible');
     cy.get('[data-test="chart-list-edit-option"]').click();
     cy.get('[data-test="properties-edit-modal"]').should('be.visible');
-    cy.get('[data-test="properties-nodal-name-input"]').should('not.have.value');
+    cy.get('[data-test="properties-nodal-name-input"]').should(
+      'not.have.value',
+    );
     cy.get('[data-test="properties-modal-cancel-button"]')
       .contains('Cancel')
       .click();
