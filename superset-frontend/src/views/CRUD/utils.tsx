@@ -60,6 +60,7 @@ const createFetchResourceMethod = (method: string) => (
 export const getRecentAcitivtyObjs = (
   userId: string | number,
   recent: string,
+  addDangerToast: (arg0: string, arg1: string) => void,
 ) => {
   const getParams = (filters?: Array<any>) => {
     const params = {
@@ -140,7 +141,12 @@ export const getRecentAcitivtyObjs = (
             ];
             return res;
           })
-          .catch(e => console.log('err', e));
+          .catch(e =>
+            addDangerToast(
+              'There was an error fetching you recent activity:',
+              e,
+            ),
+          );
       }
       res.viewed = recentsRes.json;
       return res;

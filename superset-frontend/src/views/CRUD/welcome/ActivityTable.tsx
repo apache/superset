@@ -144,7 +144,7 @@ export default function ActivityTable({ user }: ActivityProps) {
   }
 
   useEffect(() => {
-    getRecentAcitivtyObjs(user.userId, recent)
+    getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
         const data: any = {
           Created: [
