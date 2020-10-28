@@ -705,7 +705,89 @@ class ChartDataExtrasSchema(Schema):
     )
 
 
+class AnnotationLayerSchema(Schema):
+    annotationType = fields.String(
+        description="Type of annotation layer",
+        validate=validate.OneOf(
+            choices=("EVENT", "FORMULA", "INTERVAL", "TIME_SERIES",)
+        ),
+    )
+    color = fields.String(description="Layer color", allow_none=True,)
+    descriptionColumns = fields.List(
+        fields.String(),
+        description="Columns to use as the description. If none are provided, "
+        "all will be shown.",
+    )
+    hideLine = fields.Boolean(
+        description="Should line be hidden. Only applies to line annotations",
+        allow_none=True,
+    )
+    intervalEndColumn = fields.String(
+        description=(
+            "Column containing end of interval. Only applies to interval layers"
+        ),
+        allow_none=True,
+    )
+    name = fields.String(description="Name of layer", required=True)
+    opacity = fields.String(
+        description="Opacity of layer",
+        validate=validate.OneOf(
+            choices=("", "opacityLow", "opacityMedium", "opacityHigh"),
+        ),
+        allow_none=True,
+        required=False,
+    )
+    overrides = fields.Dict(
+        keys=fields.String(
+            desciption="Name of property to be overridden",
+            validate=validate.OneOf(
+                choices=("granularity", "time_grain_sqla", "time_range", "time_shift"),
+            ),
+        ),
+        values=fields.Raw(allow_none=True),
+        description="which properties should be overridable",
+        allow_none=True,
+    )
+    show = fields.Boolean(description="Should the layer be shown", required=True)
+    showMarkers = fields.Boolean(
+        description="Should markers be shown. Only applies to line annotations.",
+        required=True,
+    )
+    sourceType = fields.String(
+        description="Type of source for annotation data",
+        validate=validate.OneOf(choices=("", "line", "NATIVE", "table",)),
+    )
+    style = fields.String(
+        description="Line style. Only applies to time-series annotations",
+        validate=validate.OneOf(choices=("dashed", "dotted", "solid", "longDashed",)),
+    )
+    timeColumn = fields.String(
+        description="Column with event date or interval start date", allow_none=True,
+    )
+    titleColumn = fields.String(description="Column with title", allow_none=True,)
+    width = fields.Float(
+        description="Width of annotation line",
+        validate=[
+            Range(
+                min=0,
+                min_inclusive=True,
+                error=_("`width` must be greater or equal to 0"),
+            )
+        ],
+    )
+    value = fields.Raw(
+        description="For formula annotations, this contains the formula. "
+        "For other types, this is the primary key of the source object.",
+        required=True,
+    )
+
+
 class ChartDataQueryObjectSchema(Schema):
+    annotation_layers = fields.List(
+        fields.Nested(AnnotationLayerSchema),
+        description="Annotation layers to apply to chart",
+        allow_none=True,
+    )
     applied_time_extras = fields.Dict(
         description="A mapping of temporal extras that have been applied to the query",
         required=False,
@@ -829,6 +911,12 @@ class ChartDataQueryObjectSchema(Schema):
         "as `druid_time_origin`.",
         allow_none=True,
     )
+    url_params = fields.Dict(
+        description="Optional query parameters passed to a dashboard or Explore view",
+        keys=fields.String(description="The query parameter"),
+        values=fields.String(description="The value of the query parameter"),
+        allow_none=True,
+    )
 
 
 class ChartDataDatasourceSchema(Schema):
@@ -865,7 +953,28 @@ class ChartDataQueryContextSchema(Schema):
     # pylint: enable=no-self-use,unused-argument
 
 
+class AnnotationDataSchema(Schema):
+    columns = fields.List(
+        fields.String(),
+        description="columns available in the annotation result",
+        required=True,
+    )
+    records = fields.List(
+        fields.Dict(keys=fields.String(),),
+        description="records mapping the column name to it's value",
+        required=True,
+    )
+
+
 class ChartDataResponseResult(Schema):
+    annotation_data = fields.List(
+        fields.Dict(
+            keys=fields.String(description="Annotation layer name"),
+            values=fields.String(),
+        ),
+        description="All requested annotation data",
+        allow_none=True,
+    )
     cache_key = fields.String(
         description="Unique cache key for query object", required=True, allow_none=True,
     )

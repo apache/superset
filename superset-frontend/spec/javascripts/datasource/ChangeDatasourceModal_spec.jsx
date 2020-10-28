@@ -18,14 +18,13 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-import { Modal } from 'react-bootstrap';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { act } from 'react-dom/test-utils';
-
+import Modal from 'src/common/components/Modal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import mockDatasource from '../../fixtures/mockDatasource';

@@ -180,9 +180,10 @@ export default class AdhocFilterControl extends React.Component {
             operator: OPERATORS['>'],
             comparator: 0,
             clause: CLAUSES.HAVING,
+            isNew: true,
           });
         }
-        // has a custom label
+        // has a custom label, meaning it's custom column
         if (option.label) {
           return new AdhocFilter({
             expressionType:
@@ -196,6 +197,7 @@ export default class AdhocFilterControl extends React.Component {
             operator: OPERATORS['>'],
             comparator: 0,
             clause: CLAUSES.HAVING,
+            isNew: true,
           });
         }
         // add a new filter item
@@ -262,7 +264,7 @@ export default class AdhocFilterControl extends React.Component {
 
   render() {
     return (
-      <div className="metrics-select">
+      <div className="metrics-select" data-test="adhoc-filter-control">
         <ControlHeader {...this.props} />
         <OnPasteSelect
           isMulti

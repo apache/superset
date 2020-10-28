@@ -16,8 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Popover as AntdPopover } from 'src/common/components';
-
-const SupersetPopover = AntdPopover;
-
-export default SupersetPopover;
+export * from './Modal';
+export { default } from './Modal';

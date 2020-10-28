@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withTheme } from '@superset-ui/core';
 
 import Popover from 'src/common/components/Popover';
 import Label from 'src/components/Label';
@@ -38,13 +37,12 @@ const propTypes = {
 class AdhocMetricOption extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.closeMetricEditOverlay = this.closeMetricEditOverlay.bind(this);
-    this.onOverlayEntered = this.onOverlayEntered.bind(this);
     this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.handleVisibleChange = this.handleVisibleChange.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
+    this.closePopover = this.closePopover.bind(this);
+    this.togglePopover = this.togglePopover.bind(this);
     this.state = {
-      overlayShown: false,
+      popoverVisible: undefined,
       title: {
         label: props.adhocMetric.label,
         hasCustomLabel: props.adhocMetric.hasCustomLabel,
@@ -52,12 +50,23 @@ class AdhocMetricOption extends React.PureComponent {
     };
   }
 
+  componentDidMount() {
+    const { adhocMetric } = this.props;
+    // isNew is used to auto-open the popup. Once popup is opened, it's not
+    // considered new anymore.
+    // put behind setTimeout so in case consequetive re-renderings are triggered
+    // for some reason, the popup can still show up.
+    setTimeout(() => {
+      adhocMetric.isNew = false;
+    });
+  }
+
   onLabelChange(e) {
     const label = e.target.value;
     this.setState({
       title: {
-        label,
-        hasCustomLabel: true,
+        label: label || this.props.adhocMetric.label,
+        hasCustomLabel: !!label,
       },
     });
   }
@@ -66,43 +75,30 @@ class AdhocMetricOption extends React.PureComponent {
     this.forceUpdate();
   }
 
-  onOverlayEntered() {
-    // isNew is used to indicate whether to automatically open the overlay
-    // once the overlay has been opened, the metric/filter will never be
-    // considered new again.
-    this.props.adhocMetric.isNew = false;
-    this.setState({
-      overlayShown: true,
-      title: {
-        label: this.props.adhocMetric.label,
-        hasCustomLabel: this.props.adhocMetric.hasCustomLabel,
-      },
+  closePopover() {
+    this.setState({ popoverVisible: false });
+  }
+
+  togglePopover(visible) {
+    this.setState(({ popoverVisible }) => {
+      return {
+        popoverVisible: visible === undefined ? !popoverVisible : visible,
+      };
     });
-  }
-
-  closeMetricEditOverlay() {
-    this.setState({ overlayShown: false });
-  }
-
-  handleVisibleChange(visible) {
-    if (visible) {
-      this.onOverlayEntered();
-    } else {
-      this.closeMetricEditOverlay();
-    }
   }
 
   render() {
     const { adhocMetric } = this.props;
+
     const overlayContent = (
       <AdhocMetricEditPopover
-        onResize={this.onPopoverResize}
         adhocMetric={adhocMetric}
         title={this.state.title}
-        onChange={this.props.onMetricEdit}
-        onClose={this.closeMetricEditOverlay}
         columns={this.props.columns}
         datasourceType={this.props.datasourceType}
+        onResize={this.onPopoverResize}
+        onClose={this.closePopover}
+        onChange={this.props.onMetricEdit}
       />
     );
 
@@ -129,17 +125,13 @@ class AdhocMetricOption extends React.PureComponent {
           disabled
           content={overlayContent}
           defaultVisible={adhocMetric.isNew}
-          onVisibleChange={this.handleVisibleChange}
-          visible={this.state.overlayShown}
+          visible={this.state.popoverVisible}
+          onVisibleChange={this.togglePopover}
           title={popoverTitle}
         >
           <Label className="option-label adhoc-option" data-test="option-label">
             {adhocMetric.label}
-            <i
-              className={`fa fa-caret-${
-                this.state.overlayShown ? 'left' : 'right'
-              } adhoc-label-arrow`}
-            />
+            <i className="fa fa-caret-right adhoc-label-arrow" />
           </Label>
         </Popover>
       </div>
@@ -147,6 +139,6 @@ class AdhocMetricOption extends React.PureComponent {
   }
 }
 
-export default withTheme(AdhocMetricOption);
+export default AdhocMetricOption;
 
 AdhocMetricOption.propTypes = propTypes;

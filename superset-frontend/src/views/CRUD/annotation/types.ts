@@ -16,8 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Popover as AntdPopover } from 'src/common/components';
+type user = {
+  id: number;
+  first_name: string;
+  last_name: string;
+};
 
-const SupersetPopover = AntdPopover;
-
-export default SupersetPopover;
+export type AnnotationObject = {
+  changed_by?: user;
+  changed_on_delta_humanized?: string;
+  created_by?: user;
+  end_dttm?: string;
+  id?: number;
+  json_metadata?: string;
+  long_descr?: string;
+  short_descr?: string;
+  start_dttm?: string;
+  label: string;
+};
