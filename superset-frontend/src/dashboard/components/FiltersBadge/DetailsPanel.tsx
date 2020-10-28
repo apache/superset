@@ -113,8 +113,8 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="applied"
               header={
-                <Title bold color={theme.colors.success.base}>
-                  <CheckCircleFilled />{' '}
+                <Title bold>
+                  <CheckCircleFilled color={theme.colors.success.base} />{' '}
                   {t('Applied (%d)', appliedIndicators.length)}
                 </Title>
               }
@@ -134,8 +134,8 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="incompatible"
               header={
-                <Title bold color={theme.colors.alert.base}>
-                  <ExclamationCircleFilled />{' '}
+                <Title bold>
+                  <ExclamationCircleFilled color={theme.colors.alert.base} />{' '}
                   {t('Incompatible (%d)', incompatibleIndicators.length)}
                 </Title>
               }
@@ -155,7 +155,7 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="unset"
               header={
-                <Title bold color={theme.colors.grayscale.dark1}>
+                <Title bold>
                   <MinusCircleFilled />{' '}
                   {t('Unset (%d)', unsetIndicators.length)}
                 </Title>
