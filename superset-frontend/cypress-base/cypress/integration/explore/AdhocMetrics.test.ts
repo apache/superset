@@ -57,8 +57,9 @@ describe('AdhocMetrics', () => {
   });
 
   xit('Switch from simple to custom sql', () => {
-    cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.get('[data-test=metrics]')
+      .find('[data-test="metric-option"]')
+      .should('have.length', 1);
 
     // select column "num"
     cy.get('[data-test=metrics]').find('.Select__clear-indicator').click();
