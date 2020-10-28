@@ -24,6 +24,7 @@ import {
 } from '@superset-ui/core';
 import { EchartsTimeseriesProps } from './types';
 import { ForecastSeriesEnum } from '../types';
+import { parseYAxisBound } from '../utils/controls';
 import { extractTimeseriesSeries } from '../utils/series';
 import {
   extractForecastSeriesContext,
@@ -113,10 +114,8 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
       });
   });
 
-  // yAxisBounds sometimes starts returning NaNs, which messes up the u-axis
-  let [min, max] = (yAxisBounds || [])
-    .map(Number)
-    .map((val: number) => (Number.isNaN(val) ? undefined : val));
+  // yAxisBounds need to be parsed to replace incompatible values with undefined
+  let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
 
   // default to 0-100% range when doing row-level contribution chart
   if (contributionMode === 'row' && stack) {
