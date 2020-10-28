@@ -53,7 +53,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
-from superset.models.helpers import ImportMixin
+from superset.models.helpers import ImportExportMixin
 from superset.translations.utils import get_language_pack
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -378,7 +378,7 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(
-        self, items: Union[ImportMixin, List[ImportMixin]]
+        self, items: Union[ImportExportMixin, List[ImportExportMixin]]
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
@@ -395,11 +395,11 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 class DeleteMixin:  # pylint: disable=too-few-public-methods
     def _delete(self: BaseView, primary_key: int) -> None:
         """
-            Delete function logic, override to implement diferent logic
-            deletes the record with primary_key = primary_key
+        Delete function logic, override to implement diferent logic
+        deletes the record with primary_key = primary_key
 
-            :param primary_key:
-                record primary key to delete
+        :param primary_key:
+            record primary key to delete
         """
         item = self.datamodel.get(primary_key, self._base_filters)
         if not item:

@@ -25,7 +25,7 @@ from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty
 
 from superset import security_manager
 from superset.constants import NULL_STRING
-from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.models.slice import Slice
 from superset.typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
@@ -59,7 +59,7 @@ class DatasourceKind(str, Enum):
 
 
 class BaseDatasource(
-    AuditMixinNullable, ImportMixin
+    AuditMixinNullable, ImportExportMixin
 ):  # pylint: disable=too-many-public-methods
     """A common interface to objects that are queryable
     (tables and datasources)"""
@@ -482,7 +482,7 @@ class BaseDatasource(
     def get_extra_cache_keys(  # pylint: disable=no-self-use
         self, query_obj: QueryObjectDict  # pylint: disable=unused-argument
     ) -> List[Hashable]:
-        """ If a datasource needs to provide additional keys for calculation of
+        """If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
 
         :param query_obj: The dict representation of a query object
@@ -508,7 +508,7 @@ class BaseDatasource(
         security_manager.raise_for_access(datasource=self)
 
 
-class BaseColumn(AuditMixinNullable, ImportMixin):
+class BaseColumn(AuditMixinNullable, ImportExportMixin):
     """Interface for column"""
 
     __tablename__: Optional[str] = None  # {connector_name}_column
@@ -580,7 +580,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 
 
-class BaseMetric(AuditMixinNullable, ImportMixin):
+class BaseMetric(AuditMixinNullable, ImportExportMixin):
 
     """Interface for Metrics"""
 

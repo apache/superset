@@ -68,8 +68,7 @@ def convert_uuids(obj: Any) -> Any:
     return obj
 
 
-# TODO (betodealmeida): rename to ImportExportMixin
-class ImportMixin:
+class ImportExportMixin:
     uuid = sa.Column(
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )

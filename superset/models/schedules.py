@@ -25,7 +25,7 @@ from sqlalchemy.orm import relationship, RelationshipProperty
 
 from superset import security_manager
 from superset.models.alerts import Alert
-from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -74,7 +74,9 @@ class EmailSchedule:
     delivery_type = Column(Enum(EmailDeliveryType))
 
 
-class DashboardEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
+class DashboardEmailSchedule(
+    Model, AuditMixinNullable, ImportExportMixin, EmailSchedule
+):
     __tablename__ = "dashboard_email_schedules"
     dashboard_id = Column(Integer, ForeignKey("dashboards.id"))
     dashboard = relationship(
@@ -82,7 +84,7 @@ class DashboardEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedu
     )
 
 
-class SliceEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
+class SliceEmailSchedule(Model, AuditMixinNullable, ImportExportMixin, EmailSchedule):
     __tablename__ = "slice_email_schedules"
     slice_id = Column(Integer, ForeignKey("slices.id"))
     slice = relationship("Slice", backref="email_schedules", foreign_keys=[slice_id])

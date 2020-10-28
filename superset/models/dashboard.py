@@ -55,7 +55,7 @@ from superset import (
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
-from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
@@ -129,7 +129,7 @@ dashboard_user = Table(
 
 
 class Dashboard(  # pylint: disable=too-many-instance-attributes
-    Model, AuditMixinNullable, ImportMixin
+    Model, AuditMixinNullable, ImportExportMixin
 ):
 
     """The dashboard object!"""

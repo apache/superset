@@ -54,7 +54,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.constants import NULL_STRING
 from superset.exceptions import SupersetException
 from superset.models.core import Database
-from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.typing import FilterValues, Granularity, Metric, QueryObjectDict
 from superset.utils import core as utils, import_datasource
 
@@ -121,7 +121,7 @@ def _fetch_metadata_for(datasource: "DruidDatasource") -> Optional[Dict[str, Any
     return datasource.latest_metadata()
 
 
-class DruidCluster(Model, AuditMixinNullable, ImportMixin):
+class DruidCluster(Model, AuditMixinNullable, ImportExportMixin):
 
     """ORM object referencing the Druid clusters"""
 
@@ -616,9 +616,9 @@ class DruidDatasource(Model, BaseDatasource):
     ) -> int:
         """Imports the datasource from the object to the database.
 
-         Metrics and columns and datasource will be overridden if exists.
-         This function can be used to import/export dashboards between multiple
-         superset instances. Audit metadata isn't copies over.
+        Metrics and columns and datasource will be overridden if exists.
+        This function can be used to import/export dashboards between multiple
+        superset instances. Audit metadata isn't copies over.
         """
 
         def lookup_datasource(d: DruidDatasource) -> Optional[DruidDatasource]:
@@ -1082,12 +1082,12 @@ class DruidDatasource(Model, BaseDatasource):
         adhoc_metrics: Optional[List[Dict[str, Any]]] = None,
     ) -> "OrderedDict[str, Any]":
         """
-            Returns a dictionary of aggregation metric names to aggregation json objects
+        Returns a dictionary of aggregation metric names to aggregation json objects
 
-            :param metrics_dict: dictionary of all the metrics
-            :param saved_metrics: list of saved metric names
-            :param adhoc_metrics: list of adhoc metric names
-            :raise SupersetException: if one or more metric names are not aggregations
+        :param metrics_dict: dictionary of all the metrics
+        :param saved_metrics: list of saved metric names
+        :param adhoc_metrics: list of adhoc metric names
+        :raise SupersetException: if one or more metric names are not aggregations
         """
         if not adhoc_metrics:
             adhoc_metrics = []
@@ -1193,8 +1193,7 @@ class DruidDatasource(Model, BaseDatasource):
         client: Optional["PyDruid"] = None,
         order_desc: bool = True,
     ) -> str:
-        """Runs a query against Druid and returns a dataframe.
-        """
+        """Runs a query against Druid and returns a dataframe."""
         # TODO refactor into using a TBD Query object
         client = client or self.cluster.get_pydruid_client()
         row_limit = row_limit or conf.get("ROW_LIMIT")

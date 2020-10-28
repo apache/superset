@@ -54,7 +54,7 @@ from sqlalchemy_utils import EncryptedType
 
 from superset import app, db_engine_specs, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import TimeGrain
-from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
@@ -98,7 +98,7 @@ class CssTemplate(Model, AuditMixinNullable):
 
 
 class Database(
-    Model, AuditMixinNullable, ImportMixin
+    Model, AuditMixinNullable, ImportExportMixin
 ):  # pylint: disable=too-many-public-methods
 
     """An ORM object that stores Database related information"""
