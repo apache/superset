@@ -32,14 +32,11 @@ import Control from 'src/explore/components/Control';
 import { controls } from 'src/explore/controls';
 import { getExploreUrl } from 'src/explore/exploreUtils';
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
-import { getDashboardFilterKey } from 'src/dashboard/util/getDashboardFilterKey';
-import { getFilterColorMap } from 'src/dashboard/util/dashboardFiltersColorMap';
 import {
   FILTER_CONFIG_ATTRIBUTES,
   FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
 } from 'src/explore/constants';
-import FilterBadgeIcon from 'src/components/FilterBadgeIcon';
 
 import './FilterBox.less';
 
@@ -125,13 +122,17 @@ class FilterBox extends React.Component {
     return this.props.onFilterMenuOpen(this.props.chartId, column);
   }
 
+  onFilterMenuClose(column) {
+    return this.props.onFilterMenuClose(this.props.chartId, column);
+  }
+
   onOpenDateFilterControl() {
     return this.onFilterMenuOpen(TIME_RANGE);
   }
 
-  onFilterMenuClose() {
-    return this.props.onFilterMenuClose(this.props.chartId);
-  }
+  onCloseDateFilterControl = () => {
+    return this.onFilterMenuClose(TIME_RANGE);
+  };
 
   getControlData(controlName) {
     const { selectedValues } = this.state;
@@ -263,7 +264,7 @@ class FilterBox extends React.Component {
   }
 
   renderDateFilter() {
-    const { showDateFilter, chartId } = this.props;
+    const { showDateFilter } = this.props;
     const label = TIME_FILTER_LABELS.time_range;
     if (showDateFilter) {
       return (
@@ -272,7 +273,6 @@ class FilterBox extends React.Component {
             className="col-lg-12 col-xs-12 filter-container"
             data-test="date-filter-container"
           >
-            {this.renderFilterBadge(chartId, TIME_RANGE, label)}
             <DateFilterControl
               name={TIME_RANGE}
               label={label}
@@ -281,7 +281,7 @@ class FilterBox extends React.Component {
                 this.changeFilter(TIME_RANGE, newValue);
               }}
               onOpenDateFilterControl={this.onOpenDateFilterControl}
-              onCloseDateFilterControl={this.onFilterMenuClose}
+              onCloseDateFilterControl={this.onCloseDateFilterControl}
               value={this.state.selectedValues[TIME_RANGE] || 'No filter'}
             />
           </div>
@@ -393,10 +393,11 @@ class FilterBox extends React.Component {
             this.changeFilter(key, newValue);
           }
         }}
-        onFocus={() => this.onFilterMenuOpen(key)}
+        // TODO try putting this back once react-select is upgraded
+        // onFocus={() => this.onFilterMenuOpen(key)}
         onMenuOpen={() => this.onFilterMenuOpen(key)}
-        onBlur={this.onFilterMenuClose}
-        onMenuClose={this.onFilterMenuClose}
+        onBlur={() => this.onFilterMenuClose(key)}
+        onMenuClose={() => this.onFilterMenuClose(key)}
         selectWrap={
           filterConfig[FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
           data.length >= FILTER_OPTIONS_LIMIT
@@ -409,31 +410,16 @@ class FilterBox extends React.Component {
   }
 
   renderFilters() {
-    const { filtersFields = [], chartId } = this.props;
+    const { filtersFields = [] } = this.props;
     return filtersFields.map(filterConfig => {
       const { label, key } = filterConfig;
       return (
         <div key={key} className="m-b-5 filter-container">
-          {this.renderFilterBadge(chartId, key, label)}
-          <div>
-            <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
-            {this.renderSelect(filterConfig)}
-          </div>
+          <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
+          {this.renderSelect(filterConfig)}
         </div>
       );
     });
-  }
-
-  renderFilterBadge(chartId, column) {
-    const colorKey = getDashboardFilterKey({ chartId, column });
-    const filterColorMap = getFilterColorMap();
-    const colorCode = filterColorMap[colorKey];
-
-    return (
-      <div className="filter-badge-container">
-        <FilterBadgeIcon colorCode={colorCode} />
-      </div>
-    );
   }
 
   render() {

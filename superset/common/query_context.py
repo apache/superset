@@ -18,7 +18,7 @@ import copy
 import logging
 import math
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, cast, ClassVar, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -162,6 +162,22 @@ class QueryContext:
         if status != utils.QueryStatus.FAILED:
             payload["data"] = self.get_data(df)
         del payload["df"]
+
+        filters = query_obj.filter
+        filter_columns = cast(List[str], [flt.get("col") for flt in filters])
+        columns = set(self.datasource.column_names)
+        applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
+            self.datasource, query_obj.applied_time_extras
+        )
+        payload["applied_filters"] = [
+            {"column": col} for col in filter_columns if col in columns
+        ] + applied_time_columns
+        payload["rejected_filters"] = [
+            {"reason": "not_in_datasource", "column": col}
+            for col in filter_columns
+            if col not in columns
+        ] + rejected_time_columns
+
         if self.result_type == utils.ChartDataResultType.RESULTS:
             return {"data": payload["data"]}
         return payload

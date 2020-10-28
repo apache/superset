@@ -19,7 +19,6 @@
 import React from 'react';
 
 import FilterFieldItem from './FilterFieldItem';
-import { getFilterColorMap } from '../../util/dashboardFiltersColorMap';
 
 export default function renderFilterFieldTreeNodes({ nodes, activeKey }) {
   if (!nodes) {
@@ -32,15 +31,10 @@ export default function renderFilterFieldTreeNodes({ nodes, activeKey }) {
     ...node,
     children: node.children.map(child => {
       const { label, value } = child;
-      const colorCode = getFilterColorMap()[value];
       return {
         ...child,
         label: (
-          <FilterFieldItem
-            isSelected={value === activeKey}
-            label={label}
-            colorCode={colorCode}
-          />
+          <FilterFieldItem isSelected={value === activeKey} label={label} />
         ),
       };
     }),

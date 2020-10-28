@@ -40,7 +40,6 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
-import { buildFilterColorMap } from '../util/dashboardFiltersColorMap';
 import findFirstParentContainerId from '../util/findFirstParentContainer';
 import getEmptyLayout from '../util/getEmptyLayout';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
@@ -232,7 +231,6 @@ export default function getInitialState(bootstrapData) {
     dashboardFilters,
     components: layout,
   });
-  buildFilterColorMap(dashboardFilters, layout);
 
   // store the header as a layout component so we can undo/redo changes
   layout[DASHBOARD_HEADER_ID] = {
@@ -283,12 +281,7 @@ export default function getInitialState(bootstrapData) {
       sliceIds: Array.from(sliceIds),
       directPathToChild,
       directPathLastUpdated: Date.now(),
-      // dashboard only has 1 focused filter field at a time,
-      // but when user switch different filter boxes,
-      // browser didn't always fire onBlur and onFocus events in order.
-      // so in redux state focusedFilterField prop is a queue,
-      // but component use focusedFilterField prop as single object.
-      focusedFilterField: [],
+      focusedFilterField: null,
       expandedSlices: dashboard.metadata.expanded_slices || {},
       refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       // dashboard viewers can set refresh frequency for the current visit,
