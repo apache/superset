@@ -51,12 +51,23 @@ class AdhocMetricOption extends React.PureComponent {
     };
   }
 
+  componentDidMount() {
+    const { adhocMetric } = this.props;
+    // isNew is used to auto-open the popup. Once popup is opened, it's not
+    // considered new anymore.
+    // put behind setTimeout so in case consequetive re-renderings are triggered
+    // for some reason, the popup can still show up.
+    setTimeout(() => {
+      adhocMetric.isNew = false;
+    });
+  }
+
   onLabelChange(e) {
     const label = e.target.value;
     this.setState({
       title: {
-        label,
-        hasCustomLabel: true,
+        label: label || this.props.adhocMetric.label,
+        hasCustomLabel: !!label,
       },
     });
   }
@@ -83,14 +94,6 @@ class AdhocMetricOption extends React.PureComponent {
 
   render() {
     const { adhocMetric } = this.props;
-    const { isNew } = adhocMetric;
-    if (isNew) {
-      // new metrics automaticall open the popover
-      // once the metric is rendered, then it's not new.
-      // testing this by selecting multiple new columns to create multiple
-      // new adhoc metrics
-      adhocMetric.isNew = false;
-    }
 
     const overlayContent = (
       <AdhocMetricEditPopover
@@ -99,8 +102,8 @@ class AdhocMetricOption extends React.PureComponent {
         columns={this.props.columns}
         datasourceType={this.props.datasourceType}
         onResize={this.onPopoverResize}
-        onChange={this.props.onMetricEdit}
         onClose={this.closePopover}
+        onChange={this.props.onMetricEdit}
       />
     );
 
@@ -126,7 +129,7 @@ class AdhocMetricOption extends React.PureComponent {
           trigger="click"
           disabled
           content={overlayContent}
-          defaultVisible={isNew}
+          defaultVisible={adhocMetric.isNew}
           visible={this.state.popoverVisible}
           onVisibleChange={this.togglePopover}
           title={popoverTitle}

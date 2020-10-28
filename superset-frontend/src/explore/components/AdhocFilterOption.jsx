@@ -45,7 +45,6 @@ class AdhocFilterOption extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.getContent = this.getContent.bind(this);
     this.openPopover = this.openPopover.bind(this);
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
@@ -55,30 +54,19 @@ class AdhocFilterOption extends React.PureComponent {
     };
   }
 
-  onPopoverResize() {
-    this.forceUpdate();
+  componentDidMount() {
+    const { adhocFilter } = this.props;
+    // isNew is used to auto-open the popup. Once popup is opened, it's not
+    // considered new anymore.
+    // put behind setTimeout so in case consequetive re-renderings are triggered
+    // for some reason, the popup can still show up.
+    setTimeout(() => {
+      adhocFilter.isNew = false;
+    });
   }
 
-  getContent() {
-    const {
-      adhocFilter,
-      onFilterEdit,
-      options,
-      datasource,
-      partitionColumn,
-    } = this.props;
-
-    return (
-      <AdhocFilterEditPopover
-        adhocFilter={adhocFilter}
-        options={options}
-        datasource={datasource}
-        partitionColumn={partitionColumn}
-        onResize={this.onPopoverResize}
-        onChange={onFilterEdit}
-        onClose={this.closePopover}
-      />
-    );
+  onPopoverResize() {
+    this.forceUpdate();
   }
 
   openPopover() {
@@ -99,10 +87,17 @@ class AdhocFilterOption extends React.PureComponent {
 
   render() {
     const { adhocFilter } = this.props;
-    const { isNew } = adhocFilter;
-    if (isNew) {
-      adhocFilter.isNew = false;
-    }
+    const overlayContent = (
+      <AdhocFilterEditPopover
+        adhocFilter={adhocFilter}
+        options={this.props.options}
+        datasource={this.props.datasource}
+        partitionColumn={this.props.partitionColumn}
+        onResize={this.onPopoverResize}
+        onClose={this.closePopover}
+        onChange={this.props.onFilterEdit}
+      />
+    );
 
     return (
       <div
@@ -125,8 +120,8 @@ class AdhocFilterOption extends React.PureComponent {
         <Popover
           placement="right"
           trigger="click"
-          content={this.getContent}
-          defaultVisible={isNew}
+          content={overlayContent}
+          defaultVisible={adhocFilter.isNew}
           visible={this.state.popoverVisible}
           onVisibleChange={visible => {
             this.setState({ popoverVisible: visible });
