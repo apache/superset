@@ -84,7 +84,7 @@ describe('Dashboard card view', () => {
     cy.get('.ant-card').last().contains("World Bank's Data");
   });
 
-  it.only('should delete correctly', () => {
+  it('should delete correctly', () => {
     // show delete modal
     cy.get('.ant-dropdown-trigger').last().trigger('mouseover');
     cy.get('.ant-dropdown-menu-item').contains('Delete').should('exist');
