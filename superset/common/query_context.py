@@ -155,6 +155,8 @@ class QueryContext:
             query_obj.row_offset = 0
             query_obj.columns = [o.column_name for o in self.datasource.columns]
         payload = self.get_df_payload(query_obj)
+        # TODO: implement
+        payload["annotation_data"] = []
         df = payload["df"]
         status = payload["status"]
         if status != utils.QueryStatus.FAILED:
