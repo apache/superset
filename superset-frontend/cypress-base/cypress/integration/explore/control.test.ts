@@ -69,7 +69,7 @@ describe('Datasource control', () => {
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
-    cy.get('.modal-content').within(() => {
+    cy.get('.ant-modal-content').within(() => {
       cy.get('a[role="tab"]').contains('Metrics').click();
     });
     cy.get(`input[value="${newMetricName}"]`)

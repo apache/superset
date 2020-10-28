@@ -17,10 +17,12 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useRef } from 'react';
-import { Alert, Modal } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { styled, t, SupersetClient } from '@superset-ui/core';
+
+import Modal from 'src/common/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
@@ -163,29 +165,17 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
 
   return (
-    <StyledDatasourceModal show={show} onHide={onHide} bsSize="large">
-      <Modal.Header closeButton>
-        <Modal.Title>
-          <div>
-            <span className="float-left">
-              {t('Edit Dataset ')}
-              <strong>{currentDatasource.table_name}</strong>
-            </span>
-          </div>
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {show && (
-          <DatasourceEditor
-            showLoadingForImport
-            height={500}
-            datasource={currentDatasource}
-            onChange={onDatasourceChange}
-          />
-        )}
-      </Modal.Body>
-      <Modal.Footer>
-        <span className="float-left">
+    <StyledDatasourceModal
+      show={show}
+      onHide={onHide}
+      title={
+        <span>
+          {t('Edit Dataset ')}
+          <strong>{currentDatasource.table_name}</strong>
+        </span>
+      }
+      footer={
+        <>
           {isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) && (
             <Button
               buttonSize="sm"
@@ -200,9 +190,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
               {t('Use Legacy Datasource Editor')}
             </Button>
           )}
-        </span>
-
-        <span className="float-right">
           <Button
             buttonSize="sm"
             buttonStyle="primary"
@@ -221,8 +208,16 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             {t('Cancel')}
           </Button>
           <Dialog ref={dialog} />
-        </span>
-      </Modal.Footer>
+        </>
+      }
+      responsive
+    >
+      <DatasourceEditor
+        showLoadingForImport
+        height={500}
+        datasource={currentDatasource}
+        onChange={onDatasourceChange}
+      />
     </StyledDatasourceModal>
   );
 };
