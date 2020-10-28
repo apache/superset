@@ -113,7 +113,7 @@ class TestImportExport(SupersetTestCase):
             json_metadata=json.dumps(json_metadata),
         )
 
-    def create_table(self, name, schema="", id=0, cols_names=[], metric_names=[]):
+    def create_table(self, name, schema=None, id=0, cols_names=[], metric_names=[]):
         params = {"remote_id": id, "database_name": "examples"}
         table = SqlaTable(
             id=id, schema=schema, table_name=name, params=json.dumps(params)

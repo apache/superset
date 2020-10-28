@@ -194,6 +194,11 @@ class DatasourceControl extends React.PureComponent {
 
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
+        {this.props.isEditable && (
+          <Menu.Item key={EDIT_DATASET} data-test="edit-dataset">
+            {t('Edit Dataset')}
+          </Menu.Item>
+        )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change Dataset')}</Menu.Item>
         <Menu.Item key={EXPLORE_IN_SQL_LAB}>
           <a
@@ -201,14 +206,9 @@ class DatasourceControl extends React.PureComponent {
             target="_blank"
             rel="noopener noreferrer"
           >
-            {t('Explore in SQL Lab')}
+            {t('View in SQL Lab')}
           </a>
         </Menu.Item>
-        {this.props.isEditable && (
-          <Menu.Item key={EDIT_DATASET} data-test="edit-dataset">
-            {t('Edit Dataset')}
-          </Menu.Item>
-        )}
       </Menu>
     );
 

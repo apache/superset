@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { styledShallow as shallow } from 'spec/helpers/theming';
+import { shallow } from 'enzyme';
 
 import Popover from 'src/common/components/Popover';
 import Label from 'src/components/Label';
@@ -46,7 +46,7 @@ function setup(overrides) {
     columns,
     ...overrides,
   };
-  const wrapper = shallow(<AdhocMetricOption {...props} />).dive();
+  const wrapper = shallow(<AdhocMetricOption {...props} />);
   return { wrapper, onMetricEdit };
 }
 
@@ -73,11 +73,13 @@ describe('AdhocMetricOption', () => {
 
   it('returns to default labels when the custom label is cleared', () => {
     const { wrapper } = setup();
+    expect(wrapper.state('title').label).toBe('SUM(value)');
+
     wrapper.instance().onLabelChange({ target: { value: 'new label' } });
+    expect(wrapper.state('title').label).toBe('new label');
+
     wrapper.instance().onLabelChange({ target: { value: '' } });
-    // close and open the popover
-    wrapper.instance().closeMetricEditOverlay();
-    wrapper.instance().onOverlayEntered();
+
     expect(wrapper.state('title').label).toBe('SUM(value)');
     expect(wrapper.state('title').hasCustomLabel).toBe(false);
   });
