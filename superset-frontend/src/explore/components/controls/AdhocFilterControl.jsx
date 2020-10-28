@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 
 import { t, logging, SupersetClient } from '@superset-ui/core';
 
+import { noOp } from 'src/utils/common';
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 
 import ControlHeader from '../ControlHeader';
@@ -279,7 +280,7 @@ export default class AdhocFilterControl extends React.Component {
           clearable
           closeOnSelect
           onChange={this.onChange}
-          onPaste={() => {}}
+          onPaste={noOp}
           optionRenderer={this.optionRenderer}
           valueRenderer={this.valueRenderer}
         />
