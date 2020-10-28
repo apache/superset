@@ -18,12 +18,12 @@
  */
 import { Provider } from 'react-redux';
 import React from 'react';
-import { mount, shallow } from 'enzyme';
+import { shallow } from 'enzyme';
 import sinon from 'sinon';
 import { CardTabs, EditableTabs } from 'src/common/components/Tabs';
 import { Modal } from 'src/common/components';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
+import { styledMount as mount } from 'spec/helpers/theming';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -63,11 +63,9 @@ describe('Tabs', () => {
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
       <Provider store={mockStoreWithTabs}>
-        <ThemeProvider theme={supersetTheme}>
-          <WithDragDropContext>
-            <Tabs {...props} {...overrideProps} />
-          </WithDragDropContext>
-        </ThemeProvider>
+        <WithDragDropContext>
+          <Tabs {...props} {...overrideProps} />
+        </WithDragDropContext>
       </Provider>,
       {
         wrappingComponent: ThemeProvider,
@@ -112,7 +110,7 @@ describe('Tabs', () => {
     const createComponent = sinon.spy();
     const wrapper = setup({ editMode: true, createComponent });
     wrapper
-      .find('.dashboard-component-tabs .ant-tabs-nav-add')
+      .find('[data-test="dashboard-component-tabs"] .ant-tabs-nav-add')
       .last()
       .simulate('click');
 
@@ -123,7 +121,7 @@ describe('Tabs', () => {
     const onChangeTab = sinon.spy();
     const wrapper = setup({ editMode: true, onChangeTab });
     wrapper
-      .find('.dashboard-component-tabs .ant-tabs-tab')
+      .find('[data-test="dashboard-component-tabs"] .ant-tabs-tab')
       .at(1) // will not call if it is already selected
       .simulate('click');
 
@@ -134,7 +132,9 @@ describe('Tabs', () => {
     const onChangeTab = sinon.spy();
     const wrapper = setup({ editMode: true, onChangeTab });
     wrapper
-      .find('.dashboard-component-tabs .ant-tabs-tab .short-link-trigger')
+      .find(
+        '[data-test="dashboard-component-tabs"] .ant-tabs-tab [data-test="short-link-button"]',
+      )
       .at(1) // will not call if it is already selected
       .simulate('click');
 
