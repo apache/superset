@@ -81,7 +81,7 @@ export interface TitleProps {
 
 export const Title = styled.span`
   color: ${({ color }: TitleProps) => color || 'auto'};
-  font-weight: ${({ bold }) => (bold ? '600' : 'auto')};
+  font-weight: ${({ bold, theme }) => (bold ? theme.typography.weights.bold : 'auto')};
 
   & > .anticon * {
     color: ${({ color }) => color || 'auto'};
