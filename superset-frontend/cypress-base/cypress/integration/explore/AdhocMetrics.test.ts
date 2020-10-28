@@ -22,15 +22,13 @@ describe('AdhocMetrics', () => {
     cy.server();
     cy.route('GET', '/superset/explore_json/**').as('getJson');
     cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.visitChartByName('Num Births Trend');
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
   });
 
   it('Clear metric and set simple adhoc metric', () => {
     const metric = 'sum(sum_girls)';
     const metricName = 'Sum Girls';
-
-    cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
-
     cy.get('[data-test=metrics]').find('.Select__clear-indicator').click();
 
     cy.get('[data-test=metrics]')
@@ -57,9 +55,10 @@ describe('AdhocMetrics', () => {
     });
   });
 
-  xit('Switch from simple to custom sql', () => {
-    cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+  it('Switch from simple to custom sql', () => {
+    cy.get('[data-test=metrics]')
+      .find('[data-test="metric-option"]')
+      .should('have.length', 1);
 
     // select column "num"
     cy.get('[data-test=metrics]').find('.Select__clear-indicator').click();
@@ -68,15 +67,24 @@ describe('AdhocMetrics', () => {
 
     cy.get('[data-test=metrics]').find('.Select__control input').type('num');
 
-    cy.get('[data-test=metrics]').find('.option-label').last().click();
+    cy.get('[data-test=metrics]')
+      .find('.option-label')
+      .first()
+      .should('have.text', 'num')
+      .click();
+
+    cy.get('[data-test=option-label]')
+      .should('have.text', 'SUM(num)')
+      .first()
+      .click();
 
     // add custom SQL
     cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
-    cy.get('#metrics-edit-popover').find('.ace_content').click();
-    cy.get('#metrics-edit-popover')
-      .find('.ace_text-input')
-      .type('/COUNT(DISTINCT name)', { force: true });
-    cy.get('#metrics-edit-popover').find('button').contains('Save').click();
+    cy.get('[data-test=metrics-edit-popover]').within(() => {
+      cy.get('.ace_content').click();
+      cy.get('.ace_text-input').type('/COUNT(DISTINCT name)', { force: true });
+      cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
+    });
 
     cy.get('button[data-test="run-query-button"]').click();
 
@@ -88,10 +96,16 @@ describe('AdhocMetrics', () => {
     });
   });
 
-  xit('Switch from custom sql tabs to simple', () => {
+  it('Switch from custom sql tabs to simple', () => {
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.Select__dropdown-indicator').click();
       cy.get('input[type=text]').type('sum_girls{enter}');
+    });
+    cy.get('[data-test=metrics]')
+      .find('[data-test="metric-option"]')
+      .should('have.length', 2);
+    cy.get('[data-test=metrics]').within(() => {
+      cy.contains('[data-test="metric-option"]', 'SUM(sum_girls)').click();
     });
 
     cy.get('#metrics-edit-popover').within(() => {
@@ -114,7 +128,7 @@ describe('AdhocMetrics', () => {
     });
   });
 
-  xit('Typing starts with aggregate function name', () => {
+  it('Typing starts with aggregate function name', () => {
     // select column "num"
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.Select__dropdown-indicator').click();
