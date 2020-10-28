@@ -83,7 +83,7 @@ export default class Field extends React.PureComponent {
               <i className="fa fa-info-circle m-l-5" />
             </OverlayTrigger>
           )}
-        </FormLabel>
+        </FormLabel>{' '}
         {hookedControl}
         <FormControl.Feedback />
         {!compact && description && <HelpBlock>{description}</HelpBlock>}
