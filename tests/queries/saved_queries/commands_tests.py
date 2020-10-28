@@ -49,7 +49,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
     def test_export_query_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
 
-        command = ExportSavedQueriesCommand(query_ids=[self.example_query.id])
+        command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())
 
         expected = [
@@ -74,7 +74,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         """Test that users can't export datasets they don't have access to"""
         mock_g.user = security_manager.find_user("gamma")
 
-        command = ExportSavedQueriesCommand(query_ids=[self.example_query.id])
+        command = ExportSavedQueriesCommand([self.example_query.id])
         contents = command.run()
         with self.assertRaises(SavedQueryNotFoundError):
             next(contents)
@@ -84,7 +84,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         """Test that an error is raised when exporting an invalid dataset"""
         mock_g.user = security_manager.find_user("admin")
 
-        command = ExportSavedQueriesCommand(query_ids=[-1])
+        command = ExportSavedQueriesCommand([-1])
         contents = command.run()
         with self.assertRaises(SavedQueryNotFoundError):
             next(contents)
@@ -94,7 +94,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         """Test that they keys in the YAML have the same order as export_fields"""
         mock_g.user = security_manager.find_user("admin")
 
-        command = ExportSavedQueriesCommand(query_ids=[self.example_query.id])
+        command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())
 
         metadata = yaml.safe_load(contents["queries/examples/schema1/the_answer.yaml"])
