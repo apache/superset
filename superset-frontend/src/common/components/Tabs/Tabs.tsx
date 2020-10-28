@@ -40,6 +40,21 @@ const StyledTabs = styled(AntdTabs, {
     &.ant-tabs-tab-active .ant-tabs-tab-btn {
       color: inherit;
     }
+
+    &:hover {
+      .anchor-link-container {
+        cursor: pointer;
+
+        .fa.fa-link {
+          visibility: visible;
+        }
+      }
+    }
+
+    .fa.fa-link {
+      top: 0;
+      right: 12px;
+    }
   }
 
   ${({ fullWidth }) =>
