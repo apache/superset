@@ -17,11 +17,11 @@
 import json
 import os
 import re
-import urllib
 from dataclasses import dataclass
 from time import sleep
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib import request
+from urllib.error import HTTPError
 
 import click
 
@@ -43,7 +43,7 @@ class GitLog:
     message: str
     pr_number: Union[int, None] = None
 
-    def __eq__(self, other: "GitLog") -> bool:
+    def __eq__(self, other: object) -> bool:
         """ A log entry is considered equal if it has the same PR number """
         if isinstance(other, self.__class__):
             return other.pr_number == self.pr_number
@@ -62,7 +62,7 @@ class GitChangeLog:
 
     def __init__(self, logs: List[GitLog]) -> None:
         self._logs = logs
-        self._github_login_cache = {}
+        self._github_login_cache: Dict[str, Optional[str]] = {}
         self._wait = 10
 
     def _wait_github_rate_limit(self) -> None:
@@ -76,7 +76,7 @@ class GitChangeLog:
             print(f".", end="", flush=True)
             sleep(self._wait)
 
-    def _fetch_github_rate_limit(self) -> Dict:
+    def _fetch_github_rate_limit(self) -> Dict[str, Any]:
         """
         Fetches current github rate limit info
         """
@@ -84,7 +84,7 @@ class GitChangeLog:
             payload = json.loads(response.read())
         return payload
 
-    def _fetch_github_pr(self, pr_number) -> Dict:
+    def _fetch_github_pr(self, pr_number) -> Dict[str, Any]:
         """
         Fetches a github PR info
         """
@@ -96,11 +96,11 @@ class GitChangeLog:
                 f"{pr_number}"
             ) as response:
                 payload = json.loads(response.read())
-        except urllib.error.HTTPError as ex:
+        except HTTPError as ex:
             print(f"{ex}", flush=True)
         return payload
 
-    def _get_github_login(self, git_log: GitLog) -> str:
+    def _get_github_login(self, git_log: GitLog) -> Optional[str]:
         """
         Tries to fetch a github login (username) from a git author
         """
@@ -142,7 +142,6 @@ class GitLogs:
     def __init__(self, branch_name: str) -> None:
         self._branch_name = branch_name
         self._logs: List[GitLog] = []
-        self._github_login_cache = {}
 
     @property
     def branch_name(self) -> str:
@@ -164,7 +163,7 @@ class GitLogs:
     def _git_checkout(self):
         os.popen(f"git checkout {self._branch_name}").read()
 
-    def _git_logs(self) -> str:
+    def _git_logs(self) -> List[str]:
         self._git_checkout()
         return (
             os.popen('git --no-pager log --pretty=format:"%h|%an|%ad|%s|"')
