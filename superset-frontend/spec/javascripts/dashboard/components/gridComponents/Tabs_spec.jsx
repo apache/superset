@@ -20,7 +20,7 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
-import { CardTabs, EditableTabs } from 'src/common/components/Tabs';
+import { LineEditableTabs } from 'src/common/components/Tabs';
 import { Modal } from 'src/common/components';
 
 import { styledMount as mount } from 'spec/helpers/theming';
@@ -81,21 +81,23 @@ describe('Tabs', () => {
     expect(wrapper.find(DragDroppable)).toExist();
   });
 
-  it('should render CardTabs', () => {
+  it('should render non-editable tabs', () => {
     const wrapper = setup();
-    expect(wrapper.find(CardTabs)).toExist();
+    expect(wrapper.find(LineEditableTabs)).toExist();
+    expect(wrapper.find('.ant-tabs-nav-add').exists()).toBeFalsy();
   });
 
-  it('should render a CardTab for each child', () => {
+  it('should render a tab pane for each child', () => {
     const wrapper = setup();
-    expect(wrapper.find(CardTabs.TabPane)).toHaveLength(
+    expect(wrapper.find(LineEditableTabs.TabPane)).toHaveLength(
       props.component.children.length,
     );
   });
 
-  it('should render EditableTabs in editMode', () => {
+  it('should render editable tabs in editMode', () => {
     const wrapper = setup({ editMode: true });
-    expect(wrapper.find(EditableTabs)).toExist();
+    expect(wrapper.find(LineEditableTabs)).toExist();
+    expect(wrapper.find('.ant-tabs-nav-add')).toExist();
   });
 
   it('should render a DashboardComponent for each child', () => {

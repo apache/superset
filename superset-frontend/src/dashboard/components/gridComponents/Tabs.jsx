@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { CardTabs, EditableTabs } from 'src/common/components/Tabs';
+import { LineEditableTabs } from 'src/common/components/Tabs';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { Modal } from 'src/common/components';
 import { t } from '@superset-ui/core';
@@ -240,7 +240,6 @@ class Tabs extends React.PureComponent {
 
     const activeKey = tabIds[selectedTabIndex];
 
-    const TabsComponent = editMode ? EditableTabs : CardTabs;
     return (
       <DragDroppable
         component={tabsComponent}
@@ -266,7 +265,7 @@ class Tabs extends React.PureComponent {
               </HoverMenu>
             )}
 
-            <TabsComponent
+            <LineEditableTabs
               id={tabsComponent.id}
               activeKey={activeKey}
               onChange={key => {
@@ -275,9 +274,10 @@ class Tabs extends React.PureComponent {
               onEdit={this.handleEdit}
               hideAdd={tabIds.length >= MAX_TAB_COUNT}
               data-test="nav-list"
+              type={editMode ? 'editable-card' : 'card'}
             >
               {tabIds.map((tabId, tabIndex) => (
-                <TabsComponent.TabPane
+                <LineEditableTabs.TabPane
                   key={tabId}
                   tab={
                     <DashboardComponent
@@ -311,9 +311,9 @@ class Tabs extends React.PureComponent {
                       }
                     />
                   )}
-                </TabsComponent.TabPane>
+                </LineEditableTabs.TabPane>
               ))}
-            </TabsComponent>
+            </LineEditableTabs>
 
             {/* don't indicate that a drop on root is allowed when tabs already exist */}
             {tabsDropIndicatorProps &&
