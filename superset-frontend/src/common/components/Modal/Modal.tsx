@@ -157,7 +157,7 @@ export default function Modal({
         </span>
       }
       footer={!hideFooter ? modalFooter : null}
-      data-test={`${title}-modal`}
+      wrapProps={{ 'data-test': `${title}-modal` }}
       {...rest}
     >
       {children}
