@@ -89,7 +89,7 @@ export const Title = styled.span`
 `;
 
 export const Summary = styled.div`
-  font-weight: bold;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
 `;
 
 export const ItemIcon = styled.i`
