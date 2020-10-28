@@ -307,6 +307,12 @@ yarl==1.6.3
     # via aiohttp
 zipp==3.4.1
     # via -r requirements/base.in
+PyAthenaJDBC>1.0.9
+PyAthena>1.2.0
+psycopg2
+elasticsearch-dbapi
+python-crontab
+Authlib
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

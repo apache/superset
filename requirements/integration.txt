@@ -70,6 +70,12 @@ virtualenv==20.7.2
     #   tox
 wheel==0.37.0
     # via pip-tools
+PyAthenaJDBC>1.0.9
+PyAthena>1.2.0
+psycopg2
+elasticsearch-dbapi
+python-crontab
+Authlib
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
