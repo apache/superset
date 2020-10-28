@@ -39,6 +39,7 @@ interface ModalProps {
   hideFooter?: boolean;
   centered?: boolean;
   footer?: React.ReactNode;
+  wrapProps?: object;
 }
 
 interface StyledModalProps extends SupersetThemeProps {
@@ -120,6 +121,7 @@ export default function Modal({
   centered,
   footer,
   hideFooter,
+  wrapProps,
   ...rest
 }: ModalProps) {
   const modalFooter = isNil(footer)
@@ -157,7 +159,7 @@ export default function Modal({
         </span>
       }
       footer={!hideFooter ? modalFooter : null}
-      wrapProps={{ 'data-test': `${title}-modal` }}
+      wrapProps={{ 'data-test': `${title}-modal`, ...wrapProps }}
       {...rest}
     >
       {children}

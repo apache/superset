@@ -189,6 +189,7 @@ export default function PropertiesModal({
         </>
       }
       responsive
+      wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
       <form onSubmit={onSubmit}>
         <Row>

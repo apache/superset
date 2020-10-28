@@ -189,15 +189,17 @@ const VizTypeControl = props => {
           </Tooltip>
         }
       >
-        <Label onClick={toggleModal} bsStyle={labelBsStyle}>
-          {registry.has(value) ? registry.get(value).name : `${value}`}
-        </Label>
-        {!registry.has(value) && (
-          <div className="text-danger">
-            <i className="fa fa-exclamation-circle text-danger" />{' '}
-            <small>{t('This visualization type is not supported.')}</small>
-          </div>
-        )}
+        <>
+          <Label onClick={toggleModal} bsStyle={labelBsStyle}>
+            {registry.has(value) ? registry.get(value).name : `${value}`}
+          </Label>
+          {!registry.has(value) && (
+            <div className="text-danger">
+              <i className="fa fa-exclamation-circle text-danger" />{' '}
+              <small>{t('This visualization type is not supported.')}</small>
+            </div>
+          )}
+        </>
       </OverlayTrigger>
       <Modal
         show={showModal}
