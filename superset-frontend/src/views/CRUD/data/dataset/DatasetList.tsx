@@ -242,7 +242,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         size: 'lg',
       },
       {
-        accessor: 'is_sqllab_view',
+        accessor: 'sql',
         hidden: true,
         disableSortBy: true,
       },
@@ -350,13 +350,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Type'),
-        id: 'is_sqllab_view',
+        id: 'sql',
         input: 'select',
-        operator: 'eq',
+        operator: 'dataset_is_null_or_empty',
         unfilteredLabel: 'All',
         selects: [
-          { label: 'Virtual', value: true },
-          { label: 'Physical', value: false },
+          { label: 'Virtual', value: false },
+          { label: 'Physical', value: true },
         ],
       },
       {
