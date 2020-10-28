@@ -17,8 +17,7 @@
  * under the License.
  */
 import { Popover as AntdPopover } from 'src/common/components';
-import { styled } from '@superset-ui/core';
 
-const SupersetPopover = styled(AntdPopover)``;
+const SupersetPopover = AntdPopover;
 
 export default SupersetPopover;
