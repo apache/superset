@@ -18,28 +18,26 @@
 
 import json
 import logging
-from typing import Iterator, List, Tuple
+from typing import Iterator, Tuple
 
 import yaml
 
-from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.dao import DatabaseDAO
-from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
+from superset.importexport.commands.base import ExportModelsCommand
 from superset.models.core import Database
+from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
 
 logger = logging.getLogger(__name__)
 
 
-class ExportDatabasesCommand(BaseCommand):
-    def __init__(self, database_ids: List[int]):
-        self.database_ids = database_ids
+class ExportDatabasesCommand(ExportModelsCommand):
 
-        # this will be set when calling validate()
-        self._models: List[Database] = []
+    dao = DatabaseDAO
+    not_found = DatabaseNotFoundError
 
     @staticmethod
-    def export_database(database: Database) -> Iterator[Tuple[str, str]]:
+    def export(database: Database) -> Iterator[Tuple[str, str]]:
         database_slug = sanitize(database.database_name)
         file_name = f"databases/{database_slug}.yaml"
 
@@ -77,14 +75,3 @@ class ExportDatabasesCommand(BaseCommand):
 
             file_content = yaml.safe_dump(payload, sort_keys=False)
             yield file_name, file_content
-
-    def run(self) -> Iterator[Tuple[str, str]]:
-        self.validate()
-
-        for database in self._models:
-            yield from self.export_database(database)
-
-    def validate(self) -> None:
-        self._models = DatabaseDAO.find_by_ids(self.database_ids)
-        if len(self._models) != len(self.database_ids):
-            raise DatabaseNotFoundError()

@@ -34,10 +34,11 @@ class TestExportDashboardsCommand(SupersetTestCase):
         mock_g2.user = security_manager.find_user("admin")
 
         example_dashboard = db.session.query(Dashboard).filter_by(id=1).one()
-        command = ExportDashboardsCommand(dashboard_ids=[example_dashboard.id])
+        command = ExportDashboardsCommand([example_dashboard.id])
         contents = dict(command.run())
 
         expected_paths = {
+            "metadata.yaml",
             "dashboards/world_banks_data.yaml",
             "charts/box_plot.yaml",
             "datasets/examples/wb_health_population.yaml",
@@ -150,7 +151,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         mock_g2.user = security_manager.find_user("gamma")
 
         example_dashboard = db.session.query(Dashboard).filter_by(id=1).one()
-        command = ExportDashboardsCommand(dashboard_ids=[example_dashboard.id])
+        command = ExportDashboardsCommand([example_dashboard.id])
         contents = command.run()
         with self.assertRaises(DashboardNotFoundError):
             next(contents)
@@ -161,7 +162,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         """Test that an error is raised when exporting an invalid dataset"""
         mock_g1.user = security_manager.find_user("admin")
         mock_g2.user = security_manager.find_user("admin")
-        command = ExportDashboardsCommand(dashboard_ids=[-1])
+        command = ExportDashboardsCommand([-1])
         contents = command.run()
         with self.assertRaises(DashboardNotFoundError):
             next(contents)
@@ -174,7 +175,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         mock_g2.user = security_manager.find_user("admin")
 
         example_dashboard = db.session.query(Dashboard).filter_by(id=1).one()
-        command = ExportDashboardsCommand(dashboard_ids=[example_dashboard.id])
+        command = ExportDashboardsCommand([example_dashboard.id])
         contents = dict(command.run())
 
         metadata = yaml.safe_load(contents["dashboards/world_banks_data.yaml"])

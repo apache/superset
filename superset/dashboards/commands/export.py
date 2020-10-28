@@ -18,14 +18,14 @@
 
 import json
 import logging
-from typing import Iterator, List, Tuple
+from typing import Iterator, Tuple
 
 import yaml
 
-from superset.commands.base import BaseCommand
 from superset.charts.commands.export import ExportChartsCommand
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.dao import DashboardDAO
+from superset.importexport.commands.base import ExportModelsCommand
 from superset.models.dashboard import Dashboard
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
 
@@ -36,15 +36,13 @@ logger = logging.getLogger(__name__)
 JSON_KEYS = {"position_json": "position", "json_metadata": "metadata"}
 
 
-class ExportDashboardsCommand(BaseCommand):
-    def __init__(self, dashboard_ids: List[int]):
-        self.dashboard_ids = dashboard_ids
+class ExportDashboardsCommand(ExportModelsCommand):
 
-        # this will be set when calling validate()
-        self._models: List[Dashboard] = []
+    dao = DashboardDAO
+    not_found = DashboardNotFoundError
 
     @staticmethod
-    def export_dashboard(dashboard: Dashboard) -> Iterator[Tuple[str, str]]:
+    def export(dashboard: Dashboard) -> Iterator[Tuple[str, str]]:
         dashboard_slug = sanitize(dashboard.dashboard_title)
         file_name = f"dashboards/{dashboard_slug}.yaml"
 
@@ -71,14 +69,3 @@ class ExportDashboardsCommand(BaseCommand):
 
         chart_ids = [chart.id for chart in dashboard.slices]
         yield from ExportChartsCommand(chart_ids).run()
-
-    def run(self) -> Iterator[Tuple[str, str]]:
-        self.validate()
-
-        for dashboard in self._models:
-            yield from self.export_dashboard(dashboard)
-
-    def validate(self) -> None:
-        self._models = DashboardDAO.find_by_ids(self.dashboard_ids)
-        if len(self._models) != len(self.dashboard_ids):
-            raise DashboardNotFoundError()
