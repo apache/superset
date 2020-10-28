@@ -135,11 +135,7 @@ class AdhocMetricOption extends React.PureComponent {
         >
           <Label className="option-label adhoc-option" data-test="option-label">
             {adhocMetric.label}
-            <i
-              className={`fa fa-caret-${
-                this.state.overlayShown ? 'left' : 'right'
-              } adhoc-label-arrow`}
-            />
+            <i className="fa fa-caret-right adhoc-label-arrow" />
           </Label>
         </Popover>
       </div>

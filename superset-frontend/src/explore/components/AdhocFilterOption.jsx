@@ -117,11 +117,7 @@ class AdhocFilterOption extends React.PureComponent {
         >
           <Label className="option-label adhoc-option adhoc-filter-option">
             {adhocFilter.getDefaultLabel()}
-            <i
-              className={`fa fa-caret-${
-                this.state.overlayShown ? 'left' : 'right'
-              } adhoc-label-arrow`}
-            />
+            <i className="fa fa-caret-right adhoc-label-arrow" />
           </Label>
         </Popover>
       </div>
