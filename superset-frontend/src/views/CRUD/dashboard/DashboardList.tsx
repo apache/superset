@@ -20,7 +20,12 @@ import { SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createFetchRelated,
+  createErrorHandler,
+  handleDashboardDelete,
+  handleBulkDashboardExport,
+} from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
@@ -118,25 +123,6 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  function handleDashboardDelete({
-    id,
-    dashboard_title: dashboardTitle,
-  }: Dashboard) {
-    return SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        props.addSuccessToast(t('Deleted: %s', dashboardTitle));
-      },
-      createErrorHandler(errMsg =>
-        props.addDangerToast(
-          t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
-        ),
-      ),
-    );
-  }
-
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
       endpoint: `/api/v1/dashboard/?q=${rison.encode(
@@ -151,14 +137,6 @@ function DashboardList(props: DashboardListProps) {
           t('There was an issue deleting the selected dashboards: ', errMsg),
         ),
       ),
-    );
-  }
-
-  function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
-    return window.location.assign(
-      `/api/v1/dashboard/export/?q=${rison.encode(
-        dashboardsToExport.map(({ id }) => id),
-      )}`,
     );
   }
 
@@ -254,7 +232,13 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleDelete = () => handleDashboardDelete(original);
+          const handleDelete = () =>
+            handleDashboardDelete(
+              original,
+              refreshData,
+              props.addSuccessToast,
+              props.addDangerToast,
+            );
           const handleEdit = () => openDashboardEditModal(original);
           const handleExport = () => handleBulkDashboardExport([original]);
 

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { useFavoriteStatus } from 'src/views/CRUD/hooks';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icon from 'src/components/Icon';
 import Chart from 'src/types/Chart';
@@ -28,6 +28,7 @@ import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
+import { handleChartDelete } from '../utils';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
@@ -59,19 +60,6 @@ export default function ChartCard({
     FAVESTAR_BASE_URL,
     addDangerToast,
   );
-  function handleChartDelete({ id, slice_name: sliceName }: Chart) {
-    SupersetClient.delete({
-      endpoint: `/api/v1/chart/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        addSuccessToast(t('Deleted: %s', sliceName));
-      },
-      () => {
-        addDangerToast(t('There was an issue deleting: %s', sliceName));
-      },
-    );
-  }
 
   const menu = (
     <Menu>
@@ -85,7 +73,14 @@ export default function ChartCard({
                 ?
               </>
             }
-            onConfirm={() => handleChartDelete(chart)}
+            onConfirm={() =>
+              handleChartDelete(
+                chart,
+                addSuccessToast,
+                addDangerToast,
+                refreshData,
+              )
+            }
           >
             {confirmDelete => (
               <div

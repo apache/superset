@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, styled } from '@superset-ui/core';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
@@ -52,6 +52,19 @@ interface SavedQueriesProps {
   addSuccessToast: (arg0: string) => void;
 }
 
+const QueryData = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  .title {
+    font-weight: ${({ theme }) => theme.typography.weights.normal};
+    color: ${({ theme }) => theme.colors.grayscale.light2};
+  }
+  .holder {
+    margin: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+`;
 const SavedQueries = ({
   user,
   addDangerToast,
@@ -87,7 +100,6 @@ const SavedQueries = ({
 
   const getFilters = () => {
     const filters = [];
-
     if (queryFilter === 'Mine') {
       filters.push({
         id: 'created_by',
@@ -213,11 +225,21 @@ const SavedQueries = ({
               url={`/superset/sqllab?savedQueryId=${q.id}`}
               title={q.label}
               rows={q.rows}
-              tableName={q?.sql_tables && q.sql_tables[0]?.table}
-              tables={q?.sql_tables?.length}
               loading={loading}
               description={t('Last run ', q.end_time)}
               showImg={false}
+              renderCover={
+                <QueryData>
+                  <div className="holder">
+                    <div className="title">{t('Tables')}</div>
+                    <div>{q?.sql_tables?.length}</div>
+                  </div>
+                  <div className="holder">
+                    <div className="title">{t('Datasource Name')}</div>
+                    <div>{q?.sql_tables && q.sql_tables[0]?.table}</div>
+                  </div>
+                </QueryData>
+              }
               actions={
                 <ListViewCard.Actions>
                   <Dropdown overlay={renderMenu(q)}>

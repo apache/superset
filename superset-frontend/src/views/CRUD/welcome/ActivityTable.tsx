@@ -27,7 +27,7 @@ import { reject } from 'lodash';
 import { getRecentAcitivtyObjs, mq } from '../utils';
 import EmptyState from './EmptyState';
 
-interface MapProps {
+interface ActivityObjects {
   action?: string;
   item_title?: string;
   slice_name: string;
@@ -89,7 +89,7 @@ export default function ActivityTable({ user }: ActivityProps) {
   // this api uses log for data which in some cases can be empty
   const recent = `/superset/recent_activity/${user.userId}/?limit=5`;
 
-  const getFilterTitle = (e: MapProps) => {
+  const getFilterTitle = (e: ActivityObjects) => {
     if (e.dashboard_title) return e.dashboard_title;
     if (e.label) return e.label;
     if (e.url && !e.table) return e.item_title;
@@ -97,7 +97,7 @@ export default function ActivityTable({ user }: ActivityProps) {
     return e.slice_name;
   };
 
-  const getIconName = (e: MapProps) => {
+  const getIconName = (e: ActivityObjects) => {
     if (e.sql) return 'sql';
     if (e.url?.includes('dashboard')) {
       return 'nav-dashboard';
@@ -174,7 +174,7 @@ export default function ActivityTable({ user }: ActivityProps) {
   }, []);
 
   const renderActivity = () => {
-    return activityData[activeChild].map((e: MapProps) => (
+    return activityData[activeChild].map((e: ActivityObjects ) => (
       <ListViewCard
         key={`${e.id}`}
         isRecent

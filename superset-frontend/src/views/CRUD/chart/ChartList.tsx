@@ -21,7 +21,11 @@ import React, { useMemo } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createFetchRelated,
+  createErrorHandler,
+  handleChartDelete,
+} from 'src/views/CRUD/utils';
 import {
   useListViewResource,
   useFavoriteStatus,
@@ -117,20 +121,6 @@ function ChartList(props: ChartListProps) {
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-
-  function handleChartDelete({ id, slice_name: sliceName }: Chart) {
-    SupersetClient.delete({
-      endpoint: `/api/v1/chart/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        props.addSuccessToast(t('Deleted: %s', sliceName));
-      },
-      () => {
-        props.addDangerToast(t('There was an issue deleting: %s', sliceName));
-      },
-    );
-  }
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
@@ -248,7 +238,13 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleDelete = () => handleChartDelete(original);
+          const handleDelete = () =>
+            handleChartDelete(
+              original,
+              props.addSuccessToast,
+              props.addDangerToast,
+              refreshData,
+            );
           const openEditModal = () => openChartEditModal(original);
 
           return (

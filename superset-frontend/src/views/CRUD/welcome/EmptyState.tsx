@@ -62,10 +62,29 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   );
   const recent = (
     <div className="no-recents">
-      {t(
-        `Recently charts, dashboards, and saved queries will appear here`,
-        t('Recently %s charts, dashboards, and saved queries will appear here, tab?.toLowerCase())
-      )}
+      {(() => {
+        if (tab === 'Viewed') {
+          return t(
+            `Recently viewed charts, dashboards, and saved queries will appear here`,
+          );
+        }
+        if (tab === 'Created') {
+          return t(
+            'Recently created charts, dashboards, and saved queries will appear here',
+          );
+        }
+        if (tab === 'Examples') {
+          return t(
+            `Recent example charts, dashboards, and saved queries will appear here`,
+          );
+        }
+        if (tab === 'Edited') {
+          return t(
+            `Recently edited charts, dashboards, and saved queries will appear here`,
+          );
+        }
+        return null;
+      })()}
     </div>
   );
   // Mine and Recent Activity(all tabs) tab empty state

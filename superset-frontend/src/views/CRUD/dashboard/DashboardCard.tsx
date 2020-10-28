@@ -17,8 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
-import rison from 'rison';
+import { t } from '@superset-ui/core';
+import {
+  handleDashboardDelete,
+  handleBulkDashboardExport,
+} from 'src/views/CRUD/utils';
 import { Dropdown, Menu } from 'src/common/components';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
@@ -26,8 +29,8 @@ import Icon from 'src/components/Icon';
 import Label from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
-import { DashboardCardProps, Dashboard } from 'src/views/CRUD/types';
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import { DashboardCardProps } from 'src/views/CRUD/types';
+
 import { useFavoriteStatus } from 'src/views/CRUD/hooks';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
@@ -51,33 +54,6 @@ function DashboardCard({
     addDangerToast,
   );
 
-  function handleDashboardDelete({
-    id,
-    dashboard_title: dashboardTitle,
-  }: Dashboard) {
-    return SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        addSuccessToast(t('Deleted: %s', dashboardTitle));
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(
-          t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
-        ),
-      ),
-    );
-  }
-
-  function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
-    return window.location.assign(
-      `/api/v1/dashboard/export/?q=${rison.encode(
-        dashboardsToExport.map(({ id }) => id),
-      )}`,
-    );
-  }
-
   const cardTitle = isChart ? dashboard.slice_name : dashboard.dashboard_title;
 
   const menu = (
@@ -91,7 +67,14 @@ function DashboardCard({
                 {t('Are you sure you want to delete')} <b>{cardTitle}</b>?
               </>
             }
-            onConfirm={() => handleDashboardDelete(dashboard)}
+            onConfirm={() =>
+              handleDashboardDelete(
+                dashboard,
+                refreshData,
+                addSuccessToast,
+                addDangerToast,
+              )
+            }
           >
             {confirmDelete => (
               <div

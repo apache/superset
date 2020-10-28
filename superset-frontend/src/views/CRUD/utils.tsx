@@ -17,13 +17,16 @@
  * under the License.
  */
 import {
+  t,
   SupersetClient,
   SupersetClientResponse,
   logging,
   styled,
 } from '@superset-ui/core';
+import Chart from 'src/types/Chart';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { Dashboard } from './types';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,
@@ -129,7 +132,6 @@ export const getRecentAcitivtyObjs = (
             endpoint: `/api/v1/dashboard/?q=${getParams()}`,
           }),
         ];
-        // @ts-ignore
         return Promise.all(newBatch)
           .then(([chartRes, dashboardRes]) => {
             res.examples = [
@@ -157,10 +159,71 @@ export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
   };
 }
 
-export function handleDashboardDelete(id: string) {
+export function handleChartDelete(
+  { id, slice_name: sliceName }: Chart,
+  addSuccessToast: (arg0: string) => void,
+  addDangerToast: (arg0: string) => void,
+  refreshData: () => void,
+) {
+  SupersetClient.delete({
+    endpoint: `/api/v1/chart/${id}`,
+  }).then(
+    () => {
+      refreshData();
+      addSuccessToast(t('Deleted: %s', sliceName));
+    },
+    () => {
+      addDangerToast(t('There was an issue deleting: %s', sliceName));
+    },
+  );
+}
+
+export function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
+  return window.location.assign(
+    `/api/v1/dashboard/export/?q=${rison.encode(
+      dashboardsToExport.map(({ id }) => id),
+    )}`,
+  );
+}
+
+export function handleDashboardDelete(
+  { id, dashboard_title: dashboardTitle }: Dashboard,
+  refreshData: () => void,
+  addSuccessToast: (arg0: string) => void,
+  addDangerToast: (arg0: string) => void,
+) {
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
-  });
+  }).then(
+    () => {
+      refreshData();
+      addSuccessToast(t('Deleted: %s', dashboardTitle));
+    },
+    createErrorHandler(errMsg =>
+      addDangerToast(
+        t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
+      ),
+    ),
+  );
+}
+
+export function createChartDeleteFunction(
+  { id, slice_name: sliceName }: Chart,
+  addSuccessToast: (arg0: string) => void,
+  addDangerToast: (arg0: string) => void,
+  refreshData: () => void,
+) {
+  SupersetClient.delete({
+    endpoint: `/api/v1/chart/${id}`,
+  }).then(
+    () => {
+      refreshData();
+      addSuccessToast(t('Deleted: %s', sliceName));
+    },
+    () => {
+      addDangerToast(t('There was an issue deleting: %s', sliceName));
+    },
+  );
 }
 
 const breakpoints = [576, 768, 992, 1200];

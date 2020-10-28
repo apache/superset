@@ -139,26 +139,11 @@ const SkeletonActions = styled(Skeleton.Button)`
   width: ${({ theme }) => theme.gridUnit * 10}px;
 `;
 
-const QueryData = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  .title {
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    color: ${({ theme }) => theme.colors.grayscale.light2};
-  }
-  .holder {
-    margin: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-`;
-
 const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
   title: React.ReactNode;
   url?: string;
   imgURL?: string;
-  tables?: string | number;
   imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
   description: string;
@@ -171,7 +156,7 @@ interface CardProps {
   rows?: number | string;
   avatar?: string;
   isRecent?: boolean;
-  tableName?: string;
+  renderCover?: React.ReactNode | null;
 }
 
 function ListViewCard({
@@ -182,54 +167,42 @@ function ListViewCard({
   imgFallbackURL,
   description,
   coverLeft,
-  tables,
+  isRecent,
   coverRight,
   actions,
   avatar,
-  tableName,
   loading,
   imgPosition = 'top',
-  showImg = true,
-  isRecent,
+  renderCover,
 }: CardProps) {
   return (
     <StyledCard
       data-test="styled-card"
       cover={
-        !isRecent &&
-        (showImg ? (
-          <Cover>
-            <a href={url}>
-              <div className="gradient-container">
-                <ImageLoader
-                  src={imgURL || ''}
-                  fallback={imgFallbackURL || ''}
-                  isLoading={loading}
-                  position={imgPosition}
-                />
-              </div>
-            </a>
-            <CoverFooter className="cover-footer">
-              {!loading && coverLeft && (
-                <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
-              )}
-              {!loading && coverRight && (
-                <CoverFooterRight>{coverRight}</CoverFooterRight>
-              )}
-            </CoverFooter>
-          </Cover>
-        ) : (
-          <QueryData>
-            <div className="holder">
-              <div className="title">{t('Tables')}</div>
-              <div>{tables}</div>
-            </div>
-            <div className="holder">
-              <div className="title">{t('Datasource Name')}</div>
-              <div>{tableName}</div>
-            </div>
-          </QueryData>
-        ))
+        !isRecent
+          ? renderCover || (
+              <Cover>
+                <a href={url}>
+                  <div className="gradient-container">
+                    <ImageLoader
+                      src={imgURL || ''}
+                      fallback={imgFallbackURL || ''}
+                      isLoading={loading}
+                      position={imgPosition}
+                    />
+                  </div>
+                </a>
+                <CoverFooter className="cover-footer">
+                  {!loading && coverLeft && (
+                    <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
+                  )}
+                  {!loading && coverRight && (
+                    <CoverFooterRight>{coverRight}</CoverFooterRight>
+                  )}
+                </CoverFooter>
+              </Cover>
+            )
+          : null
       }
     >
       {loading && (
