@@ -130,6 +130,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     series: [
       {
         type: 'pie',
+        animation: false,
         radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
         center: ['50%', '50%'],
         avoidLabelOverlap: true,
