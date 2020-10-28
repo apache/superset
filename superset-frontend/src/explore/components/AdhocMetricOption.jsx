@@ -41,6 +41,7 @@ class AdhocMetricOption extends React.PureComponent {
     this.onLabelChange = this.onLabelChange.bind(this);
     this.openPopover = this.openPopover.bind(this);
     this.closePopover = this.closePopover.bind(this);
+    this.togglePopover = this.togglePopover.bind(this);
     this.state = {
       popoverVisible: undefined,
       title: {
@@ -64,12 +65,20 @@ class AdhocMetricOption extends React.PureComponent {
     this.forceUpdate();
   }
 
+  openPopover() {
+    this.setState({ popoverVisible: false });
+  }
+
   closePopover() {
     this.setState({ popoverVisible: false });
   }
 
-  openPopover() {
-    this.setState({ popoverVisible: false });
+  togglePopover(visible) {
+    this.setState(({ popoverVisible }) => {
+      return {
+        popoverVisible: visible === undefined ? !popoverVisible : visible,
+      };
+    });
   }
 
   render() {
@@ -119,9 +128,7 @@ class AdhocMetricOption extends React.PureComponent {
           content={overlayContent}
           defaultVisible={isNew}
           visible={this.state.popoverVisible}
-          onVisibleChange={visible => {
-            this.setState({ popoverVisible: visible });
-          }}
+          onVisibleChange={this.togglePopover}
           title={popoverTitle}
         >
           <Label className="option-label adhoc-option" data-test="option-label">

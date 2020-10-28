@@ -48,6 +48,7 @@ class AdhocFilterOption extends React.PureComponent {
     this.getContent = this.getContent.bind(this);
     this.openPopover = this.openPopover.bind(this);
     this.closePopover = this.closePopover.bind(this);
+    this.togglePopover = this.togglePopover.bind(this);
     this.state = {
       // automatically open the popover the the metric is new
       popoverVisible: !!props.adhocFilter.isNew,
@@ -80,12 +81,20 @@ class AdhocFilterOption extends React.PureComponent {
     );
   }
 
+  openPopover() {
+    this.setState({ popoverVisible: false });
+  }
+
   closePopover() {
     this.setState({ popoverVisible: false });
   }
 
-  openPopover() {
-    this.setState({ popoverVisible: false });
+  togglePopover(visible) {
+    this.setState(({ popoverVisible }) => {
+      return {
+        popoverVisible: visible === undefined ? !popoverVisible : visible,
+      };
+    });
   }
 
   render() {
