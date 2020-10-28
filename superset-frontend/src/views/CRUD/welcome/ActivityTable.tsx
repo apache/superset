@@ -174,7 +174,7 @@ export default function ActivityTable({ user }: ActivityProps) {
   }, []);
 
   const renderActivity = () => {
-    return activityData[activeChild].map((e: ActivityObjects ) => (
+    return activityData[activeChild].map((e: ActivityObjects) => (
       <ListViewCard
         key={`${e.id}`}
         isRecent
