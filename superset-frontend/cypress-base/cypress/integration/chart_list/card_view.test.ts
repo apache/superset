@@ -93,7 +93,10 @@ describe('chart card view', () => {
     cy.get('[data-test="chart-list-delete-option"]').should('be.visible');
     cy.get('[data-test="chart-list-delete-option"]').contains('Delete').click();
     cy.get('[data-test="Please Confirm-modal"]').should('be.visible');
-    cy.get('[data-test="modal-confirm-button"]').should('have.attr', 'disabled');
+    cy.get('[data-test="modal-confirm-button"]').should(
+      'have.attr',
+      'disabled',
+    );
     cy.get('[data-test="Please Confirm-modal"]').should('be.visible');
     cy.get("[data-test='delete-modal-input']").type('DELETE');
     cy.get('[data-test="modal-confirm-button"]').should(
