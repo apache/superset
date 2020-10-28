@@ -45,26 +45,17 @@ class AdhocFilterOption extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.onOverlayEntered = this.onOverlayEntered.bind(this);
-    this.onOverlayExited = this.onOverlayExited.bind(this);
-    this.handleVisibleChange = this.handleVisibleChange.bind(this);
     this.getContent = this.getContent.bind(this);
-    this.state = { overlayShown: undefined };
+    this.openPopover = this.openPopover.bind(this);
+    this.closePopover = this.closePopover.bind(this);
+    this.state = {
+      // automatically open the popover the the metric is new
+      popoverVisible: !!props.adhocFilter.isNew,
+    };
   }
 
   onPopoverResize() {
     this.forceUpdate();
-  }
-
-  onOverlayEntered() {
-    // isNew is used to indicate whether to automatically open the overlay
-    // once the overlay has been opened, the metric/filter will never be
-    // considered new again.
-    this.setState({ overlayShown: true });
-  }
-
-  onOverlayExited() {
-    this.setState({ overlayShown: false });
   }
 
   getContent() {
@@ -75,30 +66,34 @@ class AdhocFilterOption extends React.PureComponent {
       datasource,
       partitionColumn,
     } = this.props;
-    adhocFilter.isNew = false;
+
     return (
       <AdhocFilterEditPopover
-        onResize={this.onPopoverResize}
         adhocFilter={adhocFilter}
-        onChange={onFilterEdit}
-        onClose={this.onOverlayExited}
         options={options}
         datasource={datasource}
         partitionColumn={partitionColumn}
+        onResize={this.onPopoverResize}
+        onChange={onFilterEdit}
+        onClose={this.closePopover}
       />
     );
   }
 
-  handleVisibleChange(visible) {
-    if (visible) {
-      this.onOverlayEntered();
-    } else {
-      this.onOverlayExited();
-    }
+  closePopover() {
+    this.setState({ popoverVisible: false });
+  }
+
+  openPopover() {
+    this.setState({ popoverVisible: false });
   }
 
   render() {
     const { adhocFilter } = this.props;
+    const { isNew } = adhocFilter;
+    if (isNew) {
+      adhocFilter.isNew = false;
+    }
 
     return (
       <div
@@ -122,17 +117,15 @@ class AdhocFilterOption extends React.PureComponent {
           placement="right"
           trigger="click"
           content={this.getContent}
-          defaultVisible={adhocFilter.isNew}
-          visible={this.state.overlayShown}
-          onVisibleChange={this.handleVisibleChange}
+          defaultVisible={isNew}
+          visible={this.state.popoverVisible}
+          onVisibleChange={visible => {
+            this.setState({ popoverVisible: visible });
+          }}
         >
           <Label className="option-label adhoc-option adhoc-filter-option">
             {adhocFilter.getDefaultLabel()}
-            <i
-              className={`fa fa-caret-${
-                this.state.overlayShown ? 'left' : 'right'
-              } adhoc-label-arrow`}
-            />
+            <i className="fa fa-caret-right adhoc-label-arrow" />
           </Label>
         </Popover>
       </div>

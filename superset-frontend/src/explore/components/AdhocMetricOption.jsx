@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withTheme } from '@superset-ui/core';
 
 import Popover from 'src/common/components/Popover';
 import Label from 'src/components/Label';
@@ -38,13 +37,12 @@ const propTypes = {
 class AdhocMetricOption extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.closeMetricEditOverlay = this.closeMetricEditOverlay.bind(this);
-    this.onOverlayEntered = this.onOverlayEntered.bind(this);
     this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.handleVisibleChange = this.handleVisibleChange.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
+    this.openPopover = this.openPopover.bind(this);
+    this.closePopover = this.closePopover.bind(this);
     this.state = {
-      overlayShown: false,
+      popoverVisible: undefined,
       title: {
         label: props.adhocMetric.label,
         hasCustomLabel: props.adhocMetric.hasCustomLabel,
@@ -66,43 +64,34 @@ class AdhocMetricOption extends React.PureComponent {
     this.forceUpdate();
   }
 
-  onOverlayEntered() {
-    // isNew is used to indicate whether to automatically open the overlay
-    // once the overlay has been opened, the metric/filter will never be
-    // considered new again.
-    this.props.adhocMetric.isNew = false;
-    this.setState({
-      overlayShown: true,
-      title: {
-        label: this.props.adhocMetric.label,
-        hasCustomLabel: this.props.adhocMetric.hasCustomLabel,
-      },
-    });
+  closePopover() {
+    this.setState({ popoverVisible: false });
   }
 
-  closeMetricEditOverlay() {
-    this.setState({ overlayShown: false });
-  }
-
-  handleVisibleChange(visible) {
-    if (visible) {
-      this.onOverlayEntered();
-    } else {
-      this.closeMetricEditOverlay();
-    }
+  openPopover() {
+    this.setState({ popoverVisible: false });
   }
 
   render() {
     const { adhocMetric } = this.props;
+    const { isNew } = adhocMetric;
+    if (isNew) {
+      // new metrics automaticall open the popover
+      // once the metric is rendered, then it's not new.
+      // testing this by selecting multiple new columns to create multiple
+      // new adhoc metrics
+      adhocMetric.isNew = false;
+    }
+
     const overlayContent = (
       <AdhocMetricEditPopover
-        onResize={this.onPopoverResize}
         adhocMetric={adhocMetric}
         title={this.state.title}
-        onChange={this.props.onMetricEdit}
-        onClose={this.closeMetricEditOverlay}
         columns={this.props.columns}
         datasourceType={this.props.datasourceType}
+        onResize={this.onPopoverResize}
+        onChange={this.props.onMetricEdit}
+        onClose={this.closePopover}
       />
     );
 
@@ -128,18 +117,16 @@ class AdhocMetricOption extends React.PureComponent {
           trigger="click"
           disabled
           content={overlayContent}
-          defaultVisible={adhocMetric.isNew}
-          onVisibleChange={this.handleVisibleChange}
-          visible={this.state.overlayShown}
+          defaultVisible={isNew}
+          visible={this.state.popoverVisible}
+          onVisibleChange={visible => {
+            this.setState({ popoverVisible: visible });
+          }}
           title={popoverTitle}
         >
           <Label className="option-label adhoc-option" data-test="option-label">
             {adhocMetric.label}
-            <i
-              className={`fa fa-caret-${
-                this.state.overlayShown ? 'left' : 'right'
-              } adhoc-label-arrow`}
-            />
+            <i className="fa fa-caret-right adhoc-label-arrow" />
           </Label>
         </Popover>
       </div>
@@ -147,6 +134,6 @@ class AdhocMetricOption extends React.PureComponent {
   }
 }
 
-export default withTheme(AdhocMetricOption);
+export default AdhocMetricOption;
 
 AdhocMetricOption.propTypes = propTypes;
