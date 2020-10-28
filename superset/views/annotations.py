@@ -123,3 +123,14 @@ class AnnotationLayerModelView(SupersetModelView):  # pylint: disable=too-many-a
     add_columns = edit_columns
 
     label_columns = {"name": _("Name"), "descr": _("Description")}
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        if not (
+            app.config["ENABLE_REACT_CRUD_VIEWS"]
+            and feature_flag_manager.is_feature_enabled("SIP_34_ANNOTATIONS_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
