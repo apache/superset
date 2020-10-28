@@ -25,10 +25,7 @@ export enum IndicatorStatus {
   Incompatible = 'INCOMPATIBLE',
 }
 
-const TIME_GRANULARITY_FIELDS = new Set([
-  TIME_FILTER_MAP.granularity,
-  TIME_FILTER_MAP.time_grain_sqla,
-]);
+const TIME_GRANULARITY_FIELDS = new Set(Object.values(TIME_FILTER_MAP));
 
 // As of 2020-09-28, the DatasourceMeta type in superset-ui is incorrect.
 // Should patch it here until the DatasourceMeta type is updated.
