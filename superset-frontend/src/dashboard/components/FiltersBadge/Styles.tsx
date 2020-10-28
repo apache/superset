@@ -76,16 +76,12 @@ export const UnsetPill = styled(Pill)`
 
 export interface TitleProps {
   bold?: boolean;
-  color?: string;
 }
 
-export const Title = styled.span`
-  color: ${({ color }: TitleProps) => color || 'auto'};
-  font-weight: ${({ bold, theme }) => (bold ? theme.typography.weights.bold : 'auto')};
-
-  & > .anticon * {
-    color: ${({ color }) => color || 'auto'};
-  }
+export const Title = styled.span<TitleProps>`
+  font-weight: ${({ bold, theme }) => {
+    return bold ? theme.typography.weights.bold : 'auto';
+  }};
 `;
 
 export const Summary = styled.div`
