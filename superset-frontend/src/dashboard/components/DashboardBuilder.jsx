@@ -25,26 +25,27 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
+import { styled } from '@superset-ui/core';
 
-import BuilderComponentPane from './BuilderComponentPane';
-import DashboardHeader from '../containers/DashboardHeader';
-import DashboardGrid from '../containers/DashboardGrid';
-import IconButton from './IconButton';
-import DragDroppable from './dnd/DragDroppable';
-import DashboardComponent from '../containers/DashboardComponent';
-import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
-import WithPopoverMenu from './menu/WithPopoverMenu';
+import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
+import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
+import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
+import IconButton from 'src/dashboard/components/IconButton';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import getDragDropManager from '../util/getDragDropManager';
-import findTabIndexByComponentId from '../util/findTabIndexByComponentId';
+import getDragDropManager from 'src/dashboard/util/getDragDropManager';
+import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
+import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
+import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
-import getDirectPathToTabIndex from '../util/getDirectPathToTabIndex';
-import getLeafComponentIdFromPath from '../util/getLeafComponentIdFromPath';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -59,6 +60,7 @@ const propTypes = {
   setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  focusedFilterField: PropTypes.object,
   setDirectPathToChild: PropTypes.func.isRequired,
   setMountedTab: PropTypes.func.isRequired,
 };
@@ -68,6 +70,32 @@ const defaultProps = {
   directPathToChild: [],
   colorScheme: undefined,
 };
+
+const StyledDashboardContent = styled.div`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  height: auto;
+
+  .grid-container .dashboard-component-tabs {
+    box-shadow: none;
+    padding-left: 0;
+  }
+
+  & > div:first-child {
+    width: 100%;
+    flex-grow: 1;
+    position: relative;
+  }
+
+  .dashboard-component-chart-holder {
+    // transitionable traits to show filter relevance
+    transition: opacity ${({ theme }) => theme.transitionTiming}s,
+      border-color ${({ theme }) => theme.transitionTiming}s,
+      box-shadow ${({ theme }) => theme.transitionTiming}s;
+    border: ${({ theme }) => theme.gridUnit / 2}px solid transparent;
+  }
+`;
 
 class DashboardBuilder extends React.Component {
   static shouldFocusTabs(event, container) {
@@ -222,7 +250,7 @@ class DashboardBuilder extends React.Component {
           )}
         </Sticky>
 
-        <div className="dashboard-content">
+        <StyledDashboardContent className="dashboard-content">
           <div className="grid-container" data-test="grid-container">
             <ParentSize>
               {({ width }) => (
@@ -277,7 +305,7 @@ class DashboardBuilder extends React.Component {
               colorScheme={colorScheme}
             />
           )}
-        </div>
+        </StyledDashboardContent>
         <ToastPresenter />
       </StickyContainer>
     );

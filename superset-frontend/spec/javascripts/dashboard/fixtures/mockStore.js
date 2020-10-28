@@ -23,19 +23,54 @@ import rootReducer from 'src/dashboard/reducers/index';
 
 import mockState from './mockState';
 import { dashboardLayoutWithTabs } from './mockDashboardLayout';
+import { sliceId } from './mockChartQueries';
+import { dashboardFilters } from './mockDashboardFilters';
 
-export const mockStore = createStore(
-  rootReducer,
-  mockState,
-  compose(applyMiddleware(thunk)),
-);
+export const getMockStore = () =>
+  createStore(rootReducer, mockState, compose(applyMiddleware(thunk)));
 
-export const mockStoreWithTabs = createStore(
-  rootReducer,
-  {
+export const mockStore = getMockStore();
+
+export const getMockStoreWithTabs = () =>
+  createStore(
+    rootReducer,
+    {
+      ...mockState,
+      dashboardLayout: dashboardLayoutWithTabs,
+      dashboardFilters: {},
+    },
+    compose(applyMiddleware(thunk)),
+  );
+
+export const mockStoreWithTabs = getMockStoreWithTabs();
+
+export const sliceIdWithAppliedFilter = sliceId + 1;
+export const sliceIdWithRejectedFilter = sliceId + 2;
+
+// has one chart with a filter that has been applied,
+// one chart with a filter that has been rejected,
+// and one chart with no filters set.
+export const getMockStoreWithFilters = () =>
+  createStore(rootReducer, {
     ...mockState,
-    dashboardLayout: dashboardLayoutWithTabs,
-    dashboardFilters: {},
-  },
-  compose(applyMiddleware(thunk)),
-);
+    dashboardFilters,
+    charts: {
+      ...mockState.charts,
+      [sliceIdWithAppliedFilter]: {
+        ...mockState.charts[sliceId],
+        queryResponse: {
+          status: 'success',
+          applied_filters: [{ column: 'region' }],
+          rejected_filters: [],
+        },
+      },
+      [sliceIdWithRejectedFilter]: {
+        ...mockState.charts[sliceId],
+        queryResponse: {
+          status: 'success',
+          applied_filters: [],
+          rejected_filters: [{ column: 'region', reason: 'not_in_datasource' }],
+        },
+      },
+    },
+  });

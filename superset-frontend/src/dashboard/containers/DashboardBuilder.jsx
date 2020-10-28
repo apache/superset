@@ -38,6 +38,7 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState }) {
     showBuilderPane: dashboardState.showBuilderPane,
     directPathToChild: dashboardState.directPathToChild,
     colorScheme: dashboardState.colorScheme,
+    focusedFilterField: dashboardState.focusedFilterField,
   };
 }
 

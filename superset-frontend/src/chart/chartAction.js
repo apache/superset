@@ -356,9 +356,11 @@ export function exploreJSON(
         // How to make the entire app compatible with multiple results?
         // For now just use the first result.
         const result = response.result[0];
+
         dispatch(
           logEvent(LOG_ACTIONS_LOAD_CHART, {
             slice_id: key,
+            applied_filters: result.applied_filters,
             is_cached: result.is_cached,
             force_refresh: force,
             row_count: result.rowcount,
