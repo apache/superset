@@ -45,7 +45,6 @@ class AdhocFilterOption extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.openPopover = this.openPopover.bind(this);
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
     this.state = {
@@ -67,10 +66,6 @@ class AdhocFilterOption extends React.PureComponent {
 
   onPopoverResize() {
     this.forceUpdate();
-  }
-
-  openPopover() {
-    this.setState({ popoverVisible: false });
   }
 
   closePopover() {
@@ -123,9 +118,7 @@ class AdhocFilterOption extends React.PureComponent {
           content={overlayContent}
           defaultVisible={adhocFilter.isNew}
           visible={this.state.popoverVisible}
-          onVisibleChange={visible => {
-            this.setState({ popoverVisible: visible });
-          }}
+          onVisibleChange={this.togglePopover}
         >
           <Label className="option-label adhoc-option adhoc-filter-option">
             {adhocFilter.getDefaultLabel()}

@@ -39,7 +39,6 @@ class AdhocMetricOption extends React.PureComponent {
     super(props);
     this.onPopoverResize = this.onPopoverResize.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
-    this.openPopover = this.openPopover.bind(this);
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
     this.state = {
@@ -74,10 +73,6 @@ class AdhocMetricOption extends React.PureComponent {
 
   onPopoverResize() {
     this.forceUpdate();
-  }
-
-  openPopover() {
-    this.setState({ popoverVisible: false });
   }
 
   closePopover() {
