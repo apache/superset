@@ -116,7 +116,9 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     openapi_spec_methods = openapi_spec_methods_override
 
     @staticmethod
-    def _apply_layered_relation_to_rison(layer_id: int, rison_parameters) -> None:
+    def _apply_layered_relation_to_rison(  # pylint: disable=invalid-name
+        layer_id: int, rison_parameters: Dict[str, Any]
+    ) -> None:
         if "filters" not in rison_parameters:
             rison_parameters["filters"] = []
         rison_parameters["filters"].append(
@@ -128,7 +130,9 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @permission_name("get")
     @rison(get_list_schema)
-    def get_list(self, pk: int, **kwargs: Dict[str, Any]) -> Response:
+    def get_list(  # pylint: disable=arguments-differ
+        self, pk: int, **kwargs: Dict[str, Any]
+    ) -> Response:
         """Get a list of annotations
         ---
         get:
@@ -169,7 +173,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
                           The result from the get list query
                         type: array
                         items:
-                          $ref: '#/components/schemas/{{self.__class__.__name__}}.get_list'  # noqa
+                          $ref: '#/components/schemas/{{self.__class__.__name__}}.get_list'  # pylint: disable=line-too-long
             400:
               $ref: '#/components/responses/400'
             401:
@@ -187,7 +191,9 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @permission_name("get")
     @rison(get_item_schema)
-    def get(self, pk: int, annotation_id: int, **kwargs: Dict[str, Any]) -> Response:
+    def get(  # pylint: disable=arguments-differ
+        self, pk: int, annotation_id: int, **kwargs: Dict[str, Any]
+    ) -> Response:
         """Get item from Model
         ---
         get:
@@ -242,7 +248,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("post")
-    def post(self, pk: int) -> Response:
+    def post(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Creates a new Annotation
         ---
         post:
@@ -308,7 +314,9 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("put")
-    def put(self, pk: int, annotation_id: int) -> Response:
+    def put(  # pylint: disable=arguments-differ
+        self, pk: int, annotation_id: int
+    ) -> Response:
         """Updates an Annotation
         ---
         put:
@@ -379,7 +387,9 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("delete")
-    def delete(self, pk: int, annotation_id: int) -> Response:
+    def delete(  # pylint: disable=arguments-differ
+        self, pk: int, annotation_id: int
+    ) -> Response:
         """Deletes an Annotation
         ---
         delete:
