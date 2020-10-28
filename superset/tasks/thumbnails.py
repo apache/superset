@@ -25,7 +25,7 @@ from flask import current_app
 from superset import app, security_manager, thumbnail_cache
 from superset.extensions import celery_app
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
-from superset.utils.webdriver import WindowSize
+from superset.utils.webdriver import WebDriverProxy, WindowSize
 
 logger = logging.getLogger(__name__)
 
