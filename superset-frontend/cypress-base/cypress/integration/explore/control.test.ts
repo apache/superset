@@ -60,7 +60,7 @@ describe('Datasource control', () => {
       .clear()
       .type(`${newMetricName}{enter}`);
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.ant-modal-footer button').contains('OK').click();
+    cy.get('.modal-footer button').contains('OK').click();
     // select new metric
     cy.get('[data-test=metrics]')
       .find('.Select__control input')
@@ -77,7 +77,7 @@ describe('Datasource control', () => {
       .find('.fa-trash')
       .click();
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.ant-modal-footer button').contains('OK').click();
+    cy.get('.modal-footer button').contains('OK').click();
     cy.get('.Select__multi-value__label')
       .contains(newMetricName)
       .should('not.exist');
