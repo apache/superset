@@ -50,9 +50,6 @@ describe('Datasource control', () => {
       cy.contains('Metrics').click();
     });
     // create new metric
-    cy.get('.modal-content').within(() => {
-      cy.get('[data-test="collection-tab-Metrics"]').click();
-    });
     cy.get('[data-test="crud-add-table-item"]', { timeout: 10000 }).click();
     cy.get('[data-test="table-content-rows"]')
       .find('input[value="<new metric>"]')
