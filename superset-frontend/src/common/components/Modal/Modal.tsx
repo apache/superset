@@ -124,7 +124,7 @@ export default function Modal({
 }: ModalProps) {
   const modalFooter = isNil(footer)
     ? [
-        <Button key="back" onClick={onHide} cta>
+        <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
           {t('Cancel')}
         </Button>,
         <Button
@@ -133,6 +133,7 @@ export default function Modal({
           disabled={disablePrimaryButton}
           onClick={onHandledPrimaryAction}
           cta
+          data-test="modal-confirm-button"
         >
           {primaryButtonName}
         </Button>,
@@ -156,7 +157,7 @@ export default function Modal({
         </span>
       }
       footer={!hideFooter ? modalFooter : null}
-      data-test={`${title}-modal`}
+      wrapProps={{ 'data-test': `${title}-modal` }}
       {...rest}
     >
       {children}
