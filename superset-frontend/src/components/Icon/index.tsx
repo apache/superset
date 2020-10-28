@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { SVGProps } from 'react';
+import { styled } from '@superset-ui/core';
 
 import { ReactComponent as AlertSolidIcon } from 'images/icons/alert_solid.svg';
 import { ReactComponent as AlertIcon } from 'images/icons/alert.svg';
@@ -77,6 +78,7 @@ import { ReactComponent as FieldNumIcon } from 'images/icons/field_num.svg';
 import { ReactComponent as FieldStructIcon } from 'images/icons/field_struct.svg';
 import { ReactComponent as FileIcon } from 'images/icons/file.svg';
 import { ReactComponent as FilterIcon } from 'images/icons/filter.svg';
+import { ReactComponent as FilterSmallIcon } from 'images/icons/filter_small.svg';
 import { ReactComponent as FolderIcon } from 'images/icons/folder.svg';
 import { ReactComponent as FullIcon } from 'images/icons/full.svg';
 import { ReactComponent as GearIcon } from 'images/icons/gear.svg';
@@ -194,6 +196,7 @@ export type IconName =
   | 'field-struct'
   | 'file'
   | 'filter'
+  | 'filter-small'
   | 'folder'
   | 'full'
   | 'gear'
@@ -314,6 +317,7 @@ export const iconsRegistry: Record<
   'field-struct': FieldStructIcon,
   file: FileIcon,
   filter: FilterIcon,
+  'filter-small': FilterSmallIcon,
   folder: FolderIcon,
   full: FullIcon,
   gear: GearIcon,
@@ -376,6 +380,18 @@ interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
 }
 
+const IconWrapper = styled.span`
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  svg {
+    width: 100%;
+    height: 100%;
+    color: currentColor;
+    vertical-align: middle;
+  }
+`;
+
 const Icon = ({
   name,
   color = '#666666',
@@ -385,7 +401,9 @@ const Icon = ({
   const Component = iconsRegistry[name];
 
   return (
-    <Component color={color} viewBox={viewBox} data-test={name} {...rest} />
+    <IconWrapper>
+      <Component color={color} viewBox={viewBox} data-test={name} {...rest} />
+    </IconWrapper>
   );
 };
 

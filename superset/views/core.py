@@ -505,6 +505,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payloads based on the request args in the first block
 
         TODO: break into one endpoint for each return shape"""
+
         response_type = utils.ChartDataResultFormat.JSON.value
         responses: List[
             Union[utils.ChartDataResultFormat, utils.ChartDataResultType]

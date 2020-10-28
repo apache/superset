@@ -29,8 +29,10 @@ export function getDashboardFilterKey({
   return `${chartId}_${column}`;
 }
 
+const filterKeySplitter = /^([0-9]+)_(.*)$/;
+
 export function getChartIdAndColumnFromFilterKey(key: string) {
-  const [chartId, ...parts] = key.split('_');
-  const column = parts.slice().join('_');
-  return { chartId: parseInt(chartId, 10), column };
+  const match = filterKeySplitter.exec(key);
+  if (!match) throw new Error('Cannot parse invalid filter key');
+  return { chartId: parseInt(match[1], 10), column: match[2] };
 }

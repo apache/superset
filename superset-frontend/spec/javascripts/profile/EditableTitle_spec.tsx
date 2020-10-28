@@ -46,15 +46,14 @@ describe('EditableTitle', () => {
     expect(titleElement.props().value).toBe('my title');
     expect(titleElement.props().type).toBe('button');
   });
+  it('should not render an input if it is not editable', () => {
+    expect(notEditableWrapper.find('input')).not.toExist();
+  });
 
   describe('should handle click', () => {
     it('should change title', () => {
       editableWrapper.find('input').simulate('click');
       expect(editableWrapper.find('input').props().type).toBe('text');
-    });
-    it('should not change title', () => {
-      notEditableWrapper.find('input').simulate('click');
-      expect(notEditableWrapper.find('input').props().type).toBe('button');
     });
   });
 
@@ -65,10 +64,6 @@ describe('EditableTitle', () => {
     it('should change title', () => {
       editableWrapper.find('input').simulate('change', mockEvent);
       expect(editableWrapper.find('input').props().value).toBe('new title');
-    });
-    it('should not change title', () => {
-      notEditableWrapper.find('input').simulate('change', mockEvent);
-      expect(editableWrapper.find('input').props().value).toBe('my title');
     });
   });
 
