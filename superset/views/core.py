@@ -2413,7 +2413,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         response = Response(csv, mimetype="text/csv")
         response.headers[
             "Content-Disposition"
-        ] = f"attachment; filename={query.name}.csv"
+        ] = f"attachment: filename=%s.csv" % (quote(query.name))
         event_info = {
             "event_type": "data_export",
             "client_id": client_id,
