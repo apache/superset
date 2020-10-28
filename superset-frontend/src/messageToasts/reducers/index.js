@@ -22,7 +22,11 @@ export default function messageToastsReducer(toasts = [], action) {
   switch (action.type) {
     case ADD_TOAST: {
       const { payload: toast } = action;
-      return [toast, ...toasts];
+      const result = toasts.slice();
+      if (!toast.noDuplicate || !result.find(x => x.text === toast.text)) {
+        return [toast, ...toasts];
+      }
+      return toasts;
     }
 
     case REMOVE_TOAST: {

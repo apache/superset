@@ -28,4 +28,7 @@ export interface ToastMeta {
   toastType: ToastType;
   text: string;
   duration: number;
+  /** Whether to skip displaying this message if there are another toast
+   * with the same message. */
+  noDuplicate?: boolean;
 }

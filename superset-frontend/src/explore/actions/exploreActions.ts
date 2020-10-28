@@ -25,7 +25,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { addDangerToast } from 'src/messageToasts/actions';
+import { addDangerToast, toastActions } from 'src/messageToasts/actions';
 import { Slice } from 'src/types/Chart';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -148,6 +148,7 @@ export function sliceUpdated(slice: Slice) {
 }
 
 export const exploreActions = {
+  ...toastActions,
   setDatasourceType,
   setDatasource,
   setDatasources,

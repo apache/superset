@@ -19,6 +19,8 @@
 import shortid from 'shortid';
 import { ToastType, ToastMeta } from '../types';
 
+type ToastOptions = Partial<Omit<ToastMeta, 'id' | 'toastType' | 'text'>>;
+
 export function getToastUuid(type: ToastType) {
   return `${type}-${shortid.generate()}`;
 }
@@ -28,6 +30,7 @@ export function addToast({
   toastType,
   text,
   duration = 8000,
+  noDuplicate = false,
 }: Omit<ToastMeta, 'id'>) {
   return {
     type: ADD_TOAST,
@@ -36,6 +39,7 @@ export function addToast({
       toastType,
       text,
       duration,
+      noDuplicate,
     },
   };
 }
@@ -52,21 +56,48 @@ export function removeToast(id: string) {
 
 // Different types of toasts
 export const ADD_INFO_TOAST = 'ADD_INFO_TOAST';
-export function addInfoToast(text: string) {
-  return addToast({ text, toastType: ToastType.INFO, duration: 4000 });
+export function addInfoToast(text: string, options?: ToastOptions) {
+  return addToast({
+    text,
+    toastType: ToastType.INFO,
+    duration: 4000,
+    ...options,
+  });
 }
 
 export const ADD_SUCCESS_TOAST = 'ADD_SUCCESS_TOAST';
-export function addSuccessToast(text: string) {
-  return addToast({ text, toastType: ToastType.SUCCESS, duration: 4000 });
+export function addSuccessToast(text: string, options?: ToastOptions) {
+  return addToast({
+    text,
+    toastType: ToastType.SUCCESS,
+    duration: 4000,
+    ...options,
+  });
 }
 
 export const ADD_WARNING_TOAST = 'ADD_WARNING_TOAST';
-export function addWarningToast(text: string) {
-  return addToast({ text, toastType: ToastType.WARNING, duration: 6000 });
+export function addWarningToast(text: string, options?: ToastOptions) {
+  return addToast({
+    text,
+    toastType: ToastType.WARNING,
+    duration: 6000,
+    ...options,
+  });
 }
 
 export const ADD_DANGER_TOAST = 'ADD_DANGER_TOAST';
-export function addDangerToast(text: string) {
-  return addToast({ text, toastType: ToastType.DANGER, duration: 8000 });
+export function addDangerToast(text: string, options?: ToastOptions) {
+  return addToast({
+    text,
+    toastType: ToastType.DANGER,
+    duration: 8000,
+    ...options,
+  });
 }
+
+export const toastActions = {
+  addInfoToast,
+  addSuccessToast,
+  addWarningToast,
+  addDangerToast,
+};

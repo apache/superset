@@ -25,7 +25,7 @@ import React, {
 } from 'react';
 import sharedControlComponents from '@superset-ui/chart-controls/lib/shared-controls/components';
 import { ExtraControlProps } from '@superset-ui/chart-controls';
-import { JsonArray, JsonValue } from '@superset-ui/core';
+import { JsonArray, JsonValue, t } from '@superset-ui/core';
 import { ControlProps } from 'src/explore/components/Control';
 import builtInControlComponents from 'src/explore/components/controls';
 
@@ -79,16 +79,22 @@ function hasUpdates(
   props: ControlPropsWithExtras,
   newProps: ExtraControlProps,
 ) {
-  return Object.entries(newProps).some(([key, value]) => {
-    if (Array.isArray(props[key]) && Array.isArray(value)) {
-      const sourceValue: JsonArray = props[key];
-      return (
-        sourceValue.length !== value.length ||
-        sourceValue.some((x, i) => x !== value[i])
-      );
-    }
-    return props[key] !== value;
-  });
+  return (
+    props !== newProps &&
+    Object.entries(newProps).some(([key, value]) => {
+      if (Array.isArray(props[key]) && Array.isArray(value)) {
+        const sourceValue: JsonArray = props[key];
+        return (
+          sourceValue.length !== value.length ||
+          sourceValue.some((x, i) => x !== value[i])
+        );
+      }
+      if (key === 'formData') {
+        return JSON.stringify(props[key]) !== JSON.stringify(value);
+      }
+      return props[key] !== value;
+    })
+  );
 }
 
 export type WithAsyncVerificationOptions = {
@@ -98,6 +104,7 @@ export type WithAsyncVerificationOptions = {
     // component props.
     | ComponentType<Partial<FullControlProps>>;
   showLoadingState?: boolean;
+  quiet?: boolean;
   verify?: AsyncVerify;
   onChange?: (value: JsonValue, props: ControlPropsWithExtras) => void;
 };
@@ -113,11 +120,13 @@ export type WithAsyncVerificationOptions = {
  *                 the promise itself. If the Promise returns nothing or null, then
  *                 the control will not rerender.
  * @param onChange - Additional event handler when values are changed by users.
+ * @param quiet    - Whether to show a warning toast when verification failed.
  */
 export default function withAsyncVerification({
   baseControl,
   onChange,
   verify: defaultVerify,
+  quiet = false,
   showLoadingState: defaultShowLoadingState = true,
 }: WithAsyncVerificationOptions) {
   const ControlComponent: ComponentType<FullControlProps> =
@@ -138,13 +147,13 @@ export default function withAsyncVerification({
     const otherPropsRef = useRef(restProps);
     const [verifiedProps, setVerifiedProps] = useState({});
     const [isLoading, setIsLoading] = useState<boolean>(initialIsLoading);
+    const { addWarningToast } = restProps.actions;
 
     // memoize `restProps`, so that verification only triggers when material
     // props are actually updated.
     let otherProps = otherPropsRef.current;
     if (hasUpdates(otherProps, restProps)) {
-      otherPropsRef.current = restProps;
-      otherProps = restProps;
+      otherProps = otherPropsRef.current = restProps;
     }
 
     const handleChange = useCallback(
@@ -165,16 +174,42 @@ export default function withAsyncVerification({
         if (showLoadingState) {
           setIsLoading(true);
         }
-        verify(otherProps).then(updatedProps => {
-          if (updatedProps && hasUpdates(otherProps, updatedProps)) {
-            setVerifiedProps(updatedProps);
-          }
-          if (showLoadingState) {
-            setIsLoading(false);
-          }
-        });
+        verify(otherProps)
+          .then(updatedProps => {
+            if (showLoadingState) {
+              setIsLoading(false);
+            }
+            if (updatedProps && hasUpdates(otherProps, updatedProps)) {
+              setVerifiedProps({
+                // save isLoading in combination with other props to avoid
+                // rendering twice.
+                ...updatedProps,
+              });
+            }
+          })
+          .catch((err: Error | string) => {
+            if (showLoadingState) {
+              setIsLoading(false);
+            }
+            if (!quiet && addWarningToast) {
+              addWarningToast(
+                t(
+                  'Failed to verify select options: %s',
+                  (typeof err === 'string' ? err : err.message) ||
+                    t('[unknown error]'),
+                ),
+                { noDuplicate: true },
+              );
+            }
+          });
       }
-    }, [needAsyncVerification, showLoadingState, verify, otherProps]);
+    }, [
+      needAsyncVerification,
+      showLoadingState,
+      verify,
+      otherProps,
+      addWarningToast,
+    ]);
 
     return (
       <ControlComponent
