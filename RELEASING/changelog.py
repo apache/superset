@@ -62,8 +62,7 @@ class GitChangeLog:
 
     def __init__(self, logs: List[GitLog]) -> None:
         self._logs = logs
-        self._github_login_cache = {
-        }
+        self._github_login_cache = {}
         self._wait = 10
 
     def _wait_github_rate_limit(self) -> None:
