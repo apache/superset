@@ -61,8 +61,27 @@ const config: ControlPanelConfig = {
       ],
     },
     {
+      label: t('Annotations and Layers'),
+      expanded: false,
+      controlSetRows: [
+        [
+          {
+            name: 'annotation_layers',
+            config: {
+              type: 'AnnotationLayerControl',
+              label: '',
+              default: [],
+              description: 'Annotation Layers',
+              renderTrigger: true,
+              tabOverride: 'data',
+            },
+          },
+        ],
+      ],
+    },
+    {
       label: t('Predictive Analytics'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {
