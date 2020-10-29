@@ -422,7 +422,7 @@ class DateFilterControl extends React.Component {
         </Styles>
       );
     });
-    console.log({ grain: this.state.grain, grainOptions });
+
     return (
       <div
         id="filter-popover"
