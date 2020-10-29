@@ -73,7 +73,7 @@ class GitChangeLog:
             rate_limit_payload = self._fetch_github_rate_limit()
             if rate_limit_payload["rate"]["remaining"] > 1:
                 break
-            print(f".", end="", flush=True)
+            print(".", end="", flush=True)
             sleep(self._wait)
 
     def _fetch_github_rate_limit(self) -> Dict[str, Any]:
