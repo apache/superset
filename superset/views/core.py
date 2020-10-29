@@ -1203,7 +1203,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .outerjoin(Slice, Slice.id == Log.slice_id)
             .filter(
                 and_(
-                    Log.action.in_(("queries", "shortner", "sql_json")),
+                    Log.action.in_(("explore", "dashboard")),
                     Log.user_id == user_id,
                 )
             )
