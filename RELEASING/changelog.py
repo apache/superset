@@ -60,7 +60,8 @@ class GitChangeLog:
     We want to map a git author to a github login, for that we call github's API
     """
 
-    def __init__(self, logs: List[GitLog]) -> None:
+    def __init__(self, version: str, logs: List[GitLog]) -> None:
+        self._version = version
         self._logs = logs
         self._github_login_cache: Dict[str, Optional[str]] = {}
         self._wait = 10
@@ -117,8 +118,11 @@ class GitChangeLog:
         self._github_login_cache[author_name] = github_login
         return github_login
 
+    def _get_changelog_version_head(self):
+        return f"### {self._version} ({self._logs[0].time})"
+
     def __repr__(self):
-        result = ""
+        result = f"\n{self._get_changelog_version_head()}\n"
         for i, log in enumerate(self._logs):
             github_login = self._get_github_login(log)
             if not github_login:
@@ -139,13 +143,13 @@ class GitLogs:
     Can compare git log entries by PR number
     """
 
-    def __init__(self, branch_name: str) -> None:
-        self._branch_name = branch_name
+    def __init__(self, git_ref: str) -> None:
+        self._git_ref = git_ref
         self._logs: List[GitLog] = []
 
     @property
-    def branch_name(self) -> str:
-        return self._branch_name
+    def git_ref(self) -> str:
+        return self._git_ref
 
     @property
     def logs(self) -> List[GitLog]:
@@ -158,18 +162,34 @@ class GitLogs:
         return [log for log in git_logs.logs if log not in self._logs]
 
     def __repr__(self):
-        return f"{self._branch_name}, Log count:{len(self._logs)}"
+        return f"{self._git_ref}, Log count:{len(self._logs)}"
 
-    def _git_checkout(self):
-        os.popen(f"git checkout {self._branch_name}").read()
+    def _git_get_current_head(self) -> str:
+        output = os.popen("git status | head -1").read()
+        match = re.match("(?:HEAD detached at|On branch) (.*)", output)
+        if not match:
+            return ""
+        return match.group(1)
+
+    def _git_checkout(self, git_ref: str):
+        os.popen(f"git checkout {git_ref}").read()
+        current_head = self._git_get_current_head()
+        if current_head != git_ref:
+            print(f"Could not checkout {git_ref}")
+            exit(1)
 
     def _git_logs(self) -> List[str]:
-        self._git_checkout()
-        return (
+        # let's get current git ref so we can revert it back
+        current_git_ref = self._git_get_current_head()
+        self._git_checkout(self._git_ref)
+        output = (
             os.popen('git --no-pager log --pretty=format:"%h|%an|%ad|%s|"')
             .read()
             .split("\n")
         )
+        # revert to git ref, let's be nice
+        self._git_checkout(current_git_ref)
+        return output
 
     def _parse_log(self, log_item: str) -> GitLog:
         pr_number = None
@@ -224,16 +244,14 @@ def compare(base_parameters):
     previous_logs = base_parameters.previous_logs
     current_logs = base_parameters.current_logs
     print_title(
-        f"Pull requests from "
-        f"{current_logs.branch_name} not in {previous_logs.branch_name}"
+        f"Pull requests from " f"{current_logs.git_ref} not in {previous_logs.git_ref}"
     )
     previous_diff_logs = previous_logs.diff(current_logs)
     for diff_log in previous_diff_logs:
         print(f"{diff_log}")
 
     print_title(
-        f"Pull requests from "
-        f"{previous_logs.branch_name} not in {current_logs.branch_name}"
+        f"Pull requests from " f"{previous_logs.git_ref} not in {current_logs.git_ref}"
     )
     current_diff_logs = current_logs.diff(previous_logs)
     for diff_log in current_diff_logs:
@@ -248,7 +266,7 @@ def changelog(base_parameters):
     current_logs = base_parameters.current_logs
     previous_diff_logs = previous_logs.diff(current_logs)
     print("Fetching github usernames, this may take a while:")
-    print(GitChangeLog(previous_diff_logs[::-1]))
+    print(GitChangeLog(current_logs.git_ref, previous_diff_logs[::-1]))
 
 
 cli()
