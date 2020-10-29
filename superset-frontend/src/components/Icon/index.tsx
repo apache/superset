@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { SVGProps } from 'react';
-import { styled } from '@superset-ui/core';
 
 import { ReactComponent as AlertSolidIcon } from 'images/icons/alert_solid.svg';
 import { ReactComponent as AlertIcon } from 'images/icons/alert.svg';
