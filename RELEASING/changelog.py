@@ -25,11 +25,6 @@ from urllib.error import HTTPError
 
 import click
 
-try:
-    import click
-except ModuleNotFoundError:
-    exit("Click is a required dependency for this script")
-
 
 @dataclass
 class GitLog:
@@ -76,6 +71,7 @@ class GitChangeLog:
                 break
             print(".", end="", flush=True)
             sleep(self._wait)
+        print()
 
     def _fetch_github_rate_limit(self) -> Dict[str, Any]:
         """
