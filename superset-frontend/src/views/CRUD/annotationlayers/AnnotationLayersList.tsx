@@ -21,12 +21,12 @@ import React, { useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-// import ListView, { Filters } from 'src/components/ListView';
-import ListView from 'src/components/ListView';
+import ListView, { Filters } from 'src/components/ListView';
 import Button from 'src/components/Button';
 import AnnotationLayerModal from './AnnotationLayerModal';
 import { AnnotationLayerObject } from './types';
@@ -198,6 +198,36 @@ function AnnotationLayersList({
     });
   }
 
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Created By'),
+        id: 'created_by',
+        input: 'select',
+        operator: 'rel_o_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'annotation_layer',
+          'created_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Search'),
+        id: 'name',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [],
+  );
+
   const EmptyStateButton = (
     <Button
       buttonStyle="primary"
@@ -232,7 +262,7 @@ function AnnotationLayersList({
         count={layersCount}
         data={layers}
         fetchData={fetchData}
-        // filters={filters}
+        filters={filters}
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}

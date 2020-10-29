@@ -158,12 +158,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   };
 
   const validate = () => {
-    if (
-      currentLayer &&
-      currentLayer.name.length &&
-      currentLayer.descr &&
-      currentLayer.descr.length
-    ) {
+    if (currentLayer && currentLayer.name.length) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
@@ -245,10 +240,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
         />
       </LayerContainer>
       <LayerContainer>
-        <div className="control-label">
-          {t('description')}
-          <span className="required">*</span>
-        </div>
+        <div className="control-label">{t('description')}</div>
         <textarea
           name="descr"
           value={currentLayer?.descr}
