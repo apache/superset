@@ -15,15 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_babel import lazy_gettext as _
-from sqlalchemy import or_, not_
+from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
-from superset.views.base import BaseFilter
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.views.base import BaseFilter
 
 
 class DatasetIsNullOrEmptyFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    name = _("All Text")
+    name = _("Null or Empty")
     arg_name = "dataset_is_null_or_empty"
 
     def apply(self, query: Query, value: bool) -> Query:
@@ -32,7 +32,4 @@ class DatasetIsNullOrEmptyFilter(BaseFilter):  # pylint: disable=too-few-public-
         if not value:
             filter_clause = not_(filter_clause)
 
-
-        return query.filter(
-            filter_clause
-        )
+        return query.filter(filter_clause)

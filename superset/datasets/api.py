@@ -161,9 +161,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
-    search_filters = {
-        "sql": [DatasetIsNullOrEmptyFilter]
-    }
+    search_filters = {"sql": [DatasetIsNullOrEmptyFilter]}
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
