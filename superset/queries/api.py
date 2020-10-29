@@ -49,6 +49,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user.first_name",
         "user.id",
         "user.last_name",
+        "user.username",
     ]
     show_columns = [
         "changed_on",

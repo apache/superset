@@ -267,6 +267,7 @@ class TestQueryApi(SupersetTestCase):
             "first_name",
             "id",
             "last_name",
+            "username",
         ]
         assert list(data["result"][0]["database"].keys()) == [
             "database_name",
