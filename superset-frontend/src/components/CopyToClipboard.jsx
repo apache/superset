@@ -28,7 +28,6 @@ const propTypes = {
   onCopyEnd: PropTypes.func,
   shouldShowText: PropTypes.bool,
   text: PropTypes.string,
-  inMenu: PropTypes.bool,
   wrapped: PropTypes.bool,
   tooltipText: PropTypes.string,
   addDangerToast: PropTypes.func.isRequired,
@@ -38,7 +37,6 @@ const defaultProps = {
   copyNode: <span>Copy</span>,
   onCopyEnd: () => {},
   shouldShowText: true,
-  inMenu: false,
   wrapped: true,
   tooltipText: t('Copy to clipboard'),
 };
