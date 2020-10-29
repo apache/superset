@@ -212,7 +212,7 @@ export function useSingleViewResource<D extends object = any>(
             t(
               'An error occurred while fetching %ss: %s',
               resourceLabel,
-              errMsg,
+              JSON.stringify(errMsg),
             ),
           ),
         ),
@@ -244,7 +244,7 @@ export function useSingleViewResource<D extends object = any>(
             t(
               'An error occurred while fetching %ss: %s',
               resourceLabel,
-              errMsg,
+              JSON.stringify(errMsg),
             ),
           ),
         ),
@@ -276,7 +276,7 @@ export function useSingleViewResource<D extends object = any>(
             t(
               'An error occurred while fetching %ss: %s',
               resourceLabel,
-              errMsg,
+              JSON.stringify(errMsg),
             ),
           ),
         ),
