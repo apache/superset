@@ -29,7 +29,6 @@ import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import Label from 'src/components/Label';
 
-import redirectToSqlLab from 'src/chart/chartAction';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
