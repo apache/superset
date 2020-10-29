@@ -88,6 +88,7 @@ const ColumnsCol = styled(Col)`
 
 const CHANGE_DATASET = 'change_dataset';
 const EXPLORE_IN_SQL_LAB = 'explore_in_sql_lab';
+const VIEW_IN_SQL_LAB = 'view_in_sql_lab';
 const EDIT_DATASET = 'edit_dataset';
 
 class DatasourceControl extends React.PureComponent {
@@ -139,13 +140,8 @@ class DatasourceControl extends React.PureComponent {
     if (key === EDIT_DATASET) {
       this.toggleEditDatasourceModal();
     }
-    if (key === EXPLORE_IN_SQL_LAB) {
-      console.log("pressed btn view in sql lab");
-      console.log("this.props", this.props);
+    if (key === VIEW_IN_SQL_LAB) {
       const { datasource } = this.props;
-      // console.log("this.props.datasource.sql", this.props.datasource.sql);
-
-      console.log('calling redirect to sqllab');
       this.props.actions.redirectSQLLab({ datasource });
     }
   }
@@ -210,7 +206,7 @@ class DatasourceControl extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change Dataset')}</Menu.Item>
-        <Menu.Item key={EXPLORE_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+        <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
       </Menu>
     );
 
