@@ -1,8 +1,11 @@
 /* eslint camelcase: 0 */
+
+export type AnnotationOpacity = '' | 'opacityLow' | 'opacityMedium' | 'opacityHigh';
+
 type BaseAnnotationLayer = {
   color?: string | null;
   name: string;
-  opacity?: '' | 'opacityLow' | 'opacityMedium' | 'opacityHigh';
+  opacity?: AnnotationOpacity;
   show: boolean;
   style: 'dashed' | 'dotted' | 'solid' | 'longDashed';
   width?: number;

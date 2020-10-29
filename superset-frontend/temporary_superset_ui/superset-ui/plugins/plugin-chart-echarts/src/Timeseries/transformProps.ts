@@ -17,15 +17,19 @@
  * under the License.
  */
 import {
+  AnnotationLayer,
+  isFormulaAnnotationLayer,
   ChartProps,
   CategoricalColorNamespace,
   getNumberFormatter,
   smartDateVerboseFormatter,
+  TimeseriesDataRecord,
 } from '@superset-ui/core';
 import { EchartsTimeseriesProps } from './types';
 import { ForecastSeriesEnum } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import { extractTimeseriesSeries } from '../utils/series';
+import { evalFormula, parseAnnotationOpacity } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
   extractProphetValuesFromTooltipParams,
@@ -36,7 +40,9 @@ import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 
 export default function transformProps(chartProps: ChartProps): EchartsTimeseriesProps {
   const { width, height, formData, queryData } = chartProps;
+  const { data = [] }: { data?: TimeseriesDataRecord[] } = queryData;
   const {
+    annotationLayers = [],
     area,
     colorScheme,
     contributionMode,
@@ -55,10 +61,8 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
   } = formData;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-
-  const rebasedData = rebaseTimeseriesDatum(queryData.data || []);
+  const rebasedData = rebaseTimeseriesDatum(data);
   const rawSeries = extractTimeseriesSeries(rebasedData);
-
   const series: echarts.EChartOption.Series[] = [];
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
 
@@ -112,6 +116,36 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
             ? markerSize
             : 0,
       });
+  });
+
+  annotationLayers.forEach((layer: AnnotationLayer) => {
+    const {
+      name,
+      color,
+      opacity: annotationOpacity,
+      width: annotationWidth,
+      show: annotationShow,
+      style,
+    } = layer;
+    if (annotationShow && isFormulaAnnotationLayer(layer)) {
+      series.push({
+        name,
+        id: name,
+        itemStyle: {
+          color: color || colorFn(name),
+        },
+        lineStyle: {
+          opacity: parseAnnotationOpacity(annotationOpacity),
+          type: style,
+          width: annotationWidth,
+        },
+        type: 'line',
+        smooth: true,
+        // @ts-ignore
+        data: evalFormula(layer, data),
+        symbolSize: 0,
+      });
+    }
   });
 
   // yAxisBounds need to be parsed to replace incompatible values with undefined
@@ -169,7 +203,8 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
           entry =>
             extractForecastSeriesContext(entry.name || '').type === ForecastSeriesEnum.Observation,
         )
-        .map(entry => entry.name || ''),
+        .map(entry => entry.name || '')
+        .concat(annotationLayers.map((layer: AnnotationLayer) => layer.name)),
       right: zoomable ? 80 : 'auto',
     },
     series,
