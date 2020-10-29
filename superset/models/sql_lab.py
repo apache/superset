@@ -152,6 +152,10 @@ class Query(Model, ExtraJSONMixin):
     def username(self) -> str:
         return self.user.username
 
+    @property
+    def sql_tables(self) -> List[Table]:
+        return list(ParsedQuery(self.sql).tables)
+
     def raise_for_access(self) -> None:
         """
         Raise an exception if the user cannot access the resource.
