@@ -28,7 +28,6 @@ import * as actions from '../actions/exploreActions';
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
     [actions.VIEW_IN_SQLLAB]() {
-      console.log('changed the state to sqllab');
       return {
         ...state,
       };
