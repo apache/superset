@@ -25,7 +25,7 @@ import { IconContainer } from '../utils';
 
 interface EmptyStateProps {
   tableName: string;
-  tab?: 'Viewed' | 'Created' | 'Examples' | 'Mine' | 'Edited';
+  tab?: string;
 }
 
 const ButtonContainer = styled.div`
