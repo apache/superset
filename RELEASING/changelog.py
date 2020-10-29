@@ -175,7 +175,7 @@ class GitLogs:
         pr_number = None
         split_log_item = log_item.split("|")
         # parse the PR number from the log message
-        match = re.match(".*\(\#(.*)\)", split_log_item[3])
+        match = re.match(".*\(\#(\d*)\)", split_log_item[3])
         if match:
             pr_number = int(match.group(1))
         return GitLog(
