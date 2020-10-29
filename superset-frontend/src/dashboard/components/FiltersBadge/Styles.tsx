@@ -20,8 +20,8 @@ import { styled } from '@superset-ui/core';
 
 export const Pill = styled.div`
   display: inline-block;
-  background: ${({ theme }) => theme.colors.grayscale.base};
   color: ${({ theme }) => theme.colors.grayscale.light5};
+  background: ${({ theme }) => theme.colors.grayscale.base};
   border-radius: 1em;
   vertical-align: text-top;
   padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
@@ -36,6 +36,11 @@ export const Pill = styled.div`
   svg {
     position: relative;
     top: -1px;
+    color: ${({ theme }) => theme.colors.grayscale.light5};
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    vertical-align: middle;
   }
 
   &:hover {
@@ -48,6 +53,9 @@ export const Pill = styled.div`
     background: ${({ theme }) => theme.colors.alert.base};
     &:hover {
       background: ${({ theme }) => theme.colors.alert.dark1};
+    }
+    svg {
+      color: ${({ theme }) => theme.colors.grayscale.dark2};
     }
   }
 
