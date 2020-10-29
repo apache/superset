@@ -23,9 +23,8 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 from wtforms.validators import StopValidation
 
-from superset import app
+from superset import is_feature_enabled
 from superset.constants import RouteMethod
-from superset.extensions import feature_flag_manager
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.typing import FlaskResponse
 from superset.views.base import SupersetModelView
@@ -101,8 +100,8 @@ class AnnotationModelView(
     @has_access
     def annotation(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
         if not (
-            app.config["ENABLE_REACT_CRUD_VIEWS"]
-            and feature_flag_manager.is_feature_enabled("SIP_34_ANNOTATIONS_UI")
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_ANNOTATIONS_UI")
         ):
             return super().list()
 
@@ -128,8 +127,8 @@ class AnnotationLayerModelView(SupersetModelView):  # pylint: disable=too-many-a
     @has_access
     def list(self) -> FlaskResponse:
         if not (
-            app.config["ENABLE_REACT_CRUD_VIEWS"]
-            and feature_flag_manager.is_feature_enabled("SIP_34_ANNOTATIONS_UI")
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_ANNOTATIONS_UI")
         ):
             return super().list()
 

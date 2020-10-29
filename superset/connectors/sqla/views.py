@@ -30,7 +30,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
-from superset import app, db
+from superset import app, db, is_feature_enabled
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
 from superset.constants import RouteMethod
@@ -559,7 +559,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
             return super().list()
 
         return super().render_app_template()

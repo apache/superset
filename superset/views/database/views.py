@@ -28,7 +28,7 @@ from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, db
+from superset import app, db, is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.exceptions import CertificateException
@@ -98,7 +98,7 @@ class DatabaseView(
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
             return super().list()
 
         return super().render_app_template()
