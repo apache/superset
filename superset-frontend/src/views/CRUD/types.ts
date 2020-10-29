@@ -23,6 +23,10 @@ export type FavoriteStatus = {
   [id: number]: boolean;
 };
 
+export type TabProps = {
+  tab?: 'Viewed' | 'Created' | 'Examples' | 'Mine' | 'Edited' | 'Favorite';
+};
+
 export interface DashboardTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;

@@ -76,7 +76,7 @@ const SavedQueries = ({
     fetchData,
     refreshData,
   } = useListViewResource<Query>('saved_query', t('query'), addDangerToast);
-  const [queryFilter, setQueryFilter] = useState('Favorite');
+  const [queryFilter, setQueryFilter] = useState('Mine');
   const [queryDeleteModal, setQueryDeleteModal] = useState(false);
   const [currentlyEdited, setCurrentlyEdited] = useState<Query>({});
 

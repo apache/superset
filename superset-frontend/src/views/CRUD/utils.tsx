@@ -110,7 +110,6 @@ export const getRecentAcitivtyObjs = (
     }),
   ];
   return Promise.all(baseBatch).then(
-    // @ts-ignore
     ([
       recentsRes,
       editedDash,

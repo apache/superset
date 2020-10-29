@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
+import { Dashboard, DashboardTableProps, TabProps } from 'src/views/CRUD/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
@@ -53,8 +53,8 @@ function DashboardTable({
     addDangerToast,
   );
 
-  const [editModal, setEditModal] = useState<Dashboard | null>(null);
-  const [dashboardFilter, setDashboardFilter] = useState('Favorite');
+  const [editModal, setEditModal] = useState<Dashboard>();
+  const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
   const handleDashboardEdit = (edits: Dashboard) => {
     return SupersetClient.get({
@@ -160,7 +160,7 @@ function DashboardTable({
         <PropertiesModal
           dashboardId={editModal?.id}
           show
-          onHide={() => setEditModal(null)}
+          onHide={() => setEditModal(undefined)}
           onSubmit={handleDashboardEdit}
         />
       )}

@@ -55,6 +55,26 @@ function DashboardCard({
 
   const menu = (
     <Menu>
+      {canEdit && openDashboardEditModal && (
+        <Menu.Item
+          role="button"
+          tabIndex={0}
+          onClick={() =>
+            openDashboardEditModal && openDashboardEditModal(dashboard)
+          }
+        >
+          <ListViewCard.MenuIcon name="edit-alt" /> Edit
+        </Menu.Item>
+      )}
+      {canExport && (
+        <Menu.Item
+          role="button"
+          tabIndex={0}
+          onClick={() => handleBulkDashboardExport([dashboard])}
+        >
+          <ListViewCard.MenuIcon name="share" /> Export
+        </Menu.Item>
+      )}
       {canDelete && (
         <Menu.Item>
           <ConfirmStatusChange
@@ -85,26 +105,6 @@ function DashboardCard({
               </div>
             )}
           </ConfirmStatusChange>
-        </Menu.Item>
-      )}
-      {canExport && (
-        <Menu.Item
-          role="button"
-          tabIndex={0}
-          onClick={() => handleBulkDashboardExport([dashboard])}
-        >
-          <ListViewCard.MenuIcon name="share" /> Export
-        </Menu.Item>
-      )}
-      {canEdit && openDashboardEditModal && (
-        <Menu.Item
-          role="button"
-          tabIndex={0}
-          onClick={() =>
-            openDashboardEditModal && openDashboardEditModal(dashboard)
-          }
-        >
-          <ListViewCard.MenuIcon name="edit-alt" /> Edit
         </Menu.Item>
       )}
     </Menu>
