@@ -20,7 +20,7 @@ from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
-from superset import app, db
+from superset import db, is_feature_enabled
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.models.slice import Slice
@@ -74,7 +74,7 @@ class SliceModelView(
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
             return super().list()
 
         return super().render_app_template()
