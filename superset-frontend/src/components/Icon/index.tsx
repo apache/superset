@@ -380,17 +380,17 @@ interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
 }
 
-const IconWrapper = styled.span`
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  svg {
-    width: 100%;
-    height: 100%;
-    color: currentColor;
-    vertical-align: middle;
-  }
-`;
+// const IconWrapper = styled.span`
+//   display: inline-block;
+//   width: 1em;
+//   height: 1em;
+//   svg {
+//     width: 100%;
+//     height: 100%;
+//     color: currentColor;
+//     vertical-align: middle;
+//   }
+// `;
 
 const Icon = ({
   name,
@@ -401,9 +401,7 @@ const Icon = ({
   const Component = iconsRegistry[name];
 
   return (
-    <IconWrapper>
-      <Component color={color} viewBox={viewBox} data-test={name} {...rest} />
-    </IconWrapper>
+    <Component color={color} viewBox={viewBox} data-test={name} {...rest} />
   );
 };
 
