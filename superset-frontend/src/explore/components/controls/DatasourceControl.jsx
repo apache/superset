@@ -87,7 +87,6 @@ const ColumnsCol = styled(Col)`
 `;
 
 const CHANGE_DATASET = 'change_dataset';
-const EXPLORE_IN_SQL_LAB = 'explore_in_sql_lab';
 const VIEW_IN_SQL_LAB = 'view_in_sql_lab';
 const EDIT_DATASET = 'edit_dataset';
 
@@ -142,7 +141,7 @@ class DatasourceControl extends React.PureComponent {
     }
     if (key === VIEW_IN_SQL_LAB) {
       const { datasource } = this.props;
-      this.props.actions.redirectSQLLab({ datasource });
+      this.props.actions.redirectSQLLab(datasource);
     }
   }
 

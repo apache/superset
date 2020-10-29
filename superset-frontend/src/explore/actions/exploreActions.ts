@@ -149,14 +149,12 @@ export function sliceUpdated(slice: Slice) {
 }
 
 export const VIEW_IN_SQLLAB = 'VIEW_IN_SQLLAB';
-export function redirectSQLLab(formData) {
-  return dispatch => {
-    console.log("inside redirectSQLLab", formData);
+export function redirectSQLLab(datasource: DatasourceMeta) {
+  return () => {
     const payload = {
-      datasourceKey: `${formData.datasource.id}__${formData.datasource.type}`,
-      sql: formData.datasource.sql,
+      datasourceKey: `${datasource.id}__${datasource.type}`,
+      sql: datasource.sql,
     };
-    console.log("posting form", payload);
     postForm('/superset/sqllab', payload);
   };
 }
