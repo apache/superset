@@ -67,10 +67,6 @@ describe('Tabs', () => {
           <Tabs {...props} {...overrideProps} />
         </WithDragDropContext>
       </Provider>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: { theme: supersetTheme },
-      },
     );
     return wrapper;
   }
