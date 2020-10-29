@@ -194,7 +194,7 @@ class DatasourceControl extends React.PureComponent {
       showEditDatasourceModal,
       showDatasource,
     } = this.state;
-    const { datasource, onChange, value } = this.props;
+    const { datasource, onChange } = this.props;
 
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
