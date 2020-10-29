@@ -149,7 +149,11 @@ export function sliceUpdated(slice: Slice) {
 }
 
 export const VIEW_IN_SQLLAB = 'VIEW_IN_SQLLAB';
-export function redirectSQLLab(datasource: DatasourceMeta) {
+export function redirectSQLLab(datasource: {
+  id: bigint;
+  type: string;
+  sql: string;
+}) {
   return () => {
     const payload = {
       datasourceKey: `${datasource.id}__${datasource.type}`,
