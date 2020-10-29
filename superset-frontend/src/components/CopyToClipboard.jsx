@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Tooltip, OverlayTrigger, MenuItem } from 'react-bootstrap';
+import { Tooltip, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
@@ -160,27 +160,6 @@ class CopyToClipboard extends React.Component {
     );
   }
 
-  renderInMenu() {
-    return (
-      <OverlayTrigger
-        placement="top"
-        overlay={this.renderTooltip()}
-        trigger={['hover']}
-      >
-        <MenuItem>
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={this.onClick}
-            onMouseOut={this.onMouseOut}
-          >
-            {this.props.copyNode}
-          </span>
-        </MenuItem>
-      </OverlayTrigger>
-    );
-  }
-
   renderTooltip() {
     return (
       <Tooltip id="copy-to-clipboard-tooltip">{this.tooltipText()}</Tooltip>
@@ -188,11 +167,11 @@ class CopyToClipboard extends React.Component {
   }
 
   render() {
-    const { wrapped, inMenu } = this.props;
+    const { wrapped } = this.props;
     if (!wrapped) {
       return this.renderNotWrapped();
     }
-    return inMenu ? this.renderInMenu() : this.renderLink();
+    return this.renderLink();
   }
 }
 
