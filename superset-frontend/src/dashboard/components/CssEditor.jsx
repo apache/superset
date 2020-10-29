@@ -81,7 +81,6 @@ class CssEditor extends React.PureComponent {
       <ModalTrigger
         triggerNode={this.props.triggerNode}
         modalTitle={t('CSS')}
-        isMenuItem
         modalBody={
           <div>
             {this.renderTemplateSelector()}
