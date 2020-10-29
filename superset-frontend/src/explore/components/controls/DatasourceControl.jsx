@@ -29,6 +29,7 @@ import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import Label from 'src/components/Label';
 
+import redirectToSqlLab from 'src/chart/chartAction';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
@@ -138,6 +139,15 @@ class DatasourceControl extends React.PureComponent {
     if (key === EDIT_DATASET) {
       this.toggleEditDatasourceModal();
     }
+    if (key === EXPLORE_IN_SQL_LAB) {
+      console.log("pressed btn view in sql lab");
+      console.log("this.props", this.props);
+      const { datasource } = this.props;
+      // console.log("this.props.datasource.sql", this.props.datasource.sql);
+
+      console.log('calling redirect to sqllab');
+      this.props.actions.redirectSQLLab({ datasource });
+    }
   }
 
   renderDatasource() {
@@ -200,15 +210,7 @@ class DatasourceControl extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change Dataset')}</Menu.Item>
-        <Menu.Item key={EXPLORE_IN_SQL_LAB}>
-          <a
-            href={`/superset/sqllab?datasourceKey=${value}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('View in SQL Lab')}
-          </a>
-        </Menu.Item>
+        <Menu.Item key={EXPLORE_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
       </Menu>
     );
 
