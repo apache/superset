@@ -39,7 +39,7 @@ const store = mockStore({});
 const layersInfoEndpoint = 'glob:*/api/v1/annotation_layer/_info*';
 const layersEndpoint = 'glob:*/api/v1/annotation_layer/?*';
 // const layerEndpoint = 'glob:*/api/v1/annotation_layer/*';
-// const templatesRelatedEndpoint = 'glob:*/api/v1/annotation_layer/related/*';
+const layersRelatedEndpoint = 'glob:*/api/v1/annotation_layer/related/*';
 
 const mocklayers = [...new Array(3)].map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
@@ -63,14 +63,14 @@ fetchMock.get(layersEndpoint, {
 });
 
 /* fetchMock.delete(layerEndpoint, {});
-fetchMock.delete(layersEndpoint, {});
+fetchMock.delete(layersEndpoint, {});*/
 
 fetchMock.get(layersRelatedEndpoint, {
   created_by: {
     count: 0,
     result: [],
   },
-}); */
+});
 
 describe('AnnotationLayersList', () => {
   const wrapper = mount(<AnnotationLayersList />, { context: { store } });
