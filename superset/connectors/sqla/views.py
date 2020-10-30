@@ -210,7 +210,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
         "extra": utils.markdown(
             "Extra data to specify metric metadata. Currently supports "
             'certification data of the format: `{ "certification": "certified_by": '
-            '"Taylor Swift", "details": "This metric is the source of truth." '
+            '"Data Platform Team", "details": "This metric is the source of truth." '
             "} }`. This should be modified from the edit datasource model in "
             "Explore to ensure correct formatting.",
             True,
@@ -352,6 +352,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
+        "extra",
     ]
     base_filters = [["id", DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ["perm", "slices"]
@@ -412,6 +413,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             "A timeout of 0 indicates that the cache never expires. "
             "Note this defaults to the database timeout if undefined."
         ),
+        "extra": utils.markdown(
+            "Extra data to specify table metadata. Currently supports "
+            'certification data of the format: `{ "certification": { "certified_by": '
+            '"Data Platform Team", "details": "This table is the source of truth." '
+            "} }`.",
+            True,
+        ),
     }
     label_columns = {
         "slices": _("Associated Charts"),
@@ -432,6 +440,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "description": _("Description"),
         "is_sqllab_view": _("SQL Lab View"),
         "template_params": _("Template parameters"),
+        "extra": _("Extra"),
         "modified": _("Modified"),
     }
     edit_form_extra_fields = {

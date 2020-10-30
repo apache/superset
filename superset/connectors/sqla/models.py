@@ -492,6 +492,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
+    extra = Column(Text)
 
     baselink = "tablemodelview"
 
@@ -509,6 +510,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         "template_params",
         "filter_select_enabled",
         "fetch_values_predicate",
+        "extra",
     ]
     update_from_object_fields = [f for f in export_fields if not f == "database_id"]
     export_parent = "database"
