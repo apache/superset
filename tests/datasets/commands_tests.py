@@ -35,10 +35,11 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         example_db = get_example_database()
         example_dataset = example_db.tables[0]
-        command = ExportDatasetsCommand(dataset_ids=[example_dataset.id])
+        command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
         assert list(contents.keys()) == [
+            "metadata.yaml",
             "datasets/examples/energy_usage.yaml",
             "databases/examples.yaml",
         ]
@@ -140,7 +141,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         example_db = get_example_database()
         example_dataset = example_db.tables[0]
-        command = ExportDatasetsCommand(dataset_ids=[example_dataset.id])
+        command = ExportDatasetsCommand([example_dataset.id])
         contents = command.run()
         with self.assertRaises(DatasetNotFoundError):
             next(contents)
@@ -149,7 +150,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
     def test_export_dataset_command_invalid_dataset(self, mock_g):
         """Test that an error is raised when exporting an invalid dataset"""
         mock_g.user = security_manager.find_user("admin")
-        command = ExportDatasetsCommand(dataset_ids=[-1])
+        command = ExportDatasetsCommand([-1])
         contents = command.run()
         with self.assertRaises(DatasetNotFoundError):
             next(contents)
@@ -161,7 +162,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         example_db = get_example_database()
         example_dataset = example_db.tables[0]
-        command = ExportDatasetsCommand(dataset_ids=[example_dataset.id])
+        command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
         metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"])
