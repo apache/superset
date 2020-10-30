@@ -54,7 +54,7 @@ describe('AdhocMetrics', () => {
     });
   });
 
-  it('Switch from simple to custom sql', () => {
+  xit('Switch from simple to custom sql', () => {
     cy.get('[data-test=metrics]')
       .find('[data-test="metric-option"]')
       .should('have.length', 1);
@@ -95,7 +95,7 @@ describe('AdhocMetrics', () => {
     });
   });
 
-  it('Switch from custom sql tabs to simple', () => {
+  xit('Switch from custom sql tabs to simple', () => {
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.Select__dropdown-indicator').click();
       cy.get('input[type=text]').type('sum_girls{enter}');

@@ -505,6 +505,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payloads based on the request args in the first block
 
         TODO: break into one endpoint for each return shape"""
+
         response_type = utils.ChartDataResultFormat.JSON.value
         responses: List[
             Union[utils.ChartDataResultFormat, utils.ChartDataResultType]
@@ -651,9 +652,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_add", "SliceModelView")
-        slice_overwrite_perm = (
-            security_manager.can_access("can_edit", "SliceModelView") if slc else False
-        )
+        slice_overwrite_perm = is_owner(slc, g.user) if slc else False
         slice_download_perm = security_manager.can_access(
             "can_download", "SliceModelView"
         )

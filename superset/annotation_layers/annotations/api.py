@@ -79,14 +79,15 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         "layer.name",
     ]
     list_columns = [
-        "short_descr",
-        "created_by.id",
-        "created_by.first_name",
-        "changed_by.id",
         "changed_by.first_name",
+        "changed_by.id",
         "changed_on_delta_humanized",
-        "start_dttm",
+        "created_by.first_name",
+        "created_by.id",
         "end_dttm",
+        "long_descr",
+        "short_descr",
+        "start_dttm",
     ]
     add_columns = [
         "short_descr",
@@ -99,12 +100,13 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     edit_model_schema = AnnotationPutSchema()
     edit_columns = add_columns
     order_columns = [
-        "short_descr",
-        "created_by.first_name",
         "changed_by.first_name",
         "changed_on_delta_humanized",
-        "start_dttm",
+        "created_by.first_name",
         "end_dttm",
+        "long_descr",
+        "short_descr",
+        "start_dttm",
     ]
 
     search_filters = {"short_descr": [AnnotationAllTextFilter]}

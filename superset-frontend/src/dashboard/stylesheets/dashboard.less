@@ -57,14 +57,34 @@ body {
 }
 
 .dashboard .chart-header {
-  position: relative;
   font-size: @font-size-l;
   font-weight: @font-weight-bold;
   margin-bottom: 4px;
+  display: flex;
+  max-width: 100%;
+
+  & > .header-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    flex-grow: 1;
+  }
+
+  & > .header-controls {
+    display: flex;
+
+    & > * {
+      margin-left: 8px;
+    }
+  }
 
   .dropdown.btn-group {
-    position: absolute;
-    right: 0;
+    pointer-events: none;
+    vertical-align: top;
+    & > * {
+      pointer-events: auto;
+    }
   }
 
   .dropdown-toggle.btn.btn-default {
@@ -109,12 +129,6 @@ body {
       width: 100%;
       height: 100%;
     }
-  }
-
-  .button-container {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
   }
 }
 
@@ -197,6 +211,10 @@ body {
   display: flex;
   flex-direction: row;
   align-items: center;
+
+  .editable-title {
+    margin-right: 8px;
+  }
 
   .favstar {
     font-size: @font-size-xl;

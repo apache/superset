@@ -55,6 +55,7 @@ FEATURE_FLAGS = {
     "KV_STORE": True,
     "SHARE_QUERIES_VIA_KV_STORE": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
+    "ENABLE_REACT_CRUD_VIEWS": os.environ.get("ENABLE_REACT_CRUD_VIEWS", False),
 }
 
 
@@ -73,11 +74,7 @@ PUBLIC_ROLE_LIKE = "Gamma"
 AUTH_ROLE_PUBLIC = "Public"
 EMAIL_NOTIFICATIONS = False
 ENABLE_ROW_LEVEL_SECURITY = True
-ENABLE_REACT_CRUD_VIEWS = os.environ.get("ENABLE_REACT_CRUD_VIEWS", False)
-
 CACHE_CONFIG = {"CACHE_TYPE": "simple"}
-
-
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
 REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)

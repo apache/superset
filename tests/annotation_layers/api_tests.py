@@ -164,8 +164,10 @@ class TestAnnotationLayerApi(SupersetTestCase):
             "name",
             "descr",
             "created_by",
+            "created_on",
             "changed_by",
             "changed_on_delta_humanized",
+            "changed_on",
         ]
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -186,7 +188,9 @@ class TestAnnotationLayerApi(SupersetTestCase):
             "descr",
             "created_by.first_name",
             "changed_by.first_name",
+            "changed_on",
             "changed_on_delta_humanized",
+            "created_on",
         ]
 
         for order_column in order_columns:

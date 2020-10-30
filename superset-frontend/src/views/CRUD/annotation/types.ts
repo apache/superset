@@ -16,21 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../stylesheets/less/variables.less';
+type user = {
+  id: number;
+  first_name: string;
+  last_name: string;
+};
 
-.filter-badge {
-  width: 20px;
-  height: 20px;
-  background-color: @gray-light;
-  z-index: @z-index-above-dashboard-charts;
-  border-radius: @border-radius-normal;
-
-  path {
-    fill: @lightest;
-  }
-}
-
-.filter-badge .color-bar.badge-group,
-.filter-badge.badge-group {
-  background-color: @gray-dark;
-}
+export type AnnotationObject = {
+  changed_by?: user;
+  changed_on_delta_humanized?: string;
+  created_by?: user;
+  end_dttm?: string;
+  id?: number;
+  json_metadata?: string;
+  long_descr?: string;
+  short_descr?: string;
+  start_dttm?: string;
+  label: string;
+};
