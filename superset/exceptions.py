@@ -91,6 +91,10 @@ class QueryObjectValidationError(SupersetException):
     status = 400
 
 
+class CacheLoadError(SupersetException):
+    status = 404
+
+
 class DashboardImportException(SupersetException):
     pass
 

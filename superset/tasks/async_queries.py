@@ -41,16 +41,18 @@ def load_chart_data_into_cache(job_metadata: Dict, form_data: Dict,) -> None:
 
     with app.app_context():  # type: ignore
         try:
-            command = ChartDataCommand(form_data)
-            command.set_query_context()
-            command.run()
+            command = ChartDataCommand()
+            command.set_query_context(form_data)
+            result = command.run(cache=True)
             async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_DONE
+                job_metadata,
+                async_query_manager.STATUS_DONE,
+                cache_key=result["cache_key"],
             )
         except Exception as exc:
             msg = exc.message if hasattr(exc, "message") else str(exc)
             async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_ERROR, msg
+                job_metadata, async_query_manager.STATUS_ERROR, msg=msg
             )
             raise exc
 

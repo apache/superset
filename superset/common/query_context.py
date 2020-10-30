@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import copy
+import hashlib
 import logging
 import math
 from datetime import datetime, timedelta
@@ -28,11 +29,11 @@ from superset import app, cache, db, security_manager
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import CacheLoadError, QueryObjectValidationError
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
+from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import DTTM_ALIAS
-from superset.viz import set_and_log_cache
 
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
@@ -74,6 +75,13 @@ class QueryContext:
         self.custom_cache_timeout = custom_cache_timeout
         self.result_type = result_type or utils.ChartDataResultType.FULL
         self.result_format = result_format or utils.ChartDataResultFormat.JSON
+        self.cache_values = {
+            "datasource": datasource,
+            "queries": queries,
+            "force": force,
+            "result_type": result_type,
+            "result_format": result_format,
+        }
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
         """Returns a pandas dataframe based on the query object"""
@@ -138,8 +146,11 @@ class QueryContext:
 
         return df.to_dict(orient="records")
 
-    def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
+    def get_single_payload(
+        self, query_obj: QueryObject, **kwargs: Any
+    ) -> Dict[str, Any]:
         """Returns a payload of metadata and data"""
+        force_cached = kwargs["force_cached"] if "force_cached" in kwargs else False
         if self.result_type == utils.ChartDataResultType.QUERY:
             return {
                 "query": self.datasource.get_query_str(query_obj.to_dict()),
@@ -154,7 +165,7 @@ class QueryContext:
             query_obj.row_limit = min(row_limit, config["SAMPLES_ROW_LIMIT"])
             query_obj.row_offset = 0
             query_obj.columns = [o.column_name for o in self.datasource.columns]
-        payload = self.get_df_payload(query_obj)
+        payload = self.get_df_payload(query_obj, force_cached=force_cached)
         # TODO: implement
         payload["annotation_data"] = []
         df = payload["df"]
@@ -182,9 +193,27 @@ class QueryContext:
             return {"data": payload["data"]}
         return payload
 
-    def get_payload(self) -> List[Dict[str, Any]]:
+    def get_payload(self, **kwargs: Any) -> Dict[str, Any]:
+        cache_query_context = (
+            kwargs["cache_query_context"] if "cache_query_context" in kwargs else False
+        )
+        force_cached = kwargs["force_cached"] if "force_cached" in kwargs else False
+
         """Get all the payloads from the QueryObjects"""
-        return [self.get_single_payload(query_object) for query_object in self.queries]
+        query_results = [
+            self.get_single_payload(query_object, force_cached=force_cached)
+            for query_object in self.queries
+        ]
+        return_value = {"queries": query_results}
+
+        if cache_query_context:
+            cache_key = self.cache_key()
+            set_and_log_cache(
+                cache, cache_key, self.cache_timeout, {"data": self.cache_values}
+            )
+            return_value.update(cache_key=cache_key)
+
+        return return_value
 
     @property
     def cache_timeout(self) -> int:
@@ -199,7 +228,18 @@ class QueryContext:
             return self.datasource.database.cache_timeout
         return config["CACHE_DEFAULT_TIMEOUT"]
 
-    def cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
+    def cache_key(self, **extra: Any) -> str:
+        """
+        The cache key is made out of the key/values from self.cached_values, plus any
+        other key/values in `extra`
+        """
+        key_prefix = "qc-"
+        cache_dict = self.cache_values.copy()
+        cache_dict.update(extra)
+
+        return generate_cache_key(cache_dict, key_prefix)
+
+    def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
         extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj.to_dict())
 
         cache_key = (
@@ -211,7 +251,7 @@ class QueryContext:
                 and self.datasource.is_rls_supported
                 else [],
                 changed_on=self.datasource.changed_on,
-                **kwargs
+                **kwargs,
             )
             if query_obj
             else None
@@ -222,12 +262,12 @@ class QueryContext:
         self, query_obj: QueryObject, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
-        cache_key = self.cache_key(query_obj, **kwargs)
+        force_cached = kwargs["force_cached"] if "force_cached" in kwargs else False
+        cache_key = self.query_cache_key(query_obj)
         logger.info("Cache key: %s", cache_key)
         is_loaded = False
         stacktrace = None
         df = pd.DataFrame()
-        cached_dttm = datetime.utcnow().isoformat().split(".")[0]
         cache_value = None
         status = None
         query = ""
@@ -248,6 +288,10 @@ class QueryContext:
                         "Error reading cache: %s", utils.error_msg_from_exception(ex)
                     )
                 logger.info("Serving from cache")
+
+        if force_cached and not is_loaded:
+            logger.warning(f"force_cached: value not found for key {cache_key}")
+            raise CacheLoadError()
 
         if query_obj and not is_loaded:
             try:
@@ -287,12 +331,7 @@ class QueryContext:
 
             if is_loaded and cache_key and cache and status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
-                    cache_key,
-                    df,
-                    query,
-                    cached_dttm,
-                    self.cache_timeout,
-                    self.datasource.uid,
+                    cache, cache_key, self.cache_timeout, {"df": df, "query": query}
                 )
         return {
             "cache_key": cache_key,

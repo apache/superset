@@ -124,16 +124,17 @@ class AsyncQueryManager:
             "user_id": session["user_id"] if "user_id" in session else None,
             "status": kwargs["status"],
             "msg": kwargs["msg"] if "msg" in kwargs else None,
+            "cache_key": kwargs["cache_key"] if "cache_key" in kwargs else None,
         }
 
-    def update_job(self, job_metadata: Dict, status: str, msg: str = None):
+    def update_job(self, job_metadata: Dict, status: str, **kwargs: Any):
         if "channel_id" not in job_metadata:
             raise AsyncQueryJobException("No channel ID specified")
 
         if "job_id" not in job_metadata:
             raise AsyncQueryJobException("No job ID specified")
 
-        updates = {"status": status, "msg": msg}
+        updates = {"status": status, **kwargs}
         event_data = {"data": json.dumps({**job_metadata, **updates})}
 
         logger.info(

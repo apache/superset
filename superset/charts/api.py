@@ -38,6 +38,7 @@ from superset.charts.commands.delete import DeleteChartCommand
 from superset.charts.commands.exceptions import (
     ChartBulkDeleteFailedError,
     ChartCreateFailedError,
+    ChartDataCacheLoadError,
     ChartDataQueryFailedError,
     ChartDataValidationError,
     ChartDeleteFailedError,
@@ -51,7 +52,6 @@ from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
 from superset.charts.schemas import (
     CHART_SCHEMAS,
-    ChartDataQueryContextSchema,
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
@@ -91,6 +91,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "data",
+        "data_from_cache",
         "viz_types",
     }
     class_permission_name = "SliceModelView"
@@ -467,8 +468,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 application/json:
                   schema:
                     $ref: "#/components/schemas/ChartDataResponseSchema"
+            202:
+              $ref: '#/components/responses/202'
             400:
               $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
             500:
               $ref: '#/components/responses/500'
         """
@@ -481,8 +486,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Request is not JSON")
 
         try:
-            command = ChartDataCommand(json_body)
-            command.validate()
+            command = ChartDataCommand()
+            command.validate(json_body)
         except ChartDataValidationError as exc:
             return self.response_400(message=exc.message)
         except SupersetSecurityException:
@@ -497,6 +502,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             result = command.run_async()
             return self.response(202, **result)
 
+        # TODO: DRY
         try:
             result = command.run()
         except ChartDataQueryFailedError as exc:
@@ -509,7 +515,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
-            data = result["payload"][0]["data"]
+            data = result["queries"][0]["data"]
             response = CsvResponse(
                 data,
                 status=200,
@@ -519,7 +525,89 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
-                {"result": result["payload"]},
+                {"result": result["queries"]},
+                default=json_int_dttm_ser,
+                ignore_nan=True,
+            )
+            resp = make_response(response_data, 200)
+            resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            response = resp
+
+        return response
+
+    @expose("/data/<cache_key>", methods=["GET"])
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    def data_from_cache(self, cache_key: str) -> Response:
+        """
+        Takes a query context cache key returns payload
+        data response for the given query.
+        ---
+        get:
+          description: >-
+            Takes a query context constructed in the client and returns payload data
+            response for the given query.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: cache_key
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/ChartDataResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        command = ChartDataCommand()
+        try:
+            cached_data = command.load_query_context_from_cache(cache_key)
+            command.validate(cached_data)
+        except ChartDataCacheLoadError:
+            return self.response_404()
+        except ChartDataValidationError as exc:
+            return self.response_400(message=exc.message)
+        except SupersetSecurityException as exc:
+            logger.info(exc)
+            return self.response_401()
+
+        # TODO: DRY
+        try:
+            result = command.run()
+        except ChartDataCacheLoadError as exc:
+            return self.response_400(message=exc.message)
+        except ChartDataQueryFailedError as exc:
+            return self.response_400(message=exc.message)
+
+        result_format = result["query_context"].result_format
+        response = self.response_400(
+            message=f"Unsupported result_format: {result_format}"
+        )
+
+        if result_format == ChartDataResultFormat.CSV:
+            # return the first result
+            data = result["queries"][0]["data"]
+            response = CsvResponse(
+                data,
+                status=200,
+                headers=generate_download_headers("csv"),
+                mimetype="application/csv",
+            )
+
+        if result_format == ChartDataResultFormat.JSON:
+            response_data = simplejson.dumps(
+                {"result": result["queries"]},
                 default=json_int_dttm_ser,
                 ignore_nan=True,
             )

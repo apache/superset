@@ -79,7 +79,7 @@ class TestQueryContext(SupersetTestCase):
         # construct baseline cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_original = query_context.cache_key(query_object)
+        cache_key_original = query_context.query_cache_key(query_object)
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = ConnectorRegistry.get_datasource(
@@ -96,7 +96,7 @@ class TestQueryContext(SupersetTestCase):
         # create new QueryContext with unchanged attributes and extract new cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_new = query_context.cache_key(query_object)
+        cache_key_new = query_context.query_cache_key(query_object)
 
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)
@@ -112,20 +112,20 @@ class TestQueryContext(SupersetTestCase):
         # construct baseline cache_key from query_context with post processing operation
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_original = query_context.cache_key(query_object)
+        cache_key_original = query_context.query_cache_key(query_object)
 
         # ensure added None post_processing operation doesn't change cache_key
         payload["queries"][0]["post_processing"].append(None)
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_with_null = query_context.cache_key(query_object)
+        cache_key_with_null = query_context.query_cache_key(query_object)
         self.assertEqual(cache_key_original, cache_key_with_null)
 
         # ensure query without post processing operation is different
         payload["queries"][0].pop("post_processing")
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_without_post_processing = query_context.cache_key(query_object)
+        cache_key_without_post_processing = query_context.query_cache_key(query_object)
         self.assertNotEqual(cache_key_original, cache_key_without_post_processing)
 
     def test_query_context_time_range_endpoints(self):

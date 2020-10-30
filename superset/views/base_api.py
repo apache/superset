@@ -125,6 +125,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     method_permission_name = {
         "bulk_delete": "delete",
         "data": "list",
+        "data_from_cache": "list",
         "delete": "delete",
         "distinct": "list",
         "export": "mulexport",

@@ -91,3 +91,7 @@ class ChartDataValidationError(CommandException):
 
 class ChartDataQueryFailedError(CommandException):
     pass
+
+
+class ChartDataCacheLoadError(CommandException):
+    pass
