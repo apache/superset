@@ -18,42 +18,40 @@
 
 import json
 import logging
-from typing import Iterator, List, Tuple
+from typing import Iterator, Tuple
 
 import yaml
 
-from superset.commands.base import BaseCommand
+from superset.importexport.commands.base import ExportModelsCommand
+from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
 from superset.queries.saved_queries.dao import SavedQueryDAO
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
-from superset.models.sql_lab import SavedQuery
 
 logger = logging.getLogger(__name__)
 
 
-class ExportSavedQueriesCommand(BaseCommand):
-    def __init__(self, query_ids: List[int]):
-        self.query_ids = query_ids
+class ExportSavedQueriesCommand(ExportModelsCommand):
 
-        # this will be set when calling validate()
-        self._models: List[SavedQuery] = []
+    dao = SavedQueryDAO
+    not_found = SavedQueryNotFoundError
 
     @staticmethod
-    def export_saved_query(query: SavedQuery) -> Iterator[Tuple[str, str]]:
+    def export(model: SavedQuery) -> Iterator[Tuple[str, str]]:
         # build filename based on database, optional schema, and label
-        database_slug = sanitize(query.database.database_name)
-        schema_slug = sanitize(query.schema)
-        query_slug = sanitize(query.label) or str(query.uuid)
+        database_slug = sanitize(model.database.database_name)
+        schema_slug = sanitize(model.schema)
+        query_slug = sanitize(model.label) or str(model.uuid)
         file_name = f"queries/{database_slug}/{schema_slug}/{query_slug}.yaml"
 
-        payload = query.export_to_dict(
+        payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
             include_defaults=True,
             export_uuids=True,
         )
         payload["version"] = IMPORT_EXPORT_VERSION
-        payload["database_uuid"] = str(query.database.uuid)
+        payload["database_uuid"] = str(model.database.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
@@ -61,7 +59,7 @@ class ExportSavedQueriesCommand(BaseCommand):
         # include database as well
         file_name = f"databases/{database_slug}.yaml"
 
-        payload = query.database.export_to_dict(
+        payload = model.database.export_to_dict(
             recursive=False,
             include_parent_ref=False,
             include_defaults=True,
@@ -79,14 +77,3 @@ class ExportSavedQueriesCommand(BaseCommand):
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
-
-    def run(self) -> Iterator[Tuple[str, str]]:
-        self.validate()
-
-        for query in self._models:
-            yield from self.export_saved_query(query)
-
-    def validate(self) -> None:
-        self._models = SavedQueryDAO.find_by_ids(self.query_ids)
-        if len(self._models) != len(self.query_ids):
-            raise SavedQueryNotFoundError()
