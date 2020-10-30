@@ -20,6 +20,7 @@
 import React, { useMemo, useState } from 'react';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
+import { Link, useHistory } from 'react-router-dom';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -124,6 +125,28 @@ function AnnotationLayersList({
       {
         accessor: 'name',
         Header: t('Name'),
+        Cell: ({
+          row: {
+            original: { id, name },
+          },
+        }: any) => {
+          let hasHistory = true;
+
+          try {
+            useHistory();
+          } catch (err) {
+            // If error is thrown, we know not to use <Link> in render
+            hasHistory = false;
+          }
+
+          if (hasHistory) {
+            return (
+              <Link to={`/annotationmodelview/${id}/annotation`}>{name}</Link>
+            );
+          }
+
+          return <a href={`/annotationmodelview/${id}/annotation`}>{name}</a>;
+        },
       },
       {
         accessor: 'descr',
