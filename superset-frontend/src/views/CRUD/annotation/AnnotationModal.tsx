@@ -20,7 +20,7 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/common/components/DatePicker';
-import moment from 'antd/node_modules/moment';
+import moment from 'moment';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -291,6 +291,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           showTime={{ format: 'hh:mm a' }}
           format="YYYY-MM-DD hh:mm a"
           use12Hours
+          // @ts-ignore
           value={
             currentAnnotation &&
             (currentAnnotation?.start_dttm.length ||
