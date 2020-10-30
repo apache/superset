@@ -22,6 +22,7 @@ import { SupersetClient, t } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
+import Chart, { Slice } from 'src/types/Chart';
 import { FavoriteStatus } from './types';
 
 interface ListViewResourceState<D extends object = any> {
@@ -350,5 +351,87 @@ export function useFavoriteStatus(
     );
   };
 
-  return [favoriteStatusRef, fetchFaveStar, saveFaveStar] as const;
+  return [
+    favoriteStatusRef,
+    fetchFaveStar,
+    saveFaveStar,
+    favoriteStatus,
+  ] as const;
 }
+
+export const useChartEditModal = (
+  setCharts: (charts: Array<Chart>) => void,
+  charts: Array<Chart>,
+) => {
+  const [
+    sliceCurrentlyEditing,
+    setSliceCurrentlyEditing,
+  ] = useState<Slice | null>(null);
+
+  function openChartEditModal(chart: Chart) {
+    setSliceCurrentlyEditing({
+      slice_id: chart.id,
+      slice_name: chart.slice_name,
+      description: chart.description,
+      cache_timeout: chart.cache_timeout,
+    });
+  }
+
+  function closeChartEditModal() {
+    setSliceCurrentlyEditing(null);
+  }
+
+  function handleChartUpdated(edits: Chart) {
+    // update the chart in our state with the edited info
+    const newCharts = charts.map((chart: Chart) =>
+      chart.id === edits.id ? { ...chart, ...edits } : chart,
+    );
+    setCharts(newCharts);
+  }
+
+  return {
+    sliceCurrentlyEditing,
+    handleChartUpdated,
+    openChartEditModal,
+    closeChartEditModal,
+  };
+};
+
+export const copyQueryLink = (
+  id: number,
+  addDangerToast: (arg0: string) => void,
+  addSuccessToast: (arg0: string) => void,
+) => {
+  const selection: Selection | null = document.getSelection();
+
+  if (selection) {
+    selection.removeAllRanges();
+    const range = document.createRange();
+    const span = document.createElement('span');
+    span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
+    span.style.position = 'fixed';
+    span.style.top = '0';
+    span.style.clip = 'rect(0, 0, 0, 0)';
+    span.style.whiteSpace = 'pre';
+
+    document.body.appendChild(span);
+    range.selectNode(span);
+    selection.addRange(range);
+
+    try {
+      if (!document.execCommand('copy')) {
+        throw new Error(t('Not successful'));
+      }
+    } catch (err) {
+      addDangerToast(t('Sorry, your browser does not support copying.'));
+    }
+
+    document.body.removeChild(span);
+    if (selection.removeRange) {
+      selection.removeRange(range);
+    } else {
+      selection.removeAllRanges();
+    }
+    addSuccessToast(t('Link Copied!'));
+  }
+};

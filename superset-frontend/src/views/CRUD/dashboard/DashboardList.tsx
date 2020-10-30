@@ -20,21 +20,26 @@ import { SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createFetchRelated,
+  createErrorHandler,
+  handleDashboardDelete,
+  handleBulkDashboardExport,
+} from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import FacePile from 'src/components/FacePile';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import FacePile from 'src/components/FacePile';
 import Icon from 'src/components/Icon';
-import Label from 'src/components/Label';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import ListViewCard from 'src/components/ListViewCard';
-import { Dropdown, Menu } from 'src/common/components';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+
+import Dashboard from 'src/dashboard/containers/Dashboard';
+import DashboardCard from './DashboardCard';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
@@ -81,7 +86,6 @@ function DashboardList(props: DashboardListProps) {
     FAVESTAR_BASE_URL,
     props.addDangerToast,
   );
-
   const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
     null,
   );
@@ -119,25 +123,6 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  function handleDashboardDelete({
-    id,
-    dashboard_title: dashboardTitle,
-  }: Dashboard) {
-    return SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        props.addSuccessToast(t('Deleted: %s', dashboardTitle));
-      },
-      createErrorHandler(errMsg =>
-        props.addDangerToast(
-          t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
-        ),
-      ),
-    );
-  }
-
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
       endpoint: `/api/v1/dashboard/?q=${rison.encode(
@@ -152,14 +137,6 @@ function DashboardList(props: DashboardListProps) {
           t('There was an issue deleting the selected dashboards: ', errMsg),
         ),
       ),
-    );
-  }
-
-  function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
-    return window.location.assign(
-      `/api/v1/dashboard/export/?q=${rison.encode(
-        dashboardsToExport.map(({ id }) => id),
-      )}`,
     );
   }
 
@@ -255,7 +232,13 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleDelete = () => handleDashboardDelete(original);
+          const handleDelete = () =>
+            handleDashboardDelete(
+              original,
+              refreshData,
+              props.addSuccessToast,
+              props.addDangerToast,
+            );
           const handleEdit = () => openDashboardEditModal(original);
           const handleExport = () => handleBulkDashboardExport([original]);
 
@@ -418,83 +401,18 @@ function DashboardList(props: DashboardListProps) {
     },
   ];
 
-  function renderCard(dashboard: Dashboard & { loading: boolean }) {
-    const menu = (
-      <Menu>
-        {canDelete && (
-          <Menu.Item>
-            <ConfirmStatusChange
-              title={t('Please Confirm')}
-              description={
-                <>
-                  {t('Are you sure you want to delete')}{' '}
-                  <b>{dashboard.dashboard_title}</b>?
-                </>
-              }
-              onConfirm={() => handleDashboardDelete(dashboard)}
-            >
-              {confirmDelete => (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={confirmDelete}
-                >
-                  <ListViewCard.MenuIcon
-                    data-test="dashboard-list-view-card-trash-icon"
-                    name="trash"
-                  />{' '}
-                  Delete
-                </div>
-              )}
-            </ConfirmStatusChange>
-          </Menu.Item>
-        )}
-        {canExport && (
-          <Menu.Item
-            role="button"
-            tabIndex={0}
-            onClick={() => handleBulkDashboardExport([dashboard])}
-          >
-            <ListViewCard.MenuIcon name="share" /> Export
-          </Menu.Item>
-        )}
-        {canEdit && (
-          <Menu.Item
-            data-test="dashboard-list-edit-option"
-            role="button"
-            tabIndex={0}
-            onClick={() => openDashboardEditModal(dashboard)}
-          >
-            <ListViewCard.MenuIcon name="edit-alt" /> Edit
-          </Menu.Item>
-        )}
-      </Menu>
-    );
-
+  function renderCard(dashboard: Dashboard) {
     return (
-      <ListViewCard
-        loading={dashboard.loading}
-        title={dashboard.dashboard_title}
-        titleRight={
-          <Label>{dashboard.published ? 'published' : 'draft'}</Label>
-        }
-        url={bulkSelectEnabled ? undefined : dashboard.url}
-        imgURL={dashboard.thumbnail_url}
-        imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
-        description={t(
-          'Last modified %s',
-          dashboard.changed_on_delta_humanized,
-        )}
-        coverLeft={<FacePile users={dashboard.owners || []} />}
-        actions={
-          <ListViewCard.Actions>
-            {renderFaveStar(dashboard.id)}
-            <Dropdown overlay={menu}>
-              <Icon name="more-horiz" />
-            </Dropdown>
-          </ListViewCard.Actions>
-        }
+      <DashboardCard
+        {...{
+          dashboard,
+          hasPerm,
+          bulkSelectEnabled,
+          refreshData,
+          addDangerToast: props.addDangerToast,
+          addSuccessToast: props.addSuccessToast,
+          openDashboardEditModal,
+        }}
       />
     );
   }

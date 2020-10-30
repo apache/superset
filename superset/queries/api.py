@@ -42,6 +42,9 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "status",
         "start_time",
         "end_time",
+        "rows",
+        "tmp_table_name",
+        "tracking_url",
     ]
     show_columns = [
         "client_id",
