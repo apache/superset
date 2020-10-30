@@ -28,8 +28,8 @@ import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import DeleteModal from 'src/components/DeleteModal';
-// import Button from 'src/components/Button';
-// import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import Button from 'src/components/Button';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 
@@ -128,9 +128,7 @@ describe('AnnotationLayersList', () => {
 
     expect(
       wrapper.find(DeleteModal).first().props().description,
-    ).toMatchInlineSnapshot(
-      `"This action will permanently delete the layer."`,
-    );
+    ).toMatchInlineSnapshot(`"This action will permanently delete the layer."`);
 
     act(() => {
       wrapper
@@ -147,5 +145,16 @@ describe('AnnotationLayersList', () => {
     await waitForComponentToPaint(wrapper);
 
     expect(fetchMock.calls(/annotation_layer\/0/, 'DELETE')).toHaveLength(1);
+  });
+
+  it('shows/hides bulk actions when bulk actions is clicked', async () => {
+    const button = wrapper.find(Button).at(0);
+    act(() => {
+      button.props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+      mocklayers.length + 1, // 1 for each row and 1 for select all
+    );
   });
 });

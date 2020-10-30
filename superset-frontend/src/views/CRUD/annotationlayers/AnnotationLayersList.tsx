@@ -18,6 +18,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
+import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -26,9 +27,10 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, { Filters } from 'src/components/ListView';
+import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import Button from 'src/components/Button';
 import DeleteModal from 'src/components/DeleteModal';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import AnnotationLayerModal from './AnnotationLayerModal';
 import { AnnotationLayerObject } from './types';
 
@@ -45,10 +47,16 @@ function AnnotationLayersList({
   addSuccessToast,
 }: AnnotationLayersListProps) {
   const {
-    state: { loading, resourceCount: layersCount, resourceCollection: layers },
+    state: {
+      loading,
+      resourceCount: layersCount,
+      resourceCollection: layers,
+      bulkSelectEnabled,
+    },
     hasPerm,
     fetchData,
     refreshData,
+    toggleBulkSelect,
   } = useListViewResource<AnnotationLayerObject>(
     'annotation_layer',
     t('annotation layers'),
@@ -79,6 +87,24 @@ function AnnotationLayersList({
       },
       createErrorHandler(errMsg =>
         addDangerToast(t('There was an issue deleting %s: %s', name, errMsg)),
+      ),
+    );
+  };
+
+  const handleBulkLayerDelete = (layersToDelete: AnnotationLayerObject[]) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/annotation_layer/?q=${rison.encode(
+        layersToDelete.map(({ id }) => id),
+      )}`,
+    }).then(
+      ({ json = {} }) => {
+        refreshData();
+        addSuccessToast(json.message);
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting the selected layers: %s', errMsg),
+        ),
       ),
     );
   };
@@ -219,6 +245,14 @@ function AnnotationLayersList({
     });
   }
 
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk Select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
   const filters: Filters = useMemo(
     () => [
       {
@@ -290,18 +324,42 @@ function AnnotationLayersList({
           title={t('Delete Layer?')}
         />
       )}
-      <ListView<AnnotationLayerObject>
-        className="annotation-layers-list-view"
-        columns={columns}
-        count={layersCount}
-        data={layers}
-        fetchData={fetchData}
-        filters={filters}
-        initialSort={initialSort}
-        loading={loading}
-        pageSize={PAGE_SIZE}
-        emptyState={emptyState}
-      />
+      <ConfirmStatusChange
+        title={t('Please confirm')}
+        description={t('Are you sure you want to delete the selected layers?')}
+        onConfirm={handleBulkLayerDelete}
+      >
+        {confirmDelete => {
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
+          return (
+            <ListView<AnnotationLayerObject>
+              className="annotation-layers-list-view"
+              columns={columns}
+              count={layersCount}
+              data={layers}
+              fetchData={fetchData}
+              filters={filters}
+              initialSort={initialSort}
+              loading={loading}
+              pageSize={PAGE_SIZE}
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={toggleBulkSelect}
+              emptyState={emptyState}
+            />
+          );
+        }}
+      </ConfirmStatusChange>
     </>
   );
 }
