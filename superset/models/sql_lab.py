@@ -188,7 +188,6 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportMixin):
 
     export_parent = "database"
     export_fields = [
-        "db_id",
         "schema",
         "label",
         "description",
