@@ -143,15 +143,20 @@ const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
   title: React.ReactNode;
   url?: string;
-  imgURL: string;
-  imgFallbackURL: string;
+  imgURL?: string;
+  imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
   description: string;
   loading: boolean;
   titleRight?: React.ReactNode;
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
-  actions: React.ReactNode;
+  actions: React.ReactNode | null;
+  showImg?: boolean;
+  rows?: number | string;
+  avatar?: string;
+  isRecent?: boolean;
+  renderCover?: React.ReactNode | null;
 }
 
 function ListViewCard({
@@ -162,35 +167,42 @@ function ListViewCard({
   imgFallbackURL,
   description,
   coverLeft,
+  isRecent,
   coverRight,
   actions,
+  avatar,
   loading,
   imgPosition = 'top',
+  renderCover,
 }: CardProps) {
   return (
     <StyledCard
       data-test="styled-card"
       cover={
-        <Cover>
-          <a href={url}>
-            <div className="gradient-container">
-              <ImageLoader
-                src={imgURL}
-                fallback={imgFallbackURL}
-                isLoading={loading}
-                position={imgPosition}
-              />
-            </div>
-          </a>
-          <CoverFooter className="cover-footer">
-            {!loading && coverLeft && (
-              <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
-            )}
-            {!loading && coverRight && (
-              <CoverFooterRight>{coverRight}</CoverFooterRight>
-            )}
-          </CoverFooter>
-        </Cover>
+        !isRecent
+          ? renderCover || (
+              <Cover>
+                <a href={url}>
+                  <div className="gradient-container">
+                    <ImageLoader
+                      src={imgURL || ''}
+                      fallback={imgFallbackURL || ''}
+                      isLoading={loading}
+                      position={imgPosition}
+                    />
+                  </div>
+                </a>
+                <CoverFooter className="cover-footer">
+                  {!loading && coverLeft && (
+                    <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
+                  )}
+                  {!loading && coverRight && (
+                    <CoverFooterRight>{coverRight}</CoverFooterRight>
+                  )}
+                </CoverFooter>
+              </Cover>
+            )
+          : null
       }
     >
       {loading && (
@@ -230,6 +242,8 @@ function ListViewCard({
             </>
           }
           description={description}
+          // @ts-ignore
+          avatar={avatar ? <Icon name={avatar} /> : null}
         />
       )}
     </StyledCard>
