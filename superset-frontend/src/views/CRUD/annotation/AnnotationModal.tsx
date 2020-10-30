@@ -312,7 +312,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         <textarea
           name="long_descr"
           value={currentAnnotation ? currentAnnotation.long_descr : ''}
-          placeholder={t('description (this can be seen in the list)')}
+          placeholder={t('Description (this can be seen in the list)')}
           onChange={onAnnotationTextChange}
         />
       </AnnotationContainer>
