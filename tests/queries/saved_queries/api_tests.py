@@ -17,7 +17,9 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+from io import BytesIO
 from typing import Optional
+from zipfile import is_zipfile
 
 import pytest
 import prison
@@ -679,4 +681,51 @@ class TestSavedQueryApi(SupersetTestCase):
         self.login(username="admin")
         uri = f"api/v1/saved_query/?q={prison.dumps(saved_query_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_export(self):
+        """
+        Saved Query API: Test export
+        """
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(username="admin")
+        argument = [sample_query.id]
+        uri = f"api/v1/saved_query/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        buf = BytesIO(rv.data)
+        assert is_zipfile(buf)
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_export_not_found(self):
+        """
+        Saved Query API: Test export
+        """
+        max_id = db.session.query(func.max(SavedQuery.id)).scalar()
+
+        self.login(username="admin")
+        argument = [max_id + 1, max_id + 2]
+        uri = f"api/v1/saved_query/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_export_not_allowed(self):
+        """
+        Saved Query API: Test export
+        """
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(username="gamma")
+        argument = [sample_query.id]
+        uri = f"api/v1/saved_query/export/?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
         assert rv.status_code == 404
