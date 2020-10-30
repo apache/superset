@@ -97,8 +97,8 @@ export interface ButtonProps {
 
 export interface SubMenuProps {
   buttons?: Array<ButtonProps>;
-  name?: string;
-  tabs?: MenuChild[];
+  name: string | ReactNode;
+  children?: MenuChild[];
   activeChild?: MenuChild['name'];
   /* If usesRouter is true, a react-router <Link> component will be used instead of href.
    *  ONLY set usesRouter to true if SubMenu is wrapped in a react-router <Router>;
