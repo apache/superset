@@ -1222,7 +1222,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         Log.user_id == user_id,
                         # limit to one year of data to improve performance
                         Log.dttm > one_year_ago,
-                        or_(Log.dashboard_id != None, Log.slice_id != None),
+                        or_(Log.dashboard_id.isnot(None), Log.slice_id.isnot(None)),
                     )
                 )
                 .subquery()
