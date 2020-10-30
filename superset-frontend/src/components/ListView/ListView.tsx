@@ -38,7 +38,6 @@ import {
 import { ListViewError, useListViewState } from './utils';
 
 const ListViewStyles = styled.div`
-  background: ${({ theme }) => theme.colors.grayscale.light5};
   text-align: center;
 
   .superset-list-view {
@@ -58,6 +57,7 @@ const ListViewStyles = styled.div`
       }
     }
     .body {
+      background: ${({ theme }) => theme.colors.grayscale.light5};
     }
 
     .ant-empty {

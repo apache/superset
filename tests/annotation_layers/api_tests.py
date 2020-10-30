@@ -125,6 +125,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
         assert rv.status_code == 200
 
         expected_result = {
+            "id": annotation_layer.id,
             "name": "name1",
             "descr": "descr1",
         }

@@ -57,6 +57,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(AnnotationLayer)
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
     class_permission_name = "AnnotationLayerModelView"
@@ -64,10 +65,12 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
 
     show_columns = [
+        "id",
         "name",
         "descr",
     ]
     list_columns = [
+        "id",
         "name",
         "descr",
         "created_by.first_name",
@@ -94,6 +97,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     ]
 
     search_filters = {"name": [AnnotationLayerAllTextFilter]}
+    allowed_rel_fields = {"created_by"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
