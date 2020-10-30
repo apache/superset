@@ -310,6 +310,9 @@ export function useFavoriteStatus(
     setFavoriteStatus(currentState => ({ ...currentState, ...update }));
 
   useEffect(() => {
+    if (!ids.length) {
+      return;
+    }
     SupersetClient.get({
       endpoint: `/api/v1/${type}/favorite_status/?q=${rison.encode(ids)}`,
     }).then(
