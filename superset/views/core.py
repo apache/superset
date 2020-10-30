@@ -1193,10 +1193,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, user_id: int
     ) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
-        if request.args.get("limit"):
-            limit = int(request.args["limit"])
-        else:
-            limit = 1000
+        limit = request.args.get("limit")
+        limit = int(limit) if limit and limit.isdigit() else 100
         actions = request.args.get("actions", "explore,dashboard").split(",")
         # whether to get distinct subjects
         distinct = request.args.get("distinct") != "false"
