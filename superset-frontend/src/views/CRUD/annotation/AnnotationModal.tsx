@@ -20,7 +20,7 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/common/components/DatePicker';
-import moment from 'moment';
+import moment from 'antd/node_modules/moment';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -179,9 +179,15 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   const onDateChange = (value: any, dateString: Array<string>) => {
     const data = {
       ...currentAnnotation,
-      end_dttm: currentAnnotation ? dateString[1] : '',
+      end_dttm:
+        currentAnnotation && dateString[1].length
+          ? moment(dateString[1]).format('YYYY-MM-DD HH:mm')
+          : '',
       short_descr: currentAnnotation ? currentAnnotation.short_descr : '',
-      start_dttm: currentAnnotation ? dateString[0] : '',
+      start_dttm:
+        currentAnnotation && dateString[0].length
+          ? moment(dateString[0]).format('YYYY-MM-DD HH:mm')
+          : '',
     };
     setCurrentAnnotation(data);
   };
@@ -282,13 +288,16 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         </div>
         <RangePicker
           onChange={onDateChange}
-          showTime={{ format: 'HH:mm' }}
-          format="YYYY-MM-DD HH:mm"
+          showTime={{ format: 'hh:mm a' }}
+          format="YYYY-MM-DD hh:mm a"
+          use12Hours
           value={
-            isEditMode
+            currentAnnotation &&
+            (currentAnnotation?.start_dttm.length ||
+              currentAnnotation?.end_dttm.length)
               ? [
-                  moment(currentAnnotation?.start_dttm),
-                  moment(currentAnnotation?.end_dttm),
+                  moment(currentAnnotation.start_dttm),
+                  moment(currentAnnotation.end_dttm),
                 ]
               : null
           }
