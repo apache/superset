@@ -17,15 +17,22 @@
  * under the License.
  */
 import { SupersetClient, getChartMetadataRegistry, t } from '@superset-ui/core';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
-import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import {
+  createFetchRelated,
+  createErrorHandler,
+  handleChartDelete,
+} from 'src/views/CRUD/utils';
+import {
+  useListViewResource,
+  useFavoriteStatus,
+  useChartEditModal,
+} from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import FacePile from 'src/components/FacePile';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
@@ -35,11 +42,9 @@ import ListView, {
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import Chart, { Slice } from 'src/types/Chart';
-import ListViewCard from 'src/components/ListViewCard';
-import Label from 'src/components/Label';
-import { Dropdown, Menu } from 'src/common/components';
+import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -105,50 +110,17 @@ function ChartList(props: ChartListProps) {
     FAVESTAR_BASE_URL,
     props.addDangerToast,
   );
-  const [
+  const {
     sliceCurrentlyEditing,
-    setSliceCurrentlyEditing,
-  ] = useState<Slice | null>(null);
+    handleChartUpdated,
+    openChartEditModal,
+    closeChartEditModal,
+  } = useChartEditModal(setCharts, charts);
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-
-  function openChartEditModal(chart: Chart) {
-    setSliceCurrentlyEditing({
-      slice_id: chart.id,
-      slice_name: chart.slice_name,
-      description: chart.description,
-      cache_timeout: chart.cache_timeout,
-    });
-  }
-
-  function closeChartEditModal() {
-    setSliceCurrentlyEditing(null);
-  }
-
-  function handleChartUpdated(edits: Chart) {
-    // update the chart in our state with the edited info
-    const newCharts = charts.map(chart =>
-      chart.id === edits.id ? { ...chart, ...edits } : chart,
-    );
-    setCharts(newCharts);
-  }
-
-  function handleChartDelete({ id, slice_name: sliceName }: Chart) {
-    SupersetClient.delete({
-      endpoint: `/api/v1/chart/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        props.addSuccessToast(t('Deleted: %s', sliceName));
-      },
-      () => {
-        props.addDangerToast(t('There was an issue deleting: %s', sliceName));
-      },
-    );
-  }
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
@@ -266,7 +238,13 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleDelete = () => handleChartDelete(original);
+          const handleDelete = () =>
+            handleChartDelete(
+              original,
+              props.addSuccessToast,
+              props.addDangerToast,
+              refreshData,
+            );
           const openEditModal = () => openChartEditModal(original);
 
           return (
@@ -426,69 +404,17 @@ function ChartList(props: ChartListProps) {
     },
   ];
 
-  function renderCard(chart: Chart & { loading: boolean }) {
-    const menu = (
-      <Menu>
-        {canDelete && (
-          <Menu.Item>
-            <ConfirmStatusChange
-              title={t('Please Confirm')}
-              description={
-                <>
-                  {t('Are you sure you want to delete')}{' '}
-                  <b>{chart.slice_name}</b>?
-                </>
-              }
-              onConfirm={() => handleChartDelete(chart)}
-            >
-              {confirmDelete => (
-                <div
-                  data-test="chart-list-delete-option"
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={confirmDelete}
-                >
-                  <ListViewCard.MenuIcon name="trash" /> Delete
-                </div>
-              )}
-            </ConfirmStatusChange>
-          </Menu.Item>
-        )}
-        {canEdit && (
-          <Menu.Item
-            data-test="chart-list-edit-option"
-            role="button"
-            tabIndex={0}
-            onClick={() => openChartEditModal(chart)}
-          >
-            <ListViewCard.MenuIcon name="edit-alt" /> Edit
-          </Menu.Item>
-        )}
-      </Menu>
-    );
-
+  function renderCard(chart: Chart) {
     return (
-      <ListViewCard
-        loading={chart.loading}
-        title={chart.slice_name}
-        url={bulkSelectEnabled ? undefined : chart.url}
-        imgURL={chart.thumbnail_url ?? ''}
-        imgFallbackURL="/static/assets/images/chart-card-fallback.png"
-        imgPosition="bottom"
-        description={t('Last modified %s', chart.changed_on_delta_humanized)}
-        coverLeft={<FacePile users={chart.owners || []} />}
-        coverRight={
-          <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
-        }
-        actions={
-          <ListViewCard.Actions>
-            {renderFaveStar(chart.id)}
-            <Dropdown data-test="dropdown-options" overlay={menu}>
-              <Icon name="more-horiz" />
-            </Dropdown>
-          </ListViewCard.Actions>
-        }
+      <ChartCard
+        chart={chart}
+        hasPerm={hasPerm}
+        openChartEditModal={openChartEditModal}
+        bulkSelectEnabled={bulkSelectEnabled}
+        addDangerToast={props.addDangerToast}
+        addSuccessToast={props.addSuccessToast}
+        refreshData={refreshData}
+        loading={loading}
       />
     );
   }

@@ -255,12 +255,16 @@ class TestQueryApi(SupersetTestCase):
         assert sorted(list(data["result"][0].keys())) == [
             "changed_on",
             "database",
+            "end_time",
             "rows",
             "schema",
             "sql",
             "sql_tables",
+            "start_time",
             "status",
             "tab_name",
+            "tmp_table_name",
+            "tracking_url",
             "user",
         ]
         assert sorted(list(data["result"][0]["user"].keys())) == [

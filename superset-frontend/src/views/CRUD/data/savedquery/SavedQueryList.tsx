@@ -39,6 +39,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { IconName } from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
+import { SavedQueryObject } from 'src/views/CRUD/types';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -47,20 +48,6 @@ interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
-
-type SavedQueryObject = {
-  database: {
-    database_name: string;
-    id: number;
-  };
-  db_id: number;
-  description?: string;
-  id: number;
-  label: string;
-  schema: string;
-  sql: string;
-  sql_tables: Array<{ catalog?: string; schema: string; table: string }>;
-};
 
 const StyledTableLabel = styled.div`
   .count {

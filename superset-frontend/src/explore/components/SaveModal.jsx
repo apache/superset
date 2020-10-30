@@ -232,7 +232,9 @@ class SaveModal extends React.Component {
               disabled={!this.state.newSliceName}
               data-test="btn-modal-save"
             >
-              {t('Save')}
+              {!this.props.can_overwrite && this.props.slice
+                ? t('Save as new chart')
+                : t('Save')}
             </Button>
           </div>
         </Modal.Footer>

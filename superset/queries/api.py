@@ -50,6 +50,11 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user.id",
         "user.last_name",
         "user.username",
+        "start_time",
+        "end_time",
+        "rows",
+        "tmp_table_name",
+        "tracking_url",
     ]
     show_columns = [
         "changed_on",

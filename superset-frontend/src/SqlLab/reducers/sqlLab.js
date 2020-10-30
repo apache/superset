@@ -324,6 +324,10 @@ export default function sqlLabReducer(state = {}, action) {
       });
     },
     [actions.QUERY_SUCCESS]() {
+      // prevent race condition were query succeeds shortly after being canceled
+      if (action.query.state === 'stopped') {
+        return state;
+      }
       const alts = {
         endDttm: now(),
         progress: 100,

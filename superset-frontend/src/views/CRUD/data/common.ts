@@ -20,7 +20,7 @@ import { t } from '@superset-ui/core';
 
 export const commonMenuData = {
   name: t('Data'),
-  children: [
+  tabs: [
     {
       name: 'Datasets',
       label: t('Datasets'),

@@ -16,169 +16,176 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
-import { debounce } from 'lodash';
-import ListView, { FetchDataConfig } from 'src/components/ListView';
+import React, { useEffect, useState } from 'react';
+import { SupersetClient, t } from '@superset-ui/core';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { Dashboard } from 'src/types/bootstrapTypes';
+import PropertiesModal from 'src/dashboard/components/PropertiesModal';
+import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
+import SubMenu from 'src/components/Menu/SubMenu';
+import Icon from 'src/components/Icon';
+import EmptyState from './EmptyState';
+import { createErrorHandler, CardContainer, IconContainer } from '../utils';
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 3;
 
-interface DashboardTableProps {
-  addDangerToast: (message: string) => void;
-  search?: string;
+export interface FilterValue {
+  col: string;
+  operator: string;
+  value: string | boolean | number | null | undefined;
 }
 
-interface DashboardTableState {
-  dashboards: Dashboard[];
-  dashboard_count: number;
-  loading: boolean;
-}
+function DashboardTable({
+  user,
+  addDangerToast,
+  addSuccessToast,
+}: DashboardTableProps) {
+  const {
+    state: { loading, resourceCollection: dashboards, bulkSelectEnabled },
+    setResourceCollection: setDashboards,
+    hasPerm,
+    refreshData,
+    fetchData,
+  } = useListViewResource<Dashboard>(
+    'dashboard',
+    t('dashboard'),
+    addDangerToast,
+  );
 
-class DashboardTable extends React.PureComponent<
-  DashboardTableProps,
-  DashboardTableState
-> {
-  columns = [
-    {
-      accessor: 'dashboard_title',
-      Header: 'Dashboard',
-      Cell: ({
-        row: {
-          original: { url, dashboard_title: dashboardTitle },
-        },
-      }: {
-        row: {
-          original: {
-            url: string;
-            dashboard_title: string;
-          };
-        };
-      }) => <a href={url}>{dashboardTitle}</a>,
-    },
-    {
-      accessor: 'changed_by.first_name',
-      Header: 'Modified By',
-      Cell: ({
-        row: {
-          original: { changed_by_name: changedByName, changedByUrl },
-        },
-      }: {
-        row: {
-          original: {
-            changed_by_name: string;
-            changedByUrl: string;
-          };
-        };
-      }) => <a href={changedByUrl}>{changedByName}</a>,
-    },
-    {
-      accessor: 'changed_on_delta_humanized',
-      Header: 'Modified',
-      Cell: ({
-        row: {
-          original: { changed_on_delta_humanized: changedOn },
-        },
-      }: {
-        row: {
-          original: {
-            changed_on_delta_humanized: string;
-          };
-        };
-      }) => <span className="no-wrap">{changedOn}</span>,
-    },
-  ];
+  const [editModal, setEditModal] = useState<Dashboard>();
+  const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
-  initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-
-  constructor(props: DashboardTableProps) {
-    super(props);
-    this.state = {
-      dashboards: [],
-      dashboard_count: 0,
-      loading: false,
-    };
-  }
-
-  componentDidUpdate(prevProps: DashboardTableProps) {
-    if (prevProps.search !== this.props.search) {
-      this.fetchDataDebounced({
-        pageSize: PAGE_SIZE,
-        pageIndex: 0,
-        sortBy: this.initialSort,
-        filters: [],
-      });
-    }
-  }
-
-  fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
-    this.setState({ loading: true });
-    const filterExps = Object.keys(filters)
-      .map(fk => ({
-        col: fk,
-        opr: filters[fk].filterId,
-        value: filters[fk].filterValue,
-      }))
-      .concat(
-        this.props.search
-          ? [
-              {
-                col: 'dashboard_title',
-                opr: 'ct',
-                value: this.props.search,
-              },
-            ]
-          : [],
-      );
-
-    const queryParams = JSON.stringify({
-      order_column: sortBy[0].id,
-      order_direction: sortBy[0].desc ? 'desc' : 'asc',
-      page: pageIndex,
-      page_size: pageSize,
-      ...(filterExps.length ? { filters: filterExps } : {}),
-    });
-
+  const handleDashboardEdit = (edits: Dashboard) => {
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/?q=${queryParams}`,
-    })
-      .then(({ json }) => {
-        this.setState({ dashboards: json.result, dashboard_count: json.count });
-      })
-      .catch(response => {
-        if (response.status === 401) {
-          this.props.addDangerToast(
-            t(
-              "You don't have the necessary permissions to load dashboards. Please contact your administrator.",
-            ),
-          );
-        } else {
-          this.props.addDangerToast(
-            t('An error occurred while fetching Dashboards'),
-          );
-        }
-      })
-      .finally(() => this.setState({ loading: false }));
+      endpoint: `/api/v1/dashboard/${edits.id}`,
+    }).then(
+      ({ json = {} }) => {
+        setDashboards(
+          dashboards.map(dashboard => {
+            if (dashboard.id === json.id) {
+              return json.result;
+            }
+            return dashboard;
+          }),
+        );
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('An error occurred while fetching dashboards: %s', errMsg),
+        ),
+      ),
+    );
   };
 
-  // sort-comp disabled because of conflict with no-use-before-define rule
-  // eslint-disable-next-line react/sort-comp
-  fetchDataDebounced = debounce(this.fetchData, 200);
+  const getFilters = () => {
+    const filters = [];
 
-  render() {
-    return (
-      <ListView
-        columns={this.columns}
-        data={this.state.dashboards}
-        count={this.state.dashboard_count}
-        pageSize={PAGE_SIZE}
-        fetchData={this.fetchData}
-        loading={this.state.loading}
-        initialSort={this.initialSort}
-      />
-    );
+    if (dashboardFilter === 'Mine') {
+      filters.push({
+        id: 'owners',
+        operator: 'rel_m_m',
+        value: `${user?.userId}`,
+      });
+    } else {
+      filters.push({
+        id: 'id',
+        operator: 'dashboard_is_fav',
+        value: true,
+      });
+    }
+    return filters;
+  };
+  const subMenus = [];
+  if (dashboards.length > 0 && dashboardFilter === 'favorite') {
+    subMenus.push({
+      name: 'Favorite',
+      label: t('Favorite'),
+      onClick: () => setDashboardFilter('Favorite'),
+    });
   }
+
+  useEffect(() => {
+    fetchData({
+      pageIndex: 0,
+      pageSize: PAGE_SIZE,
+      sortBy: [
+        {
+          id: 'changed_on_delta_humanized',
+          desc: true,
+        },
+      ],
+      filters: getFilters(),
+    });
+  }, [dashboardFilter]);
+
+  return (
+    <>
+      <SubMenu
+        activeChild={dashboardFilter}
+        tabs={[
+          {
+            name: 'Favorite',
+            label: t('Favorite'),
+            onClick: () => setDashboardFilter('Favorite'),
+          },
+          {
+            name: 'Mine',
+            label: t('Mine'),
+            onClick: () => setDashboardFilter('Mine'),
+          },
+        ]}
+        buttons={[
+          {
+            name: (
+              <IconContainer>
+                <Icon name="plus-small" /> Dashboard{' '}
+              </IconContainer>
+            ),
+            buttonStyle: 'tertiary',
+            onClick: () => {
+              window.location.href = '/dashboard/new';
+            },
+          },
+          {
+            name: 'View All »',
+            buttonStyle: 'link',
+            onClick: () => {
+              window.location.href = '/dashboard/list/';
+            },
+          },
+        ]}
+      />
+      {editModal && (
+        <PropertiesModal
+          dashboardId={editModal?.id}
+          show
+          onHide={() => setEditModal(undefined)}
+          onSubmit={handleDashboardEdit}
+        />
+      )}
+      {dashboards.length > 0 ? (
+        <CardContainer>
+          {dashboards.map(e => (
+            <DashboardCard
+              {...{
+                dashboard: e,
+                hasPerm,
+                bulkSelectEnabled,
+                refreshData,
+                addDangerToast,
+                addSuccessToast,
+                loading,
+                openDashboardEditModal: dashboard => setEditModal(dashboard),
+              }}
+            />
+          ))}
+        </CardContainer>
+      ) : (
+        <EmptyState tableName="DASHBOARDS" tab={dashboardFilter} />
+      )}
+    </>
+  );
 }
 
 export default withToasts(DashboardTable);

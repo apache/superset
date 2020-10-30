@@ -144,6 +144,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     ]
     search_columns = [
         "created_by",
+        "changed_by",
         "datasource_id",
         "datasource_name",
         "datasource_type",

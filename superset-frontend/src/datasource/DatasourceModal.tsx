@@ -82,6 +82,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 }) => {
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const [errors, setErrors] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const dialog = useRef<any>(null);
 
   const onConfirmSave = () => {
@@ -90,6 +91,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currentDatasource.schema ||
       currentDatasource.databaseSelector?.schema ||
       currentDatasource.tableSelector?.schema;
+
+    setIsSaving(true);
+
     SupersetClient.post({
       endpoint: '/datasource/save/',
       postPayload: {
@@ -111,7 +115,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         onDatasourceSave(json);
         onHide();
       })
-      .catch(response =>
+      .catch(response => {
+        setIsSaving(false);
         getClientErrorObject(response).then(({ error }) => {
           dialog.current.show({
             title: 'Error',
@@ -120,8 +125,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
             body: error || t('An error has occurred'),
           });
-        }),
-      );
+        });
+      });
   };
 
   const onDatasourceChange = (data: Record<string, any>, err: Array<any>) => {
@@ -196,7 +201,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             className="m-r-5"
             data-test="datasource-modal-save"
             onClick={onClickSave}
-            disabled={errors.length > 0}
+            disabled={isSaving || errors.length > 0}
           >
             {t('Save')}
           </Button>
