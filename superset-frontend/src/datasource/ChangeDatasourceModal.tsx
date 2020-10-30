@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useRef, useMemo } from 'react';
-import { Alert, FormControl, FormControlProps, Modal } from 'react-bootstrap';
+import React, {
+  FunctionComponent,
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+} from 'react';
+import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
 import { SupersetClient, t } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
-
+import Modal from 'src/common/components/Modal';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
@@ -59,62 +65,68 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const [loading, setLoading] = useState(true);
   let searchRef = useRef<HTMLInputElement>(null);
 
-  const selectDatasource = (datasource: any) => {
-    SupersetClient.get({
-      endpoint: `/datasource/get/${datasource.type}/${datasource.id}`,
-    })
-      .then(({ json }) => {
-        onDatasourceSave(json);
-        onChange(datasource.uid);
-      })
-      .catch(response => {
-        getClientErrorObject(response).then(
-          ({ error, message }: { error: any; message: string }) => {
-            const errorMessage = error
-              ? error.error || error.statusText || error
-              : message;
-            addDangerToast(errorMessage);
-          },
-        );
-      });
-    onHide();
-  };
-
-  const onEnterModal = () => {
-    if (searchRef && searchRef.current) {
-      searchRef.current.focus();
-    }
-    if (!datasources) {
+  useEffect(() => {
+    const selectDatasource = (datasource: any) => {
       SupersetClient.get({
-        endpoint: '/superset/datasources/',
+        endpoint: `/datasource/get/${datasource.type}/${datasource.id}`,
       })
         .then(({ json }) => {
-          const data = json.map((ds: any) => ({
-            rawName: ds.name,
-            connection: ds.connection,
-            schema: ds.schema,
-            name: (
-              <a
-                href="#"
-                onClick={() => selectDatasource(ds)}
-                className="datasource-link"
-              >
-                {ds.name}
-              </a>
-            ),
-            type: ds.type,
-          }));
-          setLoading(false);
-          setDatasources(data);
+          onDatasourceSave(json);
+          onChange(datasource.uid);
         })
         .catch(response => {
-          setLoading(false);
-          getClientErrorObject(response).then(({ error }: any) => {
-            addDangerToast(error.error || error.statusText || error);
-          });
+          getClientErrorObject(response).then(
+            ({ error, message }: { error: any; message: string }) => {
+              const errorMessage = error
+                ? error.error || error.statusText || error
+                : message;
+              addDangerToast(errorMessage);
+            },
+          );
         });
+      onHide();
+    };
+
+    const onEnterModal = () => {
+      if (searchRef && searchRef.current) {
+        searchRef.current.focus();
+      }
+      if (!datasources) {
+        SupersetClient.get({
+          endpoint: '/superset/datasources/',
+        })
+          .then(({ json }) => {
+            const data = json.map((ds: any) => ({
+              rawName: ds.name,
+              connection: ds.connection,
+              schema: ds.schema,
+              name: (
+                <a
+                  href="#"
+                  onClick={() => selectDatasource(ds)}
+                  className="datasource-link"
+                >
+                  {ds.name}
+                </a>
+              ),
+              type: ds.type,
+            }));
+            setLoading(false);
+            setDatasources(data);
+          })
+          .catch(response => {
+            setLoading(false);
+            getClientErrorObject(response).then(({ error }: any) => {
+              addDangerToast(error.error || error.statusText || error);
+            });
+          });
+      }
+    };
+
+    if (show) {
+      onEnterModal();
     }
-  };
+  }, [addDangerToast, datasources, onChange, onDatasourceSave, onHide, show]);
 
   const setSearchRef = (ref: any) => {
     searchRef = ref;
@@ -137,11 +149,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   );
 
   return (
-    <Modal show={show} onHide={onHide} onEnter={onEnterModal} bsSize="large">
-      <Modal.Header closeButton>
-        <Modal.Title>{t('Select a dataset')}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Modal
+      show={show}
+      onHide={onHide}
+      responsive
+      title={t('Select a dataset')}
+      hideFooter
+    >
+      <>
         <Alert bsStyle="warning">
           <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
         </Alert>
@@ -166,7 +181,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             className="table-condensed"
           />
         )}
-      </Modal.Body>
+      </>
     </Modal>
   );
 };

@@ -17,10 +17,12 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useRef } from 'react';
-import { Alert, Modal } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { styled, t, SupersetClient } from '@superset-ui/core';
+
+import Modal from 'src/common/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
@@ -80,6 +82,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 }) => {
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const [errors, setErrors] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const dialog = useRef<any>(null);
 
   const onConfirmSave = () => {
@@ -88,6 +91,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currentDatasource.schema ||
       currentDatasource.databaseSelector?.schema ||
       currentDatasource.tableSelector?.schema;
+
+    setIsSaving(true);
+
     SupersetClient.post({
       endpoint: '/datasource/save/',
       postPayload: {
@@ -109,7 +115,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         onDatasourceSave(json);
         onHide();
       })
-      .catch(response =>
+      .catch(response => {
+        setIsSaving(false);
         getClientErrorObject(response).then(({ error }) => {
           dialog.current.show({
             title: 'Error',
@@ -118,8 +125,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
             body: error || t('An error has occurred'),
           });
-        }),
-      );
+        });
+      });
   };
 
   const onDatasourceChange = (data: Record<string, any>, err: Array<any>) => {
@@ -163,29 +170,17 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
 
   return (
-    <StyledDatasourceModal show={show} onHide={onHide} bsSize="large">
-      <Modal.Header closeButton>
-        <Modal.Title>
-          <div>
-            <span className="float-left">
-              {t('Edit Dataset ')}
-              <strong>{currentDatasource.table_name}</strong>
-            </span>
-          </div>
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {show && (
-          <DatasourceEditor
-            showLoadingForImport
-            height={500}
-            datasource={currentDatasource}
-            onChange={onDatasourceChange}
-          />
-        )}
-      </Modal.Body>
-      <Modal.Footer>
-        <span className="float-left">
+    <StyledDatasourceModal
+      show={show}
+      onHide={onHide}
+      title={
+        <span>
+          {t('Edit Dataset ')}
+          <strong>{currentDatasource.table_name}</strong>
+        </span>
+      }
+      footer={
+        <>
           {isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) && (
             <Button
               buttonSize="sm"
@@ -200,16 +195,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
               {t('Use Legacy Datasource Editor')}
             </Button>
           )}
-        </span>
-
-        <span className="float-right">
           <Button
             buttonSize="sm"
             buttonStyle="primary"
             className="m-r-5"
             data-test="datasource-modal-save"
             onClick={onClickSave}
-            disabled={errors.length > 0}
+            disabled={isSaving || errors.length > 0}
           >
             {t('Save')}
           </Button>
@@ -221,8 +213,16 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             {t('Cancel')}
           </Button>
           <Dialog ref={dialog} />
-        </span>
-      </Modal.Footer>
+        </>
+      }
+      responsive
+    >
+      <DatasourceEditor
+        showLoadingForImport
+        height={500}
+        datasource={currentDatasource}
+        onChange={onDatasourceChange}
+      />
     </StyledDatasourceModal>
   );
 };

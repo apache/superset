@@ -77,6 +77,7 @@ import { ReactComponent as FieldNumIcon } from 'images/icons/field_num.svg';
 import { ReactComponent as FieldStructIcon } from 'images/icons/field_struct.svg';
 import { ReactComponent as FileIcon } from 'images/icons/file.svg';
 import { ReactComponent as FilterIcon } from 'images/icons/filter.svg';
+import { ReactComponent as FilterSmallIcon } from 'images/icons/filter_small.svg';
 import { ReactComponent as FolderIcon } from 'images/icons/folder.svg';
 import { ReactComponent as FullIcon } from 'images/icons/full.svg';
 import { ReactComponent as GearIcon } from 'images/icons/gear.svg';
@@ -194,6 +195,7 @@ export type IconName =
   | 'field-struct'
   | 'file'
   | 'filter'
+  | 'filter-small'
   | 'folder'
   | 'full'
   | 'gear'
@@ -314,6 +316,7 @@ export const iconsRegistry: Record<
   'field-struct': FieldStructIcon,
   file: FileIcon,
   filter: FilterIcon,
+  'filter-small': FilterSmallIcon,
   folder: FolderIcon,
   full: FullIcon,
   gear: GearIcon,

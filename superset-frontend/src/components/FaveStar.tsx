@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import TooltipWrapper from './TooltipWrapper';
 import Icon from './Icon';
 
@@ -28,6 +28,10 @@ interface FaveStarProps {
   isStarred: boolean;
   showTooltip?: boolean;
 }
+
+const StyledLink = styled.a`
+  font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+`;
 
 export default class FaveStar extends React.PureComponent<FaveStarProps> {
   componentDidMount() {
@@ -40,38 +44,32 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
   };
 
   render() {
+    const content = (
+      <StyledLink
+        href="#"
+        onClick={this.onClick}
+        className="fave-unfave-icon"
+        data-test="fave-unfave-icon"
+      >
+        <Icon
+          name={
+            this.props.isStarred ? 'favorite-selected' : 'favorite-unselected'
+          }
+        />
+      </StyledLink>
+    );
+
     if (this.props.showTooltip) {
       return (
         <TooltipWrapper
           label="fave-unfave"
           tooltip={t('Click to favorite/unfavorite')}
         >
-          <a
-            href="#"
-            onClick={this.onClick}
-            className="fave-unfave-icon"
-            data-test="fave-unfave-icon"
-          >
-            <Icon
-              name={
-                this.props.isStarred
-                  ? 'favorite-selected'
-                  : 'favorite-unselected'
-              }
-            />
-          </a>
+          {content}
         </TooltipWrapper>
       );
     }
 
-    return (
-      <a href="#" onClick={this.onClick} className="fave-unfave-icon">
-        <Icon
-          name={
-            this.props.isStarred ? 'favorite-selected' : 'favorite-unselected'
-          }
-        />
-      </a>
-    );
+    return content;
   }
 }

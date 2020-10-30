@@ -30,6 +30,7 @@ import IconButton from 'src/dashboard/components/IconButton';
 import Row from 'src/dashboard/components/gridComponents/Row';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import { mockStore } from '../../fixtures/mockStore';
 import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';
@@ -65,6 +66,10 @@ describe('Row', () => {
           <Row {...props} {...overrideProps} />
         </WithDragDropContext>
       </Provider>,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: { theme: supersetTheme },
+      },
     );
     return wrapper;
   }

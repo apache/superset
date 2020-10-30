@@ -24,7 +24,7 @@ import SubMenu from 'src/components/Menu/SubMenu';
 
 const defaultProps = {
   name: 'Title',
-  children: [
+  tabs: [
     {
       name: 'Page1',
       label: 'Page1',

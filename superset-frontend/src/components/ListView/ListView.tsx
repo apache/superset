@@ -20,6 +20,7 @@ import { t, styled } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-bootstrap';
 import { Empty } from 'src/common/components';
+import { ReactComponent as EmptyImage } from 'images/empty.svg';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
@@ -37,6 +38,7 @@ import {
 import { ListViewError, useListViewState } from './utils';
 
 const ListViewStyles = styled.div`
+  background: ${({ theme }) => theme.colors.grayscale.light5};
   text-align: center;
 
   .superset-list-view {
@@ -56,6 +58,14 @@ const ListViewStyles = styled.div`
       }
     }
     .body {
+    }
+
+    .ant-empty {
+      padding-bottom: 160px;
+
+      .ant-empty-image {
+        height: auto;
+      }
     }
   }
 
@@ -209,6 +219,10 @@ export interface ListViewProps<T extends object = any> {
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
   highlightRowId?: number;
+  emptyState?: {
+    message?: string;
+    slot?: React.ReactNode;
+  };
 }
 
 function ListView<T extends object = any>({
@@ -229,6 +243,7 @@ function ListView<T extends object = any>({
   cardSortSelectOptions,
   defaultViewMode = 'card',
   highlightRowId,
+  emptyState = {},
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -368,29 +383,36 @@ function ListView<T extends object = any>({
           )}
           {!loading && rows.length === 0 && (
             <EmptyWrapper>
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              <Empty
+                image={<EmptyImage />}
+                description={emptyState.message || 'No Data'}
+              >
+                {emptyState.slot || null}
+              </Empty>
             </EmptyWrapper>
           )}
         </div>
       </div>
 
-      <div className="pagination-container">
-        <Pagination
-          totalPages={pageCount || 0}
-          currentPage={pageCount ? pageIndex + 1 : 0}
-          onChange={(p: number) => gotoPage(p - 1)}
-          hideFirstAndLastPageLinks
-        />
-        <div className="row-count-container">
-          {!loading &&
-            t(
-              '%s-%s of %s',
-              pageSize * pageIndex + (rows.length && 1),
-              pageSize * pageIndex + rows.length,
-              count,
-            )}
+      {rows.length > 0 && (
+        <div className="pagination-container">
+          <Pagination
+            totalPages={pageCount || 0}
+            currentPage={pageCount ? pageIndex + 1 : 0}
+            onChange={(p: number) => gotoPage(p - 1)}
+            hideFirstAndLastPageLinks
+          />
+          <div className="row-count-container">
+            {!loading &&
+              t(
+                '%s-%s of %s',
+                pageSize * pageIndex + (rows.length && 1),
+                pageSize * pageIndex + rows.length,
+                count,
+              )}
+          </div>
         </div>
-      </div>
+      )}
     </ListViewStyles>
   );
 }

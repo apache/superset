@@ -50,6 +50,7 @@ DEPRECATED_EXTRAS_FIELDS = (
     DeprecatedField(old_name="where", new_name="where"),
     DeprecatedField(old_name="having", new_name="having"),
     DeprecatedField(old_name="having_filters", new_name="having_druid"),
+    DeprecatedField(old_name="druid_time_origin", new_name="druid_time_origin"),
 )
 
 
@@ -59,6 +60,8 @@ class QueryObject:
     and druid. The query objects are constructed on the client.
     """
 
+    annotation_layers: List[Dict[str, Any]]
+    applied_time_extras: Dict[str, str]
     granularity: Optional[str]
     from_dttm: Optional[datetime]
     to_dttm: Optional[datetime]
@@ -79,6 +82,8 @@ class QueryObject:
 
     def __init__(
         self,
+        annotation_layers: Optional[List[Dict[str, Any]]] = None,
+        applied_time_extras: Optional[Dict[str, str]] = None,
         granularity: Optional[str] = None,
         metrics: Optional[List[Union[Dict[str, Any], str]]] = None,
         groupby: Optional[List[str]] = None,
@@ -97,9 +102,12 @@ class QueryObject:
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
         **kwargs: Any,
     ):
+        annotation_layers = annotation_layers or []
         metrics = metrics or []
         extras = extras or {}
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
+        self.annotation_layers = annotation_layers
+        self.applied_time_extras = applied_time_extras or {}
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
             relative_start=extras.get(
