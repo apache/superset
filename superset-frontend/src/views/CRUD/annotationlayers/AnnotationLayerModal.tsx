@@ -92,7 +92,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   const [
     currentLayer,
     setCurrentLayer,
-  ] = useState<AnnotationLayerObject | null>(null);
+  ] = useState<AnnotationLayerObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = layer !== null;
 
