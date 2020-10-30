@@ -28,6 +28,8 @@ from superset.commands.exceptions import CommandException
 from superset.dao.base import BaseDAO
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION
 
+METADATA_FILE_NAME = "metadata.yaml"
+
 
 class ExportModelsCommand(BaseCommand):
 
@@ -52,7 +54,7 @@ class ExportModelsCommand(BaseCommand):
             "type": self.dao.model_cls.__name__,  # type: ignore
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         }
-        yield "metadata.yaml", yaml.safe_dump(metadata, sort_keys=False)
+        yield METADATA_FILE_NAME, yaml.safe_dump(metadata, sort_keys=False)
 
         seen = set()
         for model in self._models:
