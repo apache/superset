@@ -27,7 +27,7 @@ import AnnotationLayerModal from 'src/views/CRUD/annotationlayers/AnnotationLaye
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
-// import DeleteModal from 'src/components/DeleteModal';
+import DeleteModal from 'src/components/DeleteModal';
 // import Button from 'src/components/Button';
 // import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -39,7 +39,7 @@ const store = mockStore({});
 
 const layersInfoEndpoint = 'glob:*/api/v1/annotation_layer/_info*';
 const layersEndpoint = 'glob:*/api/v1/annotation_layer/?*';
-// const layerEndpoint = 'glob:*/api/v1/annotation_layer/*';
+const layerEndpoint = 'glob:*/api/v1/annotation_layer/*';
 const layersRelatedEndpoint = 'glob:*/api/v1/annotation_layer/related/*';
 
 const mocklayers = [...new Array(3)].map((_, i) => ({
@@ -63,8 +63,8 @@ fetchMock.get(layersEndpoint, {
   layers_count: 3,
 });
 
-/* fetchMock.delete(layerEndpoint, {});
-fetchMock.delete(layersEndpoint, {}); */
+fetchMock.delete(layerEndpoint, {});
+fetchMock.delete(layersEndpoint, {});
 
 fetchMock.get(layersRelatedEndpoint, {
   created_by: {
@@ -118,5 +118,34 @@ describe('AnnotationLayersList', () => {
     expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/annotation_layer/?q=(filters:!((col:name,opr:ct,value:foo)),order_column:name,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+
+  it('deletes', async () => {
+    act(() => {
+      wrapper.find('[data-test="delete-action"]').first().props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(
+      wrapper.find(DeleteModal).first().props().description,
+    ).toMatchInlineSnapshot(
+      `"This action will permanently delete the layer."`,
+    );
+
+    act(() => {
+      wrapper
+        .find('#delete')
+        .first()
+        .props()
+        .onChange({ target: { value: 'DELETE' } });
+    });
+    await waitForComponentToPaint(wrapper);
+    act(() => {
+      wrapper.find('button').last().props().onClick();
+    });
+
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.calls(/annotation_layer\/0/, 'DELETE')).toHaveLength(1);
   });
 });

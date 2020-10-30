@@ -18,7 +18,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -28,6 +28,7 @@ import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, { Filters } from 'src/components/ListView';
 import Button from 'src/components/Button';
+import DeleteModal from 'src/components/DeleteModal';
 import AnnotationLayerModal from './AnnotationLayerModal';
 import { AnnotationLayerObject } from './types';
 
@@ -61,6 +62,26 @@ function AnnotationLayersList({
     currentAnnotationLayer,
     setCurrentAnnotationLayer,
   ] = useState<AnnotationLayerObject | null>(null);
+
+  const [
+    layerCurrentlyDeleting,
+    setLayerCurrentlyDeleting,
+  ] = useState<AnnotationLayerObject | null>(null);
+
+  const handleLayerDelete = ({ id, name }: AnnotationLayerObject) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/annotation_layer/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        setLayerCurrentlyDeleting(null);
+        addSuccessToast(t('Deleted: %s', name));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(t('There was an issue deleting %s: %s', name, errMsg)),
+      ),
+    );
+  };
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
@@ -147,7 +168,7 @@ function AnnotationLayersList({
       {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleAnnotationLayerEdit(original);
-          const handleDelete = () => {}; // openAnnotationLayerDeleteModal(original);
+          const handleDelete = () => setLayerCurrentlyDeleting(original);
 
           const actions = [
             canEdit
@@ -256,6 +277,19 @@ function AnnotationLayersList({
         onHide={() => setAnnotationLayerModalOpen(false)}
         show={annotationLayerModalOpen}
       />
+      {layerCurrentlyDeleting && (
+        <DeleteModal
+          description={t('This action will permanently delete the layer.')}
+          onConfirm={() => {
+            if (layerCurrentlyDeleting) {
+              handleLayerDelete(layerCurrentlyDeleting);
+            }
+          }}
+          onHide={() => setLayerCurrentlyDeleting(null)}
+          open
+          title={t('Delete Layer?')}
+        />
+      )}
       <ListView<AnnotationLayerObject>
         className="annotation-layers-list-view"
         columns={columns}
