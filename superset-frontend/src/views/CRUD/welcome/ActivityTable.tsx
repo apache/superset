@@ -17,13 +17,13 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import moment from 'antd/node_modules/moment';
+import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
+import { reject } from 'lodash';
 
 import ListViewCard from 'src/components/ListViewCard';
 import { addDangerToast } from 'src/messageToasts/actions';
 import SubMenu from 'src/components/Menu/SubMenu';
-import { reject } from 'lodash';
 import { getRecentAcitivtyObjs, mq } from '../utils';
 import EmptyState from './EmptyState';
 
