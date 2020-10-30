@@ -65,11 +65,14 @@ describe('Dashboard filter', () => {
   });
   // TODO fix and reactivate this flaky test
   it('should apply filter', () => {
-    cy.get('.Select__control input[type=text]').first().focus();
+    cy.get('.Select__control input[type=text]')
+      .first()
+      .should('be.visible')
+      .focus();
 
     // should open the filter indicator
     cy.get('.filter-indicator.active')
-      .should('be.visible')
+      .should('be.visible', { timeout: 10000 })
       .should(nodes => {
         expect(nodes).to.have.length(9);
       });
