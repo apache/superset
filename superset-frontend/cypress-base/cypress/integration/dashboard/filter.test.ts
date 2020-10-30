@@ -89,22 +89,18 @@ describe('Dashboard filter', () => {
       .type('So', { force: true });
 
     cy.get('.Select__menu').first().contains('Create "So"');
-
     // Somehow Input loses focus after typing "So" while in Cypress, so
     // we refocus the input again here. The is not happening in real life.
     cy.get('.Select__control input[type=text]')
       .first()
       .focus()
-      .type('uth Asia{enter}', { force: true });
+      .type('uth Asia{enter}', { force: true, delay: 40 });
 
     // by default, need to click Apply button to apply filter
     cy.get('.filter_box button').click({ force: true });
 
     // wait again after applied filters
-    cy.wait(
-      aliases.filter(x => x !== getAlias(filterId)),
-      { timeout: 30000 },
-    ).then(requests => {
+    cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
       requests.forEach(xhr => {
         const requestFormData = xhr.request.body as FormData;
         const requestParams = JSON.parse(
