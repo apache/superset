@@ -801,7 +801,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               content:
                 application/json:
                   schema:
-                    $ref: "#/components/schemas/GetFavStarIdSchema"
+                    $ref: "#/components/schemas/GetFavStarIdsSchema"
             400:
               $ref: '#/components/responses/400'
             401:
@@ -812,7 +812,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         requested_ids = kwargs["rison"]
-        favorited_chart_ids = ChartDAO.favorited_ids(requested_ids, g.user.id)
+        charts = ChartDAO.find_by_ids(requested_ids)
+        if not charts:
+            return self.response_404()
+        favorited_chart_ids = ChartDAO.favorited_ids(charts, g.user.id)
         res = [
             {"id": request_id, "value": request_id in favorited_chart_ids}
             for request_id in requested_ids

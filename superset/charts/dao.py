@@ -69,15 +69,14 @@ class ChartDAO(BaseDAO):
             db.session.commit()
 
     @staticmethod
-    def favorited_ids(ids: List[int], current_user_id: int) -> List[FavStar]:
-        charts = ChartDAO.find_by_ids(ids)
-        chart_ids = [chart.id for chart in charts]
+    def favorited_ids(charts: List[Slice], current_user_id: int) -> List[FavStar]:
+        ids = [chart.id for chart in charts]
         return [
             star.obj_id
             for star in db.session.query(FavStar.obj_id)
             .filter(
                 FavStar.class_name == "slice",
-                FavStar.obj_id.in_(chart_ids),
+                FavStar.obj_id.in_(ids),
                 FavStar.user_id == current_user_id,
             )
             .all()

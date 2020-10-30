@@ -157,15 +157,16 @@ class DashboardDAO(BaseDAO):
         dashboard.json_metadata = json.dumps(md)
 
     @staticmethod
-    def favorited_ids(ids: List[int], current_user_id: int) -> List[FavStar]:
-        dashboards = DashboardDAO.find_by_ids(ids)
-        dashboard_ids = [dash.id for dash in dashboards]
+    def favorited_ids(
+        dashboards: List[Dashboard], current_user_id: int
+    ) -> List[FavStar]:
+        ids = [dash.id for dash in dashboards]
         return [
             star.obj_id
             for star in db.session.query(FavStar.obj_id)
             .filter(
-                FavStar.class_name == "dashboard",
-                FavStar.obj_id.in_(dashboard_ids),
+                FavStar.class_name == "Dashboard",
+                FavStar.obj_id.in_(ids),
                 FavStar.user_id == current_user_id,
             )
             .all()

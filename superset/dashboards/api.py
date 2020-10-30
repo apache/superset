@@ -621,7 +621,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               content:
                 application/json:
                   schema:
-                    $ref: "#/components/schemas/GetFavStarIdSchema"
+                    $ref: "#/components/schemas/GetFavStarIdsSchema"
             400:
               $ref: '#/components/responses/400'
             401:
@@ -632,9 +632,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         requested_ids = kwargs["rison"]
-        favorited_chart_ids = DashboardDAO.favorited_ids(requested_ids, g.user.id)
+        dashboards = DashboardDAO.find_by_ids(requested_ids)
+        if not dashboards:
+            return self.response_404()
+        favorited_dashboard_ids = DashboardDAO.favorited_ids(dashboards, g.user.id)
         res = [
-            {"id": request_id, "value": request_id in favorited_chart_ids}
+            {"id": request_id, "value": request_id in favorited_dashboard_ids}
             for request_id in requested_ids
         ]
         return self.response(200, result=res)
