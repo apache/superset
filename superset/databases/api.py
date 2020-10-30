@@ -39,6 +39,7 @@ from superset.constants import RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
 from superset.databases.commands.exceptions import (
+    DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
     DatabaseDeleteDatasetsExistFailedError,
     DatabaseDeleteFailedError,
@@ -229,6 +230,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except DatabaseConnectionFailedError as ex:
+            return self.response_422(message=str(ex))
         except DatabaseCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s", self.__class__.__name__, str(ex)
@@ -300,6 +303,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except DatabaseConnectionFailedError as ex:
+            return self.response_422(message=str(ex))
         except DatabaseUpdateFailedError as ex:
             logger.error(
                 "Error updating model %s: %s", self.__class__.__name__, str(ex)
