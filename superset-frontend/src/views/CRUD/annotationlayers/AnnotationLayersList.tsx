@@ -17,18 +17,19 @@
  * under the License.
  */
 
-import React, { useMemo } from 'react';
-// import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-// import ListView, { Filters } from 'src/components/ListView';
-import ListView from 'src/components/ListView';
+import ListView, { Filters } from 'src/components/ListView';
 import Button from 'src/components/Button';
+import AnnotationLayerModal from './AnnotationLayerModal';
+import { AnnotationLayerObject } from './types';
 
 const PAGE_SIZE = 25;
 const MOMENT_FORMAT = 'MMM DD, YYYY';
@@ -38,23 +39,6 @@ interface AnnotationLayersListProps {
   addSuccessToast: (msg: string) => void;
 }
 
-// TODO: move to separate types file
-type CreatedByUser = {
-  id: number;
-  first_name: string;
-  last_name: string;
-};
-
-type AnnotationLayerObject = {
-  id?: number;
-  changed_on_delta_humanized?: string;
-  created_on?: string;
-  created_by?: CreatedByUser;
-  changed_by?: CreatedByUser;
-  name?: string;
-  desc?: string;
-};
-
 function AnnotationLayersList({
   addDangerToast,
   addSuccessToast,
@@ -63,29 +47,28 @@ function AnnotationLayersList({
     state: { loading, resourceCount: layersCount, resourceCollection: layers },
     hasPerm,
     fetchData,
-    // refreshData,
+    refreshData,
   } = useListViewResource<AnnotationLayerObject>(
     'annotation_layer',
     t('annotation layers'),
     addDangerToast,
   );
 
-  // TODO: un-comment all instances when modal work begins
-  /* const [annotationLayerModalOpen, setAnnotationLayerModalOpen] = useState<
+  const [annotationLayerModalOpen, setAnnotationLayerModalOpen] = useState<
     boolean
   >(false);
   const [
     currentAnnotationLayer,
     setCurrentAnnotationLayer,
-  ] = useState<AnnotationLayerObject | null>(null); */
+  ] = useState<AnnotationLayerObject | null>(null);
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
   function handleAnnotationLayerEdit(layer: AnnotationLayerObject | null) {
-    // setCurrentAnnotationLayer(layer);
-    // setAnnotationLayerModalOpen(true);
+    setCurrentAnnotationLayer(layer);
+    setAnnotationLayerModalOpen(true);
   }
 
   const initialSort = [{ id: 'name', desc: true }];
@@ -215,6 +198,36 @@ function AnnotationLayersList({
     });
   }
 
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Created By'),
+        id: 'created_by',
+        input: 'select',
+        operator: 'rel_o_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'annotation_layer',
+          'created_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Search'),
+        id: 'name',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [],
+  );
+
   const EmptyStateButton = (
     <Button
       buttonStyle="primary"
@@ -236,13 +249,20 @@ function AnnotationLayersList({
   return (
     <>
       <SubMenu name={t('Annotation Layers')} buttons={subMenuButtons} />
+      <AnnotationLayerModal
+        addDangerToast={addDangerToast}
+        layer={currentAnnotationLayer}
+        onLayerAdd={() => refreshData()}
+        onHide={() => setAnnotationLayerModalOpen(false)}
+        show={annotationLayerModalOpen}
+      />
       <ListView<AnnotationLayerObject>
         className="annotation-layers-list-view"
         columns={columns}
         count={layersCount}
         data={layers}
         fetchData={fetchData}
-        // filters={filters}
+        filters={filters}
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}

@@ -23,14 +23,15 @@ import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
+import AnnotationLayerModal from 'src/views/CRUD/annotationlayers/AnnotationLayerModal';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
-// import Filters from 'src/components/ListView/Filters';
+import Filters from 'src/components/ListView/Filters';
 // import DeleteModal from 'src/components/DeleteModal';
 // import Button from 'src/components/Button';
 // import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-// import { act } from 'react-dom/test-utils';
+import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(AnnotationLayersList)
 const mockStore = configureStore([thunk]);
@@ -39,7 +40,7 @@ const store = mockStore({});
 const layersInfoEndpoint = 'glob:*/api/v1/annotation_layer/_info*';
 const layersEndpoint = 'glob:*/api/v1/annotation_layer/?*';
 // const layerEndpoint = 'glob:*/api/v1/annotation_layer/*';
-// const templatesRelatedEndpoint = 'glob:*/api/v1/annotation_layer/related/*';
+const layersRelatedEndpoint = 'glob:*/api/v1/annotation_layer/related/*';
 
 const mocklayers = [...new Array(3)].map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
@@ -63,14 +64,14 @@ fetchMock.get(layersEndpoint, {
 });
 
 /* fetchMock.delete(layerEndpoint, {});
-fetchMock.delete(layersEndpoint, {});
+fetchMock.delete(layersEndpoint, {}); */
 
 fetchMock.get(layersRelatedEndpoint, {
   created_by: {
     count: 0,
     result: [],
   },
-}); */
+});
 
 describe('AnnotationLayersList', () => {
   const wrapper = mount(<AnnotationLayersList />, { context: { store } });
@@ -91,11 +92,31 @@ describe('AnnotationLayersList', () => {
     expect(wrapper.find(ListView)).toExist();
   });
 
+  it('renders a modal', () => {
+    expect(wrapper.find(AnnotationLayerModal)).toExist();
+  });
+
   it('fetches layers', () => {
     const callsQ = fetchMock.calls(/annotation_layer\/\?q/);
     expect(callsQ).toHaveLength(1);
     expect(callsQ[0][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/annotation_layer/?q=(order_column:name,order_direction:desc,page:0,page_size:25)"`,
+    );
+  });
+
+  it('renders Filters', () => {
+    expect(wrapper.find(Filters)).toExist();
+  });
+
+  it('searches', async () => {
+    const filtersWrapper = wrapper.find(Filters);
+    act(() => {
+      filtersWrapper.find('[name="name"]').first().props().onSubmit('foo');
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/annotation_layer/?q=(filters:!((col:name,opr:ct,value:foo)),order_column:name,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 });
