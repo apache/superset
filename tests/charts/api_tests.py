@@ -777,7 +777,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         assert len(expected_models) == data["count"]
 
     @pytest.mark.usefixtures("create_charts")
-    def test_get_current_user_favorite_stars(self):
+    def test_get_current_user_favorite_status(self):
         """
         Dataset API: Test get current user favorite stars
         """
@@ -791,7 +791,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         arguments = [s.id for s in db.session.query(Slice.id).all()]
         self.login(username="admin")
-        uri = f"api/v1/chart/favorite_stars/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/favorite_status/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200

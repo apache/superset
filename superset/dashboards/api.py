@@ -81,7 +81,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         RouteMethod.EXPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
-        "favorite_stars",
+        "favorite_status",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -597,12 +597,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
 
-    @expose("/favorite_stars/", methods=["GET"])
+    @expose("/favorite_status/", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
     @rison(get_fav_star_ids_schema)
-    def favorite_stars(self, **kwargs: Any) -> Response:
+    def favorite_status(self, **kwargs: Any) -> Response:
         """Favorite Stars for Dashboards
         ---
         get:

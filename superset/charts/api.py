@@ -89,7 +89,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "data",
-        "favorite_stars",
+        "favorite_status",
     }
     class_permission_name = "SliceModelView"
     show_columns = [
@@ -777,12 +777,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
             attachment_filename=filename,
         )
 
-    @expose("/favorite_stars/", methods=["GET"])
+    @expose("/favorite_status/", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
     @rison(get_fav_star_ids_schema)
-    def favorite_stars(self, **kwargs: Any) -> Response:
+    def favorite_status(self, **kwargs: Any) -> Response:
         """Favorite stars for Charts
         ---
         get:

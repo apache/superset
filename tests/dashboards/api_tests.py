@@ -341,7 +341,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             )
 
     @pytest.mark.usefixtures("create_dashboards")
-    def test_get_current_user_favorite_stars(self):
+    def test_get_current_user_favorite_status(self):
         """
         Dataset API: Test get current user favorite stars
         """
@@ -357,7 +357,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         arguments = [dash.id for dash in db.session.query(Dashboard.id).all()]
         self.login(username="admin")
-        uri = f"api/v1/dashboard/favorite_stars/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
