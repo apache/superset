@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useState,
@@ -44,9 +44,19 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
+import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
+
+const FlexRowContainer = styled.div`
+  align-items: center;
+  display: flex;
+
+  > svg {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
 
 type Dataset = {
   changed_by_name: string;
@@ -178,9 +188,31 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { table_name: datasetTitle, explore_url: exploreURL },
+            original: {
+              extra,
+              table_name: datasetTitle,
+              explore_url: exploreURL,
+            },
           },
-        }: any) => <a href={exploreURL}>{datasetTitle}</a>,
+        }: any) => {
+          const titleLink = <a href={exploreURL}>{datasetTitle}</a>;
+          try {
+            const parsedExtra = JSON.parse(extra);
+            return parsedExtra?.certification ? (
+              <FlexRowContainer>
+                <CertifiedIconWithTooltip
+                  certifiedBy={parsedExtra.certification.certified_by}
+                  details={parsedExtra.certification.details}
+                />
+                {titleLink}
+              </FlexRowContainer>
+            ) : (
+              titleLink
+            );
+          } catch {
+            return titleLink;
+          }
+        },
         Header: t('Name'),
         accessor: 'table_name',
       },

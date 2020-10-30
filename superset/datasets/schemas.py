@@ -89,6 +89,7 @@ class DatasetPutSchema(Schema):
     owners = fields.List(fields.Integer())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
+    extra = fields.String(allow_none=True)
 
 
 class DatasetRelatedChart(Schema):
