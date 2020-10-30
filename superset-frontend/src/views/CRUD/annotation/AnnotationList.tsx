@@ -23,6 +23,7 @@ import { t, styled, SupersetClient } from '@superset-ui/core';
 
 import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
+import Button from 'src/components/Button';
 import ListView from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
@@ -64,7 +65,7 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
     setCurrentAnnotation,
   ] = useState<AnnotationObject | null>(null);
 
-  const handleAnnotationEdit = (annotation: AnnotationObject) => {
+  const handleAnnotationEdit = (annotation: AnnotationObject | null) => {
     setCurrentAnnotation(annotation);
     setAnnotationModalOpen(true);
   };
@@ -159,8 +160,7 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
     ),
     buttonStyle: 'primary',
     onClick: () => {
-      setCurrentAnnotation(null);
-      setAnnotationModalOpen(true);
+      handleAnnotationEdit(null);
     },
   });
 
@@ -185,6 +185,24 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
     // If error is thrown, we know not to use <Link> in render
     hasHistory = false;
   }
+
+  const EmptyStateButton = (
+    <Button
+      buttonStyle="primary"
+      onClick={() => {
+        handleAnnotationEdit(null);
+      }}
+    >
+      <>
+        <i className="fa fa-plus" /> {t('Annotation Layer')}
+      </>
+    </Button>
+  );
+
+  const emptyState = {
+    message: 'No annotation yet',
+    slot: EmptyStateButton,
+  };
 
   return (
     <>
@@ -220,6 +238,7 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
+        emptyState={emptyState}
       />
     </>
   );
