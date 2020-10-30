@@ -42,11 +42,11 @@ class ExportChartsCommand(ExportModelsCommand):
     not_found = ChartNotFoundError
 
     @staticmethod
-    def export(chart: Slice) -> Iterator[Tuple[str, str]]:
-        chart_slug = sanitize(chart.slice_name)
+    def export(model: Slice) -> Iterator[Tuple[str, str]]:
+        chart_slug = sanitize(model.slice_name)
         file_name = f"charts/{chart_slug}.yaml"
 
-        payload = chart.export_to_dict(
+        payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
             include_defaults=True,
@@ -63,11 +63,11 @@ class ExportChartsCommand(ExportModelsCommand):
                 logger.info("Unable to decode `params` field: %s", payload["params"])
 
         payload["version"] = IMPORT_EXPORT_VERSION
-        if chart.table:
-            payload["dataset_uuid"] = str(chart.table.uuid)
+        if model.table:
+            payload["dataset_uuid"] = str(model.table.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
 
-        if chart.table:
-            yield from ExportDatasetsCommand([chart.table.id]).run()
+        if model.table:
+            yield from ExportDatasetsCommand([model.table.id]).run()

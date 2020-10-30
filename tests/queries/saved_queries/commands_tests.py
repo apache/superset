@@ -53,6 +53,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         contents = dict(command.run())
 
         expected = [
+            "metadata.yaml",
             "queries/examples/schema1/the_answer.yaml",
             "databases/examples.yaml",
         ]

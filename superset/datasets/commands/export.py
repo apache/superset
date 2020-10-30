@@ -37,12 +37,12 @@ class ExportDatasetsCommand(ExportModelsCommand):
     not_found = DatasetNotFoundError
 
     @staticmethod
-    def export(dataset: SqlaTable) -> Iterator[Tuple[str, str]]:
-        database_slug = sanitize(dataset.database.database_name)
-        dataset_slug = sanitize(dataset.table_name)
+    def export(model: SqlaTable) -> Iterator[Tuple[str, str]]:
+        database_slug = sanitize(model.database.database_name)
+        dataset_slug = sanitize(model.table_name)
         file_name = f"datasets/{database_slug}/{dataset_slug}.yaml"
 
-        payload = dataset.export_to_dict(
+        payload = model.export_to_dict(
             recursive=True,
             include_parent_ref=False,
             include_defaults=True,
@@ -50,7 +50,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
         )
 
         payload["version"] = IMPORT_EXPORT_VERSION
-        payload["database_uuid"] = str(dataset.database.uuid)
+        payload["database_uuid"] = str(model.database.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
@@ -58,7 +58,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
         # include database as well
         file_name = f"databases/{database_slug}.yaml"
 
-        payload = dataset.database.export_to_dict(
+        payload = model.database.export_to_dict(
             recursive=False,
             include_parent_ref=False,
             include_defaults=True,

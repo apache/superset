@@ -42,11 +42,11 @@ class ExportDashboardsCommand(ExportModelsCommand):
     not_found = DashboardNotFoundError
 
     @staticmethod
-    def export(dashboard: Dashboard) -> Iterator[Tuple[str, str]]:
-        dashboard_slug = sanitize(dashboard.dashboard_title)
+    def export(model: Dashboard) -> Iterator[Tuple[str, str]]:
+        dashboard_slug = sanitize(model.dashboard_title)
         file_name = f"dashboards/{dashboard_slug}.yaml"
 
-        payload = dashboard.export_to_dict(
+        payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
             include_defaults=True,
@@ -67,5 +67,5 @@ class ExportDashboardsCommand(ExportModelsCommand):
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
 
-        chart_ids = [chart.id for chart in dashboard.slices]
+        chart_ids = [chart.id for chart in model.slices]
         yield from ExportChartsCommand(chart_ids).run()
