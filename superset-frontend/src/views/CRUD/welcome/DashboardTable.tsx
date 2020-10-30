@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { Dashboard, DashboardTableProps, TabProps } from 'src/views/CRUD/types';
+import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
