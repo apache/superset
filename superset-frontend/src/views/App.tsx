@@ -34,6 +34,7 @@ import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import CssTemplatesList from 'src/views/CRUD/csstemplates/CssTemplatesList';
+import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
 import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
 
 import messageToastReducer from '../messageToasts/reducers';
@@ -102,6 +103,11 @@ const App = () => (
               <Route path="/csstemplatemodelview/list/">
                 <ErrorBoundary>
                   <CssTemplatesList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/annotationlayermodelview/list/">
+                <ErrorBoundary>
+                  <AnnotationLayersList user={user} />
                 </ErrorBoundary>
               </Route>
               <Route path="/annotationmodelview/:annotationLayerId/annotation/">

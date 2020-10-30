@@ -1016,6 +1016,12 @@ class ChartDataResponseResult(Schema):
         description="Amount of rows in result set", allow_none=False,
     )
     data = fields.List(fields.Dict(), description="A list with results")
+    applied_filters = fields.List(
+        fields.Dict(), description="A list with applied filters"
+    )
+    rejected_filters = fields.List(
+        fields.Dict(), description="A list with rejected filters"
+    )
 
 
 class ChartDataResponseSchema(Schema):

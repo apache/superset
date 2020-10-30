@@ -17,10 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { Panel, Row, Tab } from 'react-bootstrap';
 import { shallow } from 'enzyme';
-
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
 import Welcome from 'src/views/CRUD/welcome/Welcome';
+
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 describe('Welcome', () => {
   const mockedProps = {
@@ -34,13 +37,15 @@ describe('Welcome', () => {
       isActive: true,
     },
   };
-  it('is valid', () => {
-    expect(React.isValidElement(<Welcome {...mockedProps} />)).toBe(true);
+  const wrapper = shallow(<Welcome {...mockedProps} />, {
+    context: { store },
   });
-  it('renders 3 Tab, Panel, and Row components', () => {
-    const wrapper = shallow(<Welcome {...mockedProps} />);
-    expect(wrapper.find(Tab)).toHaveLength(3);
-    expect(wrapper.find(Panel)).toHaveLength(3);
-    expect(wrapper.find(Row)).toHaveLength(3);
+
+  it('renders', () => {
+    expect(wrapper).toExist();
+  });
+
+  it('renders all panels on the page on page load', () => {
+    expect(wrapper.find('CollapsePanel')).toHaveLength(4);
   });
 });

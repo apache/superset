@@ -37,3 +37,5 @@ export const ThinSkeleton = styled(Skeleton)`
     margin-bottom: 0;
   }
 `;
+
+export { default as Icon } from '@ant-design/icons';

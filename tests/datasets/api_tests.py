@@ -17,7 +17,7 @@
 """Unit tests for Superset"""
 import json
 from io import BytesIO
-from typing import List
+from typing import List, Optional
 from unittest.mock import patch
 from zipfile import is_zipfile
 
@@ -43,17 +43,26 @@ from tests.conftest import CTAS_SCHEMA_NAME
 class TestDatasetApi(SupersetTestCase):
 
     fixture_tables_names = ("ab_permission", "ab_permission_view", "ab_view_menu")
+    fixture_virtual_table_names = ("sql_virtual_dataset_1", "sql_virtual_dataset_2")
 
     @staticmethod
     def insert_dataset(
-        table_name: str, schema: str, owners: List[int], database: Database
+        table_name: str,
+        schema: str,
+        owners: List[int],
+        database: Database,
+        sql: Optional[str] = None,
     ) -> SqlaTable:
         obj_owners = list()
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)
         table = SqlaTable(
-            table_name=table_name, schema=schema, owners=obj_owners, database=database
+            table_name=table_name,
+            schema=schema,
+            owners=obj_owners,
+            database=database,
+            sql=sql,
         )
         db.session.add(table)
         db.session.commit()
@@ -71,6 +80,29 @@ class TestDatasetApi(SupersetTestCase):
             .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
             .all()
         )
+
+    @pytest.fixture()
+    def create_virtual_datasets(self):
+        with self.create_app().app_context():
+            datasets = []
+            admin = self.get_user("admin")
+            main_db = get_main_database()
+            for table_name in self.fixture_virtual_table_names:
+                datasets.append(
+                    self.insert_dataset(
+                        table_name,
+                        "",
+                        [admin.id],
+                        main_db,
+                        "SELECT * from ab_view_menu;",
+                    )
+                )
+            yield datasets
+
+            # rollback changes
+            for dataset in datasets:
+                db.session.delete(dataset)
+            db.session.commit()
 
     @pytest.fixture()
     def create_datasets(self):
@@ -1101,3 +1133,37 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{table.id}/related_objects"
         rv = self.client.get(uri)
         assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_datasets", "create_virtual_datasets")
+    def test_get_datasets_custom_filter_sql(self):
+        """
+        Dataset API: Test custom dataset_is_null_or_empty filter for sql
+        """
+        arguments = {
+            "filters": [
+                {"col": "sql", "opr": "dataset_is_null_or_empty", "value": False}
+            ]
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        for table_name in self.fixture_virtual_table_names:
+            assert table_name in [ds["table_name"] for ds in data["result"]]
+
+        arguments = {
+            "filters": [
+                {"col": "sql", "opr": "dataset_is_null_or_empty", "value": True}
+            ]
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        for table_name in self.fixture_tables_names:
+            assert table_name in [ds["table_name"] for ds in data["result"]]

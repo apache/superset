@@ -45,7 +45,7 @@ export { default as Row } from './Row';
 export { default as Tab } from './Tab';
 export { default as Tabs } from './Tabs';
 
-export default {
+export const componentLookup = {
   [CHART_TYPE]: ChartHolder,
   [MARKDOWN_TYPE]: Markdown,
   [COLUMN_TYPE]: Column,
