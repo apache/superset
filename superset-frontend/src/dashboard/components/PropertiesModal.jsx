@@ -157,7 +157,10 @@ class PropertiesModal extends React.PureComponent {
           ...state.values,
           dashboard_title: dashboard.dashboard_title || '',
           slug: dashboard.slug || '',
-          json_metadata: dashboard.json_metadata || '',
+          // format json with 2-space indentation
+          json_metadata: dashboard.json_metadata
+            ? JSON.stringify(jsonMetadataObj, null, 2)
+            : '',
           colorScheme: jsonMetadataObj.color_scheme,
         },
       }));
