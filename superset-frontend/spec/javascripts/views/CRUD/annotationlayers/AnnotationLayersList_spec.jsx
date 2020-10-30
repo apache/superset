@@ -64,7 +64,7 @@ fetchMock.get(layersEndpoint, {
 });
 
 /* fetchMock.delete(layerEndpoint, {});
-fetchMock.delete(layersEndpoint, {});*/
+fetchMock.delete(layersEndpoint, {}); */
 
 fetchMock.get(layersRelatedEndpoint, {
   created_by: {
