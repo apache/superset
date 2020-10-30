@@ -18,7 +18,7 @@
 import logging
 import re
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
@@ -36,6 +36,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
+from sqlalchemy.sql import functions as func
 from werkzeug.urls import Href
 
 from superset import (
@@ -1192,41 +1193,93 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, user_id: int
     ) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
-        if request.args.get("limit"):
-            limit = int(request.args["limit"])
-        else:
-            limit = 1000
+        limit = request.args.get("limit")
+        limit = int(limit) if limit and limit.isdigit() else 100
+        actions = request.args.get("actions", "explore,dashboard").split(",")
+        # whether to get distinct subjects
+        distinct = request.args.get("distinct") != "false"
 
-        qry = (
-            db.session.query(Log, Dashboard, Slice)
-            .outerjoin(Dashboard, Dashboard.id == Log.dashboard_id)
-            .outerjoin(Slice, Slice.id == Log.slice_id)
-            .filter(
-                and_(
-                    Log.action.in_(("queries", "shortner", "sql_json")),
-                    Log.user_id == user_id,
-                )
-            )
-            .order_by(Log.dttm.desc())
-            .limit(limit)
+        has_subject_title = or_(
+            and_(
+                Dashboard.dashboard_title is not None, Dashboard.dashboard_title != "",
+            ),
+            and_(Slice.slice_name is not None, Slice.slice_name != ""),
         )
+
+        if distinct:
+            one_year_ago = datetime.today() - timedelta(days=365)
+            subqry = (
+                db.session.query(
+                    Log.dashboard_id,
+                    Log.slice_id,
+                    Log.action,
+                    func.max(Log.dttm).label("dttm"),
+                )
+                .group_by(Log.dashboard_id, Log.slice_id, Log.action)
+                .filter(
+                    and_(
+                        Log.action.in_(actions),
+                        Log.user_id == user_id,
+                        # limit to one year of data to improve performance
+                        Log.dttm > one_year_ago,
+                        or_(Log.dashboard_id.isnot(None), Log.slice_id.isnot(None)),
+                    )
+                )
+                .subquery()
+            )
+            qry = (
+                db.session.query(
+                    subqry,
+                    Dashboard.slug.label("dashboard_slug"),
+                    Dashboard.dashboard_title,
+                    Slice.slice_name,
+                )
+                .outerjoin(Dashboard, Dashboard.id == subqry.c.dashboard_id)
+                .outerjoin(Slice, Slice.id == subqry.c.slice_id,)
+                .filter(has_subject_title)
+                .order_by(subqry.c.dttm.desc())
+                .limit(limit)
+            )
+        else:
+            qry = (
+                db.session.query(
+                    Log.dttm,
+                    Log.action,
+                    Log.dashboard_id,
+                    Log.slice_id,
+                    Dashboard.slug.label("dashboard_slug"),
+                    Dashboard.dashboard_title,
+                    Slice.slice_name,
+                )
+                .outerjoin(Dashboard, Dashboard.id == Log.dashboard_id)
+                .outerjoin(Slice, Slice.id == Log.slice_id)
+                .filter(has_subject_title)
+                .order_by(Log.dttm.desc())
+                .limit(limit)
+            )
+
         payload = []
         for log in qry.all():
             item_url = None
             item_title = None
-            if log.Dashboard:
-                item_url = log.Dashboard.url
-                item_title = log.Dashboard.dashboard_title
-            elif log.Slice:
-                item_url = log.Slice.slice_url
-                item_title = log.Slice.slice_name
+            item_type = None
+            if log.dashboard_id:
+                item_type = "dashboard"
+                item_url = Dashboard(id=log.dashboard_id, slug=log.dashboard_slug).url
+                item_title = log.dashboard_title
+            elif log.slice_id:
+                slc = Slice(id=log.slice_id, slice_name=log.slice_name)
+                item_type = "slice"
+                item_url = slc.slice_url
+                item_title = slc.chart
 
             payload.append(
                 {
-                    "action": log.Log.action,
+                    "action": log.action,
+                    "item_type": item_type,
                     "item_url": item_url,
                     "item_title": item_title,
-                    "time": log.Log.dttm,
+                    "time": log.dttm,
                 }
             )
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
