@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
@@ -299,32 +299,29 @@ export function useSingleViewResource<D extends object = any>(
   };
 }
 
-// the hooks api has some known limitations around stale state in closures.
-// See https://github.com/reactjs/rfcs/blob/master/text/0068-react-hooks.md#drawbacks
-// the useRef hook is a way of getting around these limitations by having a consistent ref
-// that points to the most recent value.
 export function useFavoriteStatus(
-  initialState: FavoriteStatus,
-  baseURL: string,
+  type: 'chart' | 'dashboard',
+  ids: Array<string | number>,
   handleErrorMsg: (message: string) => void,
 ) {
-  const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>(
-    initialState,
-  );
-  const favoriteStatusRef = useRef<FavoriteStatus>(favoriteStatus);
-  useEffect(() => {
-    favoriteStatusRef.current = favoriteStatus;
-  });
+  const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>({});
 
   const updateFavoriteStatus = (update: FavoriteStatus) =>
     setFavoriteStatus(currentState => ({ ...currentState, ...update }));
 
-  const fetchFaveStar = (id: number) => {
+  useEffect(() => {
     SupersetClient.get({
-      endpoint: `${baseURL}/${id}/count/`,
+      endpoint: `/api/v1/${type}/favorite_status/?q=${rison.encode(ids)}`,
     }).then(
       ({ json }) => {
-        updateFavoriteStatus({ [id]: json.count > 0 });
+        const update = (json?.result as {
+          id: string;
+          value: boolean;
+        }[])?.reduce((acc, element) => {
+          acc[element.id] = element.value;
+          return acc;
+        }, {});
+        updateFavoriteStatus(update);
       },
       createErrorHandler(errMsg =>
         handleErrorMsg(
@@ -332,31 +329,33 @@ export function useFavoriteStatus(
         ),
       ),
     );
-  };
+  }, [ids]);
 
-  const saveFaveStar = (id: number, isStarred: boolean) => {
-    const urlSuffix = isStarred ? 'unselect' : 'select';
-
-    SupersetClient.get({
-      endpoint: `${baseURL}/${id}/${urlSuffix}/`,
-    }).then(
-      () => {
-        updateFavoriteStatus({ [id]: !isStarred });
-      },
-      createErrorHandler(errMsg =>
-        handleErrorMsg(
-          t('There was an error saving the favorite status: %s', errMsg),
+  const saveFaveStar = useCallback(
+    (id: number, isStarred: boolean) => {
+      const urlSuffix = isStarred ? 'unselect' : 'select';
+      console.log('fetching', id, isStarred);
+      SupersetClient.get({
+        endpoint: `/superset/favstar/${
+          type === 'chart' ? 'slice' : 'Dashboard'
+        }/${id}/${urlSuffix}/`,
+      }).then(
+        ({ json }) => {
+          updateFavoriteStatus({
+            [id]: (json as { count: number })?.count > 0,
+          });
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t('There was an error saving the favorite status: %s', errMsg),
+          ),
         ),
-      ),
-    );
-  };
+      );
+    },
+    [type],
+  );
 
-  return [
-    favoriteStatusRef,
-    fetchFaveStar,
-    saveFaveStar,
-    favoriteStatus,
-  ] as const;
+  return [saveFaveStar, favoriteStatus] as const;
 }
 
 export const useChartEditModal = (

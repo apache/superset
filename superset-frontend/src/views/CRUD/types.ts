@@ -45,17 +45,6 @@ export interface Dashboard {
   loading?: boolean;
 }
 
-export interface DashboardCardProps {
-  isChart?: boolean;
-  dashboard: Dashboard;
-  hasPerm: (name: string) => boolean;
-  bulkSelectEnabled: boolean;
-  refreshData: () => void;
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
-  openDashboardEditModal?: (d: Dashboard) => void;
-}
-
 export type SavedQueryObject = {
   database: {
     database_name: string;

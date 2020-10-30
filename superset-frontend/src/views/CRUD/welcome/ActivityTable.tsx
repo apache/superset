@@ -177,8 +177,8 @@ export default function ActivityTable({ user }: ActivityProps) {
     return activityData[activeChild].map((e: ActivityObjects) => (
       <ListViewCard
         key={`${e.id}`}
-        isRecent
         loading={loading}
+        cover={<></>}
         url={e.sql ? `/supserset/sqllab?queryId=${e.id}` : e.url}
         title={getFilterTitle(e)}
         description={`Last Edited: ${moment(e.changed_on_utc).format(
