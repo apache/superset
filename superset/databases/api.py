@@ -167,6 +167,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "database_schemas_query_schema": database_schemas_query_schema,
+        "get_export_ids_schema": get_export_ids_schema,
     }
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
@@ -682,9 +683,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: integer
+                  $ref: '#/components/schemas/get_export_ids_schema'
           responses:
             200:
               description: A zip file with database(s) and dataset(s) as YAML

@@ -175,6 +175,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     apispec_parameter_schemas = {
         "screenshot_query_schema": screenshot_query_schema,
         "get_delete_ids_schema": get_delete_ids_schema,
+        "get_export_ids_schema": get_export_ids_schema,
     }
     """ Add extra schemas to the OpenAPI components schema section """
     openapi_spec_methods = openapi_spec_methods_override
@@ -733,9 +734,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: integer
+                  $ref: '#/components/schemas/get_export_ids_schema'
           responses:
             200:
               description: A zip file with chart(s), dataset(s) and database(s) as YAML
