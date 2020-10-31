@@ -34,6 +34,8 @@ import { prepareCopyToClipboardTabularData } from '../../utils/common';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal'
+
 const SEARCH_HEIGHT = 46;
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
@@ -174,6 +176,7 @@ export default class ResultSet extends React.PureComponent<
       }
       return (
         <div className="ResultSetControls">
+          <SaveDatasetModal />
           <div className="ResultSetButtons">
             {this.props.visualize &&
               this.props.database &&
@@ -385,6 +388,7 @@ export default class ResultSet extends React.PureComponent<
         </div>
         <div>{progressBar}</div>
         <div>{trackingUrl}</div>
+        <SaveDatasetModal />
       </div>
     );
   }
