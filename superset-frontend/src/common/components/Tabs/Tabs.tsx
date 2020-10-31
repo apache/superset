@@ -30,6 +30,10 @@ const notForwardedProps = ['fullWidth'];
 const StyledTabs = styled(AntdTabs, {
   shouldForwardProp: prop => !notForwardedProps.includes(prop),
 })<TabsProps>`
+  .ant-tabs-content-holder {
+    overflow: auto;
+  }
+
   .ant-tabs-tab {
     flex: 1 1 auto;
 
@@ -120,5 +124,15 @@ EditableTabs.TabPane.defaultProps = {
   ),
 };
 
+const StyledCardTabs = styled(EditableTabs)``;
+
+const CardTabs = Object.assign(StyledCardTabs, {
+  TabPane: StyledTabPane,
+});
+
+CardTabs.defaultProps = {
+  type: 'card',
+};
+
 export default Tabs;
-export { EditableTabs };
+export { CardTabs, EditableTabs };
