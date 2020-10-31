@@ -18,10 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Badge, Col, Radio, Tabs, Tab, Well } from 'react-bootstrap';
+import { Alert, Badge, Col, Radio, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 
+import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
@@ -596,11 +597,9 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     const { spatials, all_cols: allCols } = datasource;
     return (
-      <Tab
-        title={
-          <CollectionTabTitle collection={spatials} title={t('Spatial')} />
-        }
-        eventKey={4}
+      <Tabs.TabPane
+        tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
+        key={4}
       >
         <CollectionTable
           tableColumns={['name', 'config']}
@@ -621,7 +620,7 @@ class DatasourceEditor extends React.PureComponent {
             ),
           }}
         />
-      </Tab>
+      </Tabs.TabPane>
     );
   }
 
@@ -905,94 +904,89 @@ class DatasourceEditor extends React.PureComponent {
           </Alert>
         </div>
         <Tabs
+          fullWidth={false}
           id="table-tabs"
           data-test="edit-dataset-tabs"
-          onSelect={this.handleTabSelect}
+          onChange={this.handleTabSelect}
           defaultActiveKey={activeTabKey}
         >
-          <Tab eventKey={0} title={t('Source')}>
-            {activeTabKey === 0 && this.renderSourceFieldset()}
-          </Tab>
-          <Tab
-            title={
+          <Tabs.TabPane key={0} tab={t('Source')}>
+            {this.renderSourceFieldset()}
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            tab={
               <CollectionTabTitle
                 collection={datasource.metrics}
                 title={t('Metrics')}
               />
             }
-            eventKey={1}
+            key={1}
           >
-            {activeTabKey === 1 && this.renderMetricCollection()}
-          </Tab>
-          <Tab
-            title={
+            {this.renderMetricCollection()}
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            tab={
               <CollectionTabTitle
                 collection={this.state.databaseColumns}
                 title={t('Columns')}
               />
             }
-            eventKey={2}
+            key={2}
           >
-            {activeTabKey === 2 && (
-              <div>
-                <ColumnCollectionTable
-                  columns={this.state.databaseColumns}
-                  onChange={databaseColumns =>
-                    this.setColumns({ databaseColumns })
-                  }
-                />
-                <Button
-                  buttonStyle="primary"
-                  onClick={this.syncMetadata}
-                  className="sync-from-source"
-                >
-                  {t('Sync columns from source')}
-                </Button>
-                {this.state.metadataLoading && <Loading />}
-              </div>
-            )}
-          </Tab>
-          <Tab
-            title={
+            <div>
+              <ColumnCollectionTable
+                columns={this.state.databaseColumns}
+                onChange={databaseColumns =>
+                  this.setColumns({ databaseColumns })
+                }
+              />
+              <Button
+                buttonStyle="primary"
+                onClick={this.syncMetadata}
+                className="sync-from-source"
+              >
+                {t('Sync columns from source')}
+              </Button>
+              {this.state.metadataLoading && <Loading />}
+            </div>
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            tab={
               <CollectionTabTitle
                 collection={this.state.calculatedColumns}
                 title={t('Calculated Columns')}
               />
             }
-            eventKey={3}
+            key={3}
           >
-            {activeTabKey === 3 && (
-              <ColumnCollectionTable
-                columns={this.state.calculatedColumns}
-                onChange={calculatedColumns =>
-                  this.setColumns({ calculatedColumns })
-                }
-                editableColumnName
-                showExpression
-                allowAddItem
-                allowEditDataType
-                itemGenerator={() => ({
-                  column_name: '<new column>',
-                  filterable: true,
-                  groupby: true,
-                  expression: '<enter SQL expression here>',
-                  __expanded: true,
-                })}
-              />
-            )}
-          </Tab>
-          <Tab eventKey={4} title={t('Settings')}>
-            {activeTabKey === 4 && (
-              <div>
-                <Col md={6}>
-                  <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
-                </Col>
-                <Col md={6}>
-                  <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
-                </Col>
-              </div>
-            )}
-          </Tab>
+            <ColumnCollectionTable
+              columns={this.state.calculatedColumns}
+              onChange={calculatedColumns =>
+                this.setColumns({ calculatedColumns })
+              }
+              editableColumnName
+              showExpression
+              allowAddItem
+              allowEditDataType
+              itemGenerator={() => ({
+                column_name: '<new column>',
+                filterable: true,
+                groupby: true,
+                expression: '<enter SQL expression here>',
+                __expanded: true,
+              })}
+            />
+          </Tabs.TabPane>
+          <Tabs.TabPane key={4} tab={t('Settings')}>
+            <div>
+              <Col md={6}>
+                <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
+              </Col>
+              <Col md={6}>
+                <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
+              </Col>
+            </div>
+          </Tabs.TabPane>
         </Tabs>
       </DatasourceContainer>
     );

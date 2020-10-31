@@ -43,6 +43,12 @@ describe('AdhocFilters', () => {
       cy.get('input[type=text]').focus().type('name{enter}');
     });
 
+    // antd tabs do lazy loading, so we need to click on tab with ace editor
+    cy.get('#filter-edit-popover').within(() => {
+      cy.get('.ant-tabs-tab').contains('Custom SQL').click();
+      cy.get('.ant-tabs-tab').contains('Simple').click();
+    });
+
     cy.get('script').then(nodes => {
       // should load new script chunks for SQL editor
       expect(nodes.length).to.greaterThan(numScripts);
