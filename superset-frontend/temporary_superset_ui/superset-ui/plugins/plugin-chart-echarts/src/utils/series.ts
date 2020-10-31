@@ -71,17 +71,17 @@ export function formatSeriesName(
 }
 
 export function extractGroupbyLabel({
-  datum,
+  datum = {},
   groupby,
   numberFormatter,
   timeFormatter,
 }: {
-  datum: DataRecord;
-  groupby: string[];
+  datum?: DataRecord;
+  groupby?: string[] | null;
   numberFormatter?: NumberFormatter;
   timeFormatter?: TimeFormatter;
 }): string {
-  return groupby
+  return (groupby || [])
     .map(val => formatSeriesName(datum[val], { numberFormatter, timeFormatter }))
     .join(', ');
 }
