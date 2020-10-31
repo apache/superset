@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/"
+    schedule:
+      interval: "daily"
+    labels:
+      - npm
+      - dependabot
+
+  - package-ecosystem: "pip"
+    directory: "/requirements/"
+    schedule:
+      interval: "daily"
+    labels:
+      - pip
+      - dependabot
