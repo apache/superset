@@ -82,6 +82,16 @@ describe('extractGroupbyLabel', () => {
       }),
     ).toEqual('abc, 123, 0.123, true');
   });
+
+  it('should handle null and undefined groupby', () => {
+    expect(
+      extractGroupbyLabel({
+        datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
+        groupby: null,
+      }),
+    ).toEqual('');
+    expect(extractGroupbyLabel({})).toEqual('');
+  });
 });
 
 describe('formatSeriesName', () => {
