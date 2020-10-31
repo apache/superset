@@ -55,11 +55,11 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
         return {
           name,
           value: [
-            datum[`${metric}__low`],
+            datum[`${metric}__min`],
             datum[`${metric}__q1`],
             datum[`${metric}__median`],
             datum[`${metric}__q3`],
-            datum[`${metric}__high`],
+            datum[`${metric}__max`],
             datum[`${metric}__mean`],
             datum[`${metric}__count`],
             datum[`${metric}__outliers`],
@@ -87,9 +87,9 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
           data: outlierDatum.map(val => [name, val]),
           tooltip: {
             formatter: (param: { data: [string, number] }) => {
-              const headline = `<p><strong>${param.data[0]}</strong></p>`;
-              const stats = `${numberFormatter(param.data[1])}`;
-              return headline + stats;
+              const [outlierName, stats] = param.data;
+              const headline = groupby ? `<p><strong>${outlierName}</strong></p>` : '';
+              return `${headline}${numberFormatter(stats)}`;
             },
           },
           itemStyle: {
@@ -150,18 +150,18 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
               value: [number, number, number, number, number, number, number, number, number[]];
               name: string;
             } = param;
-            const headline = `<p><strong>${name}</strong></p>`;
+            const headline = name ? `<p><strong>${name}</strong></p>` : '';
             const stats = [
-              `upper: ${numberFormatter(value[5])}`,
-              `Q3: ${numberFormatter(value[4])}`,
-              `mean: ${numberFormatter(value[6])}`,
-              `median: ${numberFormatter(value[3])}`,
-              `Q1: ${numberFormatter(value[2])}`,
-              `lower: ${numberFormatter(value[1])}`,
-              `observations: ${numberFormatter(value[7])}`,
+              `Max: ${numberFormatter(value[5])}`,
+              `3rd Quartile: ${numberFormatter(value[4])}`,
+              `Mean: ${numberFormatter(value[6])}`,
+              `Median: ${numberFormatter(value[3])}`,
+              `1st Quartile: ${numberFormatter(value[2])}`,
+              `Min: ${numberFormatter(value[1])}`,
+              `# Observations: ${numberFormatter(value[7])}`,
             ];
             if (value[8].length > 0) {
-              stats.push(`outliers: ${numberFormatter(value[8].length)}`);
+              stats.push(`# Outliers: ${numberFormatter(value[8].length)}`);
             }
             return headline + stats.join('<br/>');
           },

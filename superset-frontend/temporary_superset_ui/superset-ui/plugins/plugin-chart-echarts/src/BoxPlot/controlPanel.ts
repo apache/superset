@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { D3_FORMAT_OPTIONS, formatSelectOptions } from '@superset-ui/chart-controls';
 
 export default {
@@ -99,8 +99,6 @@ export default {
   controlOverrides: {
     groupby: {
       label: t('Series'),
-      validators: [validateNonEmpty],
-      clearable: false,
       description: t('Categories to group by on the x-axis.'),
     },
     columns: {
