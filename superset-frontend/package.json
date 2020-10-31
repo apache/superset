@@ -63,7 +63,7 @@
     "@ant-design/icons": "^4.2.2",
     "@babel/runtime-corejs3": "^7.8.4",
     "@data-ui/sparkline": "^0.0.84",
-    "@emotion/core": "^10.0.28",
+    "@emotion/core": "^10.0.35",
     "@superset-ui/chart-controls": "^0.15.5",
     "@superset-ui/core": "^0.15.10",
     "@superset-ui/legacy-plugin-chart-calendar": "^0.15.10",
