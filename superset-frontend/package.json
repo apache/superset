@@ -149,7 +149,7 @@
     "react-sortable-hoc": "^1.11.0",
     "react-split": "^2.0.4",
     "react-sticky": "^6.0.3",
-    "react-syntax-highlighter": "^13.5.3",
+    "react-syntax-highlighter": "^15.3.0",
     "react-table": "^7.2.1",
     "react-transition-group": "^2.5.3",
     "react-ultimate-pagination": "^1.2.0",
