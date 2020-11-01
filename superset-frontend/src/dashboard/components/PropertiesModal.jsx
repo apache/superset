@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, FormControl } from 'react-bootstrap';
+import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
 import Dialog from 'react-bootstrap-dialog';
 import { AsyncSelect } from 'src/components/Select';
@@ -119,7 +120,7 @@ class PropertiesModal extends React.PureComponent {
       Object.keys(jsonMetadataObj).includes('color_scheme')
     ) {
       jsonMetadataObj.color_scheme = value;
-      this.onMetadataChange(JSON.stringify(jsonMetadataObj));
+      this.onMetadataChange(jsonStringify(jsonMetadataObj));
     }
 
     this.updateFormState('colorScheme', value);
@@ -159,7 +160,7 @@ class PropertiesModal extends React.PureComponent {
           slug: dashboard.slug || '',
           // format json with 2-space indentation
           json_metadata: dashboard.json_metadata
-            ? JSON.stringify(jsonMetadataObj, null, 2)
+            ? jsonStringify(jsonMetadataObj)
             : '',
           colorScheme: jsonMetadataObj.color_scheme,
         },
