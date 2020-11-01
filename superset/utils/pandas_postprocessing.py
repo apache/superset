@@ -297,7 +297,13 @@ def aggregate(
     """
     aggregates = aggregates or {}
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
-    return df.groupby(by=groupby).agg(**aggregate_funcs).reset_index()
+    if groupby:
+        df_groupby = df.groupby(by=groupby)
+    else:
+        df_groupby = df.groupby(lambda _: True)
+    return df_groupby.agg(**aggregate_funcs).reset_index(
+        drop=False if groupby else True
+    )
 
 
 @validate_column_args("columns")
@@ -721,8 +727,8 @@ def boxplot(
 
     - `__mean`: the mean
     - `__median`: the median
-    - `__high`: the maximum value excluding outliers (see whisker type)
-    - `__low`: the minimum value excluding outliers (see whisker type)
+    - `__max`: the maximum value excluding outliers (see whisker type)
+    - `__min`: the minimum value excluding outliers (see whisker type)
     - `__q1`: the median
     - `__q1`: the first quartile (25th percentile)
     - `__q3`: the third quartile (75th percentile)
@@ -791,8 +797,8 @@ def boxplot(
     operators: Dict[str, Callable[[Any], Any]] = {
         "mean": np.mean,
         "median": np.median,
-        "high": whisker_high,
-        "low": whisker_low,
+        "max": whisker_high,
+        "min": whisker_low,
         "q1": quartile1,
         "q3": quartile3,
         "count": np.ma.count,
