@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -45,14 +44,10 @@ class UpdateDashboardCommand(BaseCommand):
         self._actor = user
         self._model_id = model_id
         self._properties = data.copy()
-
         self._model: Optional[Dashboard] = None
 
     def run(self) -> Model:
         self.validate()
-        if self._properties["json_metadata"]:
-            # minify json metadata
-            self._properties["json_metadata"] = json.dumps(json.loads(self._properties["json_metadata"]))
         try:
             dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
