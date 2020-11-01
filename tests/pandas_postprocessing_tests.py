@@ -669,7 +669,6 @@ class TestPostProcessing(SupersetTestCase):
             percentiles=[1, 99],
         )
         columns = {column for column in df.columns}
-
         assert columns == {
             "cars__mean",
             "cars__median",
