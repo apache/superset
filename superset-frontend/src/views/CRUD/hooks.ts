@@ -238,6 +238,8 @@ export function useSingleViewResource<D extends object = any>(
           updateState({
             resource: json.result,
           });
+
+          return json.id;
         },
         createErrorHandler(errMsg =>
           handleErrorMsg(

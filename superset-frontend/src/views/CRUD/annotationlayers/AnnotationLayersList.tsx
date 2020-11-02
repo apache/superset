@@ -324,13 +324,17 @@ function AnnotationLayersList({
     slot: EmptyStateButton,
   };
 
+  const onLayerAdd = (id?: number) => {
+    window.location.href = `/annotationmodelview/${id}/annotation`;
+  };
+
   return (
     <>
       <SubMenu name={t('Annotation Layers')} buttons={subMenuButtons} />
       <AnnotationLayerModal
         addDangerToast={addDangerToast}
         layer={currentAnnotationLayer}
-        onLayerAdd={() => refreshData()}
+        onLayerAdd={onLayerAdd}
         onHide={() => setAnnotationLayerModalOpen(false)}
         show={annotationLayerModalOpen}
       />
