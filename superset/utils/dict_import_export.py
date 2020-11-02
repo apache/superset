@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import re
-import unicodedata
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
@@ -98,18 +96,3 @@ def import_from_dict(
         session.commit()
     else:
         logger.info("Supplied object is not a dictionary.")
-
-
-def strip_accents(text: str) -> str:
-    text = unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode("utf-8")
-
-    return str(text)
-
-
-def sanitize(name: str) -> str:
-    """Sanitize a post title into a directory name."""
-    name = name.lower().replace(" ", "_")
-    name = re.sub(r"[^\w]", "", name)
-    name = strip_accents(name)
-
-    return name
