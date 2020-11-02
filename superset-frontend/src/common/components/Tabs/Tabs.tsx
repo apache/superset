@@ -40,6 +40,24 @@ const StyledTabs = styled(AntdTabs, {
     &.ant-tabs-tab-active .ant-tabs-tab-btn {
       color: inherit;
     }
+
+    &:hover {
+      .anchor-link-container {
+        cursor: pointer;
+
+        .fa.fa-link {
+          visibility: visible;
+        }
+      }
+    }
+
+    .short-link-trigger.btn {
+      padding: 0 ${({ theme }) => theme.gridUnit}px;
+
+      & > .fa.fa-link {
+        top: 0;
+      }
+    }
   }
 
   ${({ fullWidth }) =>
@@ -124,15 +142,37 @@ EditableTabs.TabPane.defaultProps = {
   ),
 };
 
-const StyledCardTabs = styled(EditableTabs)``;
+const StyledLineEditableTabs = styled(EditableTabs)`
+  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
+    padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit}px`};
+    background: transparent;
+    border: none;
+  }
 
-const CardTabs = Object.assign(StyledCardTabs, {
+  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-ink-bar {
+    visibility: visible;
+  }
+
+  .ant-tabs-tab-btn {
+    font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  }
+
+  .ant-tabs-tab-remove {
+    margin-left: 0;
+    padding-right: 0;
+  }
+
+  .ant-tabs-nav-add {
+    min-width: unset !important;
+    background: transparent !important;
+    border: none !important;
+  }
+`;
+
+const LineEditableTabs = Object.assign(StyledLineEditableTabs, {
   TabPane: StyledTabPane,
 });
 
-CardTabs.defaultProps = {
-  type: 'card',
-};
-
 export default Tabs;
-export { CardTabs, EditableTabs };
+export { EditableTabs, LineEditableTabs };
