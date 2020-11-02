@@ -61,7 +61,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.dashboards.commands.importers.v0 import ImportDashboardCommand
+from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import (
@@ -546,7 +546,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             success = False
             database_id = request.form.get("db_id")
             try:
-                ImportDashboardCommand(
+                ImportDashboardsCommand(
                     {import_file.filename: import_file.read()}, database_id
                 ).run()
                 success = True

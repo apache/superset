@@ -32,7 +32,7 @@ from superset.connectors.druid.models import (
     DruidCluster,
 )
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dashboards.commands.importers.v0 import import_dashboard
+from superset.dashboards.commands.importers.v0 import import_chart, import_dashboard
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
@@ -307,7 +307,7 @@ class TestImportExport(SupersetTestCase):
 
     def test_import_1_slice(self):
         expected_slice = self.create_slice("Import Me", id=10001)
-        slc_id = Slice.import_obj(expected_slice, None, import_time=1989)
+        slc_id = import_chart(expected_slice, None, import_time=1989)
         slc = self.get_slice(slc_id)
         self.assertEqual(slc.datasource.perm, slc.perm)
         self.assert_slice_equals(expected_slice, slc)
@@ -319,9 +319,9 @@ class TestImportExport(SupersetTestCase):
         table_id = self.get_table_by_name("wb_health_population").id
         # table_id != 666, import func will have to find the table
         slc_1 = self.create_slice("Import Me 1", ds_id=666, id=10002)
-        slc_id_1 = Slice.import_obj(slc_1, None)
+        slc_id_1 = import_chart(slc_1, None)
         slc_2 = self.create_slice("Import Me 2", ds_id=666, id=10003)
-        slc_id_2 = Slice.import_obj(slc_2, None)
+        slc_id_2 = import_chart(slc_2, None)
 
         imported_slc_1 = self.get_slice(slc_id_1)
         imported_slc_2 = self.get_slice(slc_id_2)
@@ -335,18 +335,18 @@ class TestImportExport(SupersetTestCase):
 
     def test_import_slices_for_non_existent_table(self):
         with self.assertRaises(AttributeError):
-            Slice.import_obj(
+            import_chart(
                 self.create_slice("Import Me 3", id=10004, table_name="non_existent"),
                 None,
             )
 
     def test_import_slices_override(self):
         slc = self.create_slice("Import Me New", id=10005)
-        slc_1_id = Slice.import_obj(slc, None, import_time=1990)
+        slc_1_id = import_chart(slc, None, import_time=1990)
         slc.slice_name = "Import Me New"
         imported_slc_1 = self.get_slice(slc_1_id)
         slc_2 = self.create_slice("Import Me New", id=10005)
-        slc_2_id = Slice.import_obj(slc_2, imported_slc_1, import_time=1990)
+        slc_2_id = import_chart(slc_2, imported_slc_1, import_time=1990)
         self.assertEqual(slc_1_id, slc_2_id)
         imported_slc_2 = self.get_slice(slc_2_id)
         self.assert_slice_equals(slc, imported_slc_2)

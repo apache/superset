@@ -22,9 +22,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import make_transient, Session
 
-from superset import db
+from superset import ConnectorRegistry, db
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import DashboardImportException
@@ -38,9 +38,51 @@ from superset.utils.dashboard_filter_scopes_converter import (
 logger = logging.getLogger(__name__)
 
 
+def import_chart(
+    slc_to_import: Slice,
+    slc_to_override: Optional[Slice],
+    import_time: Optional[int] = None,
+) -> int:
+    """Inserts or overrides slc in the database.
+
+    remote_id and import_time fields in params_dict are set to track the
+    slice origin and ensure correct overrides for multiple imports.
+    Slice.perm is used to find the datasources and connect them.
+
+    :param Slice slc_to_import: Slice object to import
+    :param Slice slc_to_override: Slice to replace, id matches remote_id
+    :returns: The resulting id for the imported slice
+    :rtype: int
+    """
+    session = db.session
+    make_transient(slc_to_import)
+    slc_to_import.dashboards = []
+    slc_to_import.alter_params(remote_id=slc_to_import.id, import_time=import_time)
+
+    slc_to_import = slc_to_import.copy()
+    slc_to_import.reset_ownership()
+    params = slc_to_import.params_dict
+    datasource = ConnectorRegistry.get_datasource_by_name(
+        session,
+        slc_to_import.datasource_type,
+        params["datasource_name"],
+        params["schema"],
+        params["database_name"],
+    )
+    slc_to_import.datasource_id = datasource.id  # type: ignore
+    if slc_to_override:
+        slc_to_override.override(slc_to_import)
+        session.flush()
+        return slc_to_override.id
+    session.add(slc_to_import)
+    logger.info("Final slice: %s", str(slc_to_import.to_json()))
+    session.flush()
+    return slc_to_import.id
+
+
 def import_dashboard(
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    dashboard_to_import: "Dashboard",
+    dashboard_to_import: Dashboard,
     import_time: Optional[int] = None,
 ) -> int:
     """Imports the dashboard from the object to the database.
@@ -125,7 +167,7 @@ def import_dashboard(
             dashboard_to_import.dashboard_title,
         )
         remote_slc = remote_id_slice_map.get(slc.id)
-        new_slc_id = Slice.import_obj(slc, remote_slc, import_time=import_time)
+        new_slc_id = import_chart(slc, remote_slc, import_time=import_time)
         old_to_new_slc_id_dict[slc.id] = new_slc_id
         # update json metadata that deals with slice ids
         new_slc_id_str = str(new_slc_id)
@@ -266,7 +308,7 @@ def import_dashboards(
     session.commit()
 
 
-class ImportDashboardCommand(BaseCommand):
+class ImportDashboardsCommand(BaseCommand):
     """
     Import dashboard in JSON format.
 

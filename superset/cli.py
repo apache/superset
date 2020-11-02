@@ -235,7 +235,7 @@ def refresh_druid(datasource: str, merge: bool) -> None:
 )
 def import_dashboards(path: str, recursive: bool, username: str) -> None:
     """Import dashboards from JSON"""
-    from superset.dashboards.commands.importers.v0 import ImportDashboardCommand
+    from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 
     path_object = Path(path)
     files: List[Path] = []
@@ -249,7 +249,7 @@ def import_dashboards(path: str, recursive: bool, username: str) -> None:
         g.user = security_manager.find_user(username=username)
     contents = {path.name: open(path).read() for path in files}
     try:
-        ImportDashboardCommand(contents).run()
+        ImportDashboardsCommand(contents).run()
     except Exception:  # pylint: disable=broad-except
         logger.exception("Error when importing dashboard")
 
