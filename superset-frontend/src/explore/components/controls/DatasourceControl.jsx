@@ -28,6 +28,7 @@ import Icon from 'src/components/Icon';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import Label from 'src/components/Label';
+import { postForm } from 'src/explore/exploreUtils';
 
 import ControlHeader from '../ControlHeader';
 
@@ -86,7 +87,7 @@ const ColumnsCol = styled(Col)`
 `;
 
 const CHANGE_DATASET = 'change_dataset';
-const EXPLORE_IN_SQL_LAB = 'explore_in_sql_lab';
+const VIEW_IN_SQL_LAB = 'view_in_sql_lab';
 const EDIT_DATASET = 'edit_dataset';
 
 class DatasourceControl extends React.PureComponent {
@@ -137,6 +138,14 @@ class DatasourceControl extends React.PureComponent {
     }
     if (key === EDIT_DATASET) {
       this.toggleEditDatasourceModal();
+    }
+    if (key === VIEW_IN_SQL_LAB) {
+      const { datasource } = this.props;
+      const payload = {
+        datasourceKey: `${datasource.id}__${datasource.type}`,
+        sql: datasource.sql,
+      };
+      postForm('/superset/sqllab', payload);
     }
   }
 
@@ -190,7 +199,7 @@ class DatasourceControl extends React.PureComponent {
       showEditDatasourceModal,
       showDatasource,
     } = this.state;
-    const { datasource, onChange, value } = this.props;
+    const { datasource, onChange } = this.props;
 
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
@@ -200,15 +209,7 @@ class DatasourceControl extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change Dataset')}</Menu.Item>
-        <Menu.Item key={EXPLORE_IN_SQL_LAB}>
-          <a
-            href={`/superset/sqllab?datasourceKey=${value}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('View in SQL Lab')}
-          </a>
-        </Menu.Item>
+        <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
       </Menu>
     );
 
