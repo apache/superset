@@ -20,12 +20,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { Alert, FormControl, FormGroup, Modal, Radio } from 'react-bootstrap';
+import { Alert, FormControl, FormGroup, Radio } from 'react-bootstrap';
+import { t } from '@superset-ui/core';
+import ReactMarkdown from 'react-markdown';
+import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
-import { t } from '@superset-ui/core';
-import ReactMarkdown from 'react-markdown';
 
 const propTypes = {
   can_overwrite: PropTypes.bool,
@@ -132,11 +133,41 @@ class SaveModal extends React.Component {
 
   render() {
     return (
-      <Modal show onHide={this.props.onHide}>
-        <Modal.Header closeButton>
-          <Modal.Title>{t('Save Chart')}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body data-test="save-modal-body">
+      <Modal
+        show
+        onHide={this.props.onHide}
+        title={t('Save Chart')}
+        footer={
+          <div data-test="save-modal-footer">
+            <Button id="btn_cancel" buttonSize="sm" onClick={this.props.onHide}>
+              {t('Cancel')}
+            </Button>
+            <Button
+              id="btn_modal_save_goto_dash"
+              buttonSize="sm"
+              disabled={
+                !this.state.newSliceName || !this.state.newDashboardName
+              }
+              onClick={this.saveOrOverwrite.bind(this, true)}
+            >
+              {t('Save & go to dashboard')}
+            </Button>
+            <Button
+              id="btn_modal_save"
+              buttonSize="sm"
+              buttonStyle="primary"
+              onClick={this.saveOrOverwrite.bind(this, false)}
+              disabled={!this.state.newSliceName}
+              data-test="btn-modal-save"
+            >
+              {!this.props.can_overwrite && this.props.slice
+                ? t('Save as new chart')
+                : t('Save')}
+            </Button>
+          </div>
+        }
+      >
+        <div data-test="save-modal-body">
           {(this.state.alert || this.props.alert) && (
             <Alert>
               {this.state.alert ? this.state.alert : this.props.alert}
@@ -207,37 +238,7 @@ class SaveModal extends React.Component {
               }
             />
           </FormGroup>
-        </Modal.Body>
-
-        <Modal.Footer data-test="save-modal-footer">
-          <div className="float-right">
-            <Button id="btn_cancel" buttonSize="sm" onClick={this.props.onHide}>
-              {t('Cancel')}
-            </Button>
-            <Button
-              id="btn_modal_save_goto_dash"
-              buttonSize="sm"
-              disabled={
-                !this.state.newSliceName || !this.state.newDashboardName
-              }
-              onClick={this.saveOrOverwrite.bind(this, true)}
-            >
-              {t('Save & go to dashboard')}
-            </Button>
-            <Button
-              id="btn_modal_save"
-              buttonSize="sm"
-              buttonStyle="primary"
-              onClick={this.saveOrOverwrite.bind(this, false)}
-              disabled={!this.state.newSliceName}
-              data-test="btn-modal-save"
-            >
-              {!this.props.can_overwrite && this.props.slice
-                ? t('Save as new chart')
-                : t('Save')}
-            </Button>
-          </div>
-        </Modal.Footer>
+        </div>
       </Modal>
     );
   }
