@@ -106,7 +106,7 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
   }
 `;
 
-export default function Modal({
+const CustomModal = ({
   children,
   disablePrimaryButton = false,
   onHide,
@@ -123,7 +123,7 @@ export default function Modal({
   hideFooter,
   wrapProps,
   ...rest
-}: ModalProps) {
+}: ModalProps) => {
   const modalFooter = isNil(footer)
     ? [
         <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
@@ -165,4 +165,14 @@ export default function Modal({
       {children}
     </StyledModal>
   );
-}
+};
+
+const Modal = Object.assign(CustomModal, {
+  info: BaseModal.info,
+  success: BaseModal.success,
+  error: BaseModal.error,
+  warning: BaseModal.warning,
+  confirm: BaseModal.confirm,
+});
+
+export default Modal;
