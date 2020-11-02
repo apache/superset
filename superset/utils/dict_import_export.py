@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import re
-import unicodedata
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
