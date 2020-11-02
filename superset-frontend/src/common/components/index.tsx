@@ -43,6 +43,11 @@ export const MenuItem = styled(AntdMenu.Item)`
   > a {
     text-decoration: none;
   }
+
+  &.ant-menu-item {
+    height: 30px;
+    line-height: 30px;
+  }
 `;
 
 export const Menu = Object.assign(AntdMenu, {
