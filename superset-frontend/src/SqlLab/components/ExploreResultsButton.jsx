@@ -22,11 +22,11 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
-import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import shortid from 'shortid';
 
+import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { exploreChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
@@ -57,30 +57,16 @@ class ExploreResultsButton extends React.PureComponent {
     const { timeout } = this.props;
     const msg = this.renderInvalidColumnMessage();
     if (Math.round(this.getQueryDuration()) > timeout) {
-      this.dialog.show({
+      Modal.confirm({
         title: t('Explore'),
-        body: this.renderTimeoutWarning(),
-        actions: [
-          Dialog.CancelAction(),
-          Dialog.OKAction(() => {
-            this.visualize();
-          }),
-        ],
-        bsSize: 'large',
-        onHide: dialog => {
-          dialog.hide();
-        },
+        content: this.renderTimeoutWarning(),
+        onOk: this.visualize,
+        icon: null,
       });
     } else if (msg) {
-      this.dialog.show({
+      Modal.warning({
         title: t('Explore'),
-        body: msg,
-        actions: [Dialog.DefaultAction('Ok', () => {})],
-        bsSize: 'large',
-        bsStyle: 'warning',
-        onHide: dialog => {
-          dialog.hide();
-        },
+        content: msg,
       });
     } else {
       this.visualize();
@@ -228,11 +214,6 @@ class ExploreResultsButton extends React.PureComponent {
           />{' '}
           {t('Explore')}
         </Button>
-        <Dialog
-          ref={el => {
-            this.dialog = el;
-          }}
-        />
       </>
     );
   }
