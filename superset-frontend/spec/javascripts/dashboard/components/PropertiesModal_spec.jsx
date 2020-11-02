@@ -87,14 +87,14 @@ describe('PropertiesModal', () => {
           const modalInstance = wrapper.find('PropertiesModal').instance();
           modalInstance.setState({
             values: {
-              json_metadata: '{"color_scheme":"foo"}',
+              json_metadata: '{"color_scheme": "foo"}',
             },
           });
           it('will update the metadata', () => {
             const spy = jest.spyOn(modalInstance, 'onMetadataChange');
             modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
             expect(spy).toHaveBeenCalledWith(
-              '{"color_scheme":"SUPERSET_DEFAULT"}',
+              '{"color_scheme": "SUPERSET_DEFAULT"}',
             );
           });
         });
@@ -176,7 +176,7 @@ describe('PropertiesModal', () => {
       expect(modalInstance.state.values.dashboard_title).toEqual('New Title');
       expect(modalInstance.state.values.slug).toEqual('/new');
       expect(modalInstance.state.values.json_metadata).toEqual(
-        '{"something":"foo"}',
+        '{"something": "foo"}',
       );
     });
 
