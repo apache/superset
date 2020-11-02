@@ -24,7 +24,7 @@ import Modal from 'src/common/components/Modal';
 export const SaveDatasetModal = ({}) => {
   return (
     <Modal show onHide={() => {}} title="Save a new dataset">
-      <div>hello world</div>
+      <div>To explore the results of this query, we need to save it as a virtual dataset</div>
     </Modal>
   );
 };
