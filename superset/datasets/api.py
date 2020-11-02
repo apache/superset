@@ -48,6 +48,7 @@ from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
+from superset.datasets.filters import DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
@@ -93,6 +94,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "default_endpoint",
         "explore_url",
+        "extra",
         "kind",
         "owners.id",
         "owners.username",
@@ -134,6 +136,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics",
         "datasource_type",
         "url",
+        "extra",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
@@ -154,16 +157,21 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners",
         "columns",
         "metrics",
+        "extra",
     ]
     openapi_spec_tag = "Datasets"
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
+    search_filters = {"sql": [DatasetIsNullOrEmptyFilter]}
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
 
+    apispec_parameter_schemas = {
+        "get_export_ids_schema": get_export_ids_schema,
+    }
     openapi_spec_component_schemas = (DatasetRelatedObjectsResponse,)
 
     @expose("/", methods=["POST"])
@@ -358,9 +366,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: integer
+                  $ref: '#/components/schemas/get_export_ids_schema'
           responses:
             200:
               description: Dataset export

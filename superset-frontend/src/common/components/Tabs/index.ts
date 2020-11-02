@@ -16,21 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../stylesheets/less/variables.less';
-
-.filter-badge {
-  width: 20px;
-  height: 20px;
-  background-color: @gray-light;
-  z-index: @z-index-above-dashboard-charts;
-  border-radius: @border-radius-normal;
-
-  path {
-    fill: @lightest;
-  }
-}
-
-.filter-badge .color-bar.badge-group,
-.filter-badge.badge-group {
-  background-color: @gray-dark;
-}
+export * from './Tabs';
+export { default } from './Tabs';

@@ -24,7 +24,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
-from superset import app, db, event_logger
+from superset import db, event_logger, is_feature_enabled
 from superset.constants import RouteMethod
 from superset.models.dashboard import Dashboard as DashboardModel
 from superset.typing import FlaskResponse
@@ -55,7 +55,7 @@ class DashboardModelView(
     @has_access
     @expose("/list/")
     def list(self) -> FlaskResponse:
-        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
             return super().list()
 
         return super().render_app_template()

@@ -20,6 +20,7 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import Chart from 'src/dashboard/containers/Chart';
 import ChartHolder from 'src/dashboard/components/gridComponents/ChartHolder';
@@ -61,6 +62,10 @@ describe('ChartHolder', () => {
           <ChartHolder {...props} {...overrideProps} />
         </WithDragDropContext>
       </Provider>,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: { theme: supersetTheme },
+      },
     );
     return wrapper;
   }

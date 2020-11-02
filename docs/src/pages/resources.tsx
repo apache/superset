@@ -60,6 +60,10 @@ const installationLinks = [
     'Build Apache Superset from source',
     'https://hackernoon.com/a-better-guide-to-build-apache-superset-from-source-6f2ki32n0',
   ],
+  [
+    'Installing Apache Superset on IBM Kubernetes Cluster',
+    'https://aklin.github.io/guides/kubernetes/2020/10/05/ibm-superset-guide/',
+  ],
 ];
 
 const youtubeVideos = [

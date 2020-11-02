@@ -16,24 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { Skeleton } from 'antd';
+type CreatedByUser = {
+  id: number;
+  first_name: string;
+  last_name: string;
+};
 
-/*
-  Antd is exported from here so we can override components with Emotion as needed.
-
-  For documentation, see https://ant.design/components/overview/
- */
-/* eslint no-restricted-imports: 0 */
-
-export * from 'antd';
-
-export const ThinSkeleton = styled(Skeleton)`
-  h3 {
-    margin: ${({ theme }) => theme.gridUnit}px 0;
-  }
-
-  ul {
-    margin-bottom: 0;
-  }
-`;
+export type AnnotationLayerObject = {
+  id?: number;
+  changed_on_delta_humanized?: string;
+  created_on?: string;
+  created_by?: CreatedByUser;
+  changed_by?: CreatedByUser;
+  name: string;
+  descr: string;
+};

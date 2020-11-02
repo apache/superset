@@ -32,12 +32,13 @@ class TestExportDatabasesCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
-        command = ExportDatabasesCommand(database_ids=[example_db.id])
+        command = ExportDatabasesCommand([example_db.id])
         contents = dict(command.run())
 
         # TODO: this list shouldn't depend on the order in which unit tests are run
         # or on the backend; for now use a stable subset
         core_files = {
+            "metadata.yaml",
             "databases/examples.yaml",
             "datasets/examples/energy_usage.yaml",
             "datasets/examples/wb_health_population.yaml",
@@ -86,6 +87,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "template_params": None,
             "filter_select_enabled": True,
             "fetch_values_predicate": None,
+            "extra": None,
             "metrics": [
                 {
                     "metric_name": "ratio",
@@ -226,7 +228,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("gamma")
 
         example_db = get_example_database()
-        command = ExportDatabasesCommand(database_ids=[example_db.id])
+        command = ExportDatabasesCommand([example_db.id])
         contents = command.run()
         with self.assertRaises(DatabaseNotFoundError):
             next(contents)
@@ -235,7 +237,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
     def test_export_database_command_invalid_database(self, mock_g):
         """Test that an error is raised when exporting an invalid database"""
         mock_g.user = security_manager.find_user("admin")
-        command = ExportDatabasesCommand(database_ids=[-1])
+        command = ExportDatabasesCommand([-1])
         contents = command.run()
         with self.assertRaises(DatabaseNotFoundError):
             next(contents)
@@ -246,7 +248,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
-        command = ExportDatabasesCommand(database_ids=[example_db.id])
+        command = ExportDatabasesCommand([example_db.id])
         contents = dict(command.run())
 
         metadata = yaml.safe_load(contents["databases/examples.yaml"])

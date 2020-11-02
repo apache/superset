@@ -20,6 +20,7 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import Column from 'src/dashboard/components/gridComponents/Column';
@@ -69,6 +70,10 @@ describe('Column', () => {
           <Column {...props} {...overrideProps} />
         </WithDragDropContext>
       </Provider>,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: { theme: supersetTheme },
+      },
     );
     return wrapper;
   }

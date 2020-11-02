@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Tab, Tabs } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import { t } from '@superset-ui/core';
 
+import Tabs from 'src/common/components/Tabs';
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import AdhocFilter, { EXPRESSION_TYPES } from '../AdhocFilter';
@@ -46,7 +46,7 @@ const propTypes = {
 };
 
 const startingWidth = 300;
-const startingHeight = 190;
+const startingHeight = 240;
 
 export default class AdhocFilterEditPopover extends React.Component {
   constructor(props) {
@@ -144,10 +144,10 @@ export default class AdhocFilterEditPopover extends React.Component {
           data-test="adhoc-filter-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
         >
-          <Tab
+          <Tabs.TabPane
             className="adhoc-filter-edit-tab"
-            eventKey={EXPRESSION_TYPES.SIMPLE}
-            title="Simple"
+            key={EXPRESSION_TYPES.SIMPLE}
+            tab="Simple"
           >
             <AdhocFilterEditPopoverSimpleTabContent
               adhocFilter={this.state.adhocFilter}
@@ -157,11 +157,11 @@ export default class AdhocFilterEditPopover extends React.Component {
               onHeightChange={this.adjustHeight}
               partitionColumn={partitionColumn}
             />
-          </Tab>
-          <Tab
+          </Tabs.TabPane>
+          <Tabs.TabPane
             className="adhoc-filter-edit-tab"
-            eventKey={EXPRESSION_TYPES.SQL}
-            title="Custom SQL"
+            key={EXPRESSION_TYPES.SQL}
+            tab="Custom SQL"
           >
             {!this.props.datasource ||
             this.props.datasource.type !== 'druid' ? (
@@ -176,7 +176,7 @@ export default class AdhocFilterEditPopover extends React.Component {
                 Custom SQL Filters are not available on druid datasources
               </div>
             )}
-          </Tab>
+          </Tabs.TabPane>
         </Tabs>
         <div>
           <Button buttonSize="small" onClick={this.props.onClose} cta>
