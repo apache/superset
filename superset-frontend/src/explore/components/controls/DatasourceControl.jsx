@@ -28,6 +28,7 @@ import Icon from 'src/components/Icon';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import Label from 'src/components/Label';
+import { postForm } from 'src/explore/exploreUtils';
 
 import ControlHeader from '../ControlHeader';
 
@@ -140,7 +141,11 @@ class DatasourceControl extends React.PureComponent {
     }
     if (key === VIEW_IN_SQL_LAB) {
       const { datasource } = this.props;
-      this.props.actions.redirectSQLLab(datasource);
+      const payload = {
+        datasourceKey: `${datasource.id}__${datasource.type}`,
+        sql: datasource.sql,
+      };
+      postForm('/superset/sqllab', payload);
     }
   }
 
