@@ -45,8 +45,8 @@ describe('Test explore links', () => {
     cy.wait('@postJson').then(() => {
       cy.get('code');
     });
-    cy.get('.modal-header').within(() => {
-      cy.get('button.close').first().click({ force: true });
+    cy.get('.ant-modal-content').within(() => {
+      cy.get('button.ant-modal-close').first().click({ force: true });
     });
   });
 
