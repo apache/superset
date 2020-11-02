@@ -165,7 +165,7 @@ export function Menu({
                     key={`${section.label}`}
                     title={section.label}
                   >
-                    {section.childs?.map((child, index) => {
+                    {section.childs?.map(child => {
                       if (typeof child !== 'string') {
                         return (
                           <DropdownMenu.Item key={`${child.label}`}>
