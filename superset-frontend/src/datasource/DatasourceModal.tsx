@@ -83,6 +83,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const dialog = useRef<any>(null);
+  const [modal, contextHolder] = Modal.useModal();
 
   const onConfirmSave = () => {
     // Pull out extra fields into the extra object
@@ -117,7 +118,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       .catch(response => {
         setIsSaving(false);
         getClientErrorObject(response).then(({ error }) => {
-          Modal.error({
+          modal.error({
             title: 'Error',
             content: error || t('An error has occurred'),
             okButtonProps: { danger: true, className: 'btn-danger' },
@@ -158,7 +159,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   );
 
   const onClickSave = () => {
-    dialog.current = Modal.confirm({
+    dialog.current = modal.confirm({
       title: t('Confirm save'),
       content: renderSaveDialog(),
       onOk: onConfirmSave,
@@ -219,6 +220,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource={currentDatasource}
         onChange={onDatasourceChange}
       />
+      {contextHolder}
     </StyledDatasourceModal>
   );
 };

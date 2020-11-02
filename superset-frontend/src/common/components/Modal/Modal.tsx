@@ -166,11 +166,13 @@ const CustomModal = ({
     </StyledModal>
   );
 };
+CustomModal.displayName = 'Modal';
 
 const Modal = Object.assign(CustomModal, {
   error: BaseModal.error,
   warning: BaseModal.warning,
   confirm: BaseModal.confirm,
+  useModal: BaseModal.useModal,
 });
 
 export default Modal;
