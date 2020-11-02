@@ -119,7 +119,7 @@ function AnnotationList({
     annotationsToDelete: AnnotationObject[],
   ) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/css_template/?q=${rison.encode(
+      endpoint: `/api/v1/annotation_layer/${annotationLayerId}/annotation/?q=${rison.encode(
         annotationsToDelete.map(({ id }) => id),
       )}`,
     }).then(
@@ -129,7 +129,7 @@ function AnnotationList({
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected templates: %s', errMsg),
+          t('There was an issue deleting the selected annotations: %s', errMsg),
         ),
       ),
     );
@@ -217,6 +217,7 @@ function AnnotationList({
     name: t('Bulk Select'),
     onClick: toggleBulkSelect,
     buttonStyle: 'secondary',
+    'data-test': 'annotation-bulk-select',
   });
 
   const StyledHeader = styled.div`
@@ -302,7 +303,7 @@ function AnnotationList({
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t(
-          'Are you sure you want to delete the selected templates?',
+          'Are you sure you want to delete the selected annotations?',
         )}
         onConfirm={handleBulkAnnotationsDelete}
       >
