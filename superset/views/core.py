@@ -87,7 +87,7 @@ from superset.security.analytics_db_safety import (
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.typing import FlaskResponse
-from superset.utils import core as utils, dashboard_import_export
+from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache
 from superset.views.base import (

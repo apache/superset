@@ -18,7 +18,7 @@ import json
 import logging
 from functools import partial
 from json.decoder import JSONDecodeError
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Set, Union
 from urllib import parse
 
 import sqlalchemy as sqla

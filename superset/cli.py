@@ -250,7 +250,7 @@ def import_dashboards(path: str, recursive: bool, username: str) -> None:
     contents = {path.name: open(path).read() for path in files}
     try:
         ImportDashboardCommand(contents).run()
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except
         logger.exception("Error when importing dashboard")
 
 
