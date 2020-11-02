@@ -18,7 +18,9 @@ under the License.
 -->
 ## Change Log
 
-### 0.38.0 (Tue Oct 6 11:51:10 2020 -0700)
+### 0.38.0 (Wed Oct 28 23:41:39 2020 +0200)
+- [#11393](https://github.com/apache/incubator-superset/pull/11393) chore(chart-data): add annotations and url params to chart data schema (#11393) (@villebro)
+- [#11272](https://github.com/apache/incubator-superset/pull/11272) chore: upgrade vis plugins npm packages (#11272) (@ktmud)
 - [#11149](https://github.com/apache/incubator-superset/pull/11149) fix: Fix Time Column dropdown for date filter (#11149) (@graceguo-supercat)
 - [#11262](https://github.com/apache/incubator-superset/pull/11262) fix(crud): set default extra value (#11262) (@villebro)
 - [#11221](https://github.com/apache/incubator-superset/pull/11221) fix(dataset): update user list endpoint (#11221) (@lilykuang)
