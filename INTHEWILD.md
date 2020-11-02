@@ -38,7 +38,7 @@ Join our growing community!
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
-- [Xendit](http://xendit.co/)
+- [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
 - [Digit Game Studios](https://www.digitgaming.com/)
