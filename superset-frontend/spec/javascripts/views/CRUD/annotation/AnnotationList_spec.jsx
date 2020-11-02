@@ -23,7 +23,6 @@ import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
-import Button from 'src/components/Button';
 import DeleteModal from 'src/components/DeleteModal';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import ListView from 'src/components/ListView';

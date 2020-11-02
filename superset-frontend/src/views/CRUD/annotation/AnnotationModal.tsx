@@ -287,9 +287,9 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           <span className="required">*</span>
         </div>
         <RangePicker
+          format="YYYY-MM-DD hh:mm a"
           onChange={onDateChange}
           showTime={{ format: 'hh:mm a' }}
-          format="YYYY-MM-DD hh:mm a"
           use12Hours
           // @ts-ignore
           value={

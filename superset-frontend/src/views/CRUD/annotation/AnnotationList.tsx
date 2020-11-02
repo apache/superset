@@ -20,8 +20,9 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useHistory } from 'react-router-dom';
 import { t, styled, SupersetClient } from '@superset-ui/core';
-
 import moment from 'moment';
+import rison from 'rison';
+
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -135,7 +136,7 @@ function AnnotationList({
     );
   };
 
-  // get the owners of this slice
+  // get the Annotation Layer
   useEffect(() => {
     fetchAnnotationLayer();
   }, [fetchAnnotationLayer]);
