@@ -40,11 +40,9 @@ describe('Dashboard form data', () => {
     dashboard.slices.forEach(slice => {
       const { slice_id: id } = slice;
       const isLegacy = isLegacyChart(slice.form_data.viz_type);
-      const route = isLegacy
-        ? `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboard.id}`
-        : `/api/v1/chart/data?dashboard_id=${dashboard.id}`;
+      const route = `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboard.id}`;
       const alias = `getJson_${id}`;
-      // TODO(villebro): fix once url_params fix is merged
+      // TODO(villebro): enable V1 charts
       if (isLegacy) {
         aliases.push(`@${alias}`);
         cy.route('POST', route).as(alias);

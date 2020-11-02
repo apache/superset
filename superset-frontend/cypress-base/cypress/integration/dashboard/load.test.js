@@ -43,13 +43,11 @@ describe('Dashboard load', () => {
     slices.forEach(slice => {
       const vizType = slice.form_data.viz_type;
       const isLegacy = isLegacyChart(vizType);
-      // TODO(villebro): enable non-legacy charts
+      // TODO(villebro): enable V1 charts
       if (isLegacy) {
-        const alias = `getJson_${slice.slice_id}_${vizType}_${isLegacy}`;
+        const alias = `getJson_${slice.slice_id}`;
         const formData = `{"slice_id":${slice.slice_id}}`;
-        const route = isLegacy
-          ? `/superset/explore_json/?*${formData}*`
-          : `/api/v1/chart/data?dashboard_id=${dashboard.id}`;
+        const route = `/superset/explore_json/?*${formData}*`;
         cy.route('POST', `${route}`).as(alias);
         aliases.push(`@${alias}`);
       }
