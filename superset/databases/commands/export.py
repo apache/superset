@@ -24,7 +24,7 @@ import yaml
 
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.dao import DatabaseDAO
-from superset.importexport.commands.base import ExportModelsCommand
+from superset.commands.export import ExportModelsCommand
 from superset.models.core import Database
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
 

@@ -22,7 +22,7 @@ from typing import Iterator, Tuple
 
 import yaml
 
-from superset.importexport.commands.base import ExportModelsCommand
+from superset.commands.export import ExportModelsCommand
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
 from superset.queries.saved_queries.dao import SavedQueryDAO

@@ -22,10 +22,10 @@ from typing import Iterator, Tuple
 
 import yaml
 
+from superset.commands.export import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
-from superset.importexport.commands.base import ExportModelsCommand
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
 
 logger = logging.getLogger(__name__)
