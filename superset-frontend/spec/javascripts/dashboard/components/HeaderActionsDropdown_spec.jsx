@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { DropdownButton } from 'react-bootstrap';
-import Menu from 'src/common/components/Menu';
+import { Menu } from 'src/common/components';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import URLShortLinkModal from 'src/components/URLShortLinkModal';
 import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';

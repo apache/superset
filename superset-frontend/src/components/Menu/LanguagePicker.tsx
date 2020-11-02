@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Menu from 'src/common/components/Menu';
+import { Menu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
 
 export interface Languages {

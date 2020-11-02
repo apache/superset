@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { SupersetClient, t } from '@superset-ui/core';
 import { DropdownButton } from 'react-bootstrap';
 
-import Menu from 'src/common/components/Menu';
+import { Menu } from 'src/common/components';
 import Icon from 'src/components/Icon';
 
 import CssEditor from './CssEditor';
