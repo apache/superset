@@ -168,8 +168,6 @@ const CustomModal = ({
 };
 
 const Modal = Object.assign(CustomModal, {
-  info: BaseModal.info,
-  success: BaseModal.success,
   error: BaseModal.error,
   warning: BaseModal.warning,
   confirm: BaseModal.confirm,
