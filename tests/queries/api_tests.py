@@ -326,12 +326,12 @@ class TestQueryApi(SupersetTestCase):
         Query API: Test get list query filter changed_on
         """
         self.login(username="admin")
-        now_time = datetime.now()
-        yesterday_time = now_time - timedelta(days=1)
+        now_dttm = datetime.now() + timedelta(days=1)
+        yesterday_dttm = datetime.now() - timedelta(days=1)
         arguments = {
             "filters": [
-                {"col": "changed_on", "opr": "lt", "value": str(now_time)},
-                {"col": "changed_on", "opr": "gt", "value": str(yesterday_time)},
+                {"col": "changed_on", "opr": "lt", "value": str(now_dttm)},
+                {"col": "changed_on", "opr": "gt", "value": str(yesterday_dttm)},
             ]
         }
         uri = f"api/v1/query/?q={prison.dumps(arguments)}"
