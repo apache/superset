@@ -65,6 +65,7 @@ class TestQueryApi(SupersetTestCase):
             rows=rows,
             tab_name=tab_name,
             status=status,
+            changed_on=datetime(2020, 1, 1),
         )
         db.session.add(query)
         db.session.commit()
@@ -326,12 +327,10 @@ class TestQueryApi(SupersetTestCase):
         Query API: Test get list query filter changed_on
         """
         self.login(username="admin")
-        now_dttm = datetime.now() + timedelta(days=1)
-        yesterday_dttm = datetime.now() - timedelta(days=1)
         arguments = {
             "filters": [
-                {"col": "changed_on", "opr": "lt", "value": str(now_dttm)},
-                {"col": "changed_on", "opr": "gt", "value": str(yesterday_dttm)},
+                {"col": "changed_on", "opr": "lt", "value": "2020-02-01T00:00:00Z"},
+                {"col": "changed_on", "opr": "gt", "value": "2019-12-30T00:00:00Z"},
             ]
         }
         uri = f"api/v1/query/?q={prison.dumps(arguments)}"
