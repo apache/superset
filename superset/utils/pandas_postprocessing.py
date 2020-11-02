@@ -301,9 +301,7 @@ def aggregate(
         df_groupby = df.groupby(by=groupby)
     else:
         df_groupby = df.groupby(lambda _: True)
-    return df_groupby.agg(**aggregate_funcs).reset_index(
-        drop=False if groupby else True
-    )
+    return df_groupby.agg(**aggregate_funcs).reset_index(drop=not groupby)
 
 
 @validate_column_args("columns")
