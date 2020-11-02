@@ -21,13 +21,14 @@ import logging
 from typing import Iterator, Tuple
 
 import yaml
+from werkzeug.utils import secure_filename
 
 from superset.charts.commands.export import ExportChartsCommand
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.dao import DashboardDAO
 from superset.importexport.commands.base import ExportModelsCommand
 from superset.models.dashboard import Dashboard
-from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
+from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
     @staticmethod
     def export(model: Dashboard) -> Iterator[Tuple[str, str]]:
-        dashboard_slug = sanitize(model.dashboard_title)
+        dashboard_slug = secure_filename(model.dashboard_title)
         file_name = f"dashboards/{dashboard_slug}.yaml"
 
         payload = model.export_to_dict(
