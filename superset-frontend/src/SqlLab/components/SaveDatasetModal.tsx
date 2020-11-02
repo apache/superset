@@ -20,7 +20,11 @@
 import React, { FunctionComponent } from 'react';
 import Modal from 'src/common/components/Modal';
 
-
+// eslint-disable-next-line no-empty-pattern
 export const SaveDatasetModal = ({}) => {
-    return (<div>SaveDatasetModal</div>)
-}
+  return (
+    <Modal show onHide={() => {}} title="Save a new dataset">
+      <div>hello world</div>
+    </Modal>
+  );
+};

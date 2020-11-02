@@ -388,7 +388,6 @@ export default class ResultSet extends React.PureComponent<
         </div>
         <div>{progressBar}</div>
         <div>{trackingUrl}</div>
-        <SaveDatasetModal />
       </div>
     );
   }
