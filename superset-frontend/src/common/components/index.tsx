@@ -17,16 +17,37 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Skeleton } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+import { Skeleton, Menu as AntdMenu } from 'antd';
 
 /*
-  Antd is exported from here so we can override components with Emotion as needed.
+  Antd is re-exported from here so we can override components with Emotion as needed.
 
   For documentation, see https://ant.design/components/overview/
  */
-/* eslint no-restricted-imports: 0 */
+// eslint-disable-next-line no-restricted-imports
+export {
+  Avatar,
+  Card,
+  Collapse,
+  Empty,
+  Dropdown,
+  Modal,
+  Popover,
+  Skeleton,
+  Tabs,
+  Tooltip,
+} from 'antd';
 
-export * from 'antd';
+export const MenuItem = styled(AntdMenu.Item)`
+  > a {
+    text-decoration: none;
+  }
+`;
+
+export const Menu = Object.assign(AntdMenu, {
+  Item: MenuItem,
+});
 
 export const ThinSkeleton = styled(Skeleton)`
   h3 {
