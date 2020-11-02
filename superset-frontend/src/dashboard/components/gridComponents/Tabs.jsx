@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { Modal } from 'src/common/components';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
@@ -78,6 +78,38 @@ const defaultProps = {
   onResize() {},
   onResizeStop() {},
 };
+
+const StyledTabsContainer = styled.div`
+  width: 100%;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+
+  .dashboard-component-tabs-content {
+    min-height: ${({ theme }) => theme.gridUnit * 12}px;
+    margin-top: ${({ theme }) => theme.gridUnit / 4}px;
+    position: relative;
+  }
+
+  .drop-indicator--left {
+    left: ${({ theme }) => -theme.gridUnit * 3}px !important;
+  }
+  .drop-indicator--right {
+    left: ${({ theme }) => `calc(100% + ${theme.gridUnit * 6}px)`} !important;
+  }
+
+  .drop-indicator--bottom,
+  .drop-indicator--top {
+    width: ${({ theme }) => `calc(100% + ${theme.gridUnit * 6}px)`} !important;
+  }
+
+  .drop-indicator--top {
+    top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+
+  .editable-title input {
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+`;
 
 class Tabs extends React.PureComponent {
   constructor(props) {
@@ -254,7 +286,7 @@ class Tabs extends React.PureComponent {
           dropIndicatorProps: tabsDropIndicatorProps,
           dragSourceRef: tabsDragSourceRef,
         }) => (
-          <div
+          <StyledTabsContainer
             className="dashboard-component dashboard-component-tabs"
             data-test="dashboard-component-tabs"
           >
@@ -320,7 +352,7 @@ class Tabs extends React.PureComponent {
               parentComponent.id !== DASHBOARD_ROOT_ID && (
                 <div {...tabsDropIndicatorProps} />
               )}
-          </div>
+          </StyledTabsContainer>
         )}
       </DragDroppable>
     );

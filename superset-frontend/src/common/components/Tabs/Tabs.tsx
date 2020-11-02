@@ -51,9 +51,12 @@ const StyledTabs = styled(AntdTabs, {
       }
     }
 
-    .fa.fa-link {
-      top: 0;
-      right: ${({ theme }) => theme.gridUnit * 3}px;
+    .short-link-trigger.btn {
+      padding: 0 ${({ theme }) => theme.gridUnit}px;
+
+      & > .fa.fa-link {
+        top: 0;
+      }
     }
   }
 
@@ -142,8 +145,7 @@ EditableTabs.TabPane.defaultProps = {
 const StyledLineEditableTabs = styled(EditableTabs)`
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
     margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
-    padding: ${({ theme }) =>
-      `${theme.gridUnit * 3}px 0 ${theme.gridUnit * 3}px ${theme.gridUnit}px`};
+    padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit}px`};
     background: transparent;
     border: none;
   }
@@ -158,6 +160,7 @@ const StyledLineEditableTabs = styled(EditableTabs)`
 
   .ant-tabs-tab-remove {
     margin-left: 0;
+    padding-right: 0;
   }
 
   .ant-tabs-nav-add {
