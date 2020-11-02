@@ -21,8 +21,7 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
-import OnPasteSelect from 'src/components/Select/OnPasteSelect';
-
+import Select from 'src/components/Select';
 import ControlHeader from '../ControlHeader';
 import MetricDefinitionOption from '../MetricDefinitionOption';
 import MetricDefinitionValue from '../MetricDefinitionValue';
@@ -344,7 +343,7 @@ export default class MetricsControl extends React.PureComponent {
     return (
       <div className="metrics-select">
         <ControlHeader {...this.props} />
-        <OnPasteSelect
+        <Select
           isLoading={this.props.isLoading}
           isMulti={this.props.multi}
           name={`select-${this.props.name}`}

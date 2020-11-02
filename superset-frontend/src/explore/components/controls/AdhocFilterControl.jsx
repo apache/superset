@@ -21,9 +21,7 @@ import PropTypes from 'prop-types';
 
 import { t, logging, SupersetClient } from '@superset-ui/core';
 
-import { noOp } from 'src/utils/common';
-import OnPasteSelect from 'src/components/Select/OnPasteSelect';
-
+import Select from 'src/components/Select';
 import ControlHeader from '../ControlHeader';
 import adhocFilterType from '../../propTypes/adhocFilterType';
 import adhocMetricType from '../../propTypes/adhocMetricType';
@@ -268,7 +266,7 @@ export default class AdhocFilterControl extends React.Component {
     return (
       <div className="metrics-select" data-test="adhoc-filter-control">
         <ControlHeader {...this.props} />
-        <OnPasteSelect
+        <Select
           isMulti
           isLoading={this.props.isLoading}
           name={`select-${this.props.name}`}
@@ -280,7 +278,6 @@ export default class AdhocFilterControl extends React.Component {
           clearable
           closeOnSelect
           onChange={this.onChange}
-          onPaste={noOp}
           optionRenderer={this.optionRenderer}
           valueRenderer={this.valueRenderer}
         />
