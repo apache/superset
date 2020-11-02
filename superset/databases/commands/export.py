@@ -21,12 +21,13 @@ import logging
 from typing import Iterator, Tuple
 
 import yaml
+from werkzeug.utils import secure_filename
 
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.dao import DatabaseDAO
 from superset.importexport.commands.base import ExportModelsCommand
 from superset.models.core import Database
-from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
+from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
 
     @staticmethod
     def export(model: Database) -> Iterator[Tuple[str, str]]:
-        database_slug = sanitize(model.database_name)
+        database_slug = secure_filename(model.database_name)
         file_name = f"databases/{database_slug}.yaml"
 
         payload = model.export_to_dict(
@@ -61,7 +62,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
         yield file_name, file_content
 
         for dataset in model.tables:
-            dataset_slug = sanitize(dataset.table_name)
+            dataset_slug = secure_filename(dataset.table_name)
             file_name = f"datasets/{database_slug}/{dataset_slug}.yaml"
 
             payload = dataset.export_to_dict(

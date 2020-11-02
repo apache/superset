@@ -21,12 +21,13 @@ import logging
 from typing import Iterator, Tuple
 
 import yaml
+from werkzeug.utils import secure_filename
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
 from superset.importexport.commands.base import ExportModelsCommand
-from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
+from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,8 @@ class ExportDatasetsCommand(ExportModelsCommand):
 
     @staticmethod
     def export(model: SqlaTable) -> Iterator[Tuple[str, str]]:
-        database_slug = sanitize(model.database.database_name)
-        dataset_slug = sanitize(model.table_name)
+        database_slug = secure_filename(model.database.database_name)
+        dataset_slug = secure_filename(model.table_name)
         file_name = f"datasets/{database_slug}/{dataset_slug}.yaml"
 
         payload = model.export_to_dict(
