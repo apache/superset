@@ -27,7 +27,6 @@ import {
 import { Dispatch } from 'redux';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { postForm } from '../exploreUtils';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
@@ -148,21 +147,6 @@ export function sliceUpdated(slice: Slice) {
   return { type: SLICE_UPDATED, slice };
 }
 
-export const VIEW_IN_SQLLAB = 'VIEW_IN_SQLLAB';
-export function redirectSQLLab(datasource: {
-  id: bigint;
-  type: string;
-  sql: string;
-}) {
-  return () => {
-    const payload = {
-      datasourceKey: `${datasource.id}__${datasource.type}`,
-      sql: datasource.sql,
-    };
-    postForm('/superset/sqllab', payload);
-  };
-}
-
 export const exploreActions = {
   setDatasourceType,
   setDatasource,
@@ -179,7 +163,6 @@ export const exploreActions = {
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
-  redirectSQLLab,
 };
 
 export type ExploreActions = typeof exploreActions;
