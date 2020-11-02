@@ -25,7 +25,7 @@ from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
 from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import make_transient, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 
 from superset import ConnectorRegistry, db, is_feature_enabled, security_manager
