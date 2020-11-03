@@ -60,7 +60,7 @@ const createFetchResourceMethod = (method: string) => (
 export const getRecentAcitivtyObjs = (
   userId: string | number,
   recent: string,
-  addDangerToast: (arg0: string, arg1: string) => void,
+  addDangerToast: (arg1: string, arg2: any) => any,
 ) => {
   const getParams = (filters?: Array<any>) => {
     const params = {

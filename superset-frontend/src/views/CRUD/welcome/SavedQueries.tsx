@@ -227,8 +227,7 @@ const SavedQueries = ({
               rows={q.rows}
               loading={loading}
               description={t('Last run ', q.end_time)}
-              showImg={false}
-              renderCover={
+              cover={
                 <QueryData>
                   <div className="holder">
                     <div className="title">{t('Tables')}</div>
