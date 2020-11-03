@@ -19,7 +19,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 from flask_appbuilder import Model
-from flask_babel import gettext as _
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import make_transient
@@ -35,7 +34,6 @@ from superset.connectors.druid.models import (
 )
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.databases.commands.exceptions import DatabaseNotFoundError
-from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.models.core import Database
 from superset.utils.dict_import_export import DATABASES_KEY, DRUID_CLUSTERS_KEY
 
@@ -144,7 +142,7 @@ def import_metric(session: Session, metric: BaseMetric) -> BaseMetric:
 
 def lookup_sqla_column(session: Session, column: TableColumn) -> TableColumn:
     return (
-        db.session.query(TableColumn)
+        session.query(TableColumn)
         .filter(
             TableColumn.table_id == column.table_id,
             TableColumn.column_name == column.column_name,
@@ -155,7 +153,7 @@ def lookup_sqla_column(session: Session, column: TableColumn) -> TableColumn:
 
 def lookup_druid_column(session: Session, column: DruidColumn) -> DruidColumn:
     return (
-        db.session.query(DruidColumn)
+        session.query(DruidColumn)
         .filter(
             DruidColumn.datasource_id == column.datasource_id,
             DruidColumn.column_name == column.column_name,
@@ -292,7 +290,7 @@ class ImportDatasetsCommand(BaseCommand):
         self.validate()
 
         for file_name, content in self.contents.items():
-            logger.info(f"Importing dataset from file {file_name}")
+            logger.info("Importing dataset from file %s", file_name)
             import_from_dict(db.session, yaml.safe_load(content), sync=self.sync)
 
     def validate(self) -> None:
@@ -301,4 +299,5 @@ class ImportDatasetsCommand(BaseCommand):
             try:
                 yaml.safe_load(content)
             except yaml.parser.ParserError:
+                logger.exception("Invalid YAML file")
                 raise
