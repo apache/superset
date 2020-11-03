@@ -56,13 +56,12 @@ const ListViewStyles = styled.div`
         text-align: right;
       }
     }
-    .body {
-      background: ${({ theme }) => theme.colors.grayscale.light5};
+
+    .body.empty table {
+      margin-bottom: 0;
     }
 
     .ant-empty {
-      padding-bottom: 160px;
-
       .ant-empty-image {
         height: auto;
       }
@@ -157,7 +156,11 @@ const ViewModeContainer = styled.div`
 `;
 
 const EmptyWrapper = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 40}px 0;
+  padding: ${({ theme }) => theme.gridUnit * 40}px 0;
+
+  &.table {
+    background: ${({ theme }) => theme.colors.grayscale.light5};
+  }
 `;
 
 const ViewModeToggle = ({
@@ -321,7 +324,7 @@ function ListView<T extends object = any>({
             )}
           </div>
         </div>
-        <div className="body">
+        <div className={`body ${rows.length === 0 ? 'empty' : ''}`}>
           {bulkSelectEnabled && (
             <BulkSelectWrapper
               data-test="bulk-select-controls"
@@ -382,7 +385,7 @@ function ListView<T extends object = any>({
             />
           )}
           {!loading && rows.length === 0 && (
-            <EmptyWrapper>
+            <EmptyWrapper className={viewingMode}>
               <Empty
                 image={<EmptyImage />}
                 description={emptyState.message || 'No Data'}
