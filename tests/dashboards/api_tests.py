@@ -31,7 +31,7 @@ from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
-from superset.models.core import FavStar
+from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
 from superset.views.base import generate_download_headers
 
@@ -350,11 +350,15 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             star.obj_id
             for star in db.session.query(FavStar.obj_id)
             .filter(
-                and_(FavStar.user_id == admin.id, FavStar.class_name == "daashboard")
+                and_(
+                    FavStar.user_id == admin.id,
+                    FavStar.class_name == FavStarClassName.DASHBOARD,
+                )
             )
             .all()
         ]
 
+        assert users_favorite_ids
         arguments = [dash.id for dash in db.session.query(Dashboard.id).all()]
         self.login(username="admin")
         uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps(arguments)}"

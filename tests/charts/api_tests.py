@@ -35,7 +35,7 @@ from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.test_app import app
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
-from superset.models.core import FavStar
+from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import core as utils
@@ -785,10 +785,16 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         users_favorite_ids = [
             star.obj_id
             for star in db.session.query(FavStar.obj_id)
-            .filter(and_(FavStar.user_id == admin.id, FavStar.class_name == "slice"))
+            .filter(
+                and_(
+                    FavStar.user_id == admin.id,
+                    FavStar.class_name == FavStarClassName.CHART,
+                )
+            )
             .all()
         ]
 
+        assert users_favorite_ids
         arguments = [s.id for s in db.session.query(Slice.id).all()]
         self.login(username="admin")
         uri = f"api/v1/chart/favorite_status/?q={prison.dumps(arguments)}"

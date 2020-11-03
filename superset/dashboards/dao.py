@@ -23,7 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.dao.base import BaseDAO
 from superset.dashboards.filters import DashboardFilter
 from superset.extensions import db
-from superset.models.core import FavStar
+from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
@@ -165,7 +165,7 @@ class DashboardDAO(BaseDAO):
             star.obj_id
             for star in db.session.query(FavStar.obj_id)
             .filter(
-                FavStar.class_name == "Dashboard",
+                FavStar.class_name == FavStarClassName.DASHBOARD,
                 FavStar.obj_id.in_(ids),
                 FavStar.user_id == current_user_id,
             )

@@ -22,7 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.charts.filters import ChartFilter
 from superset.dao.base import BaseDAO
 from superset.extensions import db
-from superset.models.core import FavStar
+from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
 
 if TYPE_CHECKING:
@@ -75,7 +75,7 @@ class ChartDAO(BaseDAO):
             star.obj_id
             for star in db.session.query(FavStar.obj_id)
             .filter(
-                FavStar.class_name == "slice",
+                FavStar.class_name == FavStarClassName.CHART,
                 FavStar.obj_id.in_(ids),
                 FavStar.user_id == current_user_id,
             )

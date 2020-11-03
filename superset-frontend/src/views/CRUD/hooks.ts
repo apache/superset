@@ -299,6 +299,11 @@ export function useSingleViewResource<D extends object = any>(
   };
 }
 
+enum FavStarClassName {
+  CHART = 'slice',
+  DASHBOARD = 'Dashboard',
+}
+
 export function useFavoriteStatus(
   type: 'chart' | 'dashboard',
   ids: Array<string | number>,
@@ -337,10 +342,9 @@ export function useFavoriteStatus(
   const saveFaveStar = useCallback(
     (id: number, isStarred: boolean) => {
       const urlSuffix = isStarred ? 'unselect' : 'select';
-      console.log('fetching', id, isStarred);
       SupersetClient.get({
         endpoint: `/superset/favstar/${
-          type === 'chart' ? 'slice' : 'Dashboard'
+          type === 'chart' ? FavStarClassName.CHART : FavStarClassName.DASHBOARD
         }/${id}/${urlSuffix}/`,
       }).then(
         ({ json }) => {
