@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { makeApi, SupersetClient, t } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
@@ -58,7 +58,9 @@ export function useListViewResource<D extends object = any>(
   }
 
   useEffect(() => {
-    const infoParam = infoEnable ? '_info?q=(keys:!(permissions))' : '';
+    const infoParam = infoEnable
+      ? `_info?q=${rison.encode({ keys: ['permissions'] })}`
+      : '';
     SupersetClient.get({
       endpoint: `/api/v1/${resource}/${infoParam}`,
     }).then(
@@ -304,6 +306,26 @@ enum FavStarClassName {
   DASHBOARD = 'Dashboard',
 }
 
+type FavoriteStatusResponse = {
+  result: Array<{
+    id: string;
+    value: boolean;
+  }>;
+};
+
+const favoriteApis = {
+  chart: makeApi<string, FavoriteStatusResponse>({
+    requestType: 'search',
+    method: 'GET',
+    endpoint: '/api/v1/chart/favorite_status',
+  }),
+  dashboard: makeApi<string, FavoriteStatusResponse>({
+    requestType: 'search',
+    method: 'GET',
+    endpoint: '/api/v1/dashboard/favorite_status',
+  }),
+};
+
 export function useFavoriteStatus(
   type: 'chart' | 'dashboard',
   ids: Array<string | number>,
@@ -318,14 +340,9 @@ export function useFavoriteStatus(
     if (!ids.length) {
       return;
     }
-    SupersetClient.get({
-      endpoint: `/api/v1/${type}/favorite_status/?q=${rison.encode(ids)}`,
-    }).then(
-      ({ json }) => {
-        const update = (json?.result as {
-          id: string;
-          value: boolean;
-        }[])?.reduce((acc, element) => {
+    favoriteApis[type](`q=${rison.encode(ids)}`).then(
+      ({ result }) => {
+        const update = result.reduce((acc, element) => {
           acc[element.id] = element.value;
           return acc;
         }, {});
