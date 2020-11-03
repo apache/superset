@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Table } from 'reactable-arc';
 import { Alert } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 
+import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import Loading from '../../components/Loading';
 import ModalTrigger from '../../components/ModalTrigger';
+import { EmptyWrapperType } from '../../components/TableView/TableView';
 
 const propTypes = {
   dbId: PropTypes.number.isRequired,
@@ -43,6 +44,16 @@ const defaultProps = {
 };
 
 const EstimateQueryCostButton = props => {
+  const { cost } = props.queryCostEstimate;
+  const tableData = useMemo(() => (Array.isArray(cost) ? cost : []), [cost]);
+  const columns = useMemo(
+    () =>
+      Array.isArray(cost) && cost.length
+        ? Object.keys(cost[0]).map(key => ({ accessor: key, Header: key }))
+        : [],
+    [cost],
+  );
+
   const onClick = () => {
     props.getEstimate();
   };
@@ -57,9 +68,12 @@ const EstimateQueryCostButton = props => {
     }
     if (props.queryCostEstimate.completed) {
       return (
-        <Table
-          className="table cost-estimate"
-          data={props.queryCostEstimate.cost}
+        <TableView
+          columns={columns}
+          data={tableData}
+          withPagination={false}
+          emptyWrapperType={EmptyWrapperType.Small}
+          className="cost-estimate"
         />
       );
     }
