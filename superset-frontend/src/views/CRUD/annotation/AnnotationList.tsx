@@ -18,8 +18,9 @@
  */
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
-import { t, SupersetClient } from '@superset-ui/core';
+import { useParams, Link, useHistory } from 'react-router-dom';
+import { t, styled, SupersetClient } from '@superset-ui/core';
+
 import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView from 'src/components/ListView';
@@ -163,10 +164,43 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
     },
   });
 
+  const StyledHeader = styled.div`
+    display: flex;
+    flex-direction: row;
+
+    a,
+    Link {
+      margin-left: 16px;
+      font-size: 12px;
+      font-weight: normal;
+      text-decoration: underline;
+    }
+  `;
+
+  let hasHistory = true;
+
+  try {
+    useHistory();
+  } catch (err) {
+    // If error is thrown, we know not to use <Link> in render
+    hasHistory = false;
+  }
+
   return (
     <>
       <SubMenu
-        name={t(`Annotation Layer ${annotationLayerName}`)}
+        name={
+          <StyledHeader>
+            <span>{t(`Annotation Layer ${annotationLayerName}`)}</span>
+            <span>
+              {hasHistory ? (
+                <Link to="/annotationlayermodelview/list/">Back to all</Link>
+              ) : (
+                <a href="/annotationlayermodelview/list/">Back to all</a>
+              )}
+            </span>
+          </StyledHeader>
+        }
         buttons={subMenuButtons}
       />
       <AnnotationModal
