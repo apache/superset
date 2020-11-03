@@ -2738,6 +2738,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/basic.html", entry="sqllab", bootstrap_data=bootstrap_data
         )
 
+    @has_access
+    @expose("/sqllab/history/", methods=["GET"])
+    def sqllab_search(self) -> FlaskResponse:
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_QUERY_SEARCH_UI")
+        ):
+            return redirect("/superset/sqllab#search", code=307)
+
+        return super().render_app_template()
+
     @api
     @has_access_api
     @expose("/schemas_access_for_csv_upload")
