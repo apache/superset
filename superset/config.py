@@ -1166,8 +1166,8 @@ RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 # for details
 #
 SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
-SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
-SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'None', 'Lax', 'Strict']
+SESSION_COOKIE_SECURE = True  # Prevent cookie from being transmitted over non-tls?
+SESSION_COOKIE_SAMESITE = "None"  # One of [None, 'Lax', 'Strict']
 
 # Cache static resources.
 SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
