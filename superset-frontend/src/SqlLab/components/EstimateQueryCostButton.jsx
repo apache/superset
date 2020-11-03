@@ -42,65 +42,55 @@ const defaultProps = {
   disabled: false,
 };
 
-class EstimateQueryCostButton extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.queryCostModal = React.createRef();
-    this.onClick = this.onClick.bind(this);
-    this.renderModalBody = this.renderModalBody.bind(this);
-  }
+const EstimateQueryCostButton = props => {
+  const onClick = () => {
+    props.getEstimate();
+  };
 
-  onClick() {
-    this.props.getEstimate();
-  }
-
-  renderModalBody() {
-    if (this.props.queryCostEstimate.error !== null) {
+  const renderModalBody = () => {
+    if (props.queryCostEstimate.error !== null) {
       return (
         <Alert key="query-estimate-error" bsStyle="danger">
-          {this.props.queryCostEstimate.error}
+          {props.queryCostEstimate.error}
         </Alert>
       );
     }
-    if (this.props.queryCostEstimate.completed) {
+    if (props.queryCostEstimate.completed) {
       return (
         <Table
           className="table cost-estimate"
-          data={this.props.queryCostEstimate.cost}
+          data={props.queryCostEstimate.cost}
         />
       );
     }
     return <Loading position="normal" />;
-  }
+  };
 
-  render() {
-    const { disabled, selectedText, tooltip } = this.props;
-    const btnText = selectedText
-      ? t('Estimate Selected Query Cost')
-      : t('Estimate Query Cost');
-    return (
-      <span className="EstimateQueryCostButton">
-        <ModalTrigger
-          ref={this.queryCostModal}
-          modalTitle={t('Query Cost Estimate')}
-          modalBody={this.renderModalBody()}
-          triggerNode={
-            <Button
-              buttonStyle="warning"
-              buttonSize="small"
-              onClick={this.onClick}
-              key="query-estimate-btn"
-              tooltip={tooltip}
-              disabled={disabled}
-            >
-              <i className="fa fa-clock-o" /> {btnText}
-            </Button>
-          }
-        />
-      </span>
-    );
-  }
-}
+  const { disabled, selectedText, tooltip } = props;
+  const btnText = selectedText
+    ? t('Estimate Selected Query Cost')
+    : t('Estimate Query Cost');
+  return (
+    <span className="EstimateQueryCostButton">
+      <ModalTrigger
+        modalTitle={t('Query Cost Estimate')}
+        modalBody={renderModalBody()}
+        triggerNode={
+          <Button
+            buttonStyle="warning"
+            buttonSize="small"
+            onClick={onClick}
+            key="query-estimate-btn"
+            tooltip={tooltip}
+            disabled={disabled}
+          >
+            <i className="fa fa-clock-o" /> {btnText}
+          </Button>
+        }
+      />
+    </span>
+  );
+};
 
 EstimateQueryCostButton.propTypes = propTypes;
 EstimateQueryCostButton.defaultProps = defaultProps;
