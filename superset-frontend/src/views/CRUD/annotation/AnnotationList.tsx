@@ -30,7 +30,7 @@ import { IconName } from 'src/components/Icon';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 
 import { AnnotationObject } from './types';
-// import AnnotationModal from './AnnotationModal';
+import AnnotationModal from './AnnotationModal';
 
 const PAGE_SIZE = 25;
 
@@ -46,28 +46,27 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
       resourceCount: annotationsCount,
       resourceCollection: annotations,
     },
-    // hasPerm,
     fetchData,
-    // refreshData,
+    refreshData,
   } = useListViewResource<AnnotationObject>(
     `annotation_layer/${annotationLayerId}/annotation`,
     t('annotation'),
     addDangerToast,
     false,
   );
-  // const [annotationModalOpen, setAnnotationModalOpen] = useState<boolean>(
-  //   false,
-  // );
+  const [annotationModalOpen, setAnnotationModalOpen] = useState<boolean>(
+    false,
+  );
   const [annotationLayerName, setAnnotationLayerName] = useState<string>('');
-  // const [
-  //   currentAnnotation,
-  //   setCurrentAnnotation,
-  // ] = useState<AnnotationObject | null>(null);
+  const [
+    currentAnnotation,
+    setCurrentAnnotation,
+  ] = useState<AnnotationObject | null>(null);
 
-  // function handleAnnotationEdit(annotation: AnnotationObject) {
-  //   setCurrentAnnotation(annotation);
-  //   setAnnotationModalOpen(true);
-  // }
+  const handleAnnotationEdit = (annotation: AnnotationObject) => {
+    setCurrentAnnotation(annotation);
+    setAnnotationModalOpen(true);
+  };
 
   const fetchAnnotationLayer = useCallback(
     async function fetchAnnotationLayer() {
@@ -120,8 +119,8 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
         accessor: 'end_dttm',
       },
       {
-        Cell: () => {
-          const handleEdit = () => {}; // handleAnnotationEdit(original);
+        Cell: ({ row: { original } }: any) => {
+          const handleEdit = () => handleAnnotationEdit(original);
           const handleDelete = () => {}; // openDatabaseDeleteModal(original);
           const actions = [
             {
@@ -159,8 +158,8 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
     ),
     buttonStyle: 'primary',
     onClick: () => {
-      // setCurrentAnnotation(null);
-      // setAnnotationModalOpen(true);
+      setCurrentAnnotation(null);
+      setAnnotationModalOpen(true);
     },
   });
 
@@ -170,14 +169,14 @@ function AnnotationList({ addDangerToast }: AnnotationListProps) {
         name={t(`Annotation Layer ${annotationLayerName}`)}
         buttons={subMenuButtons}
       />
-      {/* <AnnotationModal
+      <AnnotationModal
         addDangerToast={addDangerToast}
         annotation={currentAnnotation}
         show={annotationModalOpen}
         onAnnotationAdd={() => refreshData()}
         annnotationLayerId={annotationLayerId}
         onHide={() => setAnnotationModalOpen(false)}
-      /> */}
+      />
       <ListView<AnnotationObject>
         className="css-templates-list-view"
         columns={columns}

@@ -16,23 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-type user = {
-  id: number;
-  first_name: string;
-  last_name: string;
-};
+import { DatePicker as AntdDatePicker } from 'src/common/components';
 
-export type AnnotationObject = {
-  changed_by?: user;
-  changed_on_delta_humanized?: string;
-  created_by?: user;
-  end_dttm: string;
-  id?: number;
-  json_metadata?: string;
-  long_descr?: string;
-  short_descr: string;
-  start_dttm: string;
-  layer?: {
-    id: number;
-  };
-};
+export const { RangePicker } = AntdDatePicker;
+export const DatePicker = AntdDatePicker;
