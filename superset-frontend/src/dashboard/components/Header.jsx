@@ -48,6 +48,7 @@ import {
 } from '../util/constants';
 import setPeriodicRunner from '../util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from './RefreshIntervalModal';
+import CreateFilterButton from './filterConfig/CreateFilterButton';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -471,14 +472,26 @@ class Header extends React.PureComponent {
           )}
 
           {!editMode && userCanEdit && (
-            <span
-              role="button"
-              tabIndex={0}
-              className="action-button"
-              onClick={this.toggleEditMode}
-            >
-              <Icon name="edit-alt" />
-            </span>
+            <>
+              <CreateFilterButton
+                role="button"
+                title="Add a filter"
+                tabIndex={0}
+                className="action-button"
+                onClick={this.openFilterModal}
+              >
+                <Icon name="filter" />
+              </CreateFilterButton>
+              <span
+                role="button"
+                title="Edit Dashboard"
+                tabIndex={0}
+                className="action-button"
+                onClick={this.toggleEditMode}
+              >
+                <Icon name="edit-alt" />
+              </span>
+            </>
           )}
 
           {this.state.showingPropertiesModal && (

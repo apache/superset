@@ -47,7 +47,7 @@ interface StyledModalProps extends SupersetThemeProps {
   responsive?: boolean;
 }
 
-const StyledModal = styled(BaseModal)<StyledModalProps>`
+export const StyledModal = styled(BaseModal)<StyledModalProps>`
   ${({ theme, responsive, maxWidth }) =>
     responsive &&
     css`
@@ -106,6 +106,9 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
   }
 `;
 
+// TODO: in another PR, rename this to CompatabilityModal
+// and demote it as the default export.
+// We should start using AntD component interfaces going forward.
 export default function Modal({
   children,
   disablePrimaryButton = false,
