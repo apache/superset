@@ -45,8 +45,8 @@ export const MenuItem = styled(AntdMenu.Item)`
   }
 
   &.ant-menu-item {
-    height: 30px;
-    line-height: 30px;
+    height: ${({ theme }) => theme.gridUnit * 7}px;
+    line-height: ${({ theme }) => theme.gridUnit * 7}px;
   }
 `;
 
