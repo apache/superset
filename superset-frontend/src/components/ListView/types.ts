@@ -65,8 +65,6 @@ export interface Filter {
     filterValue?: string,
     pageIndex?: number,
     pageSize?: number,
-    sortValue?: string,
-    sortDirection?: string,
   ) => Promise<SelectOption[]>;
   paginate?: boolean;
 }

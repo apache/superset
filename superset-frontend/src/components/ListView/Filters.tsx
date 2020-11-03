@@ -106,12 +106,7 @@ function SelectFilter({
     let result = inputValue || page > 0 ? [] : [clearFilterSelect];
     let hasMore = paginate;
     if (fetchSelects) {
-      const selectValues = await fetchSelects(
-        inputValue,
-        page,
-        undefined,
-        'text',
-      );
+      const selectValues = await fetchSelects(inputValue, page);
       // update matching option at initial load
       if (!selectValues.length) {
         hasMore = false;
