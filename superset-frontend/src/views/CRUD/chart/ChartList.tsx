@@ -47,7 +47,6 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
-const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
 const createFetchDatasets = (handleError: (err: Response) => void) => async (
   filterValue = '',
@@ -105,9 +104,12 @@ function ChartList(props: ChartListProps) {
     toggleBulkSelect,
     refreshData,
   } = useListViewResource<Chart>('chart', t('chart'), props.addDangerToast);
-  const [favoriteStatusRef, fetchFaveStar, saveFaveStar] = useFavoriteStatus(
-    {},
-    FAVESTAR_BASE_URL,
+
+  const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
+
+  const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
+    'chart',
+    chartIds,
     props.addDangerToast,
   );
   const {
@@ -140,17 +142,6 @@ function ChartList(props: ChartListProps) {
     );
   }
 
-  function renderFaveStar(id: number) {
-    return (
-      <FaveStar
-        itemId={id}
-        fetchFaveStar={fetchFaveStar}
-        saveFaveStar={saveFaveStar}
-        isStarred={!!favoriteStatusRef.current[id]}
-      />
-    );
-  }
-
   const columns = useMemo(
     () => [
       {
@@ -158,7 +149,13 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { id },
           },
-        }: any) => renderFaveStar(id),
+        }: any) => (
+          <FaveStar
+            itemId={id}
+            saveFaveStar={saveFavoriteStatus}
+            isStarred={favoriteStatus[id]}
+          />
+        ),
         Header: '',
         id: 'favorite',
         disableSortBy: true,
@@ -303,7 +300,7 @@ function ChartList(props: ChartListProps) {
         hidden: !canEdit && !canDelete,
       },
     ],
-    [canEdit, canDelete],
+    [canEdit, canDelete, favoriteStatus],
   );
 
   const filters: Filters = [
@@ -415,6 +412,8 @@ function ChartList(props: ChartListProps) {
         addSuccessToast={props.addSuccessToast}
         refreshData={refreshData}
         loading={loading}
+        favoriteStatus={favoriteStatus[chart.id]}
+        saveFavoriteStatus={saveFavoriteStatus}
       />
     );
   }
