@@ -47,6 +47,8 @@ screenshot_query_schema = {
 }
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
+get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
 #
 # Column schema descriptions
 #
@@ -1031,6 +1033,18 @@ class ChartDataResponseSchema(Schema):
     )
 
 
+class ChartFavStarResponseResult(Schema):
+    id = fields.Integer(description="The Chart id")
+    value = fields.Boolean(description="The FaveStar value")
+
+
+class GetFavStarIdsSchema(Schema):
+    result = fields.List(
+        fields.Nested(ChartFavStarResponseResult),
+        description="A list of results for each corresponding chart in the request",
+    )
+
+
 CHART_SCHEMAS = (
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,
@@ -1049,4 +1063,5 @@ CHART_SCHEMAS = (
     ChartDataGeodeticParseOptionsSchema,
     ChartGetDatasourceResponseSchema,
     ChartCacheScreenshotResponseSchema,
+    GetFavStarIdsSchema,
 )

@@ -17,8 +17,8 @@
  * under the License.
  */
 import rison from 'rison';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { useState, useEffect, useCallback } from 'react';
+import { makeApi, SupersetClient, t } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
@@ -58,7 +58,9 @@ export function useListViewResource<D extends object = any>(
   }
 
   useEffect(() => {
-    const infoParam = infoEnable ? '_info?q=(keys:!(permissions))' : '';
+    const infoParam = infoEnable
+      ? `_info?q=${rison.encode({ keys: ['permissions'] })}`
+      : '';
     SupersetClient.get({
       endpoint: `/api/v1/${resource}/${infoParam}`,
     }).then(
@@ -299,32 +301,52 @@ export function useSingleViewResource<D extends object = any>(
   };
 }
 
-// the hooks api has some known limitations around stale state in closures.
-// See https://github.com/reactjs/rfcs/blob/master/text/0068-react-hooks.md#drawbacks
-// the useRef hook is a way of getting around these limitations by having a consistent ref
-// that points to the most recent value.
+enum FavStarClassName {
+  CHART = 'slice',
+  DASHBOARD = 'Dashboard',
+}
+
+type FavoriteStatusResponse = {
+  result: Array<{
+    id: string;
+    value: boolean;
+  }>;
+};
+
+const favoriteApis = {
+  chart: makeApi<string, FavoriteStatusResponse>({
+    requestType: 'search',
+    method: 'GET',
+    endpoint: '/api/v1/chart/favorite_status',
+  }),
+  dashboard: makeApi<string, FavoriteStatusResponse>({
+    requestType: 'search',
+    method: 'GET',
+    endpoint: '/api/v1/dashboard/favorite_status',
+  }),
+};
+
 export function useFavoriteStatus(
-  initialState: FavoriteStatus,
-  baseURL: string,
+  type: 'chart' | 'dashboard',
+  ids: Array<string | number>,
   handleErrorMsg: (message: string) => void,
 ) {
-  const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>(
-    initialState,
-  );
-  const favoriteStatusRef = useRef<FavoriteStatus>(favoriteStatus);
-  useEffect(() => {
-    favoriteStatusRef.current = favoriteStatus;
-  });
+  const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>({});
 
   const updateFavoriteStatus = (update: FavoriteStatus) =>
     setFavoriteStatus(currentState => ({ ...currentState, ...update }));
 
-  const fetchFaveStar = (id: number) => {
-    SupersetClient.get({
-      endpoint: `${baseURL}/${id}/count/`,
-    }).then(
-      ({ json }) => {
-        updateFavoriteStatus({ [id]: json.count > 0 });
+  useEffect(() => {
+    if (!ids.length) {
+      return;
+    }
+    favoriteApis[type](`q=${rison.encode(ids)}`).then(
+      ({ result }) => {
+        const update = result.reduce((acc, element) => {
+          acc[element.id] = element.value;
+          return acc;
+        }, {});
+        updateFavoriteStatus(update);
       },
       createErrorHandler(errMsg =>
         handleErrorMsg(
@@ -332,31 +354,32 @@ export function useFavoriteStatus(
         ),
       ),
     );
-  };
+  }, [ids]);
 
-  const saveFaveStar = (id: number, isStarred: boolean) => {
-    const urlSuffix = isStarred ? 'unselect' : 'select';
-
-    SupersetClient.get({
-      endpoint: `${baseURL}/${id}/${urlSuffix}/`,
-    }).then(
-      () => {
-        updateFavoriteStatus({ [id]: !isStarred });
-      },
-      createErrorHandler(errMsg =>
-        handleErrorMsg(
-          t('There was an error saving the favorite status: %s', errMsg),
+  const saveFaveStar = useCallback(
+    (id: number, isStarred: boolean) => {
+      const urlSuffix = isStarred ? 'unselect' : 'select';
+      SupersetClient.get({
+        endpoint: `/superset/favstar/${
+          type === 'chart' ? FavStarClassName.CHART : FavStarClassName.DASHBOARD
+        }/${id}/${urlSuffix}/`,
+      }).then(
+        ({ json }) => {
+          updateFavoriteStatus({
+            [id]: (json as { count: number })?.count > 0,
+          });
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t('There was an error saving the favorite status: %s', errMsg),
+          ),
         ),
-      ),
-    );
-  };
+      );
+    },
+    [type],
+  );
 
-  return [
-    favoriteStatusRef,
-    fetchFaveStar,
-    saveFaveStar,
-    favoriteStatus,
-  ] as const;
+  return [saveFaveStar, favoriteStatus] as const;
 }
 
 export const useChartEditModal = (

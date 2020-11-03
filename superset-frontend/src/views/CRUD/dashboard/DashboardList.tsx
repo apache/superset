@@ -42,7 +42,6 @@ import Dashboard from 'src/dashboard/containers/Dashboard';
 import DashboardCard from './DashboardCard';
 
 const PAGE_SIZE = 25;
-const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
 
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
@@ -81,9 +80,11 @@ function DashboardList(props: DashboardListProps) {
     t('dashboard'),
     props.addDangerToast,
   );
-  const [favoriteStatusRef, fetchFaveStar, saveFaveStar] = useFavoriteStatus(
-    {},
-    FAVESTAR_BASE_URL,
+
+  const dashboardIds = useMemo(() => dashboards.map(d => d.id), [dashboards]);
+  const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
+    'dashboard',
+    dashboardIds,
     props.addDangerToast,
   );
   const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
@@ -140,17 +141,6 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  function renderFaveStar(id: number) {
-    return (
-      <FaveStar
-        itemId={id}
-        fetchFaveStar={fetchFaveStar}
-        saveFaveStar={saveFaveStar}
-        isStarred={!!favoriteStatusRef.current[id]}
-      />
-    );
-  }
-
   const columns = useMemo(
     () => [
       {
@@ -158,7 +148,13 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { id },
           },
-        }: any) => renderFaveStar(id),
+        }: any) => (
+          <FaveStar
+            itemId={id}
+            saveFaveStar={saveFavoriteStatus}
+            isStarred={favoriteStatus[id]}
+          />
+        ),
         Header: '',
         id: 'favorite',
         disableSortBy: true,
@@ -317,7 +313,7 @@ function DashboardList(props: DashboardListProps) {
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, canExport, favoriteStatusRef],
+    [canEdit, canDelete, canExport, favoriteStatus],
   );
 
   const filters: Filters = [
@@ -404,15 +400,16 @@ function DashboardList(props: DashboardListProps) {
   function renderCard(dashboard: Dashboard) {
     return (
       <DashboardCard
-        {...{
-          dashboard,
-          hasPerm,
-          bulkSelectEnabled,
-          refreshData,
-          addDangerToast: props.addDangerToast,
-          addSuccessToast: props.addSuccessToast,
-          openDashboardEditModal,
-        }}
+        dashboard={dashboard}
+        hasPerm={hasPerm}
+        bulkSelectEnabled={bulkSelectEnabled}
+        refreshData={refreshData}
+        loading={loading}
+        addDangerToast={props.addDangerToast}
+        addSuccessToast={props.addSuccessToast}
+        openDashboardEditModal={openDashboardEditModal}
+        saveFavoriteStatus={saveFavoriteStatus}
+        favoriteStatus={favoriteStatus[dashboard.id]}
       />
     );
   }

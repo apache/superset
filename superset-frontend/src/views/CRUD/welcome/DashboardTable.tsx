@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
-import { useListViewResource } from 'src/views/CRUD/hooks';
+import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -42,7 +42,7 @@ function DashboardTable({
   addSuccessToast,
 }: DashboardTableProps) {
   const {
-    state: { loading, resourceCollection: dashboards, bulkSelectEnabled },
+    state: { loading, resourceCollection: dashboards },
     setResourceCollection: setDashboards,
     hasPerm,
     refreshData,
@@ -52,7 +52,12 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
   );
-
+  const dashboardIds = useMemo(() => dashboards.map(c => c.id), [dashboards]);
+  const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
+    'dashboard',
+    dashboardIds,
+    addDangerToast,
+  );
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
@@ -168,16 +173,16 @@ function DashboardTable({
         <CardContainer>
           {dashboards.map(e => (
             <DashboardCard
-              {...{
-                dashboard: e,
-                hasPerm,
-                bulkSelectEnabled,
-                refreshData,
-                addDangerToast,
-                addSuccessToast,
-                loading,
-                openDashboardEditModal: dashboard => setEditModal(dashboard),
-              }}
+              dashboard={e}
+              hasPerm={hasPerm}
+              bulkSelectEnabled={false}
+              refreshData={refreshData}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+              loading={loading}
+              openDashboardEditModal={dashboard => setEditModal(dashboard)}
+              saveFavoriteStatus={saveFavoriteStatus}
+              favoriteStatus={favoriteStatus[e.id]}
             />
           ))}
         </CardContainer>
