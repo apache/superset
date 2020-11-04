@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icon from 'src/components/Icon';
 import Chart from 'src/types/Chart';
@@ -27,7 +28,7 @@ import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
-import { handleChartDelete } from '../utils';
+import { handleBulkChartExport, handleChartDelete } from '../utils';
 
 interface ChartCardProps {
   chart: Chart;
@@ -56,6 +57,8 @@ export default function ChartCard({
 }: ChartCardProps) {
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
+  const canExport =
+    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const menu = (
     <Menu>
@@ -90,6 +93,15 @@ export default function ChartCard({
               </div>
             )}
           </ConfirmStatusChange>
+        </Menu.Item>
+      )}
+      {canExport && (
+        <Menu.Item
+          role="button"
+          tabIndex={0}
+          onClick={() => handleBulkChartExport([chart])}
+        >
+          <ListViewCard.MenuIcon name="share" /> {t('Export')}
         </Menu.Item>
       )}
       {canEdit && (

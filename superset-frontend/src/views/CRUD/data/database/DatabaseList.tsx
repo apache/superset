@@ -18,6 +18,8 @@
  */
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
+import rison from 'rison';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -119,6 +121,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
+  const canExport =
+    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
@@ -141,6 +145,12 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         },
       },
     ];
+  }
+
+  function handleDatabaseExport(database: DatabaseObject) {
+    return window.location.assign(
+      `/api/v1/database/export/?q=${rison.encode([database.id])}`,
+    );
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -238,25 +248,12 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleDatabaseEdit(original);
           const handleDelete = () => openDatabaseDeleteModal(original);
-
+          const handleExport = () => handleDatabaseExport(original);
+          if (!canEdit && !canDelete && !canExport) {
+            return null;
+          }
           return (
             <span className="actions">
-              {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
-                    <Icon name="edit-alt" />
-                  </span>
-                </TooltipWrapper>
-              )}
               {canDelete && (
                 <span
                   role="button"
@@ -274,6 +271,38 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                   </TooltipWrapper>
                 </span>
               )}
+              {canExport && (
+                <TooltipWrapper
+                  label="export-action"
+                  tooltip={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icon name="share" />
+                  </span>
+                </TooltipWrapper>
+              )}
+              {canEdit && (
+                <TooltipWrapper
+                  label="edit-action"
+                  tooltip={t('Edit')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icon name="edit-alt" />
+                  </span>
+                </TooltipWrapper>
+              )}
             </span>
           );
         },
@@ -283,7 +312,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         disableSortBy: true,
       },
     ],
-    [canDelete, canEdit],
+    [canDelete, canEdit, canExport],
   );
 
   const filters: Filters = useMemo(
