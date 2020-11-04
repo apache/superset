@@ -24,9 +24,9 @@ import {
   Button as BootstrapButton,
   Tooltip,
   OverlayTrigger,
-  MenuItem,
 } from 'react-bootstrap';
 import { styled } from '@superset-ui/core';
+import { Menu } from 'src/common/components';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
 
@@ -285,12 +285,16 @@ export default function Button({
           {children}
         </SupersetButton>
         <ul className="dropdown-menu">
-          {dropdownItems.map((dropdownItem: DropdownItemProps) => (
-            <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
-              <i className={`fa ${dropdownItem.icon}`} />
-              &nbsp; {dropdownItem.label}
-            </MenuItem>
-          ))}
+          <Menu>
+            {dropdownItems.map((dropdownItem: DropdownItemProps) => (
+              <Menu.Item key={`${dropdownItem.label}`}>
+                <a href={dropdownItem.url}>
+                  <i className={`fa ${dropdownItem.icon}`} />
+                  &nbsp; {dropdownItem.label}
+                </a>
+              </Menu.Item>
+            ))}
+          </Menu>
         </ul>
       </div>
     );
