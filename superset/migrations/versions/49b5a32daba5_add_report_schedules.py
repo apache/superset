@@ -23,11 +23,11 @@ Create Date: 2020-11-04 11:06:59.249758
 """
 
 # revision identifiers, used by Alembic.
-revision = '49b5a32daba5'
-down_revision = '96e99fb176a0'
+revision = "49b5a32daba5"
+down_revision = "96e99fb176a0"
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 
 def upgrade():
@@ -68,7 +68,12 @@ def upgrade():
         sa.ForeignKeyConstraint(["database_id"], ["dbs.id"],),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_report_schedule_active"), "report_schedule", ["active"], unique=False)
+    op.create_unique_constraint(
+        "uq_report_schedule_label", "report_schedule", ["label"]
+    )
+    op.create_index(
+        op.f("ix_report_schedule_active"), "report_schedule", ["active"], unique=False
+    )
 
     op.create_table(
         "report_execution_log",
@@ -79,9 +84,7 @@ def upgrade():
         sa.Column("value", sa.Float(), nullable=True),
         sa.Column("value_row_json", sa.Text(), nullable=True),
         sa.Column(
-            "state",
-            sa.Enum("success", "error", name="reportlogstate"),
-            nullable=True,
+            "state", sa.Enum("success", "error", name="reportlogstate"), nullable=True,
         ),
         sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column("report_schedule_id", sa.Integer(), nullable=True),
@@ -92,7 +95,6 @@ def upgrade():
     op.create_table(
         "report_recipient",
         sa.Column("id", sa.Integer(), nullable=False),
-
         sa.Column(
             "type",
             sa.Enum("email", "slack", name="reportrecipienttype"),
@@ -117,15 +119,14 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_index(
-        op.f("ix_report_schedule_active"), table_name="report_schedule"
-    )
+    op.drop_index(op.f("ix_report_schedule_active"), table_name="report_schedule")
+    op.drop_constraint("uq_report_schedule_label", "report_schedule", type_="unique")
     op.drop_table("report_execution_log")
     op.drop_table("report_recipient")
     op.drop_table("report_schedule_user")
     op.drop_table("report_schedule")
     # https://github.com/miguelgrinberg/Flask-Migrate/issues/48
-    sa.Enum(name='reportscheduletype').drop(op.get_bind(), checkfirst=False)
-    sa.Enum(name='reportemailformat').drop(op.get_bind(), checkfirst=False)
-    sa.Enum(name='reportrecipienttype').drop(op.get_bind(), checkfirst=False)
-    sa.Enum(name='reportlogstate').drop(op.get_bind(), checkfirst=False)
+    sa.Enum(name="reportscheduletype").drop(op.get_bind(), checkfirst=False)
+    sa.Enum(name="reportemailformat").drop(op.get_bind(), checkfirst=False)
+    sa.Enum(name="reportrecipienttype").drop(op.get_bind(), checkfirst=False)
+    sa.Enum(name="reportlogstate").drop(op.get_bind(), checkfirst=False)
