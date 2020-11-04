@@ -69,6 +69,7 @@ function DashboardCard({
           onClick={() =>
             openDashboardEditModal && openDashboardEditModal(dashboard)
           }
+          data-test="dashboard-card-option-edit-button"
         >
           <ListViewCard.MenuIcon name="edit-alt" /> Edit
         </Menu.Item>
@@ -107,6 +108,7 @@ function DashboardCard({
                 tabIndex={0}
                 className="action-button"
                 onClick={confirmDelete}
+                data-test="dashboard-card-option-delete-button"
               >
                 <ListViewCard.MenuIcon name="trash" /> Delete
               </div>

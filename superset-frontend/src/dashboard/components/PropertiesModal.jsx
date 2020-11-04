@@ -319,7 +319,7 @@ class PropertiesModal extends React.PureComponent {
         }
         responsive
       >
-        <form onSubmit={this.submit}>
+        <form data-test="dashboard-edit-properties-form" onSubmit={this.submit}>
           <Row>
             <Col md={12}>
               <h3>{t('Basic Information')}</h3>
