@@ -72,7 +72,7 @@ describe('DashboardTable', () => {
     expect(wrapper.find('li')).toHaveLength(2);
     expect(wrapper.find('Button')).toHaveLength(4);
     act(() => {
-      wrapper.find('MenuItem').at(1).simulate('click');
+      wrapper.find('li').at(1).simulate('click');
     });
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/dashboard\/\?q/)).toHaveLength(1);
