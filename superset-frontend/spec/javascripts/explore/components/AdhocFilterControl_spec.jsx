@@ -21,7 +21,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import OnPasteSelect from 'src/components/Select/OnPasteSelect';
+import Select from 'src/components/Select';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
@@ -73,14 +73,14 @@ function setup(overrides) {
 }
 
 describe('AdhocFilterControl', () => {
-  it('renders an onPasteSelect', () => {
+  it('renders Select', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OnPasteSelect)).toExist();
+    expect(wrapper.find(Select)).toExist();
   });
 
   it('handles saved metrics being selected to filter on', () => {
     const { wrapper, onChange } = setup({ value: [] });
-    const select = wrapper.find(OnPasteSelect);
+    const select = wrapper.find(Select);
     select.simulate('change', [{ saved_metric_name: 'sum__value' }]);
 
     const adhocFilter = onChange.lastCall.args[0][0];
@@ -100,7 +100,7 @@ describe('AdhocFilterControl', () => {
 
   it('handles adhoc metrics being selected to filter on', () => {
     const { wrapper, onChange } = setup({ value: [] });
-    const select = wrapper.find(OnPasteSelect);
+    const select = wrapper.find(Select);
     select.simulate('change', [sumValueAdhocMetric]);
 
     const adhocFilter = onChange.lastCall.args[0][0];
@@ -120,7 +120,7 @@ describe('AdhocFilterControl', () => {
 
   it('handles columns being selected to filter on', () => {
     const { wrapper, onChange } = setup({ value: [] });
-    const select = wrapper.find(OnPasteSelect);
+    const select = wrapper.find(Select);
     select.simulate('change', [columns[0]]);
 
     const adhocFilter = onChange.lastCall.args[0][0];
@@ -140,7 +140,7 @@ describe('AdhocFilterControl', () => {
 
   it('persists existing filters even when new filters are added', () => {
     const { wrapper, onChange } = setup();
-    const select = wrapper.find(OnPasteSelect);
+    const select = wrapper.find(Select);
     select.simulate('change', [simpleAdhocFilter, columns[0]]);
 
     const existingAdhocFilter = onChange.lastCall.args[0][0];
