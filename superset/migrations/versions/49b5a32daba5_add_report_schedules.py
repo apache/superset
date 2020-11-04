@@ -1,0 +1,131 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""add report schedules
+
+Revision ID: 49b5a32daba5
+Revises: 96e99fb176a0
+Create Date: 2020-11-04 11:06:59.249758
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = '49b5a32daba5'
+down_revision = '96e99fb176a0'
+
+from alembic import op
+import sqlalchemy as sa
+
+
+def upgrade():
+    op.create_table(
+        "report_schedule",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "type",
+            sa.Enum("type", "report_schedule", name="reportscheduletype"),
+            nullable=False,
+        ),
+        sa.Column("label", sa.String(length=150), nullable=False),
+        sa.Column("active", sa.Boolean(), nullable=True),
+        sa.Column("crontab", sa.String(length=50), nullable=False),
+        sa.Column("sql", sa.Text(), nullable=True),
+        sa.Column("chart_id", sa.Integer(), nullable=True),
+        sa.Column("dashboard_id", sa.Integer(), nullable=True),
+        sa.Column("database_id", sa.Integer(), nullable=True),
+        sa.Column(
+            "email_format",
+            sa.Enum("visualization", "data", name="reportemailformat"),
+            nullable=True,
+        ),
+        sa.Column("last_eval_dttm", sa.DateTime(), nullable=True),
+        sa.Column(
+            "last_state",
+            sa.Enum("success", "error", name="reportlogstate"),
+            nullable=True,
+        ),
+        sa.Column("last_value", sa.Float(), nullable=True),
+        sa.Column("last_value_row_json", sa.Text(), nullable=True),
+        sa.Column("validator_type", sa.String(length=100), nullable=True),
+        sa.Column("validator_config_json", sa.Text(), nullable=True),
+        sa.Column("log_retention", sa.Integer(), nullable=False, default=90),
+        sa.Column("grace_period", sa.Integer(), nullable=False, default=60 * 60 * 4),
+        sa.ForeignKeyConstraint(["chart_id"], ["slices.id"],),
+        sa.ForeignKeyConstraint(["dashboard_id"], ["dashboards.id"],),
+        sa.ForeignKeyConstraint(["database_id"], ["dbs.id"],),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_report_schedule_active"), "report_schedule", ["active"], unique=False)
+
+    op.create_table(
+        "report_execution_log",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("start_dttm", sa.DateTime(), nullable=True),
+        sa.Column("end_dttm", sa.DateTime(), nullable=True),
+        sa.Column("observation_dttm", sa.DateTime(), nullable=True),
+        sa.Column("value", sa.Float(), nullable=True),
+        sa.Column("value_row_json", sa.Text(), nullable=True),
+        sa.Column(
+            "state",
+            sa.Enum("success", "error", name="reportlogstate"),
+            nullable=True,
+        ),
+        sa.Column("error_message", sa.Text(), nullable=True),
+        sa.Column("report_schedule_id", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"],),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    op.create_table(
+        "report_recipient",
+        sa.Column("id", sa.Integer(), nullable=False),
+
+        sa.Column(
+            "type",
+            sa.Enum("email", "slack", name="reportrecipienttype"),
+            nullable=True,
+        ),
+        sa.Column("value_row_json", sa.Text(), nullable=True),
+        sa.Column("recipient_config_json", sa.Text(), nullable=True),
+        sa.Column("report_schedule_id", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"],),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    op.create_table(
+        "report_schedule_user",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("user_id", sa.Integer(), nullable=True),
+        sa.Column("report_schedule_id", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"],),
+        sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"],),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+
+def downgrade():
+    op.drop_index(
+        op.f("ix_report_schedule_active"), table_name="report_schedule"
+    )
+    op.drop_table("report_execution_log")
+    op.drop_table("report_recipient")
+    op.drop_table("report_schedule_user")
+    op.drop_table("report_schedule")
+    # https://github.com/miguelgrinberg/Flask-Migrate/issues/48
+    sa.Enum(name='reportscheduletype').drop(op.get_bind(), checkfirst=False)
+    sa.Enum(name='reportemailformat').drop(op.get_bind(), checkfirst=False)
+    sa.Enum(name='reportrecipienttype').drop(op.get_bind(), checkfirst=False)
+    sa.Enum(name='reportlogstate').drop(op.get_bind(), checkfirst=False)
