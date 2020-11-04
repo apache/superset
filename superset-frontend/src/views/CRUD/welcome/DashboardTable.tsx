@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo} from 'react';
+import React, { useState, useMemo } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
@@ -183,6 +183,7 @@ function DashboardTable({
               dashboard={e}
               hasPerm={hasPerm}
               bulkSelectEnabled={false}
+              dashboardFilter={dashboardFilter}
               refreshData={refreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
@@ -195,7 +196,7 @@ function DashboardTable({
           ))}
         </CardContainer>
       )}
-      {dashboards.length === 0 && !loading && (
+      {dashboards.length === 0 && (
         <EmptyState tableName="DASHBOARDS" tab={dashboardFilter} />
       )}
     </>

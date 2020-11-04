@@ -80,7 +80,6 @@ function DashboardList(props: DashboardListProps) {
     t('dashboard'),
     props.addDangerToast,
   );
-
   const dashboardIds = useMemo(() => dashboards.map(d => d.id), [dashboards]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'dashboard',

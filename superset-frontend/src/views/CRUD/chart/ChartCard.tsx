@@ -38,7 +38,7 @@ interface ChartCardProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   refreshData: () => void;
-  loading: boolean;
+  loading?: boolean;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
   chartFilter?: string;

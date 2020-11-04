@@ -43,6 +43,8 @@ export interface DashboardCardProps {
   openDashboardEditModal?: (d: Dashboard) => void;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
+  dashboardFilter?: string;
+  userId?: number;
 }
 
 function DashboardCard({
