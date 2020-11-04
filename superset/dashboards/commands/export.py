@@ -26,7 +26,7 @@ from werkzeug.utils import secure_filename
 from superset.charts.commands.export import ExportChartsCommand
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.dao import DashboardDAO
-from superset.importexport.commands.base import ExportModelsCommand
+from superset.commands.export import ExportModelsCommand
 from superset.models.dashboard import Dashboard
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION
 
