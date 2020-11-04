@@ -27,7 +27,7 @@ import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DropdownButton, Row, Col, FormControl } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
 import { Menu } from 'src/common/components';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
@@ -65,6 +65,17 @@ const MENU_KEYS = {
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
 };
+
+const CopyButton = styled(Button)`
+  padding: ${({ theme }) => theme.gridUnit / 2}px
+    ${({ theme }) => theme.gridUnit * 2.5}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+
+  // needed to override button's first-of-type margin: 0
+  && {
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+`;
 
 export const DisplayQueryButton = props => {
   const { datasource } = props.latestQueryFormData;
@@ -200,9 +211,9 @@ export const DisplayQueryButton = props => {
               text={prepareCopyToClipboardTabularData(data)}
               wrapped={false}
               copyNode={
-                <Button style={{ padding: '2px 10px', fontSize: '11px' }}>
+                <CopyButton>
                   <i className="fa fa-clipboard" />
-                </Button>
+                </CopyButton>
               }
             />
           </Col>
