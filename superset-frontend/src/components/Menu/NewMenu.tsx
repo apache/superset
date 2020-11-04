@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { t, styled } from '@superset-ui/core';
-import { MenuItem } from 'react-bootstrap';
+import { Menu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
 
 const dropdownItems = [
@@ -45,11 +45,15 @@ const StyledI = styled.div`
 export default function NewMenu() {
   return (
     <NavDropdown id="new-dropdown" title={<StyledI className="fa fa-plus" />}>
-      {dropdownItems.map((menu, i) => (
-        <MenuItem key={i} href={menu.url}>
-          <i className={`fa ${menu.icon}`} /> {menu.label}
-        </MenuItem>
-      ))}
+      <Menu>
+        {dropdownItems.map((menu, i) => (
+          <Menu.Item key={i}>
+            <a href={menu.url}>
+              <i className={`fa ${menu.icon}`} /> {menu.label}
+            </a>
+          </Menu.Item>
+        ))}
+      </Menu>
     </NavDropdown>
   );
 }
