@@ -23,7 +23,7 @@ import { shallow } from 'enzyme';
 
 import MetricsControl from 'src/explore/components/controls/MetricsControl';
 import { AGGREGATES } from 'src/explore/constants';
-import OnPasteSelect from 'src/components/Select/OnPasteSelect';
+import Select from 'src/components/Select';
 import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
 
 const defaultProps = {
@@ -63,9 +63,9 @@ const sumValueAdhocMetric = new AdhocMetric({
 });
 
 describe('MetricsControl', () => {
-  it('renders an OnPasteSelect', () => {
+  it('renders Select', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OnPasteSelect)).toExist();
+    expect(wrapper.find(Select)).toExist();
   });
 
   describe('constructor', () => {
@@ -152,14 +152,14 @@ describe('MetricsControl', () => {
   describe('onChange', () => {
     it('handles saved metrics being selected', () => {
       const { wrapper, onChange } = setup();
-      const select = wrapper.find(OnPasteSelect);
+      const select = wrapper.find(Select);
       select.simulate('change', [{ metric_name: 'sum__value' }]);
       expect(onChange.lastCall.args).toEqual([['sum__value']]);
     });
 
     it('handles columns being selected', () => {
       const { wrapper, onChange } = setup();
-      const select = wrapper.find(OnPasteSelect);
+      const select = wrapper.find(Select);
       select.simulate('change', [valueColumn]);
 
       const adhocMetric = onChange.lastCall.args[0][0];
@@ -184,7 +184,7 @@ describe('MetricsControl', () => {
     it('handles aggregates being selected', () => {
       return new Promise(done => {
         const { wrapper, onChange } = setup();
-        const select = wrapper.find(OnPasteSelect);
+        const select = wrapper.find(Select);
 
         // mock out the Select ref
         const instance = wrapper.instance();
@@ -220,7 +220,7 @@ describe('MetricsControl', () => {
 
     it('preserves existing selected AdhocMetrics', () => {
       const { wrapper, onChange } = setup();
-      const select = wrapper.find(OnPasteSelect);
+      const select = wrapper.find(Select);
       select.simulate('change', [
         { metric_name: 'sum__value' },
         sumValueAdhocMetric,
@@ -261,6 +261,18 @@ describe('MetricsControl', () => {
       expect(wrapper.state('aggregateInInput')).toBeNull();
       wrapper.instance().checkIfAggregateInInput('colu');
       expect(wrapper.state('aggregateInInput')).toBeNull();
+    });
+
+    it('handles an aggregate in the input when paste event fires', () => {
+      const { wrapper } = setup();
+      expect(wrapper.state('aggregateInInput')).toBeNull();
+
+      const mEvent = {
+        clipboardData: { getData: jest.fn().mockReturnValueOnce('AVG(') },
+      };
+      const select = wrapper.find(Select);
+      select.simulate('paste', mEvent);
+      expect(wrapper.state('aggregateInInput')).toBe(AGGREGATES.AVG);
     });
   });
 
