@@ -26,7 +26,7 @@ from werkzeug.utils import secure_filename
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.datasets.commands.export import ExportDatasetsCommand
-from superset.importexport.commands.base import ExportModelsCommand
+from superset.commands.export import ExportModelsCommand
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION
 
