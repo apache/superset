@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
-import { reject } from 'lodash';
 
+import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
-import { addDangerToast } from 'src/messageToasts/actions';
 import SubMenu from 'src/components/Menu/SubMenu';
-import { getRecentAcitivtyObjs, mq } from '../utils';
+import { ActivityData } from './Welcome';
+import { mq } from '../utils';
 import EmptyState from './EmptyState';
 
 interface ActivityObjects {
@@ -46,13 +46,10 @@ interface ActivityProps {
   user: {
     userId: string | number;
   };
-}
-
-interface ActivityData {
-  Created?: Array<object>;
-  Edited?: Array<object>;
-  Viewed?: Array<object>;
-  Examples?: Array<object>;
+  activeChild: string;
+  setActiveChild: (arg0: string) => void;
+  loading: boolean;
+  activityData: ActivityData;
 }
 
 const ActivityContainer = styled.div`
@@ -82,13 +79,12 @@ const ActivityContainer = styled.div`
   }
 `;
 
-export default function ActivityTable({ user }: ActivityProps) {
-  const [activityData, setActivityData] = useState<ActivityData>({});
-  const [loading, setLoading] = useState(true);
-  const [activeChild, setActiveChild] = useState('Viewed');
-  // this api uses log for data which in some cases can be empty
-  const recent = `/superset/recent_activity/${user.userId}/?limit=5`;
-
+export default function ActivityTable({
+  loading,
+  activeChild,
+  setActiveChild,
+  activityData,
+}: ActivityProps) {
   const getFilterTitle = (e: ActivityObjects) => {
     if (e.dashboard_title) return e.dashboard_title;
     if (e.label) return e.label;
@@ -99,7 +95,7 @@ export default function ActivityTable({ user }: ActivityProps) {
 
   const getIconName = (e: ActivityObjects) => {
     if (e.sql) return 'sql';
-    if (e.url?.includes('dashboard')) {
+    if (e.url?.includes('dashboard') || e.item_url?.includes('dashboard')) {
       return 'nav-dashboard';
     }
     if (e.url?.includes('explore') || e.item_url?.includes('explore')) {
@@ -143,36 +139,6 @@ export default function ActivityTable({ user }: ActivityProps) {
     });
   }
 
-  useEffect(() => {
-    getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
-      .then(res => {
-        const data: any = {
-          Created: [
-            ...res.createdByChart,
-            ...res.createdByDash,
-            ...res.createdByQuery,
-          ],
-          Edited: [...res.editedChart, ...res.editedDash],
-        };
-        if (res.viewed) {
-          const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
-          data.Viewed = filtered;
-          setActiveChild('Viewed');
-        } else {
-          data.Examples = res.examples;
-          setActiveChild('Examples');
-        }
-        setActivityData(data);
-        setLoading(false);
-      })
-      .catch(e => {
-        setLoading(false);
-        addDangerToast(
-          `There was an issue fetching your recent Acitivity: ${e}`,
-        );
-      });
-  }, []);
-
   const renderActivity = () => {
     return activityData[activeChild].map((e: ActivityObjects) => (
       <ListViewCard
@@ -189,7 +155,7 @@ export default function ActivityTable({ user }: ActivityProps) {
       />
     ));
   };
-  if (loading) return <>loading ...</>;
+  if (loading) return <Loading position="inline" />;
   return (
     <>
       <SubMenu

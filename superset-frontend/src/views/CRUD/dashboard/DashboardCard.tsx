@@ -49,7 +49,9 @@ function DashboardCard({
   dashboard,
   hasPerm,
   bulkSelectEnabled,
+  dashboardFilter,
   refreshData,
+  userId,
   addDangerToast,
   addSuccessToast,
   openDashboardEditModal,
@@ -99,6 +101,8 @@ function DashboardCard({
                 refreshData,
                 addSuccessToast,
                 addDangerToast,
+                dashboardFilter,
+                userId,
               )
             }
           >

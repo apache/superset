@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import { User } from 'src/types/bootstrapTypes';
-import { mq } from '../utils';
+import { reject } from 'lodash';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Loading from 'src/components/Loading';
+import { getRecentAcitivtyObjs, mq } from '../utils';
+
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
@@ -30,6 +34,17 @@ const { Panel } = Collapse;
 
 interface WelcomeProps {
   user: User;
+  addDangerToast: (arg0: string) => void;
+}
+
+export interface ActivityData {
+  Created?: Array<object>;
+  Edited?: Array<object>;
+  Viewed?: Array<object>;
+  Examples?: Array<object>;
+  myChart?: Array<object>;
+  myDash?: Array<object>;
+  myQuery?: Array<object>;
 }
 
 const WelcomeContainer = styled.div`
@@ -70,25 +85,93 @@ const WelcomeContainer = styled.div`
     font-weight: ${({ theme }) => theme.typography.weights.normal};
     font-size: ${({ theme }) => theme.gridUnit * 4}px;
   }
+  .ant-collapse-content-box {
+    min-height: 265px;
+    .loading.inline {
+      margin: ${({ theme }) => theme.gridUnit * 12}px auto;
+      display: block;
+    }
+  }
 `;
 
-export default function Welcome({ user }: WelcomeProps) {
+function Welcome({ user, addDangerToast }: WelcomeProps) {
+  const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
+  const [activeChild, setActiveChild] = useState('Viewed');
+  const [activityData, setActivityData] = useState<ActivityData>({});
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
+      .then(res => {
+        const data: any = {
+          Created: [
+            ...res.createdByChart,
+            ...res.createdByDash,
+            ...res.createdByQuery,
+          ],
+          myChart: res.createdByChart,
+          myDash: res.createdByDash,
+          myQuery: res.createdByQuery,
+          Edited: [...res.editedChart, ...res.editedDash],
+        };
+        if (res.viewed) {
+          const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
+          data.Viewed = filtered;
+          setActiveChild('Viewed');
+        } else {
+          data.Examples = res.examples;
+          setActiveChild('Examples');
+        }
+        setActivityData(data);
+        setLoading(false);
+      })
+      .catch(e => {
+        setLoading(false);
+        addDangerToast(
+          `There was an issue fetching your recent acitivity: ${e}`,
+        );
+      });
+  }, []);
+
   return (
     <WelcomeContainer>
       <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost>
         <Panel header={t('Recents')} key="1">
-          <ActivityTable user={user} />
+          <ActivityTable
+            user={user}
+            activeChild={activeChild}
+            setActiveChild={setActiveChild}
+            loading={loading}
+            activityData={activityData}
+          />
         </Panel>
         <Panel header={t('Dashboards')} key="2">
-          <DashboardTable user={user} />
+          {loading ? (
+            <Loading position="inline" />
+          ) : (
+            <DashboardTable
+              user={user}
+              mine={activityData.myDash}
+              isLoading={loading}
+            />
+          )}
         </Panel>
         <Panel header={t('Saved Queries')} key="3">
-          <SavedQueries user={user} />
+          {loading ? (
+            <Loading position="inline" />
+          ) : (
+            <SavedQueries user={user} mine={activityData.myQuery} />
+          )}
         </Panel>
         <Panel header={t('Charts')} key="4">
-          <ChartTable user={user} />
+          {loading ? (
+            <Loading position="inline" />
+          ) : (
+            <ChartTable user={user} mine={activityData.myChart} />
+          )}
         </Panel>
       </Collapse>
     </WelcomeContainer>
   );
 }
+
+export default withToasts(Welcome);

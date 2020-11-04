@@ -41,6 +41,8 @@ interface ChartCardProps {
   loading: boolean;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
+  chartFilter?: string;
+  userId?: number;
 }
 
 export default function ChartCard({
@@ -54,6 +56,8 @@ export default function ChartCard({
   loading,
   saveFavoriteStatus,
   favoriteStatus,
+  chartFilter,
+  userId,
 }: ChartCardProps) {
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
@@ -78,6 +82,8 @@ export default function ChartCard({
                 addSuccessToast,
                 addDangerToast,
                 refreshData,
+                chartFilter,
+                userId,
               )
             }
           >

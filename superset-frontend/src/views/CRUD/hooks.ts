@@ -32,6 +32,7 @@ interface ListViewResourceState<D extends object = any> {
   permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
   bulkSelectEnabled: boolean;
+  minesFetchDataConfig?: FetchDataConfig;
 }
 
 export function useListViewResource<D extends object = any>(
@@ -39,10 +40,11 @@ export function useListViewResource<D extends object = any>(
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
   infoEnable = true,
+  defaultCollectionValue: D[] = [],
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
-    collection: [],
+    collection: defaultCollectionValue,
     loading: true,
     lastFetchDataConfig: null,
     permissions: [],
@@ -164,10 +166,14 @@ export function useListViewResource<D extends object = any>(
     hasPerm,
     fetchData,
     toggleBulkSelect,
-    refreshData: () => {
+    refreshData: (mineConfig: FetchDataConfig | null = null) => {
       if (state.lastFetchDataConfig) {
-        fetchData(state.lastFetchDataConfig);
+        return fetchData(state.lastFetchDataConfig);
       }
+      if (mineConfig) {
+        return fetchData(mineConfig);
+      }
+      return null;
     },
   };
 }
