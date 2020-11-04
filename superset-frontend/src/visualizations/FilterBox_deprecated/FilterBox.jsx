@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
-import { Space } from 'src/common/components';
+import Button from 'src/components/Button';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import styled from '@superset-ui/style';
@@ -61,6 +61,7 @@ const propTypes = {
   chartId: PropTypes.number.isRequired,
   origSelectedValues: PropTypes.object,
   datasource: PropTypes.object.isRequired,
+  instantFiltering: PropTypes.bool,
   filtersFields: PropTypes.arrayOf(
     PropTypes.shape({
       field: PropTypes.string,
@@ -96,8 +97,15 @@ const defaultProps = {
   showSqlaTimeColumn: false,
   showDruidTimeGrain: false,
   showDruidTimeOrigin: false,
+  instantFiltering: false,
 };
 
+const Styles = styled.div`
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  overflow: visible;
+`;
 
 class FilterBox extends React.Component {
   constructor(props) {
@@ -175,7 +183,9 @@ class FilterBox extends React.Component {
     };
 
     this.setState({ selectedValues, hasChanged: true }, () => {
-      this.props.onChange({ [fltr]: vals }, false);
+      if (this.props.instantFiltering) {
+        this.props.onChange({ [fltr]: vals }, false);
+      }
     });
   }
 
@@ -419,12 +429,24 @@ class FilterBox extends React.Component {
   }
 
   render() {
+    const { instantFiltering } = this.props;
+
     return (
-      <Space>
+      <Styles>
         {this.renderDateFilter()}
         {this.renderDatasourceFilters()}
         {this.renderFilters()}
-      </Space>
+        {!instantFiltering && (
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
+            onClick={this.clickApply.bind(this)}
+            disabled={!this.state.hasChanged}
+          >
+            {t('Apply')}
+          </Button>
+        )}
+      </Styles>
     );
   }
 }

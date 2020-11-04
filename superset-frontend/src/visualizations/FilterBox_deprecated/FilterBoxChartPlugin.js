@@ -16,39 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../stylesheets/less/variables.less';
+import { t } from '@superset-ui/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
-.dashboard .filter_box .slice_container > div:not(.alert) {
-  padding-top: 0;
-}
+const metadata = new ChartMetadata({
+  name: t('Filter Box'),
+  description:
+    'A multi filter, multi-choice filter box to make dashboards interactive',
+  thumbnail,
+  useLegacyApi: true,
+});
 
-.filter_box {
-  overflow: visible !important;
-
-  &:hover {
-    z-index: @z-index-max;
-  }
-}
-
-.m-b-5 {
-  margin-bottom: 5px;
-}
-
-.filter-container {
-  display: flex;
-
-  label {
-    display: flex;
-    font-weight: @font-weight-bold;
-    margin: 0 0 8px 8px;
-  }
-
-  .filter-badge-container {
-    width: 30px;
-    padding-right: 10px;
-  }
-
-  .filter-badge-container + div {
-    width: 100%;
+export default class FilterBoxChartPlugin extends ChartPlugin {
+  constructor() {
+    super({
+      controlPanel,
+      metadata,
+      transformProps,
+      loadChart: () => import('./FilterBox.jsx'),
+    });
   }
 }

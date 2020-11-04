@@ -29,7 +29,10 @@ import {
 import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/store';
-import { buildActiveFilters } from '../util/activeDashboardFilters';
+import {
+  buildActiveFilters,
+  isFilterBox,
+} from '../util/activeDashboardFilters';
 import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
@@ -48,7 +51,7 @@ import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
-export default function (bootstrapData) {
+export default function(bootstrapData) {
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };
@@ -86,11 +89,29 @@ export default function (bootstrapData) {
       ? positionJson
       : getEmptyLayout();
 
+  // TODO: Quick and dirty solution remove filters from layout (may be remove before they comes here)
+  const filterLayoutIds = Object.keys(dashboard.metadata?.filter_scopes || []).map(id => +id);
+  // dashboard.slices = dashboard.slices.filter(slice => !filterLayoutIds.includes(slice.slice_id));
+
+  Object.entries(layout).forEach(([layoutId, component]) => {
+    if (filterLayoutIds.includes(component?.meta?.chartId)) {
+      filterLayoutIds.push(layoutId);
+      delete layout[layoutId];
+    }
+  });
+
   // create a lookup to sync layout names with slice names
   const chartIdToLayoutId = {};
   Object.values(layout).forEach(layoutComponent => {
     if (layoutComponent.type === CHART_TYPE) {
       chartIdToLayoutId[layoutComponent.meta.chartId] = layoutComponent.id;
+    } else if (layoutComponent.children) {
+      // TODO: continue remove filter box from children
+      // Mutation! Not critical, under control here :)
+      // eslint-disable-next-line no-param-reassign
+      layoutComponent.children = layoutComponent.children.filter(
+        component => !filterLayoutIds.includes(component),
+      );
     }
   });
 
