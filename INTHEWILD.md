@@ -65,6 +65,7 @@ Join our growing community!
 ### Enterprise Technology
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
+- [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [CnOvit](http://www.cnovit.com/) [@xieshaohu]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
