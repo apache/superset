@@ -54,7 +54,7 @@
 
 .empty-droptarget:first-child {
   .drop-indicator--bottom {
-    top: 50%;
+    top: 24px;
   }
 }
 
@@ -132,5 +132,9 @@
     height: 48px;
     margin-top: -24px;
     margin-bottom: -24px;
+  }
+
+  & > .empty-droptarget:only-child {
+    height: 80vh;
   }
 }
