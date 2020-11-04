@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { DropdownButton, MenuItem } from 'react-bootstrap';
+import { DropdownButton } from 'react-bootstrap';
+import { Menu } from 'src/common/components';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import URLShortLinkModal from 'src/components/URLShortLinkModal';
 import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
@@ -72,9 +73,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(SaveModal)).not.toExist();
     });
 
-    it('should render four MenuItems', () => {
+    it('should render five Menu items', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(4);
+      expect(wrapper.find(Menu.Item)).toHaveLength(5);
     });
 
     it('should render the RefreshIntervalModal', () => {
@@ -106,9 +107,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(SaveModal)).toExist();
     });
 
-    it('should render four MenuItems', () => {
+    it('should render six Menu items', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(4);
+      expect(wrapper.find(Menu.Item)).toHaveLength(6);
     });
 
     it('should render the RefreshIntervalModal', () => {
@@ -140,9 +141,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(SaveModal)).toExist();
     });
 
-    it('should render three MenuItems', () => {
+    it('should render seven MenuItems', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(MenuItem)).toHaveLength(3);
+      expect(wrapper.find(Menu.Item)).toHaveLength(7);
     });
 
     it('should render the RefreshIntervalModal', () => {
