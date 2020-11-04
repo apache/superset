@@ -18,7 +18,7 @@
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t, SupersetClient } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import InfoTooltip from 'src/common/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
@@ -27,6 +27,7 @@ import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import { JsonEditor } from 'src/components/AsyncAceEditor';
 import { DatabaseObject } from './types';
 
 interface DatabaseModalProps {
@@ -44,6 +45,10 @@ const StyledIcon = styled(Icon)`
 
 const StyledInputContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+
+  &.extra-container {
+    padding-top: 8px;
+  }
 
   .helper {
     display: block;
@@ -105,6 +110,12 @@ const StyledInputContainer = styled.div`
       margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     }
   }
+`;
+
+const StyledJsonEditor = styled(JsonEditor)`
+  flex: 1 1 auto;
+  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
@@ -238,6 +249,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     };
 
     data[target.name] = target.value;
+    setDB(data);
+  };
+
+  const onEditorChange = (json: string, name: string) => {
+    const data = {
+      database_name: db ? db.database_name : '',
+      sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
+      ...db,
+    };
+
+    data[name] = json;
     setDB(data);
   };
 
@@ -383,8 +405,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 onChange={onInputChange}
               />
               <div>{t('Asynchronous Query Execution')}</div>
-              <InfoTooltipWithTrigger
-                label="aqe"
+              <InfoTooltip
                 tooltip={t(
                   'Operate the database in asynchronous mode, meaning that the queries ' +
                     'are executed on remote workers as opposed to on the web server itself. ' +
@@ -406,10 +427,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   onChange={onInputChange}
                 />
                 <div>{t('Expose in SQL Lab')}</div>
-                <InfoTooltipWithTrigger
-                  label="sql-expose"
-                  tooltip={t('Expose this DB in SQL Lab')}
-                />
+                <InfoTooltip tooltip={t('Expose this DB in SQL Lab')} />
               </div>
             </StyledInputContainer>
             <StyledInputContainer>
@@ -421,8 +439,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   onChange={onInputChange}
                 />
                 <div>{t('Allow CREATE TABLE AS')}</div>
-                <InfoTooltipWithTrigger
-                  label="allow-cta"
+                <InfoTooltip
                   tooltip={t('Allow CREATE TABLE AS option in SQL Lab')}
                 />
               </div>
@@ -436,8 +453,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   onChange={onInputChange}
                 />
                 <div>{t('Allow CREATE VIEW AS')}</div>
-                <InfoTooltipWithTrigger
-                  label="allow-cva"
+                <InfoTooltip
                   tooltip={t('Allow CREATE VIEW AS option in SQL Lab')}
                 />
               </div>
@@ -451,8 +467,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   onChange={onInputChange}
                 />
                 <div>{t('Allow DML')}</div>
-                <InfoTooltipWithTrigger
-                  label="allow-dml"
+                <InfoTooltip
                   tooltip={t(
                     'Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)',
                   )}
@@ -468,8 +483,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   onChange={onInputChange}
                 />
                 <div>{t('Allow Multi Schema Metadata Fetch')}</div>
-                <InfoTooltipWithTrigger
-                  label="allow-msmf"
+                <InfoTooltip
                   tooltip={t(
                     'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
                       'schemas. For large data warehouse with thousands of tables, this can be ' +
@@ -502,11 +516,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <StyledInputContainer>
             <div className="control-label">{t('Secure Extra')}</div>
             <div className="input-container">
-              <textarea
+              <StyledJsonEditor
                 name="encrypted_extra"
                 value={db ? db.encrypted_extra || '' : ''}
                 placeholder={t('Secure Extra')}
-                onChange={onTextChange}
+                onChange={(json: string) =>
+                  onEditorChange(json, 'encrypted_extra')
+                }
+                width="100%"
+                height="160px"
               />
             </div>
             <div className="helper">
@@ -552,8 +570,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 onChange={onInputChange}
               />
               <div>{t('Impersonate Logged In User (Presto & Hive)')}</div>
-              <InfoTooltipWithTrigger
-                label="impersonate"
+              <InfoTooltip
                 tooltip={t(
                   'If Presto, all the queries in SQL Lab are going to be executed as the ' +
                     'currently logged on user who must have permission to run them. If Hive ' +
@@ -573,21 +590,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 onChange={onInputChange}
               />
               <div>{t('Allow CSV Upload')}</div>
-              <InfoTooltipWithTrigger
-                label="allow-csv"
+              <InfoTooltip
                 tooltip={t(
                   'If selected, please set the schemas allowed for csv upload in Extra.',
                 )}
               />
             </div>
           </StyledInputContainer>
-          <StyledInputContainer>
+          <StyledInputContainer className="extra-container">
             <div className="control-label">{t('Extra')}</div>
             <div className="input-container">
-              <textarea
+              <StyledJsonEditor
                 name="extra"
                 value={(db && db.extra) ?? defaultExtra}
-                onChange={onTextChange}
+                placeholder={t('Secure Extra')}
+                onChange={(json: string) => onEditorChange(json, 'extra')}
+                width="100%"
+                height="160px"
               />
             </div>
             <div className="helper">
