@@ -20,7 +20,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { shallow } from 'enzyme';
 import { Navbar } from 'react-bootstrap';
-import { Menu } from 'src/common/components'
 import SubMenu from 'src/components/Menu/SubMenu';
 
 const defaultProps = {
