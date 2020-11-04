@@ -89,10 +89,10 @@ describe('SavedQueries', () => {
 
   it('it renders a submenu with clickable tables and buttons', async () => {
     expect(wrapper.find(SubMenu)).toExist();
-    expect(wrapper.find('MenuItem')).toHaveLength(2);
+    expect(wrapper.find('li')).toHaveLength(2);
     expect(wrapper.find('button')).toHaveLength(2);
     act(() => {
-      wrapper.find('MenuItem').at(1).simulate('click');
+      wrapper.find('li').at(1).simulate('click');
     });
 
     await waitForComponentToPaint(wrapper);

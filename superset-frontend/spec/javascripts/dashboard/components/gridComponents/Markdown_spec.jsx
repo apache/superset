@@ -18,7 +18,7 @@
  */
 import { Provider } from 'react-redux';
 import React from 'react';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
 import ReactMarkdown from 'react-markdown';
 
