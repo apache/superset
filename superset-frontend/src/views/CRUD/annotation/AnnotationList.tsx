@@ -251,13 +251,13 @@ function AnnotationList({
       }}
     >
       <>
-        <i className="fa fa-plus" /> {t('Annotation Layer')}
+        <i className="fa fa-plus" /> {t('Annotation')}
       </>
     </Button>
   );
 
   const emptyState = {
-    message: 'No annotation yet',
+    message: t('No annotation yet'),
     slot: EmptyStateButton,
   };
 
