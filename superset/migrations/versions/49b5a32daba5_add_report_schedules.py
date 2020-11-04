@@ -28,6 +28,7 @@ down_revision = "96e99fb176a0"
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.exc import OperationalError
 
 
 def upgrade():
@@ -68,9 +69,14 @@ def upgrade():
         sa.ForeignKeyConstraint(["database_id"], ["dbs.id"],),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_unique_constraint(
-        "uq_report_schedule_label", "report_schedule", ["label"]
-    )
+    try:
+        op.create_unique_constraint(
+            "uq_report_schedule_label", "report_schedule", ["label"]
+        )
+    except OperationalError:
+        # Expected to fail on SQLite
+        pass
+
     op.create_index(
         op.f("ix_report_schedule_active"), "report_schedule", ["active"], unique=False
     )
@@ -120,7 +126,14 @@ def upgrade():
 
 def downgrade():
     op.drop_index(op.f("ix_report_schedule_active"), table_name="report_schedule")
-    op.drop_constraint("uq_report_schedule_label", "report_schedule", type_="unique")
+    try:
+        op.drop_constraint(
+            "uq_report_schedule_label", "report_schedule", type_="unique"
+        )
+    except OperationalError:
+        # Expected to fail on SQLite
+        pass
+
     op.drop_table("report_execution_log")
     op.drop_table("report_recipient")
     op.drop_table("report_schedule_user")
