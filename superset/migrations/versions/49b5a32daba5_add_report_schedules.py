@@ -35,38 +35,33 @@ def upgrade():
     op.create_table(
         "report_schedule",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column(
-            "type",
-            sa.Enum("type", "report_schedule", name="reportscheduletype"),
-            nullable=False,
-        ),
-        sa.Column("label", sa.String(length=150), nullable=False),
-        sa.Column("active", sa.Boolean(), nullable=True),
+        sa.Column("type", sa.String(length=50), nullable=False),
+        sa.Column("label", sa.String(length=150), nullable=False, unique=True),
+        sa.Column("active", sa.Boolean(), default=True, nullable=True),
         sa.Column("crontab", sa.String(length=50), nullable=False),
         sa.Column("sql", sa.Text(), nullable=True),
         sa.Column("chart_id", sa.Integer(), nullable=True),
         sa.Column("dashboard_id", sa.Integer(), nullable=True),
         sa.Column("database_id", sa.Integer(), nullable=True),
-        sa.Column(
-            "email_format",
-            sa.Enum("visualization", "data", name="reportemailformat"),
-            nullable=True,
-        ),
+        sa.Column("email_format", sa.String(length=50), nullable=True),
         sa.Column("last_eval_dttm", sa.DateTime(), nullable=True),
-        sa.Column(
-            "last_state",
-            sa.Enum("success", "error", name="reportlogstate"),
-            nullable=True,
-        ),
+        sa.Column("last_state", sa.String(length=50), nullable=True),
         sa.Column("last_value", sa.Float(), nullable=True),
         sa.Column("last_value_row_json", sa.Text(), nullable=True),
         sa.Column("validator_type", sa.String(length=100), nullable=True),
-        sa.Column("validator_config_json", sa.Text(), nullable=True),
-        sa.Column("log_retention", sa.Integer(), nullable=False, default=90),
-        sa.Column("grace_period", sa.Integer(), nullable=False, default=60 * 60 * 4),
-        sa.ForeignKeyConstraint(["chart_id"], ["slices.id"],),
-        sa.ForeignKeyConstraint(["dashboard_id"], ["dashboards.id"],),
-        sa.ForeignKeyConstraint(["database_id"], ["dbs.id"],),
+        sa.Column("validator_config_json", sa.Text(), default="{}", nullable=True),
+        sa.Column("log_retention", sa.Integer(), nullable=True, default=90),
+        sa.Column("grace_period", sa.Integer(), nullable=True, default=60 * 60 * 4),
+        # Audit Mixin
+        sa.Column("created_on", sa.DateTime(), nullable=True),
+        sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(["chart_id"], ["slices.id"]),
+        sa.ForeignKeyConstraint(["dashboard_id"], ["dashboards.id"]),
+        sa.ForeignKeyConstraint(["database_id"], ["dbs.id"]),
+        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
+        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     try:
@@ -83,40 +78,41 @@ def upgrade():
     op.create_table(
         "report_execution_log",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("scheduled_dttm", sa.DateTime(), nullable=False),
         sa.Column("start_dttm", sa.DateTime(), nullable=True),
         sa.Column("end_dttm", sa.DateTime(), nullable=True),
         sa.Column("observation_dttm", sa.DateTime(), nullable=True),
         sa.Column("value", sa.Float(), nullable=True),
         sa.Column("value_row_json", sa.Text(), nullable=True),
-        sa.Column(
-            "state", sa.Enum("success", "error", name="reportlogstate"), nullable=True,
-        ),
+        sa.Column("state", sa.String(length=50), nullable=False),
         sa.Column("error_message", sa.Text(), nullable=True),
-        sa.Column("report_schedule_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"],),
+        sa.Column("report_schedule_id", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
 
     op.create_table(
         "report_recipient",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column(
-            "type",
-            sa.Enum("email", "slack", name="reportrecipienttype"),
-            nullable=True,
-        ),
-        sa.Column("value_row_json", sa.Text(), nullable=True),
-        sa.Column("recipient_config_json", sa.Text(), nullable=True),
-        sa.Column("report_schedule_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"],),
+        sa.Column("type", sa.String(length=50), nullable=False),
+        sa.Column("recipient_config_json", sa.Text(), default="{}", nullable=True),
+        sa.Column("report_schedule_id", sa.Integer(), nullable=False),
+        # Audit Mixin
+        sa.Column("created_on", sa.DateTime(), nullable=True),
+        sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"]),
+        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
+        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
 
     op.create_table(
         "report_schedule_user",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=True),
-        sa.Column("report_schedule_id", sa.Integer(), nullable=True),
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("report_schedule_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"],),
         sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"],),
         sa.PrimaryKeyConstraint("id"),
@@ -137,8 +133,3 @@ def downgrade():
     op.drop_table("report_recipient")
     op.drop_table("report_schedule_user")
     op.drop_table("report_schedule")
-    # https://github.com/miguelgrinberg/Flask-Migrate/issues/48
-    sa.Enum(name="reportscheduletype").drop(op.get_bind(), checkfirst=False)
-    sa.Enum(name="reportemailformat").drop(op.get_bind(), checkfirst=False)
-    sa.Enum(name="reportrecipienttype").drop(op.get_bind(), checkfirst=False)
-    sa.Enum(name="reportlogstate").drop(op.get_bind(), checkfirst=False)

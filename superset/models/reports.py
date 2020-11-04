@@ -23,7 +23,6 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum,
     Float,
     ForeignKey,
     Integer,
@@ -37,42 +36,45 @@ from sqlalchemy.schema import UniqueConstraint
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
+from superset.models.helpers import AuditMixinNullable
 from superset.models.slice import Slice
 
 metadata = Model.metadata  # pylint: disable=no-member
 
 
 class ReportScheduleType(str, enum.Enum):
-    alert = "alert"
-    report = "report"
+    ALERT = "Alert"
+    REPORT = "Report"
 
 
 class ReportRecipientType(str, enum.Enum):
-    email = "email"
-    slack = "slack"
+    EMAIL = "Email"
+    SLACK = "Slack"
 
 
 class ReportLogState(str, enum.Enum):
-    success = "success"
-    error = "error"
+    SUCCESS = "Success"
+    ERROR = "Error"
 
 
 class ReportEmailFormat(str, enum.Enum):
-    visualization = "Visualization"
-    data = "Raw data"
+    VISUALIZATION = "Visualization"
+    DATA = "Raw data"
 
 
 report_schedule_user = Table(
     "report_schedule_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("report_schedule_id", Integer, ForeignKey("report_schedule.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id"), nullable=False),
+    Column(
+        "report_schedule_id", Integer, ForeignKey("report_schedule.id"), nullable=False
+    ),
     UniqueConstraint("user_id", "report_schedule_id"),
 )
 
 
-class ReportSchedule(Model):
+class ReportSchedule(Model, AuditMixinNullable):
 
     """
     Report Schedules, supports alerts and reports
@@ -80,7 +82,7 @@ class ReportSchedule(Model):
 
     __tablename__ = "report_schedule"
     id = Column(Integer, primary_key=True)
-    type = Column(Enum(ReportScheduleType, name="report_schedule_type"), nullable=False)
+    type = Column(String(50), nullable=False)
     label = Column(String(150), nullable=False, unique=True)
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(50), nullable=False)
@@ -99,16 +101,16 @@ class ReportSchedule(Model):
     owners = relationship(security_manager.user_model, secondary=report_schedule_user)
 
     # (Reports) email format
-    email_format = Column(Enum(ReportEmailFormat, name="report_email_format"))
+    email_format = Column(String(50))
 
     # (Alerts) Stamped last observations
-    last_eval_dttm = Column(DateTime, nullable=True)
-    last_state = Column(Enum(ReportLogState, name="report_log_state"), nullable=False)
-    last_value = Column(Float, nullable=True)
-    last_value_row_json = Column(Text, nullable=True)
+    last_eval_dttm = Column(DateTime)
+    last_state = Column(String(50))
+    last_value = Column(Float)
+    last_value_row_json = Column(Text)
 
     # (Alerts) Observed value validation related columns
-    validator_type = Column(String(100), nullable=True)
+    validator_type = Column(String(100))
     validator_config_json = Column(Text, default="{}")
 
     # Log retention
@@ -119,7 +121,9 @@ class ReportSchedule(Model):
         return str(self.label)
 
 
-class ReportRecipients(Model):  # pylint: disable=too-few-public-methods
+class ReportRecipients(
+    Model, AuditMixinNullable
+):  # pylint: disable=too-few-public-methods
 
     """
     Report Recipients, meant to support multiple notification types, eg: Slack, email
@@ -127,12 +131,10 @@ class ReportRecipients(Model):  # pylint: disable=too-few-public-methods
 
     __tablename__ = "report_recipient"
     id = Column(Integer, primary_key=True)
-    type = Column(
-        Enum(ReportRecipientType, name="report_recipient_type"), nullable=False
-    )
+    type = Column(String(50), nullable=False)
     recipient_config_json = Column(Text, default="{}")
     report_schedule_id = Column(
-        Integer, ForeignKey("report_schedule.id"), nullable=True
+        Integer, ForeignKey("report_schedule.id"), nullable=False
     )
     report_schedule = relationship(
         ReportSchedule, backref="recipients", foreign_keys=[report_schedule_id]
@@ -150,19 +152,20 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
     id = Column(Integer, primary_key=True)
 
     # Timestamps
-    start_dttm = Column(DateTime, nullable=True)
-    end_dttm = Column(DateTime, nullable=True)
+    scheduled_dttm = Column(DateTime, nullable=False)
+    start_dttm = Column(DateTime)
+    end_dttm = Column(DateTime)
 
     # (Alerts) Observed values
-    observation_dttm = Column(DateTime, nullable=True)
-    value = Column(Float, nullable=True)
-    value_row_json = Column(Text, nullable=True)
+    observation_dttm = Column(DateTime)
+    value = Column(Float)
+    value_row_json = Column(Text)
 
-    state = Column(Enum(ReportLogState, name="report_log_state"), nullable=False)
-    error_message = Column(Text, nullable=True)
+    state = Column(String(50), nullable=False)
+    error_message = Column(Text)
 
     report_schedule_id = Column(
-        Integer, ForeignKey("report_schedule.id"), nullable=True
+        Integer, ForeignKey("report_schedule.id"), nullable=False
     )
     report_schedule = relationship(
         ReportSchedule, backref="logs", foreign_keys=[report_schedule_id]
