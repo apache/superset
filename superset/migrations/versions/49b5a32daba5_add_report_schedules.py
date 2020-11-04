@@ -73,10 +73,9 @@ def upgrade():
         op.create_unique_constraint(
             "uq_report_schedule_label", "report_schedule", ["label"]
         )
-    except OperationalError:
+    except Exception:
         # Expected to fail on SQLite
         pass
-
     op.create_index(
         op.f("ix_report_schedule_active"), "report_schedule", ["active"], unique=False
     )
@@ -130,7 +129,7 @@ def downgrade():
         op.drop_constraint(
             "uq_report_schedule_label", "report_schedule", type_="unique"
         )
-    except OperationalError:
+    except Exception:
         # Expected to fail on SQLite
         pass
 
