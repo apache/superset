@@ -26,6 +26,7 @@ import {
   ThemeProvider,
 } from '@superset-ui/core';
 
+import Modal from 'src/common/components/Modal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { mockStore } from '../fixtures/mockStore';
 
@@ -118,7 +119,7 @@ describe('PropertiesModal', () => {
       const wrapper = setup();
       const modalInstance = wrapper.find('PropertiesModal').instance();
       it('will raise an error', () => {
-        const spy = jest.spyOn(modalInstance.dialog, 'show');
+        const spy = jest.spyOn(Modal, 'error');
         expect(() =>
           modalInstance.onColorSchemeChange('THIS_WILL_NOT_WORK'),
         ).toThrowError('A valid color scheme is required');
