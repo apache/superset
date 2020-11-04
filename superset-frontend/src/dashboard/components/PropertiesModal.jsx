@@ -21,7 +21,6 @@ import PropTypes from 'prop-types';
 import { Row, Col, FormControl } from 'react-bootstrap';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import Dialog from 'react-bootstrap-dialog';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
 import {
@@ -65,6 +64,45 @@ const defaultProps = {
   onlyApply: false,
 };
 
+const handleErrorResponse = async response => {
+  const { error, statusText, message } = await getClientErrorObject(response);
+  let errorText = error || statusText || t('An error has occurred');
+
+  if (typeof message === 'object' && message.json_metadata) {
+    errorText = message.json_metadata;
+  } else if (typeof message === 'string') {
+    errorText = message;
+
+    if (message === 'Forbidden') {
+      errorText = t('You do not have permission to edit this dashboard');
+    }
+  }
+
+  Modal.error({
+    title: 'Error',
+    content: errorText,
+    okButtonProps: { danger: true, className: 'btn-danger' },
+  });
+};
+
+const loadOwnerOptions = (input = '') => {
+  const query = rison.encode({ filter: input });
+  return SupersetClient.get({
+    endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
+  }).then(
+    response => {
+      return response.json.result.map(item => ({
+        value: item.value,
+        label: item.text,
+      }));
+    },
+    badResponse => {
+      handleErrorResponse(badResponse);
+      return [];
+    },
+  );
+};
+
 class PropertiesModal extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -85,8 +123,6 @@ class PropertiesModal extends React.PureComponent {
     this.onOwnersChange = this.onOwnersChange.bind(this);
     this.submit = this.submit.bind(this);
     this.toggleAdvanced = this.toggleAdvanced.bind(this);
-    this.loadOwnerOptions = this.loadOwnerOptions.bind(this);
-    this.handleErrorResponse = this.handleErrorResponse.bind(this);
     this.onColorSchemeChange = this.onColorSchemeChange.bind(this);
   }
 
@@ -104,12 +140,10 @@ class PropertiesModal extends React.PureComponent {
       : {};
 
     if (!colorChoices.includes(value)) {
-      this.dialog.show({
+      Modal.error({
         title: 'Error',
-        bsSize: 'medium',
-        bsStyle: 'danger',
-        actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-        body: t('A valid color scheme is required'),
+        content: t('A valid color scheme is required'),
+        okButtonProps: { danger: true, className: 'btn-danger' },
       });
       throw new Error('A valid color scheme is required');
     }
@@ -170,25 +204,7 @@ class PropertiesModal extends React.PureComponent {
         label: `${owner.first_name} ${owner.last_name}`,
       }));
       this.onOwnersChange(initialSelectedOwners);
-    }, this.handleErrorResponse);
-  }
-
-  loadOwnerOptions(input = '') {
-    const query = rison.encode({ filter: input });
-    return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
-    }).then(
-      response => {
-        return response.json.result.map(item => ({
-          value: item.value,
-          label: item.text,
-        }));
-      },
-      badResponse => {
-        this.handleErrorResponse(badResponse);
-        return [];
-      },
-    );
+    }, handleErrorResponse);
   }
 
   updateFormState(name, value) {
@@ -204,29 +220,6 @@ class PropertiesModal extends React.PureComponent {
     this.setState(state => ({
       isAdvancedOpen: !state.isAdvancedOpen,
     }));
-  }
-
-  async handleErrorResponse(response) {
-    const { error, statusText, message } = await getClientErrorObject(response);
-    let errorText = error || statusText || t('An error has occurred');
-
-    if (typeof message === 'object' && message.json_metadata) {
-      errorText = message.json_metadata;
-    } else if (typeof message === 'string') {
-      errorText = message;
-
-      if (message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
-      }
-    }
-
-    this.dialog.show({
-      title: 'Error',
-      bsSize: 'medium',
-      bsStyle: 'danger',
-      actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-      body: errorText,
-    });
   }
 
   submit(e) {
@@ -286,7 +279,7 @@ class PropertiesModal extends React.PureComponent {
           colorScheme: metadataColorScheme || colorScheme,
         });
         this.props.onHide();
-      }, this.handleErrorResponse);
+      }, handleErrorResponse);
     }
   }
 
@@ -322,11 +315,6 @@ class PropertiesModal extends React.PureComponent {
             >
               {saveLabel}
             </Button>
-            <Dialog
-              ref={ref => {
-                this.dialog = ref;
-              }}
-            />
           </>
         }
         responsive
@@ -373,7 +361,7 @@ class PropertiesModal extends React.PureComponent {
                 name="owners"
                 isMulti
                 value={values.owners}
-                loadOptions={this.loadOwnerOptions}
+                loadOptions={loadOwnerOptions}
                 defaultOptions // load options on render
                 cacheOptions
                 onChange={this.onOwnersChange}

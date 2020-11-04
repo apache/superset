@@ -20,7 +20,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
@@ -99,11 +98,6 @@ class ExploreCtasResultsButton extends React.PureComponent {
           />{' '}
           {t('Explore')}
         </Button>
-        <Dialog
-          ref={el => {
-            this.dialog = el;
-          }}
-        />
       </>
     );
   }

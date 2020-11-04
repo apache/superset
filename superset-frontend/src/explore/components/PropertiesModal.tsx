@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Row,
   Col,
@@ -26,7 +26,6 @@ import {
 } from 'react-bootstrap';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
-import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
@@ -54,7 +53,6 @@ export default function PropertiesModal({
   show,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-  const errorDialog = useRef<any>(null);
 
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
@@ -69,12 +67,10 @@ export default function PropertiesModal({
     if (message === 'Forbidden') {
       errorText = t('You do not have permission to edit this chart');
     }
-    errorDialog.current.show({
+    Modal.error({
       title: 'Error',
-      bsSize: 'medium',
-      bsStyle: 'danger',
-      actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-      body: errorText,
+      content: errorText,
+      okButtonProps: { danger: true, className: 'btn-danger' },
     });
   }
 
@@ -185,7 +181,6 @@ export default function PropertiesModal({
           >
             {t('Save')}
           </Button>
-          <Dialog ref={errorDialog} />
         </>
       }
       responsive
