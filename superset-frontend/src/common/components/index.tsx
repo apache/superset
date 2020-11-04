@@ -33,7 +33,6 @@ export {
   DatePicker,
   Dropdown,
   Empty,
-  Dropdown,
   Input,
   Modal,
   Popover,
