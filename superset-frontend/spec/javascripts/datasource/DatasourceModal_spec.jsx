@@ -97,7 +97,9 @@ describe('DatasourceModal', () => {
     });
     await waitForComponentToPaint(wrapper);
     act(() => {
-      const okButton = wrapper.find('[className="btn btn-sm btn-primary"]');
+      const okButton = wrapper.find(
+        '.ant-modal-confirm .ant-modal-confirm-btns .ant-btn-primary',
+      );
       okButton.simulate('click');
     });
     await waitForComponentToPaint(wrapper);
