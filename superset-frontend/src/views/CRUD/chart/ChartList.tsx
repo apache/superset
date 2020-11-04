@@ -61,7 +61,8 @@ const createFetchDatasets = (handleError: (err: Response) => void) => async (
     const queryParams = rison.encode({
       columns: ['datasource_name', 'datasource_id'],
       keys: ['none'],
-      order_by: 'datasource_name',
+      order_column: 'table_name',
+      order_direction: 'asc',
       ...(pageIndex ? { page: pageIndex } : {}),
       ...(pageSize ? { page_size: pageSize } : {}),
       ...filters,
@@ -191,6 +192,7 @@ function ChartList(props: ChartListProps) {
         }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
         Header: t('Dataset'),
         accessor: 'datasource_id',
+        disableSortBy: true,
         size: 'xl',
       },
       {
@@ -352,7 +354,21 @@ function ChartList(props: ChartListProps) {
       unfilteredLabel: 'All',
       selects: getChartMetadataRegistry()
         .keys()
-        .map(k => ({ label: k, value: k })),
+        .map(k => ({ label: k, value: k }))
+        .sort((a, b) => {
+          if (!a.label || !b.label) {
+            return 0;
+          }
+
+          if (a.label > b.label) {
+            return 1;
+          }
+          if (a.label < b.label) {
+            return -1;
+          }
+
+          return 0;
+        }),
     },
     {
       Header: t('Dataset'),
