@@ -124,7 +124,7 @@ class ReportSchedule(Model, AuditMixinNullable):
     grace_period = Column(Integer, default=60 * 60 * 4)
 
     def __repr__(self) -> str:
-        return str(self.label)
+        return str(self.name)
 
 
 class ReportRecipients(
