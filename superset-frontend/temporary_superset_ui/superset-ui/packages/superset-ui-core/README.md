@@ -1,6 +1,6 @@
 ## @superset-ui/core
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat)
+[![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/core)
 [![David (path)](https://img.shields.io/david/apache-superset/superset-ui.svg?path=packages%2Fsuperset-ui-core&style=flat-square)](https://david-dm.org/apache-superset/superset-ui?path=packages/superset-ui-core)
 
 Description
