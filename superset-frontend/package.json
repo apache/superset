@@ -184,7 +184,7 @@
     "@hot-loader/react-dom": "^16.13.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@storybook/addon-actions": "^6.0.13",
-    "@storybook/addon-essentials": "^6.0.13",
+    "@storybook/addon-essentials": "^6.0.28",
     "@storybook/addon-knobs": "^6.0.13",
     "@storybook/addon-links": "^5.3.19",
     "@storybook/addons": "^5.3.19",
