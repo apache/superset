@@ -276,7 +276,7 @@ class Chart extends React.Component {
       : {};
 
     return (
-      <div>
+      <div className="chart-slice">
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
