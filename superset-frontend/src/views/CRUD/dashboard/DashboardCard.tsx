@@ -32,7 +32,7 @@ import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
 import { Dashboard } from 'src/views/CRUD/types';
 
-export interface DashboardCardProps {
+interface DashboardCardProps {
   isChart?: boolean;
   dashboard: Dashboard;
   hasPerm: (name: string) => boolean;

@@ -19,16 +19,12 @@
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import thunk from 'redux-thunk';
-import fetchMock from 'fetch-mock';
-
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import configureStore from 'redux-mock-store';
 import ActivityTable from 'src/views/CRUD/welcome/ActivityTable';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
-
-
 
 const mockData = {
   Viewed: [

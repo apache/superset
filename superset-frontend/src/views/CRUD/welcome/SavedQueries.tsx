@@ -77,7 +77,7 @@ const SavedQueries = ({
   mine,
 }: SavedQueriesProps) => {
   const {
-    state: { loading, resourceCollection: queries },
+    state: { resourceCollection: queries },
     hasPerm,
     fetchData,
     refreshData,

@@ -51,7 +51,7 @@ function ChartTable({
   mine,
 }: ChartTableProps) {
   const {
-    state: { loading, resourceCollection: charts, bulkSelectEnabled },
+    state: { resourceCollection: charts, bulkSelectEnabled },
     setResourceCollection: setCharts,
     hasPerm,
     refreshData,
