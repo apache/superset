@@ -19,11 +19,11 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { DropdownButton, MenuItem } from 'react-bootstrap';
 import { List } from 'react-virtualized';
 import SearchInput, { createFilter } from 'react-search-input';
 import { t } from '@superset-ui/core';
 
+import { Select } from 'src/common/components';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import DragDroppable from './dnd/DragDroppable';
@@ -52,12 +52,14 @@ const defaultProps = {
 };
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
-const KEYS_TO_SORT = [
-  { key: 'slice_name', label: 'Name' },
-  { key: 'viz_type', label: 'Vis type' },
-  { key: 'datasource_name', label: 'Dataset' },
-  { key: 'changed_on', label: 'Recent' },
-];
+const KEYS_TO_SORT = {
+  slice_name: 'Name',
+  viz_type: 'Vis type',
+  datasource_name: 'Dataset',
+  changed_on: 'Recent',
+};
+
+const DEFAULT_SORT_KEY = 'changed_on';
 
 const MARGIN_BOTTOM = 16;
 const SIDEPANE_HEADER_HEIGHT = 30;
@@ -84,7 +86,7 @@ class SliceAdder extends React.Component {
     this.state = {
       filteredSlices: [],
       searchTerm: '',
-      sortBy: KEYS_TO_SORT.findIndex(item => item.key === 'changed_on'),
+      sortBy: DEFAULT_SORT_KEY,
       selectedSliceIdsSet: new Set(props.selectedSliceIds),
     };
     this.rowRenderer = this.rowRenderer.bind(this);
@@ -102,7 +104,7 @@ class SliceAdder extends React.Component {
     if (nextProps.lastUpdated !== this.props.lastUpdated) {
       nextState.filteredSlices = Object.values(nextProps.slices)
         .filter(createFilter(this.state.searchTerm, KEYS_TO_FILTERS))
-        .sort(SliceAdder.sortByComparator(KEYS_TO_SORT[this.state.sortBy].key));
+        .sort(SliceAdder.sortByComparator(this.state.sortBy));
     }
 
     if (nextProps.selectedSliceIds !== this.props.selectedSliceIds) {
@@ -123,7 +125,7 @@ class SliceAdder extends React.Component {
   getFilteredSortedSlices(searchTerm, sortBy) {
     return Object.values(this.props.slices)
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
-      .sort(SliceAdder.sortByComparator(KEYS_TO_SORT[sortBy].key));
+      .sort(SliceAdder.sortByComparator(sortBy));
   }
 
   handleKeyPress(ev) {
@@ -216,17 +218,17 @@ class SliceAdder extends React.Component {
             onKeyPress={this.handleKeyPress}
             data-test="dashboard-charts-filter-search-input"
           />
-          <DropdownButton
-            title={`Sort by ${KEYS_TO_SORT[this.state.sortBy].label}`}
-            onSelect={this.handleSelect}
+          <Select
             id="slice-adder-sortby"
+            defaultValue={DEFAULT_SORT_KEY}
+            onChange={this.handleSelect}
           >
-            {KEYS_TO_SORT.map((item, index) => (
-              <MenuItem key={item.key} eventKey={index}>
-                Sort by {item.label}
-              </MenuItem>
+            {Object.entries(KEYS_TO_SORT).map(([key, label]) => (
+              <Select.Option key={key} value={key}>
+                Sort by {label}
+              </Select.Option>
             ))}
-          </DropdownButton>
+          </Select>
         </div>
         {this.props.isLoading && <Loading />}
         {!this.props.isLoading && this.state.filteredSlices.length > 0 && (

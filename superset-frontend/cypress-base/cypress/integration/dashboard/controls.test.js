@@ -81,8 +81,7 @@ describe('Dashboard top-level controls', () => {
       .next()
       .find('[data-test="dashboard-slice-refresh-tooltip"]')
       .parent()
-      .parent()
-      .should('have.class', 'disabled');
+      .should('have.class', 'ant-menu-item-disabled');
 
     cy.wait(`@postJson_${mapId}_force`);
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
