@@ -81,7 +81,6 @@ def upgrade():
         sa.Column("scheduled_dttm", sa.DateTime(), nullable=False),
         sa.Column("start_dttm", sa.DateTime(), nullable=True),
         sa.Column("end_dttm", sa.DateTime(), nullable=True),
-        sa.Column("observation_dttm", sa.DateTime(), nullable=True),
         sa.Column("value", sa.Float(), nullable=True),
         sa.Column("value_row_json", sa.Text(), nullable=True),
         sa.Column("state", sa.String(length=50), nullable=False),
