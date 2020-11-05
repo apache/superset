@@ -262,7 +262,7 @@ class SupersetAppInitializer:
             category_label=__("Manage"),
             category_icon="",
         )
-        if self.config["ENABLE_ROW_LEVEL_SECURITY"]:
+        if feature_flag_manager.is_feature_enabled("ROW_LEVEL_SECURITY"):
             appbuilder.add_view(
                 RowLevelSecurityFiltersModelView,
                 "Row Level Security",

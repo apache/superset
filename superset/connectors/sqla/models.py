@@ -1112,7 +1112,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-        if config["ENABLE_ROW_LEVEL_SECURITY"]:
+        if is_feature_enabled("ROW_LEVEL_SECURITY"):
             where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
@@ -1508,7 +1508,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
-        if config["ENABLE_ROW_LEVEL_SECURITY"] and self.is_rls_supported:
+        if is_feature_enabled("ROW_LEVEL_SECURITY") and self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
             ]
