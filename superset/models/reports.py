@@ -44,7 +44,13 @@ metadata = Model.metadata  # pylint: disable=no-member
 
 class ReportScheduleType(str, enum.Enum):
     ALERT = "Alert"
-    REPORT = "Report"
+    REPORT_DASHBOARD = "ReportDashboard"
+    REPORT_CHART = "ReportChart"
+
+
+class ReportScheduleValidatorType(str, enum.Enum):
+    NOT_NULL = "not null"
+    OPERATOR = "operator"
 
 
 class ReportRecipientType(str, enum.Enum):
@@ -88,7 +94,7 @@ class ReportSchedule(Model, AuditMixinNullable):
     crontab = Column(String(50), nullable=False)
     sql = Column(Text())
     # (Reports) M-O to chart
-    chart_id = Column(Integer, ForeignKey("slice.id"), nullable=True)
+    chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)
     chart = relationship(Slice, backref="report_schedules", foreign_keys=[chart_id])
     # (Reports) M-O to dashboard
     dashboard_id = Column(Integer, ForeignKey("dashboards.id"), nullable=True)
@@ -97,7 +103,7 @@ class ReportSchedule(Model, AuditMixinNullable):
     )
     # (Alerts) M-O to database
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
-    database = relationship(Database, foreign_keys=[dashboard_id])
+    database = relationship(Database, foreign_keys=[database_id])
     owners = relationship(security_manager.user_model, secondary=report_schedule_user)
 
     # (Reports) email format
@@ -157,7 +163,6 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
     end_dttm = Column(DateTime)
 
     # (Alerts) Observed values
-    observation_dttm = Column(DateTime)
     value = Column(Float)
     value_row_json = Column(Text)
 
