@@ -60,7 +60,7 @@ const createFetchResourceMethod = (method: string) => (
 export const getRecentAcitivtyObjs = (
   userId: string | number,
   recent: string,
-  addDangerToast: (arg0: string, arg1: string) => void,
+  addDangerToast: (arg1: string, arg2: any) => any,
 ) => {
   const getParams = (filters?: Array<any>) => {
     const params = {
@@ -180,6 +180,14 @@ export function handleChartDelete(
     () => {
       addDangerToast(t('There was an issue deleting: %s', sliceName));
     },
+  );
+}
+
+export function handleBulkChartExport(chartsToExport: Chart[]) {
+  return window.location.assign(
+    `/api/v1/chart/export/?q=${rison.encode(
+      chartsToExport.map(({ id }) => id),
+    )}`,
   );
 }
 

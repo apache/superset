@@ -22,6 +22,7 @@ import textwrap
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
 import numpy
@@ -705,6 +706,11 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     dttm = Column(DateTime, default=datetime.utcnow)
     duration_ms = Column(Integer)
     referrer = Column(String(1024))
+
+
+class FavStarClassName(str, Enum):
+    CHART = "slice"
+    DASHBOARD = "Dashboard"
 
 
 class FavStar(Model):  # pylint: disable=too-few-public-methods

@@ -57,15 +57,6 @@ const NavDropdown = styled(ReactBootstrapNavDropdown)`
     padding: ${({ theme }) => theme.gridUnit}px 0;
     top: 100%;
     border: none;
-    & li a {
-      padding: ${({ theme }) => theme.gridUnit}px
-        ${({ theme }) => theme.gridUnit * 4}px;
-      transition: all ${({ theme }) => theme.transitionTiming}s;
-      &:hover {
-        background: ${({ theme }) => theme.colors.primary.light4};
-        color: ${({ theme }) => theme.colors.grayscale.dark1};
-      }
-    }
   }
 `;
 

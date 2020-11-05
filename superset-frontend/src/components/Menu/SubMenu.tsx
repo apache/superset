@@ -19,7 +19,8 @@
 import React, { ReactNode } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
-import { Nav, Navbar, MenuItem } from 'react-bootstrap';
+import cx from 'classnames';
+import { Nav, Navbar } from 'react-bootstrap';
 import Button, { OnClickHandler } from 'src/components/Button';
 
 const StyledHeader = styled.header`
@@ -97,8 +98,9 @@ export interface ButtonProps {
 
 export interface SubMenuProps {
   buttons?: Array<ButtonProps>;
-  name?: string;
+  name?: string | ReactNode;
   tabs?: MenuChild[];
+  children?: MenuChild[];
   activeChild?: MenuChild['name'];
   /* If usesRouter is true, a react-router <Link> component will be used instead of href.
    *  ONLY set usesRouter to true if SubMenu is wrapped in a react-router <Router>;
@@ -138,15 +140,16 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
               }
 
               return (
-                <MenuItem
-                  className="no-router"
-                  active={tab.name === props.activeChild}
+                <li
+                  className={cx('no-router', {
+                    active: tab.name === props.activeChild,
+                  })}
                   key={`${tab.label}`}
-                  href={tab.url}
-                  onClick={tab.onClick}
                 >
-                  {tab.label}
-                </MenuItem>
+                  <a href={tab.url} onClick={tab.onClick}>
+                    {tab.label}
+                  </a>
+                </li>
               );
             })}
         </Nav>

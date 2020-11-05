@@ -19,16 +19,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  DropdownButton,
   FormControl,
   FormGroup,
   InputGroup,
-  MenuItem,
   OverlayTrigger,
   Radio,
   Tooltip,
 } from 'react-bootstrap';
 import Popover from 'src/common/components/Popover';
+import { Select, Input } from 'src/common/components';
 import Button from 'src/components/Button';
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
@@ -387,15 +386,13 @@ class DateFilterControl extends React.Component {
 
   renderPopover() {
     const grainOptions = TIME_GRAIN_OPTIONS.map(grain => (
-      <MenuItem
-        onSelect={value => this.setCustomRange('grain', value)}
+      <Select.Option
         key={grain}
-        eventKey={grain}
+        value={grain}
         active={grain === this.state.grain}
-        fullWidth={false}
       >
         {grain}
-      </MenuItem>
+      </Select.Option>
     ));
     const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => {
       const nextState = getStateFromCommonTimeFrame(timeFrame);
@@ -425,6 +422,7 @@ class DateFilterControl extends React.Component {
         </Styles>
       );
     });
+
     return (
       <div
         id="filter-popover"
@@ -453,66 +451,45 @@ class DateFilterControl extends React.Component {
               >
                 <div
                   className="clearfix centered"
-                  style={{ marginTop: '12px' }}
+                  style={{ marginTop: '8px', display: 'flex' }}
                 >
-                  <div
-                    style={{ width: '60px', marginTop: '-4px' }}
-                    className="input-inline"
-                  >
-                    <DropdownButton
-                      bsSize="small"
-                      componentClass={InputGroup.Button}
-                      id="input-dropdown-rel"
-                      title={this.state.rel}
+                  <div className="input-inline">
+                    <Select
+                      value={this.state.rel}
+                      onSelect={value => this.setCustomRange('rel', value)}
                       onFocus={this.setTypeCustomRange}
                     >
-                      <MenuItem
-                        onSelect={value => this.setCustomRange('rel', value)}
-                        key={RELATIVE_TIME_OPTIONS.LAST}
-                        eventKey={RELATIVE_TIME_OPTIONS.LAST}
-                        active={this.state.rel === RELATIVE_TIME_OPTIONS.LAST}
-                      >
+                      <Select.Option value={RELATIVE_TIME_OPTIONS.LAST}>
                         Last
-                      </MenuItem>
-                      <MenuItem
-                        onSelect={value => this.setCustomRange('rel', value)}
-                        key={RELATIVE_TIME_OPTIONS.NEXT}
-                        eventKey={RELATIVE_TIME_OPTIONS.NEXT}
-                        active={this.state.rel === RELATIVE_TIME_OPTIONS.NEXT}
-                      >
+                      </Select.Option>
+                      <Select.Option value={RELATIVE_TIME_OPTIONS.NEXT}>
                         Next
-                      </MenuItem>
-                    </DropdownButton>
+                      </Select.Option>
+                    </Select>
                   </div>
                   <div
-                    style={{ width: '60px', marginTop: '-4px' }}
+                    style={{ width: '60px' }}
                     className="input-inline m-l-5 m-r-3"
                   >
-                    <FormControl
-                      bsSize="small"
+                    <Input
                       type="text"
                       onChange={event =>
                         this.setCustomRange('num', event.target.value)
                       }
                       onFocus={this.setTypeCustomRange}
-                      onKeyPress={this.onEnter}
+                      onPressEnter={this.close}
                       value={this.state.num}
-                      style={{ height: '30px' }}
                     />
                   </div>
-                  <div
-                    style={{ width: '90px', marginTop: '-4px' }}
-                    className="input-inline"
-                  >
-                    <DropdownButton
-                      bsSize="small"
-                      componentClass={InputGroup.Button}
-                      id="input-dropdown-grain"
-                      title={this.state.grain}
+                  <div className="input-inline">
+                    <Select
+                      value={this.state.grain}
                       onFocus={this.setTypeCustomRange}
+                      onSelect={value => this.setCustomRange('grain', value)}
+                      dropdownMatchSelectWidth={false}
                     >
                       {grainOptions}
-                    </DropdownButton>
+                    </Select>
                   </div>
                 </div>
               </PopoverSection>

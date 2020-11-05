@@ -124,13 +124,16 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
     [SET_DIRECT_PATH]() {
-      return {
+      const newState = {
         ...state,
-        // change of direct path (tabs) will reset current mounted tab
-        mountedTab: null,
         directPathToChild: action.path,
         directPathLastUpdated: Date.now(),
       };
+      // change of direct path (tabs) will reset current mounted tab
+      // cannot just set mountedTab to null,
+      // as that is used when transitioning between tabs.
+      delete newState.mountedTab;
+      return newState;
     },
     [SET_MOUNTED_TAB]() {
       // set current mounted tab after tab is really mounted to DOM

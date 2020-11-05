@@ -30,10 +30,13 @@ export {
   Avatar,
   Card,
   Collapse,
-  Empty,
+  DatePicker,
   Dropdown,
+  Empty,
+  Input,
   Modal,
   Popover,
+  Select,
   Skeleton,
   Tabs,
   Tooltip,
@@ -42,6 +45,11 @@ export {
 export const MenuItem = styled(AntdMenu.Item)`
   > a {
     text-decoration: none;
+  }
+
+  &.ant-menu-item {
+    height: ${({ theme }) => theme.gridUnit * 7}px;
+    line-height: ${({ theme }) => theme.gridUnit * 7}px;
   }
 `;
 

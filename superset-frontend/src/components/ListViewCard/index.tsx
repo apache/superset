@@ -152,11 +152,9 @@ interface CardProps {
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
   actions: React.ReactNode | null;
-  showImg?: boolean;
   rows?: number | string;
   avatar?: string;
-  isRecent?: boolean;
-  renderCover?: React.ReactNode | null;
+  cover?: React.ReactNode | null;
 }
 
 function ListViewCard({
@@ -167,42 +165,39 @@ function ListViewCard({
   imgFallbackURL,
   description,
   coverLeft,
-  isRecent,
   coverRight,
   actions,
   avatar,
   loading,
   imgPosition = 'top',
-  renderCover,
+  cover,
 }: CardProps) {
   return (
     <StyledCard
       data-test="styled-card"
       cover={
-        !isRecent
-          ? renderCover || (
-              <Cover>
-                <a href={url}>
-                  <div className="gradient-container">
-                    <ImageLoader
-                      src={imgURL || ''}
-                      fallback={imgFallbackURL || ''}
-                      isLoading={loading}
-                      position={imgPosition}
-                    />
-                  </div>
-                </a>
-                <CoverFooter className="cover-footer">
-                  {!loading && coverLeft && (
-                    <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
-                  )}
-                  {!loading && coverRight && (
-                    <CoverFooterRight>{coverRight}</CoverFooterRight>
-                  )}
-                </CoverFooter>
-              </Cover>
-            )
-          : null
+        cover || (
+          <Cover>
+            <a href={url}>
+              <div className="gradient-container">
+                <ImageLoader
+                  src={imgURL || ''}
+                  fallback={imgFallbackURL || ''}
+                  isLoading={loading}
+                  position={imgPosition}
+                />
+              </div>
+            </a>
+            <CoverFooter className="cover-footer">
+              {!loading && coverLeft && (
+                <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
+              )}
+              {!loading && coverRight && (
+                <CoverFooterRight>{coverRight}</CoverFooterRight>
+              )}
+            </CoverFooter>
+          </Cover>
+        )
       }
     >
       {loading && (

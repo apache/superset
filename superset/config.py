@@ -323,6 +323,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
     "SIP_34_ANNOTATIONS_UI": False,
+    "VERSIONED_EXPORT": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.

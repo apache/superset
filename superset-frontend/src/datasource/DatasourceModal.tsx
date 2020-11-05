@@ -19,7 +19,6 @@
 import React, { FunctionComponent, useState, useRef } from 'react';
 import { Alert } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import Dialog from 'react-bootstrap-dialog';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 
 import Modal from 'src/common/components/Modal';
@@ -84,6 +83,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const dialog = useRef<any>(null);
+  const [modal, contextHolder] = Modal.useModal();
 
   const onConfirmSave = () => {
     // Pull out extra fields into the extra object
@@ -118,12 +118,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       .catch(response => {
         setIsSaving(false);
         getClientErrorObject(response).then(({ error }) => {
-          dialog.current.show({
+          modal.error({
             title: 'Error',
-            bsSize: 'medium',
-            bsStyle: 'danger',
-            actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-            body: error || t('An error has occurred'),
+            content: error || t('An error has occurred'),
+            okButtonProps: { danger: true, className: 'btn-danger' },
           });
         });
       });
@@ -140,13 +138,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setErrors(err);
   };
 
+  const closeDialog = () => {
+    dialog.current?.destroy();
+  };
+
   const renderSaveDialog = () => (
     <div>
-      <Alert
-        bsStyle="warning"
-        className="pointer"
-        onClick={dialog.current.hideAlert}
-      >
+      <Alert bsStyle="warning" className="pointer" onClick={closeDialog}>
         <div>
           <i className="fa fa-exclamation-triangle" />{' '}
           {t(`The dataset configuration exposed here
@@ -161,11 +159,11 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   );
 
   const onClickSave = () => {
-    dialog.current.show({
+    dialog.current = modal.confirm({
       title: t('Confirm save'),
-      bsSize: 'medium',
-      actions: [Dialog.CancelAction(), Dialog.OKAction(onConfirmSave)],
-      body: renderSaveDialog(),
+      content: renderSaveDialog(),
+      onOk: onConfirmSave,
+      icon: null,
     });
   };
 
@@ -212,7 +210,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           >
             {t('Cancel')}
           </Button>
-          <Dialog ref={dialog} />
         </>
       }
       responsive
@@ -223,6 +220,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource={currentDatasource}
         onChange={onDatasourceChange}
       />
+      {contextHolder}
     </StyledDatasourceModal>
   );
 };

@@ -101,7 +101,7 @@ class DashboardBuilder extends React.Component {
   static shouldFocusTabs(event, container) {
     // don't focus the tabs when we click on a tab
     return (
-      event.target.tagName === 'UL' ||
+      event.target.className === 'ant-tabs-nav-wrap' ||
       (/icon-button/.test(event.target.className) &&
         container.contains(event.target))
     );

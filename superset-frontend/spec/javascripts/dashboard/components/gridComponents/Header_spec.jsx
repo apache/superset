@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Provider } from 'react-redux';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';

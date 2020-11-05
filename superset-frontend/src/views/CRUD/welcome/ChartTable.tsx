@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { t } from '@superset-ui/core';
-import { useListViewResource, useChartEditModal } from 'src/views/CRUD/hooks';
+import {
+  useListViewResource,
+  useChartEditModal,
+  useFavoriteStatus,
+} from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
@@ -51,6 +55,12 @@ function ChartTable({
     refreshData,
     fetchData,
   } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
+  const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
+  const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
+    'chart',
+    chartIds,
+    addDangerToast,
+  );
   const {
     sliceCurrentlyEditing,
     openChartEditModal,
@@ -154,6 +164,8 @@ function ChartTable({
               refreshData={refreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
+              favoriteStatus={favoriteStatus[e.id]}
+              saveFavoriteStatus={saveFavoriteStatus}
             />
           ))}
         </CardContainer>
