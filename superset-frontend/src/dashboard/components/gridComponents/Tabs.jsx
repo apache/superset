@@ -105,9 +105,8 @@ const StyledTabsContainer = styled.div`
     top: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
-  .editable-title input {
-    cursor: pointer;
-    text-transform: uppercase;
+  div .ant-tabs-tab-btn {
+    text-transform: none;
   }
 `;
 
