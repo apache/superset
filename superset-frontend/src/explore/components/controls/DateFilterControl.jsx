@@ -88,8 +88,6 @@ const FREEFORM_TOOLTIP = t(
     '`2 weeks from now` can be used.',
 );
 
-const DATE_FILTER_POPOVER_STYLE = { width: '250px' };
-
 const propTypes = {
   animation: PropTypes.bool,
   name: PropTypes.string.isRequired,
@@ -173,8 +171,30 @@ function getStateFromCustomRange(value) {
   };
 }
 
-const Styles = styled.div`
+const TimeFramesStyles = styled.div`
   .radio {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
+  }
+`;
+
+const PopoverContentStyles = styled.div`
+  width: ${({ theme }) => theme.gridUnit * 60}px;
+
+  .timeframes-container {
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+
+  .relative-timerange-container {
+    display: flex;
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+
+  .timerange-input {
+    width: ${({ theme }) => theme.gridUnit * 15}px;
+    margin: 0 ${({ theme }) => theme.gridUnit}px;
+  }
+
+  .datetime {
     margin: ${({ theme }) => theme.gridUnit}px 0;
   }
 `;
@@ -399,7 +419,7 @@ class DateFilterControl extends React.Component {
       const timeRange = buildTimeRangeString(nextState.since, nextState.until);
 
       return (
-        <Styles key={timeFrame}>
+        <TimeFramesStyles key={timeFrame}>
           <OverlayTrigger
             key={timeFrame}
             placement="right"
@@ -419,14 +439,13 @@ class DateFilterControl extends React.Component {
               </Radio>
             </div>
           </OverlayTrigger>
-        </Styles>
+        </TimeFramesStyles>
       );
     });
 
     return (
-      <div
+      <PopoverContentStyles
         id="filter-popover"
-        style={DATE_FILTER_POPOVER_STYLE}
         ref={ref => {
           this.popoverContainer = ref;
         }}
@@ -438,7 +457,7 @@ class DateFilterControl extends React.Component {
           onSelect={this.changeTab}
         >
           <Tabs.TabPane key="1" tab="Defaults" forceRender>
-            <div style={{ marginLeft: '8px' }}>
+            <div className="timeframes-container">
               <FormGroup>{timeFrames}</FormGroup>
             </div>
           </Tabs.TabPane>
@@ -449,48 +468,37 @@ class DateFilterControl extends React.Component {
                 isSelected={this.state.type === TYPES.CUSTOM_RANGE}
                 onSelect={this.setTypeCustomRange}
               >
-                <div
-                  className="clearfix centered"
-                  style={{ marginTop: '8px', display: 'flex' }}
-                >
-                  <div className="input-inline">
-                    <Select
-                      value={this.state.rel}
-                      onSelect={value => this.setCustomRange('rel', value)}
-                      onFocus={this.setTypeCustomRange}
-                    >
-                      <Select.Option value={RELATIVE_TIME_OPTIONS.LAST}>
-                        Last
-                      </Select.Option>
-                      <Select.Option value={RELATIVE_TIME_OPTIONS.NEXT}>
-                        Next
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div
-                    style={{ width: '60px' }}
-                    className="input-inline m-l-5 m-r-3"
+                <div className="relative-timerange-container clearfix centered">
+                  <Select
+                    value={this.state.rel}
+                    onSelect={value => this.setCustomRange('rel', value)}
+                    onFocus={this.setTypeCustomRange}
                   >
-                    <Input
-                      type="text"
-                      onChange={event =>
-                        this.setCustomRange('num', event.target.value)
-                      }
-                      onFocus={this.setTypeCustomRange}
-                      onPressEnter={this.close}
-                      value={this.state.num}
-                    />
-                  </div>
-                  <div className="input-inline">
-                    <Select
-                      value={this.state.grain}
-                      onFocus={this.setTypeCustomRange}
-                      onSelect={value => this.setCustomRange('grain', value)}
-                      dropdownMatchSelectWidth={false}
-                    >
-                      {grainOptions}
-                    </Select>
-                  </div>
+                    <Select.Option value={RELATIVE_TIME_OPTIONS.LAST}>
+                      Last
+                    </Select.Option>
+                    <Select.Option value={RELATIVE_TIME_OPTIONS.NEXT}>
+                      Next
+                    </Select.Option>
+                  </Select>
+                  <Input
+                    className="timerange-input"
+                    type="text"
+                    onChange={event =>
+                      this.setCustomRange('num', event.target.value)
+                    }
+                    onFocus={this.setTypeCustomRange}
+                    onPressEnter={this.close}
+                    value={this.state.num}
+                  />
+                  <Select
+                    value={this.state.grain}
+                    onFocus={this.setTypeCustomRange}
+                    onSelect={value => this.setCustomRange('grain', value)}
+                    dropdownMatchSelectWidth={false}
+                  >
+                    {grainOptions}
+                  </Select>
                 </div>
               </PopoverSection>
               <PopoverSection
@@ -505,48 +513,42 @@ class DateFilterControl extends React.Component {
                   }}
                 >
                   <InputGroup data-test="date-input-group">
-                    <div style={{ margin: '5px 0' }}>
-                      <Datetime
-                        inputProps={{ 'data-test': 'date-from-input' }}
-                        value={this.state.since}
-                        defaultValue={this.state.since}
-                        viewDate={this.state.since}
-                        onChange={value =>
-                          this.setCustomStartEnd('since', value)
-                        }
-                        isValidDate={this.isValidSince}
-                        onClick={this.setTypeCustomStartEnd}
-                        renderInput={props =>
-                          this.renderInput(props, 'showSinceCalendar')
-                        }
-                        open={this.state.showSinceCalendar}
-                        viewMode={this.state.sinceViewMode}
-                        onViewModeChange={sinceViewMode =>
-                          this.setState({ sinceViewMode })
-                        }
-                      />
-                    </div>
-                    <div style={{ margin: '5px 0' }}>
-                      <Datetime
-                        inputProps={{ 'data-test': 'date-to-input' }}
-                        value={this.state.until}
-                        defaultValue={this.state.until}
-                        viewDate={this.state.until}
-                        onChange={value =>
-                          this.setCustomStartEnd('until', value)
-                        }
-                        isValidDate={this.isValidUntil}
-                        onClick={this.setTypeCustomStartEnd}
-                        renderInput={props =>
-                          this.renderInput(props, 'showUntilCalendar')
-                        }
-                        open={this.state.showUntilCalendar}
-                        viewMode={this.state.untilViewMode}
-                        onViewModeChange={untilViewMode =>
-                          this.setState({ untilViewMode })
-                        }
-                      />
-                    </div>
+                    <Datetime
+                      className="datetime"
+                      inputProps={{ 'data-test': 'date-from-input' }}
+                      value={this.state.since}
+                      defaultValue={this.state.since}
+                      viewDate={this.state.since}
+                      onChange={value => this.setCustomStartEnd('since', value)}
+                      isValidDate={this.isValidSince}
+                      onClick={this.setTypeCustomStartEnd}
+                      renderInput={props =>
+                        this.renderInput(props, 'showSinceCalendar')
+                      }
+                      open={this.state.showSinceCalendar}
+                      viewMode={this.state.sinceViewMode}
+                      onViewModeChange={sinceViewMode =>
+                        this.setState({ sinceViewMode })
+                      }
+                    />
+                    <Datetime
+                      className="datetime"
+                      inputProps={{ 'data-test': 'date-to-input' }}
+                      value={this.state.until}
+                      defaultValue={this.state.until}
+                      viewDate={this.state.until}
+                      onChange={value => this.setCustomStartEnd('until', value)}
+                      isValidDate={this.isValidUntil}
+                      onClick={this.setTypeCustomStartEnd}
+                      renderInput={props =>
+                        this.renderInput(props, 'showUntilCalendar')
+                      }
+                      open={this.state.showUntilCalendar}
+                      viewMode={this.state.untilViewMode}
+                      onViewModeChange={untilViewMode =>
+                        this.setState({ untilViewMode })
+                      }
+                    />
                   </InputGroup>
                 </div>
               </PopoverSection>
@@ -564,7 +566,7 @@ class DateFilterControl extends React.Component {
             Ok
           </Button>
         </div>
-      </div>
+      </PopoverContentStyles>
     );
   }
 
