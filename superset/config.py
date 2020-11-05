@@ -331,7 +331,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # by that custom datasource access. So we are assuming a default security config,
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
-    "ENABLE_ROW_LEVEL_SECURITY": False,
+    "ROW_LEVEL_SECURITY": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
