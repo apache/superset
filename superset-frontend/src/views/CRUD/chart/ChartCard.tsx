@@ -28,7 +28,7 @@ import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
-import { handleBulkChartExport, handleChartDelete } from '../utils';
+import { handleChartDelete, handleBulkChartExport, CardStyles } from '../utils';
 
 interface ChartCardProps {
   chart: Chart;
@@ -123,29 +123,35 @@ export default function ChartCard({
     </Menu>
   );
   return (
-    <ListViewCard
-      loading={loading}
-      title={chart.slice_name}
-      url={bulkSelectEnabled ? undefined : chart.url}
-      imgURL={chart.thumbnail_url || ''}
-      imgFallbackURL="/static/assets/images/chart-card-fallback.png"
-      description={t('Last modified %s', chart.changed_on_delta_humanized)}
-      coverLeft={<FacePile users={chart.owners || []} />}
-      coverRight={
-        <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
-      }
-      actions={
-        <ListViewCard.Actions>
-          <FaveStar
-            itemId={chart.id}
-            saveFaveStar={saveFavoriteStatus}
-            isStarred={favoriteStatus}
-          />
-          <Dropdown overlay={menu}>
-            <Icon name="more-horiz" />
-          </Dropdown>
-        </ListViewCard.Actions>
-      }
-    />
+    <CardStyles
+      onClick={() => {
+        window.location.href = chart.url;
+      }}
+    >
+      <ListViewCard
+        loading={loading}
+        title={chart.slice_name}
+        url={bulkSelectEnabled ? undefined : chart.url}
+        imgURL={chart.thumbnail_url || ''}
+        imgFallbackURL="/static/assets/images/chart-card-fallback.png"
+        description={t('Last modified %s', chart.changed_on_delta_humanized)}
+        coverLeft={<FacePile users={chart.owners || []} />}
+        coverRight={
+          <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
+        }
+        actions={
+          <ListViewCard.Actions onClick={e => e.preventDefault()}>
+            <FaveStar
+              itemId={chart.id}
+              saveFaveStar={saveFavoriteStatus}
+              isStarred={favoriteStatus}
+            />
+            <Dropdown overlay={menu}>
+              <Icon name="more-horiz" />
+            </Dropdown>
+          </ListViewCard.Actions>
+        }
+      />
+    </CardStyles>
   );
 }

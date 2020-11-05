@@ -50,10 +50,10 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     SAVED_QUERIES: '/savedqueryview/list/',
   };
   const tableIcon = {
-    RECENTS: 'union.png',
-    DASHBOARDS: 'empty-dashboard.png',
-    CHARTS: 'empty-charts.png',
-    SAVED_QUERIES: 'empty-queries.png',
+    RECENTS: 'union.svg',
+    DASHBOARDS: 'empty-dashboard.svg',
+    CHARTS: 'empty-charts.svg',
+    SAVED_QUERIES: 'empty-queries.svg',
   };
   const mine = (
     <div>{`No ${
@@ -126,7 +126,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   return (
     <EmptyContainer>
       <Empty
-        image="/static/assets/images/star-circle.png"
+        image="/static/assets/images/star-circle.svg"
         description={
           <div className="no-favorites">
             {t("You don't have any favorites yet!")}

@@ -26,8 +26,12 @@ import DeleteModal from 'src/components/DeleteModal';
 import Icon from 'src/components/Icon';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-
-import { IconContainer, CardContainer, createErrorHandler } from '../utils';
+import {
+  IconContainer,
+  CardContainer,
+  createErrorHandler,
+  CardStyles,
+} from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -60,7 +64,7 @@ const QueryData = styled.div`
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .title {
     font-weight: ${({ theme }) => theme.typography.weights.normal};
-    color: ${({ theme }) => theme.colors.grayscale.light2};
+    color: ${({ theme }) => theme.colors.grayscale.light1};
   }
   .holder {
     margin: ${({ theme }) => theme.gridUnit * 2}px;
@@ -214,8 +218,9 @@ const SavedQueries = ({
           {
             name: 'Favorite',
             label: t('Favorite'),
-            onClick: () =>
-              getData('Favorite').then(() => setQueryFilter('Favorite')),
+            onClick: () => {
+              getData('Favorite').then(() => setQueryFilter('Favorite'));
+            },
           },
           {
             name: 'Mine',
@@ -247,34 +252,45 @@ const SavedQueries = ({
       {queries.length > 0 ? (
         <CardContainer>
           {queries.map(q => (
-            <ListViewCard
-              key={`${q.id}`}
-              imgFallbackURL=""
-              imgURL=""
-              url={`/superset/sqllab?savedQueryId=${q.id}`}
-              title={q.label}
-              rows={q.rows}
-              description={t('Last run ', q.end_time)}
-              cover={
-                <QueryData>
-                  <div className="holder">
-                    <div className="title">{t('Tables')}</div>
-                    <div>{q?.sql_tables?.length}</div>
-                  </div>
-                  <div className="holder">
-                    <div className="title">{t('Datasource Name')}</div>
-                    <div>{q?.sql_tables && q.sql_tables[0]?.table}</div>
-                  </div>
-                </QueryData>
-              }
-              actions={
-                <ListViewCard.Actions>
-                  <Dropdown overlay={renderMenu(q)}>
-                    <Icon name="more-horiz" />
-                  </Dropdown>
-                </ListViewCard.Actions>
-              }
-            />
+            <CardStyles
+              onClick={() => {
+                window.location.href = `/superset/sqllab?savedQueryId=${q.id}`;
+              }}
+              key={q.id}
+            >
+              <ListViewCard
+                imgFallbackURL=""
+                imgURL=""
+                url={`/superset/sqllab?savedQueryId=${q.id}`}
+                title={q.label}
+                rows={q.rows}
+                description={t('Last run ', q.end_time)}
+                cover={
+                  <QueryData>
+                    <div className="holder">
+                      <div className="title">{t('Tables')}</div>
+                      <div>{q?.sql_tables?.length}</div>
+                    </div>
+                    <div className="holder">
+                      <div className="title">{t('Datasource Name')}</div>
+                      <div>{q?.sql_tables && q.sql_tables[0]?.table}</div>
+                    </div>
+                  </QueryData>
+                }
+                actions={
+                  <ListViewCard.Actions
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
+                    <Dropdown overlay={renderMenu(q)}>
+                      <Icon name="more-horiz" />
+                    </Dropdown>
+                  </ListViewCard.Actions>
+                }
+              />
+            </CardStyles>
           ))}
         </CardContainer>
       ) : (

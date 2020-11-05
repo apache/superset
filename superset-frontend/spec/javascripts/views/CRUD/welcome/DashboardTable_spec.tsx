@@ -34,6 +34,7 @@ const store = mockStore({});
 
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
 const dashboardInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
+const dashboardFavEndpoint = 'glob:*/api/v1/dashboard/favorite_status?*';
 const mockDashboards = [
   {
     id: 1,
@@ -47,6 +48,9 @@ fetchMock.get(dashboardsEndpoint, { result: mockDashboards });
 fetchMock.get(dashboardInfoEndpoint, {
   permissions: ['can_list', 'can_edit', 'can_delete'],
 });
+fetchMock.get(dashboardFavEndpoint, {
+  result: [],
+});
 
 describe('DashboardTable', () => {
   const dashboardProps = {
@@ -54,6 +58,7 @@ describe('DashboardTable', () => {
     user: {
       userId: '2',
     },
+    mine: mockDashboards,
   };
   const wrapper = mount(<DashboardTable {...dashboardProps} />, {
     context: { store },
@@ -78,17 +83,21 @@ describe('DashboardTable', () => {
     expect(fetchMock.calls(/dashboard\/\?q/)).toHaveLength(1);
   });
 
-  it('fetches dashboards and renders a card', () => {
-    expect(fetchMock.calls(/dashboard\/\?q/)).toHaveLength(1);
-    wrapper.setState({ dashboards: mockDashboards });
+  it('render DashboardCard', () => {
     expect(wrapper.find(DashboardCard)).toExist();
   });
 
   it('display EmptyState if there is no data', () => {
-    fetchMock.resetHistory();
-    const wrapper = mount(<DashboardTable {...dashboardProps} />, {
-      context: { store },
-    });
+    const wrapper = mount(
+      <DashboardTable
+        dashboardFilter="Mine"
+        user={{ userId: '2' }}
+        mine={[]}
+      />,
+      {
+        context: { store },
+      },
+    );
     expect(wrapper.find('EmptyState')).toExist();
   });
 });

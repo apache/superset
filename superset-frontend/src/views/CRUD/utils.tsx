@@ -282,6 +282,14 @@ export const CardContainer = styled.div`
   justify-content: left;
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 6}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+`;
+
+export const CardStyles = styled.div`
+  cursor: pointer;
+  a {
+    text-decoration: none;
+  }
 `;
 
 export const IconContainer = styled.div`

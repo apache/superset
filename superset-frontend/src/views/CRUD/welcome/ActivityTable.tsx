@@ -24,7 +24,7 @@ import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { ActivityData } from './Welcome';
-import { mq } from '../utils';
+import { mq, CardStyles } from '../utils';
 import EmptyState from './EmptyState';
 
 interface ActivityObjects {
@@ -121,7 +121,7 @@ export default function ActivityTable({
     },
   ];
 
-  if (activityData.Viewed) {
+  if (activityData?.Viewed) {
     tabs.unshift({
       name: 'Viewed',
       label: t('Viewed'),
@@ -140,20 +140,34 @@ export default function ActivityTable({
   }
 
   const renderActivity = () => {
-    return activityData[activeChild].map((e: ActivityObjects) => (
-      <ListViewCard
-        key={`${e.id}`}
-        loading={loading}
-        cover={<></>}
-        url={e.sql ? `/supserset/sqllab?queryId=${e.id}` : e.url}
-        title={getFilterTitle(e)}
-        description={`Last Edited: ${moment(e.changed_on_utc).format(
-          'MM/DD/YYYY HH:mm:ss',
-        )}`}
-        avatar={getIconName(e)}
-        actions={null}
-      />
-    ));
+    const getRecentRef = (e: ActivityObjects) => {
+      if (activeChild === 'Viewed') {
+        return e.item_url;
+      }
+      return e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url;
+    };
+    return activityData[activeChild].map((e: ActivityObjects) => {
+      return (
+        <CardStyles
+          onClick={() => {
+            window.location.href = getRecentRef(e);
+          }}
+          key={e.id}
+        >
+          <ListViewCard
+            loading={loading}
+            cover={<></>}
+            url={e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url}
+            title={getFilterTitle(e)}
+            description={`Last Edited: ${moment(e.changed_on_utc).format(
+              'MM/DD/YYYY HH:mm:ss',
+            )}`}
+            avatar={getIconName(e)}
+            actions={null}
+          />
+        </CardStyles>
+      );
+    });
   };
   if (loading) return <Loading position="inline" />;
   return (
