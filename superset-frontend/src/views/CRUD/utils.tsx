@@ -33,9 +33,11 @@ const createFetchResourceMethod = (method: string) => (
   resource: string,
   relation: string,
   handleError: (error: Response) => void,
+  userId?: string | number,
 ) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
   const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
-
+  const options =
+    userId && pageIndex === 0 ? [{ label: 'me', value: userId }] : [];
   try {
     const queryParams = rison.encode({
       ...(pageIndex ? { page: pageIndex } : {}),
@@ -45,13 +47,14 @@ const createFetchResourceMethod = (method: string) => (
     const { json = {} } = await SupersetClient.get({
       endpoint: `${resourceEndpoint}?q=${queryParams}`,
     });
-
-    return json?.result?.map(
+    const data = json?.result?.map(
       ({ text: label, value }: { text: string; value: any }) => ({
         label,
         value,
       }),
     );
+
+    return options.concat(data);
   } catch (e) {
     handleError(e);
   }
