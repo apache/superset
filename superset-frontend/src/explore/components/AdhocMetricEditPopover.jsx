@@ -264,7 +264,7 @@ export default class AdhocMetricEditPopover extends React.Component {
                   showLoadingForImport
                   ref={this.handleAceEditorRef}
                   keywords={keywords}
-                  height={`${this.state.height - 43}px`}
+                  height={`${this.state.height - 80}px`}
                   onChange={this.onSqlExpressionChange}
                   width="100%"
                   showGutter={false}
@@ -286,6 +286,14 @@ export default class AdhocMetricEditPopover extends React.Component {
         </Tabs>
         <div>
           <Button
+            buttonSize="small"
+            onClick={this.props.onClose}
+            data-test="AdhocMetricEdit#cancel"
+            cta
+          >
+            Close
+          </Button>
+          <Button
             disabled={!stateIsValid}
             buttonStyle={
               hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
@@ -297,14 +305,6 @@ export default class AdhocMetricEditPopover extends React.Component {
             cta
           >
             Save
-          </Button>
-          <Button
-            buttonSize="small"
-            onClick={this.props.onClose}
-            data-test="AdhocMetricEdit#cancel"
-            cta
-          >
-            Close
           </Button>
           <i
             role="button"

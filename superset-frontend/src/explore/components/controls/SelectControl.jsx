@@ -53,6 +53,9 @@ const propTypes = {
   filterOption: PropTypes.func,
   promptTextCreator: PropTypes.func,
   commaChoosesOption: PropTypes.bool,
+  menuPortalTarget: PropTypes.element,
+  menuPosition: PropTypes.string,
+  menuPlacement: PropTypes.string,
 };
 
 const defaultProps = {
@@ -219,6 +222,9 @@ export default class SelectControl extends React.PureComponent {
       filterOption: this.props.filterOption,
       promptTextCreator: this.props.promptTextCreator,
       ignoreAccents: false,
+      menuPortalTarget: this.props.menuPortalTarget,
+      menuPosition: this.props.menuPosition,
+      menuPlacement: this.props.menuPlacement,
     };
 
     let SelectComponent;

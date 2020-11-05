@@ -51,6 +51,7 @@ const propTypes = {
   onHeightChange: PropTypes.func.isRequired,
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
+  popoverRef: PropTypes.object,
 };
 
 const defaultProps = {
@@ -100,6 +101,12 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       labelKey: 'label',
       autosize: false,
       clearable: false,
+    };
+
+    this.menuPortalProps = {
+      menuPortalTarget: props.popoverRef.current,
+      menuPosition: 'fixed',
+      menuPlacement: 'bottom',
     };
   }
 
@@ -328,10 +335,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     };
 
     return (
-      <span>
+      <>
         <FormGroup className="adhoc-filter-simple-column-dropdown">
           <Select
             {...this.selectProps}
+            {...this.menuPortalProps}
             {...subjectSelectProps}
             name="filter-column"
           />
@@ -339,6 +347,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup>
           <Select
             {...this.selectProps}
+            {...this.menuPortalProps}
             {...operatorSelectProps}
             name="filter-operator"
           />
@@ -347,6 +356,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
           {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
             <SelectControl
+              {...this.menuPortalProps}
               name="filter-value"
               autoFocus
               freeForm
@@ -373,7 +383,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
             />
           )}
         </FormGroup>
-      </span>
+      </>
     );
   }
 }
