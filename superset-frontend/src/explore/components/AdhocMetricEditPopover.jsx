@@ -22,7 +22,7 @@ import { FormGroup } from 'react-bootstrap';
 import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
 
 import FormLabel from 'src/components/FormLabel';
@@ -50,7 +50,11 @@ const defaultProps = {
   columns: [],
 };
 
-const startingWidth = 300;
+const ResizeIcon = styled.i`
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
+const startingWidth = 320;
 const startingHeight = 240;
 
 export default class AdhocMetricEditPopover extends React.Component {
@@ -65,17 +69,28 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.onMouseUp = this.onMouseUp.bind(this);
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
     this.refreshAceEditor = this.refreshAceEditor.bind(this);
+
+    this.popoverRef = React.createRef();
+
     this.state = {
       adhocMetric: this.props.adhocMetric,
       width: startingWidth,
       height: startingHeight,
     };
+
     this.selectProps = {
       labelKey: 'label',
       isMulti: false,
       autosize: false,
       clearable: true,
     };
+
+    this.menuPortalProps = {
+      menuPosition: 'fixed',
+      menuPlacement: 'bottom',
+      menuPortalTarget: this.popoverRef.current,
+    };
+
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
@@ -215,6 +230,7 @@ export default class AdhocMetricEditPopover extends React.Component {
       <div
         id="metrics-edit-popover"
         data-test="metrics-edit-popover"
+        ref={this.popoverRef}
         {...popoverProps}
       >
         <Tabs
@@ -237,6 +253,7 @@ export default class AdhocMetricEditPopover extends React.Component {
               <Select
                 name="select-column"
                 {...this.selectProps}
+                {...this.menuPortalProps}
                 {...columnSelectProps}
               />
             </FormGroup>
@@ -247,6 +264,7 @@ export default class AdhocMetricEditPopover extends React.Component {
               <Select
                 name="select-aggregate"
                 {...this.selectProps}
+                {...this.menuPortalProps}
                 {...aggregateSelectProps}
                 autoFocus
               />
@@ -299,14 +317,13 @@ export default class AdhocMetricEditPopover extends React.Component {
               hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
             }
             buttonSize="small"
-            className="m-r-5"
             data-test="AdhocMetricEdit#save"
             onClick={this.onSave}
             cta
           >
             Save
           </Button>
-          <i
+          <ResizeIcon
             role="button"
             aria-label="Resize"
             tabIndex={0}
