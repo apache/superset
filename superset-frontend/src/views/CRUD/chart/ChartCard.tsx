@@ -140,7 +140,12 @@ export default function ChartCard({
           <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
         }
         actions={
-          <ListViewCard.Actions onClick={e => e.preventDefault()}>
+          <ListViewCard.Actions
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
             <FaveStar
               itemId={chart.id}
               saveFaveStar={saveFavoriteStatus}
