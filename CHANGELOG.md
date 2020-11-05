@@ -18,7 +18,10 @@ under the License.
 -->
 ## Change Log
 
-### 0.38.0 (Wed Oct 28 23:41:39 2020 +0200)
+### 0.38.0 (Wed Oct 28 21:41:39 2020 +0000)
+- [#11365](https://github.com/apache/incubator-superset/pull/11365) fix(sqla): allow 'unknown' type queries in explore view (#11365) (@serenajiang)
+- [#11253](https://github.com/apache/incubator-superset/pull/11253) build: update webpack for npm linking plugins (#11253) (@ktmud)
+- [#11469](https://github.com/apache/incubator-superset/pull/11469) docs(release): script to generate a CHANGELOG.md (#11469) (@dpgaspar)
 - [#11393](https://github.com/apache/incubator-superset/pull/11393) chore(chart-data): add annotations and url params to chart data schema (#11393) (@villebro)
 - [#11272](https://github.com/apache/incubator-superset/pull/11272) chore: upgrade vis plugins npm packages (#11272) (@ktmud)
 - [#11149](https://github.com/apache/incubator-superset/pull/11149) fix: Fix Time Column dropdown for date filter (#11149) (@graceguo-supercat)
