@@ -191,7 +191,7 @@ export function Menu({
                   </DropdownMenu.ItemGroup>,
                 ]}
                 {(navbarRight.version_string || navbarRight.version_sha) && [
-                  <DropdownMenu.Divider key="user-divider" />,
+                  <DropdownMenu.Divider key="navbar-divider" />,
                   <DropdownMenu.ItemGroup
                     key="about-section"
                     title={t('About')}
