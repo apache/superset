@@ -56,6 +56,7 @@ FEATURE_FLAGS = {
     "SHARE_QUERIES_VIA_KV_STORE": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ENABLE_REACT_CRUD_VIEWS": os.environ.get("ENABLE_REACT_CRUD_VIEWS", False),
+    "ROW_LEVEL_SECURITY": True,
 }
 
 
@@ -73,7 +74,6 @@ FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_acce
 PUBLIC_ROLE_LIKE = "Gamma"
 AUTH_ROLE_PUBLIC = "Public"
 EMAIL_NOTIFICATIONS = False
-ENABLE_ROW_LEVEL_SECURITY = True
 CACHE_CONFIG = {"CACHE_TYPE": "simple"}
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = os.environ.get("REDIS_PORT", "6379")

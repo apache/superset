@@ -135,6 +135,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "RoleModelView",
         "LogModelView",
         "Security",
+        "Row Level Security",
+        "Row Level Security Filters",
         "RowLevelSecurityFiltersModelView",
     } | USER_MODEL_VIEWS
 
