@@ -126,9 +126,9 @@ describe('AdhocFilterEditPopover', () => {
     wrapper.instance().onDragDown = sinon.spy();
     wrapper.instance().forceUpdate();
 
-    expect(wrapper.find('i.fa-expand')).toExist();
+    expect(wrapper.find('.fa-expand')).toExist();
     expect(wrapper.instance().onDragDown.calledOnce).toBe(false);
-    wrapper.find('i.fa-expand').simulate('mouseDown', {});
+    wrapper.find('.fa-expand').simulate('mouseDown', {});
     expect(wrapper.instance().onDragDown.calledOnce).toBe(true);
   });
 });
