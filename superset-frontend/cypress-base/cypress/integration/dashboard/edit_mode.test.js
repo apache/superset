@@ -47,9 +47,7 @@ describe('Dashboard edit mode', () => {
       });
 
     cy.get('[data-test="dashboard-builder-component-pane-tabs-navigation"]')
-      .within(() => {
-        cy.get('.ant-tabs-tab').last();
-      })
+      .find('.ant-tabs-tab').last()
       .click();
 
     // find box plot is available from list
