@@ -280,9 +280,8 @@ export const CardContainer = styled.div`
   }
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 6}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  padding: ${({ theme }) => theme.gridUnit * 6}px;
+  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 export const CardStyles = styled.div`
