@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t, tn, useTheme } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import {
   SearchOutlined,
   MinusCircleFilled,
@@ -32,7 +32,6 @@ import {
   Panel,
   Reset,
   Title,
-  Summary,
   FilterValue,
 } from './Styles';
 import { Indicator } from './selectors';
@@ -105,16 +104,8 @@ const DetailsPanelPopover = ({
     }
   }
 
-  const total =
-    appliedIndicators.length +
-    incompatibleIndicators.length +
-    unsetIndicators.length;
-
   const content = (
     <Panel>
-      <Summary>
-        {tn('%d Scoped Filter', '%d Scoped Filters', total, total)}
-      </Summary>
       <Reset>
         <Collapse
           ghost
