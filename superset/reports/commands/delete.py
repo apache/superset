@@ -25,7 +25,6 @@ from superset.dao.exceptions import DAODeleteFailedError
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.exceptions import (
     ReportScheduleDeleteFailedError,
-    ReportScheduleDeleteIntegrityError,
     ReportScheduleNotFoundError,
 )
 from superset.reports.dao import ReportScheduleDAO

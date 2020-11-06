@@ -21,13 +21,15 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.commands.base import BaseCommand
 from superset.commands.utils import populate_owners
 from superset.dao.exceptions import DAOUpdateFailedError
-from superset.models.reports import ReportSchedule
+from superset.databases.dao import DatabaseDAO
+from superset.models.reports import ReportSchedule, ReportScheduleType
+from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
+    DatabaseNotFoundValidationError,
     ReportScheduleInvalidError,
-    ReportScheduleLabelUniquenessValidationError,
+    ReportScheduleNameUniquenessValidationError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
@@ -36,7 +38,7 @@ from superset.reports.dao import ReportScheduleDAO
 logger = logging.getLogger(__name__)
 
 
-class UpdateReportScheduleCommand(BaseCommand):
+class UpdateReportScheduleCommand(BaseReportScheduleCommand):
     def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
         self._actor = user
         self._model_id = model_id
@@ -55,17 +57,35 @@ class UpdateReportScheduleCommand(BaseCommand):
     def validate(self) -> None:
         exceptions: List[ValidationError] = list()
         owner_ids: Optional[List[int]] = self._properties.get("owners")
+        report_type = self._properties.get("type", ReportScheduleType.ALERT)
 
-        label = self._properties.get("label", "")
+        name = self._properties.get("name", "")
         self._model = ReportScheduleDAO.find_by_id(self._model_id)
 
+        # Does the report exist?
         if not self._model:
             raise ReportScheduleNotFoundError()
 
+        # Validate name uniqueness
         if not ReportScheduleDAO.validate_update_uniqueness(
-            label, report_schedule_id=self._model_id
+            name, report_schedule_id=self._model_id
         ):
-            exceptions.append(ReportScheduleLabelUniquenessValidationError())
+            exceptions.append(ReportScheduleNameUniquenessValidationError())
+
+        # validate relation by report type
+        if not report_type:
+            report_type = self._model.type
+        if report_type == ReportScheduleType.ALERT:
+            database_id = self._properties.get("database")
+            # If database_id was sent let's validate it exists
+            if database_id:
+                database = DatabaseDAO.find_by_id(database_id)
+                if not database:
+                    exceptions.append(DatabaseNotFoundValidationError())
+                self._properties["database"] = database
+
+        # Validate chart or dashboard relations
+        self.validate_chart_dashboard(exceptions, update=True)
 
         # Validate/Populate owner
         if owner_ids is None:

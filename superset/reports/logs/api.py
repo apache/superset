@@ -58,7 +58,8 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
         "error_message",
     ]
     order_columns = [
-        "state" "value",
+        "state",
+        "value",
         "error_message",
         "end_dttm",
         "start_dttm",

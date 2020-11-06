@@ -52,6 +52,24 @@ class ChartNotFoundValidationError(ValidationError):
         super().__init__(_("Chart does not exist"), field_name="chart")
 
 
+class ReportScheduleAlertRequiredDatabaseValidationError(ValidationError):
+    """
+    Marshmallow validation error for report schedule alert missing database field
+    """
+
+    def __init__(self) -> None:
+        super().__init__(_("Database is required for alerts"), field_name="database")
+
+
+class ReportScheduleChartOrDashboardValidationError(ValidationError):
+    """
+    Marshmallow validation error for report schedule accept exlusive chart or dashboard
+    """
+
+    def __init__(self) -> None:
+        super().__init__(_("Choose a chart or dashboard not both"), field_name="chart")
+
+
 class ReportScheduleInvalidError(CommandInvalidError):
     message = _("Report Schedule parameters are invalid.")
 
@@ -84,10 +102,10 @@ class ReportScheduleBulkDeleteIntegrityError(CommandException):
     message = _("Report Schedule has associated logs or recipients.")
 
 
-class ReportScheduleLabelUniquenessValidationError(ValidationError):
+class ReportScheduleNameUniquenessValidationError(ValidationError):
     """
-    Marshmallow validation error for Report Schedule label already exists
+    Marshmallow validation error for Report Schedule name already exists
     """
 
     def __init__(self) -> None:
-        super().__init__([_("Label must be unique")], field_name="label")
+        super().__init__([_("Name must be unique")], field_name="name")

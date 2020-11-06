@@ -63,7 +63,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     show_columns = [
         "id",
-        "label",
+        "name",
         "recipients.id",
         "recipients.type",
         "recipients.recipient_config_json",
@@ -78,11 +78,30 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "created_by.last_name",
         "created_on",
         "id",
-        "label",
+        "name",
+        "recipients.id",
+        "recipients.type",
         "type",
     ]
-    add_columns = ReportSchedulePostSchema._declared_fields.keys()
-    edit_columns = ReportSchedulePutSchema._declared_fields.keys()
+    add_columns = [
+        "active",
+        "chart",
+        "context_markdown",
+        "crontab",
+        "dashboard",
+        "database",
+        "description",
+        "grace_period",
+        "log_retention",
+        "name",
+        "owners",
+        "recipients",
+        "sql",
+        "type",
+        "validator_config_json",
+        "validator_type",
+    ]
+    edit_columns = add_columns
     add_model_schema = ReportSchedulePostSchema()
     edit_model_schema = ReportSchedulePutSchema()
 
@@ -93,9 +112,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "changed_on",
         "changed_on_delta_humanized",
         "created_on",
-        "label",
+        "name",
         "type",
     ]
+    search_columns = ["name", "active", "created_by", "type"]
 
     allowed_rel_fields = {"created_by"}
 

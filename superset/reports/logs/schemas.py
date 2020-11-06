@@ -14,13 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Union
-
-from marshmallow import fields, Schema, ValidationError
-from marshmallow.validate import Length
-
-from superset.exceptions import SupersetException
-from superset.utils import core as utils
 
 openapi_spec_methods_override = {
     "get": {"get": {"description": "Get a report schedule log"}},

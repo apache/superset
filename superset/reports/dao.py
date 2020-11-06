@@ -15,14 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional
 
+from flask_appbuilder import Model
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.dao.base import BaseDAO
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
-from superset.models.reports import ReportSchedule
+from superset.models.reports import ReportRecipients, ReportSchedule
 
 logger = logging.getLogger(__name__)
 
@@ -48,17 +49,81 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def validate_update_uniqueness(
-        label: str, report_schedule_id: Optional[int] = None
+        name: str, report_schedule_id: Optional[int] = None
     ) -> bool:
         """
-        Validate if this label is unique.
+        Validate if this name is unique.
 
         :param name: The annotation layer name
         :param report_schedule_id: The report schedule current id
         (only for validating on updates)
         :return: bool
         """
-        query = db.session.query(ReportSchedule).filter(ReportSchedule.label == label)
+        query = db.session.query(ReportSchedule).filter(ReportSchedule.name == name)
         if report_schedule_id:
             query = query.filter(ReportSchedule.id != report_schedule_id)
         return not db.session.query(query.exists()).scalar()
+
+    @classmethod
+    def create(cls, properties: Dict[str, Any], commit: bool = True) -> Model:
+        """
+        create a report schedule and nested recipients
+        :raises: DAOCreateFailedError
+        """
+        import json
+
+        try:
+            model = ReportSchedule()
+            for key, value in properties.items():
+                if key != "recipients":
+                    setattr(model, key, value)
+            recipients = properties.get("recipients", [])
+            for recipient in recipients:
+                model.recipients.append(  # pylint: disable=no-member
+                    ReportRecipients(
+                        type=recipient["type"],
+                        recipient_config_json=json.dumps(
+                            recipient["recipient_config_json"]
+                        ),
+                    )
+                )
+            db.session.add(model)
+            if commit:
+                db.session.commit()
+            return model
+        except SQLAlchemyError:
+            db.session.rollback()
+            raise DAOCreateFailedError
+
+    @classmethod
+    def update(
+        cls, model: Model, properties: Dict[str, Any], commit: bool = True
+    ) -> Model:
+        """
+        create a report schedule and nested recipients
+        :raises: DAOCreateFailedError
+        """
+        import json
+
+        try:
+            for key, value in properties.items():
+                if key != "recipients":
+                    setattr(model, key, value)
+            recipients = properties.get("recipients", [])
+            model.recipients = [
+                ReportRecipients(
+                    type=recipient["type"],
+                    recipient_config_json=json.dumps(
+                        recipient["recipient_config_json"]
+                    ),
+                    report_schedule=model,
+                )
+                for recipient in recipients
+            ]
+            db.session.merge(model)
+            if commit:
+                db.session.commit()
+            return model
+        except SQLAlchemyError:
+            db.session.rollback()
+            raise DAOCreateFailedError

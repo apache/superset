@@ -16,33 +16,30 @@
 # under the License.
 import json
 import logging
-from typing import Any, Callable, cast, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.charts.dao import ChartDAO
-from superset.commands.base import BaseCommand
 from superset.commands.utils import populate_owners
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.models.reports import ReportScheduleType
+from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
-    ChartNotFoundValidationError,
-    DashboardNotFoundValidationError,
     DatabaseNotFoundValidationError,
+    ReportScheduleAlertRequiredDatabaseValidationError,
     ReportScheduleCreateFailedError,
     ReportScheduleInvalidError,
-    ReportScheduleLabelUniquenessValidationError,
+    ReportScheduleNameUniquenessValidationError,
 )
 from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 
 
-class CreateReportScheduleCommand(BaseCommand):
+class CreateReportScheduleCommand(BaseReportScheduleCommand):
     def __init__(self, user: User, data: Dict[str, Any]):
         self._actor = user
         self._properties = data.copy()
@@ -59,14 +56,30 @@ class CreateReportScheduleCommand(BaseCommand):
     def validate(self) -> None:
         exceptions: List[ValidationError] = list()
         owner_ids: Optional[List[int]] = self._properties.get("owners")
-        label = self._properties.get("label", "")
+        name = self._properties.get("name", "")
         report_type = self._properties.get("type", ReportScheduleType.ALERT)
 
-        # Validate label uniqueness
-        if not ReportScheduleDAO.validate_update_uniqueness(label):
-            exceptions.append(ReportScheduleLabelUniquenessValidationError())
+        # Validate name uniqueness
+        if not ReportScheduleDAO.validate_update_uniqueness(name):
+            exceptions.append(ReportScheduleNameUniquenessValidationError())
 
-        # TODO validate relations based on the report type
+        # validate relation by report type
+        if report_type == ReportScheduleType.ALERT:
+            database_id = self._properties.get("database")
+            if not database_id:
+                exceptions.append(ReportScheduleAlertRequiredDatabaseValidationError())
+            else:
+                database = DatabaseDAO.find_by_id(database_id)
+                if not database:
+                    exceptions.append(DatabaseNotFoundValidationError())
+                self._properties["database"] = database
+
+        # Validate chart or dashboard relations
+        self.validate_chart_dashboard(exceptions)
+
+        self._properties["validator_config_json"] = json.dumps(
+            self._properties["validator_config_json"]
+        )
 
         try:
             owners = populate_owners(self._actor, owner_ids)

@@ -24,7 +24,6 @@ from superset.dao.exceptions import DAODeleteFailedError
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.exceptions import (
     ReportScheduleBulkDeleteFailedError,
-    ReportScheduleBulkDeleteIntegrityError,
     ReportScheduleNotFoundError,
 )
 from superset.reports.dao import ReportScheduleDAO
@@ -52,4 +51,3 @@ class BulkDeleteReportScheduleCommand(BaseCommand):
         self._models = ReportScheduleDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
             raise ReportScheduleNotFoundError()
-        # TODO handle recipients and logs

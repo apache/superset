@@ -17,11 +17,14 @@
 from typing import Union
 
 from croniter import croniter
-from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema, validate
 from marshmallow.validate import Length, ValidationError
 
-from superset.models.reports import ReportScheduleType, ReportScheduleValidatorType
+from superset.models.reports import (
+    ReportRecipientType,
+    ReportScheduleType,
+    ReportScheduleValidatorType,
+)
 
 openapi_spec_methods_override = {
     "get": {"get": {"description": "Get a report schedule"}},
@@ -41,7 +44,10 @@ openapi_spec_methods_override = {
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 type_description = "The report schedule type"
-label_description = "The report schedule label."
+name_description = "The report schedule name."
+# :)
+description_description = "Use a nice description to give context to this Alert/Report"
+context_markdown_description = "Markdown description"
 crontab_description = (
     "A CRON-like expression."
     "[Crontab Guru](https://crontab.guru/) is "
@@ -52,8 +58,8 @@ sql_description = (
     "not. The query is expected to return either NULL or a number value."
 )
 owners_description = (
-    "Owner are users ids allowed to delete or change this chart. "
-    "If left empty you will be one of the owners of the chart."
+    "Owner are users ids allowed to delete or change this report. "
+    "If left empty you will be one of the owners of the report."
 )
 validator_type_description = (
     "Determines when to trigger alert based off value from alert query. "
@@ -79,11 +85,27 @@ def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
 
 
 class ValidatorConfigJSONSchema(Schema):
-    op = fields.String(
+    operation = fields.String(
         description=validator_config_json_op_description,
         validate=validate.OneOf(choices=["<", "<=", ">", ">=", "==", "!="]),
     )
     threshold = fields.Integer()
+
+
+class ReportRecipientConfigJSONSchema(Schema):
+    # TODO if email check validity
+    target = fields.String()
+
+
+class ReportRecipientSchema(Schema):
+    type = fields.String(
+        description="The recipient type, check spec for valid options",
+        allow_none=False,
+        validate=validate.OneOf(
+            choices=tuple(key.value for key in ReportRecipientType)
+        ),
+    )
+    recipient_config_json = fields.Nested(ReportRecipientConfigJSONSchema)
 
 
 class ReportSchedulePostSchema(Schema):
@@ -92,11 +114,20 @@ class ReportSchedulePostSchema(Schema):
         allow_none=False,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportScheduleType)),
     )
-    label = fields.String(
-        description=label_description,
+    name = fields.String(
+        description=name_description,
         allow_none=False,
         validate=[Length(1, 150)],
         example="Daily dashboard email",
+    )
+    description = fields.String(
+        description=description_description,
+        allow_none=True,
+        required=False,
+        example="Daily sales dashboard to marketing",
+    )
+    context_markdown = fields.String(
+        description=context_markdown_description, allow_none=True, required=False
     )
     active = fields.Boolean()
     crontab = fields.String(
@@ -111,7 +142,6 @@ class ReportSchedulePostSchema(Schema):
     dashboard = fields.Integer(required=False)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description))
-    email_format = fields.String(validate=[Length(1, 50)])
     validator_type = fields.String(
         description=validator_type_description,
         validate=validate.OneOf(
@@ -121,6 +151,7 @@ class ReportSchedulePostSchema(Schema):
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema)
     log_retention = fields.Integer(description=log_retention_description, example=90)
     grace_period = fields.Integer(description=grace_period_description, example=14400)
+    recipients = fields.List(fields.Nested(ReportRecipientSchema))
 
 
 class ReportSchedulePutSchema(Schema):
@@ -129,8 +160,17 @@ class ReportSchedulePutSchema(Schema):
         required=False,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportScheduleType)),
     )
-    label = fields.String(
-        description=label_description, required=False, validate=[Length(1, 150)]
+    name = fields.String(
+        description=name_description, required=False, validate=[Length(1, 150)]
+    )
+    description = fields.String(
+        description=description_description,
+        allow_none=True,
+        required=False,
+        example="Daily sales dashboard to marketing",
+    )
+    context_markdown = fields.String(
+        description=context_markdown_description, allow_none=True, required=False
     )
     active = fields.Boolean(required=False)
     crontab = fields.String(
@@ -147,7 +187,6 @@ class ReportSchedulePutSchema(Schema):
     dashboard = fields.Integer(required=False)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description), required=False)
-    email_format = fields.String(validate=[Length(1, 50)], required=False)
     validator_type = fields.String(
         description=validator_type_description,
         validate=validate.OneOf(
@@ -162,3 +201,4 @@ class ReportSchedulePutSchema(Schema):
     grace_period = fields.Integer(
         description=grace_period_description, example=14400, required=False
     )
+    recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
