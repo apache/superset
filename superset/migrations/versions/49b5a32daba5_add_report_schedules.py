@@ -36,14 +36,15 @@ def upgrade():
         "report_schedule",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("type", sa.String(length=50), nullable=False),
-        sa.Column("label", sa.String(length=150), nullable=False, unique=True),
+        sa.Column("name", sa.String(length=150), nullable=False, unique=True),
+        sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("context_markdown", sa.Text(), nullable=True),
         sa.Column("active", sa.Boolean(), default=True, nullable=True),
         sa.Column("crontab", sa.String(length=50), nullable=False),
         sa.Column("sql", sa.Text(), nullable=True),
         sa.Column("chart_id", sa.Integer(), nullable=True),
         sa.Column("dashboard_id", sa.Integer(), nullable=True),
         sa.Column("database_id", sa.Integer(), nullable=True),
-        sa.Column("email_format", sa.String(length=50), nullable=True),
         sa.Column("last_eval_dttm", sa.DateTime(), nullable=True),
         sa.Column("last_state", sa.String(length=50), nullable=True),
         sa.Column("last_value", sa.Float(), nullable=True),
@@ -66,7 +67,7 @@ def upgrade():
     )
     try:
         op.create_unique_constraint(
-            "uq_report_schedule_label", "report_schedule", ["label"]
+            "uq_report_schedule_name", "report_schedule", ["name"]
         )
     except Exception:
         # Expected to fail on SQLite
@@ -121,9 +122,7 @@ def upgrade():
 def downgrade():
     op.drop_index(op.f("ix_report_schedule_active"), table_name="report_schedule")
     try:
-        op.drop_constraint(
-            "uq_report_schedule_label", "report_schedule", type_="unique"
-        )
+        op.drop_constraint("uq_report_schedule_name", "report_schedule", type_="unique")
     except Exception:
         # Expected to fail on SQLite
         pass

@@ -47,24 +47,6 @@ class CreateReportScheduleCommand(BaseCommand):
         self._actor = user
         self._properties = data.copy()
 
-        self._validate_by_type = {
-            ReportScheduleType.ALERT: {
-                "field": "database",
-                "find_by_id": DatabaseDAO.find_by_id,
-                "exception": DatabaseNotFoundValidationError,
-            },
-            ReportScheduleType.REPORT_DASHBOARD: {
-                "field": "dashboard",
-                "find_by_id": DashboardDAO.find_by_id,
-                "exception": DashboardNotFoundValidationError,
-            },
-            ReportScheduleType.REPORT_CHART: {
-                "field": "chart",
-                "find_by_id": ChartDAO.find_by_id,
-                "exception": ChartNotFoundValidationError,
-            },
-        }
-
     def run(self) -> Model:
         self.validate()
         try:
@@ -84,33 +66,7 @@ class CreateReportScheduleCommand(BaseCommand):
         if not ReportScheduleDAO.validate_update_uniqueness(label):
             exceptions.append(ReportScheduleLabelUniquenessValidationError())
 
-        # Generic validation by report schedule type
-        type_field = cast(str, self._validate_by_type[report_type]["field"])
-        type_find_by_id = cast(
-            Callable[[Optional[int]], Optional[Model]],
-            self._validate_by_type[report_type]["find_by_id"],
-        )
-        type_exception = cast(
-            Type[Exception], self._validate_by_type[report_type]["exception"]
-        )
-        type_related_id: Optional[int] = self._properties.get(type_field)
-        if not type_related_id:
-            exceptions.append(type_exception())
-        type_related_obj = type_find_by_id(type_related_id)
-        if not type_related_obj:
-            exceptions.append(type_exception())
-        self._properties[type_field] = type_related_obj
-        # Remove existing related fields that don't belong to this report type
-        # ex: If it's an Alert remove chart and dashboard keys
-        for type_key in set(self._validate_by_type.keys()) - {report_type}:
-            self._properties.pop(
-                cast(str, self._validate_by_type[type_key]["field"]), None
-            )
-
-        # Convert validator config dict into string
-        self._properties["validator_config_json"] = json.dumps(
-            self._properties.get("validator_config_json", "{}")
-        )
+        # TODO validate relations based on the report type
 
         try:
             owners = populate_owners(self._actor, owner_ids)

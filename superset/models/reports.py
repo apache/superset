@@ -44,11 +44,12 @@ metadata = Model.metadata  # pylint: disable=no-member
 
 class ReportScheduleType(str, enum.Enum):
     ALERT = "Alert"
-    REPORT_DASHBOARD = "ReportDashboard"
-    REPORT_CHART = "ReportChart"
+    REPORT = "Report"
 
 
 class ReportScheduleValidatorType(str, enum.Enum):
+    """ Validator types for alerts """
+
     NOT_NULL = "not null"
     OPERATOR = "operator"
 
@@ -89,14 +90,16 @@ class ReportSchedule(Model, AuditMixinNullable):
     __tablename__ = "report_schedule"
     id = Column(Integer, primary_key=True)
     type = Column(String(50), nullable=False)
-    label = Column(String(150), nullable=False, unique=True)
+    name = Column(String(150), nullable=False, unique=True)
+    description = Column(Text)
+    context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(50), nullable=False)
     sql = Column(Text())
-    # (Reports) M-O to chart
+    # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)
     chart = relationship(Slice, backref="report_schedules", foreign_keys=[chart_id])
-    # (Reports) M-O to dashboard
+    # (Alerts/Reports) M-O to dashboard
     dashboard_id = Column(Integer, ForeignKey("dashboards.id"), nullable=True)
     dashboard = relationship(
         Dashboard, backref="report_schedules", foreign_keys=[dashboard_id]
@@ -105,9 +108,6 @@ class ReportSchedule(Model, AuditMixinNullable):
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     database = relationship(Database, foreign_keys=[database_id])
     owners = relationship(security_manager.user_model, secondary=report_schedule_user)
-
-    # (Reports) email format
-    email_format = Column(String(50))
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
@@ -124,7 +124,7 @@ class ReportSchedule(Model, AuditMixinNullable):
     grace_period = Column(Integer, default=60 * 60 * 4)
 
     def __repr__(self) -> str:
-        return str(self.label)
+        return str(self.name)
 
 
 class ReportRecipients(
