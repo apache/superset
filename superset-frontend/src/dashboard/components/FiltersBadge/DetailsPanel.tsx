@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, css } from '@superset-ui/core';
 import {
   SearchOutlined,
   MinusCircleFilled,
@@ -35,6 +35,7 @@ import {
   FilterValue,
 } from './Styles';
 import { Indicator } from './selectors';
+import { Global } from '@emotion/core'
 
 export interface IndicatorProps {
   indicator: Indicator;
@@ -106,6 +107,20 @@ const DetailsPanelPopover = ({
 
   const content = (
     <Panel>
+      <Global
+      styles={css`
+        .ant-popover-inner {
+          background-color: ${theme.colors.grayscale.dark2}cc;
+        }
+        .ant-popover > .ant-popover-content > .ant-popover-arrow{
+          border-top-color: ${theme.colors.grayscale.dark2}cc;
+          border-left-color: ${theme.colors.grayscale.dark2}cc;
+        }
+        .ant-popover *{
+          color: ${theme.colors.grayscale.light4};
+        }
+      `}
+      />
       <Reset>
         <Collapse
           ghost
