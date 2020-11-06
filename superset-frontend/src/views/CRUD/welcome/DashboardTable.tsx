@@ -189,7 +189,9 @@ function DashboardTable({
               addSuccessToast={addSuccessToast}
               userId={user?.userId}
               loading={loading}
-              openDashboardEditModal={dashboard => setEditModal(dashboard)}
+              openDashboardEditModal={(dashboard: Dashboard) =>
+                setEditModal(dashboard)
+              }
               saveFavoriteStatus={saveFavoriteStatus}
               favoriteStatus={favoriteStatus[e.id]}
             />
