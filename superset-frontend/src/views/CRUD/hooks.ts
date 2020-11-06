@@ -32,7 +32,6 @@ interface ListViewResourceState<D extends object = any> {
   permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
   bulkSelectEnabled: boolean;
-  minesFetchDataConfig?: FetchDataConfig;
 }
 
 export function useListViewResource<D extends object = any>(
@@ -166,12 +165,12 @@ export function useListViewResource<D extends object = any>(
     hasPerm,
     fetchData,
     toggleBulkSelect,
-    refreshData: (mineConfig: FetchDataConfig | null = null) => {
+    refreshData: (provideConfig?: FetchDataConfig) => {
       if (state.lastFetchDataConfig) {
         return fetchData(state.lastFetchDataConfig);
       }
-      if (mineConfig) {
-        return fetchData(mineConfig);
+      if (provideConfig) {
+        return fetchData(provideConfig);
       }
       return null;
     },
