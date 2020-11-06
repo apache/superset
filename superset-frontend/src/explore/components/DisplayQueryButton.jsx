@@ -97,7 +97,9 @@ export const DisplayQueryButton = props => {
     }
     const formattedData = applyFormattingToTabularData(data);
     return formattedData.filter(row =>
-      Object.values(row).some(value => value.toString().includes(filterText)),
+      Object.values(row).some(value =>
+        value.toString().toLowerCase().includes(filterText.toLowerCase()),
+      ),
     );
   }, [data, filterText]);
 
