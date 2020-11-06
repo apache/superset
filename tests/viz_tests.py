@@ -1384,3 +1384,32 @@ class TestPivotTableViz(SupersetTestCase):
     def test_format_datetime_from_int(self):
         assert viz.PivotTableViz._format_datetime(123) == 123
         assert viz.PivotTableViz._format_datetime(123.0) == 123.0
+
+
+class TestTreemapViz(SupersetTestCase):
+    def test_nest2(self):
+        datasource = self.get_datasource_mock()
+        form_data = {}
+        test_viz = viz.TreemapViz(datasource, form_data)
+        df = pd.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8]},
+                          index=[[1, 1, 1, 1, 2, 2, 2, 2], [11, 11, 12, 12, 21, 21, 22, 22]])
+        # Correct
+        result = test_viz._nest(metric='a', df=df)
+        self.assertTrue(bool(result))
+        self.assertTrue(isinstance(result, list))
+        self.assertTrue(result[0]['children'][3]['value'] == 4)
+        self.assertTrue(len(result[0]['children']) == 4)
+
+    def test_nest3(self):
+        datasource = self.get_datasource_mock()
+        form_data = {}
+        test_viz = viz.TreemapViz(datasource, form_data)
+        df = pd.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8]},
+                          index=[[1, 1, 1, 1, 2, 2, 2, 2], [11, 11, 12, 12, 21, 21, 22, 22],
+                                 [111, 112, 121, 122, 211, 212, 221, 222]])
+        #  Before fixing, this line will raise a keyerror
+        result = test_viz._nest(metric='a', df=df)
+        self.assertTrue(len(result)==2)
+        self.assertTrue(result[0]['name']==1)
+        self.assertTrue(result[0]['children'][0]['name']==11)
+        self.assertTrue(result[0]['children'][0]['children'][0]['name'] == 111)
