@@ -4,6 +4,7 @@
   "description": "run cypress against superset",
   "scripts": {
     "cypress": "cypress",
+    "cypress-run-chrome": "cypress run --browser chrome --headless",
     "cypress-debug": "cypress open --config watchForFileChanges=true"
   },
   "author": "Apcahe",
