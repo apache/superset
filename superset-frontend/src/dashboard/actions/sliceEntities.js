@@ -67,6 +67,8 @@ export function fetchAllSlices(userId) {
           ],
           filters: [{ col: 'owners', opr: 'rel_m_m', value: userId }],
           page_size: FETCH_SLICES_PAGE_SIZE,
+          order_column: 'changed_on_delta_humanized',
+          order_direction: 'desc',
         })}`,
       })
         .then(({ json }) => {
