@@ -100,7 +100,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     };
 
     this.menuPortalProps = {
-      menuPortalTarget: props.popoverRef?.current || document.body,
+      menuPortalTarget: props.popoverRef,
       menuPosition: 'fixed',
       menuPlacement: 'bottom',
     };
