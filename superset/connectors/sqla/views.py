@@ -359,7 +359,6 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     related_views = [
         TableColumnInlineView,
         SqlMetricInlineView,
-        RowLevelSecurityFiltersModelView,
     ]
     base_order = ("changed_on", "desc")
     search_columns = ("database", "schema", "table_name", "owners", "is_sqllab_view")
