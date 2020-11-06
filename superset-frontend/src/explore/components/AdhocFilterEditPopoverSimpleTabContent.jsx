@@ -51,6 +51,7 @@ const propTypes = {
   onHeightChange: PropTypes.func.isRequired,
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
+  popoverRef: PropTypes.object,
 };
 
 const defaultProps = {
@@ -73,8 +74,6 @@ function translateOperator(operator) {
   return operator;
 }
 
-const SINGLE_LINE_SELECT_CONTROL_HEIGHT = 30;
-
 export default class AdhocFilterEditPopoverSimpleTabContent extends React.Component {
   constructor(props) {
     super(props);
@@ -86,11 +85,9 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     this.refreshComparatorSuggestions = this.refreshComparatorSuggestions.bind(
       this,
     );
-    this.multiComparatorRef = this.multiComparatorRef.bind(this);
 
     this.state = {
       suggestions: [],
-      multiComparatorHeight: SINGLE_LINE_SELECT_CONTROL_HEIGHT,
       abortActiveRequest: null,
     };
 
@@ -101,21 +98,22 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       autosize: false,
       clearable: false,
     };
+
+    this.menuPortalProps = {
+      menuPortalTarget: props.popoverRef?.current || document.body,
+      menuPosition: 'fixed',
+      menuPlacement: 'bottom',
+    };
   }
 
   UNSAFE_componentWillMount() {
     this.refreshComparatorSuggestions();
   }
 
-  componentDidMount() {
-    this.handleMultiComparatorInputHeightChange();
-  }
-
   componentDidUpdate(prevProps) {
     if (prevProps.adhocFilter.subject !== this.props.adhocFilter.subject) {
       this.refreshComparatorSuggestions();
     }
-    this.handleMultiComparatorInputHeightChange();
   }
 
   onSubjectChange(option) {
@@ -192,27 +190,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     );
   }
 
-  handleMultiComparatorInputHeightChange() {
-    if (this.multiComparatorComponent) {
-      const multiComparatorDOMNode = this.multiComparatorComponent?.select
-        ?.select.controlRef;
-      if (multiComparatorDOMNode) {
-        if (
-          multiComparatorDOMNode.clientHeight !==
-          this.state.multiComparatorHeight
-        ) {
-          this.props.onHeightChange(
-            multiComparatorDOMNode.clientHeight -
-              this.state.multiComparatorHeight,
-          );
-          this.setState({
-            multiComparatorHeight: multiComparatorDOMNode.clientHeight,
-          });
-        }
-      }
-    }
-  }
-
   refreshComparatorSuggestions() {
     const { datasource } = this.props;
     const col = this.props.adhocFilter.subject;
@@ -270,12 +247,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
-  multiComparatorRef(ref) {
-    if (ref) {
-      this.multiComparatorComponent = ref;
-    }
-  }
-
   renderSubjectOptionLabel(option) {
     return <FilterDefinitionOption option={option} />;
   }
@@ -328,10 +299,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     };
 
     return (
-      <span>
+      <>
         <FormGroup className="adhoc-filter-simple-column-dropdown">
           <Select
             {...this.selectProps}
+            {...this.menuPortalProps}
             {...subjectSelectProps}
             name="filter-column"
           />
@@ -339,6 +311,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup>
           <Select
             {...this.selectProps}
+            {...this.menuPortalProps}
             {...operatorSelectProps}
             name="filter-operator"
           />
@@ -347,6 +320,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
           {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
             <SelectControl
+              {...this.menuPortalProps}
               name="filter-value"
               autoFocus
               freeForm
@@ -357,7 +331,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               onChange={this.onComparatorChange}
               showHeader={false}
               noResultsText={t('type a value here')}
-              selectRef={this.multiComparatorRef}
               disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
             />
           ) : (
@@ -373,7 +346,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
             />
           )}
         </FormGroup>
-      </span>
+      </>
     );
   }
 }
