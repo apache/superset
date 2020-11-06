@@ -24,7 +24,6 @@ import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import SubMenu from 'src/components/Menu/SubMenu';
 import DashboardTable from 'src/views/CRUD/welcome/DashboardTable';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 
@@ -73,11 +72,14 @@ describe('DashboardTable', () => {
   });
 
   it('render a submenu with clickable tabs and buttons', async () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find('SubMenu')).toExist();
     expect(wrapper.find('li')).toHaveLength(2);
     expect(wrapper.find('Button')).toHaveLength(4);
     act(() => {
-      wrapper.find('li').at(1).simulate('click');
+      const handler = wrapper.find('li.no-router a').at(1).prop('onClick');
+      if (handler) {
+        handler({} as any);
+      }
     });
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/dashboard\/\?q/)).toHaveLength(1);

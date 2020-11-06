@@ -74,6 +74,7 @@ describe('SavedQueries', () => {
     user: {
       userId: '1',
     },
+    mine: mockqueries,
   };
 
   const wrapper = mount(<SavedQueries {...savedQueryProps} />, {
@@ -82,7 +83,7 @@ describe('SavedQueries', () => {
 
   const clickTab = (idx: number) => {
     act(() => {
-      const handler = wrapper.find('MenuItem').at(idx).prop('onClick');
+      const handler = wrapper.find('li.no-router a').at(idx).prop('onClick');
       if (handler) {
         handler({} as any);
       }

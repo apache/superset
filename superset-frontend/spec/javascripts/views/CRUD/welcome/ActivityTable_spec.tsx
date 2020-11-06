@@ -74,7 +74,7 @@ describe('ActivityTable', () => {
     expect(wrapper.find(ActivityTable)).toExist();
   });
   it('renders tabs with three buttons', () => {
-    expect(wrapper.find('MenuItem')).toHaveLength(3);
+    expect(wrapper.find('li')).toHaveLength(3);
   });
   it('it renders ActivityCards', async () => {
     expect(wrapper.find('ListViewCard')).toExist();
