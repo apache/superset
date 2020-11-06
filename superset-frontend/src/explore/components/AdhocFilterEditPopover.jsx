@@ -85,7 +85,8 @@ export default class AdhocFilterEditPopover extends React.Component {
   }
 
   onSave() {
-    this.props.onChange(this.state.adhocFilter);
+    // unset isNew here in case save button was clicked when no changes were made
+    this.props.onChange({ ...this.state.adhocFilter, isNew: false });
     this.props.onClose();
   }
 
@@ -163,7 +164,7 @@ export default class AdhocFilterEditPopover extends React.Component {
               datasource={datasource}
               onHeightChange={this.adjustHeight}
               partitionColumn={partitionColumn}
-              popoverRef={this.popoverContentRef}
+              popoverRef={this.popoverContentRef.current}
             />
           </Tabs.TabPane>
           <Tabs.TabPane
