@@ -137,4 +137,22 @@ describe('AdhocMetrics', () => {
       chartSelector: 'svg',
     });
   });
+
+  it('Click save without making any changes', () => {
+    cy.get('[data-test=metrics]')
+      .find('.Select__control input')
+      .type('sum_girls', { force: true });
+
+    cy.get('[data-test=metrics]')
+      .find('.Select__option--is-focused')
+      .trigger('mousedown')
+      .click();
+
+    cy.get('[data-test=metrics-edit-popover]').should('be.visible');
+    cy.get('[data-test="AdhocMetricEdit#save"]').click();
+
+    cy.wait(1000);
+
+    cy.get('[data-test=metrics-edit-popover]').should('not.be.visible');
+  });
 });
