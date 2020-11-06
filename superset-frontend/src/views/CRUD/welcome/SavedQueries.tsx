@@ -118,7 +118,7 @@ const SavedQueries = ({
           pageIndex: 0,
         };
         // if mine is default there refresh data with current filters
-        const filter = ifMine ? queryParams : null;
+        const filter = ifMine ? queryParams : undefined;
         refreshData(filter);
         setMine(false);
         setQueryDeleteModal(false);
