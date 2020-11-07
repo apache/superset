@@ -61,8 +61,8 @@ export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
                 borderColor: color,
               }}
             >
-              {first_name[0].toLocaleUpperCase()}
-              {last_name[0].toLocaleUpperCase()}
+              {first_name && first_name[0]?.toLocaleUpperCase()}
+              {last_name && last_name[0]?.toLocaleUpperCase()}
             </StyledAvatar>
           </Tooltip>
         );

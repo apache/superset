@@ -39,10 +39,11 @@ export function useListViewResource<D extends object = any>(
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
   infoEnable = true,
+  defaultCollectionValue: D[] = [],
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
-    collection: [],
+    collection: defaultCollectionValue,
     loading: true,
     lastFetchDataConfig: null,
     permissions: [],
@@ -164,10 +165,14 @@ export function useListViewResource<D extends object = any>(
     hasPerm,
     fetchData,
     toggleBulkSelect,
-    refreshData: () => {
+    refreshData: (provideConfig?: FetchDataConfig) => {
       if (state.lastFetchDataConfig) {
-        fetchData(state.lastFetchDataConfig);
+        return fetchData(state.lastFetchDataConfig);
       }
+      if (provideConfig) {
+        return fetchData(provideConfig);
+      }
+      return null;
     },
   };
 }

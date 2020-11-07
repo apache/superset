@@ -40,7 +40,7 @@ interface ImageLoaderProps
   > {
   fallback: string;
   src: string;
-  isLoading: boolean;
+  isLoading?: boolean;
   position: BackgroundPosition;
 }
 
