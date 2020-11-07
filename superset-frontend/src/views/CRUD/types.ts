@@ -28,6 +28,7 @@ export interface DashboardTableProps {
   addSuccessToast: (message: string) => void;
   search: string;
   user?: User;
+  mine: Array<Dashboard>;
 }
 
 export interface Dashboard {

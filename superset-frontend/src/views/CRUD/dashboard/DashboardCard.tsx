@@ -21,6 +21,7 @@ import { t } from '@superset-ui/core';
 import {
   handleDashboardDelete,
   handleBulkDashboardExport,
+  CardStyles,
 } from 'src/views/CRUD/utils';
 import { Dropdown, Menu } from 'src/common/components';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -31,7 +32,7 @@ import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
 import { Dashboard } from 'src/views/CRUD/types';
 
-export interface DashboardCardProps {
+interface DashboardCardProps {
   isChart?: boolean;
   dashboard: Dashboard;
   hasPerm: (name: string) => boolean;
@@ -43,13 +44,17 @@ export interface DashboardCardProps {
   openDashboardEditModal?: (d: Dashboard) => void;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
+  dashboardFilter?: string;
+  userId?: number;
 }
 
 function DashboardCard({
   dashboard,
   hasPerm,
   bulkSelectEnabled,
+  dashboardFilter,
   refreshData,
+  userId,
   addDangerToast,
   addSuccessToast,
   openDashboardEditModal,
@@ -99,6 +104,8 @@ function DashboardCard({
                 refreshData,
                 addSuccessToast,
                 addDangerToast,
+                dashboardFilter,
+                userId,
               )
             }
           >
@@ -119,28 +126,44 @@ function DashboardCard({
     </Menu>
   );
   return (
-    <ListViewCard
-      loading={dashboard.loading || false}
-      title={dashboard.dashboard_title}
-      titleRight={<Label>{dashboard.published ? 'published' : 'draft'}</Label>}
-      url={bulkSelectEnabled ? undefined : dashboard.url}
-      imgURL={dashboard.thumbnail_url}
-      imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
-      description={t('Last modified %s', dashboard.changed_on_delta_humanized)}
-      coverLeft={<FacePile users={dashboard.owners || []} />}
-      actions={
-        <ListViewCard.Actions>
-          <FaveStar
-            itemId={dashboard.id}
-            saveFaveStar={saveFavoriteStatus}
-            isStarred={favoriteStatus}
-          />
-          <Dropdown overlay={menu}>
-            <Icon name="more-horiz" />
-          </Dropdown>
-        </ListViewCard.Actions>
-      }
-    />
+    <CardStyles
+      onClick={() => {
+        window.location.href = dashboard.url;
+      }}
+    >
+      <ListViewCard
+        loading={dashboard.loading || false}
+        title={dashboard.dashboard_title}
+        titleRight={
+          <Label>{dashboard.published ? 'published' : 'draft'}</Label>
+        }
+        url={bulkSelectEnabled ? undefined : dashboard.url}
+        imgURL={dashboard.thumbnail_url}
+        imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
+        description={t(
+          'Last modified %s',
+          dashboard.changed_on_delta_humanized,
+        )}
+        coverLeft={<FacePile users={dashboard.owners || []} />}
+        actions={
+          <ListViewCard.Actions
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            <FaveStar
+              itemId={dashboard.id}
+              saveFaveStar={saveFavoriteStatus}
+              isStarred={favoriteStatus}
+            />
+            <Dropdown overlay={menu}>
+              <Icon name="more-horiz" />
+            </Dropdown>
+          </ListViewCard.Actions>
+        }
+      />
+    </CardStyles>
   );
 }
 

@@ -27,7 +27,9 @@ interface EmptyStateProps {
   tableName: string;
   tab?: string;
 }
-
+const EmptyContainer = styled.div`
+  min-height: 200px;
+`;
 const ButtonContainer = styled.div`
   Button {
     svg {
@@ -48,10 +50,10 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     SAVED_QUERIES: '/savedqueryview/list/',
   };
   const tableIcon = {
-    RECENTS: 'union.png',
-    DASHBOARDS: 'empty-dashboard.png',
-    CHARTS: 'empty-charts.png',
-    SAVED_QUERIES: 'empty-queries.png',
+    RECENTS: 'union.svg',
+    DASHBOARDS: 'empty-dashboard.svg',
+    CHARTS: 'empty-charts.svg',
+    SAVED_QUERIES: 'empty-queries.svg',
   };
   const mine = (
     <div>{`No ${
@@ -90,55 +92,59 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   // Mine and Recent Activity(all tabs) tab empty state
   if (tab === 'Mine' || tableName === 'RECENTS') {
     return (
-      <Empty
-        image={`/static/assets/images/${tableIcon[tableName]}`}
-        description={tableName === 'RECENTS' ? recent : mine}
-      >
-        {tableName !== 'RECENTS' && (
-          <ButtonContainer>
-            <Button
-              buttonStyle="primary"
-              onClick={() => {
-                window.location = mineRedirects[tableName];
-              }}
-            >
-              <IconContainer>
-                <Icon name="plus-small" />{' '}
-                {tableName === 'SAVED_QUERIES'
-                  ? t('SQL QUERY')
-                  : t(`${tableName
-                      .split('')
-                      .slice(0, tableName.length - 1)
-                      .join('')}
+      <EmptyContainer>
+        <Empty
+          image={`/static/assets/images/${tableIcon[tableName]}`}
+          description={tableName === 'RECENTS' ? recent : mine}
+        >
+          {tableName !== 'RECENTS' && (
+            <ButtonContainer>
+              <Button
+                buttonStyle="primary"
+                onClick={() => {
+                  window.location = mineRedirects[tableName];
+                }}
+              >
+                <IconContainer>
+                  <Icon name="plus-small" />{' '}
+                  {tableName === 'SAVED_QUERIES'
+                    ? t('SQL QUERY')
+                    : t(`${tableName
+                        .split('')
+                        .slice(0, tableName.length - 1)
+                        .join('')}
                     `)}
-              </IconContainer>
-            </Button>
-          </ButtonContainer>
-        )}
-      </Empty>
+                </IconContainer>
+              </Button>
+            </ButtonContainer>
+          )}
+        </Empty>
+      </EmptyContainer>
     );
   }
   // Favorite tab empty state
   return (
-    <Empty
-      image="/static/assets/images/star-circle.png"
-      description={
-        <div className="no-favorites">
-          {t("You don't have any favorites yet!")}
-        </div>
-      }
-    >
-      <Button
-        buttonStyle="primary"
-        onClick={() => {
-          window.location = favRedirects[tableName];
-        }}
+    <EmptyContainer>
+      <Empty
+        image="/static/assets/images/star-circle.svg"
+        description={
+          <div className="no-favorites">
+            {t("You don't have any favorites yet!")}
+          </div>
+        }
       >
-        SEE ALL{' '}
-        {tableName === 'SAVED_QUERIES'
-          ? t('SQL LAB QUERIES')
-          : t(`${tableName}`)}
-      </Button>
-    </Empty>
+        <Button
+          buttonStyle="primary"
+          onClick={() => {
+            window.location = favRedirects[tableName];
+          }}
+        >
+          SEE ALL{' '}
+          {tableName === 'SAVED_QUERIES'
+            ? t('SQL LAB QUERIES')
+            : t(`${tableName}`)}
+        </Button>
+      </Empty>
+    </EmptyContainer>
   );
 }

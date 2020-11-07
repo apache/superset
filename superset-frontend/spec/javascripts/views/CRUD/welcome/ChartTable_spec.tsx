@@ -22,6 +22,7 @@ import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import configureStore from 'redux-mock-store';
 
+import { act } from 'react-dom/test-utils';
 import ChartTable from 'src/views/CRUD/welcome/ChartTable';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
@@ -64,8 +65,14 @@ describe('ChartTable', () => {
   });
 
   it('fetches chart favorites and renders chart cards ', async () => {
-    expect(fetchMock.calls(chartsEndpoint)).toHaveLength(1);
+    act(() => {
+      const handler = wrapper.find('li.no-router a').at(0).prop('onClick');
+      if (handler) {
+        handler({} as any);
+      }
+    });
     await waitForComponentToPaint(wrapper);
+    expect(fetchMock.calls(chartsEndpoint)).toHaveLength(1);
     expect(wrapper.find('ChartCard')).toExist();
   });
 

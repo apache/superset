@@ -24,7 +24,6 @@ import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import SubMenu from 'src/components/Menu/SubMenu';
 import DashboardTable from 'src/views/CRUD/welcome/DashboardTable';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 
@@ -34,6 +33,7 @@ const store = mockStore({});
 
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
 const dashboardInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
+const dashboardFavEndpoint = 'glob:*/api/v1/dashboard/favorite_status?*';
 const mockDashboards = [
   {
     id: 1,
@@ -47,6 +47,9 @@ fetchMock.get(dashboardsEndpoint, { result: mockDashboards });
 fetchMock.get(dashboardInfoEndpoint, {
   permissions: ['can_list', 'can_edit', 'can_delete'],
 });
+fetchMock.get(dashboardFavEndpoint, {
+  result: [],
+});
 
 describe('DashboardTable', () => {
   const dashboardProps = {
@@ -54,6 +57,7 @@ describe('DashboardTable', () => {
     user: {
       userId: '2',
     },
+    mine: mockDashboards,
   };
   const wrapper = mount(<DashboardTable {...dashboardProps} />, {
     context: { store },
@@ -68,27 +72,34 @@ describe('DashboardTable', () => {
   });
 
   it('render a submenu with clickable tabs and buttons', async () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find('SubMenu')).toExist();
     expect(wrapper.find('li')).toHaveLength(2);
     expect(wrapper.find('Button')).toHaveLength(4);
     act(() => {
-      wrapper.find('li').at(1).simulate('click');
+      const handler = wrapper.find('li.no-router a').at(1).prop('onClick');
+      if (handler) {
+        handler({} as any);
+      }
     });
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/dashboard\/\?q/)).toHaveLength(1);
   });
 
-  it('fetches dashboards and renders a card', () => {
-    expect(fetchMock.calls(/dashboard\/\?q/)).toHaveLength(1);
-    wrapper.setState({ dashboards: mockDashboards });
+  it('render DashboardCard', () => {
     expect(wrapper.find(DashboardCard)).toExist();
   });
 
   it('display EmptyState if there is no data', () => {
-    fetchMock.resetHistory();
-    const wrapper = mount(<DashboardTable {...dashboardProps} />, {
-      context: { store },
-    });
+    const wrapper = mount(
+      <DashboardTable
+        dashboardFilter="Mine"
+        user={{ userId: '2' }}
+        mine={[]}
+      />,
+      {
+        context: { store },
+      },
+    );
     expect(wrapper.find('EmptyState')).toExist();
   });
 });

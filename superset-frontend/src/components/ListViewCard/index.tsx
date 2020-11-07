@@ -147,7 +147,7 @@ interface CardProps {
   imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
   description: string;
-  loading: boolean;
+  loading?: boolean;
   titleRight?: React.ReactNode;
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;

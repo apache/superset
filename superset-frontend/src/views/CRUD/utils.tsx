@@ -26,6 +26,7 @@ import {
 import Chart from 'src/types/Chart';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { FetchDataConfig } from 'src/components/ListView';
 import { Dashboard } from './types';
 
 const createFetchResourceMethod = (method: string) => (
@@ -168,13 +169,33 @@ export function handleChartDelete(
   { id, slice_name: sliceName }: Chart,
   addSuccessToast: (arg0: string) => void,
   addDangerToast: (arg0: string) => void,
-  refreshData: () => void,
+  refreshData: (arg0?: FetchDataConfig | null) => void,
+  chartFilter?: string,
+  userId?: number,
 ) {
+  const filters = {
+    pageIndex: 0,
+    pageSize: 3,
+    sortBy: [
+      {
+        id: 'changed_on_delta_humanized',
+        desc: true,
+      },
+    ],
+    filters: [
+      {
+        id: 'created_by',
+        operator: 'rel_o_m',
+        value: `${userId}`,
+      },
+    ],
+  };
   SupersetClient.delete({
     endpoint: `/api/v1/chart/${id}`,
   }).then(
     () => {
-      refreshData();
+      if (chartFilter === 'Mine') refreshData(filters);
+      else refreshData();
       addSuccessToast(t('Deleted: %s', sliceName));
     },
     () => {
@@ -201,15 +222,35 @@ export function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
 
 export function handleDashboardDelete(
   { id, dashboard_title: dashboardTitle }: Dashboard,
-  refreshData: () => void,
+  refreshData: (config?: FetchDataConfig | null) => void,
   addSuccessToast: (arg0: string) => void,
   addDangerToast: (arg0: string) => void,
+  dashboardFilter?: string,
+  userId?: number,
 ) {
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
   }).then(
     () => {
-      refreshData();
+      const filters = {
+        pageIndex: 0,
+        pageSize: 3,
+        sortBy: [
+          {
+            id: 'changed_on_delta_humanized',
+            desc: true,
+          },
+        ],
+        filters: [
+          {
+            id: 'owners',
+            operator: 'rel_m_m',
+            value: `${userId}`,
+          },
+        ],
+      };
+      if (dashboardFilter === 'Mine') refreshData(filters);
+      else refreshData();
       addSuccessToast(t('Deleted: %s', dashboardTitle));
     },
     createErrorHandler(errMsg =>
@@ -217,25 +258,6 @@ export function handleDashboardDelete(
         t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
       ),
     ),
-  );
-}
-
-export function createChartDeleteFunction(
-  { id, slice_name: sliceName }: Chart,
-  addSuccessToast: (arg0: string) => void,
-  addDangerToast: (arg0: string) => void,
-  refreshData: () => void,
-) {
-  SupersetClient.delete({
-    endpoint: `/api/v1/chart/${id}`,
-  }).then(
-    () => {
-      refreshData();
-      addSuccessToast(t('Deleted: %s', sliceName));
-    },
-    () => {
-      addDangerToast(t('There was an issue deleting: %s', sliceName));
-    },
   );
 }
 
@@ -258,8 +280,15 @@ export const CardContainer = styled.div`
   }
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 6}px;
+  padding: ${({ theme }) => theme.gridUnit * 6}px;
+  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
+export const CardStyles = styled.div`
+  cursor: pointer;
+  a {
+    text-decoration: none;
+  }
 `;
 
 export const IconContainer = styled.div`
