@@ -78,7 +78,7 @@ jobs:
         run: |
           cypress-install
     - name: Run Cypress
-      uses: cypress-io/github-action@v2
+      uses: apache-superset/cached-dependencies@b90713b
       with:
         parallel: true
         record: true
