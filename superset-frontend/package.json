@@ -257,7 +257,7 @@
     "jest-environment-enzyme": "^7.1.2",
     "jest-enzyme": "^7.1.2",
     "jsdom": "^16.2.2",
-    "less": "^3.9.0",
+    "less": "^3.12.2",
     "less-loader": "^5.0.0",
     "mini-css-extract-plugin": "^0.4.0",
     "node-fetch": "^2.6.1",
