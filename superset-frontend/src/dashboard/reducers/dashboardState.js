@@ -107,7 +107,7 @@ export default function dashboardStateReducer(state = {}, action) {
         editMode: false,
         updatedColorScheme: false,
         // server-side compare last_modified_time in second level
-        lastModifiedTime: new Date().getTime() / 1000,
+        lastModifiedTime: Math.round(new Date().getTime() / 1000),
       };
     },
     [SET_UNSAVED_CHANGES]() {

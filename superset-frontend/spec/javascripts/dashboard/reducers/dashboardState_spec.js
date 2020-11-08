@@ -132,7 +132,7 @@ describe('dashboardState reducer', () => {
   });
 
   it('should set lastModifiedTime on save', () => {
-    const lastModifiedTime = new Date().getTime() / 1000;
+    const lastModifiedTime = Math.round(new Date().getTime() / 1000);
     dashboardStateReducer(
       {
         lastModifiedTime,
