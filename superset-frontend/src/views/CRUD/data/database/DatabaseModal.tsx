@@ -202,22 +202,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       if (db && db.id) {
-        updateResource(db.id, update).then(() => {
-          if (onDatabaseAdd) {
-            onDatabaseAdd();
+        updateResource(db.id, update).then(result => {
+          if (result) {
+            if (onDatabaseAdd) {
+              onDatabaseAdd();
+            }
+            hide();
           }
-
-          hide();
         });
       }
     } else if (db) {
       // Create
-      createResource(db).then(() => {
-        if (onDatabaseAdd) {
-          onDatabaseAdd();
+      createResource(db).then(dbId => {
+        if (dbId) {
+          if (onDatabaseAdd) {
+            onDatabaseAdd();
+          }
+          hide();
         }
-
-        hide();
       });
     }
   };
@@ -356,7 +358,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 type="text"
                 name="sqlalchemy_uri"
                 value={db ? db.sqlalchemy_uri : ''}
-                placeholder={t('SQLAlchemy URI')}
+                placeholder={t(
+                  'dialect+driver://username:password@host:port/database',
+                )}
                 onChange={onInputChange}
               />
               <Button buttonStyle="primary" onClick={testConnection} cta>

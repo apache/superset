@@ -211,6 +211,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({
             resource: json.result,
           });
+          return json.result;
         },
         createErrorHandler(errMsg =>
           handleErrorMsg(
@@ -243,7 +244,6 @@ export function useSingleViewResource<D extends object = any>(
           updateState({
             resource: json.result,
           });
-
           return json.id;
         },
         createErrorHandler(errMsg =>
@@ -277,6 +277,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({
             resource: json.result,
           });
+          return json.result;
         },
         createErrorHandler(errMsg =>
           handleErrorMsg(
