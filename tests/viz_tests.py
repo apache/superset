@@ -1391,25 +1391,85 @@ class TestTreemapViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         form_data = {}
         test_viz = viz.TreemapViz(datasource, form_data)
-        df = pd.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8]},
-                          index=[[1, 1, 1, 1, 2, 2, 2, 2], [11, 11, 12, 12, 21, 21, 22, 22]])
-        # Correct
-        result = test_viz._nest(metric='a', df=df)
-        self.assertTrue(bool(result))
-        self.assertTrue(isinstance(result, list))
-        self.assertTrue(result[0]['children'][3]['value'] == 4)
-        self.assertTrue(len(result[0]['children']) == 4)
+        df = pd.DataFrame(
+            {"a": [1, 2, 3, 4, 5, 6, 7, 8]},
+            index=[[1, 1, 1, 1, 2, 2, 2, 2], [11, 11, 12, 12, 21, 21, 22, 22]],
+        )
+        result = test_viz._nest(metric="a", df=df)
+        expected = [
+            {
+                "name": 1,
+                "children": [
+                    {"name": 11, "value": 1},
+                    {"name": 11, "value": 2},
+                    {"name": 12, "value": 3},
+                    {"name": 12, "value": 4},
+                ],
+            },
+            {
+                "name": 2,
+                "children": [
+                    {"name": 21, "value": 5},
+                    {"name": 21, "value": 6},
+                    {"name": 22, "value": 7},
+                    {"name": 22, "value": 8},
+                ],
+            },
+        ]
+        self.assertEqual(result, expected)
 
     def test_nest3(self):
         datasource = self.get_datasource_mock()
         form_data = {}
         test_viz = viz.TreemapViz(datasource, form_data)
-        df = pd.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8]},
-                          index=[[1, 1, 1, 1, 2, 2, 2, 2], [11, 11, 12, 12, 21, 21, 22, 22],
-                                 [111, 112, 121, 122, 211, 212, 221, 222]])
+        df = pd.DataFrame(
+            {"a": [1, 2, 3, 4, 5, 6, 7, 8]},
+            index=[
+                [1, 1, 1, 1, 2, 2, 2, 2],
+                [11, 11, 12, 12, 21, 21, 22, 22],
+                [111, 112, 121, 122, 211, 212, 221, 222],
+            ],
+        )
         #  Before fixing, this line will raise a keyerror
-        result = test_viz._nest(metric='a', df=df)
-        self.assertTrue(len(result)==2)
-        self.assertTrue(result[0]['name']==1)
-        self.assertTrue(result[0]['children'][0]['name']==11)
-        self.assertTrue(result[0]['children'][0]['children'][0]['name'] == 111)
+        result = test_viz._nest(metric="a", df=df)
+        expected = [
+            {
+                "name": 1,
+                "children": [
+                    {
+                        "name": 11,
+                        "children": [
+                            {"name": 111, "value": 1},
+                            {"name": 112, "value": 2},
+                        ],
+                    },
+                    {
+                        "name": 12,
+                        "children": [
+                            {"name": 121, "value": 3},
+                            {"name": 122, "value": 4},
+                        ],
+                    },
+                ],
+            },
+            {
+                "name": 2,
+                "children": [
+                    {
+                        "name": 21,
+                        "children": [
+                            {"name": 211, "value": 5},
+                            {"name": 212, "value": 6},
+                        ],
+                    },
+                    {
+                        "name": 22,
+                        "children": [
+                            {"name": 221, "value": 7},
+                            {"name": 222, "value": 8},
+                        ],
+                    },
+                ],
+            },
+        ]
+        self.assertEqual(result, expected)
