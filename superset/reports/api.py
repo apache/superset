@@ -23,7 +23,9 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
+from superset.charts.filters import ChartFilter
 from superset.constants import RouteMethod
+from superset.dashboards.filters import DashboardFilter
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
 from superset.reports.commands.create import CreateReportScheduleCommand
@@ -104,6 +106,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "last_eval_dttm",
         "last_state",
         "name",
+        "owners.id",
+        "owners.first_name",
+        "owners.last_name",
         "recipients.id",
         "recipients.type",
         "type",
@@ -142,7 +147,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     ]
     search_columns = ["name", "active", "created_by"]
 
-    allowed_rel_fields = {"created_by"}
+    allowed_rel_fields = {"created_by", "chart", "dashboard"}
+    filter_rel_fields = {
+        "chart": [["id", ChartFilter, lambda: []]],
+        "dashboard": [["id", DashboardFilter, lambda: []]],
+    }
+    text_field_rel_fields = {"dashboard": "dashboard_title"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
