@@ -87,6 +87,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.type",
         "recipients.recipient_config_json",
     ]
+    show_select_columns = show_columns + [
+        "chart.datasource_id",
+        "chart.datasource_type",
+    ]
     list_columns = [
         "active",
         "changed_by.first_name",
