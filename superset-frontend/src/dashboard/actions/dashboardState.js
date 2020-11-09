@@ -152,8 +152,8 @@ export function onChange() {
 }
 
 export const ON_SAVE = 'ON_SAVE';
-export function onSave() {
-  return { type: ON_SAVE };
+export function onSave(lastModifiedTime) {
+  return { type: ON_SAVE, lastModifiedTime };
 }
 
 export const SET_REFRESH_FREQUENCY = 'SET_REFRESH_FREQUENCY';
@@ -161,9 +161,9 @@ export function setRefreshFrequency(refreshFrequency, isPersistent = false) {
   return { type: SET_REFRESH_FREQUENCY, refreshFrequency, isPersistent };
 }
 
-export function saveDashboardRequestSuccess() {
+export function saveDashboardRequestSuccess(lastModifiedTime) {
   return dispatch => {
-    dispatch(onSave());
+    dispatch(onSave(lastModifiedTime));
     // clear layout undo history
     dispatch(UndoActionCreators.clearHistory());
   };
@@ -199,7 +199,7 @@ export function saveDashboardRequest(data, id, saveType) {
       },
     })
       .then(response => {
-        dispatch(saveDashboardRequestSuccess());
+        dispatch(saveDashboardRequestSuccess(response.json.last_modified_time));
         dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
         return response;
       })
