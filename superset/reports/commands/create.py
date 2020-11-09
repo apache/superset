@@ -77,9 +77,10 @@ class CreateReportScheduleCommand(BaseReportScheduleCommand):
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions)
 
-        self._properties["validator_config_json"] = json.dumps(
-            self._properties["validator_config_json"]
-        )
+        if "validator_config_json" in self._properties:
+            self._properties["validator_config_json"] = json.dumps(
+                self._properties["validator_config_json"]
+            )
 
         try:
             owners = populate_owners(self._actor, owner_ids)

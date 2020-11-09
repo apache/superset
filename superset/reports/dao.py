@@ -23,7 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
-from superset.models.reports import ReportRecipients, ReportSchedule
+from superset.models.reports import ReportExecutionLog, ReportRecipients, ReportSchedule
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,14 @@ class ReportScheduleDAO(BaseDAO):
     ) -> None:
         item_ids = [model.id for model in models] if models else []
         try:
+            db.session.query(ReportRecipients).filter(
+                ReportRecipients.report_schedule_id.in_(item_ids)
+            ).delete(synchronize_session="fetch")
+
+            db.session.query(ReportExecutionLog).filter(
+                ReportExecutionLog.report_schedule_id.in_(item_ids)
+            ).delete(synchronize_session="fetch")
+
             db.session.query(ReportSchedule).filter(
                 ReportSchedule.id.in_(item_ids)
             ).delete(synchronize_session="fetch")
@@ -54,7 +62,7 @@ class ReportScheduleDAO(BaseDAO):
         """
         Validate if this name is unique.
 
-        :param name: The annotation layer name
+        :param name: The report schedule name
         :param report_schedule_id: The report schedule current id
         (only for validating on updates)
         :return: bool

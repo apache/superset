@@ -101,6 +101,7 @@ class ReportRecipientSchema(Schema):
     type = fields.String(
         description="The recipient type, check spec for valid options",
         allow_none=False,
+        required=True,
         validate=validate.OneOf(
             choices=tuple(key.value for key in ReportRecipientType)
         ),
@@ -112,11 +113,13 @@ class ReportSchedulePostSchema(Schema):
     type = fields.String(
         description=type_description,
         allow_none=False,
+        required=True,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportScheduleType)),
     )
     name = fields.String(
         description=name_description,
         allow_none=False,
+        required=True,
         validate=[Length(1, 150)],
         example="Daily dashboard email",
     )
@@ -134,6 +137,8 @@ class ReportSchedulePostSchema(Schema):
         description=crontab_description,
         validate=[validate_crontab, Length(1, 50)],
         example="*/5 * * * * *",
+        allow_none=False,
+        required=True,
     )
     sql = fields.String(
         description=sql_description, example="SELECT value FROM time_series_table"

@@ -64,6 +64,25 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     show_columns = [
         "id",
         "name",
+        "type",
+        "description",
+        "context_markdown",
+        "active",
+        "crontab",
+        "chart.id",
+        "dashboard.id",
+        "database.id",
+        "owners.id",
+        "owners.first_name",
+        "owners.last_name",
+        "last_eval_dttm",
+        "last_state",
+        "last_value",
+        "last_value_row_json",
+        "validator_type",
+        "validator_config_json",
+        "log_retention",
+        "grace_period",
         "recipients.id",
         "recipients.type",
         "recipients.recipient_config_json",
@@ -78,6 +97,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "created_by.last_name",
         "created_on",
         "id",
+        "last_eval_dttm",
+        "last_state",
         "name",
         "recipients.id",
         "recipients.type",
@@ -115,7 +136,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "type",
     ]
-    search_columns = ["name", "active", "created_by", "type"]
+    search_columns = ["name", "active", "created_by"]
 
     allowed_rel_fields = {"created_by"}
 
