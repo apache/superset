@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t, tn, useTheme } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import {
   SearchOutlined,
   MinusCircleFilled,
@@ -25,7 +25,15 @@ import {
   ExclamationCircleFilled,
 } from '@ant-design/icons';
 import { Collapse, Popover } from 'src/common/components/index';
-import { Indent, Item, ItemIcon, Panel, Reset, Title, Summary } from './Styles';
+import {
+  Indent,
+  Item,
+  ItemIcon,
+  Panel,
+  Reset,
+  Title,
+  FilterValue,
+} from './Styles';
 import { Indicator } from './selectors';
 
 export interface IndicatorProps {
@@ -39,11 +47,14 @@ const Indicator = ({
 }: IndicatorProps) => {
   return (
     <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
-      <ItemIcon>
-        <SearchOutlined />
-      </ItemIcon>
-      <Title bold>{name.toUpperCase()}</Title>
-      {value.length ? `: ${value.join(', ')}` : ''}
+      <Title bold>
+        <ItemIcon>
+          <SearchOutlined />
+        </ItemIcon>
+        {name.toUpperCase()}
+        {value.length ? ': ' : ''}
+      </Title>
+      <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
     </Item>
   );
 };
@@ -93,16 +104,8 @@ const DetailsPanelPopover = ({
     }
   }
 
-  const total =
-    appliedIndicators.length +
-    incompatibleIndicators.length +
-    unsetIndicators.length;
-
   const content = (
     <Panel>
-      <Summary>
-        {tn('%d Scoped Filter', '%d Scoped Filters', total, total)}
-      </Summary>
       <Reset>
         <Collapse
           ghost
@@ -115,7 +118,7 @@ const DetailsPanelPopover = ({
               header={
                 <Title bold>
                   <CheckCircleFilled color={theme.colors.success.base} />{' '}
-                  {t('Applied (%d)', appliedIndicators.length)}
+                  {t('Applied Filters (%d)', appliedIndicators.length)}
                 </Title>
               }
             >
@@ -136,7 +139,10 @@ const DetailsPanelPopover = ({
               header={
                 <Title bold>
                   <ExclamationCircleFilled color={theme.colors.alert.base} />{' '}
-                  {t('Incompatible (%d)', incompatibleIndicators.length)}
+                  {t(
+                    'Incompatible Filters (%d)',
+                    incompatibleIndicators.length,
+                  )}
                 </Title>
               }
             >
@@ -157,7 +163,7 @@ const DetailsPanelPopover = ({
               header={
                 <Title bold>
                   <MinusCircleFilled />{' '}
-                  {t('Unset (%d)', unsetIndicators.length)}
+                  {t('Unset Filters (%d)', unsetIndicators.length)}
                 </Title>
               }
               disabled={!unsetIndicators.length}
