@@ -56,11 +56,15 @@
 .filter-container {
   display: flex;
   flex-direction: column;
+  margin-bottom: 10px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 
   label {
     display: flex;
     font-weight: @font-weight-bold;
-    margin: 0 0 8px 8px;
   }
 
   .filter-badge-container {
