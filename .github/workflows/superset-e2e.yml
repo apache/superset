@@ -80,8 +80,6 @@ jobs:
     - name: Run Cypress
       uses: apache-superset/cached-dependencies@b90713b
       with:
-        parallel: true
-        record: true
         run: cypress-run-all
       env:
         CYPRESS_BROWSER: ${{ matrix.browser }}
