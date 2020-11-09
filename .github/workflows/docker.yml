@@ -16,11 +16,5 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker images
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          dockerfile: Dockerfile
-          repository: apache/incubator-superset
-          target: lean
-          tags: ${{GITHUB_SHA}}
+      - name: Build/Push Docker Image
+        run: ./docker-build.sh
