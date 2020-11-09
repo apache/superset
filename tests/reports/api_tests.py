@@ -516,9 +516,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         max_id = db.session.query(func.max(ReportSchedule.id)).scalar()
 
         self.login(username="admin")
-        annotation_layer_data = {"name": "changed"}
+        report_schedule_data = {"name": "changed"}
         uri = f"api/v1/report/{max_id + 1}"
-        rv = self.client.put(uri, json=annotation_layer_data)
+        rv = self.client.put(uri, json=report_schedule_data)
         assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_report_schedules")
