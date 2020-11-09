@@ -137,6 +137,7 @@ setup(
         "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
         "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
+        "chevron": ["chevron==0.13.1"],
     },
     python_requires="~=3.6",
     author="Apache Software Foundation",

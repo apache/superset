@@ -257,6 +257,15 @@ class NoOpTemplateProcessor(
         return sql
 
 
+class ChevronTemplateProcessor(
+    BaseTemplateProcessor
+):  # pylint: disable=too-few-public-methods
+    def process_template(self, sql: str, **kwargs: Any) -> str:
+        import chevron  # late import for optional dependency
+
+        return chevron.render(sql, kwargs)
+
+
 class PrestoTemplateProcessor(BaseTemplateProcessor):
     """Presto Jinja context
 
@@ -338,6 +347,8 @@ def get_template_processor(
         template_processor = template_processors.get(
             database.backend, BaseTemplateProcessor
         )
+    elif feature_flag_manager.is_feature_enabled("CHEVRON_TEMPLATE_PROCESSING"):
+        template_processor = ChevronTemplateProcessor
     else:
         template_processor = NoOpTemplateProcessor
     return template_processor(database=database, table=table, query=query, **kwargs)
