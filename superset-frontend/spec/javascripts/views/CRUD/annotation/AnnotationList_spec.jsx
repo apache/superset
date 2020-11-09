@@ -23,9 +23,13 @@ import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
-import SubMenu from 'src/components/Menu/SubMenu';
+import DeleteModal from 'src/components/DeleteModal';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import ListView from 'src/components/ListView';
+import SubMenu from 'src/components/Menu/SubMenu';
+
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(AnnotationList)
 const mockStore = configureStore([thunk]);
@@ -34,7 +38,9 @@ const store = mockStore({});
 const annotationsEndpoint = 'glob:*/api/v1/annotation_layer/*/annotation*';
 const annotationLayerEndpoint = 'glob:*/api/v1/annotation_layer/*';
 
-const mockannotation = [...new Array(3)].map((_, i) => ({
+fetchMock.delete(annotationsEndpoint, {});
+
+const mockannotations = [...new Array(3)].map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   created_by: {
     first_name: `user`,
@@ -53,7 +59,7 @@ const mockannotation = [...new Array(3)].map((_, i) => ({
 
 fetchMock.get(annotationsEndpoint, {
   ids: [2, 0, 1],
-  result: mockannotation,
+  result: mockannotations,
   count: 3,
 });
 
@@ -108,6 +114,46 @@ describe('AnnotationList', () => {
     expect(callsQ).toHaveLength(2);
     expect(callsQ[0][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/annotation_layer/1/annotation/?q=(order_column:short_descr,order_direction:desc,page:0,page_size:25)"`,
+    );
+  });
+
+  it('renders a DeleteModal', () => {
+    expect(wrapper.find(DeleteModal)).toExist();
+  });
+
+  it('deletes', async () => {
+    act(() => {
+      wrapper.find('[data-test="delete-action"]').first().props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(
+      wrapper.find(DeleteModal).first().props().description,
+    ).toMatchInlineSnapshot(
+      `"Are you sure you want to delete annotation 0 label?"`,
+    );
+
+    act(() => {
+      wrapper
+        .find('#delete')
+        .first()
+        .props()
+        .onChange({ target: { value: 'DELETE' } });
+    });
+    await waitForComponentToPaint(wrapper);
+    act(() => {
+      wrapper.find('button').last().props().onClick();
+    });
+  });
+
+  it('shows/hides bulk actions when bulk actions is clicked', async () => {
+    const button = wrapper.find('[data-test="annotation-bulk-select"]').first();
+    act(() => {
+      button.props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+      mockannotations.length + 1, // 1 for each row and 1 for select all
     );
   });
 });

@@ -86,6 +86,7 @@ type MenuChild = {
 export interface ButtonProps {
   name: ReactNode;
   onClick: OnClickHandler;
+  'data-test'?: string;
   buttonStyle:
     | 'primary'
     | 'secondary'
@@ -159,6 +160,7 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
               key={`${i}`}
               buttonStyle={btn.buttonStyle}
               onClick={btn.onClick}
+              data-test={btn['data-test']}
             >
               {btn.name}
             </Button>
