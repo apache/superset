@@ -80,7 +80,7 @@ class Slice(
         primaryjoin="and_(Slice.datasource_id == SqlaTable.id, "
         "Slice.datasource_type == 'table')",
         remote_side="SqlaTable.id",
-        lazy="subquery"
+        lazy="subquery",
     )
 
     token = ""
