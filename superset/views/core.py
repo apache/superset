@@ -1085,8 +1085,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         DashboardDAO.set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
+
+        # get updated changed_on
+        dash = session.query(Dashboard).get(dashboard_id)
+        last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
         session.close()
-        return json_success(json.dumps({"status": "SUCCESS"}))
+        return json_success(
+            json.dumps({"status": "SUCCESS", "last_modified_time": last_modified_time,})
+        )
 
     @api
     @has_access_api
