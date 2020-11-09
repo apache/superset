@@ -27,6 +27,10 @@ import AntdTooltip from './Tooltip';
 import { Menu } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
+import {
+  DatePicker as AntdDatePicker,
+  RangePicker as AntdRangePicker,
+} from './DatePicker';
 
 export default {
   title: 'Common Components',
@@ -224,3 +228,12 @@ StyledInfoTooltip.argTypes = {
     },
   },
 };
+
+export const DatePicker = () => <AntdDatePicker showTime />;
+export const DateRangePicker = () => (
+  <AntdRangePicker
+    format="YYYY-MM-DD hh:mm a"
+    showTime={{ format: 'hh:mm a' }}
+    use12Hours
+  />
+);
