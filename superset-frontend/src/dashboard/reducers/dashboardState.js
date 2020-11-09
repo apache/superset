@@ -106,8 +106,8 @@ export default function dashboardStateReducer(state = {}, action) {
         maxUndoHistoryExceeded: false,
         editMode: false,
         updatedColorScheme: false,
-        // server-side compare last_modified_time in second level
-        lastModifiedTime: new Date().getTime() / 1000,
+        // server-side returns last_modified_time for latest change
+        lastModifiedTime: action.lastModifiedTime,
       };
     },
     [SET_UNSAVED_CHANGES]() {

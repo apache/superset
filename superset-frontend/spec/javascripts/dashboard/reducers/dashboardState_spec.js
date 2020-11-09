@@ -131,19 +131,22 @@ describe('dashboardState reducer', () => {
     expect(result.updatedColorScheme).toBe(false);
   });
 
-  it('should set lastModifiedTime on save', () => {
-    const lastModifiedTime = new Date().getTime() / 1000;
+  it('should reset lastModifiedTime on save', () => {
+    const initTime = new Date().getTime() / 1000;
     dashboardStateReducer(
       {
-        lastModifiedTime,
+        lastModifiedTime: initTime,
       },
       {},
     );
 
+    const lastModifiedTime = Math.round(new Date().getTime() / 1000);
     expect(
-      dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE })
-        .lastModifiedTime,
-    ).toBeGreaterThanOrEqual(lastModifiedTime);
+      dashboardStateReducer(
+        { hasUnsavedChanges: true },
+        { type: ON_SAVE, lastModifiedTime },
+      ).lastModifiedTime,
+    ).toBeGreaterThanOrEqual(initTime);
   });
 
   it('should clear the focused filter field', () => {
