@@ -171,7 +171,7 @@ class DashboardGrid extends React.PureComponent {
           ))}
 
           {/* make the area below components droppable */}
-          {editMode && (
+          {editMode && gridComponent.children.length > 0 && (
             <DragDroppable
               component={gridComponent}
               depth={depth}
