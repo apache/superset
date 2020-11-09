@@ -24,7 +24,6 @@ import {
   setColorSchemeAndUnsavedChanges,
   showBuilderPane,
   setDirectPathToChild,
-  setMountedTab,
 } from '../actions/dashboardState';
 import {
   deleteTopLevelTabs,
@@ -50,7 +49,6 @@ function mapDispatchToProps(dispatch) {
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
       setDirectPathToChild,
-      setMountedTab,
     },
     dispatch,
   );
