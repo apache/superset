@@ -33,6 +33,7 @@ import {
   useQueryParams,
 } from 'use-query-params';
 
+import rison from 'rison';
 import { isEqual } from 'lodash';
 import { PartialStylesConfig } from 'src/components/Select';
 import {
@@ -63,11 +64,12 @@ function updateInList(list: any[], index: number, update: any): any[] {
   ];
 }
 
-function mergeCreateFilterValues(list: Filter[], updateList: FilterValue[]) {
+// TODO: update to handle new query.filters format ({id: value,...})
+function mergeCreateFilterValues(list: Filter[], updateObj: any) {
   return list.map(({ id, operator }) => {
-    const update = updateList.find(obj => obj.id === id);
+    const update = updateObj[id] || [];
 
-    return { id, operator, value: update?.value };
+    return { id, operator, value: update[0] };
   });
 }
 
@@ -76,6 +78,23 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
   return fts
     .filter(f => typeof f.value !== 'undefined')
     .map(({ value, operator, id }) => ({ value, operator, id }));
+}
+
+// convertFilters but to handle new decoded rison format TODO: update types
+export function convertFiltersRison(filterObj: any): FilterValue[] {
+  const filters: FilterValue[] = [];
+
+  Object.keys(filterObj).forEach(id => {
+    const filter: FilterValue = {
+      id,
+      value: filterObj[id][0],
+      operator: filterObj[id][1], // TODO: can probably get rid of this
+    };
+
+    filters.push(filter);
+  });
+
+  return filters;
 }
 
 export function extractInputValue(inputType: Filter['input'], event: any) {
@@ -125,6 +144,7 @@ export function useListViewState({
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
     filters: JsonParam,
+    filtersEncoded: StringParam,
     pageIndex: NumberParam,
     sortColumn: StringParam,
     sortOrder: StringParam,
@@ -138,8 +158,12 @@ export function useListViewState({
     [query.sortColumn, query.sortOrder],
   );
 
+  // TODO: eventually replace filters with filtersEncoded, and update convertFilters to handle decoded rison
   const initialState = {
-    filters: convertFilters(query.filters || []),
+    // filters: convertFilters(query.filters || []),
+    filtersEncoded: query.filtersEncoded
+      ? convertFiltersRison(rison.decode(query.filtersEncoded))
+      : undefined,
     pageIndex: query.pageIndex || 0,
     pageSize: initialPageSize,
     sortBy: initialSortBy,
@@ -189,20 +213,38 @@ export function useListViewState({
   );
 
   const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
-    query.filters || [],
+    query.filtersEncoded
+      ? convertFiltersRison(rison.decode(query.filtersEncoded))
+      : [],
   );
 
   useEffect(() => {
     if (initialFilters.length) {
       setInternalFilters(
-        mergeCreateFilterValues(initialFilters, query.filters || []),
+        mergeCreateFilterValues(
+          initialFilters,
+          query.filtersEncoded ? rison.decode(query.filtersEncoded) : {},
+        ),
       );
     }
   }, [initialFilters]);
 
   useEffect(() => {
+    // From internalFilters, produce a simplified obj
+    const filterObj = {};
+
+    // TODO: maybe update the format of internalFilters???
+    internalFilters.forEach(filter => {
+      if (filter.value) {
+        filterObj[filter.id] = [filter.value, filter.operator];
+      }
+    });
+
     const queryParams: any = {
-      filters: internalFilters,
+      // filters: internalFilters,
+      filtersEncoded: Object.keys(filterObj).length
+        ? rison.encode(filterObj)
+        : undefined,
       pageIndex,
     };
     if (sortBy[0]) {
