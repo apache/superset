@@ -1854,6 +1854,8 @@ class SankeyViz(BaseViz):
                 _("Pick exactly 2 columns as [Source / Target]")
             )
         qry["metrics"] = [self.form_data["metric"]]
+        if self.form_data.get("sort_by_metric", False):
+            qry["orderby"] = [(qry["metrics"][0], False)]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
