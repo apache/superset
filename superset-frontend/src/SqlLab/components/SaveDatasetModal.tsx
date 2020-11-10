@@ -17,14 +17,53 @@
  * under the License.
  */
 
-import React, { FunctionComponent } from 'react';
+import React, { useState } from 'react';
+import { Radio, AutoComplete, Input } from 'src/common/components';
 import Modal from 'src/common/components/Modal';
+
+const mockVal = (str, repeat = 1) => {
+  return {
+    value: str.repeat(repeat),
+  };
+};
 
 // eslint-disable-next-line no-empty-pattern
 export const SaveDatasetModal = ({}) => {
+  const [value, setValue] = useState('');
+  const [options, setOptions] = useState([]);
+
+  const onSearch = (searchText) => {
+    setOptions(
+      !searchText ? [] : [mockVal(searchText), mockVal(searchText, 2), mockVal(searchText, 3)],
+    );
+  };
+
+  const onSelect = (data) => {
+    console.log('onSelect', data);
+  };
+
+  const onChange = (data) => {
+    setValue(data);
+  };
+
   return (
     <Modal show onHide={() => {}} title="Save a new dataset">
-      <div>To explore the results of this query, we need to save it as a virtual dataset</div>
+      <div>
+        To explore the results of this query, we need to save it as a virtual dataset
+        <Radio>Save as new dataset</Radio>
+        <Input style={{ width: 200 }} defaultValue="my_new_dataset_A" />
+        <br/>
+        <Radio>Overwrite existing dataset</Radio>
+        <AutoComplete
+          options={options}
+          style={{
+            width: 200,
+          }}
+          onSelect={onSelect}
+          onSearch={onSearch}
+          placeholder="input here"
+      />
+      </div>
     </Modal>
   );
 };
