@@ -128,7 +128,6 @@ export default function PropertiesModal({
   const onSubmit = async (event: React.FormEvent) => {
     event.stopPropagation();
     event.preventDefault();
-    setSubmitting(true);
     const payload: { [key: string]: any } = {
       slice_name: name || null,
       description: description || null,
@@ -137,14 +136,16 @@ export default function PropertiesModal({
     if (owners) {
       payload.owners = owners.map(o => o.value);
     }
-    try {
-      if (!persistOnModalClose) {
-        payload.slice_updated = true;
-        onSave(payload);
-        onHide();
-        return;
-      }
 
+    if (!persistOnModalClose) {
+      payload.slice_updated = true;
+      onSave(payload);
+      onHide();
+      return;
+    }
+
+    try {
+      setSubmitting(true);
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
         headers: { 'Content-Type': 'application/json' },
