@@ -79,3 +79,9 @@ jobs:
         CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
       with:
         run: cypress-run-all
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: screenshots
+        path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
