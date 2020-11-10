@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { CSSProperties } from 'react';
 import { kebabCase } from 'lodash';
 import { Tooltip, OverlayTrigger } from 'react-bootstrap';
 
-const tooltipStyle: React.CSSProperties = { wordWrap: 'break-word' };
+const tooltipStyle: CSSProperties = { wordWrap: 'break-word' };
 
 export interface InfoTooltipWithTriggerProps {
   label?: string;
