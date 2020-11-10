@@ -30,6 +30,7 @@ import { DropDownProps } from 'antd/lib/dropdown';
 // eslint-disable-next-line no-restricted-imports
 export {
   Avatar,
+  Button,
   Card,
   Collapse,
   DatePicker,

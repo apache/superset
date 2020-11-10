@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent } from 'react';
+import React, { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Modal from 'src/common/components/Modal';
+import cx from 'classnames';
 import Button from 'src/components/Button';
-import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
 import withToasts, { ToastProps } from 'src/messageToasts/enhancers/withToasts';
+import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
 import { useQueryPreviewState } from 'src/views/CRUD/data/hooks';
+import { QueryObject } from './types';
 
 const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -34,15 +36,37 @@ const QueryTitle = styled.div`
 const QueryLabel = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
   font-size: ${({ theme }) => theme.typography.sizes.m - 1}px;
-  padding: 4px 0 16px 0;
+  padding: 4px 0 24px 0;
 `;
 
-const StyledModal = styled(Modal)`
-  .ant-modal-content {
+const QueryViewToggle = styled.div`
+  margin: 0 0 ${({ theme }) => theme.gridUnit * 6}px 0;
+`;
+
+const TabButton = styled.div`
+  display: inline;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px;
+  margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+  color: ${({ theme }) => theme.colors.secondary.dark1};
+
+  &.active,
+  &:focus,
+  &:hover {
+    background: ${({ theme }) => theme.colors.secondary.light4};
+    border-bottom: none;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
+  &:hover:not(.active) {
+    background: ${({ theme }) => theme.colors.secondary.light5};
+  }
+`;
+const StyledModal = styled(Modal)`
   .ant-modal-body {
-    padding: 24px;
+    padding: ${({ theme }) => theme.gridUnit * 6}px;
   }
 
   pre {
@@ -54,41 +78,37 @@ const StyledModal = styled(Modal)`
   }
 `;
 
-type SavedQueryObject = {
-  id: number;
-  label: string;
-  sql: string;
-};
-
-interface SavedQueryPreviewModalProps extends ToastProps {
-  fetchData: (id: number) => {};
+interface QueryPreviewModalProps extends ToastProps {
   onHide: () => void;
-  openInSqlLab: (id: number) => {};
-  queries: Array<SavedQueryObject>;
-  savedQuery: SavedQueryObject;
+  openInSqlLab: (id: number) => any;
+  queries: QueryObject[];
+  query: QueryObject;
+  fetchData: (id: number) => any;
   show: boolean;
 }
 
-const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> = ({
-  fetchData,
+function QueryPreviewModal({
   onHide,
   openInSqlLab,
   queries,
-  savedQuery,
+  query,
+  fetchData,
   show,
   addDangerToast,
   addSuccessToast,
-}) => {
+}: QueryPreviewModalProps) {
   const {
     handleKeyPress,
     handleDataChange,
     disablePrevious,
     disableNext,
-  } = useQueryPreviewState<SavedQueryObject>({
+  } = useQueryPreviewState<QueryObject>({
     queries,
-    currentQueryId: savedQuery.id,
+    currentQueryId: query.id,
     fetchData,
   });
+
+  const [currentTab, setCurrentTab] = useState<'user' | 'executed'>('user');
 
   return (
     <div role="none" onKeyUp={handleKeyPress}>
@@ -117,24 +137,40 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> = (
             data-test="open-in-sql-lab"
             key="open-in-sql-lab"
             buttonStyle="primary"
-            onClick={() => openInSqlLab(savedQuery.id)}
+            onClick={() => openInSqlLab(query.id)}
           >
             {t('Open in SQL Lab')}
           </Button>,
         ]}
       >
-        <QueryTitle>{t('Query Name')}</QueryTitle>
-        <QueryLabel>{savedQuery.label}</QueryLabel>
+        <QueryTitle>{t('Tab Name')}</QueryTitle>
+        <QueryLabel>{query.tab_name}</QueryLabel>
+        <QueryViewToggle>
+          <TabButton
+            role="button"
+            className={cx({ active: currentTab === 'user' })}
+            onClick={() => setCurrentTab('user')}
+          >
+            {t('User query')}
+          </TabButton>
+          <TabButton
+            role="button"
+            className={cx({ active: currentTab === 'executed' })}
+            onClick={() => setCurrentTab('executed')}
+          >
+            {t('Executed query')}
+          </TabButton>
+        </QueryViewToggle>
         <SyntaxHighlighterCopy
-          language="sql"
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
+          language="sql"
         >
-          {savedQuery.sql || ''}
+          {currentTab === 'user' ? query.sql : query.executed_sql}
         </SyntaxHighlighterCopy>
       </StyledModal>
     </div>
   );
-};
+}
 
-export default withToasts(SavedQueryPreviewModal);
+export default withToasts(QueryPreviewModal);
