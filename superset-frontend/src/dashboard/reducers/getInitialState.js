@@ -169,7 +169,7 @@ export default function getInitialState(bootstrapData) {
     }
 
     // build DashboardFilters for interactive filter features
-    if (slice.form_data.viz_type === 'filter_box') {
+    if (slice.form_data.viz_type === 'filter_box' || slice.form_data.viz_type === 'filter_select') {
       const configs = getFilterConfigsFromFormdata(slice.form_data);
       let { columns } = configs;
       const { labels } = configs;
