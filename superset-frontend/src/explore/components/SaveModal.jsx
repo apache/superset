@@ -21,7 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Alert, FormControl, FormGroup, Radio } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -90,13 +90,14 @@ class SaveModal extends React.Component {
     this.setState({ action });
   }
 
-  saveOrOverwrite(gotodash) {
+  async saveOrOverwrite(gotodash) {
+    const { slice, actions, form_data, onHide } = this.props;
     this.setState({ alert: null });
-    this.props.actions.removeSaveModalAlert();
+    actions.removeSaveModalAlert();
     const sliceParams = {};
 
-    if (this.props.slice && this.props.slice.slice_id) {
-      sliceParams.slice_id = this.props.slice.slice_id;
+    if (slice && slice.slice_id) {
+      sliceParams.slice_id = slice.slice_id;
     }
     if (sliceParams.action === 'saveas') {
       if (this.state.newSliceName === '') {
@@ -109,19 +110,31 @@ class SaveModal extends React.Component {
     sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
     sliceParams.new_dashboard_name = this.state.newDashboardName;
 
-    this.props.actions
-      .saveSlice(this.props.form_data, sliceParams)
-      .then(({ data }) => {
-        if (data.dashboard_id === null) {
-          sessionStorage.removeItem(SK_DASHBOARD_ID);
-        } else {
-          sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
-        }
-        // Go to new slice url or dashboard url
-        const url = gotodash ? data.dashboard_url : data.slice.slice_url;
-        window.location.assign(url);
+    if (slice.slice_updated) {
+      const payload = {
+        description: slice.description || null,
+        cache_timeout: slice.cache_timeout || null,
+        owners: slice.owners || null,
+      };
+      await SupersetClient.put({
+        endpoint: `/api/v1/chart/${slice.slice_id}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-    this.props.onHide();
+      actions.sliceUpdated({ slice_updated: false });
+    }
+
+    const { data } = await actions.saveSlice(form_data, sliceParams);
+    if (data.dashboard_id === null) {
+      sessionStorage.removeItem(SK_DASHBOARD_ID);
+    } else {
+      sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
+    }
+    // Go to new slice url or dashboard url
+    const url = gotodash ? data.dashboard_url : data.slice.slice_url;
+    window.location.assign(url);
+
+    onHide();
   }
 
   removeAlert() {

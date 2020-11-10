@@ -158,6 +158,7 @@ export class ExploreChartHeader extends React.PureComponent {
                 onHide={this.closePropertiesModal}
                 onSave={this.props.sliceUpdated}
                 slice={this.props.slice}
+                persistOnModalClose={false}
               />
               <TooltipWrapper
                 label="edit-desc"

@@ -37,8 +37,11 @@ import getClientErrorObject from '../../utils/getClientErrorObject';
 type PropertiesModalProps = {
   slice: Slice;
   onHide: () => void;
-  onSave: (chart: Chart) => void;
+  onSave: (chart: Partial<Chart>) => void;
   show: boolean;
+
+  // true if save the data to db on submit; false if save only in local store
+  persistOnModalClose: boolean;
 };
 
 type OwnerOption = {
@@ -51,6 +54,7 @@ export default function PropertiesModal({
   onHide,
   onSave,
   show,
+  persistOnModalClose = true,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
 
@@ -129,11 +133,18 @@ export default function PropertiesModal({
       slice_name: name || null,
       description: description || null,
       cache_timeout: cacheTimeout || null,
+      slice_updated: true,
     };
     if (owners) {
       payload.owners = owners.map(o => o.value);
     }
     try {
+      if (!persistOnModalClose) {
+        onSave(payload);
+        onHide();
+        return;
+      }
+
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
         headers: { 'Content-Type': 'application/json' },

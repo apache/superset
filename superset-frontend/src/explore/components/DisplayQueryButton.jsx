@@ -295,6 +295,7 @@ export const DisplayQueryButton = props => {
             show={isPropertiesModalOpen}
             onHide={closePropertiesModal}
             onSave={props.sliceUpdated}
+            persistOnModalClose={false}
           />,
         ]}
         <Menu.Item>
