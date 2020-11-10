@@ -179,12 +179,14 @@ class SliceHeaderControls extends React.PureComponent {
             style={{ height: 'auto', lineHeight: 'initial' }}
           >
             {t('Force refresh')}
-            <div
-              className="refresh-tooltip"
-              data-test="dashboard-slice-refresh-tooltip"
-            >
-              {refreshTooltip}
-            </div>
+            {refreshTooltip && (
+              <div
+                className="refresh-tooltip"
+                data-test="dashboard-slice-refresh-tooltip"
+              >
+                {refreshTooltip}
+              </div>
+            )}
           </Menu.Item>
 
           <Menu.Divider />
