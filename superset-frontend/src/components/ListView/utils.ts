@@ -235,7 +235,10 @@ export function useListViewState({
 
     // TODO: maybe update the format of internalFilters???
     internalFilters.forEach(filter => {
-      if (filter.value) {
+      if (
+        filter.value !== undefined &&
+        (typeof filter.value !== 'string' || filter.value.length > 0)
+      ) {
         filterObj[filter.id] = [filter.value, filter.operator];
       }
     });
