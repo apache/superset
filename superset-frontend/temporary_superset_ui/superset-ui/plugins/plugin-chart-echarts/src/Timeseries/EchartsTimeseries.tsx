@@ -17,13 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { EchartsTimeseriesProps } from './types';
+import { EchartsProps } from '../types';
 import Echart from '../components/Echart';
 
-export default function EchartsTimeseries({
-  height,
-  width,
-  echartOptions,
-}: EchartsTimeseriesProps) {
+export default function EchartsTimeseries({ height, width, echartOptions }: EchartsProps) {
   return <Echart height={height} width={width} echartOptions={echartOptions} />;
 }

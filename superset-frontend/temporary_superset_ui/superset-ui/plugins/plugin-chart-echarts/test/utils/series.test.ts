@@ -44,6 +44,7 @@ describe('extractTimeseriesSeries', () => {
     ];
     expect(extractTimeseriesSeries(data)).toEqual([
       {
+        id: 'Hulk',
         name: 'Hulk',
         data: [
           [new Date('2000-01-01'), null],
@@ -52,6 +53,7 @@ describe('extractTimeseriesSeries', () => {
         ],
       },
       {
+        id: 'abc',
         name: 'abc',
         data: [
           [new Date('2000-01-01'), 2],

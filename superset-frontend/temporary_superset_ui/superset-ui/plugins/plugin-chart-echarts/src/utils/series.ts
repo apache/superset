@@ -38,6 +38,7 @@ export function extractTimeseriesSeries(
   return Object.keys(rows[0])
     .filter(key => key !== '__timestamp')
     .map(key => ({
+      id: key,
       name: key,
       // @ts-ignore
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return

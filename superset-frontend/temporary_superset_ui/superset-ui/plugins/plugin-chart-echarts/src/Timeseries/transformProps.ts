@@ -16,20 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable camelcase */
 import {
+  AnnotationData,
   AnnotationLayer,
-  isFormulaAnnotationLayer,
-  ChartProps,
   CategoricalColorNamespace,
+  ChartProps,
   getNumberFormatter,
+  isEventAnnotationLayer,
+  isFormulaAnnotationLayer,
+  isIntervalAnnotationLayer,
+  isTimeseriesAnnotationLayer,
   smartDateVerboseFormatter,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
-import { EchartsTimeseriesProps } from './types';
-import { ForecastSeriesEnum } from '../types';
+import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
+import { EchartsProps, ForecastSeriesEnum } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import { extractTimeseriesSeries } from '../utils/series';
-import { evalFormula, parseAnnotationOpacity } from '../utils/annotation';
+import { extractAnnotationLabels } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
   extractProphetValuesFromTooltipParams,
@@ -37,116 +42,70 @@ import {
   rebaseTimeseriesDatum,
 } from '../utils/prophet';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import {
+  transformEventAnnotation,
+  transformFormulaAnnotation,
+  transformIntervalAnnotation,
+  transformSeries,
+  transformTimeseriesAnnotation,
+} from './transformers';
 
-export default function transformProps(chartProps: ChartProps): EchartsTimeseriesProps {
+export default function transformProps(chartProps: ChartProps): EchartsProps {
   const { width, height, formData, queryData } = chartProps;
-  const { data = [] }: { data?: TimeseriesDataRecord[] } = queryData;
+
   const {
-    annotationLayers = [],
-    area,
+    annotation_data: annotationData = {},
+    data = [],
+  }: { annotation_data?: AnnotationData; data?: TimeseriesDataRecord[] } = queryData;
+
+  const {
+    annotationLayers,
     colorScheme,
     contributionMode,
-    forecastEnabled,
-    seriesType,
     logAxis,
-    opacity,
     stack,
-    markerEnabled,
-    markerSize,
     minorSplitLine,
     truncateYAxis,
     yAxisFormat,
     yAxisBounds,
     zoomable,
-  } = formData;
+  }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseTimeseriesDatum(data);
   const rawSeries = extractTimeseriesSeries(rebasedData);
   const series: echarts.EChartOption.Series[] = [];
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
 
   rawSeries.forEach(entry => {
-    const forecastSeries = extractForecastSeriesContext(entry.name || '');
-    const isConfidenceBand =
-      forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
-      forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
-    const isObservation = forecastSeries.type === ForecastSeriesEnum.Observation;
-    const isTrend = forecastSeries.type === ForecastSeriesEnum.ForecastTrend;
-    let stackId;
-    if (isConfidenceBand) {
-      stackId = forecastSeries.name;
-    } else if (stack && isObservation) {
-      // the suffix of the observation series is '' (falsy), which disables
-      // stacking. Therefore we need to set something that is truthy.
-      stackId = 'obs';
-    } else if (stack && isTrend) {
-      stackId = forecastSeries.type;
-    }
-    let plotType;
-    if (!isConfidenceBand && (seriesType === 'scatter' || (forecastEnabled && isObservation))) {
-      plotType = 'scatter';
-    } else if (isConfidenceBand) {
-      plotType = 'line';
-    } else {
-      plotType = seriesType === 'bar' ? 'bar' : 'line';
-    }
-    const lineStyle = isConfidenceBand ? { opacity: 0 } : {};
-
-    if (!((stack || area) && isConfidenceBand))
-      series.push({
-        ...entry,
-        id: entry.name,
-        name: forecastSeries.name,
-        itemStyle: {
-          color: colorFn(forecastSeries.name),
-        },
-        type: plotType,
-        // @ts-ignore
-        smooth: seriesType === 'smooth',
-        step: ['start', 'middle', 'end'].includes(seriesType as string) ? seriesType : undefined,
-        stack: stackId,
-        lineStyle,
-        areaStyle: {
-          opacity: forecastSeries.type === ForecastSeriesEnum.ForecastUpper || area ? opacity : 0,
-        },
-        symbolSize:
-          !isConfidenceBand &&
-          (plotType === 'scatter' || (forecastEnabled && isObservation) || markerEnabled)
-            ? markerSize
-            : 0,
-      });
+    const transformedSeries = transformSeries(
+      entry,
+      formData as EchartsTimeseriesFormData,
+      colorScale,
+    );
+    if (transformedSeries) series.push(transformedSeries);
   });
 
-  annotationLayers.forEach((layer: AnnotationLayer) => {
-    const {
-      name,
-      color,
-      opacity: annotationOpacity,
-      width: annotationWidth,
-      show: annotationShow,
-      style,
-    } = layer;
-    if (annotationShow && isFormulaAnnotationLayer(layer)) {
-      series.push({
-        name,
-        id: name,
-        itemStyle: {
-          color: color || colorFn(name),
-        },
-        lineStyle: {
-          opacity: parseAnnotationOpacity(annotationOpacity),
-          type: style,
-          width: annotationWidth,
-        },
-        type: 'line',
-        smooth: true,
-        // @ts-ignore
-        data: evalFormula(layer, data),
-        symbolSize: 0,
-      });
-    }
-  });
+  annotationLayers
+    .filter((layer: AnnotationLayer) => layer.show)
+    .forEach((layer: AnnotationLayer) => {
+      if (isFormulaAnnotationLayer(layer))
+        series.push(transformFormulaAnnotation(layer, data, colorScale));
+      else if (isIntervalAnnotationLayer(layer)) {
+        series.push(...transformIntervalAnnotation(layer, data, annotationData, colorScale));
+      } else if (isEventAnnotationLayer(layer)) {
+        series.push(...transformEventAnnotation(layer, data, annotationData, colorScale));
+      } else if (isTimeseriesAnnotationLayer(layer)) {
+        series.push(
+          ...transformTimeseriesAnnotation(
+            layer,
+            formData as EchartsTimeseriesFormData,
+            data,
+            annotationData,
+          ),
+        );
+      }
+    });
 
   // yAxisBounds need to be parsed to replace incompatible values with undefined
   let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
@@ -204,7 +163,7 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
             extractForecastSeriesContext(entry.name || '').type === ForecastSeriesEnum.Observation,
         )
         .map(entry => entry.name || '')
-        .concat(annotationLayers.map((layer: AnnotationLayer) => layer.name)),
+        .concat(extractAnnotationLabels(annotationLayers, annotationData)),
       right: zoomable ? 80 : 'auto',
     },
     series,
@@ -233,18 +192,8 @@ export default function transformProps(chartProps: ChartProps): EchartsTimeserie
   };
 
   return {
-    area,
-    colorScheme,
-    contributionMode,
     // @ts-ignore
     echartOptions,
-    seriesType,
-    logAxis,
-    opacity,
-    stack,
-    markerEnabled,
-    markerSize,
-    minorSplitLine,
     width,
     height,
   };
