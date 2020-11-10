@@ -140,7 +140,7 @@ describe('dashboardState reducer', () => {
       {},
     );
 
-    const lastModifiedTime = Math.round(new Date().getTime() / 1000);
+    const lastModifiedTime = new Date().getTime() / 1000;
     expect(
       dashboardStateReducer(
         { hasUnsavedChanges: true },
