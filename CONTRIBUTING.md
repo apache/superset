@@ -624,11 +624,13 @@ We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be ru
 
 ```bash
 export SUPERSET_CONFIG=tests.superset_test_config
+export SUPERSET_TESTENV=true
+export ENABLE_REACT_CRUD_VIEWS=true
 export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
-superset init
 superset load_test_users
-superset load_examples
+superset load_examples --load-test-data
+superset init
 superset run --port 8081
 ```
 
@@ -636,20 +638,22 @@ Run Cypress tests:
 
 ```bash
 cd superset-frontend
-npm run build
+npm run build-instrumented
 
 cd cypress-base
 npm install
-npm run cypress run
+
+# run tests via headless Chrome browser (requires Chrome 64+)
+npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress run -- --spec cypress/integration/explore/link.test.js
+npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.js
 
 # run specific file with video capture
-npm run cypress run -- --spec cypress/integration/dashboard/index.test.js --config video=true
+npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
 
 # to open the cypress ui
-npm run cypress open
+npm run cypress-debug
 
 # to point cypress to a url other than the default (http://localhost:8088) set the environment variable before running the script
 # e.g., CYPRESS_BASE_URL="http://localhost:9000"
