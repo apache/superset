@@ -168,10 +168,11 @@ const datasourceControl: SharedControlConfig<'DatasourceControl'> = {
   label: t('Datasource'),
   default: null,
   description: null,
-  mapStateToProps: (state, control, actions) => ({
-    datasource: state.datasource,
-    onDatasourceSave: actions?.setDatasource,
-  }),
+  mapStateToProps: ({ datasource }) => {
+    return {
+      datasource,
+    };
+  },
 };
 
 const viz_type: SharedControlConfig<'VizTypeControl'> = {
