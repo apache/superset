@@ -211,7 +211,7 @@ class QueryContext:
             set_and_log_cache(
                 cache, cache_key, self.cache_timeout, {"data": self.cache_values}
             )
-            return_value.update(cache_key=cache_key)
+            return_value["cache_key"] = cache_key  # type: ignore
 
         return return_value
 

@@ -16,15 +16,11 @@
 # under the License.
 
 import logging
-from typing import Dict
+from typing import Any, Dict
 
 from flask import current_app
 
 from superset import app
-from superset.charts.commands.exceptions import (
-    ChartDataQueryFailedError,
-    ChartDataValidationError,
-)
 from superset.extensions import async_query_manager, celery_app
 
 logger = logging.getLogger(__name__)
@@ -34,7 +30,9 @@ query_timeout = current_app.config[
 
 
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
-def load_chart_data_into_cache(job_metadata: Dict, form_data: Dict,) -> None:
+def load_chart_data_into_cache(
+    job_metadata: Dict[str, Any], form_data: Dict[str, Any],
+) -> None:
     from superset.charts.commands.data import (
         ChartDataCommand,
     )  # load here due to circular imports
@@ -50,7 +48,7 @@ def load_chart_data_into_cache(job_metadata: Dict, form_data: Dict,) -> None:
                 cache_key=result["cache_key"],
             )
         except Exception as exc:
-            msg = exc.message if hasattr(exc, "message") else str(exc)
+            msg = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, msg=msg
             )

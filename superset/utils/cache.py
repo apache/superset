@@ -44,7 +44,10 @@ def generate_cache_key(values_dict: Dict[str, Any], key_prefix: str = "") -> str
 
 
 def set_and_log_cache(
-    cache_instance: Cache, cache_key: str, cache_timeout: int, cache_value: Dict,
+    cache_instance: Cache,
+    cache_key: str,
+    cache_timeout: int,
+    cache_value: Dict[str, Any],
 ) -> None:
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]

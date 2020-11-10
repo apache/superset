@@ -17,11 +17,11 @@
 import json
 import logging
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import jwt
 import redis
-from flask import Flask, Response, session
+from flask import Flask, Request, Response, session
 
 logger = logging.getLogger(__name__)
 
@@ -42,24 +42,30 @@ class AsyncQueryManager:
 
     def __init__(self) -> None:
         super().__init__()
-        self._redis = None
-        self._stream_prefix = None
-        self._stream_limit = None
-        self._stream_limit_firehose = None
-        self._jwt_cookie_name = None
-        self._jwt_cookie_secure = None
-        self._jwt_secret = None
+        self._redis: redis.Redis
+        self._stream_prefix: str = ""
+        self._stream_limit: Optional[int]
+        self._stream_limit_firehose: Optional[int]
+        self._jwt_cookie_name: str
+        self._jwt_cookie_secure: bool = False
+        self._jwt_secret: str
 
     def init_app(self, app: Flask) -> None:
-        self._redis = redis.Redis(**app.config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"])
-        self._stream_prefix = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
-        self._stream_limit = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT"]
-        self._stream_limit_firehose = app.config[
+        config = app.config
+        if len(config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET", "")) < 32:
+            raise AsyncQueryTokenException(
+                "Please provide a JWT secret at least 32 bytes long"
+            )
+
+        self._redis = redis.Redis(**config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"])
+        self._stream_prefix = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
+        self._stream_limit = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT"]
+        self._stream_limit_firehose = config[
             "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE"
         ]
-        self._jwt_cookie_name = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
-        self._jwt_cookie_secure = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
-        self._jwt_secret = app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
+        self._jwt_cookie_name = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
+        self._jwt_cookie_secure = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
+        self._jwt_secret = config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
         @app.after_request
         def validate_session(response: Response) -> Response:
@@ -72,7 +78,6 @@ class AsyncQueryManager:
                 reset_token = True
 
             if reset_token:
-                logger.info("******************** setting async_channel_id")
                 async_channel_id = str(uuid.uuid4())
                 session["async_channel_id"] = async_channel_id
                 session["async_user_id"] = user_id
@@ -94,15 +99,15 @@ class AsyncQueryManager:
 
             return response
 
-    def generate_jwt(self, data: Dict) -> Dict[str, Any]:
+    def generate_jwt(self, data: Dict[str, Any]) -> str:
         encoded_jwt = jwt.encode(data, self._jwt_secret, algorithm="HS256")
-        return encoded_jwt
+        return encoded_jwt.decode("utf-8")
 
     def parse_jwt(self, token: str) -> Dict[str, Any]:
         data = jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
         return data
 
-    def parse_jwt_from_request(self, request: Dict) -> Dict[str, Any]:
+    def parse_jwt_from_request(self, request: Request) -> Dict[str, Any]:
         token = request.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
@@ -113,11 +118,13 @@ class AsyncQueryManager:
             logger.warning(exc)
             raise AsyncQueryTokenException("Failed to parse token")
 
-    def init_job(self, channel_id: str):
+    def init_job(self, channel_id: str) -> Dict[str, Any]:
         job_id = str(uuid.uuid4())
         return self._build_job_metadata(channel_id, job_id, status=self.STATUS_PENDING)
 
-    def _build_job_metadata(self, channel_id: str, job_id: str, **kwargs):
+    def _build_job_metadata(
+        self, channel_id: str, job_id: str, **kwargs: Any
+    ) -> Dict[str, Any]:
         return {
             "channel_id": channel_id,
             "job_id": job_id,
@@ -127,7 +134,9 @@ class AsyncQueryManager:
             "cache_key": kwargs["cache_key"] if "cache_key" in kwargs else None,
         }
 
-    def update_job(self, job_metadata: Dict, status: str, **kwargs: Any):
+    def update_job(
+        self, job_metadata: Dict[str, Any], status: str, **kwargs: Any
+    ) -> None:
         if "channel_id" not in job_metadata:
             raise AsyncQueryJobException("No channel ID specified")
 
@@ -145,5 +154,5 @@ class AsyncQueryManager:
         full_stream_name = f"{self._stream_prefix}full"
         scoped_stream_name = f"{self._stream_prefix}{job_metadata['channel_id']}"
 
-        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
-        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
+        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)  # type: ignore
+        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)  # type: ignore

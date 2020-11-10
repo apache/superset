@@ -40,7 +40,6 @@ from superset.charts.commands.exceptions import (
     ChartCreateFailedError,
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
-    ChartDataValidationError,
     ChartDeleteFailedError,
     ChartForbiddenError,
     ChartInvalidError,
@@ -493,9 +492,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         try:
             command = ChartDataCommand()
-            command.validate(json_body)
-        except ChartDataValidationError as exc:
-            return self.response_400(message=exc.message)
+            command.set_query_context(json_body)
+            command.validate()
+        except ValidationError as error:
+            return self.response_400(
+                message=_("Request is incorrect: %(error)s", error=error.messages)
+            )
         except SupersetSecurityException:
             return self.response_401()
 
@@ -579,11 +581,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
         command = ChartDataCommand()
         try:
             cached_data = command.load_query_context_from_cache(cache_key)
-            command.validate(cached_data)
+            command.set_query_context(cached_data)
+            command.validate()
         except ChartDataCacheLoadError:
             return self.response_404()
-        except ChartDataValidationError as exc:
-            return self.response_400(message=exc.message)
+        except ValidationError as error:
+            return self.response_400(
+                message=_("Request is incorrect: %(error)s", error=error.messages)
+            )
         except SupersetSecurityException as exc:
             logger.info(exc)
             return self.response_401()
