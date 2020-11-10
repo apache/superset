@@ -27,7 +27,7 @@ from superset.commands.export import ExportModelsCommand
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
 from superset.queries.saved_queries.dao import SavedQueryDAO
-from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION
+from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
             include_defaults=True,
             export_uuids=True,
         )
-        payload["version"] = IMPORT_EXPORT_VERSION
+        payload["version"] = EXPORT_VERSION
         payload["database_uuid"] = str(model.database.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
@@ -74,7 +74,7 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
             except json.decoder.JSONDecodeError:
                 logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
-        payload["version"] = IMPORT_EXPORT_VERSION
+        payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
