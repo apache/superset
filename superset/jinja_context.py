@@ -343,12 +343,14 @@ def get_template_processor(
     query: Optional["Query"] = None,
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
+    template_processor = None
     if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-        template_processor = template_processors.get(
-            database.backend, BaseTemplateProcessor
-        )
-    elif feature_flag_manager.is_feature_enabled("CHEVRON_TEMPLATE_PROCESSING"):
-        template_processor = ChevronTemplateProcessor
-    else:
+        if feature_flag_manager.is_feature_enabled("JINJA_TEMPLATE_PROCESSING"):
+            template_processor = template_processors.get(
+                database.backend, BaseTemplateProcessor
+            )
+        elif feature_flag_manager.is_feature_enabled("CHEVRON_TEMPLATE_PROCESSING"):
+            template_processor = ChevronTemplateProcessor
+    if not template_processor:
         template_processor = NoOpTemplateProcessor
     return template_processor(database=database, table=table, query=query, **kwargs)
