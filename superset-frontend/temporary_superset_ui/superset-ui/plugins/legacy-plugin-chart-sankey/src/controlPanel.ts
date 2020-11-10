@@ -17,13 +17,46 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['groupby'], ['metric'], ['adhoc_filters'], ['row_limit']],
+      controlSetRows: [
+        [
+          {
+            name: 'groupby',
+            override: {
+              label: t('Source / Target'),
+              description: t('Choose a source and a target'),
+            },
+          },
+        ],
+        ['metric'],
+        ['adhoc_filters'],
+        [
+          {
+            name: 'row_limit',
+            override: {
+              description: t(
+                'Limiting rows may result in incomplete data and misleading charts. Consider filtering or grouping source/target names instead.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'sort_by_metric',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort by metric'),
+              description: t('Whether to sort results by the selected metric in descending order.'),
+            },
+          },
+        ],
+      ],
     },
     {
       label: t('Chart Options'),
@@ -31,10 +64,6 @@ export default {
       controlSetRows: [['color_scheme', 'label_colors']],
     },
   ],
-  controlOverrides: {
-    groupby: {
-      label: t('Source / Target'),
-      description: t('Choose a source and a target'),
-    },
-  },
 };
+
+export default config;
