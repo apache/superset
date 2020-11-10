@@ -30,8 +30,9 @@ const ImageContainer = styled.div<ImageContainerProps>`
   background-size: cover;
   background-position: center ${({ position }) => position};
   display: inline-block;
-  height: 100%;
-  width: 100%;
+  height: calc(100% - 1px);
+  width: calc(100% - 2px);
+  margin: 1px 1px 0 1px;
 `;
 interface ImageLoaderProps
   extends React.DetailedHTMLProps<
