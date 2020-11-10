@@ -26,7 +26,7 @@ from flask_appbuilder import Model
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.dao.base import BaseDAO
-from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION
+from superset.utils.dict_import_export import EXPORT_VERSION
 
 METADATA_FILE_NAME = "metadata.yaml"
 
@@ -50,7 +50,7 @@ class ExportModelsCommand(BaseCommand):
         self.validate()
 
         metadata = {
-            "version": IMPORT_EXPORT_VERSION,
+            "version": EXPORT_VERSION,
             "type": self.dao.model_cls.__name__,  # type: ignore
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         }
