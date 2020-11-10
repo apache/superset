@@ -46,7 +46,7 @@ describe('SqlLab query panel', () => {
     cy.route({
       method: 'POST',
       url: '/superset/sql_json/',
-      delay: 500,
+      delay: 2000,
       response: () => sampleResponse,
     }).as('mockSQLResponse');
 
@@ -70,7 +70,7 @@ describe('SqlLab query panel', () => {
       .contains('00:00')
       .then(node => {
         clockTime = parseClockStr(node);
-        // should be longer than 0.1s
+        // should be longer than 0.01s
         expect(clockTime).greaterThan(0.01);
       });
 
@@ -79,7 +79,7 @@ describe('SqlLab query panel', () => {
     // timer is increasing
     cy.get(timerLabel).then(node => {
       const newClockTime = parseClockStr(node);
-      expect(newClockTime).greaterThan(0.4);
+      expect(newClockTime).greaterThan(0.9);
       clockTime = newClockTime;
     });
 
@@ -87,11 +87,11 @@ describe('SqlLab query panel', () => {
     cy.get('[data-test="sql-editor-run-query-action-button"]').click();
 
     // should restart the timer
-    cy.get(timerLabel).contains('00:00:00');
+    cy.get(timerLabel).contains('00:00');
 
     cy.wait('@mockSQLResponse');
     cy.get(timerLabel).then(node => {
-      expect(parseClockStr(node)).greaterThan(0.4);
+      expect(parseClockStr(node)).greaterThan(0.9);
     });
   });
 
