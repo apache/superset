@@ -255,6 +255,8 @@ export default function getInitialState(bootstrapData) {
     directPathToChild.push(directLinkComponentId);
   }
 
+  const nativeFilters = getInitialNativeFilterState(dashboard.metadata);
+
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },

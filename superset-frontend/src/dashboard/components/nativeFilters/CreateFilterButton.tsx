@@ -24,7 +24,7 @@ import { Button, Form, Input } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import { AsyncSelect } from 'src/components/Select';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
-import { createFilter } from 'src/dashboard/actions/filterConfiguration';
+import { createFilter } from 'src/dashboard/actions/nativeFilters';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import getClientErrorObject from 'src/utils/getClientErrorObject';

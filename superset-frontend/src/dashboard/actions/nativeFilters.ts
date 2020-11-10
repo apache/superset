@@ -22,17 +22,11 @@ import { Dispatch } from 'redux';
 import { Filter } from '../components/filterConfig/types';
 import { dashboardInfoChanged } from './dashboardInfo';
 
-export const CREATE_FILTER_BEGIN = 'CREATE_FILTER';
+export const CREATE_FILTER_BEGIN = 'CREATE_FILTER_BEGIN';
 export const CREATE_FILTER_COMPLETE = 'CREATE_FILTER_COMPLETE';
 export const CREATE_FILTER_FAIL = 'CREATE_FILTER_FAIL';
 
 const updateDashboard = (filter: Filter, id: string, metadata: any) => {
-  console.log(
-    JSON.stringify({
-      ...metadata,
-      filter_configuration: [...(metadata.filter_configuration || []), filter],
-    }),
-  );
   return SupersetClient.put({
     endpoint: `/api/v1/dashboard/${id}`,
     headers: { 'Content-Type': 'application/json' },
@@ -48,6 +42,18 @@ const updateDashboard = (filter: Filter, id: string, metadata: any) => {
   });
 };
 
+export interface CreateFilterBeginAction {
+  type: typeof CREATE_FILTER_BEGIN;
+  filter: Filter;
+}
+export interface CreateFilterCompleteAction {
+  type: typeof CREATE_FILTER_COMPLETE;
+  filter: Filter;
+}
+export interface CreateFilterFailAction {
+  type: typeof CREATE_FILTER_FAIL;
+  filter: Filter;
+}
 export const createFilter = (filter: Filter) => async (
   dispatch: Dispatch,
   getState: () => any,
@@ -59,12 +65,17 @@ export const createFilter = (filter: Filter) => async (
   });
   // make api request
   const { id, metadata } = getState().dashboardInfo;
-  const response = await updateDashboard(filter, id, metadata);
-  dispatch(
-    dashboardInfoChanged({
-      metadata: JSON.parse(response.json.result.json_metadata),
-    }),
-  );
+  try {
+    const response = await updateDashboard(filter, id, metadata);
+    dispatch(
+      dashboardInfoChanged({
+        metadata: JSON.parse(response.json.result.json_metadata),
+      }),
+    );
+    dispatch({ type: CREATE_FILTER_COMPLETE, filter });
+  } catch (err) {
+    dispatch({ type: CREATE_FILTER_FAIL, filter });
+  }
 };
 
 export const EDIT_FILTER = 'EDIT_FILTER';
@@ -72,3 +83,32 @@ export const editFilter = (filter: Filter) => ({
   type: EDIT_FILTER,
   filter,
 });
+
+// wraps a value in an array if necessary.
+function toArray<T>(value: T | T[] | null): T[] | null {
+  if (Array.isArray(value)) return value;
+  if (value == null) return null;
+  return [value];
+}
+
+export const SELECT_FILTER_OPTION = 'SELECT_FILTER_OPTION';
+export interface SelectFilterOptionAction {
+  type: typeof SELECT_FILTER_OPTION;
+  filterId: string;
+  selectedValues: string[] | null;
+}
+/**
+ * Sets the selected option(s) for a given filter
+ * @param filterId the id of the native filter
+ * @param values the selected options values
+ */
+export function selectFilterOption(
+  filterId: string,
+  values: string | string[] | null,
+): SelectFilterOptionAction {
+  return {
+    type: SELECT_FILTER_OPTION,
+    filterId,
+    selectedValues: toArray(values),
+  };
+}

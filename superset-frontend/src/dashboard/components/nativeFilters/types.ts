@@ -40,17 +40,10 @@ export interface Filter {
   type: FilterType;
   // for now there will only ever be one target
   targets: Target[];
-  defaultValue: string[] | string | null;
+  defaultValue: string[] | number[] | null;
   scope: Scope;
   isInstant: boolean;
 
   // maybe someday support this?
   // displayColumnsInOptions: Column[];
-}
-
-// to use in redux for storing the currently filtered values
-export interface FilterState {
-  [filterId: string]: {
-    values: string[];
-  };
 }
