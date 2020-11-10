@@ -23,10 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
-from superset.models.reports import (
-    ReportRecipients,
-    ReportSchedule,
-)
+from superset.models.reports import ReportRecipients, ReportSchedule
 
 logger = logging.getLogger(__name__)
 
@@ -119,17 +116,18 @@ class ReportScheduleDAO(BaseDAO):
             for key, value in properties.items():
                 if key != "recipients":
                     setattr(model, key, value)
-            recipients = properties.get("recipients", [])
-            model.recipients = [
-                ReportRecipients(
-                    type=recipient["type"],
-                    recipient_config_json=json.dumps(
-                        recipient["recipient_config_json"]
-                    ),
-                    report_schedule=model,
-                )
-                for recipient in recipients
-            ]
+            if "recipients" in properties:
+                recipients = properties["recipients"]
+                model.recipients = [
+                    ReportRecipients(
+                        type=recipient["type"],
+                        recipient_config_json=json.dumps(
+                            recipient["recipient_config_json"]
+                        ),
+                        report_schedule=model,
+                    )
+                    for recipient in recipients
+                ]
             db.session.merge(model)
             if commit:
                 db.session.commit()

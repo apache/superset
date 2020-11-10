@@ -320,14 +320,13 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
-            item["layer"] = pk
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
             new_model = UpdateReportScheduleCommand(g.user, pk, item).run()
             return self.response(200, id=new_model.id, result=item)
-        except (ReportScheduleNotFoundError) as ex:
+        except ReportScheduleNotFoundError:
             return self.response_404()
         except ReportScheduleInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
