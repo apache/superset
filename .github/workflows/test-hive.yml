@@ -40,7 +40,7 @@ jobs:
     - name: Start hadoop and hive
       run: docker-compose -f scripts/databases/hive/docker-compose.yml up -d
     - name: Setup Python
-      uses: actions/setup-python@v2.1.1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies

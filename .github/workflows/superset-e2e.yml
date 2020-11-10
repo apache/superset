@@ -33,7 +33,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Setup Python
-      uses: actions/setup-python@v2.1.1
+      uses: actions/setup-python@v2
       with:
         python-version: '3.7'
     - name: OS dependencies
