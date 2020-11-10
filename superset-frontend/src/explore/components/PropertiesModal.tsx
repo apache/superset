@@ -41,7 +41,7 @@ type PropertiesModalProps = {
   show: boolean;
 
   // true if save the data to db on submit; false if save only in local store
-  persistOnModalClose: boolean;
+  persistOnModalClose?: boolean;
 };
 
 type OwnerOption = {
@@ -133,13 +133,13 @@ export default function PropertiesModal({
       slice_name: name || null,
       description: description || null,
       cache_timeout: cacheTimeout || null,
-      slice_updated: true,
     };
     if (owners) {
       payload.owners = owners.map(o => o.value);
     }
     try {
       if (!persistOnModalClose) {
+        payload.slice_updated = true;
         onSave(payload);
         onHide();
         return;
