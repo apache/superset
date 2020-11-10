@@ -23,7 +23,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
-from superset.models.reports import ReportExecutionLog, ReportRecipients, ReportSchedule
+from superset.models.reports import (
+    ReportRecipients,
+    ReportSchedule,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +40,16 @@ class ReportScheduleDAO(BaseDAO):
     ) -> None:
         item_ids = [model.id for model in models] if models else []
         try:
-            db.session.query(ReportRecipients).filter(
-                ReportRecipients.report_schedule_id.in_(item_ids)
-            ).delete(synchronize_session="fetch")
-
-            db.session.query(ReportExecutionLog).filter(
-                ReportExecutionLog.report_schedule_id.in_(item_ids)
-            ).delete(synchronize_session="fetch")
-
-            db.session.query(ReportSchedule).filter(
-                ReportSchedule.id.in_(item_ids)
-            ).delete(synchronize_session="fetch")
+            # Clean owners secondary table
+            report_schedules = (
+                db.session.query(ReportSchedule)
+                .filter(ReportSchedule.id.in_(item_ids))
+                .all()
+            )
+            for report_schedule in report_schedules:
+                report_schedule.owners = []
+            for report_schedule in report_schedules:
+                db.session.delete(report_schedule)
             if commit:
                 db.session.commit()
         except SQLAlchemyError:

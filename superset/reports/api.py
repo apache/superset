@@ -41,6 +41,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.reports.commands.update import UpdateReportScheduleCommand
+from superset.reports.filters import ReportScheduleAllTextFilter
 from superset.reports.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
@@ -145,8 +146,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "type",
     ]
-    search_columns = ["name", "active", "created_by"]
-
+    search_columns = ["name", "active", "created_by", "type"]
+    search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {"created_by", "chart", "dashboard"}
     filter_rel_fields = {
         "chart": [["id", ChartFilter, lambda: []]],

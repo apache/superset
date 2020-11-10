@@ -44,8 +44,6 @@ from superset.utils.core import get_example_database
 
 
 REPORTS_COUNT = 10
-# REPORTS_LOGS_COUNT = 5
-# REPORTS_RECIPIENTS_COUNT = 5
 
 
 class TestReportSchedulesApi(SupersetTestCase):
@@ -95,6 +93,8 @@ class TestReportSchedulesApi(SupersetTestCase):
     def create_report_schedules(self):
         with self.create_app().app_context():
             report_schedules = []
+            admin_user = self.get_user("admin")
+            alpha_user = self.get_user("alpha")
             chart = db.session.query(Slice).first()
             example_db = get_example_database()
             for cx in range(REPORTS_COUNT):
@@ -120,16 +120,18 @@ class TestReportSchedulesApi(SupersetTestCase):
                         type=ReportScheduleType.ALERT,
                         name=f"name{cx}",
                         crontab=f"*/{cx} * * * *",
-                        sql="SELECT value from table1",
+                        sql=f"SELECT value from table{cx}",
                         description=f"Some description {cx}",
                         chart=chart,
                         database=example_db,
+                        owners=[admin_user, alpha_user],
                         recipients=recipients,
                         logs=logs,
                     )
                 )
             yield report_schedules
 
+            report_schedules = db.session.query(ReportSchedule).all()
             # rollback changes (assuming cascade delete)
             for report_schedule in report_schedules:
                 db.session.delete(report_schedule)
@@ -167,7 +169,10 @@ class TestReportSchedulesApi(SupersetTestCase):
             "last_value_row_json": report_schedule.last_value_row_json,
             "log_retention": report_schedule.log_retention,
             "name": report_schedule.name,
-            "owners": [],
+            "owners": [
+                {"first_name": "admin", "id": 1, "last_name": "user"},
+                {"first_name": "alpha", "id": 5, "last_name": "user"},
+            ],
             "recipients": [
                 {
                     "id": report_schedule.recipients[0].id,
@@ -221,14 +226,24 @@ class TestReportSchedulesApi(SupersetTestCase):
             "last_eval_dttm",
             "last_state",
             "name",
+            "owners",
             "recipients",
             "type",
         ]
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == REPORTS_COUNT
-        for expected_field in expected_fields:
-            assert expected_field in data["result"][0]
+        data_keys = sorted(list(data["result"][0].keys()))
+        assert expected_fields == data_keys
+
+        # Assert nested fields
+        expected_owners_fields = ["first_name", "id", "last_name"]
+        data_keys = sorted(list(data["result"][0]["owners"][0].keys()))
+        assert expected_owners_fields == data_keys
+
+        expected_recipients_fields = ["id", "type"]
+        data_keys = sorted(list(data["result"][1]["recipients"][0].keys()))
+        assert expected_recipients_fields == data_keys
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_list_report_schedule_sorting(self):
@@ -256,11 +271,12 @@ class TestReportSchedulesApi(SupersetTestCase):
             assert rv.status_code == 200
 
     @pytest.mark.usefixtures("create_report_schedules")
-    def test_get_list_report_schedule_filter(self):
+    def test_get_list_report_schedule_filter_name(self):
         """
-        ReportSchedule Api: Test filters on get list report schedules
+        ReportSchedule Api: Test filter name on get list report schedules
         """
         self.login(username="admin")
+        # Test normal contains filter
         arguments = {
             "columns": ["name"],
             "filters": [{"col": "name", "opr": "ct", "value": "2"}],
@@ -276,9 +292,37 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert data["count"] == 1
         assert data["result"][0] == expected_result
 
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_get_list_report_schedule_filter_custom(self):
+        """
+        ReportSchedule Api: Test custom filter on get list report schedules
+        """
+        self.login(username="admin")
+        # Test custom all text filter
         arguments = {
             "columns": ["name"],
-            "filters": [{"col": "name", "opr": "active", "value": True}],
+            "filters": [{"col": "name", "opr": "report_all_text", "value": "table3"}],
+        }
+        uri = f"api/v1/report/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+
+        expected_result = {
+            "name": "name3",
+        }
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 1
+        assert data["result"][0] == expected_result
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_get_list_report_schedule_filter_active(self):
+        """
+        ReportSchedule Api: Test active filter on get list report schedules
+        """
+        self.login(username="admin")
+        arguments = {
+            "columns": ["name"],
+            "filters": [{"col": "active", "opr": "eq", "value": True}],
         }
         uri = f"api/v1/report/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
@@ -286,6 +330,51 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == REPORTS_COUNT
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_get_list_report_schedule_filter_type(self):
+        """
+        ReportSchedule Api: Test type filter on get list report schedules
+        """
+        self.login(username="admin")
+        arguments = {
+            "columns": ["name"],
+            "filters": [
+                {"col": "type", "opr": "eq", "value": ReportScheduleType.ALERT}
+            ],
+        }
+        uri = f"api/v1/report/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == REPORTS_COUNT
+
+        # Test type filter
+        arguments = {
+            "columns": ["name"],
+            "filters": [
+                {"col": "type", "opr": "eq", "value": ReportScheduleType.REPORT}
+            ],
+        }
+        uri = f"api/v1/report/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 0
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_get_related_report_schedule(self):
+        """
+        ReportSchedule Api: Test get releated report schedule
+        """
+        self.login(username="admin")
+        related_columns = ["created_by", "chart", "dashboard"]
+        for related_column in related_columns:
+            uri = f"api/v1/report/related/{related_column}"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_create_report_schedule(self):

@@ -395,7 +395,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
         def get_text_for_model(model: Model) -> str:
             if column_name in self.text_field_rel_fields:
-                return getattr(model, self.text_field_rel_fields.get(column_name))
+                model_column_name = self.text_field_rel_fields.get(column_name)
+                if model_column_name:
+                    return getattr(model, model_column_name)
             return str(model)
 
         if column_name not in self.allowed_rel_fields:
