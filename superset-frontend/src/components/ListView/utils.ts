@@ -27,7 +27,7 @@ import {
 } from 'react-table';
 
 import {
-  JsonParam,
+  // JsonParam,
   NumberParam,
   StringParam,
   useQueryParams,
@@ -143,8 +143,8 @@ export function useListViewState({
   bulkSelectColumnConfig,
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
-    filters: JsonParam,
-    filtersEncoded: StringParam,
+    // filters: JsonParam,
+    filters: StringParam,
     pageIndex: NumberParam,
     sortColumn: StringParam,
     sortOrder: StringParam,
@@ -161,9 +161,9 @@ export function useListViewState({
   // TODO: eventually replace filters with filtersEncoded, and update convertFilters to handle decoded rison
   const initialState = {
     // filters: convertFilters(query.filters || []),
-    filtersEncoded: query.filtersEncoded
-      ? convertFiltersRison(rison.decode(query.filtersEncoded))
-      : undefined,
+    filters: query.filters
+      ? convertFiltersRison(rison.decode(query.filters))
+      : [],
     pageIndex: query.pageIndex || 0,
     pageSize: initialPageSize,
     sortBy: initialSortBy,
@@ -213,8 +213,8 @@ export function useListViewState({
   );
 
   const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
-    query.filtersEncoded
-      ? convertFiltersRison(rison.decode(query.filtersEncoded))
+    query.filters && initialFilters.length
+      ? mergeCreateFilterValues(initialFilters, rison.decode(query.filters))
       : [],
   );
 
@@ -223,7 +223,7 @@ export function useListViewState({
       setInternalFilters(
         mergeCreateFilterValues(
           initialFilters,
-          query.filtersEncoded ? rison.decode(query.filtersEncoded) : {},
+          query.filters ? rison.decode(query.filters) : {},
         ),
       );
     }
@@ -242,7 +242,7 @@ export function useListViewState({
 
     const queryParams: any = {
       // filters: internalFilters,
-      filtersEncoded: Object.keys(filterObj).length
+      filters: Object.keys(filterObj).length
         ? rison.encode(filterObj)
         : undefined,
       pageIndex,
