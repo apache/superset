@@ -56,7 +56,8 @@
     "last 3 edge versions"
   ],
   "engines": {
-    "node": ">= 6.11.5 <7.0.0 || >= 8.9.0"
+    "node": ">= 12.18.3 < 13",
+    "npm": ">= 6.14.8"
   },
   "homepage": "https://superset.apache.org/",
   "dependencies": {
