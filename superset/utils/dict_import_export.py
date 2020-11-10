@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from superset.connectors.druid.models import DruidCluster
 from superset.models.core import Database
 
-IMPORT_EXPORT_VERSION = "1.0.0"
+EXPORT_VERSION = "1.0.0"
 DATABASES_KEY = "databases"
 DRUID_CLUSTERS_KEY = "druid_clusters"
 logger = logging.getLogger(__name__)

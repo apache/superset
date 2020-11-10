@@ -27,7 +27,7 @@ from superset.commands.export import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
-from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION
+from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
             export_uuids=True,
         )
 
-        payload["version"] = IMPORT_EXPORT_VERSION
+        payload["version"] = EXPORT_VERSION
         payload["database_uuid"] = str(model.database.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
@@ -73,7 +73,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
             except json.decoder.JSONDecodeError:
                 logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
-        payload["version"] = IMPORT_EXPORT_VERSION
+        payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
