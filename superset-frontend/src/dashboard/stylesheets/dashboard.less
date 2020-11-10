@@ -62,10 +62,10 @@ body {
   margin-bottom: 4px;
   display: flex;
   max-width: 100%;
+  align-items: flex-start;
 
   & > .header-title {
     overflow: hidden;
-    white-space: nowrap;
     text-overflow: ellipsis;
     max-width: 100%;
     flex-grow: 1;
@@ -138,16 +138,8 @@ body {
     padding: 9px 0;
   }
 
-  .dropdown-menu li a {
-    padding: 3px 16px;
-    color: @almost-black;
-    font-size: @font-size-m;
-
-    &:hover,
-    &:focus {
-      background: @menu-hover;
-      color: @almost-black;
-    }
+  .dropdown-menu li {
+    font-weight: @font-weight-normal;
   }
 }
 

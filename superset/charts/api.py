@@ -49,6 +49,7 @@ from superset.charts.commands.exceptions import (
 )
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
+from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -56,6 +57,7 @@ from superset.charts.schemas import (
     ChartPutSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
+    get_fav_star_ids_schema,
     openapi_spec_methods_override,
     screenshot_query_schema,
     thumbnail_query_schema,
@@ -93,6 +95,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "data",
         "data_from_cache",
         "viz_types",
+        "favorite_status",
     }
     class_permission_name = "SliceModelView"
     show_columns = [
@@ -149,6 +152,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     ]
     search_columns = [
         "created_by",
+        "changed_by",
         "datasource_id",
         "datasource_name",
         "datasource_type",
@@ -179,6 +183,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     apispec_parameter_schemas = {
         "screenshot_query_schema": screenshot_query_schema,
         "get_delete_ids_schema": get_delete_ids_schema,
+        "get_export_ids_schema": get_export_ids_schema,
+        "get_fav_star_ids_schema": get_fav_star_ids_schema,
     }
     """ Add extra schemas to the OpenAPI components schema section """
     openapi_spec_methods = openapi_spec_methods_override
@@ -832,9 +838,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: integer
+                  $ref: '#/components/schemas/get_export_ids_schema'
           responses:
             200:
               description: A zip file with chart(s), dataset(s) and database(s) as YAML
@@ -873,3 +877,48 @@ class ChartRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             attachment_filename=filename,
         )
+
+    @expose("/favorite_status/", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @rison(get_fav_star_ids_schema)
+    def favorite_status(self, **kwargs: Any) -> Response:
+        """Favorite stars for Charts
+        ---
+        get:
+          description: >-
+            Check favorited dashboards for current user
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_fav_star_ids_schema'
+          responses:
+            200:
+              description:
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/GetFavStarIdsSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        requested_ids = kwargs["rison"]
+        charts = ChartDAO.find_by_ids(requested_ids)
+        if not charts:
+            return self.response_404()
+        favorited_chart_ids = ChartDAO.favorited_ids(charts, g.user.id)
+        res = [
+            {"id": request_id, "value": request_id in favorited_chart_ids}
+            for request_id in requested_ids
+        ]
+        return self.response(200, result=res)

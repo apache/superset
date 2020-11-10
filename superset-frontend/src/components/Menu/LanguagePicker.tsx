@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { MenuItem } from 'react-bootstrap';
+import { Menu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
 
 export interface Languages {
@@ -46,17 +46,23 @@ export default function LanguagePicker({
         </span>
       }
     >
-      {Object.keys(languages).map(langKey =>
-        langKey === locale ? null : (
-          <MenuItem key={langKey} href={languages[langKey].url}>
-            {' '}
-            <div className="f16">
-              <i className={`flag ${languages[langKey].flag}`} /> -{' '}
-              {languages[langKey].name}
-            </div>
-          </MenuItem>
-        ),
-      )}
+      <Menu
+        onSelect={({ key }) => {
+          window.location.href = languages[key].url;
+        }}
+      >
+        {Object.keys(languages).map(langKey =>
+          langKey === locale ? null : (
+            <Menu.Item key={langKey}>
+              {' '}
+              <div className="f16">
+                <i className={`flag ${languages[langKey].flag}`} /> -{' '}
+                {languages[langKey].name}
+              </div>
+            </Menu.Item>
+          ),
+        )}
+      </Menu>
     </NavDropdown>
   );
 }

@@ -23,7 +23,7 @@ import Icon from './Icon';
 
 interface FaveStarProps {
   itemId: number;
-  fetchFaveStar(id: number): any;
+  fetchFaveStar?: (id: number) => void;
   saveFaveStar(id: number, isStarred: boolean): any;
   isStarred: boolean;
   showTooltip?: boolean;
@@ -35,7 +35,9 @@ const StyledLink = styled.a`
 
 export default class FaveStar extends React.PureComponent<FaveStarProps> {
   componentDidMount() {
-    this.props.fetchFaveStar(this.props.itemId);
+    if (this.props.fetchFaveStar) {
+      this.props.fetchFaveStar(this.props.itemId);
+    }
   }
 
   onClick = (e: React.MouseEvent) => {

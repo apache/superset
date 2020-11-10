@@ -39,6 +39,7 @@ interface ModalProps {
   hideFooter?: boolean;
   centered?: boolean;
   footer?: React.ReactNode;
+  wrapProps?: object;
 }
 
 interface StyledModalProps extends SupersetThemeProps {
@@ -105,7 +106,7 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
   }
 `;
 
-export default function Modal({
+const CustomModal = ({
   children,
   disablePrimaryButton = false,
   onHide,
@@ -120,8 +121,9 @@ export default function Modal({
   centered,
   footer,
   hideFooter,
+  wrapProps,
   ...rest
-}: ModalProps) {
+}: ModalProps) => {
   const modalFooter = isNil(footer)
     ? [
         <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
@@ -157,10 +159,20 @@ export default function Modal({
         </span>
       }
       footer={!hideFooter ? modalFooter : null}
-      wrapProps={{ 'data-test': `${title}-modal` }}
+      wrapProps={{ 'data-test': `${title}-modal`, ...wrapProps }}
       {...rest}
     >
       {children}
     </StyledModal>
   );
-}
+};
+CustomModal.displayName = 'Modal';
+
+const Modal = Object.assign(CustomModal, {
+  error: BaseModal.error,
+  warning: BaseModal.warning,
+  confirm: BaseModal.confirm,
+  useModal: BaseModal.useModal,
+});
+
+export default Modal;

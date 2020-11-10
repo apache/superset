@@ -60,7 +60,7 @@ describe('Datasource control', () => {
       .clear()
       .type(`${newMetricName}{enter}`);
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.modal-footer button').contains('OK').click();
+    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
     // select new metric
     cy.get('[data-test=metrics]')
       .find('.Select__control input')
@@ -70,14 +70,16 @@ describe('Datasource control', () => {
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
     cy.get('.ant-modal-content').within(() => {
-      cy.get('a[role="tab"]').contains('Metrics').click();
+      cy.get('[data-test="collection-tab-Metrics"]')
+        .contains('Metrics')
+        .click();
     });
     cy.get(`input[value="${newMetricName}"]`)
       .closest('tr')
       .find('.fa-trash')
       .click();
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.modal-footer button').contains('OK').click();
+    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
     cy.get('.Select__multi-value__label')
       .contains(newMetricName)
       .should('not.exist');
@@ -140,7 +142,7 @@ describe('Time range filter', () => {
     });
 
     cy.get('#filter-popover').within(() => {
-      cy.get('div.tab-pane.active').within(() => {
+      cy.get('div.ant-tabs-tabpane-active').within(() => {
         cy.get('div.PopoverSection :not(.dimmed)').within(() => {
           cy.get('input[value="100 years ago"]');
           cy.get('input[value="now"]');

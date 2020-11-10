@@ -32,17 +32,18 @@ class TestExportChartsCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_chart = db.session.query(Slice).all()[0]
-        command = ExportChartsCommand(chart_ids=[example_chart.id])
+        command = ExportChartsCommand([example_chart.id])
         contents = dict(command.run())
 
         expected = [
-            "charts/energy_sankey.yaml",
+            "metadata.yaml",
+            "charts/Energy_Sankey.yaml",
             "datasets/examples/energy_usage.yaml",
             "databases/examples.yaml",
         ]
         assert expected == list(contents.keys())
 
-        metadata = yaml.safe_load(contents["charts/energy_sankey.yaml"])
+        metadata = yaml.safe_load(contents["charts/Energy_Sankey.yaml"])
         assert metadata == {
             "slice_name": "Energy Sankey",
             "viz_type": "sankey",
@@ -66,7 +67,7 @@ class TestExportChartsCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("gamma")
 
         example_chart = db.session.query(Slice).all()[0]
-        command = ExportChartsCommand(chart_ids=[example_chart.id])
+        command = ExportChartsCommand([example_chart.id])
         contents = command.run()
         with self.assertRaises(ChartNotFoundError):
             next(contents)
@@ -75,7 +76,7 @@ class TestExportChartsCommand(SupersetTestCase):
     def test_export_chart_command_invalid_dataset(self, mock_g):
         """Test that an error is raised when exporting an invalid dataset"""
         mock_g.user = security_manager.find_user("admin")
-        command = ExportChartsCommand(chart_ids=[-1])
+        command = ExportChartsCommand([-1])
         contents = command.run()
         with self.assertRaises(ChartNotFoundError):
             next(contents)
@@ -86,10 +87,10 @@ class TestExportChartsCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_chart = db.session.query(Slice).all()[0]
-        command = ExportChartsCommand(chart_ids=[example_chart.id])
+        command = ExportChartsCommand([example_chart.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["charts/energy_sankey.yaml"])
+        metadata = yaml.safe_load(contents["charts/Energy_Sankey.yaml"])
         assert list(metadata.keys()) == [
             "slice_name",
             "viz_type",

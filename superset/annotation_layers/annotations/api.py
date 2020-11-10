@@ -70,6 +70,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
 
     show_columns = [
+        "id",
         "short_descr",
         "long_descr",
         "start_dttm",
@@ -79,6 +80,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         "layer.name",
     ]
     list_columns = [
+        "id",
         "changed_by.first_name",
         "changed_by.id",
         "changed_on_delta_humanized",

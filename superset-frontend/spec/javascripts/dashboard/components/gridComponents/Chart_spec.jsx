@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import { ChartUnconnected as Chart } from 'src/dashboard/components/gridComponents/Chart';
+import Chart from 'src/dashboard/components/gridComponents/Chart';
 import SliceHeader from 'src/dashboard/components/SliceHeader';
 import ChartContainer from 'src/chart/ChartContainer';
 

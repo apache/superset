@@ -54,6 +54,7 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
 fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_list', 'can_edit', 'can_delete'],
 });
+
 fetchMock.get(chartssOwnersEndpoint, {
   result: [],
 });

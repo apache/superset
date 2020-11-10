@@ -26,16 +26,11 @@ import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/mar
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import {
-  DropdownButton,
-  MenuItem,
-  Row,
-  Col,
-  FormControl,
-} from 'react-bootstrap';
+import { DropdownButton, Row, Col, FormControl } from 'react-bootstrap';
 import { Table } from 'reactable-arc';
 import { t } from '@superset-ui/core';
 
+import { Menu } from 'src/common/components';
 import Button from 'src/components/Button';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from '../../components/CopyToClipboard';
@@ -65,6 +60,12 @@ const propTypes = {
   slice: PropTypes.object,
 };
 
+const MENU_KEYS = {
+  EDIT_PROPERTIES: 'edit_properties',
+  RUN_IN_SQL_LAB: 'run_in_sql_lab',
+  DOWNLOAD_AS_IMAGE: 'download_as_image',
+};
+
 export class DisplayQueryButton extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -81,8 +82,8 @@ export class DisplayQueryButton extends React.PureComponent {
     };
     this.beforeOpen = this.beforeOpen.bind(this);
     this.changeFilterText = this.changeFilterText.bind(this);
-    this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
+    this.handleMenuClick = this.handleMenuClick.bind(this);
   }
 
   beforeOpen(resultType) {
@@ -118,16 +119,41 @@ export class DisplayQueryButton extends React.PureComponent {
     this.setState({ filterText: event.target.value });
   }
 
-  redirectSQLLab() {
-    this.props.onOpenInEditor(this.props.latestQueryFormData);
-  }
-
   openPropertiesModal() {
     this.setState({ isPropertiesModalOpen: true });
   }
 
   closePropertiesModal() {
     this.setState({ isPropertiesModalOpen: false });
+  }
+
+  handleMenuClick({ key, domEvent }) {
+    const {
+      chartHeight,
+      slice,
+      onOpenInEditor,
+      latestQueryFormData,
+    } = this.props;
+    switch (key) {
+      case MENU_KEYS.EDIT_PROPERTIES:
+        this.openPropertiesModal();
+        break;
+      case MENU_KEYS.RUN_IN_SQL_LAB:
+        onOpenInEditor(latestQueryFormData);
+        break;
+      case MENU_KEYS.DOWNLOAD_AS_IMAGE:
+        downloadAsImage(
+          '.chart-container',
+          // eslint-disable-next-line camelcase
+          slice?.slice_name ?? t('New chart'),
+          {
+            height: parseInt(chartHeight, 10),
+          },
+        )(domEvent);
+        break;
+      default:
+        break;
+    }
   }
 
   renderQueryModalBody() {
@@ -230,7 +256,7 @@ export class DisplayQueryButton extends React.PureComponent {
   }
 
   render() {
-    const { chartHeight, slice } = this.props;
+    const { slice } = this.props;
     return (
       <DropdownButton
         noCaret
@@ -245,62 +271,56 @@ export class DisplayQueryButton extends React.PureComponent {
         pullRight
         id="query"
       >
-        {slice && (
-          <>
-            <MenuItem onClick={this.openPropertiesModal}>
+        <Menu onClick={this.handleMenuClick} selectable={false}>
+          {slice && [
+            <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
               {t('Edit properties')}
-            </MenuItem>
+            </Menu.Item>,
             <PropertiesModal
               slice={slice}
               show={this.state.isPropertiesModalOpen}
               onHide={this.closePropertiesModal}
               onSave={this.props.sliceUpdated}
+            />,
+          ]}
+          <Menu.Item>
+            <ModalTrigger
+              triggerNode={
+                <span data-test="view-query-menu-item">{t('View query')}</span>
+              }
+              modalTitle={t('View query')}
+              beforeOpen={() => this.beforeOpen('query')}
+              modalBody={this.renderQueryModalBody()}
+              responsive
             />
-          </>
-        )}
-        <ModalTrigger
-          isMenuItem
-          triggerNode={
-            <span data-test="view-query-menu-item">{t('View query')}</span>
-          }
-          modalTitle={t('View query')}
-          beforeOpen={() => this.beforeOpen('query')}
-          modalBody={this.renderQueryModalBody()}
-          responsive
-        />
-        <ModalTrigger
-          isMenuItem
-          triggerNode={<span>{t('View results')}</span>}
-          modalTitle={t('View results')}
-          beforeOpen={() => this.beforeOpen('results')}
-          modalBody={this.renderResultsModalBody()}
-          responsive
-        />
-        <ModalTrigger
-          isMenuItem
-          triggerNode={<span>{t('View samples')}</span>}
-          modalTitle={t('View samples')}
-          beforeOpen={() => this.beforeOpen('samples')}
-          modalBody={this.renderSamplesModalBody()}
-          responsive
-        />
-        {this.state.sqlSupported && (
-          <MenuItem eventKey="3" onClick={this.redirectSQLLab.bind(this)}>
-            {t('Run in SQL Lab')}
-          </MenuItem>
-        )}
-        <MenuItem
-          onClick={downloadAsImage(
-            '.chart-container',
-            // eslint-disable-next-line camelcase
-            slice?.slice_name ?? t('New chart'),
-            {
-              height: parseInt(chartHeight, 10),
-            },
+          </Menu.Item>
+          <Menu.Item>
+            <ModalTrigger
+              triggerNode={<span>{t('View results')}</span>}
+              modalTitle={t('View results')}
+              beforeOpen={() => this.beforeOpen('results')}
+              modalBody={this.renderResultsModalBody()}
+              responsive
+            />
+          </Menu.Item>
+          <Menu.Item>
+            <ModalTrigger
+              triggerNode={<span>{t('View samples')}</span>}
+              modalTitle={t('View samples')}
+              beforeOpen={() => this.beforeOpen('samples')}
+              modalBody={this.renderSamplesModalBody()}
+              responsive
+            />
+          </Menu.Item>
+          {this.state.sqlSupported && (
+            <Menu.Item key={MENU_KEYS.RUN_IN_SQL_LAB}>
+              {t('Run in SQL Lab')}
+            </Menu.Item>
           )}
-        >
-          {t('Download as image')}
-        </MenuItem>
+          <Menu.Item key={MENU_KEYS.DOWNLOAD_AS_IMAGE}>
+            {t('Download as image')}
+          </Menu.Item>
+        </Menu>
       </DropdownButton>
     );
   }

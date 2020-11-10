@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useState,
@@ -44,9 +44,19 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
+import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
+
+const FlexRowContainer = styled.div`
+  align-items: center;
+  display: flex;
+
+  > svg {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
 
 type Dataset = {
   changed_by_name: string;
@@ -103,6 +113,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canCreate = hasPerm('can_add');
+  const canExport = hasPerm('can_mulexport');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -178,9 +189,31 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { table_name: datasetTitle, explore_url: exploreURL },
+            original: {
+              extra,
+              table_name: datasetTitle,
+              explore_url: exploreURL,
+            },
           },
-        }: any) => <a href={exploreURL}>{datasetTitle}</a>,
+        }: any) => {
+          const titleLink = <a href={exploreURL}>{datasetTitle}</a>;
+          try {
+            const parsedExtra = JSON.parse(extra);
+            return parsedExtra?.certification ? (
+              <FlexRowContainer>
+                <CertifiedIconWithTooltip
+                  certifiedBy={parsedExtra.certification.certified_by}
+                  details={parsedExtra.certification.details}
+                />
+                {titleLink}
+              </FlexRowContainer>
+            ) : (
+              titleLink
+            );
+          } catch {
+            return titleLink;
+          }
+        },
         Header: t('Name'),
         accessor: 'table_name',
       },
@@ -250,7 +283,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
-
+          const handleExport = () => handleBulkDatasetExport([original]);
+          if (!canEdit && !canDelete && !canExport) {
+            return null;
+          }
           return (
             <span className="actions">
               {canDelete && (
@@ -269,7 +305,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   </span>
                 </TooltipWrapper>
               )}
-
+              {canExport && (
+                <TooltipWrapper
+                  label="export-action"
+                  tooltip={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icon name="share" />
+                  </span>
+                </TooltipWrapper>
+              )}
               {canEdit && (
                 <TooltipWrapper
                   label="edit-action"
@@ -295,7 +346,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, openDatasetEditModal],
+    [canEdit, canDelete, canExport, openDatasetEditModal],
   );
 
   const filterTypes: Filters = useMemo(
@@ -376,7 +427,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const buttonArr: Array<ButtonProps> = [];
 
-  if (canDelete) {
+  if (canDelete || canExport) {
     buttonArr.push({
       name: t('Bulk Select'),
       onClick: toggleBulkSelect,
@@ -441,6 +492,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
+  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+    return window.location.assign(
+      `/api/v1/dataset/export/?q=${rison.encode(
+        datasetsToExport.map(({ id }) => id),
+      )}`,
+    );
+  };
+
   return (
     <>
       <SubMenu {...menuData} />
@@ -483,17 +542,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         onConfirm={handleBulkDatasetDelete}
       >
         {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = canDelete
-            ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
-            : [];
-
+          const bulkActions: ListViewProps['bulkActions'] = [];
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              onSelect: confirmDelete,
+              type: 'danger',
+            });
+          }
+          if (canExport) {
+            bulkActions.push({
+              key: 'export',
+              name: t('Export'),
+              type: 'primary',
+              onSelect: handleBulkDatasetExport,
+            });
+          }
           return (
             <ListView<Dataset>
               className="dataset-list-view"

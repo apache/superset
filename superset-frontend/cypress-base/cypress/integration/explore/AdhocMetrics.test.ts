@@ -72,11 +72,6 @@ describe('AdhocMetrics', () => {
       .should('have.text', 'num')
       .click();
 
-    cy.get('[data-test=option-label]')
-      .should('have.text', 'SUM(num)')
-      .first()
-      .click();
-
     // add custom SQL
     cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
     cy.get('[data-test=metrics-edit-popover]').within(() => {
@@ -103,9 +98,6 @@ describe('AdhocMetrics', () => {
     cy.get('[data-test=metrics]')
       .find('[data-test="metric-option"]')
       .should('have.length', 2);
-    cy.get('[data-test=metrics]').within(() => {
-      cy.contains('[data-test="metric-option"]', 'SUM(sum_girls)').click();
-    });
 
     cy.get('#metrics-edit-popover').within(() => {
       cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
@@ -144,5 +136,23 @@ describe('AdhocMetrics', () => {
       querySubstring: `${metric} AS "${metric}"`,
       chartSelector: 'svg',
     });
+  });
+
+  it('Click save without making any changes', () => {
+    cy.get('[data-test=metrics]')
+      .find('.Select__control input')
+      .type('sum_girls', { force: true });
+
+    cy.get('[data-test=metrics]')
+      .find('.Select__option--is-focused')
+      .trigger('mousedown')
+      .click();
+
+    cy.get('[data-test=metrics-edit-popover]').should('be.visible');
+    cy.get('[data-test="AdhocMetricEdit#save"]').click();
+
+    cy.wait(1000);
+
+    cy.get('[data-test=metrics-edit-popover]').should('not.be.visible');
   });
 });

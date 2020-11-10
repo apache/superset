@@ -61,12 +61,22 @@ describe('Visualization > Bubble', () => {
   // Since main functionality is already covered in fitler test below,
   // skip this test untill we find a solution.
   it.skip('should work', () => {
-    verify(BUBBLE_FORM_DATA);
-    // number of circles = 214 rows
-    cy.get('.chart-container svg .nv-point-clips circle').should(
-      'have.length',
-      214,
-    );
+    cy.visitChartByParams(JSON.stringify(BUBBLE_FORM_DATA)).then(() => {
+      cy.wait('@getJson').then(xhr => {
+        let expectedBubblesNumber = 0;
+        xhr.responseBody.data.forEach(element => {
+          expectedBubblesNumber += element.values.length;
+        });
+        cy.get('[data-test="chart-container"]')
+          .should('be.visible', { timeout: 15000 })
+          .within(() => {
+            cy.get('svg')
+              .should('exist')
+              .find('.nv-point-clips circle')
+              .should('have.length', expectedBubblesNumber);
+          });
+      });
+    });
   });
 
   it('should work with filter', () => {
@@ -84,8 +94,11 @@ describe('Visualization > Bubble', () => {
         },
       ],
     });
-    cy.get('.chart-container svg .nv-point-clips circle')
-      .should('have.length', 8)
+    cy.get('[data-test="chart-container"]')
+      .should('be.visible')
+      .within(() => {
+        cy.get('svg').find('.nv-point-clips circle').should('have.length', 8);
+      })
       .then(nodeList => {
         // Check that all circles have same color.
         const color = nodeList[0].getAttribute('fill');

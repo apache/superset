@@ -119,6 +119,7 @@ function SelectFilter({
         setSelectedOption(matchingOption);
       }
     }
+
     return {
       options: result,
       hasMore,

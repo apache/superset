@@ -199,16 +199,4 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       }),
     );
   });
-
-  it('expands when its multi comparator input field expands', () => {
-    const { wrapper, onHeightChange } = setup();
-
-    wrapper.instance().multiComparatorComponent = {
-      select: { select: { controlRef: { clientHeight: 57 } } },
-    };
-    wrapper.instance().handleMultiComparatorInputHeightChange();
-
-    expect(onHeightChange.calledOnce).toBe(true);
-    expect(onHeightChange.lastCall.args[0]).toBe(27);
-  });
 });

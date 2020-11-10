@@ -16,128 +16,162 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
-import {
-  Panel,
-  Row,
-  Col,
-  Tabs,
-  Tab,
-  FormControl,
-  FormControlProps,
-} from 'react-bootstrap';
-import { t } from '@superset-ui/core';
-import { useQueryParam, StringParam, QueryParamConfig } from 'use-query-params';
+import React, { useEffect, useState } from 'react';
+import { styled, t } from '@superset-ui/core';
+import { Collapse } from 'src/common/components';
 import { User } from 'src/types/bootstrapTypes';
-import RecentActivity from 'src/profile/components/RecentActivity';
-import Favorites from 'src/profile/components/Favorites';
+import { reject } from 'lodash';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Loading from 'src/components/Loading';
+import { getRecentAcitivtyObjs, mq } from '../utils';
+
+import ActivityTable from './ActivityTable';
+import ChartTable from './ChartTable';
+import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
+
+const { Panel } = Collapse;
 
 interface WelcomeProps {
   user: User;
+  addDangerToast: (arg0: string) => void;
 }
 
-function useSyncQueryState(
-  queryParam: string,
-  queryParamType: QueryParamConfig<
-    string | null | undefined,
-    string | undefined
-  >,
-  defaultState: string,
-): [string, (val: string) => void] {
-  const [queryState, setQueryState] = useQueryParam(queryParam, queryParamType);
-  const [state, setState] = useState(queryState || defaultState);
-
-  const setQueryStateAndState = (val: string) => {
-    setQueryState(val);
-    setState(val);
-  };
-
-  return [state, setQueryStateAndState];
+export interface ActivityData {
+  Created?: Array<object>;
+  Edited?: Array<object>;
+  Viewed?: Array<object>;
+  Examples?: Array<object>;
+  myChart?: Array<object>;
+  myDash?: Array<object>;
+  myQuery?: Array<object>;
 }
 
-export default function Welcome({ user }: WelcomeProps) {
-  const [activeTab, setActiveTab] = useSyncQueryState(
-    'activeTab',
-    StringParam,
-    'all',
-  );
+const WelcomeContainer = styled.div`
+  background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  nav {
+    margin-top: -15px;
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    &:after {
+      content: '';
+      display: block;
+      border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+      margin: 0px ${({ theme }) => theme.gridUnit * 6}px;
+      position: relative;
+      ${[mq[1]]} {
+        margin-top: 5px;
+        margin: 0px 2px;
+      }
+    }
+    .nav.navbar-nav {
+      & > li:nth-child(1),
+      & > li:nth-child(2),
+      & > li:nth-child(3) {
+        margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+      }
+    }
+    button {
+      padding: 3px 21px;
+    }
+    .navbar-right {
+      position: relative;
+      top: 11px;
+    }
+  }
+  .ant-card.ant-card-bordered {
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+  .ant-collapse-header {
+    font-weight: ${({ theme }) => theme.typography.weights.normal};
+    font-size: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+  .ant-collapse-content-box {
+    min-height: 265px;
+    .loading.inline {
+      margin: ${({ theme }) => theme.gridUnit * 12}px auto;
+      display: block;
+    }
+  }
+`;
 
-  const [searchQuery, setSearchQuery] = useSyncQueryState(
-    'search',
-    StringParam,
-    '',
-  );
-
-  const onFormControlChange = useCallback(
-    (e: React.FormEvent<FormControl & FormControlProps>) => {
-      const { value } = e.currentTarget;
-      setSearchQuery((value as string) ?? '');
-    },
-    [],
-  );
-
-  const onTabsSelect = useCallback((e: any) => {
-    setActiveTab(e as string);
+function Welcome({ user, addDangerToast }: WelcomeProps) {
+  const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
+  const [activeChild, setActiveChild] = useState('Viewed');
+  const [activityData, setActivityData] = useState<ActivityData>({});
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
+      .then(res => {
+        const data: any = {
+          Created: [
+            ...res.createdByChart,
+            ...res.createdByDash,
+            ...res.createdByQuery,
+          ],
+          myChart: res.createdByChart,
+          myDash: res.createdByDash,
+          myQuery: res.createdByQuery,
+          Edited: [...res.editedChart, ...res.editedDash],
+        };
+        if (res.viewed) {
+          const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
+          data.Viewed = filtered;
+          setActiveChild('Viewed');
+        } else {
+          data.Examples = res.examples;
+          setActiveChild('Examples');
+        }
+        setActivityData(data);
+        setLoading(false);
+      })
+      .catch(e => {
+        setLoading(false);
+        addDangerToast(
+          `There was an issue fetching your recent acitivity: ${e}`,
+        );
+      });
   }, []);
 
   return (
-    <div className="container welcome">
-      <Tabs
-        activeKey={activeTab}
-        onSelect={onTabsSelect}
-        id="uncontrolled-tab-example"
-      >
-        <Tab eventKey="all" title={t('Dashboards')}>
-          <Panel>
-            <Panel.Body>
-              <Row>
-                <Col md={8}>
-                  <h2>{t('Dashboards')}</h2>
-                </Col>
-                <Col md={4}>
-                  <FormControl
-                    type="text"
-                    bsSize="sm"
-                    style={{ marginTop: '25px' }}
-                    placeholder="Search"
-                    value={searchQuery}
-                    onChange={onFormControlChange}
-                  />
-                </Col>
-              </Row>
-              <hr />
-              <DashboardTable search={searchQuery} />
-            </Panel.Body>
-          </Panel>
-        </Tab>
-        <Tab eventKey="recent" title={t('Recently Viewed')}>
-          <Panel>
-            <Panel.Body>
-              <Row>
-                <Col md={8}>
-                  <h2>{t('Recently Viewed')}</h2>
-                </Col>
-              </Row>
-              <hr />
-              <RecentActivity user={user} />
-            </Panel.Body>
-          </Panel>
-        </Tab>
-        <Tab eventKey="favorites" title={t('Favorites')}>
-          <Panel>
-            <Panel.Body>
-              <Row>
-                <Col md={8}>
-                  <h2>{t('Favorites')}</h2>
-                </Col>
-              </Row>
-              <hr />
-              <Favorites user={user} />
-            </Panel.Body>
-          </Panel>
-        </Tab>
-      </Tabs>
-    </div>
+    <WelcomeContainer>
+      <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost>
+        <Panel header={t('Recents')} key="1">
+          <ActivityTable
+            user={user}
+            activeChild={activeChild}
+            setActiveChild={setActiveChild}
+            loading={loading}
+            activityData={activityData}
+          />
+        </Panel>
+        <Panel header={t('Dashboards')} key="2">
+          {loading ? (
+            <Loading position="inline" />
+          ) : (
+            <DashboardTable
+              user={user}
+              mine={activityData.myDash}
+              isLoading={loading}
+            />
+          )}
+        </Panel>
+        <Panel header={t('Saved Queries')} key="3">
+          {loading ? (
+            <Loading position="inline" />
+          ) : (
+            <SavedQueries user={user} mine={activityData.myQuery} />
+          )}
+        </Panel>
+        <Panel header={t('Charts')} key="4">
+          {loading ? (
+            <Loading position="inline" />
+          ) : (
+            <ChartTable user={user} mine={activityData.myChart} />
+          )}
+        </Panel>
+      </Collapse>
+    </WelcomeContainer>
   );
 }
+
+export default withToasts(Welcome);

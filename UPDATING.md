@@ -23,6 +23,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [11575](https://github.com/apache/incubator-superset/pull/11575) The Row Level Security (RLS) config flag has been moved to a feature flag. To migrate, add `ROW_LEVEL_SECURITY: True` to the `FEATURE_FLAGS` dict in `superset_config.py`.
+
 * NOTICE: config flag ENABLE_REACT_CRUD_VIEWS has been set to `True` by default, set to `False` if
   you prefer to vintage look and feel :)
 

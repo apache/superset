@@ -30,11 +30,33 @@ const notForwardedProps = ['fullWidth'];
 const StyledTabs = styled(AntdTabs, {
   shouldForwardProp: prop => !notForwardedProps.includes(prop),
 })<TabsProps>`
+  .ant-tabs-content-holder {
+    overflow: auto;
+  }
+
   .ant-tabs-tab {
     flex: 1 1 auto;
 
     &.ant-tabs-tab-active .ant-tabs-tab-btn {
       color: inherit;
+    }
+
+    &:hover {
+      .anchor-link-container {
+        cursor: pointer;
+
+        .fa.fa-link {
+          visibility: visible;
+        }
+      }
+    }
+
+    .short-link-trigger.btn {
+      padding: 0 ${({ theme }) => theme.gridUnit}px;
+
+      & > .fa.fa-link {
+        top: 0;
+      }
     }
   }
 
@@ -105,7 +127,7 @@ const StyledEditableTabs = styled(StyledTabs)`
     `}
 `;
 
-const EditableTabs = Object.assign(StyledEditableTabs, {
+export const EditableTabs = Object.assign(StyledEditableTabs, {
   TabPane: StyledTabPane,
 });
 
@@ -120,5 +142,36 @@ EditableTabs.TabPane.defaultProps = {
   ),
 };
 
+export const StyledLineEditableTabs = styled(EditableTabs)`
+  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
+    padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit}px`};
+    background: transparent;
+    border: none;
+  }
+
+  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-ink-bar {
+    visibility: visible;
+  }
+
+  .ant-tabs-tab-btn {
+    font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  }
+
+  .ant-tabs-tab-remove {
+    margin-left: 0;
+    padding-right: 0;
+  }
+
+  .ant-tabs-nav-add {
+    min-width: unset !important;
+    background: transparent !important;
+    border: none !important;
+  }
+`;
+
+export const LineEditableTabs = Object.assign(StyledLineEditableTabs, {
+  TabPane: StyledTabPane,
+});
+
 export default Tabs;
-export { EditableTabs };

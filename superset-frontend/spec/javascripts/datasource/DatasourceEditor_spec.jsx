@@ -17,12 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { Tabs } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 
+import Tabs from 'src/common/components/Tabs';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import Field from 'src/CRUD/Field';
 import mockDatasource from '../../fixtures/mockDatasource';

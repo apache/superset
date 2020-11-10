@@ -94,6 +94,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "default_endpoint",
         "explore_url",
+        "extra",
         "kind",
         "owners.id",
         "owners.username",
@@ -135,6 +136,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics",
         "datasource_type",
         "url",
+        "extra",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
@@ -155,6 +157,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners",
         "columns",
         "metrics",
+        "extra",
     ]
     openapi_spec_tag = "Datasets"
     related_field_filters = {
@@ -166,6 +169,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
 
+    apispec_parameter_schemas = {
+        "get_export_ids_schema": get_export_ids_schema,
+    }
     openapi_spec_component_schemas = (DatasetRelatedObjectsResponse,)
 
     @expose("/", methods=["POST"])
@@ -360,9 +366,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: integer
+                  $ref: '#/components/schemas/get_export_ids_schema'
           responses:
             200:
               description: Dataset export
