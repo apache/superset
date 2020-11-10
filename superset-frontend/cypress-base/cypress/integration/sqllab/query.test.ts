@@ -46,7 +46,7 @@ describe('SqlLab query panel', () => {
     cy.route({
       method: 'POST',
       url: '/superset/sql_json/',
-      delay: 2000,
+      delay: 500,
       response: () => sampleResponse,
     }).as('mockSQLResponse');
 
@@ -62,43 +62,37 @@ describe('SqlLab query panel', () => {
 
     cy.get('[data-test="sql-editor-run-query-action-button"]').click();
 
+    const actionBar = '[data-test="sql-editor-actions-toolbar"]';
+    const timerLabel = `${actionBar} .label-success`;
+
     // started timer
-    cy.get('[data-test="sql-editor-actions-toolbar"]')
-      .find('.label-success')
-      .should('not.be.NaN')
+    cy.get(timerLabel)
+      .contains('00:00')
       .then(node => {
         clockTime = parseClockStr(node);
         // should be longer than 0.1s
-        expect(clockTime).greaterThan(0.1);
+        expect(clockTime).greaterThan(0.01);
       });
 
     cy.wait('@mockSQLResponse');
 
     // timer is increasing
-    cy.get('[data-test="sql-editor-actions-toolbar"]')
-      .find('.label-success')
-      .then(node => {
-        const newClockTime = parseClockStr(node);
-        expect(newClockTime).greaterThan(0.9);
-        clockTime = newClockTime;
-      });
+    cy.get(timerLabel).then(node => {
+      const newClockTime = parseClockStr(node);
+      expect(newClockTime).greaterThan(0.4);
+      clockTime = newClockTime;
+    });
 
-    cy.get('[data-test="sql-editor-actions-toolbar"]')
-      .find('.label-success')
-      .then(node => {
-        // rerun the query
-        cy.get('[data-test="sql-editor-run-query-action-button"]').click();
-        // should restart the timer
-        cy.get('[data-test="sql-editor-actions-toolbar"]')
-          .find('.label-success')
-          .should('not.have.text', node.text());
-        cy.wait('@mockSQLResponse');
-        cy.get('[data-test="sql-editor-actions-toolbar"]')
-          .find('.label-success')
-          .then(node => {
-            expect(parseClockStr(node)).greaterThan(0.9);
-          });
-      });
+    // rerun the query
+    cy.get('[data-test="sql-editor-run-query-action-button"]').click();
+
+    // should restart the timer
+    cy.get(timerLabel).contains('00:00:00');
+
+    cy.wait('@mockSQLResponse');
+    cy.get(timerLabel).then(node => {
+      expect(parseClockStr(node)).greaterThan(0.4);
+    });
   });
 
   it.skip('successfully saves a query', () => {
