@@ -324,7 +324,7 @@ class ImportDashboardsCommand(BaseCommand):
         self.validate()
 
         for file_name, content in self.contents.items():
-            logger.info(f"Importing dashboard from file {file_name}")
+            logger.info("Importing dashboard from file %s", file_name)
             import_dashboards(db.session, content, self.database_id)
 
     def validate(self) -> None:
