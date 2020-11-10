@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, AnnotationType } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -41,7 +41,12 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin {
       metadata: new ChartMetadata({
         credits: ['https://echarts.apache.org'],
         description: 'Time-series (Apache ECharts)',
-        supportedAnnotationTypes: ['FORMULA'],
+        supportedAnnotationTypes: [
+          AnnotationType.Event,
+          AnnotationType.Formula,
+          AnnotationType.Interval,
+          AnnotationType.Timeseries,
+        ],
         name: t('Time-series Chart'),
         thumbnail,
       }),
