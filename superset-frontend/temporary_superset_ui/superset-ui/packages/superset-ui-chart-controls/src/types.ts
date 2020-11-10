@@ -149,9 +149,6 @@ export type InternalControlType =
   | 'MetricsControl'
   | 'AdhocFilterControl'
   | 'FilterBoxItemControl'
-  | 'MetricsControlVerifiedOptions'
-  | 'SelectControlVerifiedOptions'
-  | 'AdhocFilterControlVerifiedOptions'
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,11 +197,7 @@ export interface BaseControlConfig<
   warning?: ReactNode;
   error?: ReactNode;
   // override control panel state props
-  mapStateToProps?: (
-    state: ControlPanelState,
-    control: this,
-    actions?: ControlPanelActionDispatchers,
-  ) => ExtraControlProps;
+  mapStateToProps?: (state: ControlPanelState, control: this) => ExtraControlProps;
   tabOverride?: TabOverride;
   visibility?: (props: ControlPanelsContainerProps) => boolean;
 }
@@ -227,10 +220,7 @@ type SelectControlType =
   | 'MetricsControl'
   | 'FixedOrMetricControl'
   | 'AdhocFilterControl'
-  | 'FilterBoxItemControl'
-  | 'MetricsControlVerifiedOptions'
-  | 'SelectControlVerifiedOptions'
-  | 'AdhocFilterControlVerifiedOptions';
+  | 'FilterBoxItemControl';
 
 // via react-select/src/filters
 interface FilterOption<T extends SelectOption> {
