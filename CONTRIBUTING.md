@@ -47,7 +47,6 @@ little bit helps, and credit will always be given.
   - [Setup Local Environment for Development](#setup-local-environment-for-development)
     - [Documentation](#documentation)
       - [Images](#images)
-      - [API documentation](#api-documentation)
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
       - [Logging to the browser console](#logging-to-the-browser-console)
@@ -70,6 +69,7 @@ little bit helps, and credit will always be given.
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
     - [Integration Testing](#integration-testing)
+    - [Storybook](#storybook)
   - [Translating](#translating)
     - [Enabling language selection](#enabling-language-selection)
     - [Extracting new strings for translation](#extracting-new-strings-for-translation)
@@ -77,6 +77,7 @@ little bit helps, and credit will always be given.
   - [Tips](#tips)
     - [Adding a new datasource](#adding-a-new-datasource)
     - [Improving visualizations](#improving-visualizations)
+    - [Visualization Plugins](#visualization-plugins)
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
     - [SQL Lab Async](#sql-lab-async)
@@ -88,7 +89,6 @@ little bit helps, and credit will always be given.
     - [Y Axis 1](#y-axis-1)
     - [Y Axis 2](#y-axis-2)
     - [Query](#query)
-    - [Filters Configuration](#filters-configuration)
     - [Chart Options](#chart-options)
     - [Y Axis](#y-axis)
     - [Other](#other)
@@ -410,12 +410,17 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 #### nvm and node
 
-First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended. Check the docs at the link to be sure, but at the time of writing the following would install nvm and node:
+First, be sure you are using recent versions of NodeJS and npm. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
 ```bash
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
-nvm install node
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
+
+cd superset-frontend
+nvm install
+nvm use
 ```
+
+For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
 
 #### Prerequisite
 
