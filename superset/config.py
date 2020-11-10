@@ -332,6 +332,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
     "ROW_LEVEL_SECURITY": False,
+    # Enables Alerts and reports new implementation
+    "ALERT_REPORTS": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
