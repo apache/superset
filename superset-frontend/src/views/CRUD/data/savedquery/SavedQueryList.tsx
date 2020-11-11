@@ -245,7 +245,7 @@ function SavedQueryList({
       {
         Cell: ({
           row: {
-            original: { sql_tables: tables },
+            original: { sql_tables: tables = [] },
           },
         }: any) => {
           const names = tables.map((table: any) => table.table);
@@ -385,9 +385,11 @@ function SavedQueryList({
           'saved_query',
           'database',
           createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
+            addDangerToast(
+              t(
+                'An error occurred while fetching dataset datasource values: %s',
+                errMsg,
+              ),
             ),
           ),
         ),
@@ -403,7 +405,9 @@ function SavedQueryList({
           'saved_query',
           'schema',
           createErrorHandler(errMsg =>
-            t('An error occurred while fetching schema values: %s', errMsg),
+            addDangerToast(
+              t('An error occurred while fetching schema values: %s', errMsg),
+            ),
           ),
         ),
         paginate: true,
@@ -415,7 +419,7 @@ function SavedQueryList({
         operator: 'all_text',
       },
     ],
-    [],
+    [addDangerToast],
   );
 
   return (
