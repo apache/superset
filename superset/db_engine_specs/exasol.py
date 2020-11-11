@@ -41,7 +41,7 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
+        cls, cursor: Any, limit: Optional[int] = None, is_last_statement: bool = False,
     ) -> List[Tuple[Any, ...]]:
         data = super().fetch_data(cursor, limit)
         # Lists of `pyodbc.Row` need to be unpacked further

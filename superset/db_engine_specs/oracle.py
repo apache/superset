@@ -63,7 +63,7 @@ class OracleEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
+        cls, cursor: Any, limit: Optional[int] = None, is_last_statement: bool = False,
     ) -> List[Tuple[Any, ...]]:
         """
         :param cursor: Cursor instance

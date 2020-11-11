@@ -133,7 +133,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
+        cls, cursor: Any, limit: Optional[int] = None, is_last_statement: bool = False,
     ) -> List[Tuple[Any, ...]]:
         import pyhive
         from TCLIService import ttypes

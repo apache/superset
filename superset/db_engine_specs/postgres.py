@@ -53,7 +53,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
+        cls, cursor: Any, limit: Optional[int] = None, is_last_statement: bool = False,
     ) -> List[Tuple[Any, ...]]:
         cursor.tzinfo_factory = FixedOffsetTimezone
         if not cursor.description:

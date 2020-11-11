@@ -156,6 +156,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     arraysize = 0
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
+    only_fetch_on_last_statement = False
 
     # default matching patterns for identifying column types
     db_column_types: Dict[utils.DbColumnType, Tuple[Pattern[Any], ...]] = {
@@ -305,7 +306,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
+        cls, cursor: Any, limit: Optional[int] = None, is_last_statement: bool = False,
     ) -> List[Tuple[Any, ...]]:
         """
 
@@ -315,9 +316,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        if cls.limit_method == LimitMethod.FETCH_MANY and limit:
-            return cursor.fetchmany(limit)
-        return cursor.fetchall()
+        if cls.only_fetch_on_last_statement and is_last_statement:
+            if cls.limit_method == LimitMethod.FETCH_MANY and limit:
+                return cursor.fetchmany(limit)
+            return cursor.fetchall()
+        return []
 
     @classmethod
     def expand_data(

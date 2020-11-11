@@ -38,6 +38,11 @@ class BigQueryEngineSpec(BaseEngineSpec):
     engine = "bigquery"
     engine_name = "Google BigQuery"
     max_column_name_length = 128
+    # fetching for BigQuery flushes the context buildup by SET or DECLARE
+    # statements, therefore we only want to `cursor.fetch` on the very last
+    # statement
+    # more here https://github.com/googleapis/python-bigquery/issues/377
+    only_fetch_on_last_statement = True
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -85,7 +90,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
+        cls, cursor: Any, limit: Optional[int] = None, is_last_statement: bool = False,
     ) -> List[Tuple[Any, ...]]:
         data = super().fetch_data(cursor, limit)
         # Support type BigQuery Row, introduced here PR #4071

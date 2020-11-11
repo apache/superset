@@ -160,6 +160,7 @@ def execute_sql_statement(
     session: Session,
     cursor: Any,
     log_params: Optional[Dict[str, Any]],
+    is_last_statement: bool = False,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
     database = query.database
@@ -229,7 +230,7 @@ def execute_sql_statement(
                 query.id,
                 str(query.to_dict()),
             )
-            data = db_engine_spec.fetch_data(cursor, query.limit)
+            data = db_engine_spec.fetch_data(cursor, query.limit, is_last_statement)
 
     except SoftTimeLimitExceeded as ex:
         logger.error("Query %d: Time limit exceeded", query.id)
@@ -353,9 +354,16 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 logger.info("Query %s: %s", str(query_id), msg)
                 query.set_extra_json_key("progress", msg)
                 session.commit()
+                is_last_statement = i == len(statements) - 1
                 try:
                     result_set = execute_sql_statement(
-                        statement, query, user_name, session, cursor, log_params
+                        statement,
+                        query,
+                        user_name,
+                        session,
+                        cursor,
+                        log_params,
+                        is_last_statement,
                     )
                 except Exception as ex:  # pylint: disable=broad-except
                     msg = str(ex)
