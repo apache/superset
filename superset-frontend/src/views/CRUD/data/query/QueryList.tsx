@@ -251,7 +251,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
                   content={
                     <>
                       {names.map((name: string) => (
-                        <StyledPopoverItem>{name}</StyledPopoverItem>
+                        <StyledPopoverItem key={name}>{name}</StyledPopoverItem>
                       ))}
                     </>
                   }
@@ -287,11 +287,12 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       {
         accessor: 'sql',
         Header: t('SQL'),
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original, id } }: any) => {
           return (
             <div
               tabIndex={0}
               role="button"
+              data-test={`open-sql-preview-${id}`}
               onClick={() => setQueryCurrentlyPreviewing(original)}
             >
               <StyledSyntaxHighlighter language="sql" style={github}>

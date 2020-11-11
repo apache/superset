@@ -46,8 +46,8 @@ const SyntaxHighlighterWrapper = styled.div`
 export default function SyntaxHighlighterCopy(
   props: SyntaxHighlighterProps & {
     children: string;
-    addDangerToast: ToastProps['addDangerToast'];
-    addSuccessToast: ToastProps['addSuccessToast'];
+    addDangerToast?: ToastProps['addDangerToast'];
+    addSuccessToast?: ToastProps['addSuccessToast'];
   },
 ) {
   function copyToClipboard(textToCopy: string) {
@@ -71,9 +71,11 @@ export default function SyntaxHighlighterCopy(
           throw new Error(t('Not successful'));
         }
       } catch (err) {
-        props.addDangerToast(
-          t('Sorry, your browser does not support copying.'),
-        );
+        if (props.addDangerToast) {
+          props.addDangerToast(
+            t('Sorry, your browser does not support copying.'),
+          );
+        }
       }
 
       document.body.removeChild(span);
@@ -82,10 +84,15 @@ export default function SyntaxHighlighterCopy(
       } else {
         selection.removeAllRanges();
       }
-
-      props.addSuccessToast(t('SQL Copied!'));
+      if (props.addSuccessToast) {
+        props.addSuccessToast(t('SQL Copied!'));
+      }
     }
   }
+  const syntaxHighlighterProps = { ...props };
+  delete syntaxHighlighterProps.addDangerToast;
+  delete syntaxHighlighterProps.addSuccessToast;
+
   return (
     <SyntaxHighlighterWrapper>
       <Icon
@@ -98,7 +105,7 @@ export default function SyntaxHighlighterCopy(
           copyToClipboard(props.children);
         }}
       />
-      <SyntaxHighlighter style={github} {...props}>
+      <SyntaxHighlighter style={github} {...syntaxHighlighterProps}>
         {props.children}
       </SyntaxHighlighter>
     </SyntaxHighlighterWrapper>
