@@ -29,9 +29,9 @@
     "@superset-ui/chart-controls": "0.15.13",
     "@superset-ui/core": "0.15.13",
     "@types/echarts": "^4.6.3",
-    "@types/mathjs": "^6.0.6",
+    "@types/mathjs": "^6.0.7",
     "echarts": "^4.9.0",
-    "mathjs": "^7.5.1"
+    "mathjs": "^8.0.1"
   },
   "peerDependencies": {
     "react": "^16.13.1"
