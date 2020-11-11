@@ -175,7 +175,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       .catch(response =>
         getClientErrorObject(response).then(error => {
           addDangerToast(
-            t('ERROR: Connection failed. ') + error?.message || '',
+            error?.message
+              ? `${t('ERROR: ')}${
+                  typeof error.message === 'string'
+                    ? error.message
+                    : error.message.sqlalchemy_uri
+                }`
+              : t('ERROR: Connection failed. '),
           );
         }),
       );
@@ -358,6 +364,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 type="text"
                 name="sqlalchemy_uri"
                 value={db ? db.sqlalchemy_uri : ''}
+                autoComplete="off"
                 placeholder={t(
                   'dialect+driver://username:password@host:port/database',
                 )}

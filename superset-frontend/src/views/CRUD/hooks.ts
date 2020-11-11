@@ -249,7 +249,7 @@ export function useSingleViewResource<D extends object = any>(
         createErrorHandler(errMsg =>
           handleErrorMsg(
             t(
-              'An error occurred while fetching %ss: %s',
+              'An error occurred while creating %ss: %s',
               resourceLabel,
               JSON.stringify(errMsg),
             ),
