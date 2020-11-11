@@ -1430,7 +1430,6 @@ class TestTreemapViz(SupersetTestCase):
                 [111, 112, 121, 122, 211, 212, 221, 222],
             ],
         )
-        #  Before fixing, this line will raise a keyerror
         result = test_viz._nest(metric="a", df=df)
         expected = [
             {
