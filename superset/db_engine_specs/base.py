@@ -316,7 +316,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        if cls.only_fetch_on_last_statement and is_last_statement:
+        if not cls.only_fetch_on_last_statement or is_last_statement:
             if cls.limit_method == LimitMethod.FETCH_MANY and limit:
                 return cursor.fetchmany(limit)
             return cursor.fetchall()
