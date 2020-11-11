@@ -37,6 +37,8 @@ const ActionsWrapper = styled.div`
 
 const StyledCard = styled(Card)`
   border: 1px solid #d9dbe4;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+  overflow: hidden;
 
   .ant-card-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px
@@ -80,6 +82,7 @@ const StyledCard = styled(Card)`
 
 const Cover = styled.div`
   height: 264px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   overflow: hidden;
 
   .cover-footer {

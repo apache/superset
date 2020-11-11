@@ -38,7 +38,7 @@ class CommandInvalidError(CommandException):
 
     def __init__(self, message: str = "") -> None:
         self._invalid_exceptions: List[ValidationError] = []
-        super().__init__(self.message)
+        super().__init__(message)
 
     def add(self, exception: ValidationError) -> None:
         self._invalid_exceptions.append(exception)

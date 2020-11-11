@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Table } from 'reactable-arc';
 import { Alert } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 
+import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import Loading from '../../components/Loading';
 import ModalTrigger from '../../components/ModalTrigger';
+import { EmptyWrapperType } from '../../components/TableView/TableView';
 
 const propTypes = {
   dbId: PropTypes.number.isRequired,
@@ -42,65 +43,68 @@ const defaultProps = {
   disabled: false,
 };
 
-class EstimateQueryCostButton extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.queryCostModal = React.createRef();
-    this.onClick = this.onClick.bind(this);
-    this.renderModalBody = this.renderModalBody.bind(this);
-  }
+const EstimateQueryCostButton = props => {
+  const { cost } = props.queryCostEstimate;
+  const tableData = useMemo(() => (Array.isArray(cost) ? cost : []), [cost]);
+  const columns = useMemo(
+    () =>
+      Array.isArray(cost) && cost.length
+        ? Object.keys(cost[0]).map(key => ({ accessor: key, Header: key }))
+        : [],
+    [cost],
+  );
 
-  onClick() {
-    this.props.getEstimate();
-  }
+  const onClick = () => {
+    props.getEstimate();
+  };
 
-  renderModalBody() {
-    if (this.props.queryCostEstimate.error !== null) {
+  const renderModalBody = () => {
+    if (props.queryCostEstimate.error !== null) {
       return (
         <Alert key="query-estimate-error" bsStyle="danger">
-          {this.props.queryCostEstimate.error}
+          {props.queryCostEstimate.error}
         </Alert>
       );
     }
-    if (this.props.queryCostEstimate.completed) {
+    if (props.queryCostEstimate.completed) {
       return (
-        <Table
-          className="table cost-estimate"
-          data={this.props.queryCostEstimate.cost}
+        <TableView
+          columns={columns}
+          data={tableData}
+          withPagination={false}
+          emptyWrapperType={EmptyWrapperType.Small}
+          className="cost-estimate"
         />
       );
     }
     return <Loading position="normal" />;
-  }
+  };
 
-  render() {
-    const { disabled, selectedText, tooltip } = this.props;
-    const btnText = selectedText
-      ? t('Estimate Selected Query Cost')
-      : t('Estimate Query Cost');
-    return (
-      <span className="EstimateQueryCostButton">
-        <ModalTrigger
-          ref={this.queryCostModal}
-          modalTitle={t('Query Cost Estimate')}
-          modalBody={this.renderModalBody()}
-          triggerNode={
-            <Button
-              buttonStyle="warning"
-              buttonSize="small"
-              onClick={this.onClick}
-              key="query-estimate-btn"
-              tooltip={tooltip}
-              disabled={disabled}
-            >
-              <i className="fa fa-clock-o" /> {btnText}
-            </Button>
-          }
-        />
-      </span>
-    );
-  }
-}
+  const { disabled, selectedText, tooltip } = props;
+  const btnText = selectedText
+    ? t('Estimate Selected Query Cost')
+    : t('Estimate Query Cost');
+  return (
+    <span className="EstimateQueryCostButton">
+      <ModalTrigger
+        modalTitle={t('Query Cost Estimate')}
+        modalBody={renderModalBody()}
+        triggerNode={
+          <Button
+            buttonStyle="warning"
+            buttonSize="small"
+            onClick={onClick}
+            key="query-estimate-btn"
+            tooltip={tooltip}
+            disabled={disabled}
+          >
+            <i className="fa fa-clock-o" /> {btnText}
+          </Button>
+        }
+      />
+    </span>
+  );
+};
 
 EstimateQueryCostButton.propTypes = propTypes;
 EstimateQueryCostButton.defaultProps = defaultProps;

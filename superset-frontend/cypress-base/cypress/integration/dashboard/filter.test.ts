@@ -63,41 +63,30 @@ describe('Dashboard filter', () => {
       cy.wait(aliases);
     });
   });
-  // TODO fix and reactivate this flaky test
-  xit('should apply filter', () => {
-    cy.get('.Select__control input[type=text]').first().focus();
+  it('should apply filter', () => {
+    cy.get('.Select__control input[type=text]')
+      .first()
+      .should('be.visible')
+      .focus();
 
     // should open the filter indicator
-    cy.get('.filter-indicator.active')
-      .should('be.visible')
+    cy.get('[data-test="filter"]')
+      .should('be.visible', { timeout: 10000 })
       .should(nodes => {
         expect(nodes).to.have.length(9);
       });
 
+    cy.get('[data-test="chart-container"]').find('svg').should('be.visible');
+
     cy.get('.Select__control input[type=text]').first().focus().blur();
 
-    // should hide the filter indicator
-    cy.get('.filter-indicator')
-      .not('.active')
-      .should(nodes => {
-        expect(nodes).to.have.length(18);
-      });
-
     cy.get('.Select__control input[type=text]')
       .first()
       .focus()
-      .type('So', { force: true });
+      .type('So', { force: true, delay: 100 });
 
-    cy.get('.Select__menu').first().contains('Create "So"');
+    cy.get('.Select__menu').first().contains('South Asia').click();
 
-    // Somehow Input loses focus after typing "So" while in Cypress, so
-    // we refocus the input again here. The is not happening in real life.
-    cy.get('.Select__control input[type=text]')
-      .first()
-      .focus()
-      .type('uth Asia{enter}', { force: true });
-
-    // by default, need to click Apply button to apply filter
     cy.get('.filter_box button').click({ force: true });
 
     // wait again after applied filters
@@ -109,10 +98,12 @@ describe('Dashboard filter', () => {
         );
         expect(requestParams.extra_filters[0]).deep.eq({
           col: 'region',
-          op: 'in',
-          val: ['South Asia'],
+          op: '==',
+          val: 'South Asia',
         });
       });
     });
+
+    // TODO add test with South Asia{enter} type action to select filter
   });
 });
