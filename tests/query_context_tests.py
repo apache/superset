@@ -176,12 +176,9 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        data = responses[0]["data"]
+        data = responses["queries"][0]["data"]
         self.assertIn("name,sum__num\n", data)
         self.assertEqual(len(data.split("\n")), 12)
-
-        ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
-        assert ck.datasource_uid == f"{table.id}__table"
 
     def test_sql_injection_via_groupby(self):
         """
@@ -194,7 +191,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["groupby"] = ["currentDatabase()"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
+        assert query_payload["queries"][0].get("error") is not None
 
     def test_sql_injection_via_columns(self):
         """
@@ -209,7 +206,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["columns"] = ["*, 'extra'"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
+        assert query_payload["queries"][0].get("error") is not None
 
     def test_sql_injection_via_metrics(self):
         """
@@ -230,7 +227,7 @@ class TestQueryContext(SupersetTestCase):
         ]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
+        assert query_payload["queries"][0].get("error") is not None
 
     def test_samples_response_type(self):
         """
@@ -245,7 +242,7 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        data = responses[0]["data"]
+        data = responses["queries"][0]["data"]
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 5)
         self.assertNotIn("sum__num", data[0])
@@ -262,7 +259,7 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        response = responses[0]
+        response = responses["queries"][0]
         self.assertEqual(len(response), 2)
         self.assertEqual(response["language"], "sql")
         self.assertIn("SELECT", response["query"])

@@ -28,7 +28,7 @@ from superset.extensions import cache_manager
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.core import json_int_dttm_ser
 
-config = app.config
+config = app.config  # type: ignore
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 

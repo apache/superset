@@ -474,7 +474,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
                   schema:
                     $ref: "#/components/schemas/ChartDataResponseSchema"
             202:
-              $ref: '#/components/responses/202'
+              description: Async job details
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/ChartDataAsyncResponseSchema"
             400:
               $ref: '#/components/responses/400'
             401:
