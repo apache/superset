@@ -37,6 +37,7 @@ const ActionsWrapper = styled.div`
 
 const StyledCard = styled(Card)`
   border: 1px solid #d9dbe4;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
 
   .ant-card-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px
