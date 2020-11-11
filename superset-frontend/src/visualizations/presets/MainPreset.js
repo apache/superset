@@ -35,6 +35,7 @@ import PartitionChartPlugin from '@superset-ui/legacy-plugin-chart-partition';
 import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table';
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
+import SankeyLoopChartPlugin from '@superset-ui/legacy-plugin-chart-sankey-loop';
 import SunburstChartPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import TreemapChartPlugin from '@superset-ui/legacy-plugin-chart-treemap';
@@ -102,6 +103,7 @@ export default class MainPreset extends Preset {
         new PivotTableChartPlugin().configure({ key: 'pivot_table' }),
         new RoseChartPlugin().configure({ key: 'rose' }),
         new SankeyChartPlugin().configure({ key: 'sankey' }),
+        new SankeyLoopChartPlugin().configure({ key: 'sankey_loop' }),
         new SunburstChartPlugin().configure({ key: 'sunburst' }),
         new TableChartPlugin().configure({ key: 'table' }),
         new TimePivotChartPlugin().configure({ key: 'time_pivot' }),
