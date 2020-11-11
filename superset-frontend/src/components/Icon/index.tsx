@@ -83,6 +83,7 @@ import { ReactComponent as FullIcon } from 'images/icons/full.svg';
 import { ReactComponent as GearIcon } from 'images/icons/gear.svg';
 import { ReactComponent as GridIcon } from 'images/icons/grid.svg';
 import { ReactComponent as ImageIcon } from 'images/icons/image.svg';
+import { ReactComponent as ImportIcon } from 'images/icons/import.svg';
 import { ReactComponent as InfoSolidSmallIcon } from 'images/icons/info_solid_small.svg';
 import { ReactComponent as InfoSolidIcon } from 'images/icons/info-solid.svg';
 import { ReactComponent as InfoIcon } from 'images/icons/info.svg';
@@ -201,6 +202,7 @@ export type IconName =
   | 'gear'
   | 'grid'
   | 'image'
+  | 'import'
   | 'info-solid-small'
   | 'info-solid'
   | 'info'
@@ -322,6 +324,7 @@ export const iconsRegistry: Record<
   gear: GearIcon,
   grid: GridIcon,
   image: ImageIcon,
+  import: ImportIcon,
   'info-solid-small': InfoSolidSmallIcon,
   'info-solid': InfoSolidIcon,
   info: InfoIcon,

@@ -190,7 +190,7 @@
     "@storybook/addons": "^5.3.19",
     "@storybook/client-api": "^6.0.21",
     "@storybook/preset-typescript": "^3.0.0",
-    "@storybook/react": "^6.0.13",
+    "@storybook/react": "^6.0.28",
     "@svgr/webpack": "^5.4.0",
     "@types/classnames": "^2.2.10",
     "@types/dom-to-image": "^2.6.0",
