@@ -179,7 +179,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               ? `${t('ERROR: ')}${
                   typeof error.message === 'string'
                     ? error.message
-                    : error.message.sqlalchemy_uri
+                    : (error.message as Record<string, string[]>).sqlalchemy_uri
                 }`
               : t('ERROR: Connection failed. '),
           );
@@ -315,6 +315,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   return (
     <Modal
+      name="database"
       className="database-modal"
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={onSave}

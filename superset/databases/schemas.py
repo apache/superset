@@ -131,7 +131,7 @@ def sqlalchemy_uri_validator(value: str) -> str:
     """
     try:
         make_url(value.strip())
-    except (ArgumentError, AttributeError):
+    except (ArgumentError, AttributeError, ValueError):
         raise ValidationError(
             [
                 _(

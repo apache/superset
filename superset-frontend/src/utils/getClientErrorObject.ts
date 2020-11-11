@@ -31,7 +31,7 @@ export type ClientErrorObject = {
   link?: string;
   // marshmallow field validation returns the error mssage in the format
   // of { field: [msg1, msg2] }
-  message?: string | Record<string, string[]>;
+  message?: string;
   severity?: string;
   stacktrace?: string;
 } & Partial<SupersetClientResponse>;

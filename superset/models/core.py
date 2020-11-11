@@ -649,9 +649,10 @@ class Database(
     def sqlalchemy_uri_decrypted(self) -> str:
         try:
             conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
-        except ArgumentError:
+        except (ArgumentError, ValueError):
             # if the URI is invalid, ignore and return a placeholder url
-            return "dialect://host"
+            # (so users see 500 less often)
+            return "dialect://invalid_uri"
         if custom_password_store:
             conn.password = custom_password_store(conn)
         else:
