@@ -61,6 +61,15 @@ class ReportScheduleAlertRequiredDatabaseValidationError(ValidationError):
         super().__init__(_("Database is required for alerts"), field_name="database")
 
 
+class ReportScheduleRequiredTypeValidationError(ValidationError):
+    """
+    Marshmallow type validation error for report schedule missing type field
+    """
+
+    def __init__(self) -> None:
+        super().__init__(_("Type is required"), field_name="type")
+
+
 class ReportScheduleChartOrDashboardValidationError(ValidationError):
     """
     Marshmallow validation error for report schedule accept exlusive chart or dashboard
@@ -92,14 +101,6 @@ class ReportScheduleNotFoundError(CommandException):
 
 class ReportScheduleDeleteFailedError(CommandException):
     message = _("Report Schedule delete failed.")
-
-
-class ReportScheduleDeleteIntegrityError(CommandException):
-    message = _("Report Schedule has associated logs or recipients.")
-
-
-class ReportScheduleBulkDeleteIntegrityError(CommandException):
-    message = _("Report Schedule has associated logs or recipients.")
 
 
 class ReportScheduleNameUniquenessValidationError(ValidationError):

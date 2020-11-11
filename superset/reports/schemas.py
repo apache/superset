@@ -49,7 +49,7 @@ name_description = "The report schedule name."
 description_description = "Use a nice description to give context to this Alert/Report"
 context_markdown_description = "Markdown description"
 crontab_description = (
-    "A CRON-like expression."
+    "A CRON expression."
     "[Crontab Guru](https://crontab.guru/) is "
     "a helpful resource that can help you craft a CRON expression."
 )

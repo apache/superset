@@ -32,10 +32,8 @@ from superset.reports.commands.create import CreateReportScheduleCommand
 from superset.reports.commands.delete import DeleteReportScheduleCommand
 from superset.reports.commands.exceptions import (
     ReportScheduleBulkDeleteFailedError,
-    ReportScheduleBulkDeleteIntegrityError,
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
-    ReportScheduleDeleteIntegrityError,
     ReportScheduleInvalidError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
@@ -200,8 +198,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response(200, message="OK")
         except ReportScheduleNotFoundError as ex:
             return self.response_404()
-        except ReportScheduleDeleteIntegrityError as ex:
-            return self.response_422(message=str(ex))
         except ReportScheduleDeleteFailedError as ex:
             logger.error(
                 "Error deleting report schedule %s: %s",
@@ -386,7 +382,5 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             )
         except ReportScheduleNotFoundError:
             return self.response_404()
-        except ReportScheduleBulkDeleteIntegrityError as ex:
-            return self.response_422(message=str(ex))
         except ReportScheduleBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))

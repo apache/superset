@@ -52,4 +52,3 @@ class DeleteReportScheduleCommand(BaseCommand):
         self._model = ReportScheduleDAO.find_by_id(self._model_id)
         if not self._model:
             raise ReportScheduleNotFoundError()
-        # TODO check integrity

@@ -33,6 +33,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleCreateFailedError,
     ReportScheduleInvalidError,
     ReportScheduleNameUniquenessValidationError,
+    ReportScheduleRequiredTypeValidationError,
 )
 from superset.reports.dao import ReportScheduleDAO
 
@@ -57,7 +58,11 @@ class CreateReportScheduleCommand(BaseReportScheduleCommand):
         exceptions: List[ValidationError] = list()
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         name = self._properties.get("name", "")
-        report_type = self._properties.get("type", ReportScheduleType.ALERT)
+        report_type = self._properties.get("type")
+
+        # Validate type is required
+        if not report_type:
+            exceptions.append(ReportScheduleRequiredTypeValidationError())
 
         # Validate name uniqueness
         if not ReportScheduleDAO.validate_update_uniqueness(name):
