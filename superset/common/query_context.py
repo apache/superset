@@ -148,6 +148,7 @@ class QueryContext:
         if self.result_type == utils.ChartDataResultType.SAMPLES:
             row_limit = query_obj.row_limit or math.inf
             query_obj = copy.copy(query_obj)
+            query_obj.orderby = []
             query_obj.groupby = []
             query_obj.metrics = []
             query_obj.post_processing = []
