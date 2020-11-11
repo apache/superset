@@ -61,6 +61,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import (
@@ -86,7 +87,7 @@ from superset.security.analytics_db_safety import (
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.typing import FlaskResponse
-from superset.utils import core as utils, dashboard_import_export
+from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache
 from superset.views.base import (
@@ -545,9 +546,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             success = False
             database_id = request.form.get("db_id")
             try:
-                dashboard_import_export.import_dashboards(
-                    db.session, import_file.stream, database_id
-                )
+                ImportDashboardsCommand(
+                    {import_file.filename: import_file.read()}, database_id
+                ).run()
                 success = True
             except DatabaseNotFound as ex:
                 logger.exception(ex)
