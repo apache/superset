@@ -20,7 +20,7 @@
 import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
 import nv from 'nvd3-fork';
-import mathjs from 'mathjs';
+import { parse as mathjsParse } from 'mathjs';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import {
@@ -904,7 +904,7 @@ function nvd3Vis(element, props) {
         // Formula annotations
         const formulas = activeAnnotationLayers
           .filter(a => a.annotationType === ANNOTATION_TYPES.FORMULA)
-          .map(a => ({ ...a, formula: mathjs.parse(a.value) }));
+          .map(a => ({ ...a, formula: mathjsParse(a.value) }));
 
         let xMax;
         let xMin;
@@ -958,7 +958,7 @@ function nvd3Vis(element, props) {
           }
           const formulaData = formulas.map(fo => ({
             key: fo.name,
-            values: xValues.map(x => ({ y: fo.formula.eval({ x }), x })),
+            values: xValues.map(x => ({ y: fo.formula.evaluate({ x }), x })),
             color: fo.color,
             strokeWidth: fo.width,
             classed: `${fo.opacity} ${fo.style}`,
