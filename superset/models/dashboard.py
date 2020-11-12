@@ -17,9 +17,7 @@
 import json
 import logging
 from functools import partial
-from json.decoder import JSONDecodeError
 from typing import Any, Callable, Dict, List, Set, Union
-from urllib import parse
 
 import sqlalchemy as sqla
 from flask_appbuilder import Model
@@ -160,27 +158,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @property
     def url(self) -> str:
-        url = f"/superset/dashboard/{self.slug or self.id}/"
-        if self.json_metadata:
-            # add default_filters to the preselect_filters of dashboard
-            json_metadata = json.loads(self.json_metadata)
-            default_filters = json_metadata.get("default_filters")
-            # make sure default_filters is not empty and is valid
-            if default_filters and default_filters != "{}":
-                try:
-                    if json.loads(default_filters):
-                        filters = parse.quote(default_filters.encode("utf8"))
-                        return "/superset/dashboard/{}/?preselect_filters={}".format(
-                            self.slug or self.id, filters
-                        )
-                except (TypeError, JSONDecodeError) as exc:
-                    logger.error(
-                        "Unable to parse json for url: %r. Returning default url.",
-                        exc,
-                        exc_info=True,
-                    )
-                    return url
-        return url
+        return f"/superset/dashboard/{self.slug or self.id}/"
 
     @property
     def datasources(self) -> Set[BaseDatasource]:

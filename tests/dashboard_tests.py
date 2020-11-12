@@ -180,7 +180,8 @@ class TestDashboard(SupersetTestCase):
 
         updatedDash = db.session.query(Dashboard).filter_by(slug="world_health").first()
         new_url = updatedDash.url
-        self.assertIn("region", new_url)
+        self.assertIn("world_health", new_url)
+        self.assertNotIn("preselect_filters", new_url)
 
         resp = self.get_resp(new_url)
         self.assertIn("North America", resp)
