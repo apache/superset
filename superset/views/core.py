@@ -271,9 +271,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
                 datasource = ConnectorRegistry.get_datasource(
-                    dar.datasource_type,
-                    dar.datasource_id,
-                    session,
+                    dar.datasource_type, dar.datasource_id, session,
                 )
                 if not datasource or security_manager.can_access_datasource(datasource):
                     # datasource does not exist anymore
@@ -751,9 +749,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         # TODO: Cache endpoint by user, datasource and column
         datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+            datasource_type, datasource_id, db.session,
         )
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
@@ -1096,12 +1092,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
         session.close()
         return json_success(
-            json.dumps(
-                {
-                    "status": "SUCCESS",
-                    "last_modified_time": last_modified_time,
-                }
-            )
+            json.dumps({"status": "SUCCESS", "last_modified_time": last_modified_time,})
         )
 
     @api
@@ -1217,8 +1208,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         has_subject_title = or_(
             and_(
-                Dashboard.dashboard_title is not None,
-                Dashboard.dashboard_title != "",
+                Dashboard.dashboard_title is not None, Dashboard.dashboard_title != "",
             ),
             and_(Slice.slice_name is not None, Slice.slice_name != ""),
         )
@@ -1252,10 +1242,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     Slice.slice_name,
                 )
                 .outerjoin(Dashboard, Dashboard.id == subqry.c.dashboard_id)
-                .outerjoin(
-                    Slice,
-                    Slice.id == subqry.c.slice_id,
-                )
+                .outerjoin(Slice, Slice.id == subqry.c.slice_id,)
                 .filter(has_subject_title)
                 .order_by(subqry.c.dttm.desc())
                 .limit(limit)
@@ -2514,9 +2501,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
         datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+            datasource_type, datasource_id, db.session,
         )
         # Check if datasource exists
         if not datasource:
