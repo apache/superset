@@ -270,7 +270,7 @@ export default class AdhocFilterControl extends React.Component {
           isMulti
           isLoading={this.props.isLoading}
           name={`select-${this.props.name}`}
-          placeholder={t('choose a column or metric')}
+          placeholder={t('choose one or more columns or metrics')}
           options={this.state.options}
           value={this.state.values}
           labelKey="label"
