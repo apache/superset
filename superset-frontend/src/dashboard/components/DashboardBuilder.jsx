@@ -93,7 +93,7 @@ const StyledDashboardContent = styled.div`
     transition: opacity ${({ theme }) => theme.transitionTiming}s,
       border-color ${({ theme }) => theme.transitionTiming}s,
       box-shadow ${({ theme }) => theme.transitionTiming}s;
-    border: ${({ theme }) => theme.gridUnit / 2}px solid transparent;
+    border: 0px solid transparent;
   }
 `;
 
