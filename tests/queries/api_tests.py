@@ -257,6 +257,7 @@ class TestQueryApi(SupersetTestCase):
             "changed_on",
             "database",
             "end_time",
+            "id",
             "rows",
             "schema",
             "sql",

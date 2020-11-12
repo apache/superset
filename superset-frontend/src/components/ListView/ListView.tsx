@@ -61,6 +61,10 @@ const ListViewStyles = styled.div`
       margin-bottom: 0;
     }
 
+    .body {
+      overflow-x: auto;
+    }
+
     .ant-empty {
       .ant-empty-image {
         height: auto;

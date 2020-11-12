@@ -16,35 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 
-export const commonMenuData = {
-  name: t('Data'),
-  tabs: [
-    {
-      name: 'Datasets',
-      label: t('Datasets'),
-      url: '/tablemodelview/list/',
-      usesRouter: true,
-    },
-    {
-      name: 'Databases',
-      label: t('Databases'),
-      url: '/databaseview/list/',
-      usesRouter: true,
-    },
-    {
-      name: 'Saved Queries',
-      label: t('Saved Queries'),
-      url: '/savedqueryview/list/',
-      usesRouter: true,
-    },
-    {
-      name: 'Query History',
-      label: t('Query History'),
-      url: '/superset/sqllab/history/',
-      usesRouter: isFeatureEnabled(FeatureFlag.SIP_34_QUERY_SEARCH_UI),
-    },
-  ],
-};
+export const TIME_WITH_MS = 'HH:mm:ss.SSS';
