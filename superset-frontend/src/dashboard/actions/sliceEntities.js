@@ -49,20 +49,19 @@ export function fetchAllSlices(userId) {
       return SupersetClient.get({
         endpoint: `/api/v1/chart/?q=${rison.encode({
           columns: [
-            'changed_on_humanized',
-            'changed_on',
+            'changed_on_delta_humanized',
+            'changed_on_utc',
             'datasource_id',
             'datasource_type',
-            'datasource_link',
+            'datasource_url',
             'datasource_name_text',
             'description_markeddown',
             'description',
             'edit_url',
             'id',
-            'modified',
             'params',
             'slice_name',
-            'slice_url',
+            'url',
             'viz_type',
           ],
           filters: [{ col: 'owners', opr: 'rel_m_m', value: userId }],
@@ -89,18 +88,18 @@ export function fetchAllSlices(userId) {
             if (['markup', 'separator'].indexOf(slice.viz_type) === -1) {
               slices[slice.id] = {
                 slice_id: slice.id,
-                slice_url: slice.slice_url,
+                slice_url: slice.url,
                 slice_name: slice.slice_name,
                 edit_url: slice.edit_url,
                 form_data,
                 datasource_name: slice.datasource_name_text,
-                datasource_link: slice.datasource_link,
-                changed_on: new Date(slice.changed_on).getTime(),
+                datasource_url: slice.datasource_url,
+                changed_on: new Date(slice.changed_on_utc).getTime(),
                 description: slice.description,
                 description_markdown: slice.description_markeddown,
                 viz_type: slice.viz_type,
-                modified: slice.modified,
-                changed_on_humanized: slice.changed_on_humanized,
+                modified: slice.changed_on_delta_humanized,
+                changed_on_humanized: slice.changed_on_delta_humanized,
               };
             }
           });
