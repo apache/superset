@@ -162,7 +162,7 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> = (
         <QueryTitle>query name</QueryTitle>
         <QueryLabel>{savedQuery.label}</QueryLabel>
         <SyntaxHighlighter language="sql" style={github}>
-          {savedQuery.sql}
+          {savedQuery.sql || ''}
         </SyntaxHighlighter>
       </StyledModal>
     </div>
