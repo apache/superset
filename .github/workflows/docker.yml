@@ -13,8 +13,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - shell: bash
-#        env:
-#          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-#          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           .github/workflows/docker_build_push.sh
