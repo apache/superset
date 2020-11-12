@@ -168,11 +168,16 @@ class SliceHeaderControls extends React.PureComponent {
     const resizeLabel = isFullSize ? t('Minimize') : t('Maximize');
 
     const menu = (
-      <Menu onClick={this.handleMenuClick} selectable={false}>
+      <Menu
+        onClick={this.handleMenuClick}
+        selectable={false}
+        data-test={`slice_${slice.slice_id}-menu`}
+      >
         <Menu.Item
           key={MENU_KEYS.FORCE_REFRESH}
           disabled={this.props.chartStatus === 'loading'}
           style={{ height: 'auto', lineHeight: 'initial' }}
+          data-test="refresh-dashboard-menu-item"
         >
           {t('Force refresh')}
           <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">

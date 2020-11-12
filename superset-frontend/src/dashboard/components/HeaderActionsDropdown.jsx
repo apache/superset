@@ -192,7 +192,11 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailBody = t('Check out this dashboard: ');
 
     const menu = (
-      <Menu onClick={this.handleMenuClick} selectable={false}>
+      <Menu
+        onClick={this.handleMenuClick}
+        selectable={false}
+        data-test="header-actions-menu"
+      >
         {userCanSave && (
           <Menu.Item key={MENU_KEYS.SAVE_MODAL}>
             <SaveModal
