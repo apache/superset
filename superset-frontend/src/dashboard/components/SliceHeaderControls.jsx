@@ -220,7 +220,14 @@ class SliceHeaderControls extends React.PureComponent {
     );
 
     return (
-      <NoAnimationDropdown overlay={menu} trigger={['click']}>
+      <NoAnimationDropdown
+        overlay={menu}
+        trigger={['click']}
+        placement="bottomRight"
+        dropdownAlign={{
+          offset: [-40, 4],
+        }}
+      >
         <a id={`slice_${slice.slice_id}-controls`} role="button">
           <VerticalDotsTrigger />
         </a>
