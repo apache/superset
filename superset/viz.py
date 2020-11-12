@@ -431,6 +431,8 @@ class BaseViz:
             and self.datasource.database.cache_timeout
         ) is not None:
             return self.datasource.database.cache_timeout
+        if config["DATA_CACHE_CONFIG"].get("CACHE_DEFAULT_TIMEOUT") is not None:
+            return config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
         return config["CACHE_DEFAULT_TIMEOUT"]
 
     def get_json(self) -> str:
