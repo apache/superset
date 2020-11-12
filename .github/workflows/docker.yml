@@ -11,8 +11,8 @@ jobs:
         uses: actions/checkout@v2
 
       - shell: bash
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+#        env:
+#          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+#          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           .github/workflows/docker_build_push.sh
