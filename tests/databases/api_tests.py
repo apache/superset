@@ -358,7 +358,6 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {"database_name": "test-database-updated"}
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
-        print(rv.data.decode("utf-8"), database_data)
         self.assertEqual(rv.status_code, 200)
         # Cleanup
         model = db.session.query(Database).get(test_database.id)
