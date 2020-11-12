@@ -79,7 +79,7 @@ function SavedQueryList({
     refreshData,
   } = useListViewResource<SavedQueryObject>(
     'saved_query',
-    t('saved_queries'),
+    t('Saved Queries'),
     addDangerToast,
   );
   const [

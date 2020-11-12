@@ -59,11 +59,11 @@ export function useListViewResource<D extends object = any>(
   }
 
   useEffect(() => {
-    const infoParam = infoEnable
-      ? `_info?q=${rison.encode({ keys: ['permissions'] })}`
-      : '';
+    if (!infoEnable) return;
     SupersetClient.get({
-      endpoint: `/api/v1/${resource}/${infoParam}`,
+      endpoint: `/api/v1/${resource}/_info?q=${rison.encode({
+        keys: ['permissions'],
+      })}`,
     }).then(
       ({ json: infoJson = {} }) => {
         updateState({
@@ -73,7 +73,7 @@ export function useListViewResource<D extends object = any>(
       createErrorHandler(errMsg =>
         handleErrorMsg(
           t(
-            'An error occurred while fetching %ss info: %s',
+            'An error occurred while fetching %s info: %s',
             resourceLabel,
             errMsg,
           ),
