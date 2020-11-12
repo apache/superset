@@ -19,7 +19,7 @@ import logging
 import time
 from copy import copy
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import make_transient, Session
@@ -27,6 +27,7 @@ from sqlalchemy.orm import make_transient, Session
 from superset import ConnectorRegistry, db
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.datasets.commands.importers.v0 import import_dataset
 from superset.exceptions import DashboardImportException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -301,7 +302,7 @@ def import_dashboards(
     if not data:
         raise DashboardImportException(_("No data in file"))
     for table in data["datasources"]:
-        type(table).import_obj(table, database_id, import_time=import_time)
+        import_dataset(table, database_id, import_time=import_time)
     session.commit()
     for dashboard in data["dashboards"]:
         import_dashboard(dashboard, import_time=import_time)
@@ -333,4 +334,5 @@ class ImportDashboardsCommand(BaseCommand):
             try:
                 json.loads(content)
             except ValueError:
+                logger.exception("Invalid JSON file")
                 raise
