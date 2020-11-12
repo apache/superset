@@ -70,27 +70,24 @@ describe('Dashboard top-level controls', () => {
       .find('.world_map')
       .should('be.exist');
     cy.get(`#slice_${mapId}-controls`).click();
-    cy.get(`#slice_${mapId}-controls`)
-      .next()
-      .find('[data-test="dashboard-slice-refresh-tooltip"]')
-      .trigger('click', { force: true });
+    cy.get(`[data-test="slice_${mapId}-menu"]`)
+      .find('[data-test="refresh-dashboard-menu-item"]')
+      .click({ force: true });
 
     // not allow dashboard level force refresh when any chart is loading
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
     // not allow chart level force refresh when it is loading
-    cy.get(`#slice_${mapId}-controls`)
-      .next()
-      .find('[data-test="dashboard-slice-refresh-tooltip"]')
-      .parent()
-      .should('have.class', 'ant-menu-item-disabled');
+    cy.get(`[data-test="slice_${mapId}-menu"]`)
+      .find('[data-test="refresh-dashboard-menu-item"]')
+      .should('have.class', 'ant-dropdown-menu-item-disabled');
 
     cy.wait(`@postJson_${mapId}_force`);
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'not.have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
   });
 
@@ -100,15 +97,15 @@ describe('Dashboard top-level controls', () => {
     cy.get('[data-test="more-horiz"]').click();
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'not.have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
 
     // wait the all dash finish loading.
     cy.wait(sliceRequests);
-    cy.get('[data-test="refresh-dashboard-menu-item"]').click();
+    cy.get('[data-test="refresh-dashboard-menu-item"]').click({ force: true });
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
 
     // wait all charts force refreshed
@@ -124,7 +121,7 @@ describe('Dashboard top-level controls', () => {
     cy.get('[data-test="more-horiz"]').click();
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'not.have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
   });
 });
