@@ -27,7 +27,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import QueryList from 'src/views/CRUD/data/query/QueryList';
 import QueryPreviewModal from 'src/views/CRUD/data/query/QueryPreviewModal';
-import { QueryObject } from 'src/views/CRUD/data/query/types';
+import { QueryObject } from 'src/views/CRUD/types';
 import ListView from 'src/components/ListView';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 

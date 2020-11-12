@@ -33,9 +33,9 @@ import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
+import { QueryObject } from 'src/views/CRUD/types';
 
 import QueryPreviewModal from './QueryPreviewModal';
-import { QueryObject } from './types';
 
 const PAGE_SIZE = 25;
 

@@ -24,7 +24,7 @@ import Button from 'src/components/Button';
 import withToasts, { ToastProps } from 'src/messageToasts/enhancers/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
 import { useQueryPreviewState } from 'src/views/CRUD/data/hooks';
-import { QueryObject } from './types';
+import { QueryObject } from 'src/views/CRUD/types';
 
 const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
