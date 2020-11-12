@@ -44,6 +44,12 @@ import {
   SortColumn,
 } from './types';
 
+// Define custom RisonParam for proper encoding/decoding
+const RisonParam = {
+  encode: (data: any | null | undefined) => rison.encode(data),
+  decode: (dataStr: string) => rison.decode(dataStr),
+};
+
 export class ListViewError extends Error {
   name = 'ListViewError';
 }
@@ -143,8 +149,7 @@ export function useListViewState({
   bulkSelectColumnConfig,
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
-    // filters: JsonParam,
-    filters: StringParam,
+    filters: RisonParam,
     pageIndex: NumberParam,
     sortColumn: StringParam,
     sortOrder: StringParam,
@@ -158,12 +163,8 @@ export function useListViewState({
     [query.sortColumn, query.sortOrder],
   );
 
-  // TODO: eventually replace filters with filtersEncoded, and update convertFilters to handle decoded rison
   const initialState = {
-    // filters: convertFilters(query.filters || []),
-    filters: query.filters
-      ? convertFiltersRison(rison.decode(query.filters))
-      : [],
+    filters: query.filters ? convertFiltersRison(query.filters) : [],
     pageIndex: query.pageIndex || 0,
     pageSize: initialPageSize,
     sortBy: initialSortBy,
@@ -214,7 +215,7 @@ export function useListViewState({
 
   const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
     query.filters && initialFilters.length
-      ? mergeCreateFilterValues(initialFilters, rison.decode(query.filters))
+      ? mergeCreateFilterValues(initialFilters, query.filters)
       : [],
   );
 
@@ -223,7 +224,7 @@ export function useListViewState({
       setInternalFilters(
         mergeCreateFilterValues(
           initialFilters,
-          query.filters ? rison.decode(query.filters) : {},
+          query.filters ? query.filters : {},
         ),
       );
     }
@@ -245,9 +246,7 @@ export function useListViewState({
 
     const queryParams: any = {
       // filters: internalFilters,
-      filters: Object.keys(filterObj).length
-        ? rison.encode(filterObj)
-        : undefined,
+      filters: Object.keys(filterObj).length ? filterObj : undefined,
       pageIndex,
     };
     if (sortBy[0]) {
