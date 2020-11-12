@@ -40,10 +40,10 @@ describe('dashboard filters card view', () => {
     // filter by me
     cy.get('.Select__control').first().click();
     cy.get('.Select__menu').contains('me').click();
-    cy.get('[data-test="table-row"]').its('length').should('be.gt', 0);
+    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
     cy.get('.Select__control').eq(1).click();
     cy.get('.Select__menu').contains('me').click();
-    cy.get('[data-test="table-row"]').its('length').should('be.gt', 0);
+    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
   });
 
   it('should filter by created by correctly', () => {

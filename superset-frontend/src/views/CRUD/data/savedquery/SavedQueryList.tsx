@@ -396,7 +396,6 @@ function SavedQueryList({
               ),
             ),
           ),
-          user.userId,
         ),
         paginate: true,
       },
