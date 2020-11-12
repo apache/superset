@@ -64,7 +64,9 @@ function openAdvancedProperties() {
 function openDashboardEditProperties() {
   // open dashboard properties edit modal
   cy.get('#save-dash-split-button').trigger('click', { force: true });
-  cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
+  cy.get('[data-test=header-actions-menu]')
+    .contains('Edit dashboard properties')
+    .click({ force: true });
 }
 
 describe('Dashboard edit action', () => {
