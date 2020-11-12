@@ -120,6 +120,16 @@ export default function ChartCard({
           <ListViewCard.MenuIcon name="edit-alt" /> {t('Edit')}
         </Menu.Item>
       )}
+      {canEdit && (
+        <Menu.Item
+          data-test="chart-list-explore-option"
+          role="button"
+          tabIndex={0}
+          onClick={() => window.location.href = chart.url}
+        >
+          <ListViewCard.MenuIcon name="nav-explore" /> {t('Explore')}
+        </Menu.Item>
+      )}
     </Menu>
   );
   return (

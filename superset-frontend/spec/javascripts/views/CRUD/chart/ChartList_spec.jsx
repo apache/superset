@@ -146,4 +146,8 @@ describe('ChartList', () => {
     wrapper.find('[data-test="trash"]').first().simulate('click');
     expect(wrapper.find(ConfirmStatusChange)).toExist();
   });
+
+  it('renders explore link as an `a` tag', () => {
+    expect(wrapper.find('a.action-button [data-test="nav-explore"]').first()).toExist();
+  });
 });
