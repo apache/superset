@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long,unused-argument,ungrouped-imports
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 
@@ -30,7 +29,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 
 from superset.extensions import security_manager
@@ -50,8 +49,8 @@ class ReportScheduleType(str, enum.Enum):
 class ReportScheduleValidatorType(str, enum.Enum):
     """ Validator types for alerts """
 
-    not_null = "not null"
-    operator = "operator"
+    NOT_NULL = "not null"
+    OPERATOR = "operator"
 
 
 class ReportRecipientType(str, enum.Enum):
@@ -143,7 +142,9 @@ class ReportRecipients(
         Integer, ForeignKey("report_schedule.id"), nullable=False
     )
     report_schedule = relationship(
-        ReportSchedule, backref="recipients", foreign_keys=[report_schedule_id]
+        ReportSchedule,
+        backref=backref("recipients", cascade="all,delete,delete-orphan"),
+        foreign_keys=[report_schedule_id],
     )
 
 
@@ -173,5 +174,7 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
         Integer, ForeignKey("report_schedule.id"), nullable=False
     )
     report_schedule = relationship(
-        ReportSchedule, backref="logs", foreign_keys=[report_schedule_id]
+        ReportSchedule,
+        backref=backref("logs", cascade="all,delete"),
+        foreign_keys=[report_schedule_id],
     )
