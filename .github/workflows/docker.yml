@@ -15,4 +15,4 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          ./docker-build.sh
+          .github/workflows/docker_build_push.sh
