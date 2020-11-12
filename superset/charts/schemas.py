@@ -22,7 +22,11 @@ from marshmallow.validate import Length, Range
 
 from superset.common.query_context import QueryContext
 from superset.utils import schema as utils
-from superset.utils.core import FilterOperator
+from superset.utils.core import (
+    FilterOperator,
+    PostProcessingBoxplotWhiskerType,
+    PostProcessingContributionOrientation,
+)
 
 #
 # RISON/JSON schemas for query parameters
@@ -339,6 +343,7 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
                 "nanmax",
                 "nanmean",
                 "nanmedian",
+                "nanpercentile",
                 "min",
                 "percentile",
                 "prod",
@@ -444,7 +449,9 @@ class ChartDataContributionOptionsSchema(ChartDataPostProcessingOperationOptions
     orientation = fields.String(
         description="Should cell values be calculated across the row or column.",
         required=True,
-        validate=validate.OneOf(choices=("row", "column",)),
+        validate=validate.OneOf(
+            choices=[val.value for val in PostProcessingContributionOrientation]
+        ),
         example="row",
     )
 
@@ -502,6 +509,71 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         "An integer value will specify Fourier order of seasonality, `None` will "
         "automatically detect seasonality.",
         example=False,
+    )
+
+
+class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
+    """
+    Boxplot operation config.
+    """
+
+    groupby = fields.List(
+        fields.String(description="Columns by which to group the query.",),
+        allow_none=True,
+    )
+
+    metrics = fields.List(
+        fields.Raw(),
+        description="Aggregate expressions. Metrics can be passed as both "
+        "references to datasource metrics (strings), or ad-hoc metrics"
+        "which are defined only within the query object. See "
+        "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+    )
+
+    whisker_type = fields.String(
+        description="Whisker type. Any numpy function will work.",
+        validate=validate.OneOf(
+            choices=([val.value for val in PostProcessingBoxplotWhiskerType])
+        ),
+        required=True,
+        example="tukey",
+    )
+
+    percentiles = fields.Tuple(
+        (
+            fields.Float(
+                description="Lower percentile",
+                validate=[
+                    Range(
+                        min=0,
+                        max=100,
+                        min_inclusive=False,
+                        max_inclusive=False,
+                        error=_(
+                            "lower percentile must be greater than 0 and less "
+                            "than 100. Must be lower than upper percentile."
+                        ),
+                    ),
+                ],
+            ),
+            fields.Float(
+                description="Upper percentile",
+                validate=[
+                    Range(
+                        min=0,
+                        max=100,
+                        min_inclusive=False,
+                        max_inclusive=False,
+                        error=_(
+                            "upper percentile must be greater than 0 and less "
+                            "than 100. Must be higher than lower percentile."
+                        ),
+                    ),
+                ],
+            ),
+        ),
+        description="Upper and lower percentiles for percentile whisker type.",
+        example=[1, 99],
     )
 
 
@@ -610,6 +682,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
         validate=validate.OneOf(
             choices=(
                 "aggregate",
+                "boxplot",
                 "contribution",
                 "cum",
                 "geodetic_parse",
@@ -1054,6 +1127,8 @@ CHART_SCHEMAS = (
     ChartDataAdhocMetricSchema,
     ChartDataAggregateOptionsSchema,
     ChartDataContributionOptionsSchema,
+    ChartDataProphetOptionsSchema,
+    ChartDataBoxplotOptionsSchema,
     ChartDataPivotOptionsSchema,
     ChartDataRollingOptionsSchema,
     ChartDataSelectOptionsSchema,
