@@ -56,7 +56,7 @@ from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.typing import FilterValues, Granularity, Metric, QueryObjectDict
-from superset.utils import core as utils, import_datasource
+from superset.utils import core as utils
 
 try:
     import requests
@@ -378,20 +378,6 @@ class DruidColumn(Model, BaseColumn):
                     metric.datasource_id = self.datasource_id
                     db.session.add(metric)
 
-    @classmethod
-    def import_obj(cls, i_column: "DruidColumn") -> "DruidColumn":
-        def lookup_obj(lookup_column: DruidColumn) -> Optional[DruidColumn]:
-            return (
-                db.session.query(DruidColumn)
-                .filter(
-                    DruidColumn.datasource_id == lookup_column.datasource_id,
-                    DruidColumn.column_name == lookup_column.column_name,
-                )
-                .first()
-            )
-
-        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
-
 
 class DruidMetric(Model, BaseMetric):
 
@@ -446,20 +432,6 @@ class DruidMetric(Model, BaseMetric):
 
     def get_perm(self) -> Optional[str]:
         return self.perm
-
-    @classmethod
-    def import_obj(cls, i_metric: "DruidMetric") -> "DruidMetric":
-        def lookup_obj(lookup_metric: DruidMetric) -> Optional[DruidMetric]:
-            return (
-                db.session.query(DruidMetric)
-                .filter(
-                    DruidMetric.datasource_id == lookup_metric.datasource_id,
-                    DruidMetric.metric_name == lookup_metric.metric_name,
-                )
-                .first()
-            )
-
-        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
 druiddatasource_user = Table(
@@ -609,34 +581,6 @@ class DruidDatasource(Model, BaseDatasource):
 
     def get_metric_obj(self, metric_name: str) -> Dict[str, Any]:
         return [m.json_obj for m in self.metrics if m.metric_name == metric_name][0]
-
-    @classmethod
-    def import_obj(
-        cls, i_datasource: "DruidDatasource", import_time: Optional[int] = None
-    ) -> int:
-        """Imports the datasource from the object to the database.
-
-        Metrics and columns and datasource will be overridden if exists.
-        This function can be used to import/export dashboards between multiple
-        superset instances. Audit metadata isn't copies over.
-        """
-
-        def lookup_datasource(d: DruidDatasource) -> Optional[DruidDatasource]:
-            return (
-                db.session.query(DruidDatasource)
-                .filter(
-                    DruidDatasource.datasource_name == d.datasource_name,
-                    DruidDatasource.cluster_id == d.cluster_id,
-                )
-                .first()
-            )
-
-        def lookup_cluster(d: DruidDatasource) -> Optional[DruidCluster]:
-            return db.session.query(DruidCluster).filter_by(id=d.cluster_id).first()
-
-        return import_datasource.import_datasource(
-            db.session, i_datasource, lookup_cluster, lookup_datasource, import_time
-        )
 
     def latest_metadata(self) -> Optional[Dict[str, Any]]:
         """Returns segment metadata from the latest segment"""
