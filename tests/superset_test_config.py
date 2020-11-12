@@ -88,6 +88,11 @@ CACHE_CONFIG = {
     "CACHE_REDIS_URL": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}",
 }
 
+TABLE_NAMES_CACHE_CONFIG = {
+    **CACHE_CONFIG,
+    "CACHE_KEY_PREFIX": "superset_data_cache",
+}
+
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
