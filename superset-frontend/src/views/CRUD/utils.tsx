@@ -266,17 +266,17 @@ export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 
 export const CardContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
   ${[mq[3]]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
   }
 
   ${[mq[2]]} {
-    grid-template-columns: repeat(auto-fit, minmax(48%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(48%, 48%));
   }
 
   ${[mq[1]]} {
-    grid-template-columns: repeat(auto-fit, minmax(50%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(50%, 80%));
   }
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;

@@ -18,6 +18,9 @@
  */
 import React, { useState } from 'react';
 import { t, SupersetClient, styled } from '@superset-ui/core';
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
+import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
+import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
@@ -33,6 +36,8 @@ import {
   CardStyles,
 } from '../utils';
 
+SyntaxHighlighter.registerLanguage('sql', sql);
+
 const PAGE_SIZE = 3;
 
 interface Query {
@@ -45,6 +50,8 @@ interface Query {
   description?: string;
   end_time?: string;
   label?: string;
+  changed_on_delta_humanized?: string;
+  sql?: string;
 }
 
 interface SavedQueriesProps {
@@ -58,18 +65,26 @@ interface SavedQueriesProps {
 }
 
 const QueryData = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  .title {
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+  svg {
+    position: absolute;
+    top: ${({ theme }) => theme.gridUnit * 2 + 2}px;
+    right: ${({ theme }) => theme.gridUnit * 2 + 2}px;
   }
-  .holder {
-    margin: ${({ theme }) => theme.gridUnit * 2}px;
+  .query-title {
+    padding: ${({ theme }) => theme.gridUnit * 2 + 2}px;
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
   }
 `;
+
+const QueryContainer = styled.div`
+  pre {
+    border: none !important;
+    background-color: ${({ theme }) =>
+      theme.colors.grayscale.light5} !important;
+  }
+`;
+
 const SavedQueries = ({
   user,
   addDangerToast,
@@ -262,32 +277,39 @@ const SavedQueries = ({
                 imgFallbackURL=""
                 imgURL=""
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
-                title={q.label}
-                rows={q.rows}
-                description={t('Last run ', q.end_time)}
+                description={t('Last run %s', q.changed_on_delta_humanized)}
                 cover={
-                  <QueryData>
-                    <div className="holder">
-                      <div className="title">{t('Tables')}</div>
-                      <div>{q?.sql_tables?.length}</div>
-                    </div>
-                    <div className="holder">
-                      <div className="title">{t('Datasource Name')}</div>
-                      <div>{q?.sql_tables && q.sql_tables[0]?.table}</div>
-                    </div>
-                  </QueryData>
-                }
-                actions={
-                  <ListViewCard.Actions
-                    onClick={e => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
-                  >
-                    <Dropdown overlay={renderMenu(q)}>
-                      <Icon name="more-horiz" />
-                    </Dropdown>
-                  </ListViewCard.Actions>
+                  <>
+                    <QueryData>
+                      <ListViewCard.Actions
+                        onClick={e => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                        }}
+                      >
+                        <div className="query-title">{q.label}</div>
+                        <Dropdown overlay={renderMenu(q)}>
+                          <Icon name="more-horiz" />
+                        </Dropdown>
+                      </ListViewCard.Actions>
+                    </QueryData>
+                    <QueryContainer>
+                      <SyntaxHighlighter
+                        language="sql"
+                        lineProps={{
+                          style: {
+                            color: 'black',
+                            wordBreak: 'break-all',
+                            whiteSpace: 'pre-wrap',
+                          },
+                        }}
+                        style={github}
+                        wrapLines
+                      >
+                        {q.sql}
+                      </SyntaxHighlighter>
+                    </QueryContainer>
+                  </>
                 }
               />
             </CardStyles>
