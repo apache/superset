@@ -26,12 +26,7 @@ import {
   useTable,
 } from 'react-table';
 
-import {
-  // JsonParam,
-  NumberParam,
-  StringParam,
-  useQueryParams,
-} from 'use-query-params';
+import { NumberParam, StringParam, useQueryParams } from 'use-query-params';
 
 import rison from 'rison';
 import { isEqual } from 'lodash';
@@ -70,7 +65,6 @@ function updateInList(list: any[], index: number, update: any): any[] {
   ];
 }
 
-// TODO: update to handle new query.filters format ({id: value,...})
 function mergeCreateFilterValues(list: Filter[], updateObj: any) {
   return list.map(({ id, operator }) => {
     const update = updateObj[id] || [];
@@ -86,7 +80,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
     .map(({ value, operator, id }) => ({ value, operator, id }));
 }
 
-// convertFilters but to handle new decoded rison format TODO: update types
+// convertFilters but to handle new decoded rison format
 export function convertFiltersRison(filterObj: any): FilterValue[] {
   const filters: FilterValue[] = [];
 
@@ -234,7 +228,6 @@ export function useListViewState({
     // From internalFilters, produce a simplified obj
     const filterObj = {};
 
-    // TODO: maybe update the format of internalFilters???
     internalFilters.forEach(filter => {
       if (
         filter.value !== undefined &&
@@ -245,7 +238,6 @@ export function useListViewState({
     });
 
     const queryParams: any = {
-      // filters: internalFilters,
       filters: Object.keys(filterObj).length ? filterObj : undefined,
       pageIndex,
     };
