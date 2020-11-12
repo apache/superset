@@ -125,7 +125,9 @@ export default function ChartCard({
           data-test="chart-list-explore-option"
           role="button"
           tabIndex={0}
-          onClick={() => {window.location.href = chart.url}}
+          onClick={() => {
+            window.location.href = chart.url;
+          }}
         >
           <ListViewCard.MenuIcon name="nav-explore" /> {t('Explore')}
         </Menu.Item>
