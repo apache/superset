@@ -148,6 +148,8 @@ describe('ChartList', () => {
   });
 
   it('renders explore link as an `a` tag', () => {
-    expect(wrapper.find('a.action-button [data-test="nav-explore"]').first()).toExist();
+    expect(
+      wrapper.find('a.action-button [data-test="nav-explore"]').first(),
+    ).toExist();
   });
 });

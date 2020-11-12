@@ -242,8 +242,11 @@ function ChartList(props: ChartListProps) {
         size: 'xl',
       },
       {
-
-        Cell: ({ row: { original: { url, ...original } } }: any) => {
+        Cell: ({
+          row: {
+            original: { url, ...original },
+          },
+        }: any) => {
           const handleDelete = () =>
             handleChartDelete(
               original,
@@ -326,10 +329,12 @@ function ChartList(props: ChartListProps) {
                   tooltip={t('Explore Chart')}
                   placement="bottom"
                 >
-                  <a href={url}
+                  <a
+                    href={url}
                     role="button"
                     tabIndex={0}
-                    className="action-button">
+                    className="action-button"
+                  >
                     <Icon name="nav-explore" />
                   </a>
                 </TooltipWrapper>
