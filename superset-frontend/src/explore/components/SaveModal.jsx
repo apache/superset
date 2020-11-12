@@ -96,7 +96,7 @@ class SaveModal extends React.Component {
     actions.removeSaveModalAlert();
     const sliceParams = {};
 
-    if (slice && slice.slice_id) {
+    if (slice?.slice_id) {
       sliceParams.slice_id = slice.slice_id;
     }
     if (sliceParams.action === 'saveas') {
@@ -110,7 +110,7 @@ class SaveModal extends React.Component {
     sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
     sliceParams.new_dashboard_name = this.state.newDashboardName;
 
-    if (slice.slice_updated) {
+    if (slice?.slice_updated) {
       const payload = {
         description: slice.description || null,
         cache_timeout: slice.cache_timeout || null,
