@@ -17,11 +17,11 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import { isLegacyChart } from '../../utils/vizPlugins';
 
 describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };
-  let sliceIds = [];
-  let dashboardId;
+  let dashboard;
 
   beforeEach(() => {
     cy.server();
@@ -31,21 +31,22 @@ describe('Dashboard form data', () => {
 
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
-      dashboardId = dashboard.id;
-      sliceIds = dashboard.slices.map(slice => slice.slice_id);
+      dashboard = bootstrapData.dashboard_data;
     });
   });
 
   it('should apply url params and queryFields to slice requests', () => {
     const aliases = [];
-    sliceIds.forEach(id => {
+    dashboard.slices.forEach(slice => {
+      const { slice_id: id } = slice;
+      const isLegacy = isLegacyChart(slice.form_data.viz_type);
+      const route = `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboard.id}`;
       const alias = `getJson_${id}`;
-      aliases.push(`@${alias}`);
-      cy.route(
-        'POST',
-        `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboardId}`,
-      ).as(alias);
+      // TODO(villebro): enable V1 charts
+      if (isLegacy) {
+        aliases.push(`@${alias}`);
+        cy.route('POST', route).as(alias);
+      }
     });
 
     cy.wait(aliases).then(requests => {

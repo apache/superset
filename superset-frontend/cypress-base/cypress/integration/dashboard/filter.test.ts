@@ -17,6 +17,7 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import { isLegacyChart } from '../../utils/vizPlugins';
 
 interface Slice {
   slice_id: number;
@@ -47,17 +48,21 @@ describe('Dashboard filter', () => {
     cy.get('#app').then(app => {
       const bootstrapData = app.data('bootstrap');
       const dashboard = bootstrapData.dashboard_data as DashboardData;
-      const sliceIds = dashboard.slices.map(slice => slice.slice_id);
+      const { slices } = dashboard;
       filterId =
         dashboard.slices.find(
           slice => slice.form_data.viz_type === 'filter_box',
         )?.slice_id || 0;
-      aliases = sliceIds.map(id => {
-        const alias = getAlias(id);
-        const url = `/superset/explore_json/?*{"slice_id":${id}}*`;
-        cy.route('POST', url).as(alias.slice(1));
-        return alias;
-      });
+      aliases = slices
+        // TODO(villebro): enable V1 charts
+        .filter(slice => isLegacyChart(slice.form_data.viz_type))
+        .map(slice => {
+          const id = slice.slice_id;
+          const alias = getAlias(id);
+          const url = `/superset/explore_json/?*{"slice_id":${id}}*`;
+          cy.route('POST', url).as(alias.slice(1));
+          return alias;
+        });
 
       // wait the initial page load requests
       cy.wait(aliases);
