@@ -16,28 +16,20 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import datetime
 import json
 from io import BytesIO
 from zipfile import is_zipfile
 
-import pandas as pd
 import prison
 import pytest
-import random
 
-from sqlalchemy import String, Date, Float
 from sqlalchemy.sql import func
 
-from superset import db, security_manager, ConnectorRegistry
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
-from tests.dashboard_utils import (
-    create_table_for_dashboard,
-    create_dashboard,
-)
 from tests.fixtures.certificates import ssl_certificate
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.test_app import app
@@ -154,7 +146,7 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend == "sqlite":
             return
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "server_cert": ssl_certificate,
             "extra": json.dumps(extra),
@@ -179,7 +171,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         self.login(username="admin")
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database-invalid-cert",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "server_cert": "INVALID CERT",
         }
@@ -201,7 +193,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         self.login(username="admin")
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database-invalid-json",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "encrypted_extra": '{"A": "a", "B", "C"}',
             "extra": '["A": "a", "B", "C"]',
@@ -241,7 +233,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.login(username="admin")
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database-invalid-extra",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "extra": json.dumps(extra),
         }
@@ -289,7 +281,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="admin")
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-database-invalid-uri",
             "sqlalchemy_uri": "wrong_uri",
         }
 
@@ -314,7 +306,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test create fail with sqllite
         """
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-sqlite-database",
             "sqlalchemy_uri": "sqlite:////some.db",
         }
 
@@ -342,7 +334,7 @@ class TestDatabaseApi(SupersetTestCase):
             return
         example_db.password = "wrong_password"
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database-wrong-password",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
         }
 
@@ -362,11 +354,11 @@ class TestDatabaseApi(SupersetTestCase):
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
-
         self.login(username="admin")
         database_data = {"database_name": "test-database-updated"}
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
+        print(rv.data.decode("utf-8"), database_data)
         self.assertEqual(rv.status_code, 200)
         # Cleanup
         model = db.session.query(Database).get(test_database.id)
