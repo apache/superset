@@ -23,11 +23,11 @@ describe('AdhocFilters', () => {
     cy.route('GET', '/superset/explore_json/**').as('getJson');
     cy.route('POST', '/superset/explore_json/**').as('postJson');
     cy.route('GET', '/superset/filter/table/*/name').as('filterValues');
-  });
-
-  it('Should not load mathjs when not needed', () => {
     cy.visitChartByName('Boys'); // a table chart
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
+  });
+
+  xit('Should not load mathjs when not needed', () => {
     cy.get('script[src*="mathjs"]').should('have.length', 0);
   });
 
@@ -55,7 +55,7 @@ describe('AdhocFilters', () => {
     });
   });
 
-  it('Set simple adhoc filter', () => {
+  xit('Set simple adhoc filter', () => {
     cy.get('[data-test=adhoc-filter-simple-value] .Select__control').click();
     cy.get('[data-test=adhoc-filter-simple-value] input[type=text]')
       .focus()

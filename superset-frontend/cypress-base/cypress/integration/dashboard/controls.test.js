@@ -18,6 +18,7 @@
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import readResponseBlob from '../../utils/readResponseBlob';
+import { isLegacyChart } from '../../utils/vizPlugins';
 
 describe('Dashboard top-level controls', () => {
   const sliceRequests = [];
@@ -38,20 +39,23 @@ describe('Dashboard top-level controls', () => {
       ).slice_id;
 
       dashboard.slices.forEach(slice => {
-        const sliceRequest = `getJson_${slice.slice_id}`;
-        sliceRequests.push(`@${sliceRequest}`);
-        const formData = `{"slice_id":${slice.slice_id}}`;
-        cy.route(
-          'POST',
-          `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`,
-        ).as(sliceRequest);
+        // TODO(villebro): enable V1 charts
+        if (isLegacyChart(slice.form_data.viz_type)) {
+          const sliceRequest = `getJson_${slice.slice_id}`;
+          sliceRequests.push(`@${sliceRequest}`);
+          const formData = `{"slice_id":${slice.slice_id}}`;
+          cy.route(
+            'POST',
+            `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`,
+          ).as(sliceRequest);
 
-        const forceRefresh = `postJson_${slice.slice_id}_force`;
-        forceRefreshRequests.push(`@${forceRefresh}`);
-        cy.route(
-          'POST',
-          `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}&force=true&dashboard_id=${dashboardId}`,
-        ).as(forceRefresh);
+          const forceRefresh = `postJson_${slice.slice_id}_force`;
+          forceRefreshRequests.push(`@${forceRefresh}`);
+          cy.route(
+            'POST',
+            `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}&force=true&dashboard_id=${dashboardId}`,
+          ).as(forceRefresh);
+        }
       });
     });
   });
