@@ -122,6 +122,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "datasource_type",
         "datasource_url",
         "description",
+        "description_markeddown",
+        "edit_url",
         "id",
         "owners.first_name",
         "owners.id",
