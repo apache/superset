@@ -41,8 +41,10 @@ import {
 
 // Define custom RisonParam for proper encoding/decoding
 const RisonParam = {
-  encode: (data: any | null | undefined) => rison.encode(data),
-  decode: (dataStr: string) => rison.decode(dataStr),
+  encode: (data: any | null | undefined) =>
+    data === undefined ? undefined : rison.encode(data),
+  decode: (dataStr: string | undefined) =>
+    dataStr === undefined ? undefined : rison.decode(dataStr),
 };
 
 export class ListViewError extends Error {
