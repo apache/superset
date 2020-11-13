@@ -118,16 +118,16 @@ function QueryPreviewModal({
         title={t('Query Preview')}
         footer={[
           <Button
-            data-test="previous-saved-query"
-            key="previous-saved-query"
+            data-test="previous-query"
+            key="previous-query"
             disabled={disablePrevious}
             onClick={() => handleDataChange(true)}
           >
             {t('Previous')}
           </Button>,
           <Button
-            data-test="next-saved-query"
-            key="next-saved-query"
+            data-test="next-query"
+            key="next-query"
             disabled={disableNext}
             onClick={() => handleDataChange(false)}
           >
@@ -148,6 +148,7 @@ function QueryPreviewModal({
         <QueryViewToggle>
           <TabButton
             role="button"
+            data-test="toggle-user-sql"
             className={cx({ active: currentTab === 'user' })}
             onClick={() => setCurrentTab('user')}
           >
@@ -155,6 +156,7 @@ function QueryPreviewModal({
           </TabButton>
           <TabButton
             role="button"
+            data-test="toggle-executed-sql"
             className={cx({ active: currentTab === 'executed' })}
             onClick={() => setCurrentTab('executed')}
           >
