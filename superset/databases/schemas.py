@@ -131,15 +131,12 @@ def sqlalchemy_uri_validator(value: str) -> str:
     """
     try:
         make_url(value.strip())
-    except (ArgumentError, AttributeError):
+    except (ArgumentError, AttributeError, ValueError):
         raise ValidationError(
             [
                 _(
-                    "Invalid connection string, a valid string usually follows:"
-                    "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
-                    "<p>"
-                    "Example:'postgresql://user:password@your-postgres-db/database'"
-                    "</p>"
+                    "Invalid connection string, a valid string usually follows: "
+                    "dirver://user:password@database-host/database-name"
                 )
             ]
         )

@@ -127,7 +127,7 @@ const StyledEditableTabs = styled(StyledTabs)`
     `}
 `;
 
-const EditableTabs = Object.assign(StyledEditableTabs, {
+export const EditableTabs = Object.assign(StyledEditableTabs, {
   TabPane: StyledTabPane,
 });
 
@@ -142,7 +142,7 @@ EditableTabs.TabPane.defaultProps = {
   ),
 };
 
-const StyledLineEditableTabs = styled(EditableTabs)`
+export const StyledLineEditableTabs = styled(EditableTabs)`
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
     margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
     padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit}px`};
@@ -170,9 +170,8 @@ const StyledLineEditableTabs = styled(EditableTabs)`
   }
 `;
 
-const LineEditableTabs = Object.assign(StyledLineEditableTabs, {
+export const LineEditableTabs = Object.assign(StyledLineEditableTabs, {
   TabPane: StyledTabPane,
 });
 
 export default Tabs;
-export { EditableTabs, LineEditableTabs };

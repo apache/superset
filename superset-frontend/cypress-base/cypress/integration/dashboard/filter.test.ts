@@ -17,6 +17,7 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import { isLegacyChart } from '../../utils/vizPlugins';
 
 interface Slice {
   slice_id: number;
@@ -47,57 +48,50 @@ describe('Dashboard filter', () => {
     cy.get('#app').then(app => {
       const bootstrapData = app.data('bootstrap');
       const dashboard = bootstrapData.dashboard_data as DashboardData;
-      const sliceIds = dashboard.slices.map(slice => slice.slice_id);
+      const { slices } = dashboard;
       filterId =
         dashboard.slices.find(
           slice => slice.form_data.viz_type === 'filter_box',
         )?.slice_id || 0;
-      aliases = sliceIds.map(id => {
-        const alias = getAlias(id);
-        const url = `/superset/explore_json/?*{"slice_id":${id}}*`;
-        cy.route('POST', url).as(alias.slice(1));
-        return alias;
-      });
+      aliases = slices
+        // TODO(villebro): enable V1 charts
+        .filter(slice => isLegacyChart(slice.form_data.viz_type))
+        .map(slice => {
+          const id = slice.slice_id;
+          const alias = getAlias(id);
+          const url = `/superset/explore_json/?*{"slice_id":${id}}*`;
+          cy.route('POST', url).as(alias.slice(1));
+          return alias;
+        });
 
       // wait the initial page load requests
       cy.wait(aliases);
     });
   });
-  // TODO fix and reactivate this flaky test
-  xit('should apply filter', () => {
-    cy.get('.Select__control input[type=text]').first().focus();
+  it('should apply filter', () => {
+    cy.get('.Select__control input[type=text]')
+      .first()
+      .should('be.visible')
+      .focus();
 
     // should open the filter indicator
-    cy.get('.filter-indicator.active')
-      .should('be.visible')
+    cy.get('[data-test="filter"]')
+      .should('be.visible', { timeout: 10000 })
       .should(nodes => {
         expect(nodes).to.have.length(9);
       });
 
+    cy.get('[data-test="chart-container"]').find('svg').should('be.visible');
+
     cy.get('.Select__control input[type=text]').first().focus().blur();
 
-    // should hide the filter indicator
-    cy.get('.filter-indicator')
-      .not('.active')
-      .should(nodes => {
-        expect(nodes).to.have.length(18);
-      });
-
     cy.get('.Select__control input[type=text]')
       .first()
       .focus()
-      .type('So', { force: true });
+      .type('So', { force: true, delay: 100 });
 
-    cy.get('.Select__menu').first().contains('Create "So"');
+    cy.get('.Select__menu').first().contains('South Asia').click();
 
-    // Somehow Input loses focus after typing "So" while in Cypress, so
-    // we refocus the input again here. The is not happening in real life.
-    cy.get('.Select__control input[type=text]')
-      .first()
-      .focus()
-      .type('uth Asia{enter}', { force: true });
-
-    // by default, need to click Apply button to apply filter
     cy.get('.filter_box button').click({ force: true });
 
     // wait again after applied filters
@@ -109,10 +103,12 @@ describe('Dashboard filter', () => {
         );
         expect(requestParams.extra_filters[0]).deep.eq({
           col: 'region',
-          op: 'in',
-          val: ['South Asia'],
+          op: '==',
+          val: 'South Asia',
         });
       });
     });
+
+    // TODO add test with South Asia{enter} type action to select filter
   });
 });

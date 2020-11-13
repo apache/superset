@@ -74,11 +74,22 @@ describe('SavedQueries', () => {
     user: {
       userId: '1',
     },
+    mine: mockqueries,
   };
 
   const wrapper = mount(<SavedQueries {...savedQueryProps} />, {
     context: { store },
   });
+
+  const clickTab = (idx: number) => {
+    act(() => {
+      const handler = wrapper.find('li.no-router a').at(idx).prop('onClick');
+      if (handler) {
+        handler({} as any);
+      }
+    });
+  };
+
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });
@@ -87,20 +98,19 @@ describe('SavedQueries', () => {
     expect(wrapper.find(SavedQueries)).toExist();
   });
 
-  it('it renders a submenu with clickable tables and buttons', async () => {
-    expect(wrapper.find(SubMenu)).toExist();
-    expect(wrapper.find('MenuItem')).toHaveLength(2);
-    expect(wrapper.find('button')).toHaveLength(2);
-    act(() => {
-      wrapper.find('MenuItem').at(1).simulate('click');
-    });
-
+  it('fetches queries favorites and renders listviewcard cards', async () => {
+    clickTab(0);
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
+    expect(wrapper.find('ListViewCard')).toExist();
   });
 
-  it('fetches queries favorites and renders listviewcard cards', () => {
-    expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
-    expect(wrapper.find('ListViewCard')).toExist();
+  it('it renders a submenu with clickable tables and buttons', async () => {
+    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find('li')).toHaveLength(2);
+    expect(wrapper.find('button')).toHaveLength(2);
+    clickTab(1);
+    await waitForComponentToPaint(wrapper);
+    expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(2);
   });
 });

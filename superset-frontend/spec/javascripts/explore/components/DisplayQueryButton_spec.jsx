@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { Menu } from 'src/common/components';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { DisplayQueryButton } from 'src/explore/components/DisplayQueryButton';
-import { MenuItem } from 'react-bootstrap';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 describe('DisplayQueryButton', () => {
   const defaultProps = {
@@ -51,6 +51,6 @@ describe('DisplayQueryButton', () => {
       },
     });
     expect(wrapper.find(ModalTrigger)).toHaveLength(3);
-    expect(wrapper.find(MenuItem)).toHaveLength(5);
+    expect(wrapper.find(Menu.Item)).toHaveLength(5);
   });
 });

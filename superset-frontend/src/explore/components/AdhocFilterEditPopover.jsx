@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
 import columnType from '../propTypes/columnType';
@@ -45,7 +45,11 @@ const propTypes = {
   theme: PropTypes.object,
 };
 
-const startingWidth = 300;
+const ResizeIcon = styled.i`
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
+const startingWidth = 320;
 const startingHeight = 240;
 
 export default class AdhocFilterEditPopover extends React.Component {
@@ -63,6 +67,8 @@ export default class AdhocFilterEditPopover extends React.Component {
       width: startingWidth,
       height: startingHeight,
     };
+
+    this.popoverContentRef = React.createRef();
   }
 
   componentDidMount() {
@@ -79,7 +85,8 @@ export default class AdhocFilterEditPopover extends React.Component {
   }
 
   onSave() {
-    this.props.onChange(this.state.adhocFilter);
+    // unset isNew here in case save button was clicked when no changes were made
+    this.props.onChange({ ...this.state.adhocFilter, isNew: false });
     this.props.onClose();
   }
 
@@ -136,6 +143,7 @@ export default class AdhocFilterEditPopover extends React.Component {
         id="filter-edit-popover"
         {...popoverProps}
         data-test="filter-edit-popover"
+        ref={this.popoverContentRef}
       >
         <Tabs
           id="adhoc-filter-edit-tabs"
@@ -156,6 +164,7 @@ export default class AdhocFilterEditPopover extends React.Component {
               datasource={datasource}
               onHeightChange={this.adjustHeight}
               partitionColumn={partitionColumn}
+              popoverRef={this.popoverContentRef.current}
             />
           </Tabs.TabPane>
           <Tabs.TabPane
@@ -195,7 +204,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           >
             {t('Save')}
           </Button>
-          <i
+          <ResizeIcon
             role="button"
             aria-label="Resize"
             tabIndex={0}

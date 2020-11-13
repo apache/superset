@@ -51,7 +51,6 @@ const propTypes = {
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
-  setMountedTab: PropTypes.func.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -105,9 +104,8 @@ const StyledTabsContainer = styled.div`
     top: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
-  .editable-title input {
-    cursor: pointer;
-    text-transform: uppercase;
+  div .ant-tabs-tab-btn {
+    text-transform: none;
   }
 `;
 
@@ -202,7 +200,7 @@ class Tabs extends React.PureComponent {
   };
 
   handleClickTab(tabIndex) {
-    const { component, renderTabContent } = this.props;
+    const { component } = this.props;
 
     if (tabIndex !== this.state.tabIndex) {
       const pathToTabIndex = getDirectPathToTabIndex(component, tabIndex);
@@ -213,11 +211,6 @@ class Tabs extends React.PureComponent {
       });
 
       this.props.onChangeTab({ pathToTabIndex });
-    }
-    if (renderTabContent) {
-      const tabIds = component.children;
-      const activeKey = tabIds[this.state.tabIndex];
-      this.props.setMountedTab(activeKey);
     }
   }
 

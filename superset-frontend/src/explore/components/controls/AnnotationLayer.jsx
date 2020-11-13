@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import Button from 'src/components/Button';
-import mathjs from 'mathjs';
+import { parse as mathjsParse } from 'mathjs';
 import {
   t,
   SupersetClient,
@@ -198,7 +198,7 @@ export default class AnnotationLayer extends React.PureComponent {
   isValidFormula(value, annotationType) {
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
       try {
-        mathjs.parse(value).compile().eval({ x: 0 });
+        mathjsParse(value).compile().evaluate({ x: 0 });
       } catch (err) {
         return true;
       }

@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 from flask_babel import gettext as _
 
-from superset import app, cache, db, security_manager
+from superset import app, cache, db, is_feature_enabled, security_manager
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -148,6 +148,7 @@ class QueryContext:
         if self.result_type == utils.ChartDataResultType.SAMPLES:
             row_limit = query_obj.row_limit or math.inf
             query_obj = copy.copy(query_obj)
+            query_obj.orderby = []
             query_obj.groupby = []
             query_obj.metrics = []
             query_obj.post_processing = []
@@ -207,7 +208,7 @@ class QueryContext:
                 datasource=self.datasource.uid,
                 extra_cache_keys=extra_cache_keys,
                 rls=security_manager.get_rls_ids(self.datasource)
-                if config["ENABLE_ROW_LEVEL_SECURITY"]
+                if is_feature_enabled("ROW_LEVEL_SECURITY")
                 and self.datasource.is_rls_supported
                 else [],
                 changed_on=self.datasource.changed_on,

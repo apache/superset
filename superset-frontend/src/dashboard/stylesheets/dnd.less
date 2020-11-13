@@ -28,6 +28,16 @@
   width: 100%;
 }
 
+.dragdroppable-column {
+  .resizable-container {
+    span {
+      div {
+        z-index: @z-index-above-dashboard-charts;
+      }
+    }
+  }
+}
+
 /* drop indicators */
 .drop-indicator {
   display: block;
@@ -50,6 +60,12 @@
   height: 4px;
   width: 100%;
   min-width: 16px;
+}
+
+.empty-droptarget:first-child {
+  .drop-indicator--bottom {
+    top: 24px;
+  }
 }
 
 .drop-indicator--right {
@@ -123,7 +139,12 @@
   }
 
   & > .empty-droptarget:first-child {
-    height: 24px;
+    height: 48px;
     margin-top: -24px;
+    margin-bottom: -24px;
+  }
+
+  & > .empty-droptarget:only-child {
+    height: 80vh;
   }
 }

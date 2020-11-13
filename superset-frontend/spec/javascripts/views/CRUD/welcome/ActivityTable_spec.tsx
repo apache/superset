@@ -19,8 +19,6 @@
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import thunk from 'redux-thunk';
-import fetchMock from 'fetch-mock';
-
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import configureStore from 'redux-mock-store';
 import ActivityTable from 'src/views/CRUD/welcome/ActivityTable';
@@ -28,12 +26,8 @@ import ActivityTable from 'src/views/CRUD/welcome/ActivityTable';
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const chartsEndpoint = 'glob:*/api/v1/chart/?*';
-const dashboardEndpoint = 'glob:*/api/v1/dashboard/?*';
-const savedQueryEndpoint = 'glob:*/api/v1/saved_query/?*';
-
-fetchMock.get(chartsEndpoint, {
-  result: [
+const mockData = {
+  Viewed: [
     {
       slice_name: 'ChartyChart',
       changed_on_utc: '24 Feb 2014 10:13:14',
@@ -42,10 +36,7 @@ fetchMock.get(chartsEndpoint, {
       table: {},
     },
   ],
-});
-
-fetchMock.get(dashboardEndpoint, {
-  result: [
+  Edited: [
     {
       dashboard_title: 'Dashboard_Test',
       changed_on_utc: '24 Feb 2014 10:13:14',
@@ -53,18 +44,23 @@ fetchMock.get(dashboardEndpoint, {
       id: '3',
     },
   ],
-});
-
-fetchMock.get(savedQueryEndpoint, {
-  result: [],
-});
+  Created: [
+    {
+      dashboard_title: 'Dashboard_Test',
+      changed_on_utc: '24 Feb 2014 10:13:14',
+      url: '/fakeUrl/dashboard',
+      id: '3',
+    },
+  ],
+};
 
 describe('ActivityTable', () => {
   const activityProps = {
-    user: {
-      userId: '1',
-    },
-    activityFilter: 'Edited',
+    activeChild: 'Edited',
+    activityData: mockData,
+    setActiveChild: jest.fn(),
+    user: { userId: '1' },
+    loading: false,
   };
   const wrapper = mount(<ActivityTable {...activityProps} />, {
     context: { store },
@@ -77,11 +73,10 @@ describe('ActivityTable', () => {
   it('the component renders ', () => {
     expect(wrapper.find(ActivityTable)).toExist();
   });
-
-  it('calls batch method and renders ListViewCArd', async () => {
-    const chartCall = fetchMock.calls(/chart\/\?q/);
-    const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
-    expect(chartCall).toHaveLength(2);
-    expect(dashboardCall).toHaveLength(2);
+  it('renders tabs with three buttons', () => {
+    expect(wrapper.find('li')).toHaveLength(3);
+  });
+  it('it renders ActivityCards', async () => {
+    expect(wrapper.find('ListViewCard')).toExist();
   });
 });

@@ -25,7 +25,7 @@ QUERY_OBJECTS = {
         "is_timeseries": False,
         "metrics": [{"label": "sum__num"}],
         "order_desc": True,
-        "orderby": [],
+        "orderby": [["sum__num", False]],
         "row_limit": 100,
         "time_range": "100 years ago : now",
         "timeseries_limit": 0,

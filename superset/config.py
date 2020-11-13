@@ -324,6 +324,18 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "SIP_34_ANNOTATIONS_UI": False,
     "DASHBOARD_NATIVE_FILTERS": False,
+    "VERSIONED_EXPORT": False,
+    # Note that: RowLevelSecurityFilter is only given by default to the Admin role
+    # and the Admin Role does have the all_datasources security permission.
+    # But, if users create a specific role with access to RowLevelSecurityFilter MVC
+    # and a custom datasource access, the table dropdown will not be correctly filtered
+    # by that custom datasource access. So we are assuming a default security config,
+    # a custom security config could potentially give access to setting filters on
+    # tables that users do not have access to.
+    "ROW_LEVEL_SECURITY": False,
+    # Enables Alerts and reports new implementation
+    "ALERT_REPORTS": False,
+    "SIP_34_QUERY_SEARCH_UI": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
@@ -876,14 +888,6 @@ TALISMAN_CONFIG = {
     "force_https_permanent": False,
 }
 
-# Note that: RowLevelSecurityFilter is only given by default to the Admin role
-# and the Admin Role does have the all_datasources security permission.
-# But, if users create a specific role with access to RowLevelSecurityFilter MVC
-# and a custom datasource access, the table dropdown will not be correctly filtered
-# by that custom datasource access. So we are assuming a default security config,
-# a custom security config could potentially give access to setting filters on
-# tables that users do not have access to.
-ENABLE_ROW_LEVEL_SECURITY = False
 # It is possible to customize which tables and roles are featured in the RLS
 # dropdown. When set, this dict is assigned to `add_form_query_rel_fields` and
 # `edit_form_query_rel_fields` on `RowLevelSecurityFiltersModelView`. Example:

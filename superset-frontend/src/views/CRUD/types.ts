@@ -28,6 +28,7 @@ export interface DashboardTableProps {
   addSuccessToast: (message: string) => void;
   search: string;
   user?: User;
+  mine: Array<Dashboard>;
 }
 
 export interface Dashboard {
@@ -56,5 +57,5 @@ export type SavedQueryObject = {
   label: string;
   schema: string;
   sql: string;
-  sql_tables: Array<{ catalog?: string; schema: string; table: string }>;
+  sql_tables?: { catalog?: string; schema: string; table: string }[];
 };

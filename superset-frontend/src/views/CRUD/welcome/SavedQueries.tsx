@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Dropdown, Menu } from 'src/common/components';
@@ -26,8 +26,12 @@ import DeleteModal from 'src/components/DeleteModal';
 import Icon from 'src/components/Icon';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-
-import { IconContainer, CardContainer, createErrorHandler } from '../utils';
+import {
+  IconContainer,
+  CardContainer,
+  createErrorHandler,
+  CardStyles,
+} from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -50,6 +54,7 @@ interface SavedQueriesProps {
   queryFilter: string;
   addDangerToast: (arg0: string) => void;
   addSuccessToast: (arg0: string) => void;
+  mine: Array<Query>;
 }
 
 const QueryData = styled.div`
@@ -59,7 +64,7 @@ const QueryData = styled.div`
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .title {
     font-weight: ${({ theme }) => theme.typography.weights.normal};
-    color: ${({ theme }) => theme.colors.grayscale.light2};
+    color: ${({ theme }) => theme.colors.grayscale.light1};
   }
   .holder {
     margin: ${({ theme }) => theme.gridUnit * 2}px;
@@ -69,17 +74,24 @@ const SavedQueries = ({
   user,
   addDangerToast,
   addSuccessToast,
+  mine,
 }: SavedQueriesProps) => {
   const {
-    state: { loading, resourceCollection: queries },
+    state: { resourceCollection: queries },
     hasPerm,
     fetchData,
     refreshData,
-  } = useListViewResource<Query>('saved_query', t('query'), addDangerToast);
+  } = useListViewResource<Query>(
+    'saved_query',
+    t('query'),
+    addDangerToast,
+    true,
+    mine,
+  );
   const [queryFilter, setQueryFilter] = useState('Mine');
   const [queryDeleteModal, setQueryDeleteModal] = useState(false);
   const [currentlyEdited, setCurrentlyEdited] = useState<Query>({});
-
+  const [ifMine, setMine] = useState(true);
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
@@ -88,7 +100,27 @@ const SavedQueries = ({
       endpoint: `/api/v1/saved_query/${id}`,
     }).then(
       () => {
-        refreshData();
+        const queryParams = {
+          filters: [
+            {
+              id: 'created_by',
+              operator: 'rel_o_m',
+              value: `${user?.userId}`,
+            },
+          ],
+          pageSize: PAGE_SIZE,
+          sortBy: [
+            {
+              id: 'changed_on_delta_humanized',
+              desc: true,
+            },
+          ],
+          pageIndex: 0,
+        };
+        // if mine is default there refresh data with current filters
+        const filter = ifMine ? queryParams : undefined;
+        refreshData(filter);
+        setMine(false);
         setQueryDeleteModal(false);
         addSuccessToast(t('Deleted: %s', label));
       },
@@ -98,9 +130,9 @@ const SavedQueries = ({
     );
   };
 
-  const getFilters = () => {
+  const getFilters = (filterName: string) => {
     const filters = [];
-    if (queryFilter === 'Mine') {
+    if (filterName === 'Mine') {
       filters.push({
         id: 'created_by',
         operator: 'rel_o_m',
@@ -116,8 +148,8 @@ const SavedQueries = ({
     return filters;
   };
 
-  useEffect(() => {
-    fetchData({
+  const getData = (filter: string) => {
+    return fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -126,9 +158,9 @@ const SavedQueries = ({
           desc: true,
         },
       ],
-      filters: getFilters(),
+      filters: getFilters(filter),
     });
-  }, [queryFilter]);
+  };
 
   const renderMenu = (query: Query) => (
     <Menu>
@@ -186,12 +218,14 @@ const SavedQueries = ({
           {
             name: 'Favorite',
             label: t('Favorite'),
-            onClick: () => setQueryFilter('Favorite'),
+            onClick: () => {
+              getData('Favorite').then(() => setQueryFilter('Favorite'));
+            },
           },
           {
             name: 'Mine',
             label: t('Mine'),
-            onClick: () => setQueryFilter('Mine'),
+            onClick: () => getData('Mine').then(() => setQueryFilter('Mine')),
           },
         ]}
         buttons={[
@@ -218,35 +252,45 @@ const SavedQueries = ({
       {queries.length > 0 ? (
         <CardContainer>
           {queries.map(q => (
-            <ListViewCard
-              key={`${q.id}`}
-              imgFallbackURL=""
-              imgURL=""
-              url={`/superset/sqllab?savedQueryId=${q.id}`}
-              title={q.label}
-              rows={q.rows}
-              loading={loading}
-              description={t('Last run ', q.end_time)}
-              cover={
-                <QueryData>
-                  <div className="holder">
-                    <div className="title">{t('Tables')}</div>
-                    <div>{q?.sql_tables?.length}</div>
-                  </div>
-                  <div className="holder">
-                    <div className="title">{t('Datasource Name')}</div>
-                    <div>{q?.sql_tables && q.sql_tables[0]?.table}</div>
-                  </div>
-                </QueryData>
-              }
-              actions={
-                <ListViewCard.Actions>
-                  <Dropdown overlay={renderMenu(q)}>
-                    <Icon name="more-horiz" />
-                  </Dropdown>
-                </ListViewCard.Actions>
-              }
-            />
+            <CardStyles
+              onClick={() => {
+                window.location.href = `/superset/sqllab?savedQueryId=${q.id}`;
+              }}
+              key={q.id}
+            >
+              <ListViewCard
+                imgFallbackURL=""
+                imgURL=""
+                url={`/superset/sqllab?savedQueryId=${q.id}`}
+                title={q.label}
+                rows={q.rows}
+                description={t('Last run ', q.end_time)}
+                cover={
+                  <QueryData>
+                    <div className="holder">
+                      <div className="title">{t('Tables')}</div>
+                      <div>{q?.sql_tables?.length}</div>
+                    </div>
+                    <div className="holder">
+                      <div className="title">{t('Datasource Name')}</div>
+                      <div>{q?.sql_tables && q.sql_tables[0]?.table}</div>
+                    </div>
+                  </QueryData>
+                }
+                actions={
+                  <ListViewCard.Actions
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
+                    <Dropdown overlay={renderMenu(q)}>
+                      <Icon name="more-horiz" />
+                    </Dropdown>
+                  </ListViewCard.Actions>
+                }
+              />
+            </CardStyles>
           ))}
         </CardContainer>
       ) : (

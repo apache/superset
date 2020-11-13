@@ -444,7 +444,7 @@ class BaseViz:
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         cache_dict["rls"] = (
             security_manager.get_rls_ids(self.datasource)
-            if config["ENABLE_ROW_LEVEL_SECURITY"]
+            if config["ROW_LEVEL_SECURITY"]
             else []
         )
         cache_dict["changed_on"] = self.datasource.changed_on

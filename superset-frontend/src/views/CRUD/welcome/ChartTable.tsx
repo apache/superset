@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { t } from '@superset-ui/core';
 import {
   useListViewResource,
@@ -41,20 +41,28 @@ interface ChartTableProps {
   search: string;
   chartFilter?: string;
   user?: User;
+  mine: Array<any>;
 }
 
 function ChartTable({
   user,
   addDangerToast,
   addSuccessToast,
+  mine,
 }: ChartTableProps) {
   const {
-    state: { loading, resourceCollection: charts, bulkSelectEnabled },
+    state: { resourceCollection: charts, bulkSelectEnabled },
     setResourceCollection: setCharts,
     hasPerm,
     refreshData,
     fetchData,
-  } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
+  } = useListViewResource<Chart>(
+    'chart',
+    t('chart'),
+    addDangerToast,
+    true,
+    mine,
+  );
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
@@ -70,10 +78,10 @@ function ChartTable({
 
   const [chartFilter, setChartFilter] = useState('Mine');
 
-  const getFilters = () => {
+  const getFilters = (filterName: string) => {
     const filters = [];
 
-    if (chartFilter === 'Mine') {
+    if (filterName === 'Mine') {
       filters.push({
         id: 'created_by',
         operator: 'rel_o_m',
@@ -89,8 +97,8 @@ function ChartTable({
     return filters;
   };
 
-  useEffect(() => {
-    fetchData({
+  const getData = (filter: string) => {
+    return fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -99,9 +107,9 @@ function ChartTable({
           desc: true,
         },
       ],
-      filters: getFilters(),
+      filters: getFilters(filter),
     });
-  }, [chartFilter]);
+  };
 
   return (
     <>
@@ -121,12 +129,13 @@ function ChartTable({
           {
             name: 'Favorite',
             label: t('Favorite'),
-            onClick: () => setChartFilter('Favorite'),
+            onClick: () =>
+              getData('Favorite').then(() => setChartFilter('Favorite')),
           },
           {
             name: 'Mine',
             label: t('Mine'),
-            onClick: () => setChartFilter('Mine'),
+            onClick: () => getData('Mine').then(() => setChartFilter('Mine')),
           },
         ]}
         buttons={[
@@ -157,8 +166,9 @@ function ChartTable({
             <ChartCard
               key={`${e.id}`}
               openChartEditModal={openChartEditModal}
-              loading={loading}
+              chartFilter={chartFilter}
               chart={e}
+              userId={user?.userId}
               hasPerm={hasPerm}
               bulkSelectEnabled={bulkSelectEnabled}
               refreshData={refreshData}

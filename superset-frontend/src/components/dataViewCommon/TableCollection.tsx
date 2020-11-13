@@ -52,6 +52,8 @@ export const Table = styled.table`
     position: sticky;
     top: 0;
 
+    white-space: nowrap;
+
     &:first-of-type {
       padding-left: ${({ theme }) => theme.gridUnit * 4}px;
     }

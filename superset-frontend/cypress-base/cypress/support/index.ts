@@ -61,14 +61,18 @@ Cypress.Commands.add('verifyResponseCodes', (xhr: XMLHttpRequest, callback) => {
 
 Cypress.Commands.add('verifySliceContainer', chartSelector => {
   // After a wait response check for valid slice container
-  cy.get('.slice_container').within(() => {
-    if (chartSelector) {
-      cy.get(chartSelector).then(chart => {
-        expect(chart[0].clientWidth).greaterThan(0);
-        expect(chart[0].clientHeight).greaterThan(0);
-      });
-    }
-  });
+  cy.get('.slice_container')
+    .should('be.visible')
+    .within(() => {
+      if (chartSelector) {
+        cy.get(chartSelector)
+          .should('be.visible')
+          .then(chart => {
+            expect(chart[0].clientWidth).greaterThan(0);
+            expect(chart[0].clientHeight).greaterThan(0);
+          });
+      }
+    });
   return cy;
 });
 

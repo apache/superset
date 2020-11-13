@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import React, { CSSProperties, ComponentType, ReactNode } from 'react';
 import { css, SerializedStyles, ClassNames } from '@emotion/core';
 import { supersetTheme } from '@superset-ui/core';
 import {
@@ -24,9 +24,12 @@ import {
   Theme,
   SelectComponentsConfig,
   components as defaultComponents,
+  InputProps as ReactSelectInputProps,
 } from 'react-select';
+import { Props as SelectProps } from 'react-select/src/Select';
 import { colors as reactSelectColros } from 'react-select/src/theme';
 import { supersetColors } from 'src/components/styles';
+import { DeepNonNullable } from 'react-select/src/components';
 
 export const DEFAULT_CLASS_NAME = 'Select';
 export const DEFAULT_CLASS_NAME_PREFIX = 'Select';
@@ -239,11 +242,37 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
     paddingLeft: baseUnit * 1.2,
     paddingRight: baseUnit * 1.2,
   }),
+  input: (provider, { selectProps }) => [
+    provider,
+    css`
+      padding: ${selectProps?.isMulti && selectProps?.value?.length
+        ? '0 6px'
+        : '0'};
+      margin-left: 0;
+      vertical-align: middle;
+    `,
+  ],
 };
 
-const { ClearIndicator, DropdownIndicator, Option } = defaultComponents;
+type SelectComponentsType = Omit<SelectComponentsConfig<any>, 'Input'> & {
+  Input: ComponentType<InputProps>;
+};
 
-export const DEFAULT_COMPONENTS: SelectComponentsConfig<any> = {
+// react-select is missing selectProps from their props type
+// so overwriting it here to avoid errors
+type InputProps = ReactSelectInputProps & {
+  placeholder?: ReactNode;
+  selectProps: SelectProps;
+};
+
+const {
+  ClearIndicator,
+  DropdownIndicator,
+  Option,
+  Input,
+} = defaultComponents as Required<DeepNonNullable<SelectComponentsType>>;
+
+export const DEFAULT_COMPONENTS: SelectComponentsType = {
   Option: ({ children, innerProps, data, ...props }) => (
     <ClassNames>
       {({ css }) => (
@@ -272,6 +301,20 @@ export const DEFAULT_COMPONENTS: SelectComponentsConfig<any> = {
       />
     </DropdownIndicator>
   ),
+  Input: (props: InputProps) => {
+    const {
+      selectProps: { isMulti, value, placeholder },
+      getStyles,
+    } = props;
+    const isMultiWithValue = isMulti && Array.isArray(value) && value.length;
+    return (
+      <Input
+        {...props}
+        placeholder={isMultiWithValue ? placeholder : undefined}
+        css={getStyles('input', props)}
+      />
+    );
+  },
 };
 
 export const VALUE_LABELED_STYLES: PartialStylesConfig = {
