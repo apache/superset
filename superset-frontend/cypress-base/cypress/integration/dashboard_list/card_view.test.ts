@@ -29,7 +29,7 @@ describe('Dashboard card view', () => {
   it('should load cards', () => {
     cy.get('[data-test="dashboard-list-view"]');
     cy.get('[data-test="styled-card"]').should('be.visible');
-    cy.get('[data-test="styled-card"]').should('have.length', 5);
+    cy.get('[data-test="styled-card"]').should('have.length', 4);
   });
 
   it('should allow to favorite/unfavorite dashboard card', () => {

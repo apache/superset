@@ -36,7 +36,7 @@ describe('dashboard list view', () => {
     cy.get('[data-test="sort-header"]').eq(5).contains('Created By');
     cy.get('[data-test="sort-header"]').eq(6).contains('Owners');
     cy.get('[data-test="sort-header"]').eq(7).contains('Actions');
-    cy.get('[data-test="table-row"]').should('have.length', 5);
+    cy.get('[data-test="table-row"]').should('have.length', 4);
   });
 
   it('should sort correctly', () => {
