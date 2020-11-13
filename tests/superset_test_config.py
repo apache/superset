@@ -57,6 +57,7 @@ FEATURE_FLAGS = {
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ENABLE_REACT_CRUD_VIEWS": os.environ.get("ENABLE_REACT_CRUD_VIEWS", False),
     "ROW_LEVEL_SECURITY": True,
+    "ALERTS_REPORTS": True,
 }
 
 
@@ -86,6 +87,11 @@ CACHE_CONFIG = {
     "CACHE_DEFAULT_TIMEOUT": 60 * 60 * 24,  # 1 day default (in secs)
     "CACHE_KEY_PREFIX": "superset_cache",
     "CACHE_REDIS_URL": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}",
+}
+
+TABLE_NAMES_CACHE_CONFIG = {
+    **CACHE_CONFIG,
+    "CACHE_KEY_PREFIX": "superset_data_cache",
 }
 
 

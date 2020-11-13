@@ -18,6 +18,7 @@
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import readResponseBlob from '../../utils/readResponseBlob';
+import { isLegacyChart } from '../../utils/vizPlugins';
 
 describe('Dashboard top-level controls', () => {
   const sliceRequests = [];
@@ -38,20 +39,23 @@ describe('Dashboard top-level controls', () => {
       ).slice_id;
 
       dashboard.slices.forEach(slice => {
-        const sliceRequest = `getJson_${slice.slice_id}`;
-        sliceRequests.push(`@${sliceRequest}`);
-        const formData = `{"slice_id":${slice.slice_id}}`;
-        cy.route(
-          'POST',
-          `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`,
-        ).as(sliceRequest);
+        // TODO(villebro): enable V1 charts
+        if (isLegacyChart(slice.form_data.viz_type)) {
+          const sliceRequest = `getJson_${slice.slice_id}`;
+          sliceRequests.push(`@${sliceRequest}`);
+          const formData = `{"slice_id":${slice.slice_id}}`;
+          cy.route(
+            'POST',
+            `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`,
+          ).as(sliceRequest);
 
-        const forceRefresh = `postJson_${slice.slice_id}_force`;
-        forceRefreshRequests.push(`@${forceRefresh}`);
-        cy.route(
-          'POST',
-          `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}&force=true&dashboard_id=${dashboardId}`,
-        ).as(forceRefresh);
+          const forceRefresh = `postJson_${slice.slice_id}_force`;
+          forceRefreshRequests.push(`@${forceRefresh}`);
+          cy.route(
+            'POST',
+            `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}&force=true&dashboard_id=${dashboardId}`,
+          ).as(forceRefresh);
+        }
       });
     });
   });
@@ -66,27 +70,24 @@ describe('Dashboard top-level controls', () => {
       .find('.world_map')
       .should('be.exist');
     cy.get(`#slice_${mapId}-controls`).click();
-    cy.get(`#slice_${mapId}-controls`)
-      .next()
-      .find('[data-test="dashboard-slice-refresh-tooltip"]')
-      .trigger('click', { force: true });
+    cy.get(`[data-test="slice_${mapId}-menu"]`)
+      .find('[data-test="refresh-dashboard-menu-item"]')
+      .click({ force: true });
 
     // not allow dashboard level force refresh when any chart is loading
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
     // not allow chart level force refresh when it is loading
-    cy.get(`#slice_${mapId}-controls`)
-      .next()
-      .find('[data-test="dashboard-slice-refresh-tooltip"]')
-      .parent()
-      .should('have.class', 'ant-menu-item-disabled');
+    cy.get(`[data-test="slice_${mapId}-menu"]`)
+      .find('[data-test="refresh-dashboard-menu-item"]')
+      .should('have.class', 'ant-dropdown-menu-item-disabled');
 
     cy.wait(`@postJson_${mapId}_force`);
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'not.have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
   });
 
@@ -96,15 +97,15 @@ describe('Dashboard top-level controls', () => {
     cy.get('[data-test="more-horiz"]').click();
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'not.have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
 
     // wait the all dash finish loading.
     cy.wait(sliceRequests);
-    cy.get('[data-test="refresh-dashboard-menu-item"]').click();
+    cy.get('[data-test="refresh-dashboard-menu-item"]').click({ force: true });
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
 
     // wait all charts force refreshed
@@ -120,7 +121,7 @@ describe('Dashboard top-level controls', () => {
     cy.get('[data-test="more-horiz"]').click();
     cy.get('[data-test="refresh-dashboard-menu-item"]').should(
       'not.have.class',
-      'ant-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
   });
 });

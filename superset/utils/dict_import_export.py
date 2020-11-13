@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
@@ -75,24 +75,3 @@ def export_to_dict(
     if clusters:
         data[DRUID_CLUSTERS_KEY] = clusters
     return data
-
-
-def import_from_dict(
-    session: Session, data: Dict[str, Any], sync: Optional[List[str]] = None
-) -> None:
-    """Imports databases and druid clusters from dictionary"""
-    if not sync:
-        sync = []
-    if isinstance(data, dict):
-        logger.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
-        for database in data.get(DATABASES_KEY, []):
-            Database.import_from_dict(session, database, sync=sync)
-
-        logger.info(
-            "Importing %d %s", len(data.get(DRUID_CLUSTERS_KEY, [])), DRUID_CLUSTERS_KEY
-        )
-        for datasource in data.get(DRUID_CLUSTERS_KEY, []):
-            DruidCluster.import_from_dict(session, datasource, sync=sync)
-        session.commit()
-    else:
-        logger.info("Supplied object is not a dictionary.")

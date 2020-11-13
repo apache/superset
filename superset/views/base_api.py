@@ -21,7 +21,7 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, 
 from apispec import APISpec
 from apispec.exceptions import DuplicateComponentNameError
 from flask import Blueprint, g, Response
-from flask_appbuilder import AppBuilder, ModelRestApi
+from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
@@ -170,6 +170,18 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """  # pylint: disable=pointless-string-statement
     allowed_rel_fields: Set[str] = set()
+    """
+    Declare a set of allowed related fields that the `related` endpoint supports
+    """  # pylint: disable=pointless-string-statement
+
+    text_field_rel_fields: Dict[str, str] = {}
+    """
+    Declare an alternative for the human readable representation of the Model object::
+
+        text_field_rel_fields = {
+            "<RELATED_FIELD>": "<RELATED_OBJECT_FIELD>"
+        }
+    """  # pylint: disable=pointless-string-statement
 
     allowed_distinct_fields: Set[str] = set()
 
@@ -380,6 +392,14 @@ class BaseSupersetModelRestApi(ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
+        def get_text_for_model(model: Model) -> str:
+            if column_name in self.text_field_rel_fields:
+                model_column_name = self.text_field_rel_fields.get(column_name)
+                if model_column_name:
+                    return getattr(model, model_column_name)
+            return str(model)
+
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
             return self.response_404()
@@ -405,7 +425,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         )
         # produce response
         result = [
-            {"value": datamodel.get_pk_value(value), "text": str(value)}
+            {"value": datamodel.get_pk_value(value), "text": get_text_for_model(value)}
             for value in values
         ]
         return self.response(200, count=count, result=result)

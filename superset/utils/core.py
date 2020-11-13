@@ -1563,6 +1563,16 @@ class PostProcessingContributionOrientation(str, Enum):
     COLUMN = "column"
 
 
+class PostProcessingBoxplotWhiskerType(str, Enum):
+    """
+    Calculate cell contibution to row/column total
+    """
+
+    TUKEY = "tukey"
+    MINMAX = "min/max"
+    PERCENTILE = "percentile"
+
+
 class AdhocMetricExpressionType(str, Enum):
     SIMPLE = "SIMPLE"
     SQL = "SQL"

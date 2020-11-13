@@ -175,7 +175,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       .catch(response =>
         getClientErrorObject(response).then(error => {
           addDangerToast(
-            t('ERROR: Connection failed. ') + error?.message || '',
+            error?.message
+              ? `${t('ERROR: ')}${
+                  typeof error.message === 'string'
+                    ? error.message
+                    : (error.message as Record<string, string[]>).sqlalchemy_uri
+                }`
+              : t('ERROR: Connection failed. '),
           );
         }),
       );
@@ -202,22 +208,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       if (db && db.id) {
-        updateResource(db.id, update).then(() => {
-          if (onDatabaseAdd) {
-            onDatabaseAdd();
+        updateResource(db.id, update).then(result => {
+          if (result) {
+            if (onDatabaseAdd) {
+              onDatabaseAdd();
+            }
+            hide();
           }
-
-          hide();
         });
       }
     } else if (db) {
       // Create
-      createResource(db).then(() => {
-        if (onDatabaseAdd) {
-          onDatabaseAdd();
+      createResource(db).then(dbId => {
+        if (dbId) {
+          if (onDatabaseAdd) {
+            onDatabaseAdd();
+          }
+          hide();
         }
-
-        hide();
       });
     }
   };
@@ -307,6 +315,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   return (
     <Modal
+      name="database"
       className="database-modal"
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={onSave}
@@ -356,7 +365,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 type="text"
                 name="sqlalchemy_uri"
                 value={db ? db.sqlalchemy_uri : ''}
-                placeholder={t('SQLAlchemy URI')}
+                autoComplete="off"
+                placeholder={t(
+                  'dialect+driver://username:password@host:port/database',
+                )}
                 onChange={onInputChange}
               />
               <Button buttonStyle="primary" onClick={testConnection} cta>

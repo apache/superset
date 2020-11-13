@@ -102,9 +102,9 @@ export default class ModalTrigger extends React.Component {
     /* eslint-disable jsx-a11y/interactive-supports-focus */
     return (
       <>
-        <span onClick={this.open} role="button">
+        <div onClick={this.open} role="button">
           {this.props.triggerNode}
-        </span>
+        </div>
         {this.renderModal()}
       </>
     );

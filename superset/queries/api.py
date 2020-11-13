@@ -38,6 +38,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
 
     class_permission_name = "QueryView"
     list_columns = [
+        "id",
         "changed_on",
         "database.database_name",
         "rows",
@@ -52,7 +53,6 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user.username",
         "start_time",
         "end_time",
-        "rows",
         "tmp_table_name",
         "tracking_url",
     ]
@@ -93,6 +93,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "database.database_name",
         "rows",
         "schema",
+        "start_time",
         "sql",
         "tab_name",
         "user.first_name",
