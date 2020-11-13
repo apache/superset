@@ -65,12 +65,6 @@ interface SavedQueriesProps {
 }
 
 const QueryData = styled.div`
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  svg {
-    position: absolute;
-    top: ${({ theme }) => theme.gridUnit * 2 + 2}px;
-    right: ${({ theme }) => theme.gridUnit * 2 + 2}px;
-  }
   .query-title {
     padding: ${({ theme }) => theme.gridUnit * 2 + 2}px;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
@@ -79,9 +73,10 @@ const QueryData = styled.div`
 
 const QueryContainer = styled.div`
   pre {
+    height: 160px;
     border: none !important;
     background-color: ${({ theme }) =>
-      theme.colors.grayscale.light5} !important;
+      theme.colors.grayscale.light4} !important;
   }
 `;
 
@@ -277,39 +272,39 @@ const SavedQueries = ({
                 imgFallbackURL=""
                 imgURL=""
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
+                title={q.label}
                 description={t('Last run %s', q.changed_on_delta_humanized)}
                 cover={
-                  <>
-                    <QueryData>
-                      <ListViewCard.Actions
-                        onClick={e => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                        }}
-                      >
-                        <div className="query-title">{q.label}</div>
-                        <Dropdown overlay={renderMenu(q)}>
-                          <Icon name="more-horiz" />
-                        </Dropdown>
-                      </ListViewCard.Actions>
-                    </QueryData>
-                    <QueryContainer>
-                      <SyntaxHighlighter
-                        language="sql"
-                        lineProps={{
-                          style: {
-                            color: 'black',
-                            wordBreak: 'break-all',
-                            whiteSpace: 'pre-wrap',
-                          },
-                        }}
-                        style={github}
-                        wrapLines
-                      >
-                        {q.sql}
-                      </SyntaxHighlighter>
-                    </QueryContainer>
-                  </>
+                  <QueryContainer>
+                    <SyntaxHighlighter
+                      language="sql"
+                      lineProps={{
+                        style: {
+                          color: 'black',
+                          wordBreak: 'break-all',
+                          whiteSpace: 'pre-wrap',
+                        },
+                      }}
+                      style={github}
+                      wrapLines
+                    >
+                      {q?.sql}
+                    </SyntaxHighlighter>
+                  </QueryContainer>
+                }
+                actions={
+                  <QueryData>
+                    <ListViewCard.Actions
+                      onClick={e => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                    >
+                      <Dropdown overlay={renderMenu(q)}>
+                        <Icon name="more-horiz" />
+                      </Dropdown>
+                    </ListViewCard.Actions>
+                  </QueryData>
                 }
               />
             </CardStyles>
