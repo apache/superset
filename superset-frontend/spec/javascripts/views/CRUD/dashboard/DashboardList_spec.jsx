@@ -29,7 +29,6 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
 import ListView from 'src/components/ListView';
 import ListViewCard from 'src/components/ListViewCard';
-import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 
 // store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
@@ -82,6 +81,8 @@ fetchMock.get(dashboardsEndpoint, {
 global.URL.createObjectURL = jest.fn();
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
+const oldWindowLocationAssign = window.location.assign;
+
 describe('DashboardList', () => {
   const isFeatureEnabledMock = jest
     .spyOn(featureFlags, 'isFeatureEnabled')
@@ -98,6 +99,15 @@ describe('DashboardList', () => {
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
+    window.location.assign = jest.fn();
+  });
+
+  afterEach(() => {
+    window.location.assign.mockReset();
+  });
+
+  afterAll(() => {
+    window.location.assign = oldWindowLocationAssign;
   });
 
   it('renders', () => {
@@ -132,14 +142,13 @@ describe('DashboardList', () => {
   });
 
   it('edits', () => {
-    expect(wrapper.find(PropertiesModal)).not.toExist();
     wrapper.find('[data-test="edit-alt"]').first().simulate('click');
-    expect(wrapper.find(PropertiesModal)).toExist();
+    expect(window.location.assign).toHaveBeenCalledWith('url?edit=true');
   });
 
   it('card view edits', () => {
     wrapper.find('[data-test="edit-alt"]').last().simulate('click');
-    expect(wrapper.find(PropertiesModal)).toExist();
+    expect(window.location.assign).toHaveBeenCalledWith('url?edit=true');
   });
 
   it('delete', () => {
