@@ -22,6 +22,16 @@ import SupersetResourceSelect from 'src/component/SupersetResourceSelect';
 
 describe('SupersetREsourceSelect', () => {
   it('is a valid element', () => {
-    expect(React.isValidElement(<C))
-  })
-})
+    expect(React.isValidElement(<SupersetResourceSelect />)).toBe(true);
+  });
+  it('take in props', () => {
+    const selectProps = {
+      resource: 'dataset',
+      searchColumn: 'table_name',
+      transformItem: jest.fn(),
+      isMulti: false,
+    };
+    const wrapper = mount(<SupersetResourceSelect {...props} />);
+    expect(wrapper.props().props.resource).toEqual('dataset');
+  });
+});

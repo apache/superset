@@ -19,7 +19,7 @@
 
 import { SupersetClient } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { Filter } from '../components/filterConfig/types';
+import { Filter } from '../components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
 
 export const CREATE_FILTER_BEGIN = 'CREATE_FILTER_BEGIN';
@@ -97,6 +97,7 @@ export interface SelectFilterOptionAction {
   filterId: string;
   selectedValues: string[] | null;
 }
+
 /**
  * Sets the selected option(s) for a given filter
  * @param filterId the id of the native filter

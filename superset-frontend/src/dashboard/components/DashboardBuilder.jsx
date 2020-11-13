@@ -46,6 +46,7 @@ import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
+import FilterBar from './nativeFilters/FilterBar';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -82,10 +83,13 @@ const StyledDashboardContent = styled.div`
     padding-left: 0;
   }
 
-  & > div:first-child {
+  .grid-container {
+    /* without this, the grid will not get smaller upon toggling the builder panel on */
+    min-width: 0;
     width: 100%;
     flex-grow: 1;
     position: relative;
+    margin: 24px 36px 24px;
   }
 
   .dashboard-component-chart-holder {
@@ -251,6 +255,9 @@ class DashboardBuilder extends React.Component {
         </Sticky>
 
         <StyledDashboardContent className="dashboard-content">
+          <div className="filter-container">
+            <FilterBar />
+          </div>
           <div className="grid-container" data-test="grid-container">
             <ParentSize>
               {({ width }) => (

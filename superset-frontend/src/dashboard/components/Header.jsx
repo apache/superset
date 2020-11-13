@@ -48,7 +48,7 @@ import {
 } from '../util/constants';
 import setPeriodicRunner from '../util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from './RefreshIntervalModal';
-import CreateFilterButton from './filterConfig/CreateFilterButton';
+import CreateFilterButton from './nativeFilters/CreateFilterButton';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -103,6 +103,14 @@ const defaultProps = {
 
 // Styled Components
 const StyledDashboardHeader = styled.div`
+  background: ${({ theme }) => theme.colors.grayscale.light5};
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 ${({ theme }) => theme.gridUnit * 6}px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+
   button,
   .fave-unfave-icon {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;

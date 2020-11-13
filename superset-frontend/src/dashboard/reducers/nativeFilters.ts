@@ -25,21 +25,15 @@ import {
   SelectFilterOptionAction,
   SELECT_FILTER_OPTION,
 } from '../actions/nativeFilters';
-import { Filter } from '../components/nativeFilters/types';
-
-export type FilterState = {
-  optionsStatus: 'loading' | 'success' | 'fail';
-  isDirty: boolean;
-  options: string[] | null;
-  selectedValues: string[] | null;
-};
+import { Filter, FilterState } from '../components/nativeFilters/types';
 
 export type State = {
   [filterId: string]: FilterState;
 };
 
-function getInitialFilterState(): FilterState {
+export function getInitialFilterState(id: string): FilterState {
   return {
+    id,
     optionsStatus: 'loading',
     isDirty: false,
     options: null,
@@ -50,7 +44,7 @@ function getInitialFilterState(): FilterState {
 export function getInitialState(filterConfig: Filter[]): State {
   const filters = {};
   filterConfig.forEach(filter => {
-    filters[filter.id] = getInitialFilterState();
+    filters[filter.id] = getInitialFilterState(filter.id);
   });
   return filters;
 }
@@ -59,9 +53,10 @@ export default function nativeFilterReducer(
   filters: State = {},
   action: Action,
 ) {
-  const reducerMap = {
+  const actionMap = {
     [SELECT_FILTER_OPTION]: (action: SelectFilterOptionAction): State => {
       const filterState = filters[action.filterId];
+      console.log('reducer', action, filterState);
       return {
         ...filters,
         [action.filterId]: {
@@ -72,7 +67,7 @@ export default function nativeFilterReducer(
     },
 
     [CREATE_FILTER_BEGIN]: (action: CreateFilterBeginAction): State => {
-      const filterState = getInitialFilterState();
+      const filterState = getInitialFilterState(action.filter.id);
       filterState.isDirty = true;
       return {
         ...filters,
@@ -92,8 +87,8 @@ export default function nativeFilterReducer(
     },
   };
 
-  if (reducerMap[action.type]) {
-    reducerMap[action.type](action);
+  if (actionMap[action.type]) {
+    return actionMap[action.type](action);
   }
   return filters;
 }

@@ -22,6 +22,7 @@ import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/core';
 
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
+import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { getParam } from 'src/modules/utils';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
@@ -255,7 +256,9 @@ export default function getInitialState(bootstrapData) {
     directPathToChild.push(directLinkComponentId);
   }
 
-  const nativeFilters = getInitialNativeFilterState(dashboard.metadata);
+  const nativeFilters = getInitialNativeFilterState(
+    dashboard.metadata.filter_configuration || [],
+  );
 
   return {
     datasources,
@@ -279,6 +282,7 @@ export default function getInitialState(bootstrapData) {
       lastModifiedTime: dashboard.last_modified_time,
     },
     dashboardFilters,
+    nativeFilters,
     dashboardState: {
       sliceIds: Array.from(sliceIds),
       directPathToChild,

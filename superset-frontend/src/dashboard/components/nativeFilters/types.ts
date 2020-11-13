@@ -34,6 +34,10 @@ export interface Target {
 
 export type FilterType = 'text' | 'date';
 
+/**
+ * This is a filter configuration object, stored in the dashboard's json metadata.
+ * The values here do not reflect the current state of the filter.
+ */
 export interface Filter {
   id: string; // randomly generated at filter creation
   name: string;
@@ -47,3 +51,16 @@ export interface Filter {
   // maybe someday support this?
   // displayColumnsInOptions: Column[];
 }
+
+/** Current state of the filter, stored in `nativeFilters` in redux */
+export type FilterState = {
+  id: string; // ties this filter state to the config object
+  optionsStatus: 'loading' | 'success' | 'fail';
+  options: string[] | null;
+  selectedValues: string[] | null;
+  /**
+   * If the config changes, the current options/values may no longer be valid.
+   * isDirty indicates that state.
+   */
+  isDirty: boolean;
+};
