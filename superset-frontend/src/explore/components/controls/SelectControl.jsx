@@ -109,11 +109,9 @@ export default class SelectControl extends React.PureComponent {
         opt.forEach(o => {
           // select all options
           if (o.meta === true) {
-            this.props.onChange(
-              this.getOptions(this.props)
-                .filter(x => !x.meta)
-                .map(x => x[this.props.valueKey]),
-            );
+            optionValue = this.getOptions(this.props)
+              .filter(x => !x.meta)
+              .map(x => x[this.props.valueKey]);
             return;
           }
           optionValue.push(o[this.props.valueKey] || o);
