@@ -289,17 +289,9 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
-        expected_response = {
-            "message": {
-                "sqlalchemy_uri": [
-                    "Invalid connection string, a valid string usually "
-                    "follows:'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
-                    "<p>Example:'postgresql://user:password@your-postgres-db/database'"
-                    "</p>"
-                ]
-            }
-        }
-        self.assertEqual(response, expected_response)
+        self.assertIn(
+            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+        )
 
     def test_create_database_fail_sqllite(self):
         """
@@ -447,17 +439,9 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
-        expected_response = {
-            "message": {
-                "sqlalchemy_uri": [
-                    "Invalid connection string, a valid string usually "
-                    "follows:'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
-                    "<p>Example:'postgresql://user:password@your-postgres-db/database'"
-                    "</p>"
-                ]
-            }
-        }
-        self.assertEqual(response, expected_response)
+        self.assertIn(
+            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+        )
 
     def test_delete_database(self):
         """

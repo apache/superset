@@ -132,6 +132,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   if (canCreate) {
     menuData.buttons = [
       {
+        'data-test': 'btn-create-database',
         name: (
           <>
             <i className="fa fa-plus" /> {t('Database')}{' '}
@@ -295,6 +296,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                 >
                   <span
                     role="button"
+                    data-test="database-edit"
                     tabIndex={0}
                     className="action-button"
                     onClick={handleEdit}
