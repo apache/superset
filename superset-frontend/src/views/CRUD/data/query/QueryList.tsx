@@ -34,10 +34,12 @@ import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject } from 'src/views/CRUD/types';
+import { shortenSQL } from 'src/views/CRUD/utils';
 
 import QueryPreviewModal from './QueryPreviewModal';
 
 const PAGE_SIZE = 25;
+const SQL_PREVIEW_MAX_LINES = 4;
 
 const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
   table .table-cell {
@@ -52,15 +54,7 @@ const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
-const SQL_PREVIEW_MAX_LINES = 4;
-function shortenSQL(sql: string) {
-  let lines: string[] = sql.split('\n');
-  if (lines.length >= SQL_PREVIEW_MAX_LINES) {
-    lines = lines.slice(0, SQL_PREVIEW_MAX_LINES);
-    lines.push('...');
-  }
-  return lines.join('\n');
-}
+
 interface QueryListProps {
   addDangerToast: (msg: string, config?: any) => any;
   addSuccessToast: (msg: string, config?: any) => any;
@@ -298,7 +292,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
               onClick={() => setQueryCurrentlyPreviewing(original)}
             >
               <StyledSyntaxHighlighter language="sql" style={github}>
-                {shortenSQL(original.sql)}
+                {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
               </StyledSyntaxHighlighter>
             </div>
           );

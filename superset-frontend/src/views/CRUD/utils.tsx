@@ -261,6 +261,15 @@ export function handleDashboardDelete(
   );
 }
 
+export function shortenSQL(sql: string, maxLines: number) {
+  let lines: string[] = sql.split('\n');
+  if (lines.length >= maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines.push('...');
+  }
+  return lines.join('\n');
+}
+
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 

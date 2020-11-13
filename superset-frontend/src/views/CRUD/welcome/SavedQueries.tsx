@@ -34,6 +34,7 @@ import {
   CardContainer,
   createErrorHandler,
   CardStyles,
+  shortenSQL,
 } from '../utils';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
@@ -51,7 +52,7 @@ interface Query {
   end_time?: string;
   label?: string;
   changed_on_delta_humanized?: string;
-  sql?: string;
+  sql?: string | null;
 }
 
 interface SavedQueriesProps {
@@ -65,6 +66,9 @@ interface SavedQueriesProps {
 }
 
 const QueryData = styled.div`
+  svg {
+    margin-left: ${({ theme }) => theme.gridUnit * 10}px;
+  }
   .query-title {
     padding: ${({ theme }) => theme.gridUnit * 2 + 2}px;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
@@ -73,10 +77,12 @@ const QueryData = styled.div`
 
 const QueryContainer = styled.div`
   pre {
-    height: 160px;
+    height: ${({ theme }) => theme.gridUnit * 40}px;
     border: none !important;
     background-color: ${({ theme }) =>
       theme.colors.grayscale.light4} !important;
+    overflow: hidden;
+    padding: ${({ theme }) => theme.gridUnit * 4}px !important;
   }
 `;
 
@@ -288,7 +294,7 @@ const SavedQueries = ({
                       style={github}
                       wrapLines
                     >
-                      {q?.sql}
+                      {q?.sql?.length ? shortenSQL(q.sql, 6) : ''}
                     </SyntaxHighlighter>
                   </QueryContainer>
                 }
