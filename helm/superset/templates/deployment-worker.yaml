@@ -17,9 +17,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "superset.fullname" . }}
+  name: {{ template "superset.fullname" . }}-worker
   labels:
-    app: {{ template "superset.name" . }}
+    app: {{ template "superset.name" . }}-worker
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -27,30 +27,30 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ template "superset.name" . }}
+      app: {{ template "superset.name" . }}-worker
       release: {{ .Release.Name }}
   template:
     metadata:
-      {{ if .Values.supersetNode.forceReload }}
+      {{ if .Values.supersetWorker.forceReload }}
       annotations:
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
       {{ end }}
       labels:
-        app: {{ template "superset.name" . }}
+        app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
     spec:
       securityContext:
         runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
-      {{- if .Values.supersetNode.initContainers }}
+      {{- if .Values.supersetWorker.initContainers }}
       initContainers:
-      {{-  tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
+      {{-  tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: {{  tpl (toJson .Values.supersetNode.command) . }}
+          command: {{  tpl (toJson .Values.supersetWorker.command) . }}
           env:
             - name: "SUPERSET_PORT"
               value: {{ .Values.service.port | quote}}
@@ -67,10 +67,6 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}
