@@ -17,7 +17,11 @@
  * under the License.
  */
 import readResponseBlob from '../../utils/readResponseBlob';
-import { getChartAliases } from '../../utils/vizPlugins';
+import {
+  getChartAliases,
+  isLegacyResponse,
+  getSliceIdFromRequestUrl,
+} from '../../utils/vizPlugins';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard load', () => {
@@ -45,19 +49,21 @@ describe('Dashboard load', () => {
         requests.map(async xhr => {
           expect(xhr.status).to.eq(200);
           const responseBody = await readResponseBlob(xhr.response.body);
-          if (responseBody.result) {
+          let sliceId;
+          if (isLegacyResponse(responseBody)) {
+            expect(responseBody).to.have.property('errors');
+            expect(responseBody.errors.length).to.eq(0);
+            sliceId = responseBody.form_data.slice_id;
+          } else {
+            sliceId = getSliceIdFromRequestUrl(xhr.url);
             responseBody.result.forEach(element => {
               expect(element).to.have.property('error', null);
               expect(element).to.have.property('status', 'success');
             });
-          } else {
-            expect(responseBody).to.have.property('errors');
-            expect(responseBody.errors.length).to.eq(0);
-            const sliceId = responseBody.form_data.slice_id;
-            cy.get('[data-test="grid-content"]')
-              .find(`#chart-id-${sliceId}`)
-              .should('be.visible');
           }
+          cy.get('[data-test="grid-content"]')
+            .find(`#chart-id-${sliceId}`)
+            .should('be.visible');
         }),
       );
     });

@@ -16,31 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 const V1_PLUGINS = ['box_plot', 'echarts_timeseries', 'word_cloud', 'pie'];
 
 export function isLegacyChart(vizType: string): boolean {
   return !V1_PLUGINS.includes(vizType);
 }
-
+export function isLegacyResponse(response: any): boolean {
+  return !response.result;
+}
+export function getSliceIdFromRequestUrl(url: string): string {
+  const address = new URL(url);
+  const query = address.searchParams.get('form_data');
+  return query?.match(/\d+/)[0];
+}
 export function getChartAliases(slices: any[]): string[] {
   const aliases: string[] = [];
-  console.log(slices);
   Array.from(slices).forEach(slice => {
     const vizType = slice.form_data.viz_type;
     const isLegacy = isLegacyChart(vizType);
+    const alias = `getJson_${slice.slice_id}`;
+    const formData = `{"slice_id":${slice.slice_id}}`;
     if (isLegacy) {
-      const alias = `getJson_${slice.slice_id}`;
-      const formData = `{"slice_id":${slice.slice_id}}`;
       const route = `/superset/explore_json/?*${formData}*`;
       cy.route('POST', `${route}`).as(alias);
       aliases.push(`@${alias}`);
     } else {
-      const alias = `getJson_v1_${slice.slice_id}`;
-      const route = `/api/v1/chart/data?*`;
+      const route = `/api/v1/chart/data?*${formData}*`;
       cy.route('POST', `${route}`).as(alias);
       aliases.push(`@${alias}`);
     }
   });
-  console.log(aliases);
   return aliases;
 }
