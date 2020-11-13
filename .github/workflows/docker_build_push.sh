@@ -2,17 +2,19 @@
 
 set -eo pipefail
 
-env
-
 SHA=$(git rev-parse HEAD)
 REPO_NAME="apache/incubator-superset"
-REFSPEC="${GITHUB_HEAD_REF/[^a-zA-Z0-9]/-}"
-LATEST_TAG=REFSPEC
 
 if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+  REFSPEC="${GITHUB_HEAD_REF/[^a-zA-Z0-9]/-}"
   PR_NUM=$(echo "${GITHUB_REF}" | sed 's:refs/pull/::' | sed 's:/merge::')
   LATEST_TAG="pr-${PR_NUM}"
-elif [[ "${REFSPEC}" == "master" ]]; then
+else
+  REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/heads/::')
+  LATEST_TAG="${REFSPEC}"
+fi
+
+if [[ "${REFSPEC}" == "master" ]]; then
   LATEST_TAG="latest"
 fi
 
