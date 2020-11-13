@@ -61,6 +61,7 @@ class ReportRecipientType(str, enum.Enum):
 
 class ReportLogState(str, enum.Enum):
     SUCCESS = "Success"
+    WORKING = "Working"
     ERROR = "Error"
 
 

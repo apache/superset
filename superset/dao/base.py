@@ -20,6 +20,7 @@ from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from superset.dao.exceptions import (
     DAOConfigError,
@@ -46,13 +47,14 @@ class BaseDAO:
     """
 
     @classmethod
-    def find_by_id(cls, model_id: int) -> Model:
+    def find_by_id(cls, model_id: int, session: Session = None) -> Model:
         """
         Find a model by id, if defined applies `base_filter`
         """
-        query = db.session.query(cls.model_cls)
+        session = session or db.session
+        query = session.query(cls.model_cls)
         if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
+            data_model = SQLAInterface(cls.model_cls, session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 "id", data_model
             ).apply(query, None)
