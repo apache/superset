@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { PlusOutlined } from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
 import React from 'react';
 import { Button, Form, Input } from 'src/common/components';
+import CreateFilterButton from './CreateFilterButton';
 import {
   useFilterConfigurations,
   useFilterSetter,
@@ -34,6 +36,13 @@ const Bar = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+`;
+
+const TitleArea = styled.h2`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin: 0;
 `;
 
 interface FilterProps {
@@ -87,6 +96,12 @@ const FilterBar: React.FC = () => {
   const filterConfigs = useFilterConfigurations();
   return (
     <Bar>
+      <TitleArea>
+        <span>Filters ({filterConfigs.length})</span>
+        <CreateFilterButton type="text" shape="circle">
+          <PlusOutlined />
+        </CreateFilterButton>
+      </TitleArea>
       {filterConfigs.map(filter => (
         <FilterControl key={filter.id} filter={filter} />
       ))}

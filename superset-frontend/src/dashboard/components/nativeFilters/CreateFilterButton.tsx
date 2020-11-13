@@ -17,6 +17,7 @@
  * under the License.
  */
 import { SupersetClient, t } from '@superset-ui/core';
+import { ButtonProps } from 'antd/lib/button';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import shortid from 'shortid';
@@ -76,7 +77,7 @@ function ColumnSelect({ datasetId, value, onChange }: ColumnSelectProps) {
   );
 }
 
-interface FilterCreateFormProps {
+interface FilterCreateModalProps {
   isOpen: boolean;
   save: (values: Record<string, any>) => Promise<void>;
   onCancel: () => void;
@@ -92,7 +93,7 @@ const datasetToSelectOption = (item: any): DatasetSelectValue => ({
   label: item.table_name,
 });
 
-function FilterCreateForm({ isOpen, save, onCancel }: FilterCreateFormProps) {
+function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
   const [form] = Form.useForm();
 
   // antd form manages the dataset value,
@@ -188,9 +189,10 @@ function generateFilterId() {
   return `FILTER_V2-${shortid.generate()}`;
 }
 
-export default function CreateFilterTrigger({
+const CreateFilterButton: React.FC<ButtonProps> = ({
   children,
-}: React.PropsWithChildren<{}>) {
+  ...buttonProps
+}) => {
   const [isOpen, setOpen] = useState(false);
   const dispatch = useDispatch();
 
@@ -224,8 +226,12 @@ export default function CreateFilterTrigger({
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>{children}</Button>
-      <FilterCreateForm isOpen={isOpen} save={submit} onCancel={close} />
+      <Button {...buttonProps} onClick={() => setOpen(true)}>
+        {children}
+      </Button>
+      <FilterCreateModal isOpen={isOpen} save={submit} onCancel={close} />
     </>
   );
-}
+};
+
+export default CreateFilterButton;
