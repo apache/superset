@@ -44,7 +44,7 @@ describe('Visualization > Pie', () => {
   beforeEach(() => {
     cy.server();
     cy.login();
-    cy.route('POST', '/api/v1/chart/data').as('getJson');
+    cy.route('POST', '/api/v1/chart/data*').as('getJson');
   });
 
   it('should work with ad-hoc metric', () => {
