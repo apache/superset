@@ -169,10 +169,12 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           }
           return (
             <Tooltip title={statusConfig.label} placement="bottom">
-              <StatusIcon
-                name={statusConfig.name as IconName}
-                status={statusConfig.status}
-              />
+              <span>
+                <StatusIcon
+                  name={statusConfig.name as IconName}
+                  status={statusConfig.status}
+                />
+              </span>
             </Tooltip>
           );
         },
