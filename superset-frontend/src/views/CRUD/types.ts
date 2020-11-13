@@ -68,7 +68,7 @@ export interface QueryObject {
   };
   schema: string;
   sql: string;
-  executed_sql: string;
+  executed_sql: string | null;
   sql_tables?: { catalog?: string; schema: string; table: string }[];
   status:
     | 'success'

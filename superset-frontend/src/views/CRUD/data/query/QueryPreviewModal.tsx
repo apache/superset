@@ -110,6 +110,7 @@ function QueryPreviewModal({
 
   const [currentTab, setCurrentTab] = useState<'user' | 'executed'>('user');
 
+  const { id, sql, executed_sql } = query;
   return (
     <div role="none" onKeyUp={handleKeyPress}>
       <StyledModal
@@ -137,7 +138,7 @@ function QueryPreviewModal({
             data-test="open-in-sql-lab"
             key="open-in-sql-lab"
             buttonStyle="primary"
-            onClick={() => openInSqlLab(query.id)}
+            onClick={() => openInSqlLab(id)}
           >
             {t('Open in SQL Lab')}
           </Button>,
@@ -168,7 +169,7 @@ function QueryPreviewModal({
           addSuccessToast={addSuccessToast}
           language="sql"
         >
-          {currentTab === 'user' ? query.sql : query.executed_sql}
+          {(currentTab === 'user' ? sql : executed_sql) || ''}
         </SyntaxHighlighterCopy>
       </StyledModal>
     </div>

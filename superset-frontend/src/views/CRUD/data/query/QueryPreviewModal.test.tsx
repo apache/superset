@@ -21,10 +21,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import {
-  styledMount as mount,
-  styledShallow as shallow,
-} from 'spec/helpers/theming';
+import { styledMount as mount } from 'spec/helpers/theming';
 
 import QueryPreviewModal from 'src/views/CRUD/data/query/QueryPreviewModal';
 import { QueryObject } from 'src/views/CRUD/types';
