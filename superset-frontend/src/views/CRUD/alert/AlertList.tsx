@@ -17,22 +17,22 @@
  * under the License.
  */
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { t, styled, SupersetClient } from '@superset-ui/core';
-import moment from 'moment';
-import rison from 'rison';
-
+import React, { useMemo } from 'react';
+import { t, styled } from '@superset-ui/core';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DeleteModal from 'src/components/DeleteModal';
-import ListView, { ListViewProps } from 'src/components/ListView';
+import Icon, { IconName } from 'src/components/Icon';
+import Tooltip from 'src/common/components/Tooltip';
+import { Switch } from 'src/common/components/Switch';
+import FacePile from 'src/components/FacePile';
+import ListView from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { IconName } from 'src/components/Icon';
-import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createErrorHandler } from 'src/views/CRUD/utils';
+
+import {
+  useListViewResource,
+  useSingleViewResource,
+} from 'src/views/CRUD/hooks';
 
 import { AlertObject } from './types';
 
@@ -41,113 +41,215 @@ const PAGE_SIZE = 25;
 interface AlertListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  reportEnabled: boolean;
 }
 
-function AlertList({ addDangerToast, addSuccessToast }: AlertListProps) {
+const StatusIcon = styled(Icon)<{ status: string }>`
+  color: ${({ status, theme }) => {
+    if (status === 'alerting') return '#FBC700';
+    if (status === 'failed') return theme.colors.error.base;
+    if (status === 'ok') return theme.colors.success.base;
+
+    return theme.colors.grayscale.base;
+  }};
+`;
+
+function AlertList({ addDangerToast, reportEnabled = false }: AlertListProps) {
   const {
     state: { loading, resourceCount: alertsCount, resourceCollection: alerts },
+    hasPerm,
     fetchData,
-  } = useListViewResource<AlertObject>(
-    'alert',
-    t('alerts'),
+    refreshData,
+  } = useListViewResource<AlertObject>('report', t('reports'), addDangerToast);
+  const title = reportEnabled ? t('report') : t('alert');
+  const pathName = reportEnabled ? 'reports' : 'alerts';
+  const { updateResource } = useSingleViewResource<AlertObject>(
+    'report',
+    t('reports'),
     addDangerToast,
-    false,
   );
 
-  const initialSort = [{ id: 'short_descr', desc: true }];
+  const canEdit = hasPerm('can_edit');
+  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_add');
+
+  const initialSort = [{ id: 'name', desc: true }];
+
+  const toggleActive = (data: AlertObject) => {
+    if (data && data.id) {
+      const update_id = data.id;
+      updateResource(update_id, { active: !data.active }).then(() => {
+        refreshData();
+      });
+    }
+  };
+
   const columns = useMemo(
     () => [
       {
-        accessor: 'short_descr',
-        Header: t('Label'),
+        Cell: ({
+          row: {
+            original: { last_state: lastState },
+          },
+        }: any) => {
+          const lastStateConfig = {
+            name: '',
+            label: '',
+            status: '',
+          };
+          if (lastState === 'ok') {
+            lastStateConfig.name = 'check';
+            lastStateConfig.label = t('OK');
+            lastStateConfig.status = 'ok';
+          }
+          if (lastState === 'alerting' || !lastState) {
+            lastStateConfig.name = 'exclamation';
+            lastStateConfig.label = t('Alerting');
+            lastStateConfig.status = 'alerting';
+          }
+          if (lastState === 'failed') {
+            lastStateConfig.name = 'x-small';
+            lastStateConfig.label = t('Failed');
+            lastStateConfig.status = 'failed';
+          }
+          return (
+            <Tooltip title={lastStateConfig.label} placement="bottom">
+              <StatusIcon
+                name={(lastStateConfig.name as IconName) || 'check'}
+                status={lastStateConfig.status}
+              />
+            </Tooltip>
+          );
+        },
+        accessor: 'last_state',
+        size: 'xs',
+        disableSortBy: true,
       },
       {
-        accessor: 'long_descr',
-        Header: t('Description'),
+        accessor: 'name',
+        Header: t('Name'),
       },
       {
         Cell: ({
           row: {
-            original: { start_dttm: startDttm },
+            original: { recipients },
           },
-        }: any) => moment(new Date(startDttm)).format('ll'),
-        Header: t('Start'),
-        accessor: 'start_dttm',
+        }: any) =>
+          recipients.map((r: any) => (
+            <Icon key={r.id} name={r.type as IconName} />
+          )),
+        accessor: 'recipients',
+        Header: t('Notification Method'),
+        disableSortBy: true,
+      },
+      {
+        Header: t('Schedule'),
+        accessor: 'crontab',
       },
       {
         Cell: ({
           row: {
-            original: { end_dttm: endDttm },
+            original: { owners = [] },
           },
-        }: any) => moment(new Date(endDttm)).format('ll'),
-        Header: t('End'),
-        accessor: 'end_dttm',
+        }: any) => <FacePile users={owners} />,
+        Header: t('Owners'),
+        id: 'owners',
+        disableSortBy: true,
+        size: 'lg',
+      },
+      {
+        Cell: ({ row: { original } }: any) => (
+          <Switch
+            data-test="toggle-active"
+            checked={original.active}
+            onChange={() => toggleActive(original)}
+            size="small"
+          />
+        ),
+        Header: t('Active'),
+        accessor: 'active',
+        id: 'active',
       },
       {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => {}; // handleAnnotationEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
           const actions = [
-            {
-              label: 'edit-action',
-              tooltip: t('Edit Alert'),
-              placement: 'bottom',
-              icon: 'edit' as IconName,
-              onClick: handleEdit,
-            },
-            {
-              label: 'delete-action',
-              tooltip: t('Delete Alert'),
-              placement: 'bottom',
-              icon: 'trash' as IconName,
-              onClick: handleDelete,
-            },
-          ];
+            canEdit
+              ? {
+                  label: 'preview-action',
+                  tooltip: t('Preview Alert'),
+                  placement: 'bottom',
+                  icon: 'note' as IconName,
+                  onClick: handleEdit,
+                }
+              : null,
+            canEdit
+              ? {
+                  label: 'edit-action',
+                  tooltip: t('Edit Alert'),
+                  placement: 'bottom',
+                  icon: 'edit' as IconName,
+                  onClick: handleEdit,
+                }
+              : null,
+            canDelete
+              ? {
+                  label: 'delete-action',
+                  tooltip: t('Delete Alert'),
+                  placement: 'bottom',
+                  icon: 'trash' as IconName,
+                  onClick: handleDelete,
+                }
+              : null,
+          ].filter(item => !!item);
+
           return <ActionsBar actions={actions as ActionProps[]} />;
         },
         Header: t('Actions'),
         id: 'actions',
+        hidden: !canEdit && !canDelete,
         disableSortBy: true,
+        size: 'xl',
       },
     ],
-    [true, true],
+    [canDelete, canEdit],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
-
-  subMenuButtons.push({
-    name: (
-      <>
-        <i className="fa fa-plus" /> {t('Alert')}
-      </>
-    ),
-    buttonStyle: 'primary',
-    onClick: () => {},
-  });
+  if (canCreate) {
+    subMenuButtons.push({
+      name: (
+        <>
+          <i className="fa fa-plus" /> {title}
+        </>
+      ),
+      buttonStyle: 'primary',
+      onClick: () => {},
+    });
+  }
 
   const EmptyStateButton = (
     <Button buttonStyle="primary" onClick={() => {}}>
-      <>
-        <i className="fa fa-plus" /> {t('Alert')}
-      </>
+      <i className="fa fa-plus" /> {title}
     </Button>
   );
 
   const emptyState = {
     message: t('No alert yet'),
-    slot: EmptyStateButton,
+    slot: canCreate ? EmptyStateButton : null,
   };
 
   return (
     <>
       <SubMenu
-        activeChild="Alerts"
+        activeChild={pathName}
         name={t('Alerts & Reports')}
         tabs={[
           {
             name: 'Alerts',
             label: t('Alerts'),
-            url: '/alters/list/',
+            url: '/alert/list/',
             usesRouter: true,
           },
           {

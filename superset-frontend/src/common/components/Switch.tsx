@@ -16,31 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { styled } from '@superset-ui/core';
+import { Switch as BaseSwitch } from 'src/common/components';
+import { SwitchProps } from 'antd/lib/switch';
 
-import Owner from 'src/types/Owner';
+const StyledSwitch = styled(BaseSwitch)`
+  .ant-switch-checked {
+    background-color: ${({ theme }) => theme.colors.primary.base};
+  }
+`;
 
-type user = {
-  id: number;
-  first_name: string;
-  last_name: string;
-};
-
-type recipients = {
-  id: number;
-  type: string;
-};
-
-export type AlertObject = {
-  active?: boolean;
-  changed_by?: user;
-  changed_on_delta_humanized?: string;
-  created_by?: user;
-  created_on?: string;
-  id?: number;
-  last_eval_dttm?: number;
-  last_state?: string;
-  name?: string;
-  owners?: Array<Owner>;
-  recipients?: recipients;
-  type?: string;
-};
+export const Switch = (props: SwitchProps) => <StyledSwitch {...props} />;
