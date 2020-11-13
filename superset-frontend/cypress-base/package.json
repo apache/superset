@@ -17,5 +17,8 @@
   "devDependencies": {
     "cypress": "^5.5.0",
     "eslint-plugin-cypress": "^2.11.1"
+  },
+  "nyc": {
+    "reporter": ["html", "text"]
   }
 }
