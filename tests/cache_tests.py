@@ -53,8 +53,10 @@ class TestCache(SupersetTestCase):
 
     def test_slice_data_cache(self):
         # Override cache config
+        app.config["CACHE_DEFAULT_TIMEOUT"] = 100
         app.config["DATA_CACHE_CONFIG"] = {
             "CACHE_TYPE": "simple",
+            "CACHE_DEFAULT_TIMEOUT": 10,
             "CACHE_KEY_PREFIX": "superset_data_cache",
         }
         cache_manager.init_app(app)
@@ -71,6 +73,8 @@ class TestCache(SupersetTestCase):
         )
         self.assertFalse(resp["is_cached"])
         self.assertTrue(resp_from_cache["is_cached"])
+        # should fallback to default cache timeout
+        self.assertEqual(resp_from_cache["cache_timeout"], 10)
         self.assertEqual(resp_from_cache["status"], QueryStatus.SUCCESS)
         self.assertEqual(resp["data"], resp_from_cache["data"])
         self.assertEqual(resp["query"], resp_from_cache["query"])

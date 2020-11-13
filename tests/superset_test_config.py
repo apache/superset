@@ -81,15 +81,18 @@ REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
 REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 REDIS_CACHE_DB = os.environ.get("REDIS_CACHE_DB", 4)
 
+CACHE_DEFAULT_TIMEOUT = 600
+
 CACHE_CONFIG = {
     "CACHE_TYPE": "redis",
-    "CACHE_DEFAULT_TIMEOUT": 60 * 60 * 24,  # 1 day default (in secs)
+    "CACHE_DEFAULT_TIMEOUT": 60,
     "CACHE_KEY_PREFIX": "superset_cache",
     "CACHE_REDIS_URL": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}",
 }
 
-TABLE_NAMES_CACHE_CONFIG = {
+DATA_CACHE_CONFIG = {
     **CACHE_CONFIG,
+    "CACHE_DEFAULT_TIMEOUT": 30,
     "CACHE_KEY_PREFIX": "superset_data_cache",
 }
 
