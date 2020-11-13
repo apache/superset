@@ -49,5 +49,5 @@ docker build --target dev \
 
 # Login and push
 docker logout
-docker login --user "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
+docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
 docker push "${REPO_NAME}"
