@@ -19,6 +19,6 @@
     "eslint-plugin-cypress": "^2.11.1"
   },
   "nyc": {
-    "reporter": ["html", "text"]
+    "reporter": ["text-summary"]
   }
 }
