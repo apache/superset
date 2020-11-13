@@ -1897,6 +1897,40 @@ class SankeyViz(BaseViz):
             )
         return recs
 
+class SankeyLoopViz(BaseViz):
+
+    """A Sankey diagram that requires a parent-child dataset"""
+
+    viz_type = "sankey_loop"
+    verbose_name = _("Sankeyloop")
+    is_timeseries = False
+    credits = '<a href="https://www.npmjs.com/package/d3-sankey">d3-sankey on npm</a>'
+
+    def query_obj(self) -> QueryObjectDict:
+        qry = super().query_obj()
+        if len(qry["groupby"]) != 2:
+            raise QueryObjectValidationError(
+                _("Pick exactly 2 columns as [Source / Target]")
+            )
+        qry["metrics"] = [self.form_data["metric"]]
+        return qry
+
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+        source, target = self.groupby
+        (value,) = self.metric_labels
+        df.rename(
+            columns={source: "source", target: "target", value: "value",}, inplace=True,
+        )
+        df["source"] = df["source"].astype(str)
+        df["target"] = df["target"].astype(str)
+        recs = df.to_dict(orient="records")
+
+        hierarchy: Dict[str, Set[str]] = defaultdict(set)
+        for row in recs:
+            hierarchy[row["source"]].add(row["target"])
+        return recs
 
 class ChordViz(BaseViz):
 
