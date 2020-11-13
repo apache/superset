@@ -41,7 +41,7 @@ interface DashboardCardProps {
   loading: boolean;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  openDashboardEditModal?: (d: Dashboard) => void;
+  handleDashboardEdit?: (d: Dashboard) => void;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
   dashboardFilter?: string;
@@ -57,7 +57,7 @@ function DashboardCard({
   userId,
   addDangerToast,
   addSuccessToast,
-  openDashboardEditModal,
+  handleDashboardEdit,
   favoriteStatus,
   saveFavoriteStatus,
 }: DashboardCardProps) {
@@ -67,13 +67,11 @@ function DashboardCard({
 
   const menu = (
     <Menu>
-      {canEdit && openDashboardEditModal && (
+      {canEdit && handleDashboardEdit && (
         <Menu.Item
           role="button"
           tabIndex={0}
-          onClick={() =>
-            openDashboardEditModal && openDashboardEditModal(dashboard)
-          }
+          onClick={() => handleDashboardEdit && handleDashboardEdit(dashboard)}
           data-test="dashboard-card-option-edit-button"
         >
           <ListViewCard.MenuIcon name="edit-alt" /> Edit

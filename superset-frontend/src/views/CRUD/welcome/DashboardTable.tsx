@@ -17,16 +17,15 @@
  * under the License.
  */
 import React, { useState, useMemo } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import Icon from 'src/components/Icon';
 import EmptyState from './EmptyState';
-import { createErrorHandler, CardContainer, IconContainer } from '../utils';
+import { CardContainer, IconContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -44,7 +43,6 @@ function DashboardTable({
 }: DashboardTableProps) {
   const {
     state: { loading, resourceCollection: dashboards },
-    setResourceCollection: setDashboards,
     hasPerm,
     refreshData,
     fetchData,
@@ -61,29 +59,10 @@ function DashboardTable({
     dashboardIds,
     addDangerToast,
   );
-  const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
-  const handleDashboardEdit = (edits: Dashboard) => {
-    return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${edits.id}`,
-    }).then(
-      ({ json = {} }) => {
-        setDashboards(
-          dashboards.map(dashboard => {
-            if (dashboard.id === json.id) {
-              return json.result;
-            }
-            return dashboard;
-          }),
-        );
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(
-          t('An error occurred while fetching dashboards: %s', errMsg),
-        ),
-      ),
-    );
+  const handleDashboardEdit = ({ url }: Dashboard) => {
+    window.location.assign(`${url}?edit=true`);
   };
 
   const getFilters = (filterName: string) => {
@@ -167,14 +146,6 @@ function DashboardTable({
           },
         ]}
       />
-      {editModal && (
-        <PropertiesModal
-          dashboardId={editModal?.id}
-          show
-          onHide={() => setEditModal(undefined)}
-          onSubmit={handleDashboardEdit}
-        />
-      )}
       {dashboards.length > 0 && (
         <CardContainer>
           {dashboards.map(e => (
@@ -189,9 +160,7 @@ function DashboardTable({
               addSuccessToast={addSuccessToast}
               userId={user?.userId}
               loading={loading}
-              openDashboardEditModal={(dashboard: Dashboard) =>
-                setEditModal(dashboard)
-              }
+              handleDashboardEdit={handleDashboardEdit}
               saveFavoriteStatus={saveFavoriteStatus}
               favoriteStatus={favoriteStatus[e.id]}
             />

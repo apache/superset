@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient, t } from '@superset-ui/core';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
@@ -35,7 +35,6 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import FacePile from 'src/components/FacePile';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
-import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
@@ -73,7 +72,6 @@ function DashboardList(props: DashboardListProps) {
       resourceCollection: dashboards,
       bulkSelectEnabled,
     },
-    setResourceCollection: setDashboards,
     hasPerm,
     fetchData,
     toggleBulkSelect,
@@ -89,10 +87,6 @@ function DashboardList(props: DashboardListProps) {
     dashboardIds,
     props.addDangerToast,
   );
-  const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
-    null,
-  );
-
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
@@ -100,30 +94,8 @@ function DashboardList(props: DashboardListProps) {
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  function openDashboardEditModal(dashboard: Dashboard) {
-    setDashboardToEdit(dashboard);
-  }
-
-  function handleDashboardEdit(edits: Dashboard) {
-    return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${edits.id}`,
-    }).then(
-      ({ json = {} }) => {
-        setDashboards(
-          dashboards.map(dashboard => {
-            if (dashboard.id === json.id) {
-              return json.result;
-            }
-            return dashboard;
-          }),
-        );
-      },
-      createErrorHandler(errMsg =>
-        props.addDangerToast(
-          t('An error occurred while fetching dashboards: %s', errMsg),
-        ),
-      ),
-    );
+  function handleDashboardEdit({ url }: Dashboard) {
+    window.location.assign(`${url}?edit=true`);
   }
 
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
@@ -237,7 +209,7 @@ function DashboardList(props: DashboardListProps) {
               props.addSuccessToast,
               props.addDangerToast,
             );
-          const handleEdit = () => openDashboardEditModal(original);
+          const handleEdit = () => handleDashboardEdit(original);
           const handleExport = () => handleBulkDashboardExport([original]);
 
           return (
@@ -411,7 +383,7 @@ function DashboardList(props: DashboardListProps) {
         loading={loading}
         addDangerToast={props.addDangerToast}
         addSuccessToast={props.addSuccessToast}
-        openDashboardEditModal={openDashboardEditModal}
+        handleDashboardEdit={handleDashboardEdit}
         saveFavoriteStatus={saveFavoriteStatus}
         favoriteStatus={favoriteStatus[dashboard.id]}
       />
@@ -469,14 +441,6 @@ function DashboardList(props: DashboardListProps) {
           }
           return (
             <>
-              {dashboardToEdit && (
-                <PropertiesModal
-                  dashboardId={dashboardToEdit.id}
-                  show
-                  onHide={() => setDashboardToEdit(null)}
-                  onSubmit={handleDashboardEdit}
-                />
-              )}
               <ListView<Dashboard>
                 bulkActions={bulkActions}
                 bulkSelectEnabled={bulkSelectEnabled}
