@@ -10,7 +10,7 @@
   "author": "Apcahe",
   "license": "Apache-2.0",
   "dependencies": {
-    "@cypress/code-coverage": "^3.8.1",
+    "@cypress/code-coverage": "^3.8.3",
     "rison": "^0.1.1",
     "shortid": "^2.2.15"
   },
