@@ -33,7 +33,6 @@ import {
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
   SET_DIRECT_PATH,
-  SET_MOUNTED_TAB,
   SET_FOCUSED_FILTER_FIELD,
   UNSET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
@@ -107,8 +106,8 @@ export default function dashboardStateReducer(state = {}, action) {
         maxUndoHistoryExceeded: false,
         editMode: false,
         updatedColorScheme: false,
-        // server-side compare last_modified_time in second level
-        lastModifiedTime: new Date().getTime() / 1000,
+        // server-side returns last_modified_time for latest change
+        lastModifiedTime: action.lastModifiedTime,
       };
     },
     [SET_UNSAVED_CHANGES]() {
@@ -124,22 +123,10 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
     [SET_DIRECT_PATH]() {
-      const newState = {
+      return {
         ...state,
         directPathToChild: action.path,
         directPathLastUpdated: Date.now(),
-      };
-      // change of direct path (tabs) will reset current mounted tab
-      // cannot just set mountedTab to null,
-      // as that is used when transitioning between tabs.
-      delete newState.mountedTab;
-      return newState;
-    },
-    [SET_MOUNTED_TAB]() {
-      // set current mounted tab after tab is really mounted to DOM
-      return {
-        ...state,
-        mountedTab: action.mountedTab,
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {

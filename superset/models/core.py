@@ -46,6 +46,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Dialect, Engine, url
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.exc import ArgumentError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
@@ -646,7 +647,12 @@ class Database(
 
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
-        conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
+        try:
+            conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
+        except (ArgumentError, ValueError):
+            # if the URI is invalid, ignore and return a placeholder url
+            # (so users see 500 less often)
+            return "dialect://invalid_uri"
         if custom_password_store:
             conn.password = custom_password_store(conn)
         else:

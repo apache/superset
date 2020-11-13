@@ -57,5 +57,5 @@ export type SavedQueryObject = {
   label: string;
   schema: string;
   sql: string;
-  sql_tables: Array<{ catalog?: string; schema: string; table: string }>;
+  sql_tables?: { catalog?: string; schema: string; table: string }[];
 };

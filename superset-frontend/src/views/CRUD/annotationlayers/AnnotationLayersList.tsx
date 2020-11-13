@@ -320,7 +320,7 @@ function AnnotationLayersList({
   );
 
   const emptyState = {
-    message: 'No annotation layers yet',
+    message: t('No annotation layers yet'),
     slot: EmptyStateButton,
   };
 

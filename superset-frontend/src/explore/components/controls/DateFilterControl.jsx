@@ -197,6 +197,13 @@ const PopoverContentStyles = styled.div`
   .datetime {
     margin: ${({ theme }) => theme.gridUnit}px 0;
   }
+
+  .ant-tabs {
+    overflow: visible;
+    & > .ant-tabs-content-holder {
+      overflow: visible;
+    }
+  }
 `;
 
 class DateFilterControl extends React.Component {
@@ -229,11 +236,11 @@ class DateFilterControl extends React.Component {
     };
 
     const { value } = props;
-    if (value.indexOf(SEPARATOR) >= 0) {
+    if (value && value.indexOf(SEPARATOR) >= 0) {
       this.state = { ...this.state, ...getStateFromSeparator(value) };
     } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
       this.state = { ...this.state, ...getStateFromCommonTimeFrame(value) };
-    } else {
+    } else if (value) {
       this.state = { ...this.state, ...getStateFromCustomRange(value) };
     }
 
@@ -454,7 +461,7 @@ class DateFilterControl extends React.Component {
           defaultActiveKey={this.state.tab === TABS.DEFAULTS ? '1' : '2'}
           id="type"
           className="time-filter-tabs"
-          onSelect={this.changeTab}
+          onChange={this.changeTab}
         >
           <Tabs.TabPane key="1" tab="Defaults" forceRender>
             <div className="timeframes-container">

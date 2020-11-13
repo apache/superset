@@ -87,17 +87,14 @@ export interface TitleProps {
 }
 
 export const Title = styled.span<TitleProps>`
+  position: relative;
+  margin-right: ${({ theme }) => theme.gridUnit}px;
   font-weight: ${({ bold, theme }) => {
     return bold ? theme.typography.weights.bold : 'auto';
   }};
 `;
 
-export const Summary = styled.div`
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-`;
-
 export const ItemIcon = styled.i`
-  display: none;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -106,20 +103,26 @@ export const ItemIcon = styled.i`
 
 export const Item = styled.button`
   cursor: pointer;
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  text-align: left;
   padding: 0;
   border: none;
   background: none;
-  white-space: nowrap;
-  position: relative;
   outline: none;
+  width: 100%;
 
   &::-moz-focus-inner {
     border: 0;
   }
 
-  &:hover > i {
-    display: block;
+  & i svg {
+    color: transparent;
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  &:hover i svg {
+    color: inherit;
   }
 `;
 
@@ -134,6 +137,12 @@ export const Indent = styled.div`
 
 export const Panel = styled.div`
   min-width: 200px;
-  max-width: 400px;
+  max-width: 300px;
   overflow-x: hidden;
+`;
+
+export const FilterValue = styled.div`
+  max-width: 100%;
+  flex-grow: 1;
+  overflow: auto;
 `;

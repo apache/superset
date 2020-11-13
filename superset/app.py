@@ -125,6 +125,7 @@ class SupersetAppInitializer:
         #
         # pylint: disable=too-many-locals
         # pylint: disable=too-many-statements
+        # pylint: disable=too-many-branches
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.cachekeys.api import CacheRestApi
@@ -148,6 +149,8 @@ class SupersetAppInitializer:
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
+        from superset.reports.api import ReportScheduleRestApi
+        from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import (
             AlertLogModelView,
@@ -206,6 +209,9 @@ class SupersetAppInitializer:
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        if feature_flag_manager.is_feature_enabled("ALERTS_REPORTS"):
+            appbuilder.add_api(ReportScheduleRestApi)
+            appbuilder.add_api(ReportExecutionLogRestApi)
         #
         # Setup regular views
         #

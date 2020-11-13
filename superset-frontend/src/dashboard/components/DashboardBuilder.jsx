@@ -93,7 +93,7 @@ const StyledDashboardContent = styled.div`
     transition: opacity ${({ theme }) => theme.transitionTiming}s,
       border-color ${({ theme }) => theme.transitionTiming}s,
       box-shadow ${({ theme }) => theme.transitionTiming}s;
-    border: ${({ theme }) => theme.gridUnit / 2}px solid transparent;
+    border: 0px solid transparent;
   }
 `;
 
@@ -276,12 +276,6 @@ class DashboardBuilder extends React.Component {
                       <TabPane
                         key={index === 0 ? DASHBOARD_GRID_ID : id}
                         eventKey={index}
-                        mountOnEnter
-                        unmountOnExit={false}
-                        onEntering={() => {
-                          // Entering current tab, DOM is visible and has dimension
-                          this.props.setMountedTab(id);
-                        }}
                       >
                         <DashboardGrid
                           gridComponent={dashboardLayout[id]}
