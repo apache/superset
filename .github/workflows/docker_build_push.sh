@@ -2,6 +2,7 @@
 
 set -eo pipefail
 
+SHA=$(git rev-parse HEAD)
 REPO_NAME="apache/incubator-superset"
 REFSPEC="${GITHUB_HEAD_REF/[^a-zA-Z0-9]/-}"
 LATEST_TAG=REFSPEC
@@ -15,7 +16,7 @@ fi
 
 cat<<EOF
   Rolling with tags:
-  - ${REPO_NAME}:${GITHUB_SHA}
+  - ${REPO_NAME}:${SHA}
   - ${REPO_NAME}:${REFSPEC}
   - ${REPO_NAME}:${LATEST_TAG}
 EOF
@@ -24,25 +25,27 @@ EOF
 # Build the "lean" image
 #
 docker build --target lean \
-  -t "${REPO_NAME}:${GITHUB_SHA}" \
+  -t "${REPO_NAME}:${SHA}" \
   -t "${REPO_NAME}:${REFSPEC}" \
   -t "${REPO_NAME}:${LATEST_TAG}" \
-  --label "sha=${GITHUB_SHA}" \
+  --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean" \
-  --label "build_actor=${GITHUB_ACTOR}"
+  --label "build_actor=${GITHUB_ACTOR}" \
+  .
 
 #
 # Build the dev image
 #
 docker build --target dev \
-  -t "${REPO_NAME}:${GITHUB_SHA}-dev" \
+  -t "${REPO_NAME}:${SHA}-dev" \
   -t "${REPO_NAME}:${REFSPEC}-dev" \
   -t "${REPO_NAME}:${LATEST_TAG}-dev" \
-  --label "sha=${GITHUB_SHA}" \
+  --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=dev" \
-  --label "build_actor=${GITHUB_ACTOR}"
+  --label "build_actor=${GITHUB_ACTOR}" \
+  .
 
 # Login and push
 docker login -u "${DOCKERHUB_USER}" -p "${DOCKERHUB_TOKEN}"
