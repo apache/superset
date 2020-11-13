@@ -17,13 +17,12 @@
  * under the License.
  */
 import readResponseBlob from '../../utils/readResponseBlob';
-import { isLegacyChart } from '../../utils/vizPlugins';
+import { getChartAliases } from '../../utils/vizPlugins';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard load', () => {
-  const aliases = [];
   let dashboard;
-
+  let aliases;
   beforeEach(() => {
     cy.server();
     cy.login();
@@ -33,31 +32,13 @@ describe('Dashboard load', () => {
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       dashboard = bootstrapData.dashboard_data;
+      const { slices } = dashboard;
+      // then define routes and create alias for each requests
+      aliases = getChartAliases(slices);
     });
   });
 
   it('should load dashboard', () => {
-    const { slices } = dashboard;
-
-    // then define routes and create alias for each requests
-    slices.forEach(slice => {
-      const vizType = slice.form_data.viz_type;
-      const isLegacy = isLegacyChart(vizType);
-      if (isLegacy) {
-        const alias = `getJson_${slice.slice_id}`;
-        const formData = `{"slice_id":${slice.slice_id}}`;
-        const route = `/superset/explore_json/?*${formData}*`;
-        cy.route('POST', `${route}`).as(alias);
-        aliases.push(`@${alias}`);
-      }
-      else {
-        const alias = `getV1ChartJson`;
-        const route = `/api/v1/chart/data?*`;
-        cy.route('POST', `${route}`).as(alias);
-        aliases.push(`@${alias}`);
-      }
-    });
-
     // wait and verify one-by-one
     cy.wait(aliases).then(requests => {
       return Promise.all(
