@@ -50,6 +50,12 @@ describe('Dashboard load', () => {
         cy.route('POST', `${route}`).as(alias);
         aliases.push(`@${alias}`);
       }
+      else {
+        const alias = `getV1ChartJson`;
+        const route = `/api/v1/chart/data?*`;
+        cy.route('POST', `${route}`).as(alias);
+        aliases.push(`@${alias}`);
+      }
     });
 
     // wait and verify one-by-one
