@@ -18,7 +18,7 @@
 ######################################################################
 # Dev image...
 ######################################################################
-FROM preset/superset:dev
+FROM apache/incubator-superset:master-dev
 
 COPY ./requirements/*.txt ./docker/requirements-*.txt /app/requirements/
 COPY ./setup.py ./MANIFEST.in /app/
