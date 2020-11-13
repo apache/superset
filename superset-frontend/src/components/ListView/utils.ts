@@ -37,6 +37,7 @@ import {
   FilterValue,
   InternalFilter,
   SortColumn,
+  ViewModeType,
 } from './types';
 
 // Define custom RisonParam for proper encoding/decoding
@@ -131,6 +132,7 @@ interface UseListViewConfig {
     Header: (conf: any) => React.ReactNode;
     Cell: (conf: any) => React.ReactNode;
   };
+  renderCard?: boolean;
 }
 
 export function useListViewState({
@@ -143,12 +145,14 @@ export function useListViewState({
   initialSort = [],
   bulkSelectMode = false,
   bulkSelectColumnConfig,
+  renderCard = false,
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
     filters: RisonParam,
     pageIndex: NumberParam,
     sortColumn: StringParam,
     sortOrder: StringParam,
+    viewMode: StringParam,
   });
 
   const initialSortBy = useMemo(
@@ -165,6 +169,10 @@ export function useListViewState({
     pageSize: initialPageSize,
     sortBy: initialSortBy,
   };
+
+  const [viewMode, setViewMode] = useState<ViewModeType>(
+    (query.viewMode as ViewModeType) || 'table',
+  );
 
   const columnsWithSelect = useMemo(() => {
     // add exact filter type so filters with falsey values are not filtered out
@@ -248,6 +256,10 @@ export function useListViewState({
       queryParams.sortOrder = sortBy[0].desc ? 'desc' : 'asc';
     }
 
+    if (renderCard) {
+      queryParams.viewMode = viewMode;
+    }
+
     const method =
       typeof query.pageIndex !== 'undefined' &&
       queryParams.pageIndex !== query.pageIndex
@@ -256,7 +268,7 @@ export function useListViewState({
 
     setQuery(queryParams, method);
     fetchData({ pageIndex, pageSize, sortBy, filters });
-  }, [fetchData, pageIndex, pageSize, sortBy, filters]);
+  }, [fetchData, pageIndex, pageSize, sortBy, filters, viewMode]);
 
   useEffect(() => {
     if (!isEqual(initialState.pageIndex, pageIndex)) {
@@ -294,9 +306,10 @@ export function useListViewState({
     rows,
     selectedFlatRows,
     setAllFilters,
-    state: { pageIndex, pageSize, sortBy, filters, internalFilters },
+    state: { pageIndex, pageSize, sortBy, filters, internalFilters, viewMode },
     toggleAllRowsSelected,
     applyFilterValue,
+    setViewMode,
   };
 }
 

@@ -34,6 +34,7 @@ import {
   Filters,
   SortColumn,
   CardSortSelectOption,
+  ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
 
@@ -202,7 +203,6 @@ const ViewModeToggle = ({
   );
 };
 
-type ViewModeType = 'card' | 'table';
 export interface ListViewProps<T extends object = any> {
   columns: any[];
   data: T[];
@@ -263,7 +263,8 @@ function ListView<T extends object = any>({
     applyFilterValue,
     selectedFlatRows,
     toggleAllRowsSelected,
-    state: { pageIndex, pageSize, internalFilters },
+    setViewMode,
+    state: { pageIndex, pageSize, internalFilters, viewMode },
   } = useListViewState({
     bulkSelectColumnConfig,
     bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
@@ -274,6 +275,7 @@ function ListView<T extends object = any>({
     initialPageSize,
     initialSort,
     initialFilters: filters,
+    renderCard: Boolean(renderCard),
   });
   const filterable = Boolean(filters.length);
   if (filterable) {
@@ -292,8 +294,13 @@ function ListView<T extends object = any>({
 
   const cardViewEnabled = Boolean(renderCard);
   const [viewingMode, setViewingMode] = useState<ViewModeType>(
-    cardViewEnabled ? defaultViewMode : 'table',
+    cardViewEnabled ? viewMode || defaultViewMode : 'table',
   );
+
+  const updateViewingMode = (mode: ViewModeType) => {
+    setViewingMode(mode);
+    setViewMode(mode);
+  };
 
   useEffect(() => {
     // discard selections if bulk select is disabled
@@ -306,7 +313,7 @@ function ListView<T extends object = any>({
         <div className="header">
           <div className="header-left">
             {cardViewEnabled && (
-              <ViewModeToggle mode={viewingMode} setMode={setViewingMode} />
+              <ViewModeToggle mode={viewingMode} setMode={updateViewingMode} />
             )}
             {filterable && (
               <FilterControls
