@@ -19,8 +19,12 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import moment from 'moment';
-
-import { createErrorHandler, shortenSQL } from 'src/views/CRUD/utils';
+import {
+  createFetchRelated,
+  createFetchDistinct,
+  createErrorHandler,
+  shortenSQL,
+} from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
@@ -49,7 +53,7 @@ const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
 SyntaxHighlighter.registerLanguage('sql', sql);
 const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
   height: ${({ theme }) => theme.gridUnit * 26}px;
-  overflow-x: hidden !important; /* needed to override inline styles */
+  overflow: hidden !important; /* needed to override inline styles */
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -222,6 +226,10 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         size: 'lg',
       },
       {
+        accessor: 'database',
+        hidden: true,
+      },
+      {
         accessor: 'schema',
         Header: t('Schema'),
         size: 'lg',
@@ -265,7 +273,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         disableSortBy: true,
       },
       {
-        accessor: 'user.first_name',
+        accessor: 'user',
         Header: t('User'),
         size: 'lg',
         Cell: ({
@@ -319,7 +327,74 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     [],
   );
 
-  const filters: Filters = useMemo(() => [], []);
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Database'),
+        id: 'database',
+        input: 'select',
+        operator: 'rel_o_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'query',
+          'database',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching database values: %s', errMsg),
+            ),
+          ),
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('State'),
+        id: 'status',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchDistinct(
+          'query',
+          'status',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching schema values: %s', errMsg),
+            ),
+          ),
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('User'),
+        id: 'user',
+        input: 'select',
+        operator: 'rel_o_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'query',
+          'user',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching database values: %s', errMsg),
+            ),
+          ),
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Time Range'),
+        id: 'start_time',
+        input: 'datetime_range',
+        operator: 'between',
+      },
+      {
+        Header: t('Search by query text'),
+        id: 'sql',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [addDangerToast],
+  );
 
   return (
     <>

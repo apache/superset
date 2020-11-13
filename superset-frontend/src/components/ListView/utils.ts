@@ -79,8 +79,34 @@ function mergeCreateFilterValues(list: Filter[], updateObj: any) {
 // convert filters from UI objects to data objects
 export function convertFilters(fts: InternalFilter[]): FilterValue[] {
   return fts
-    .filter(f => typeof f.value !== 'undefined')
-    .map(({ value, operator, id }) => ({ value, operator, id }));
+    .filter(f => {
+      if (typeof f.value === 'undefined') return false;
+      if (Array.isArray(f.value) && !f.value.length) return false;
+      return true;
+    })
+    .map(({ value, operator, id }) => {
+      // handle between filter using 2 api filters
+      if (operator === 'between' && Array.isArray(value)) {
+        return [
+          {
+            value: value[0],
+            operator: 'gt',
+            id,
+          },
+          {
+            value: value[1],
+            operator: 'lt',
+            id,
+          },
+        ];
+      }
+      return {
+        value,
+        operator,
+        id,
+      };
+    })
+    .flat();
 }
 
 // convertFilters but to handle new decoded rison format
@@ -125,13 +151,6 @@ export function extractInputValue(inputType: Filter['input'], event: any) {
   return null;
 }
 
-export function getDefaultFilterOperator(filter: Filter): string {
-  if (filter?.operator) return filter.operator;
-  if (filter?.operators?.length) {
-    return filter.operators[0].value;
-  }
-  return '';
-}
 interface UseListViewConfig {
   fetchData: (conf: FetchDataConfig) => any;
   columns: any[];

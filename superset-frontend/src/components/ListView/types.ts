@@ -37,27 +37,37 @@ export interface CardSortSelectOption {
   value: any;
 }
 
+type FilterOperator =
+  | 'sw'
+  | 'ew'
+  | 'ct'
+  | 'eq'
+  | 'nsw'
+  | 'new'
+  | 'nct'
+  | 'neq'
+  | 'gt'
+  | 'lt'
+  | 'rel_m_m'
+  | 'rel_o_m'
+  | 'title_or_slug'
+  | 'name_or_description'
+  | 'all_text'
+  | 'chart_all_text'
+  | 'dataset_is_null_or_empty'
+  | 'between';
+
 export interface Filter {
   Header: ReactNode;
   id: string;
-  operators?: SelectOption[];
-  operator?:
-    | 'sw'
-    | 'ew'
-    | 'ct'
-    | 'eq'
-    | 'nsw'
-    | 'new'
-    | 'nct'
-    | 'neq'
-    | 'rel_m_m'
-    | 'rel_o_m'
-    | 'title_or_slug'
-    | 'name_or_description'
-    | 'all_text'
-    | 'chart_all_text'
-    | 'dataset_is_null_or_empty';
-  input?: 'text' | 'textarea' | 'select' | 'checkbox' | 'search';
+  operator?: FilterOperator;
+  input?:
+    | 'text'
+    | 'textarea'
+    | 'select'
+    | 'checkbox'
+    | 'search'
+    | 'datetime_range';
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
@@ -76,7 +86,7 @@ export type ViewModeType = 'card' | 'table';
 export interface FilterValue {
   id: string;
   operator?: string;
-  value: string | boolean | number | null | undefined;
+  value: string | boolean | number | null | undefined | string[] | number[];
 }
 
 export interface FetchDataConfig {
