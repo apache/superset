@@ -2,6 +2,8 @@
 
 set -eo pipefail
 
+env
+
 SHA=$(git rev-parse HEAD)
 REPO_NAME="apache/incubator-superset"
 REFSPEC="${GITHUB_HEAD_REF/[^a-zA-Z0-9]/-}"
@@ -47,7 +49,12 @@ docker build --target dev \
   --label "build_actor=${GITHUB_ACTOR}" \
   .
 
-# Login and push
-docker logout
-echo "${DOCKERHUB_TOKEN}" | docker login --username "${DOCKERHUB_USER}" --password-stdin
-docker push "${REPO_NAME}"
+if [ -z "${DOCKERHUB_TOKEN}" ]; then
+  # Skip if secrets aren't populated -- they're only visible for actions running in the repo (not on forks)
+  echo "Skipping Docker push"
+else
+  # Login and push
+  docker logout
+  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
+  docker push "${REPO_NAME}"
+fi
