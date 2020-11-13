@@ -103,6 +103,23 @@ supersetNode:
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
 
 ##
+## Superset worker configuration
+supersetWorker:
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker"
+  forceReload: false # If true, forces deployment to reload on each upgrade
+  initContainers:
+    - name: wait-for-postgres
+      image: busybox:latest
+      imagePullPolicy: IfNotPresent
+      envFrom:
+        - secretRef:
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+
+##
 ## Init job configuration
 init:
   command:
