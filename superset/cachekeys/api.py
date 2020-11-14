@@ -117,7 +117,9 @@ class CacheRestApi(BaseSupersetModelRestApi):
                 db.session.commit()
                 self.stats_logger.gauge("invalidated_cache", len(cache_keys))
                 logger.info(
-                    f"Invalidated {len(cache_keys)} cache records for {len(datasource_uids)} datasources"
+                    "Invalidated %s cache records for datasources",
+                    len(cache_keys),
+                    len(datasource_uids),
                 )
             except SQLAlchemyError as ex:  # pragma: no cover
                 logger.error(ex)
