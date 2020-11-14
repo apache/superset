@@ -8,12 +8,16 @@ version: 1
 
 ## Caching
 
-Superset uses [Flask-Cache](https://pythonhosted.org/Flask-Cache/) for caching purpose. Configuring
-your caching backend is as easy as providing a `CACHE_CONFIG`, constant in your `superset_config.py`
-that complies with the Flask-Cache specifications.
+Superset uses [Flask-Cache](https://pythonhosted.org/Flask-Cache/) for caching purpose. For security reasons,
+there are two separate cache configs for Superset's own metadata (`CACHE_CONFIG`) and charting data queried from
+connected datasources (`DATA_CACHE_CONFIG`). However, Query results from SQL Lab are stored in another backend
+called `RESULTS_BACKEND`, See [Async Queries via Celery](/docs/installation/async-queries-celery) for details.
 
-Flask-Cache supports multiple caching backends (Redis, Memcached, SimpleCache (in-memory), or the
-local filesystem).
+Configuring caching is as easy as providing `CACHE_CONFIG` and `DATA_CACHE_CONFIG` in your
+`superset_config.py` that complies with [the Flask-Cache specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
+
+Flask-Cache supports various caching backends, including Redis, Memcached, SimpleCache (in-memory), or the
+local filesystem.
 
 - Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
   `python-memcached` does not handle storing binary data correctly.
@@ -21,12 +25,12 @@ local filesystem).
 
 Both of these libraries can be installed using pip.
 
-For setting your timeouts, this is done in the Superset metadata and goes up the “timeout
-searchpath”, from your slice configuration, to your data source’s configuration, to your database’s
-and ultimately falls back into your global default defined in `CACHE_CONFIG`.
+For chart data, Superset goes up a “timeout search path”, from a slice's configuration
+to the datasource’s, the database’s, then ultimately falls back to the global default
+defined in `DATA_CACHE_CONFIG`.
 
 ```
-CACHE_CONFIG = {
+DATA_CACHE_CONFIG = {
     'CACHE_TYPE': 'redis',
     'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
     'CACHE_KEY_PREFIX': 'superset_results',

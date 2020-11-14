@@ -24,11 +24,12 @@ import numpy as np
 import pandas as pd
 from flask_babel import gettext as _
 
-from superset import app, cache, db, is_feature_enabled, security_manager
+from superset import app, db, is_feature_enabled
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
+from superset.extensions import cache_manager, security_manager
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
@@ -233,8 +234,8 @@ class QueryContext:
         status = None
         query = ""
         error_message = None
-        if cache_key and cache and not self.force:
-            cache_value = cache.get(cache_key)
+        if cache_key and cache_manager.data_cache and not self.force:
+            cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
                 stats_logger.incr("loading_from_cache")
                 try:
@@ -286,7 +287,7 @@ class QueryContext:
                 status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
-            if is_loaded and cache_key and cache and status != utils.QueryStatus.FAILED:
+            if is_loaded and cache_key and status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
                     cache_key,
                     df,

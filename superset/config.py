@@ -392,10 +392,15 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # Setup image size default is (300, 200, True)
 # IMG_SIZE = (300, 200, True)
 
-CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
+# Default cache timeout (in seconds), applies to all cache backends unless
+# specifically overridden in each cache config.
+CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24  # 1 day
+
+# Default cache for Superset objects
 CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
-TABLE_NAMES_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
-DASHBOARD_CACHE_TIMEOUT = 60 * 60 * 24 * 365
+
+# Cache for datasource metadata and query results
+DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # CORS Options
 ENABLE_CORS = False
