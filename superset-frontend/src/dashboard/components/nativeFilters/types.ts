@@ -30,6 +30,10 @@ export interface Scope {
 export interface Target {
   datasetId: number;
   column: Column;
+
+  // maybe someday support this?
+  // show values from these columns in the filter options selector
+  // clarityColumns?: Column[];
 }
 
 export type FilterType = 'text' | 'date';
@@ -43,13 +47,11 @@ export interface Filter {
   name: string;
   type: FilterType;
   // for now there will only ever be one target
-  targets: Target[];
+  // when multiple targets are supported, change this to Target[]
+  targets: [Target];
   defaultValue: string[] | number[] | null;
   scope: Scope;
   isInstant: boolean;
-
-  // maybe someday support this?
-  // displayColumnsInOptions: Column[];
 }
 
 /** Current state of the filter, stored in `nativeFilters` in redux */

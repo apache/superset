@@ -36,13 +36,14 @@ export interface SupersetResourceSelectProps<T = unknown, V = string> {
 
 /**
  * This is a special-purpose select component for when you're selecting
- * items that each correspond to a database row in some table.
+ * items from one of the standard Superset resource APIs.
  * Such as selecting a datasource, a chart, or users.
  *
  * If you're selecting a "related" resource, leave the searchColumn prop unset.
  * The api doesn't do columns on related resources for some reason.
  *
- * If this doesn't fit your use case, we'll all be better off if you use AsyncSelect directly.
+ * If you're doing anything more complex than selecting a standard resource,
+ * we'll all be better off if you use AsyncSelect directly instead.
  */
 export default function SupersetResourceSelect<T = unknown, V = string>({
   value,

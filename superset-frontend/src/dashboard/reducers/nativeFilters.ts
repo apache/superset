@@ -56,7 +56,6 @@ export default function nativeFilterReducer(
   const actionMap = {
     [SELECT_FILTER_OPTION]: (action: SelectFilterOptionAction): State => {
       const filterState = filters[action.filterId];
-      console.log('reducer', action, filterState);
       return {
         ...filters,
         [action.filterId]: {
