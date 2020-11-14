@@ -42,20 +42,22 @@ if TYPE_CHECKING:
 
 class JinjaContextManager:
     def __init__(self) -> None:
-        self._base_context = {
-            "datetime": datetime,
-            "random": random,
-            "relativedelta": relativedelta,
-            "time": time,
-            "timedelta": timedelta,
-            "uuid1": uuid.uuid1,
-            "uuid3": uuid.uuid3,
-            "uuid4": uuid.uuid4,
-            "uuid5": uuid.uuid5,
-        }
+        self._base_context: Dict[str, Any] = {}
         self._template_processors: Dict[str, Type["BaseTemplateProcessor"]] = {}
 
     def init_app(self, app: Flask) -> None:
+        if not app.config["SAFE_JINJA_PROCESSING"]:
+            self._base_context = {
+                "datetime": datetime,
+                "random": random,
+                "relativedelta": relativedelta,
+                "time": time,
+                "timedelta": timedelta,
+                "uuid1": uuid.uuid1,
+                "uuid3": uuid.uuid3,
+                "uuid4": uuid.uuid4,
+                "uuid5": uuid.uuid5,
+            }
         self._base_context.update(app.config["JINJA_CONTEXT_ADDONS"])
         self._template_processors.update(app.config["CUSTOM_TEMPLATE_PROCESSORS"])
 

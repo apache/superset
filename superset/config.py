@@ -301,7 +301,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
-    "ENABLE_TEMPLATE_PROCESSING": False,
+    "ENABLE_TEMPLATE_PROCESSING": True,
     "KV_STORE": False,
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
@@ -676,6 +676,10 @@ JINJA_CONTEXT_ADDONS: Dict[str, Callable[..., Any]] = {}
 # dictionary. The customized addons don't necessarily need to use jinjia templating
 # language. This allows you to define custom logic to process macro template.
 CUSTOM_TEMPLATE_PROCESSORS: Dict[str, Type[BaseTemplateProcessor]] = {}
+
+# Prevent access to classes/objects and proxy methods in the default Jinja context,
+# unless explicitly overridden by JINJA_CONTEXT_ADDONS or CUSTOM_TEMPLATE_PROCESSORS.
+SAFE_JINJA_PROCESSING: bool = True
 
 # Roles that are controlled by the API / Superset and should not be changes
 # by humans.

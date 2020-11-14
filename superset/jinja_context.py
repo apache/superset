@@ -17,12 +17,14 @@
 """Defines the templating context for SQL Lab"""
 import inspect
 import re
-from typing import Any, cast, List, Optional, Tuple, TYPE_CHECKING
+from functools import partial
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-from flask import g, request
-from jinja2.sandbox import SandboxedEnvironment
+from flask import current_app, g, request
+from jinja2.sandbox import ImmutableSandboxedEnvironment, SandboxedEnvironment
 
 from superset import jinja_base_context
+from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager, jinja_context_manager
 from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
 
@@ -151,7 +153,7 @@ class ExtraCache:
 
     def url_param(
         self, param: str, default: Optional[str] = None, add_to_cache_keys: bool = True
-    ) -> Optional[Any]:
+    ) -> Optional[str]:
         """
         Read a url or post parameter and use it in your SQL Lab query.
 
@@ -186,6 +188,28 @@ class ExtraCache:
         return result
 
 
+def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    none_type = type(None).__name__
+    allowed_types = [
+        none_type,
+        "bool",
+        "str",
+        "unicode",
+        "int",
+        "long",
+        "float",
+        "list",
+        "dict",
+        "tuple",
+    ]
+    return_value = func(*args, **kwargs)
+    value_type = type(return_value).__name__
+    if value_type not in allowed_types:
+        raise SupersetTemplateException("Unsafe template value")
+
+    return return_value
+
+
 class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
     """Base class for database-specific jinja context
 
@@ -218,22 +242,17 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
             self._schema = query.schema
         elif table:
             self._schema = table.schema
+        self._extra_cache_keys = extra_cache_keys
+        self._context: Dict[str, Any] = {}
+        self.set_env()
+        self.set_context(**kwargs)
 
-        extra_cache = ExtraCache(extra_cache_keys)
+    def set_env(self) -> None:
+        self._env = SandboxedEnvironment()
 
-        self._context = {
-            "url_param": extra_cache.url_param,
-            "current_user_id": extra_cache.current_user_id,
-            "current_username": extra_cache.current_username,
-            "cache_key_wrapper": extra_cache.cache_key_wrapper,
-            "filter_values": filter_values,
-            "form_data": {},
-        }
+    def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)
         self._context.update(jinja_base_context)
-        if self.engine:
-            self._context[self.engine] = self
-        self._env = SandboxedEnvironment()
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
@@ -247,6 +266,41 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         return template.render(kwargs)
 
 
+class JinjaTemplateProcessor(BaseTemplateProcessor):
+    def set_context(self, **kwargs: Any) -> None:
+        extra_cache = ExtraCache(self._extra_cache_keys)
+        self._context = {
+            "url_param": extra_cache.url_param,
+            "current_user_id": extra_cache.current_user_id,
+            "current_username": extra_cache.current_username,
+            "cache_key_wrapper": extra_cache.cache_key_wrapper,
+            "filter_values": filter_values,
+            "form_data": {},
+        }
+
+        self._context.update(kwargs)
+        self._context.update(jinja_base_context)
+
+        if self.engine:
+            self._context[self.engine] = self
+
+
+class SafeJinjaTemplateProcessor(BaseTemplateProcessor):
+    def set_context(self, **kwargs: Any) -> None:
+        extra_cache = ExtraCache(self._extra_cache_keys)
+        self._context = {
+            "url_param": partial(safe_proxy, extra_cache.url_param),
+            "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
+            "current_username": partial(safe_proxy, extra_cache.current_username),
+            "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
+            "filter_values": partial(safe_proxy, filter_values),
+            "form_data": {},
+        }
+
+    def set_env(self) -> None:
+        self._env = ImmutableSandboxedEnvironment()
+
+
 class NoOpTemplateProcessor(
     BaseTemplateProcessor
 ):  # pylint: disable=too-few-public-methods
@@ -257,7 +311,7 @@ class NoOpTemplateProcessor(
         return sql
 
 
-class PrestoTemplateProcessor(BaseTemplateProcessor):
+class PrestoTemplateProcessor(JinjaTemplateProcessor):
     """Presto Jinja context
 
     The methods described here are namespaced under ``presto`` in the
@@ -335,8 +389,13 @@ def get_template_processor(
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
     if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+        default_processor = (
+            SafeJinjaTemplateProcessor
+            if current_app.config["SAFE_JINJA_PROCESSING"]
+            else JinjaTemplateProcessor
+        )
         template_processor = template_processors.get(
-            database.backend, BaseTemplateProcessor
+            database.backend, default_processor
         )
     else:
         template_processor = NoOpTemplateProcessor
