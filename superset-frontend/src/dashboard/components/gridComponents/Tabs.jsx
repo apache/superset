@@ -35,8 +35,6 @@ import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { TAB_TYPE } from '../../util/componentTypes';
 
-const MAX_TAB_COUNT = 10;
-
 const propTypes = {
   id: PropTypes.string.isRequired,
   parentId: PropTypes.string.isRequired,
@@ -305,7 +303,6 @@ class Tabs extends React.PureComponent {
                 this.handleClickTab(tabIds.indexOf(key));
               }}
               onEdit={this.handleEdit}
-              hideAdd={tabIds.length >= MAX_TAB_COUNT}
               data-test="nav-list"
               type={editMode ? 'editable-card' : 'card'}
             >
