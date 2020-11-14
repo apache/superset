@@ -87,7 +87,7 @@ class TestDatabaseApi(SupersetTestCase):
             "function_names",
             "id",
         ]
-        self.assertEqual(response["count"], 2)
+        self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 
     def test_get_items_filter(self):

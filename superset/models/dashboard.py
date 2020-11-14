@@ -41,17 +41,11 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
 
-from superset import (
-    app,
-    cache,
-    ConnectorRegistry,
-    db,
-    is_feature_enabled,
-    security_manager,
-)
+from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.extensions import cache_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater
@@ -224,10 +218,9 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             "last_modified_time": self.changed_on.replace(microsecond=0).timestamp(),
         }
 
-    @cache.memoize(
+    @cache_manager.cache.memoize(
         # manage cache version manually
         make_name=lambda fname: f"{fname}-v2.1",
-        timeout=config["DASHBOARD_CACHE_TIMEOUT"],
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
     def full_data(self) -> Dict[str, Any]:
@@ -267,7 +260,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @debounce(0.1)
     def clear_cache(self) -> None:
-        cache.delete_memoized(Dashboard.full_data, self)
+        cache_manager.cache.delete_memoized(Dashboard.full_data, self)
 
     @classmethod
     @debounce(0.1)

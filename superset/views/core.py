@@ -88,8 +88,8 @@ from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
+from superset.utils.cache import etag_cache
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import etag_cache
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -123,7 +123,6 @@ from superset.views.utils import (
 from superset.viz import BaseViz
 
 config = app.config
-CACHE_DEFAULT_TIMEOUT = config["CACHE_DEFAULT_TIMEOUT"]
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
 DAR = DatasourceAccessRequest
@@ -435,7 +434,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @expose("/slice_json/<int:slice_id>")
-    @etag_cache(CACHE_DEFAULT_TIMEOUT, check_perms=check_slice_perms)
+    @etag_cache(check_perms=check_slice_perms)
     def slice_json(self, slice_id: int) -> FlaskResponse:
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
@@ -494,7 +493,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         methods=EXPLORE_JSON_METHODS,
     )
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
-    @etag_cache(CACHE_DEFAULT_TIMEOUT, check_perms=check_datasource_perms)
+    @etag_cache(check_perms=check_datasource_perms)
     def explore_json(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:

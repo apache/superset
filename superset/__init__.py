@@ -49,5 +49,5 @@ results_backend = LocalProxy(lambda: results_backend_manager.results_backend)
 results_backend_use_msgpack = LocalProxy(
     lambda: results_backend_manager.should_use_msgpack
 )
-tables_cache = LocalProxy(lambda: cache_manager.tables_cache)
+data_cache = LocalProxy(lambda: cache_manager.data_cache)
 thumbnail_cache = LocalProxy(lambda: cache_manager.thumbnail_cache)

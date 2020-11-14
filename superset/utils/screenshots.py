@@ -160,7 +160,7 @@ class BaseScreenshot:
                 logger.error("Failed at resizing thumbnail %s", ex)
                 payload = None
 
-        if payload and cache:
+        if payload:
             logger.info("Caching thumbnail: %s", cache_key)
             cache.set(cache_key, payload)
             logger.info("Done caching thumbnail")
