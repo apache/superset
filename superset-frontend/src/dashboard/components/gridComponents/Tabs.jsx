@@ -104,6 +104,14 @@ const StyledTabsContainer = styled.div`
     top: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
+  .ant-tabs {
+    overflow: visible;
+
+    .ant-tabs-content-holder {
+      overflow: visible;
+    }
+  }
+
   div .ant-tabs-tab-btn {
     text-transform: none;
   }
