@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-import SupersetResourceSelect from 'src/component/SupersetResourceSelect';
+import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 
 describe('SupersetREsourceSelect', () => {
   it('is a valid element', () => {
