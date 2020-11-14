@@ -1,4 +1,4 @@
-name: Latest tag
+name: Tags
 on:
   release:
     types: [published] # This makes it run only when a new released is published
@@ -15,7 +15,36 @@ jobs:
     - name: Check for latest tag
       id: latest-tag
       run: |
-        LATEST_TAG=$(git show-ref --tags -d | grep latest^{} | sed 's/refs\/tags\/latest^{}//') || echo 'not found'
+
+        ## split the current published tag_name into an array at the dot
+        IFS=$'.'
+        THIS_TAG_NAME=($(echo ${{ github.event.release.tag_name }}))  || echo 'not found'
+
+        # no tag name exists, then exit and don't move on
+        if [[ -z "$THIS_TAG_NAME" ]]
+        then
+          echo "no tag was passed in with this action. Not tagging anything"
+          echo "::set-env name=skip_tag::true"
+          exit 0
+        fi
+
+        ## at this point the array should have length of three. If it doesn't, don't tag it, as it's clearly not a version tag.
+        if [[ ${#THIS_TAG_NAME[@]} != 3 ]]
+        then
+          echo "This tag ${THIS_TAG_NAME} does not contain a semantic version number. Skipping."
+          echo "::set-env name=skip_tag::true"
+          exit 0
+        fi
+
+        # don't tag release candidates
+        if [[ ${THIS_TAG_NAME[2]} == *"rc"* ]]
+        then
+          echo "This tag ${THIS_TAG_NAME} is not a valid release version. Not tagging."
+          echo "::set-env name=skip_tag::true"
+          exit 0
+        fi
+
+        LATEST_TAG=$(git show-ref --tags | grep latest | sed 's/refs\/tags\/latest//') || echo 'not found'
 
         # if 'latest' tag doesn't exist, then set this commit to latest
         if [[ -z "$LATEST_TAG" ]]
@@ -27,7 +56,7 @@ jobs:
 
         TAGS=$(git show-ref --tags -d | grep $LATEST_TAG)
 
-        ## get all tags that use the same sha as the latest tag
+        ## get all tags that use the same sha as the latest tag. split at new line.
         IFS=$'\n'
         LATEST_TAGS=($TAGS)
 
@@ -38,42 +67,23 @@ jobs:
           if [[ ${LATEST_TAGS[$i]} != *"latest"* ]]
           then
             ## extract just the version from this tag
-            LATEST_RC_TAG=$(echo "${LATEST_TAGS[$i]}" | sed -e 's,.* refs/tags/,,' -e 's/rc//')
-            echo "The current release with the latest tag is version ${LATEST_RC_TAG}"
+            LATEST_RELEASE_TAG=$(echo "${LATEST_TAGS[$i]}" | sed -e 's,.* refs/tags/,,')
+            echo "The current release with the latest tag is version ${LATEST_RELEASE_TAG}"
 
             ## remove the sha from the latest tag and split into an array- split at the dot
             IFS=$'.'
-            LATEST_RC_TAG_SPLIT=(${LATEST_RC_TAG})
+            LATEST_RELEASE_TAG_SPLIT=(${LATEST_RELEASE_TAG})
 
-            ## remove the 'rc' from the current tag if it exists and split into an array at the dot
-            THIS_TAG=($(echo ${{ github.event.release.tag_name }} | sed 's/rc//'))  || echo 'not found'
-
-            # no tag name exists, then exit and don't move on
-            if [[ -z "$THIS_TAG" ]]
-            then
-              echo "no tag was passed in with this action. Not tagging anything"
-              echo "::set-env name=skip_tag::true"
-              exit 0
-            fi
-
-            ## at this point the array should have length of three. If it doesn't, don't tag it, as it's clearly not a version tag.
-            if [[ ${#THIS_TAG[@]} != 3 ]]
-            then
-              echo "This tag does not contain a semantic version number. Skipping."
-              echo "::set-env name=skip_tag::true"
-              exit 0
-            fi
-
-            for (( j=0; j<${#THIS_TAG[@]}; j++ ))
+            for (( j=0; j<${#THIS_TAG_NAME[@]}; j++ ))
             do
               ## if this value is greater than the latest release, then tag it, if it's lower, then stop, if it's
               ## the same then move on to the next index
-              if [[ ${THIS_TAG[$j]} -gt ${LATEST_RC_TAG_SPLIT[$j]} ]]
+              if [[ ${THIS_TAG_NAME[$j]} -gt ${LATEST_RELEASE_TAG_SPLIT[$j]} ]]
               then
                 echo "This release tag ${{ github.event.release.tag_name }} is the latest. Tagging it"
                 # move on to next task
                 exit 0
-              elif [[ ${THIS_TAG[$j]} -lt ${LATEST_RC_TAG_SPLIT[$j]} ]]
+              elif [[ ${THIS_TAG_NAME[$j]} -lt ${LATEST_RELEASE_TAG_SPLIT[$j]} ]]
               then
                 break
               fi
