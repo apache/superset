@@ -28,7 +28,7 @@ from superset.extensions import cache_manager
 # If a user sets `max_age` to 0, for long the browser should cache the
 # resource? Flask-Caching will cache forever, but for the HTTP header we need
 # to specify a "far future" date.
-FAR_FUTURE = 365 * 24 * 60 * 60  # 1 year in seconds
+ONE_YEAR = 365 * 24 * 60 * 60  # 1 year in seconds
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ def etag_cache(
                 # add headers for caching: Last Modified, Expires and ETag
                 response.cache_control.public = True
                 response.last_modified = datetime.utcnow()
-                expiration = max_age or FAR_FUTURE  # max_age=0 also means far future
+                expiration = max_age or ONE_YEAR  # max_age=0 also means far future
                 response.expires = response.last_modified + timedelta(
                     seconds=expiration
                 )
