@@ -88,6 +88,7 @@ export default class ResultSet extends React.PureComponent<
       searchText: '',
       showExploreResultsButton: false,
       data: [],
+      showSaveDatasetModal: false
     };
 
     this.changeSearch = this.changeSearch.bind(this);
@@ -97,6 +98,8 @@ export default class ResultSet extends React.PureComponent<
     this.toggleExploreResultsButton = this.toggleExploreResultsButton.bind(
       this,
     );
+    this.handleSaveInDataset = this.handleSaveInDataset.bind(this);
+    this.handleHideSaveModal = this.handleHideSaveModal.bind(this);
   }
 
   componentDidMount() {
@@ -168,15 +171,30 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
+  handleSaveInDataset() {
+    console.log('Saving dataset');
+  }
+
+  handleHideSaveModal() {
+    console.log('hiding the modal');
+    this.setState({showSaveDatasetModal: false})
+  }
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let { data } = this.props.query.results;
       if (this.props.cache && this.props.query.cached) {
         ({ data } = this.state);
       }
+
+      const { showSaveDatasetModal } = this.state;
       return (
         <div className="ResultSetControls">
-          <SaveDatasetModal />
+          <SaveDatasetModal
+            visible={showSaveDatasetModal}
+            onOk={this.handleSaveInDataset}
+            onCancel={this.handleHideSaveModal}
+          />
           <div className="ResultSetButtons">
             {this.props.visualize &&
               this.props.database &&
@@ -186,6 +204,9 @@ export default class ResultSet extends React.PureComponent<
                   query={this.props.query}
                   database={this.props.database}
                   actions={this.props.actions}
+                  onClick={() => {
+                    this.setState({showSaveDatasetModal: true})
+                  }}
                 />
               )}
             {this.props.csv && (
