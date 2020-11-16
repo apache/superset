@@ -154,6 +154,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     logger = logging.getLogger(__name__)
 
+    @event_logger.log_this
     @has_access_api
     @expose("/datasources/")
     def datasources(self) -> FlaskResponse:
@@ -168,6 +169,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
         )
 
+    @event_logger.log_this
     @has_access_api
     @expose("/override_role_permissions/", methods=["POST"])
     def override_role_permissions(self) -> FlaskResponse:
@@ -367,6 +369,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         session.commit()
         return redirect("/accessrequestsmodelview/list/")
 
+    @event_logger.log_this
     @has_access
     @expose("/slice/<int:slice_id>/")
     def slice(self, slice_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
@@ -731,6 +734,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @api
+    @event_logger.log_this
     @handle_api_exception
     @has_access_api
     @expose("/filter/<datasource_type>/<int:datasource_id>/<column>/")
@@ -879,6 +883,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return json_success(json.dumps(response))
 
+    @event_logger.log_this
     @api
     @has_access_api
     @expose("/schemas/<int:db_id>/")
@@ -903,6 +908,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return Response(json.dumps({"schemas": schemas}), mimetype="application/json")
 
+    @event_logger.log_this
     @api
     @has_access_api
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
@@ -1009,6 +1015,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/copy_dash/<int:dashboard_id>/", methods=["GET", "POST"])
     def copy_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
@@ -1058,6 +1065,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/save_dash/<int:dashboard_id>/", methods=["GET", "POST"])
     def save_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
@@ -1096,6 +1104,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/add_slices/<int:dashboard_id>/", methods=["POST"])
     def add_slices(  # pylint: disable=no-self-use
         self, dashboard_id: int
@@ -1114,6 +1123,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/testconn", methods=["POST", "GET"])
     def testconn(  # pylint: disable=too-many-return-statements,no-self-use
         self,
@@ -1194,6 +1204,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/recent_activity/<int:user_id>/", methods=["GET"])
     def recent_activity(  # pylint: disable=no-self-use
         self, user_id: int
@@ -1292,6 +1303,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/csrf_token/", methods=["GET"])
     def csrf_token(self) -> FlaskResponse:
         return Response(
@@ -1300,6 +1312,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/available_domains/", methods=["GET"])
     def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
@@ -1313,6 +1326,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/fave_dashboards_by_username/<username>/", methods=["GET"])
     def fave_dashboards_by_username(self, username: str) -> FlaskResponse:
         """This lets us use a user's username to pull favourite dashboards"""
@@ -1321,6 +1335,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/fave_dashboards/<int:user_id>/", methods=["GET"])
     def fave_dashboards(  # pylint: disable=no-self-use
         self, user_id: int
@@ -1355,6 +1370,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/created_dashboards/<int:user_id>/", methods=["GET"])
     def created_dashboards(  # pylint: disable=no-self-use
         self, user_id: int
@@ -1383,6 +1399,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/user_slices", methods=["GET"])
     @expose("/user_slices/<int:user_id>/", methods=["GET"])
     def user_slices(  # pylint: disable=no-self-use
@@ -1434,6 +1451,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/created_slices", methods=["GET"])
     @expose("/created_slices/<int:user_id>/", methods=["GET"])
     def created_slices(  # pylint: disable=no-self-use
@@ -1461,6 +1479,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/fave_slices", methods=["GET"])
     @expose("/fave_slices/<int:user_id>/", methods=["GET"])
     def fave_slices(  # pylint: disable=no-self-use
@@ -1591,6 +1610,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(json.dumps(result))
 
     @has_access_api
+    @event_logger.log_this
     @expose("/favstar/<class_name>/<int:obj_id>/<action>/")
     def favstar(  # pylint: disable=no-self-use
         self, class_name: str, obj_id: int, action: str
@@ -1624,6 +1644,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/dashboard/<int:dashboard_id>/published/", methods=("GET", "POST"))
     def publish(  # pylint: disable=no-self-use
         self, dashboard_id: int
@@ -1770,7 +1791,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @api
-    @event_logger.log_this
     @has_access
     @expose("/log/", methods=["POST"])
     def log(self) -> FlaskResponse:  # pylint: disable=no-self-use
@@ -2113,6 +2133,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self.json_response("OK")
 
     @has_access_api
+    @event_logger.log_this
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     @event_logger.log_this
     def validate_sql_json(  # pylint: disable=too-many-locals,too-many-return-statements,no-self-use
@@ -2297,10 +2318,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(payload=data)
         return json_success(payload)
 
+    @event_logger.log_this
     @has_access_api
     @handle_api_exception
     @expose("/sql_json/", methods=["POST"])
-    @event_logger.log_this
     def sql_json(self) -> FlaskResponse:
         log_params = {
             "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
@@ -2432,9 +2453,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             session, rendered_query, query, expand_data, log_params
         )
 
+    @event_logger.log_this
     @has_access
     @expose("/csv/<client_id>")
-    @event_logger.log_this
     def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
         """Download the query results as csv."""
         logger.info("Exporting CSV file [%s]", client_id)
@@ -2510,6 +2531,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(json.dumps(datasource.data))
 
     @has_access_api
+    @event_logger.log_this
     @expose("/queries/<float:last_updated_ms>")
     @expose("/queries/<int:last_updated_ms>")
     def queries(self, last_updated_ms: Union[float, int]) -> FlaskResponse:
@@ -2614,6 +2636,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             500,
         )
 
+    @event_logger.log_this
     @expose("/welcome")
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
@@ -2643,6 +2666,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ),
         )
 
+    @event_logger.log_this
     @has_access
     @expose("/profile/<username>/")
     def profile(self, username: str) -> FlaskResponse:
@@ -2713,6 +2737,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "queries": queries,
         }
 
+    @event_logger.log_this
     @has_access
     @expose("/sqllab", methods=["GET", "POST"])
     def sqllab(self) -> FlaskResponse:
@@ -2741,6 +2766,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @expose("/sqllab/history/", methods=["GET"])
+    @event_logger.log_this
     def sqllab_search(self) -> FlaskResponse:
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
@@ -2753,6 +2779,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @expose("/schemas_access_for_csv_upload")
+    @event_logger.log_this
     def schemas_access_for_csv_upload(self) -> FlaskResponse:
         """
         This method exposes an API endpoint to

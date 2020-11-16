@@ -214,6 +214,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def post(self) -> Response:
         """Creates a new Chart
         ---
@@ -270,6 +271,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def put(self, pk: int) -> Response:
         """Changes a Chart
         ---
@@ -343,6 +345,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def delete(self, pk: int) -> Response:
         """Deletes a Chart
         ---
@@ -393,6 +396,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
+    @event_logger.log_this
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Charts
         ---
@@ -532,6 +536,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def cache_screenshot(self, pk: int, **kwargs: Dict[str, bool]) -> WerkzeugResponse:
         """
         ---
@@ -604,6 +609,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def screenshot(self, pk: int, digest: str) -> WerkzeugResponse:
         """Get Chart screenshot
         ---
@@ -657,6 +663,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @rison(thumbnail_query_schema)
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def thumbnail(
         self, pk: int, digest: str, **kwargs: Dict[str, bool]
     ) -> WerkzeugResponse:
@@ -730,6 +737,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
+    @event_logger.log_this
     def export(self, **kwargs: Any) -> Response:
         """Export charts
         ---
@@ -787,6 +795,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_fav_star_ids_schema)
+    @event_logger.log_this
     def favorite_status(self, **kwargs: Any) -> Response:
         """Favorite stars for Charts
         ---

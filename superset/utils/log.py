@@ -30,15 +30,35 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.stats_logger import BaseStatsLogger
 
 
+def path_no_int(path: Optional[str]) -> str:
+    """Simple function to remove ints from '/' separated paths"""
+    if path:
+        return "/".join(["<int>" if s.isdigit() else s for s in path.split("/")])
+    return ""
+
+
 class AbstractEventLogger(ABC):
     @abstractmethod
-    def log(
-        self, user_id: Optional[int], action: str, *args: Any, **kwargs: Any
+    def log(  # pylint: disable=too-many-arguments
+        self,
+        user_id: Optional[int],
+        action: str,
+        dashboard_id: Optional[int],
+        duration_ms: Optional[int],
+        slice_id: Optional[int],
+        path: Optional[str],
+        path_no_int: Optional[str],
+        ref: Optional[str],
+        referrer: Optional[str],
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         pass
 
     @contextmanager
-    def log_context(self, action: str) -> Iterator[Callable[..., None]]:
+    def log_context(
+        self, action: str, ref: Optional[str] = None
+    ) -> Iterator[Callable[..., None]]:
         """
         Log an event while reading information from the request context.
         `kwargs` will be appended directly to the log payload.
@@ -86,17 +106,37 @@ class AbstractEventLogger(ABC):
             slice_id=slice_id,
             duration_ms=round((time.time() - start_time) * 1000),
             referrer=referrer,
+            path=request.path,
+            path_no_int=path_no_int(request.path),
+            ref=ref,
         )
 
-    def log_this(self, f: Callable[..., Any]) -> Callable[..., Any]:
+    def _wrapper(
+        self, f: Callable[..., Any], action: Optional[str] = None
+    ) -> Callable[..., Any]:
+        action_str: str = action or f.__name__
+        ref = f.__qualname__ if hasattr(f, "__qualname__") else None
+
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            with self.log_context(f.__name__) as log:
+            with self.log_context(action_str, ref) as log:
                 value = f(*args, **kwargs)
                 log(**kwargs)
             return value
 
         return wrapper
+
+    def log_this(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        """Decorator that uses the function name as the action"""
+        return self._wrapper(f)
+
+    def log_this_as(self, action: str) -> Callable[..., Any]:
+        """Decorator that uses the function name as the action"""
+
+        def func(f: Callable[..., Any]) -> Callable[..., Any]:
+            return self._wrapper(f, action)
+
+        return func
 
     def log_manually(self, f: Callable[..., Any]) -> Callable[..., Any]:
         """Allow a function to manually update"""
@@ -162,16 +202,23 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
 class DBEventLogger(AbstractEventLogger):
     """Event logger that commits logs to Superset DB"""
 
-    def log(  # pylint: disable=too-many-locals
-        self, user_id: Optional[int], action: str, *args: Any, **kwargs: Any
+    def log(  # pylint: disable=too-many-arguments,too-many-locals
+        self,
+        user_id: Optional[int],
+        action: str,
+        dashboard_id: Optional[int],
+        duration_ms: Optional[int],
+        slice_id: Optional[int],
+        path: Optional[str],
+        path_no_int: Optional[str],
+        ref: Optional[str],
+        referrer: Optional[str],
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         from superset.models.core import Log
 
         records = kwargs.get("records", list())
-        dashboard_id = kwargs.get("dashboard_id")
-        slice_id = kwargs.get("slice_id")
-        duration_ms = kwargs.get("duration_ms")
-        referrer = kwargs.get("referrer")
 
         logs = list()
         for record in records:
@@ -188,6 +235,9 @@ class DBEventLogger(AbstractEventLogger):
                 duration_ms=duration_ms,
                 referrer=referrer,
                 user_id=user_id,
+                path=path,
+                path_no_int=path_no_int,
+                ref=ref,
             )
             logs.append(log)
         try:
