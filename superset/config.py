@@ -674,11 +674,12 @@ CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 # return native types.
 JINJA_CONTEXT_ADDONS: Dict[str, Callable[..., Any]] = {}
 
-# A dictionary of macro template processors that gets merged into global
+# A dictionary of macro template processors (by engine) that gets merged into global
 # template processors. The existing template processors get updated with this
 # dictionary, which means the existing keys get overwritten by the content of this
-# dictionary. The customized addons don't necessarily need to use jinjia templating
-# language. This allows you to define custom logic to process macro template.
+# dictionary. The customized addons don't necessarily need to use Jinja templating
+# language. This allows you to define custom logic to process templates on a per-engine
+# basis. Example value = `{"presto": CustomPrestoTemplateProcessor}`
 CUSTOM_TEMPLATE_PROCESSORS: Dict[str, Type[BaseTemplateProcessor]] = {}
 
 # Prevent access to classes/objects and proxy methods in the default Jinja context,

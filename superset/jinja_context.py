@@ -34,6 +34,20 @@ if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
+NONE_TYPE = type(None).__name__
+ALLOWED_RETURN_TYPES = [
+    NONE_TYPE,
+    "bool",
+    "str",
+    "unicode",
+    "int",
+    "long",
+    "float",
+    "list",
+    "dict",
+    "tuple",
+]
+
 
 def filter_values(column: str, default: Optional[str] = None) -> List[str]:
     """ Gets a values for a particular filter as a list
@@ -189,25 +203,13 @@ class ExtraCache:
         return result
 
 
-NONE_TYPE = type(None).__name__
-ALLOWED_TYPES = [
-    NONE_TYPE,
-    "bool",
-    "str",
-    "unicode",
-    "int",
-    "long",
-    "float",
-    "list",
-    "dict",
-    "tuple",
-]
-
-
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     return_value = func(*args, **kwargs)
+    if not current_app.config["SAFE_JINJA_PROCESSING"]:
+        return return_value
+
     value_type = type(return_value).__name__
-    if value_type not in ALLOWED_TYPES:
+    if value_type not in ALLOWED_RETURN_TYPES:
         raise SupersetTemplateException(
             _(
                 "Unsafe return type for function %(func)s: %(value_type)s",
@@ -253,11 +255,12 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
             self._schema = table.schema
         self._extra_cache_keys = extra_cache_keys
         self._context: Dict[str, Any] = {}
-        self.set_env()
+        self._env = (
+            ImmutableSandboxedEnvironment()
+            if current_app.config["SAFE_JINJA_PROCESSING"]
+            else SandboxedEnvironment()
+        )
         self.set_context(**kwargs)
-
-    def set_env(self) -> None:
-        self._env = SandboxedEnvironment()
 
     def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)
@@ -281,24 +284,6 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
         extra_cache = ExtraCache(self._extra_cache_keys)
         self._context.update(
             {
-                "url_param": extra_cache.url_param,
-                "current_user_id": extra_cache.current_user_id,
-                "current_username": extra_cache.current_username,
-                "cache_key_wrapper": extra_cache.cache_key_wrapper,
-                "filter_values": filter_values,
-            }
-        )
-
-        if self.engine:
-            self._context[self.engine] = self
-
-
-class SafeJinjaTemplateProcessor(BaseTemplateProcessor):
-    def set_context(self, **kwargs: Any) -> None:
-        super().set_context(**kwargs)
-        extra_cache = ExtraCache(self._extra_cache_keys)
-        self._context.update(
-            {
                 "url_param": partial(safe_proxy, extra_cache.url_param),
                 "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
                 "current_username": partial(safe_proxy, extra_cache.current_username),
@@ -306,9 +291,6 @@ class SafeJinjaTemplateProcessor(BaseTemplateProcessor):
                 "filter_values": partial(safe_proxy, filter_values),
             }
         )
-
-    def set_env(self) -> None:
-        self._env = ImmutableSandboxedEnvironment()
 
 
 class NoOpTemplateProcessor(
@@ -329,6 +311,15 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
     """
 
     engine = "presto"
+
+    def set_context(self, **kwargs: Any) -> None:
+        super().set_context(**kwargs)
+        self._context[self.engine] = {
+            "first_latest_partition": self.first_latest_partition,
+            "latest_partitions": self.latest_partitions,
+            "latest_sub_partition": self.latest_sub_partition,
+            "latest_partition": self.latest_partition,
+        }
 
     @staticmethod
     def _schema_table(
@@ -385,11 +376,11 @@ class HiveTemplateProcessor(PrestoTemplateProcessor):
 
 # The global template processors from Jinja context manager.
 template_processors = jinja_context_manager.template_processors
-keys = tuple(globals().keys())
-for k in keys:
-    o = globals()[k]
-    if o and inspect.isclass(o) and issubclass(o, BaseTemplateProcessor):
-        template_processors[o.engine] = o
+default_processors = {"presto": PrestoTemplateProcessor, "hive": HiveTemplateProcessor}
+for engine in default_processors:
+    # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
+    if not engine in template_processors:
+        template_processors[engine] = default_processors[engine]
 
 
 def get_template_processor(
@@ -399,13 +390,8 @@ def get_template_processor(
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
     if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-        default_processor = (
-            SafeJinjaTemplateProcessor
-            if current_app.config["SAFE_JINJA_PROCESSING"]
-            else JinjaTemplateProcessor
-        )
         template_processor = template_processors.get(
-            database.backend, default_processor
+            database.backend, JinjaTemplateProcessor
         )
     else:
         template_processor = NoOpTemplateProcessor
