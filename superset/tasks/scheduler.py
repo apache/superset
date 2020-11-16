@@ -50,13 +50,13 @@ def scheduler() -> None:
         active_schedules = ReportScheduleDAO.find_active(session)
         for active_schedule in active_schedules:
             for schedule in cron_schedule_window(active_schedule.crontab):
-                execute.apply_async((active_schedule.id,), eta=schedule)
+                execute.apply_async((active_schedule.id, schedule,), eta=schedule)
 
 
 @celery_app.task(name="reports.execute")
-def execute(report_schedule_id: int) -> None:
+def execute(report_schedule_id: int, scheduled_dttm: datetime) -> None:
     try:
-        AsyncExecuteReportScheduleCommand(report_schedule_id).run()
+        AsyncExecuteReportScheduleCommand(report_schedule_id, scheduled_dttm).run()
     except CommandException as ex:
         logger.error("An exception occurred while executing the report %s", ex)
 

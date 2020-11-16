@@ -34,8 +34,19 @@ class NotificationContent:
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods
+    """
+    Serves has base for all notifications and creates a simple plugin system
+    for extending future implementations.
+    Child implementations get automatically registered and should identify the
+    notification type
+    """
+
     plugins: List[Type["BaseNotification"]] = []
     type: Optional[ReportRecipientType] = None
+    """
+    Child classes set their notification type ex: `type = "email"` this string will be
+    used by ReportRecipients.type to map to the correct implementation
+    """
 
     def __init_subclass__(cls, *args: Any, **kwargs: Any) -> None:
         super().__init_subclass__(*args, **kwargs)  # type: ignore

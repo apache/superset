@@ -15,16 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, List
 
-from contextlib2 import contextmanager
 from marshmallow import ValidationError
-from sqlalchemy.orm import Session
 
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
 from superset.dashboards.dao import DashboardDAO
-from superset.extensions import db
 from superset.reports.commands.exceptions import (
     ChartNotFoundValidationError,
     DashboardNotFoundValidationError,
@@ -32,18 +29,6 @@ from superset.reports.commands.exceptions import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-@contextmanager
-def normal_session_scope() -> Iterator[Session]:
-    session = db.session
-    try:
-        yield session
-        session.commit()
-    except Exception as ex:
-        session.rollback()
-        logger.exception(ex)
-        raise ex
 
 
 class BaseReportScheduleCommand(BaseCommand):

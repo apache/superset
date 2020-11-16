@@ -38,6 +38,10 @@ class EmailContent:
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
+    """
+    Sends an email notification for a report recipient
+    """
+
     type = ReportRecipientType.EMAIL
 
     @staticmethod

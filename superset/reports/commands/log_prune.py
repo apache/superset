@@ -19,7 +19,6 @@ from datetime import datetime, timedelta
 
 from superset.commands.base import BaseCommand
 from superset.models.reports import ReportSchedule
-from superset.reports.commands.base import normal_session_scope
 from superset.reports.dao import ReportScheduleDAO
 from superset.utils.celery import session_scope
 
@@ -35,11 +34,7 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
         self._worker_context = worker_context
 
     def run(self) -> None:
-        if self._worker_context:
-            session_context = session_scope(nullpool=True)
-        else:
-            session_context = normal_session_scope
-        with session_context as session:
+        with session_scope(nullpool=True) as session:
             self.validate()
             for report_schedule in session.query(ReportSchedule).all():
                 from_date = datetime.utcnow() - timedelta(

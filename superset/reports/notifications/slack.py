@@ -34,6 +34,10 @@ logger = logging.getLogger(__name__)
 
 
 class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-methods
+    """
+    Sends a slack notification for a report recipient
+    """
+
     type = ReportRecipientType.SLACK
 
     def _get_channel(self) -> str:

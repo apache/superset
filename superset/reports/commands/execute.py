@@ -15,11 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import urllib
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Optional
 
-from flask import url_for
 from sqlalchemy.orm import Session
 
 from superset import app, thumbnail_cache
@@ -54,35 +52,23 @@ from superset.utils.urls import get_url_path
 logger = logging.getLogger(__name__)
 
 
-def _get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
-    with app.test_request_context():
-        base_url = (
-            app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
-            if user_friendly
-            else app.config["WEBDRIVER_BASEURL"]
-        )
-        return urllib.parse.urljoin(str(base_url), url_for(view, **kwargs))
-
-
 class AsyncExecuteReportScheduleCommand(BaseCommand):
     """
     Execute all types of report schedules.
-    On reports takes chart or dashboard screenshots and send configured notifications
-    On Alerts uses related Command AlertCommand
+    - On reports takes chart or dashboard screenshots and sends configured notifications
+    - On Alerts uses related Command AlertCommand and sends configured notifications
     """
 
-    def __init__(self, model_id: int):
+    def __init__(self, model_id: int, scheduled_dttm: datetime):
         self._model_id = model_id
         self._model: Optional[ReportSchedule] = None
+        self._scheduled_dttm = scheduled_dttm
 
-    def set_state_and_log(  # pylint: disable=too-many-arguments
+    def set_state_and_log(
         self,
         session: Session,
         start_dttm: datetime,
         state: ReportLogState,
-        scheduled_dttm: Optional[datetime] = None,
-        value: Optional[float] = None,
-        value_row_json: Optional[str] = None,
         error_message: Optional[str] = None,
     ) -> None:
         """
@@ -92,16 +78,10 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         now_dttm = datetime.utcnow()
         if state == ReportLogState.WORKING:
             self.set_state(session, state, now_dttm)
+            return
         self.set_state(session, state, now_dttm)
         self.create_log(
-            session,
-            start_dttm,
-            now_dttm,
-            state,
-            scheduled_dttm=scheduled_dttm,
-            value=value,
-            value_row_json=value_row_json,
-            error_message=error_message,
+            session, start_dttm, now_dttm, state, error_message=error_message,
         )
 
     def set_state(
@@ -122,20 +102,18 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         start_dttm: datetime,
         end_dttm: datetime,
         state: ReportLogState,
-        scheduled_dttm: Optional[datetime] = None,
-        value: Optional[float] = None,
-        value_row_json: Optional[str] = None,
         error_message: Optional[str] = None,
     ) -> None:
-        # TODO Remove this hack
-        scheduled_dttm = scheduled_dttm or datetime.utcnow()
+        """
+        Creates a Report execution log, uses the current computed last_value for Alerts
+        """
         if self._model:
             log = ReportExecutionLog(
-                scheduled_dttm=scheduled_dttm,
+                scheduled_dttm=self._scheduled_dttm,
                 start_dttm=start_dttm,
                 end_dttm=end_dttm,
-                value=value,
-                value_row_json=value_row_json,
+                value=self._model.last_value,
+                value_row_json=self._model.last_value_row_json,
                 state=state,
                 error_message=error_message,
                 report_schedule=self._model,
@@ -144,7 +122,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
 
     def get_url(self, user_friendly: bool = False) -> str:
         """
-        Get the url for this report schedule chart or dashboard
+        Get the url for this report schedule: chart or dashboard
         """
         if not self._model:
             raise ReportScheduleExecuteUnexpectedError()
@@ -184,6 +162,10 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         return ScreenshotData(url=image_url, image=image_data)
 
     def get_notification_content(self) -> NotificationContent:
+        """
+        Gets a notification content, this is composed by a title and a screenshot
+        :raises: ReportScheduleScreenshotFailedError
+        """
         if not self._model:
             raise ReportScheduleExecuteUnexpectedError()
         screenshot_data = self.get_screenshot()
@@ -234,11 +216,14 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         if self._model.last_state == ReportLogState.WORKING:
             raise ReportSchedulePreviousWorkingError()
         # Check grace period
-        if (
-            self._model.type == ReportScheduleType.ALERT
-            and self._model.last_state == ReportLogState.SUCCESS
-            and self._model.grace_period
-            and datetime.utcnow() - timedelta(seconds=self._model.grace_period)
-            < self._model.last_eval_dttm
-        ):
-            raise ReportScheduleAlertGracePeriodError()
+        if self._model.type == ReportScheduleType.ALERT:
+            last_success = ReportScheduleDAO.find_last_success_log(session)
+            if (
+                last_success
+                and self._model.last_state
+                in (ReportLogState.SUCCESS, ReportLogState.NOOP)
+                and self._model.grace_period
+                and datetime.utcnow() - timedelta(seconds=self._model.grace_period)
+                < last_success.end_dttm
+            ):
+                raise ReportScheduleAlertGracePeriodError()

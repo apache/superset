@@ -25,7 +25,12 @@ from sqlalchemy.orm import Session
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
-from superset.models.reports import ReportExecutionLog, ReportRecipients, ReportSchedule
+from superset.models.reports import (
+    ReportExecutionLog,
+    ReportLogState,
+    ReportRecipients,
+    ReportSchedule,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +152,21 @@ class ReportScheduleDAO(BaseDAO):
         session = session or db.session
         return (
             session.query(ReportSchedule).filter(ReportSchedule.active.is_(True)).all()
+        )
+
+    @staticmethod
+    def find_last_success_log(
+        session: Optional[Session] = None,
+    ) -> Optional[ReportExecutionLog]:
+        """
+        Finds last success execution log
+        """
+        session = session or db.session
+        return (
+            session.query(ReportExecutionLog)
+            .filter(ReportExecutionLog.state == ReportLogState.SUCCESS)
+            .order_by(ReportExecutionLog.end_dttm.desc())
+            .first()
         )
 
     @staticmethod
