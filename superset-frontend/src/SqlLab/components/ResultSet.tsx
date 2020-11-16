@@ -88,7 +88,8 @@ export default class ResultSet extends React.PureComponent<
       searchText: '',
       showExploreResultsButton: false,
       data: [],
-      showSaveDatasetModal: false
+      showSaveDatasetModal: false,
+      newSaveDatasetName: '',
     };
 
     this.changeSearch = this.changeSearch.bind(this);
@@ -203,6 +204,10 @@ export default class ResultSet extends React.PureComponent<
       });
   }
 
+  handleDatasetNameChange(e) {
+    console.log(e.target.value)
+  }
+
   handleHideSaveModal() {
     console.log('hiding the modal');
     this.setState({showSaveDatasetModal: false})
@@ -222,8 +227,7 @@ export default class ResultSet extends React.PureComponent<
             visible={showSaveDatasetModal}
             onOk={this.handleSaveInDataset}
             onCancel={this.handleHideSaveModal}
-            query={this.props.query}
-            createDatasource={this.props.actions.createDatasource}
+            handleDatasetNameChange={this.handleDatasetNameChange}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&
