@@ -133,6 +133,7 @@ interface UseListViewConfig {
     Cell: (conf: any) => React.ReactNode;
   };
   renderCard?: boolean;
+  defaultViewMode?: ViewModeType;
 }
 
 export function useListViewState({
@@ -146,6 +147,7 @@ export function useListViewState({
   bulkSelectMode = false,
   bulkSelectColumnConfig,
   renderCard = false,
+  defaultViewMode = 'card',
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
     filters: RisonParam,
@@ -171,7 +173,8 @@ export function useListViewState({
   };
 
   const [viewMode, setViewMode] = useState<ViewModeType>(
-    (query.viewMode as ViewModeType) || 'table',
+    (query.viewMode as ViewModeType) ||
+      (renderCard ? defaultViewMode : 'table'),
   );
 
   const columnsWithSelect = useMemo(() => {

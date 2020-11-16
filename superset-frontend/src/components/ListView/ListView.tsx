@@ -276,6 +276,7 @@ function ListView<T extends object = any>({
     initialSort,
     initialFilters: filters,
     renderCard: Boolean(renderCard),
+    defaultViewMode,
   });
   const filterable = Boolean(filters.length);
   if (filterable) {
