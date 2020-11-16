@@ -48,9 +48,7 @@ class AlertCommand(BaseCommand):
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
             return self._result not in (0, None, np.nan)
         operator = json.loads(self._report_schedule.validator_config_json)["op"]
-        threshold = json.loads(self._report_schedule.validator_config_json)[
-            "threshold"
-        ]
+        threshold = json.loads(self._report_schedule.validator_config_json)["threshold"]
         return OPERATOR_FUNCTIONS[operator](self._result, threshold)
 
     def validate(self) -> None:
