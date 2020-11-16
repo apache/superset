@@ -85,6 +85,7 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
         setDataset={setDataset}
         form={form}
         filterToEdit={filterToEdit}
+        edit={edit}
       />
     </StyledModal>
   );

@@ -24,6 +24,14 @@ import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 
+interface FilterConfigForm {
+  dataset: any;
+  setDataset: () => void;
+  filterToEdit: string;
+  form: any;
+  edit: boolean;
+}
+
 type DatasetSelectValue = {
   value: number;
   label: string;
@@ -80,7 +88,14 @@ function ColumnSelect({ datasetId, value, onChange }: ColumnSelectProps) {
   );
 }
 
-const FilterConfigForm = ({ dataset, setDataset, filterToEdit, form }) => {
+const FilterConfigForm = ({
+  dataset,
+  setDataset,
+  filterToEdit,
+  form,
+  edit,
+}: FilterConfigForm) => {
+  console.log('filtertoedit', filterToEdit, edit)
   return (
     <Form
       form={form}
@@ -88,6 +103,7 @@ const FilterConfigForm = ({ dataset, setDataset, filterToEdit, form }) => {
         // un-set the "column" value whenever the dataset changes.
         // Doing this in the onChange handler of the
         // dataset selector doesn't work for some reason.
+        console.log('changes', changes)
         if ('dataset' in changes && changes.dataset?.value !== dataset?.value) {
           form.setFieldsValue({ column: null });
           setDataset(changes.dataset);
