@@ -20,7 +20,7 @@ import React, { CSSProperties } from 'react';
 import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, SupersetClient} from '@superset-ui/core';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Loading from '../../components/Loading';
@@ -91,6 +91,7 @@ export default class ResultSet extends React.PureComponent<
       data: [],
       showSaveDatasetModal: false,
       newSaveDatasetName: '',
+      userDatasetsOwned: []
     };
 
     this.changeSearch = this.changeSearch.bind(this);
@@ -108,6 +109,17 @@ export default class ResultSet extends React.PureComponent<
   componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
+
+    SupersetClient.get({
+      endpoint:
+        'api/v1/dataset/?q=(filters:!((col:table_name,opr:ct,value:%27%27)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)',
+      }).then(data => {
+          const userDatasetsOwned = data.json.result.map(r => {
+            return { dataSetName: r.table_name, dataSetId: r.id }
+          })
+          this.setState({userDatasetsOwned})
+    });
+
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
@@ -241,6 +253,7 @@ export default class ResultSet extends React.PureComponent<
             onOk={this.handleSaveInDataset}
             onCancel={this.handleHideSaveModal}
             handleDatasetNameChange={this.handleDatasetNameChange}
+            userDatasetsOwned={this.state.userDatasetsOwned}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&

@@ -21,6 +21,7 @@ import React, { useState, FunctionComponent} from 'react';
 import { Radio, AutoComplete, Input } from 'src/common/components';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
+import { SupersetClient } from '@superset-ui/core';
 
 const mockVal = (str, repeat = 1) => {
   return {
@@ -32,23 +33,19 @@ interface SaveDatasetModalProps = {
 }
 
 // eslint-disable-next-line no-empty-pattern
-export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange}) => {
+export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned}) => {
   const [value, setValue] = useState('');
   const [options, setOptions] = useState([]);
   const [radioOption, setRadioOptions] = useState(1);
 
   const onSearch = (searchText) => {
     setOptions(
-      !searchText ? [] : [mockVal(searchText), mockVal(searchText, 2), mockVal(searchText, 3)],
+      !searchText ? [] : userDatasetsOwned.map(d => ({value: d.dataSetName})),
     );
   };
 
   const onSelect = (data) => {
     console.log('onSelect', data);
-  };
-
-  const onChange = (data) => {
-    setValue(data);
   };
 
   const onRadioChange = e => {
