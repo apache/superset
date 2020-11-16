@@ -69,7 +69,6 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   return (
     <Form
       onFinish={values => {
-        console.log(values.value);
         setSelectedValues(values.value);
       }}
     >
