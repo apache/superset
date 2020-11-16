@@ -22,7 +22,6 @@ import functools
 import hashlib
 import json
 import logging
-import operator
 import os
 import re
 import signal
@@ -1231,31 +1230,26 @@ def ensure_path_exists(path: str) -> None:
 
 def get_calendar_since_until(
     calendar_range: str,
+    relative_day: Optional[str] = "today",
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
     """
     Getting since datetime and until datetime tuple from calendar grains
 
-    :param calendar_range:
+    :param calendar_range: Human-readable calendar range. eg: previous 2 months
+    :param relative_day: Calculate the calendar range on a specific date
     :return: since datetime and until datetime
     """
-    today = parse_human_datetime("today")
+    relative_day = parse_human_datetime(relative_day)
     try:
         rel, num, grain = calendar_range.lower().split()
     except ValueError:
-        raise ValueError("Invalid calendar_range string")
+        raise ValueError("Invalid calendar range string")
 
-    if rel == "previous":
-        # get past calendar
-        func = operator.sub
-    else:
-        # rel == 'following' get future calendar
-        func = operator.add
-    anchor = func(today, relativedelta(**{grain: int(num)}),)  # type: ignore
+    if grain in ("day", "week", "month", "year"):
+        grain = f"{grain}s"
+    anchor = relative_day - relativedelta(**{grain: int(num)})
     if grain == "days":
-        if rel == "previous":
-            since, until = anchor, today
-        else:
-            since, until = today, anchor
+        since, until = anchor, relative_day
     elif grain == "weeks":
         since = anchor + relativedelta(days=-anchor.weekday())
         until = since + relativedelta(days=6)
@@ -1275,8 +1269,8 @@ def get_since_until(  # pylint: disable=too-many-arguments
     since: Optional[str] = None,
     until: Optional[str] = None,
     time_shift: Optional[str] = None,
-    relative_start: Optional[str] = None,
-    relative_end: Optional[str] = None,
+    relative_start: Optional[str] = "today",
+    relative_end: Optional[str] = "today",
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
@@ -1303,34 +1297,14 @@ def get_since_until(  # pylint: disable=too-many-arguments
 
     """
     separator = " : "
-    relative_start = parse_human_datetime(  # type: ignore
-        relative_start if relative_start else "today"
+    relative_start = parse_human_datetime(relative_start)
+    relative_end = parse_human_datetime(relative_end)
+    common_time_frames = (
+        "Last day", "Last week", "Last month", "Last quarter", "Last year",
     )
-    relative_end = parse_human_datetime(  # type: ignore
-        relative_end if relative_end else "today"
-    )
-    common_time_frames = {
-        "Last day": (
-            relative_start - relativedelta(days=1),  # type: ignore
-            relative_end,
-        ),
-        "Last week": (
-            relative_start - relativedelta(weeks=1),  # type: ignore
-            relative_end,
-        ),
-        "Last month": (
-            relative_start - relativedelta(months=1),  # type: ignore
-            relative_end,
-        ),
-        "Last quarter": (
-            relative_start - relativedelta(months=3),  # type: ignore
-            relative_end,
-        ),
-        "Last year": (
-            relative_start - relativedelta(years=1),  # type: ignore
-            relative_end,
-        ),
-    }
+    if time_range in common_time_frames:
+        rel, grain = time_range.split()
+        time_range = f"{rel} 1 {grain}s"
 
     if time_range:
         if separator in time_range:
@@ -1339,8 +1313,8 @@ def get_since_until(  # pylint: disable=too-many-arguments
                 since = add_ago_to_since(since)
             since = parse_human_datetime(since) if since else None  # type: ignore
             until = parse_human_datetime(until) if until else None  # type: ignore
-        elif time_range in common_time_frames:
-            since, until = common_time_frames[time_range]
+        elif 'previous' in time_range.lower():
+            since, until = get_calendar_since_until(time_range)
         elif time_range == "No filter":
             since = until = None
         else:

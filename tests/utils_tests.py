@@ -745,41 +745,47 @@ class TestUtils(SupersetTestCase):
         expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
         self.assertEqual(result, expected)
 
+        result = get_since_until("Previous 1 week")
+        expected = datetime(2016, 10, 31), datetime(2016, 11, 6)
+        self.assertEqual(result, expected)
+
         with self.assertRaises(ValueError):
             get_since_until(time_range="tomorrow : yesterday")
 
     @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
     def test_get_calendar_since_until(self):
-        result = get_calendar_since_until("previous 1 days")
+        result = get_calendar_since_until("previous 1 day")
         expected = datetime(2016, 11, 6), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until("previous 1 weeks")
+        result = get_calendar_since_until("previous 1 week")
         expected = datetime(2016, 10, 31), datetime(2016, 11, 6)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until("previous 1 months")
+        result = get_calendar_since_until("previous 1 month")
         expected = datetime(2016, 10, 1), datetime(2016, 10, 31)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until("previous 1 years")
+        result = get_calendar_since_until("previous 1 year")
         expected = datetime(2015, 1, 1), datetime(2015, 12, 31)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until("following 1 days")
-        expected = datetime(2016, 11, 7), datetime(2016, 11, 8)
+        result = get_calendar_since_until("previous 2 years")
+        expected = datetime(2014, 1, 1), datetime(2014, 12, 31)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until("following 1 weeks")
-        expected = datetime(2016, 11, 14), datetime(2016, 11, 20)
-        self.assertEqual(result, expected)
-
-        result = get_calendar_since_until("following 1 months")
-        expected = datetime(2016, 12, 1), datetime(2016, 12, 31)
-        self.assertEqual(result, expected)
-
-        result = get_calendar_since_until("following 1 years")
+        result = get_calendar_since_until(
+            "previous 1 year",
+            relative_day="2018-01-01T00:00:00",
+        )
         expected = datetime(2017, 1, 1), datetime(2017, 12, 31)
+        self.assertEqual(result, expected)
+
+        result = get_calendar_since_until(
+            "previous 1 month",
+            relative_day="2018-01-01T00:00:00",
+        )
+        expected = datetime(2017, 12, 1), datetime(2017, 12, 31)
         self.assertEqual(result, expected)
 
     @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
