@@ -16,26 +16,17 @@
 # under the License.
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
-
-from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.base import normal_session_scope
-from superset.reports.commands.exceptions import (
-    ReportScheduleDeleteFailedError,
-    ReportScheduleNotFoundError,
-)
 from superset.reports.dao import ReportScheduleDAO
 from superset.utils.celery import session_scope
 
 logger = logging.getLogger(__name__)
 
 
-class PruneReportScheduleLogCommand(BaseCommand):
+class AsyncPruneReportScheduleLogCommand(BaseCommand):
     """
     Prunes logs from all report schedules
     """

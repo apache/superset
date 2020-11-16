@@ -33,7 +33,6 @@ from superset.models.reports import (
     ReportScheduleType,
 )
 from superset.reports.commands.alert import AlertCommand
-from superset.reports.commands.base import normal_session_scope
 from superset.reports.commands.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleExecuteUnexpectedError,
@@ -65,19 +64,18 @@ def _get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
         return urllib.parse.urljoin(str(base_url), url_for(view, **kwargs))
 
 
-class ExecuteReportScheduleCommand(BaseCommand):
+class AsyncExecuteReportScheduleCommand(BaseCommand):
     """
     Execute all types of report schedules.
     On reports takes chart or dashboard screenshots and send configured notifications
     On Alerts uses related Command AlertCommand
     """
 
-    def __init__(self, model_id: int, worker_context: bool = True):
-        self._worker_context = worker_context
+    def __init__(self, model_id: int):
         self._model_id = model_id
         self._model: Optional[ReportSchedule] = None
 
-    def set_state_and_log(
+    def set_state_and_log(  # pylint: disable=too-many-arguments
         self,
         session: Session,
         start_dttm: datetime,
@@ -93,7 +91,7 @@ class ExecuteReportScheduleCommand(BaseCommand):
         """
         now_dttm = datetime.utcnow()
         if state == ReportLogState.WORKING:
-            return self.set_state(session, state, now_dttm)
+            self.set_state(session, state, now_dttm)
         self.set_state(session, state, now_dttm)
         self.create_log(
             session,
@@ -118,7 +116,7 @@ class ExecuteReportScheduleCommand(BaseCommand):
             self._model.last_eval_dttm = dttm
             session.commit()
 
-    def create_log(
+    def create_log(  # pylint: disable=too-many-arguments
         self,
         session: Session,
         start_dttm: datetime,
@@ -196,11 +194,7 @@ class ExecuteReportScheduleCommand(BaseCommand):
         return NotificationContent(name=name, screenshot=screenshot_data)
 
     def run(self) -> None:
-        if self._worker_context:
-            session_context = session_scope(nullpool=True)
-        else:
-            session_context = normal_session_scope
-        with session_context as session:
+        with session_scope(nullpool=True) as session:
             try:
                 start_dttm = datetime.utcnow()
                 self.validate(session=session)
@@ -229,7 +223,9 @@ class ExecuteReportScheduleCommand(BaseCommand):
                 )
                 logger.error("Failed to execute report schedule: %s", ex)
 
-    def validate(self, session: Session = None) -> None:
+    def validate(  # pylint: disable=arguments-differ
+        self, session: Session = None
+    ) -> None:
         # Validate/populate model exists
         self._model = ReportScheduleDAO.find_by_id(self._model_id, session=session)
         if not self._model:

@@ -33,7 +33,7 @@ from superset.reports.notifications.base import BaseNotification
 logger = logging.getLogger(__name__)
 
 
-class SlackNotification(BaseNotification):
+class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-methods
     type = ReportRecipientType.SLACK
 
     def _get_channel(self) -> str:
@@ -75,4 +75,4 @@ class SlackNotification(BaseNotification):
                 SlackResponse, client.chat_postMessage(channel=channel, text=body),
             )
             assert response["message"]["text"], str(response)
-        logger.info("Sent the report to the slack %s", channel)
+        logger.info("Report sent to slack")

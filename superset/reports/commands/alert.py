@@ -20,7 +20,6 @@ from operator import eq, ge, gt, le, lt, ne
 from typing import Optional
 
 import numpy as np
-import pandas as pd
 
 from superset import jinja_context
 from superset.commands.base import BaseCommand
@@ -48,12 +47,11 @@ class AlertCommand(BaseCommand):
 
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
             return self._result not in (0, None, np.nan)
-        else:
-            operator = json.loads(self._report_schedule.validator_config_json)["op"]
-            threshold = json.loads(self._report_schedule.validator_config_json)[
-                "threshold"
-            ]
-            return OPERATOR_FUNCTIONS[operator](self._result, threshold)
+        operator = json.loads(self._report_schedule.validator_config_json)["op"]
+        threshold = json.loads(self._report_schedule.validator_config_json)[
+            "threshold"
+        ]
+        return OPERATOR_FUNCTIONS[operator](self._result, threshold)
 
     def validate(self) -> None:
         """

@@ -37,16 +37,17 @@ class EmailContent:
     images: Dict[str, bytes]
 
 
-class EmailNotification(BaseNotification):
+class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
     type = ReportRecipientType.EMAIL
 
-    def _get_smtp_from_domain(self) -> str:
+    @staticmethod
+    def _get_smtp_domain() -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _get_content(self) -> EmailContent:
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the ends
-        domain = self._get_smtp_from_domain()
+        domain = self._get_smtp_domain()
         msgid = make_msgid(domain)[1:-1]
 
         image = {msgid: self._content.screenshot.image}
@@ -86,4 +87,4 @@ class EmailNotification(BaseNotification):
             mime_subtype="related",
             dryrun=False,
         )
-        logger.debug(f"EMAIL SENT {to} {subject}")
+        logger.info("Report sent to email")

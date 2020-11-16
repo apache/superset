@@ -33,7 +33,7 @@ class NotificationContent:
     screenshot: ScreenshotData
 
 
-class BaseNotification:
+class BaseNotification:  # pylint: disable=too-few-public-methods
     plugins: List[Type["BaseNotification"]] = []
     type: Optional[ReportRecipientType] = None
 
