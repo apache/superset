@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder import Model
@@ -24,7 +25,7 @@ from sqlalchemy.orm import Session
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
-from superset.models.reports import ReportRecipients, ReportSchedule
+from superset.models.reports import ReportExecutionLog, ReportRecipients, ReportSchedule
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,31 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def find_active(session: Optional[Session] = None) -> List[ReportSchedule]:
+        """
+        Find all active reports. If session is passed it will be used instead of the
+        default `db.session`, this is useful when on a celery worker session context
+        """
         session = session or db.session
         return (
             session.query(ReportSchedule).filter(ReportSchedule.active.is_(True)).all()
         )
+
+    @staticmethod
+    def bulk_delete_logs(
+        model: ReportSchedule,
+        from_date: datetime,
+        session: Optional[Session] = None,
+        commit: bool = True,
+    ) -> None:
+        session = session or db.session
+        try:
+            session.query(ReportExecutionLog).filter(
+                ReportExecutionLog.report_schedule == model,
+                ReportExecutionLog.end_dttm < from_date,
+            ).delete(synchronize_session="fetch")
+            if commit:
+                session.commit()
+        except SQLAlchemyError as ex:
+            if commit:
+                session.rollback()
+            raise ex

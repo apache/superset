@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from dataclasses import dataclass
-from typing import List, Optional, Type
+from typing import Any, List, Optional, Type
 
 from superset.models.reports import ReportRecipients, ReportRecipientType
 
@@ -24,7 +24,7 @@ from superset.models.reports import ReportRecipients, ReportRecipientType
 @dataclass
 class ScreenshotData:
     url: str  # url to chart/dashboard for this screenshot
-    image: Optional[bytes]  # bytes for the screenshot
+    image: bytes  # bytes for the screenshot
 
 
 @dataclass
@@ -37,8 +37,8 @@ class BaseNotification:
     plugins: List[Type["BaseNotification"]] = []
     type: Optional[ReportRecipientType] = None
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
+    def __init_subclass__(cls, *args: Any, **kwargs: Any) -> None:
+        super().__init_subclass__(*args, **kwargs)  # type: ignore
         cls.plugins.append(cls)
 
     def __init__(

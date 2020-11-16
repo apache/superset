@@ -40,7 +40,7 @@ class EmailContent:
 class EmailNotification(BaseNotification):
     type = ReportRecipientType.EMAIL
 
-    def _get_smtp_from_domain(self):
+    def _get_smtp_from_domain(self) -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _get_content(self) -> EmailContent:
@@ -49,7 +49,7 @@ class EmailNotification(BaseNotification):
         domain = self._get_smtp_from_domain()
         msgid = make_msgid(domain)[1:-1]
 
-        images = {msgid: self._content.screenshot.image}
+        image = {msgid: self._content.screenshot.image}
         body = __(
             """
             <b><a href="%(url)s">Explore in Superset</a></b><p></p>
@@ -58,7 +58,7 @@ class EmailNotification(BaseNotification):
             url=self._content.screenshot.url,
             msgid=msgid,
         )
-        return EmailContent(body=body, images=images)
+        return EmailContent(body=body, images=image)
 
     def _get_subject(self) -> str:
         return __(

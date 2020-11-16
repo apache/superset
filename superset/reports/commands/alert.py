@@ -1,0 +1,83 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+import json
+import logging
+from operator import eq, ge, gt, le, lt, ne
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from superset import jinja_context
+from superset.commands.base import BaseCommand
+from superset.models.reports import ReportSchedule, ReportScheduleValidatorType
+from superset.reports.commands.exceptions import (
+    AlertQueryInvalidTypeError,
+    AlertQueryMultipleColumnsError,
+    AlertQueryMultipleRowsError,
+)
+
+logger = logging.getLogger(__name__)
+
+
+OPERATOR_FUNCTIONS = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
+
+
+class AlertCommand(BaseCommand):
+    def __init__(self, report_schedule: ReportSchedule):
+        self._report_schedule = report_schedule
+        self._result: Optional[float] = None
+
+    def run(self) -> bool:
+        self.validate()
+        self._report_schedule.last_value = self._result
+
+        if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
+            return self._result not in (0, None, np.nan)
+        else:
+            operator = json.loads(self._report_schedule.validator_config_json)["op"]
+            threshold = json.loads(self._report_schedule.validator_config_json)[
+                "threshold"
+            ]
+            return OPERATOR_FUNCTIONS[operator](self._result, threshold)
+
+    def validate(self) -> None:
+        """
+        Validate the query result as a Pandas DataFrame
+        """
+        sql_template = jinja_context.get_template_processor(
+            database=self._report_schedule.database
+        )
+        rendered_sql = sql_template.process_template(self._report_schedule.sql)
+        df = self._report_schedule.database.get_df(rendered_sql)
+
+        if df.empty:
+            return
+        rows = df.to_records()
+        # check if query return more then one row
+        if len(rows) > 1:
+            raise AlertQueryMultipleRowsError()
+        if len(rows[0]) > 2:
+            raise AlertQueryMultipleColumnsError()
+        if rows[0][1] is None:
+            return
+        try:
+            # Check if it's float or if we can convert it
+            self._result = float(rows[0][1])
+            return
+        except (AssertionError, TypeError, ValueError):
+            raise AlertQueryInvalidTypeError()

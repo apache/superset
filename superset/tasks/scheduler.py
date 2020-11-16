@@ -4,8 +4,10 @@ from typing import Iterator, Optional
 
 import croniter
 
+from superset.commands.exceptions import CommandException
 from superset.extensions import celery_app
 from superset.reports.commands.execute import ExecuteReportScheduleCommand
+from superset.reports.commands.log_prune import PruneReportScheduleLogCommand
 from superset.reports.dao import ReportScheduleDAO
 from superset.utils.celery import session_scope
 
@@ -37,7 +39,9 @@ class ScheduleWindow:
 
 @celery_app.task(name="reports.scheduler")
 def scheduler() -> None:
-    """ Celery beat main scheduler """
+    """
+    Celery beat main scheduler for reports
+    """
     schedule_window = ScheduleWindow()
     with session_scope(nullpool=True) as session:
         active_schedules = ReportScheduleDAO.find_active(session)
@@ -52,5 +56,10 @@ def scheduler() -> None:
 def execute(report_schedule_id: int) -> None:
     try:
         ExecuteReportScheduleCommand(report_schedule_id, worker_context=True).run()
-    except Exception as ex:
-        pass
+    except CommandException as ex:
+        logger.error("An exception occurred while executing the report %s", ex)
+
+
+@celery_app.task(name="reports.prune_log")
+def prune_log() -> None:
+    PruneReportScheduleLogCommand(worker_context=True).run()

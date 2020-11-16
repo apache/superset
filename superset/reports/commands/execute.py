@@ -16,39 +16,43 @@
 # under the License.
 import logging
 import urllib
-from dataclasses import dataclass
-from typing import Any, Iterator, Optional
+from datetime import datetime, timedelta
+from typing import Any, Optional
 
-from contextlib2 import contextmanager
 from flask import url_for
 from sqlalchemy.orm import Session
 
 from superset import app, thumbnail_cache
 from superset.commands.base import BaseCommand
-from superset.extensions import db, security_manager
-from superset.models.reports import ReportExecutionLog, ReportLogState, ReportSchedule
+from superset.commands.exceptions import CommandException
+from superset.extensions import security_manager
+from superset.models.reports import (
+    ReportExecutionLog,
+    ReportLogState,
+    ReportSchedule,
+    ReportScheduleType,
+)
+from superset.reports.commands.alert import AlertCommand
+from superset.reports.commands.base import normal_session_scope
+from superset.reports.commands.exceptions import (
+    ReportScheduleAlertGracePeriodError,
+    ReportScheduleExecuteUnexpectedError,
+    ReportScheduleNotFoundError,
+    ReportSchedulePreviousWorkingError,
+    ReportScheduleScreenshotFailedError,
+)
 from superset.reports.dao import ReportScheduleDAO
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent, ScreenshotData
 from superset.utils.celery import session_scope
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    BaseScreenshot,
+    ChartScreenshot,
+    DashboardScreenshot,
+)
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
-
-
-@contextmanager
-def normal_session_scope() -> Iterator[Session]:
-    session = db.session
-    try:
-        yield session
-        session.commit()
-    except Exception as ex:
-        session.rollback()
-        logger.exception(ex)
-        raise
-    finally:
-        session.close()
 
 
 def _get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
@@ -62,17 +66,90 @@ def _get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
 
 
 class ExecuteReportScheduleCommand(BaseCommand):
+    """
+    Execute all types of report schedules.
+    On reports takes chart or dashboard screenshots and send configured notifications
+    On Alerts uses related Command AlertCommand
+    """
+
     def __init__(self, model_id: int, worker_context: bool = True):
         self._worker_context = worker_context
         self._model_id = model_id
         self._model: Optional[ReportSchedule] = None
 
-    def set_state(self, session: Session, state: ReportLogState):
+    def set_state_and_log(
+        self,
+        session: Session,
+        start_dttm: datetime,
+        state: ReportLogState,
+        scheduled_dttm: Optional[datetime] = None,
+        value: Optional[float] = None,
+        value_row_json: Optional[str] = None,
+        error_message: Optional[str] = None,
+    ) -> None:
+        """
+        Updates current ReportSchedule state and TS. If on final state writes the log
+        for this execution
+        """
+        now_dttm = datetime.utcnow()
+        if state == ReportLogState.WORKING:
+            return self.set_state(session, state, now_dttm)
+        self.set_state(session, state, now_dttm)
+        self.create_log(
+            session,
+            start_dttm,
+            now_dttm,
+            state,
+            scheduled_dttm=scheduled_dttm,
+            value=value,
+            value_row_json=value_row_json,
+            error_message=error_message,
+        )
+
+    def set_state(
+        self, session: Session, state: ReportLogState, dttm: datetime
+    ) -> None:
+        """
+        Set the current report schedule state, on this case we want to
+        commit immediately
+        """
         if self._model:
             self._model.last_state = state
+            self._model.last_eval_dttm = dttm
             session.commit()
 
+    def create_log(
+        self,
+        session: Session,
+        start_dttm: datetime,
+        end_dttm: datetime,
+        state: ReportLogState,
+        scheduled_dttm: Optional[datetime] = None,
+        value: Optional[float] = None,
+        value_row_json: Optional[str] = None,
+        error_message: Optional[str] = None,
+    ) -> None:
+        # TODO Remove this hack
+        scheduled_dttm = scheduled_dttm or datetime.utcnow()
+        if self._model:
+            log = ReportExecutionLog(
+                scheduled_dttm=scheduled_dttm,
+                start_dttm=start_dttm,
+                end_dttm=end_dttm,
+                value=value,
+                value_row_json=value_row_json,
+                state=state,
+                error_message=error_message,
+                report_schedule=self._model,
+            )
+            session.add(log)
+
     def get_url(self, user_friendly: bool = False) -> str:
+        """
+        Get the url for this report schedule chart or dashboard
+        """
+        if not self._model:
+            raise ReportScheduleExecuteUnexpectedError()
         if self._model.chart:
             return get_url_path(
                 "Superset.slice",
@@ -87,20 +164,30 @@ class ExecuteReportScheduleCommand(BaseCommand):
         )
 
     def get_screenshot(self) -> ScreenshotData:
+        """
+        Get a chart or dashboard screenshot
+        :raises: ReportScheduleScreenshotFailedError
+        """
+        if not self._model:
+            raise ReportScheduleExecuteUnexpectedError()
         url = self.get_url()
+        screenshot: Optional[BaseScreenshot] = None
         if self._model.chart:
             screenshot = ChartScreenshot(url, self._model.chart.digest)
         else:
             screenshot = DashboardScreenshot(url, self._model.dashboard.digest)
         image_url = self.get_url(user_friendly=True)
-
         user = security_manager.find_user(app.config["THUMBNAIL_SELENIUM_USER"])
         image_data = screenshot.compute_and_cache(
             user=user, cache=thumbnail_cache, force=True,
         )
+        if not image_data:
+            raise ReportScheduleScreenshotFailedError()
         return ScreenshotData(url=image_url, image=image_data)
 
     def get_notification_content(self) -> NotificationContent:
+        if not self._model:
+            raise ReportScheduleExecuteUnexpectedError()
         screenshot_data = self.get_screenshot()
         if self._model.chart:
             name = self._model.chart.slice_name
@@ -114,16 +201,48 @@ class ExecuteReportScheduleCommand(BaseCommand):
         else:
             session_context = normal_session_scope
         with session_context as session:
-            self.validate(session=session)
-            self.set_state(session, ReportLogState.WORKING)
-            notification_content = self.get_notification_content()
-            for recipient in self._model.recipients:
-                notification = create_notification(recipient, notification_content)
-                notification.send()
-            self.set_state(session, ReportLogState.SUCCESS)
+            try:
+                start_dttm = datetime.utcnow()
+                self.validate(session=session)
+                if not self._model:
+                    raise ReportScheduleExecuteUnexpectedError()
+                self.set_state_and_log(session, start_dttm, ReportLogState.WORKING)
+                # If it's an alert check if the alert is triggered
+                if self._model.type == ReportScheduleType.ALERT:
+                    if not AlertCommand(self._model).run():
+                        self.set_state_and_log(session, start_dttm, ReportLogState.NOOP)
+                        return
+                notification_content = self.get_notification_content()
+                for recipient in self._model.recipients:
+                    notification = create_notification(recipient, notification_content)
+                    notification.send()
+
+                # Log, state and TS
+                self.set_state_and_log(session, start_dttm, ReportLogState.SUCCESS)
+            except ReportScheduleAlertGracePeriodError as ex:
+                self.set_state_and_log(
+                    session, start_dttm, ReportLogState.NOOP, error_message=str(ex)
+                )
+            except CommandException as ex:
+                self.set_state_and_log(
+                    session, start_dttm, ReportLogState.ERROR, error_message=str(ex)
+                )
+                logger.error("Failed to execute report schedule: %s", ex)
 
     def validate(self, session: Session = None) -> None:
         # Validate/populate model exists
         self._model = ReportScheduleDAO.find_by_id(self._model_id, session=session)
         if not self._model:
-            raise Exception("NOT FOUND")
+            raise ReportScheduleNotFoundError()
+        # Avoid overlap processing
+        if self._model.last_state == ReportLogState.WORKING:
+            raise ReportSchedulePreviousWorkingError()
+        # Check grace period
+        if (
+            self._model.type == ReportScheduleType.ALERT
+            and self._model.last_state == ReportLogState.SUCCESS
+            and self._model.grace_period
+            and datetime.utcnow() - timedelta(seconds=self._model.grace_period)
+            < self._model.last_eval_dttm
+        ):
+            raise ReportScheduleAlertGracePeriodError()

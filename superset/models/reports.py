@@ -62,6 +62,7 @@ class ReportLogState(str, enum.Enum):
     SUCCESS = "Success"
     WORKING = "Working"
     ERROR = "Error"
+    NOOP = "Not triggered"
 
 
 class ReportEmailFormat(str, enum.Enum):
