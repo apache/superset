@@ -46,7 +46,7 @@ class ExploreResultsButton extends React.PureComponent {
   constructor(props) {
     super(props);
     this.visualize = this.visualize.bind(this);
-    this.onClick = this.onClick.bind(this);
+    // this.onClick = this.onClick.bind(this);
     this.getInvalidColumns = this.getInvalidColumns.bind(this);
     this.renderInvalidColumnMessage = this.renderInvalidColumnMessage.bind(
       this,
@@ -54,37 +54,38 @@ class ExploreResultsButton extends React.PureComponent {
   }
 
   onClick() {
-    const { timeout } = this.props;
-    const msg = this.renderInvalidColumnMessage();
-    if (Math.round(this.getQueryDuration()) > timeout) {
-      this.dialog.show({
-        title: t('Explore'),
-        body: this.renderTimeoutWarning(),
-        actions: [
-          Dialog.CancelAction(),
-          Dialog.OKAction(() => {
-            this.visualize();
-          }),
-        ],
-        bsSize: 'large',
-        onHide: dialog => {
-          dialog.hide();
-        },
-      });
-    } else if (msg) {
-      this.dialog.show({
-        title: t('Explore'),
-        body: msg,
-        actions: [Dialog.DefaultAction('Ok', () => {})],
-        bsSize: 'large',
-        bsStyle: 'warning',
-        onHide: dialog => {
-          dialog.hide();
-        },
-      });
-    } else {
-      this.visualize();
-    }
+    console.log('in onclick')
+    // const { timeout } = this.props;
+    // const msg = this.renderInvalidColumnMessage();
+    // if (Math.round(this.getQueryDuration()) > timeout) {
+    //   this.dialog.show({
+    //     title: t('Explore'),
+    //     body: this.renderTimeoutWarning(),
+    //     actions: [
+    //       Dialog.CancelAction(),
+    //       Dialog.OKAction(() => {
+    //         this.visualize();
+    //       }),
+    //     ],
+    //     bsSize: 'large',
+    //     onHide: dialog => {
+    //       dialog.hide();
+    //     },
+    //   });
+    // } else if (msg) {
+    //   this.dialog.show({
+    //     title: t('Explore'),
+    //     body: msg,
+    //     actions: [Dialog.DefaultAction('Ok', () => {})],
+    //     bsSize: 'large',
+    //     bsStyle: 'warning',
+    //     onHide: dialog => {
+    //       dialog.hide();
+    //     },
+    //   });
+    // } else {
+    //   this.visualize();
+    // }
   }
 
   getColumns() {
@@ -217,7 +218,7 @@ class ExploreResultsButton extends React.PureComponent {
       <>
         <Button
           buttonSize="small"
-          onClick={this.onClick}
+          onClick={this.props.onClick}
           disabled={!allowsSubquery}
           tooltip={t('Explore the result set in the data exploration view')}
         >
