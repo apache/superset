@@ -27,11 +27,7 @@ import {
   handleBulkChartExport,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
-import {
-  useListViewResource,
-  useFavoriteStatus,
-  useChartEditModal,
-} from 'src/views/CRUD/hooks';
+import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import Icon from 'src/components/Icon';
@@ -42,7 +38,6 @@ import ListView, {
   SelectOption,
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import PropertiesModal from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
@@ -103,7 +98,6 @@ function ChartList(props: ChartListProps) {
       resourceCollection: charts,
       bulkSelectEnabled,
     },
-    setResourceCollection: setCharts,
     hasPerm,
     fetchData,
     toggleBulkSelect,
@@ -117,13 +111,6 @@ function ChartList(props: ChartListProps) {
     chartIds,
     props.addDangerToast,
   );
-  const {
-    sliceCurrentlyEditing,
-    handleChartUpdated,
-    openChartEditModal,
-    closeChartEditModal,
-  } = useChartEditModal(setCharts, charts);
-
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
@@ -254,7 +241,6 @@ function ChartList(props: ChartListProps) {
               props.addDangerToast,
               refreshData,
             );
-          const openEditModal = () => openChartEditModal(original);
           const handleExport = () => handleBulkChartExport([original]);
           if (!canEdit && !canDelete && !canExport) {
             return null;
@@ -304,22 +290,6 @@ function ChartList(props: ChartListProps) {
                     onClick={handleExport}
                   >
                     <Icon name="share" />
-                  </span>
-                </TooltipWrapper>
-              )}
-              {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit Chart Properties')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={openEditModal}
-                  >
-                    <Icon name="edit-alt" />
                   </span>
                 </TooltipWrapper>
               )}
@@ -470,7 +440,6 @@ function ChartList(props: ChartListProps) {
       <ChartCard
         chart={chart}
         hasPerm={hasPerm}
-        openChartEditModal={openChartEditModal}
         bulkSelectEnabled={bulkSelectEnabled}
         addDangerToast={props.addDangerToast}
         addSuccessToast={props.addSuccessToast}
@@ -505,14 +474,6 @@ function ChartList(props: ChartListProps) {
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />
-      {sliceCurrentlyEditing && (
-        <PropertiesModal
-          onHide={closeChartEditModal}
-          onSave={handleChartUpdated}
-          show
-          slice={sliceCurrentlyEditing}
-        />
-      )}
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t('Are you sure you want to delete the selected charts?')}

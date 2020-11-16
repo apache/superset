@@ -393,44 +393,6 @@ export function useFavoriteStatus(
   return [saveFaveStar, favoriteStatus] as const;
 }
 
-export const useChartEditModal = (
-  setCharts: (charts: Array<Chart>) => void,
-  charts: Array<Chart>,
-) => {
-  const [
-    sliceCurrentlyEditing,
-    setSliceCurrentlyEditing,
-  ] = useState<Slice | null>(null);
-
-  function openChartEditModal(chart: Chart) {
-    setSliceCurrentlyEditing({
-      slice_id: chart.id,
-      slice_name: chart.slice_name,
-      description: chart.description,
-      cache_timeout: chart.cache_timeout,
-    });
-  }
-
-  function closeChartEditModal() {
-    setSliceCurrentlyEditing(null);
-  }
-
-  function handleChartUpdated(edits: Chart) {
-    // update the chart in our state with the edited info
-    const newCharts = charts.map((chart: Chart) =>
-      chart.id === edits.id ? { ...chart, ...edits } : chart,
-    );
-    setCharts(newCharts);
-  }
-
-  return {
-    sliceCurrentlyEditing,
-    handleChartUpdated,
-    openChartEditModal,
-    closeChartEditModal,
-  };
-};
-
 export const copyQueryLink = (
   id: number,
   addDangerToast: (arg0: string) => void,

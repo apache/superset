@@ -107,20 +107,6 @@ describe('chart card view', () => {
     cy.get('[data-test="modal-cancel-button"]').click();
   });
 
-  it('should edit correctly', () => {
-    // show edit modal
-    cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
-    cy.get('[data-test="chart-list-edit-option"]').should('be.visible');
-    cy.get('[data-test="chart-list-edit-option"]').click();
-    cy.get('[data-test="properties-edit-modal"]').should('be.visible');
-    cy.get('[data-test="properties-modal-name-input"]').should(
-      'not.have.value',
-    );
-    cy.get('[data-test="properties-modal-cancel-button"]')
-      .contains('Cancel')
-      .click();
-  });
-
   it('should show explore link', () => {
     // show edit modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');

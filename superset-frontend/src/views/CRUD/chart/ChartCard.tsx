@@ -33,7 +33,6 @@ import { handleChartDelete, handleBulkChartExport, CardStyles } from '../utils';
 interface ChartCardProps {
   chart: Chart;
   hasPerm: (perm: string) => boolean;
-  openChartEditModal: (chart: Chart) => void;
   bulkSelectEnabled: boolean;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -48,7 +47,6 @@ interface ChartCardProps {
 export default function ChartCard({
   chart,
   hasPerm,
-  openChartEditModal,
   bulkSelectEnabled,
   addDangerToast,
   addSuccessToast,
@@ -108,16 +106,6 @@ export default function ChartCard({
           onClick={() => handleBulkChartExport([chart])}
         >
           <ListViewCard.MenuIcon name="share" /> {t('Export')}
-        </Menu.Item>
-      )}
-      {canEdit && (
-        <Menu.Item
-          data-test="chart-list-edit-option"
-          role="button"
-          tabIndex={0}
-          onClick={() => openChartEditModal(chart)}
-        >
-          <ListViewCard.MenuIcon name="edit-alt" /> {t('Edit')}
         </Menu.Item>
       )}
       {canEdit && (

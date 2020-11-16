@@ -28,7 +28,6 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import ChartList from 'src/views/CRUD/chart/ChartList';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView';
-import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ListViewCard from 'src/components/ListViewCard';
 // store needed for withToasts(ChartTable)
 const mockStore = configureStore([thunk]);
@@ -134,12 +133,6 @@ describe('ChartList', () => {
   it('renders a table view', () => {
     wrapper.find('[data-test="list-view"]').first().simulate('click');
     expect(wrapper.find('table')).toExist();
-  });
-
-  it('edits', () => {
-    expect(wrapper.find(PropertiesModal)).not.toExist();
-    wrapper.find('[data-test="edit-alt"]').first().simulate('click');
-    expect(wrapper.find(PropertiesModal)).toExist();
   });
 
   it('delete', () => {

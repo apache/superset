@@ -18,13 +18,8 @@
  */
 import React, { useState, useMemo } from 'react';
 import { t } from '@superset-ui/core';
-import {
-  useListViewResource,
-  useChartEditModal,
-  useFavoriteStatus,
-} from 'src/views/CRUD/hooks';
+import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
 import Icon from 'src/components/Icon';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
@@ -52,7 +47,6 @@ function ChartTable({
 }: ChartTableProps) {
   const {
     state: { resourceCollection: charts, bulkSelectEnabled },
-    setResourceCollection: setCharts,
     hasPerm,
     refreshData,
     fetchData,
@@ -69,12 +63,6 @@ function ChartTable({
     chartIds,
     addDangerToast,
   );
-  const {
-    sliceCurrentlyEditing,
-    openChartEditModal,
-    handleChartUpdated,
-    closeChartEditModal,
-  } = useChartEditModal(setCharts, charts);
 
   const [chartFilter, setChartFilter] = useState('Mine');
 
@@ -113,15 +101,6 @@ function ChartTable({
 
   return (
     <>
-      {sliceCurrentlyEditing && (
-        <PropertiesModal
-          onHide={closeChartEditModal}
-          onSave={handleChartUpdated}
-          show
-          slice={sliceCurrentlyEditing}
-        />
-      )}
-
       <SubMenu
         activeChild={chartFilter}
         // eslint-disable-next-line react/no-children-prop
@@ -165,7 +144,6 @@ function ChartTable({
           {charts.map(e => (
             <ChartCard
               key={`${e.id}`}
-              openChartEditModal={openChartEditModal}
               chartFilter={chartFilter}
               chart={e}
               userId={user?.userId}
