@@ -33,7 +33,7 @@ export function styledMount(
 ) {
   return enzymeMount(component, {
     ...options,
-    wrappingComponent: Wrapper,
+    wrappingComponent: ProviderWrapper,
     wrappingComponentProps: {
       theme: supersetTheme,
       ...options?.wrappingComponentProps,
@@ -47,7 +47,7 @@ export function styledShallow(
 ) {
   return enzymeShallow(component, {
     ...options,
-    wrappingComponent: Wrapper,
+    wrappingComponent: ProviderWrapper,
     wrappingComponentProps: {
       theme: supersetTheme,
       ...options?.wrappingComponentProps,
