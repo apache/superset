@@ -19,7 +19,7 @@
 import { shallow as enzymeShallow, mount as enzymeMount } from 'enzyme';
 import { supersetTheme } from '@superset-ui/core';
 import { ReactElement } from 'react';
-import { Wrapper } from './MountWrapper';
+import { ProviderWrapper } from './ProviderWrapper';
 
 type optionsType = {
   wrappingComponentProps?: any;
