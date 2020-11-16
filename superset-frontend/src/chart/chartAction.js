@@ -152,9 +152,12 @@ const v1ChartDataRequest = async (
   });
 
   // The dashboard id is added to query params for tracking purposes
-  const qs = requestParams.dashboard_id
-    ? { dashboard_id: requestParams.dashboard_id }
-    : {};
+  const { slice_id: sliceId } = formData;
+  const { dashboard_id: dashboardId } = requestParams;
+  const qs = {};
+  if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
+  if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
+
   const allowDomainSharding =
     // eslint-disable-next-line camelcase
     domainShardingEnabled && requestParams?.dashboard_id;
