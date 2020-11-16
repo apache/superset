@@ -31,6 +31,7 @@ import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
+import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
@@ -190,18 +191,28 @@ export default class ResultSet extends React.PureComponent<
       selectedColumns = []
     }
 
-    this.props.actions.createDatasource({
+    this.props.actions
+      .createDatasource({
         schema,
         sql,
         dbId,
         templateParams,
         datasourceName: this.state.newSaveDatasetName,
         columns: selectedColumns,
-      }).then(data => {
-          console.log(data);
+    }).then(data => {
+        console.log('Create datasource successfully');
+        exploreChart({
+          datasource: `${data.table_id}__table`,
+          metrics: [],
+          groupby: [],
+          time_range: 'No filter',
+          viz_type: 'table',
+          all_columns: selectedColumns.map(c => c.name),
+          row_limit: 1000,
+        })
       }).catch(error => {
-          console.log('an error occurred trying to create a datasource');
-          console.log(error);
+        console.log('an error occurred trying to create a datasource');
+        console.log(error);
       });
   }
 
