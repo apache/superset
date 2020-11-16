@@ -47,6 +47,7 @@ import {
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
 import FilterBar from './nativeFilters/FilterBar';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -255,9 +256,11 @@ class DashboardBuilder extends React.Component {
         </Sticky>
 
         <StyledDashboardContent className="dashboard-content">
-          <div className="filter-container">
-            <FilterBar />
-          </div>
+          {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
+            <div className="filter-container">
+              <FilterBar />
+            </div>
+          )}
           <div className="grid-container" data-test="grid-container">
             <ParentSize>
               {({ width }) => (
