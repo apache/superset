@@ -75,6 +75,14 @@ const QueryData = styled.div`
   }
 `;
 
+const ShowEmptyState = styled.div`
+  background-image: url('/static/assets/images/emptyquery.svg');
+  width: 100%;
+  height: 171px;
+  background-repeat: no-repeat;
+  background-size: 500px;
+`;
+
 const QueryContainer = styled.div`
   pre {
     height: ${({ theme }) => theme.gridUnit * 40}px;
@@ -275,28 +283,32 @@ const SavedQueries = ({
               key={q.id}
             >
               <ListViewCard
-                imgFallbackURL=""
                 imgURL=""
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
                 description={t('Last run %s', q.changed_on_delta_humanized)}
+                imgFallbackURL="/static/assets/images/emptyquery.svg"
                 cover={
-                  <QueryContainer>
-                    <SyntaxHighlighter
-                      language="sql"
-                      lineProps={{
-                        style: {
-                          color: 'black',
-                          wordBreak: 'break-all',
-                          whiteSpace: 'pre-wrap',
-                        },
-                      }}
-                      style={github}
-                      wrapLines
-                    >
-                      {q?.sql?.length ? shortenSQL(q.sql, 6) : ''}
-                    </SyntaxHighlighter>
-                  </QueryContainer>
+                  q?.sql?.length ? (
+                    <QueryContainer>
+                      <SyntaxHighlighter
+                        language="sql"
+                        lineProps={{
+                          style: {
+                            color: 'black',
+                            wordBreak: 'break-all',
+                            whiteSpace: 'pre-wrap',
+                          },
+                        }}
+                        style={github}
+                        wrapLines
+                      >
+                        {q?.sql?.length ? shortenSQL(q.sql, 6) : ''}
+                      </SyntaxHighlighter>
+                    </QueryContainer>
+                  ) : (
+                    <ShowEmptyState />
+                  )
                 }
                 actions={
                   <QueryData>
