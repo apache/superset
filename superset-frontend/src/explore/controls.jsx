@@ -49,7 +49,8 @@
      show a warning based on the value of another component. It's also possible to bind
      arbitrary data from the redux store to the component this way.
  * - tabOverride: set to 'data' if you want to force a renderTrigger to show up on the `Data`
-     tab, otherwise `renderTrigger: true` components will show up on the `Style` tab.
+     tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL 
+     `renderTrigger: true` components will show up on the `Customize` tab.
  *
  * Note that the keys defined in controls in this file that are not listed above represent
  * props specific for the React component defined as `type`. Also note that this module work
