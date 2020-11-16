@@ -302,7 +302,7 @@ const SavedQueries = ({
                         style={github}
                         wrapLines
                       >
-                        {q?.sql?.length ? shortenSQL(q.sql, 6) : ''}
+                        {shortenSQL(q.sql, 6)}
                       </SyntaxHighlighter>
                     </QueryContainer>
                   ) : (
