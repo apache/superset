@@ -667,7 +667,11 @@ CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
-# dictionary.
+# dictionary. Exposing functionality through JINJA_CONTEXT_ADDONS has security
+# implications as it opens a window for a user to execute untrusted code.
+# It's important to make sure that the objects exposed (as well as objects attached
+# to those objets) are harmless. We recommend only exposing simple/pure functions that
+# return native types.
 JINJA_CONTEXT_ADDONS: Dict[str, Callable[..., Any]] = {}
 
 # A dictionary of macro template processors that gets merged into global

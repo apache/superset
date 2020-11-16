@@ -21,6 +21,7 @@ from functools import partial
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app, g, request
+from flask_babel import gettext as _
 from jinja2.sandbox import ImmutableSandboxedEnvironment, SandboxedEnvironment
 
 from superset import jinja_base_context
@@ -188,24 +189,32 @@ class ExtraCache:
         return result
 
 
+NONE_TYPE = type(None).__name__
+ALLOWED_TYPES = [
+    NONE_TYPE,
+    "bool",
+    "str",
+    "unicode",
+    "int",
+    "long",
+    "float",
+    "list",
+    "dict",
+    "tuple",
+]
+
+
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-    none_type = type(None).__name__
-    allowed_types = [
-        none_type,
-        "bool",
-        "str",
-        "unicode",
-        "int",
-        "long",
-        "float",
-        "list",
-        "dict",
-        "tuple",
-    ]
     return_value = func(*args, **kwargs)
     value_type = type(return_value).__name__
-    if value_type not in allowed_types:
-        raise SupersetTemplateException("Unsafe template value")
+    if value_type not in ALLOWED_TYPES:
+        raise SupersetTemplateException(
+            _(
+                "Unsafe return type for function %(func)s: %(value_type)s",
+                func=func.__name__,
+                value_type=value_type,
+            )
+        )
 
     return return_value
 
@@ -268,18 +277,17 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
     def set_context(self, **kwargs: Any) -> None:
+        super().set_context(**kwargs)
         extra_cache = ExtraCache(self._extra_cache_keys)
-        self._context = {
-            "url_param": extra_cache.url_param,
-            "current_user_id": extra_cache.current_user_id,
-            "current_username": extra_cache.current_username,
-            "cache_key_wrapper": extra_cache.cache_key_wrapper,
-            "filter_values": filter_values,
-            "form_data": {},
-        }
-
-        self._context.update(kwargs)
-        self._context.update(jinja_base_context)
+        self._context.update(
+            {
+                "url_param": extra_cache.url_param,
+                "current_user_id": extra_cache.current_user_id,
+                "current_username": extra_cache.current_username,
+                "cache_key_wrapper": extra_cache.cache_key_wrapper,
+                "filter_values": filter_values,
+            }
+        )
 
         if self.engine:
             self._context[self.engine] = self
@@ -287,15 +295,17 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
 
 class SafeJinjaTemplateProcessor(BaseTemplateProcessor):
     def set_context(self, **kwargs: Any) -> None:
+        super().set_context(**kwargs)
         extra_cache = ExtraCache(self._extra_cache_keys)
-        self._context = {
-            "url_param": partial(safe_proxy, extra_cache.url_param),
-            "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
-            "current_username": partial(safe_proxy, extra_cache.current_username),
-            "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
-            "filter_values": partial(safe_proxy, filter_values),
-            "form_data": {},
-        }
+        self._context.update(
+            {
+                "url_param": partial(safe_proxy, extra_cache.url_param),
+                "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
+                "current_username": partial(safe_proxy, extra_cache.current_username),
+                "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
+                "filter_values": partial(safe_proxy, filter_values),
+            }
+        )
 
     def set_env(self) -> None:
         self._env = ImmutableSandboxedEnvironment()
