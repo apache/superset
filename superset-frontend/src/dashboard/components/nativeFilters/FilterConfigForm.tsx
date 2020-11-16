@@ -23,11 +23,15 @@ import { Form, Input } from 'src/common/components';
 import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { Filter } from './types';
 
 interface FilterConfigForm {
   dataset: any;
-  setDataset: () => void;
-  filterToEdit: string;
+  setDataset: (arg0: string) => void;
+  filterToEdit: {
+    filter: Filter;
+    index: number;
+  };
   form: any;
   edit: boolean;
 }
@@ -95,7 +99,6 @@ const FilterConfigForm = ({
   form,
   edit,
 }: FilterConfigForm) => {
-  console.log('filtertoedit', filterToEdit, edit)
   return (
     <Form
       form={form}
@@ -103,7 +106,6 @@ const FilterConfigForm = ({
         // un-set the "column" value whenever the dataset changes.
         // Doing this in the onChange handler of the
         // dataset selector doesn't work for some reason.
-        console.log('changes', changes)
         if ('dataset' in changes && changes.dataset?.value !== dataset?.value) {
           form.setFieldsValue({ column: null });
           setDataset(changes.dataset);
@@ -111,10 +113,10 @@ const FilterConfigForm = ({
       }}
     >
       <Form.Item
-        name="name"
+        name={['filterName', filterToEdit.index, 'name']}
         label="Filter Name"
         rules={[{ required: true }]}
-        initialValue={edit ? filterToEdit?.name : 'test'}
+        initialValue={edit ? filterToEdit?.filter?.name : 'test'}
       >
         <Input />
       </Form.Item>
@@ -129,10 +131,10 @@ const FilterConfigForm = ({
       <Form.Item
         // don't show the column select unless we have a dataset
         style={{ display: dataset ? undefined : 'none' }}
-        name="column"
+        name={['column', 'target', 0, 'datasetId']}
         label="Field"
         rules={[{ required: true }]}
-        initialValue={filterToEdit?.targets[0]?.datasetId}
+        initialValue={filterToEdit?.filter?.targets[0]?.datasetId}
       >
         <ColumnSelect datasetId={dataset?.value} />
       </Form.Item>

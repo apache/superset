@@ -47,7 +47,7 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
   // but we track it here so that we can pass it to the column select
   const [dataset, setDataset] = useState<DatasetSelectValue | null>(null);
   const [edit, showEdit] = useState(false);
-  const [filterToEdit, setFilterToEdit] = useState<FiltersToEdit>();
+  const [filterToEdit, setFilterToEdit] = useState<FiltersToEdit>({});
 
   function resetForm() {
     form.resetFields();
@@ -83,6 +83,7 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
       <FilterConfigForm
         dataset={dataset}
         setDataset={setDataset}
+        key={filterToEdit?.id}
         form={form}
         filterToEdit={filterToEdit}
         edit={edit}

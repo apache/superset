@@ -21,10 +21,15 @@ import { Button } from 'src/common/components';
 import { useFilterConfigurations } from './state';
 
 interface FiltersListProps {
-  setEditFilter: (arg0: any) => void;
+  setEditFilter: ({ arg0, arg1 }: Args) => void;
   showEdit: (arg0: boolean) => void;
   setDataset: (arg0: any) => void;
 }
+
+type Args = {
+  arg0: any;
+  arg1: number;
+};
 
 const FiltersList = ({
   setEditFilter,
@@ -34,10 +39,11 @@ const FiltersList = ({
   const filterConfigs = useFilterConfigurations();
   return (
     <>
-      {filterConfigs.map(filter => (
+      {filterConfigs.map((filter, i: number) => (
         <Button
+          key={filter.name}
           onClick={() => {
-            setEditFilter(filter);
+            setEditFilter({ filter, index: i });
             showEdit(true);
             setDataset(filter.targets[0].datasetId);
           }}
