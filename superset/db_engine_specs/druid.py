@@ -65,6 +65,7 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
         :param database: database instance from which to extract extras
         :raises CertificateException: If certificate is not valid/unparseable
+        :raises JSONDecodeError: If database extra json payload is unparseable
         """
         try:
             extra = json.loads(database.extra or "{}")
