@@ -1309,7 +1309,7 @@ def get_since_until(  # pylint: disable=too-many-arguments
     if time_range:
         if separator in time_range:
             since, until = time_range.split(separator, 1)
-            if since and since not in common_time_frames:
+            if since:
                 since = add_ago_to_since(since)
             since = parse_human_datetime(since) if since else None  # type: ignore
             until = parse_human_datetime(until) if until else None  # type: ignore
