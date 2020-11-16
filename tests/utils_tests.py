@@ -99,6 +99,8 @@ def mock_parse_human_datetime(s):
         return datetime(2018, 1, 1)
     elif s == "2018-12-31T23:59:59":
         return datetime(2018, 12, 31, 23, 59, 59)
+    elif s == "2020-02-01":
+        return datetime(2020, 2, 1)
 
 
 def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
@@ -155,6 +157,22 @@ class TestUtils(SupersetTestCase):
         self.assertEqual(parse_human_timedelta("1 year"), timedelta(366))
         self.assertEqual(parse_human_timedelta("-1 year"), timedelta(-365))
         self.assertEqual(parse_human_timedelta(None), timedelta(0))
+        self.assertEqual(
+            parse_human_timedelta("1 month", datetime(2019, 4, 1)),
+            timedelta(30),
+        )
+        self.assertEqual(
+            parse_human_timedelta("1 month", datetime(2019, 5, 1)),
+            timedelta(31),
+        )
+        self.assertEqual(
+            parse_human_timedelta("1 month", datetime(2019, 2, 1)),
+            timedelta(28),
+        )
+        self.assertEqual(
+            parse_human_timedelta("-1 month", datetime(2019, 2, 1)),
+            timedelta(-31),
+        )
 
     @patch("superset.utils.core.datetime")
     def test_parse_past_timedelta(self, mock_datetime):
@@ -747,6 +765,14 @@ class TestUtils(SupersetTestCase):
 
         result = get_since_until("Previous 1 week")
         expected = datetime(2016, 10, 31), datetime(2016, 11, 6)
+        self.assertEqual(result, expected)
+
+        result = get_since_until(since="2020-02-01", time_offset="1 month")
+        expected = datetime(2020, 2, 1), datetime(2020, 3, 1)
+        self.assertEqual(result, expected)
+
+        result = get_since_until(until="2020-02-01", time_offset="-1 month")
+        expected = datetime(2020, 1, 1), datetime(2020, 2, 1)
         self.assertEqual(result, expected)
 
         with self.assertRaises(ValueError):

@@ -504,20 +504,27 @@ class DashboardEncoder(json.JSONEncoder):
             return json.JSONEncoder(sort_keys=True).default(o)
 
 
-def parse_human_timedelta(human_readable: Optional[str]) -> timedelta:
+def parse_human_timedelta(
+    human_readable: Optional[str],
+    source_time: Optional[datetime] = None,
+) -> timedelta:
     """
-    Returns ``datetime.datetime`` from natural language time deltas
+    Returns ``datetime.timedelta`` from natural language time deltas
 
-    >>> parse_human_datetime('now') <= datetime.now()
+    >>> parse_human_datetime('now') == timedelta(0)
     True
     """
     cal = parsedatetime.Calendar()
-    dttm = dttm_from_timetuple(datetime.now().timetuple())
-    date_ = dttm_from_timetuple(cal.parse(human_readable or "", dttm)[0])
-    return date_ - dttm
+    source_dttm = dttm_from_timetuple(
+        source_time.timetuple() if source_time else datetime.now().timetuple())
+    modified_dttm = dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
+    return modified_dttm - source_dttm
 
 
-def parse_past_timedelta(delta_str: str) -> timedelta:
+def parse_past_timedelta(
+    delta_str: str,
+    source_time: Optional[datetime] = None
+) -> timedelta:
     """
     Takes a delta like '1 year' and finds the timedelta for that period in
     the past, then represents that past timedelta in positive terms.
@@ -527,7 +534,8 @@ def parse_past_timedelta(delta_str: str) -> timedelta:
     or datetime.timedelta(365).
     """
     return -parse_human_timedelta(
-        delta_str if delta_str.startswith("-") else f"-{delta_str}"
+        delta_str if delta_str.startswith("-") else f"-{delta_str}",
+        source_time,
     )
 
 
@@ -1251,7 +1259,7 @@ def get_calendar_since_until(
     if grain == "days":
         since, until = anchor, relative_day
     elif grain == "weeks":
-        since = anchor + relativedelta(days=-anchor.weekday())
+        since = anchor - relativedelta(days=anchor.weekday())
         until = since + relativedelta(days=6)
     elif grain == "months":
         since = anchor.replace(day=1)
@@ -1271,6 +1279,7 @@ def get_since_until(  # pylint: disable=too-many-arguments
     time_shift: Optional[str] = None,
     relative_start: Optional[str] = "today",
     relative_end: Optional[str] = "today",
+    time_offset: Optional[str] = None,
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
@@ -1329,6 +1338,12 @@ def get_since_until(  # pylint: disable=too-many-arguments
                 until = relative_end + relativedelta(  # type: ignore
                     **{grain: int(num)}  # type: ignore
                 )
+    elif since and time_offset:
+        since = parse_human_datetime(add_ago_to_since(since))
+        until = since + parse_human_timedelta(time_offset, since)
+    elif until and time_offset:
+        until = parse_human_datetime(until)
+        since = until + parse_human_timedelta(time_offset, until)
     else:
         since = since or ""
         if since:
