@@ -173,6 +173,34 @@ export default class ResultSet extends React.PureComponent<
 
   handleSaveInDataset() {
     console.log('Saving dataset');
+    console.log(this.props.query);
+    console.log(this.props.actions.createDatasource);
+    const { schema, sql, dbId, templateParams } = this.props.query;
+
+    let selectedColumns;
+    if (
+      this.props.query &&
+      this.props.query.results &&
+      this.props.query.results.selected_columns
+    ) {
+      selectedColumns = this.props.query.results.selected_columns;
+    } else {
+      selectedColumns = []
+    }
+
+    this.props.actions.createDatasource({
+        schema,
+        sql,
+        dbId,
+        templateParams,
+        datasourceName: 'hmiles.test_dataset_2',
+        columns: selectedColumns,
+      }).then(data => {
+          console.log(data);
+      }).catch(error => {
+          console.log('an error occurred trying to create a datasource');
+          console.log(error);
+      });
   }
 
   handleHideSaveModal() {
@@ -194,6 +222,8 @@ export default class ResultSet extends React.PureComponent<
             visible={showSaveDatasetModal}
             onOk={this.handleSaveInDataset}
             onCancel={this.handleHideSaveModal}
+            query={this.props.query}
+            createDatasource={this.props.actions.createDatasource}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&
