@@ -287,7 +287,6 @@ const SavedQueries = ({
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
                 description={t('Last run %s', q.changed_on_delta_humanized)}
-                imgFallbackURL="/static/assets/images/emptyquery.svg"
                 cover={
                   q?.sql?.length ? (
                     <QueryContainer>
