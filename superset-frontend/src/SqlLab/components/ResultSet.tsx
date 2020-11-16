@@ -101,6 +101,7 @@ export default class ResultSet extends React.PureComponent<
     );
     this.handleSaveInDataset = this.handleSaveInDataset.bind(this);
     this.handleHideSaveModal = this.handleHideSaveModal.bind(this);
+    this.handleDatasetNameChange = this.handleDatasetNameChange.bind(this);
   }
 
   componentDidMount() {
@@ -194,7 +195,7 @@ export default class ResultSet extends React.PureComponent<
         sql,
         dbId,
         templateParams,
-        datasourceName: 'hmiles.test_dataset_2',
+        datasourceName: this.state.newSaveDatasetName,
         columns: selectedColumns,
       }).then(data => {
           console.log(data);
@@ -206,6 +207,7 @@ export default class ResultSet extends React.PureComponent<
 
   handleDatasetNameChange(e) {
     console.log(e.target.value)
+    this.setState({ newSaveDatasetName: e.target.value })
   }
 
   handleHideSaveModal() {
