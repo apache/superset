@@ -185,21 +185,17 @@ class ControlPanelsContainer extends React.Component {
     const querySectionsToRender = [];
     const displaySectionsToRender = [];
     this.sectionsToRender().forEach(section => {
-      if ( section.tabOverride === 'customize' ){
+      if (section.tabOverride === 'customize') {
         displaySectionsToRender.push(section);
-      }
-      else if ( section.tabOverride === 'data' ) {
+      } else if (section.tabOverride === 'data') {
         querySectionsToRender.push(section);
-      }
-      else {
+      } else {
         const allRenderTriggers = section.controlSetRows.every(rows =>
-          rows.every(
-            control =>
-              control?.config?.renderTrigger
-          ),
+          rows.every(control => control?.config?.renderTrigger),
         );
         // if at least one control in the section is not `renderTrigger`, it goes to the query section
-        allRenderTriggers ? displaySectionsToRender.push(section) : querySectionsToRender.push(section);
+        if (allRenderTriggers) displaySectionsToRender.push(section);
+        else querySectionsToRender.push(section);
       }
     });
 
