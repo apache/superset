@@ -235,6 +235,30 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     return return_value
 
 
+def validate_template_context(context: Dict[str, Any]) -> Dict[str, Any]:
+    for key in context:
+        arg_type = type(context[key]).__name__
+        if arg_type not in ALLOWED_TYPES and key not in context_addons():
+            if arg_type == "partial" and context[key].func.__name__ == "safe_proxy":
+                continue
+            raise SupersetTemplateException(
+                _(
+                    "Unsafe template value for key %(key)s: %(value_type)s",
+                    key=key,
+                    value_type=arg_type,
+                )
+            )
+        if arg_type in COLLECTION_TYPES:
+            try:
+                context[key] = json.loads(json.dumps(context[key]))
+            except TypeError:
+                raise SupersetTemplateException(
+                    _("Unsupported template value for key %(key)s", key=key,)
+                )
+
+    return context
+
+
 class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
     """
     Base class for database-specific jinja context
@@ -266,29 +290,6 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         self._context.update(kwargs)
         self._context.update(context_addons())
 
-    def validate_template_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        for key in context:
-            arg_type = type(context[key]).__name__
-            if arg_type not in ALLOWED_TYPES and key not in context_addons():
-                if arg_type == "partial" and context[key].func.__name__ == "safe_proxy":
-                    continue
-                raise SupersetTemplateException(
-                    _(
-                        "Unsafe template value for key %(key)s: %(value_type)s",
-                        key=key,
-                        value_type=arg_type,
-                    )
-                )
-            if arg_type in COLLECTION_TYPES:
-                try:
-                    context[key] = json.loads(json.dumps(context[key]))
-                except TypeError:
-                    raise SupersetTemplateException(
-                        _("Unsupported template value for key %(key)s", key=key,)
-                    )
-
-        return context
-
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
 
@@ -299,7 +300,7 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         template = self._env.from_string(sql)
         kwargs.update(self._context)
 
-        context = self.validate_template_context(kwargs)
+        context = validate_template_context(kwargs)
         return template.render(context)
 
 
@@ -404,13 +405,13 @@ DEFAULT_PROCESSORS = {"presto": PrestoTemplateProcessor, "hive": HiveTemplatePro
 
 @memoized
 def template_processors() -> Dict[str, Any]:
-    template_processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
+    processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
     for engine in DEFAULT_PROCESSORS:
         # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
-        if not engine in template_processors:
-            template_processors[engine] = DEFAULT_PROCESSORS[engine]
+        if not engine in processors:
+            processors[engine] = DEFAULT_PROCESSORS[engine]
 
-    return template_processors
+    return processors
 
 
 def get_template_processor(
