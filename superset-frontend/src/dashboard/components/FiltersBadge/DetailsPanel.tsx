@@ -234,7 +234,7 @@ const DetailsPanelPopover = ({
       overlayClassName="filterStatusPopover"
       content={content}
       onVisibleChange={handlePopoverStatus}
-      placement="bottomRight"
+      placement="bottom"
       trigger="click"
     >
       {children}
