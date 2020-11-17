@@ -113,9 +113,37 @@ const DetailsPanelPopover = ({
           .ant-popover-inner {
             background-color: ${theme.colors.grayscale.dark2}cc;
           }
-          &.ant-popover > .ant-popover-content > .ant-popover-arrow{
-            border-top-color: ${theme.colors.grayscale.dark2}cc;
-            border-left-color: ${theme.colors.grayscale.dark2}cc;
+          &.ant-popover-placement-bottom,
+          &.ant-popover-placement-bottomLeft,
+          &.ant-popover-placement-bottomRight {
+            & > .ant-popover-content > .ant-popover-arrow{
+              border-top-color: ${theme.colors.grayscale.dark2}cc;
+              border-left-color: ${theme.colors.grayscale.dark2}cc;
+            }
+          }
+          &.ant-popover-placement-top,
+          &.ant-popover-placement-topLeft,
+          &.ant-popover-placement-topRight {
+            & > .ant-popover-content > .ant-popover-arrow{
+              border-bottom-color: ${theme.colors.grayscale.dark2}cc;
+              border-right-color: ${theme.colors.grayscale.dark2}cc;
+            }
+          }
+          &.ant-popover-placement-left,
+          &.ant-popover-placement-leftTop,
+          &.ant-popover-placement-leftBottom {
+            & > .ant-popover-content > .ant-popover-arrow{
+              border-top-color: ${theme.colors.grayscale.dark2}cc;
+              border-right-color: ${theme.colors.grayscale.dark2}cc;
+            }
+          }
+          &.ant-popover-placement-right,
+          &.ant-popover-placement-rightTop,
+          &.ant-popover-placement-rightBottom {
+            & > .ant-popover-content > .ant-popover-arrow{
+              border-bottom-color: ${theme.colors.grayscale.dark2}cc;
+              border-left-color: ${theme.colors.grayscale.dark2}cc;
+            }
           }
           &.ant-popover *{
             color: ${theme.colors.grayscale.light4};
