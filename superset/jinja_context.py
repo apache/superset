@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Defines the templating context for SQL Lab"""
+import json
 import re
 from functools import partial
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
@@ -48,7 +49,9 @@ ALLOWED_TYPES = (
     "list",
     "dict",
     "tuple",
+    "set",
 )
+COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
 
 @memoized
@@ -221,6 +224,13 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
                 value_type=value_type,
             )
         )
+    if value_type in COLLECTION_TYPES:
+        try:
+            return_value = json.loads(json.dumps(return_value))
+        except TypeError:
+            raise SupersetTemplateException(
+                _("Unsupported return value for method %(name)s", name=func.__name__,)
+            )
 
     return return_value
 
@@ -256,13 +266,12 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         self._context.update(kwargs)
         self._context.update(context_addons())
 
-    def validate_template_context(self, context: Dict[str, Any]) -> None:
+    def validate_template_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
         for key in context:
             arg_type = type(context[key]).__name__
             if arg_type not in ALLOWED_TYPES and key not in context_addons():
                 if arg_type == "partial" and context[key].func.__name__ == "safe_proxy":
                     continue
-
                 raise SupersetTemplateException(
                     _(
                         "Unsafe template value for key %(key)s: %(value_type)s",
@@ -270,6 +279,15 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
                         value_type=arg_type,
                     )
                 )
+            if arg_type in COLLECTION_TYPES:
+                try:
+                    context[key] = json.loads(json.dumps(context[key]))
+                except TypeError:
+                    raise SupersetTemplateException(
+                        _("Unsupported template value for key %(key)s", key=key,)
+                    )
+
+        return context
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
@@ -281,8 +299,8 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         template = self._env.from_string(sql)
         kwargs.update(self._context)
 
-        self.validate_template_context(kwargs)
-        return template.render(kwargs)
+        context = self.validate_template_context(kwargs)
+        return template.render(context)
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
