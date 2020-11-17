@@ -128,7 +128,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   clearIndicator: provider => [
     provider,
     css`
-      padding-right: 0;
+      padding: 4px 0 4px 6px;
     `,
   ],
   control: (
@@ -156,6 +156,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
           border-color: ${borderColor};
           box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
         }
+        flex-wrap: nowrap;
       `,
     ];
   },
@@ -245,11 +246,11 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   input: (provider, { selectProps }) => [
     provider,
     css`
-      padding: ${selectProps?.isMulti && selectProps?.value?.length
-        ? '0 6px'
-        : '0'};
       margin-left: 0;
       vertical-align: middle;
+      ${selectProps?.isMulti && selectProps?.value?.length
+        ? 'padding: 0 6px; width: 100%'
+        : 'padding: 0; flex: 1 1 auto;'};
     `,
   ],
 };
@@ -329,6 +330,7 @@ export const VALUE_LABELED_STYLES: PartialStylesConfig = {
   ) => ({
     ...provider,
     paddingLeft: getValue().length > 0 ? 1 : baseUnit * 3,
+    overflow: 'visible',
   }),
   // render single value as is they are multi-value
   singleValue: (provider, props) => {
