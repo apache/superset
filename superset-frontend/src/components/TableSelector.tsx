@@ -97,6 +97,7 @@ interface TableSelectorProps {
   onSchemasLoad?: () => void;
   onTableChange?: (tableName: string, schema: string) => void;
   onTablesLoad?: (options: Array<any>) => {};
+  readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
   tableName?: string;
@@ -116,6 +117,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   onSchemasLoad,
   onTableChange,
   onTablesLoad,
+  readOnly = false,
   schema,
   sqlLabMode = true,
   tableName,
@@ -286,28 +288,22 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         getTableList={fetchTables}
         handleError={handleError}
         onChange={onSelectionChange}
-        onDbChange={onDbChange}
-        onSchemaChange={onSchemaChange}
+        onDbChange={readOnly ? undefined : onDbChange}
+        onSchemaChange={readOnly ? undefined : onSchemaChange}
         onSchemasLoad={onSchemasLoad}
         schema={currentSchema}
         sqlLabMode={sqlLabMode}
-        isDatabaseSelectEnabled={isDatabaseSelectEnabled}
+        isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
+        readOnly={readOnly}
       />
     );
   }
 
   function renderTableSelect() {
-    let tableSelectPlaceholder;
-    let tableSelectDisabled = false;
-    if (database && database.allow_multi_schema_metadata_fetch) {
-      tableSelectPlaceholder = t('Type to search ...');
-    } else {
-      tableSelectPlaceholder = t('Select table ');
-      tableSelectDisabled = true;
-    }
     const options = tableOptions;
     let select = null;
     if (currentSchema && !formMode) {
+      // dataset editor
       select = (
         <Select
           name="select-table"
@@ -321,6 +317,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           value={currentTableName}
           optionRenderer={renderTableOption}
           valueRenderer={renderTableOption}
+          isDisabled={readOnly}
         />
       );
     } else if (formMode) {
@@ -339,6 +336,15 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         />
       );
     } else {
+      // sql lab
+      let tableSelectPlaceholder;
+      let tableSelectDisabled = false;
+      if (database && database.allow_multi_schema_metadata_fetch) {
+        tableSelectPlaceholder = t('Type to search ...');
+      } else {
+        tableSelectPlaceholder = t('Select table ');
+        tableSelectDisabled = true;
+      }
       select = (
         <AsyncSelect
           name="async-select-table"
@@ -353,7 +359,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         />
       );
     }
-    const refresh = !formMode && (
+    const refresh = !formMode && !readOnly && (
       <RefreshLabel
         onClick={() => changeSchema({ value: schema }, true)}
         tooltipContent={t('Force refresh table list')}
