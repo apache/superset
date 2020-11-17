@@ -1272,6 +1272,65 @@ def get_calendar_since_until(
     return since, until
 
 
+def parse_time_range(
+    time_range: Optional[str] = None,
+) -> Tuple[Optional[datetime], Optional[datetime]]:
+    separator = " : "
+    default_anchor = "now"
+
+    def is_timedelta(s: Optional[str]) -> bool:
+        return True if s and s.startswith("#") else False
+
+    def mini_delta_to_human(s: Optional[str] = None) -> str:
+        token_mapping = [
+            (r"^[-]?[1-9][0-9]*Y$", lambda x: f"{x[:-1]} years"),
+            (r"^[-]?[1-9][0-9]*m$", lambda x: f"{x[:-1]} months"),
+            (r"^[-]?[1-9][0-9]*d$", lambda x: f"{x[:-1]} days"),
+            (r"^[-]?[1-9][0-9]*W$", lambda x: f"{x[:-1]} weeks"),
+            (r"^[-]?[1-9][0-9]*H$", lambda x: f"{x[:-1]} hours"),
+            (r"^[-]?[1-9][0-9]*M$", lambda x: f"{x[:-1]} minutes"),
+            (r"^[-]?[1-9][0-9]*S$", lambda x: f"{x[:-1]} seconds"),
+        ]
+        for pattern, fn in token_mapping:
+            if re.search(pattern, s):
+                return fn(s)
+        # could not find tokens, return original token
+        return s
+
+    def process_dttm_token(
+        dttm: Optional[str] = None,
+        source_time: Optional[datetime] = None,
+    ) -> Optional[datetime]:
+        if not dttm:
+            return None
+        if is_timedelta(dttm):
+            return source_time + parse_human_timedelta(
+                mini_delta_to_human(dttm[1:]), source_time)
+        else:
+            return parse_human_datetime(dttm)
+
+    if separator not in time_range:
+        return None, None
+
+    partition = time_range.split(separator, 2)
+    if len(partition) == 2:
+        since, until = partition
+        if not is_timedelta(since) and is_timedelta(until):
+            anchor = parse_human_datetime(since)
+        elif is_timedelta(since) and not is_timedelta(until):
+            anchor = parse_human_datetime(until)
+        else:
+            anchor = parse_human_datetime(default_anchor)
+    else:
+        since, until, anchor = partition
+        anchor = parse_human_datetime(anchor or default_anchor)
+
+    if since:
+        since = add_ago_to_since(since)
+    since, until = [process_dttm_token(d, anchor) for d in [since, until]]
+    return since, until
+
+
 def get_since_until(  # pylint: disable=too-many-arguments
     time_range: Optional[str] = None,
     since: Optional[str] = None,
@@ -1279,7 +1338,6 @@ def get_since_until(  # pylint: disable=too-many-arguments
     time_shift: Optional[str] = None,
     relative_start: Optional[str] = "today",
     relative_end: Optional[str] = "today",
-    time_offset: Optional[str] = None,
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
@@ -1317,11 +1375,7 @@ def get_since_until(  # pylint: disable=too-many-arguments
 
     if time_range:
         if separator in time_range:
-            since, until = time_range.split(separator, 1)
-            if since:
-                since = add_ago_to_since(since)
-            since = parse_human_datetime(since) if since else None  # type: ignore
-            until = parse_human_datetime(until) if until else None  # type: ignore
+            since, until = parse_time_range(time_range)
         elif 'previous' in time_range.lower():
             since, until = get_calendar_since_until(time_range)
         elif time_range == "No filter":
@@ -1338,12 +1392,6 @@ def get_since_until(  # pylint: disable=too-many-arguments
                 until = relative_end + relativedelta(  # type: ignore
                     **{grain: int(num)}  # type: ignore
                 )
-    elif since and time_offset:
-        since = parse_human_datetime(add_ago_to_since(since))
-        until = since + parse_human_timedelta(time_offset, since)
-    elif until and time_offset:
-        until = parse_human_datetime(until)
-        since = until + parse_human_timedelta(time_offset, until)
     else:
         since = since or ""
         if since:

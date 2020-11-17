@@ -64,6 +64,7 @@ from superset.utils.core import (
     validate_json,
     zlib_compress,
     zlib_decompress,
+    parse_time_range,
 )
 from superset.utils import schema
 from superset.views.utils import (
@@ -99,7 +100,7 @@ def mock_parse_human_datetime(s):
         return datetime(2018, 1, 1)
     elif s == "2018-12-31T23:59:59":
         return datetime(2018, 12, 31, 23, 59, 59)
-    elif s == "2020-02-01":
+    elif s == "2020-02-01T00:00:00":
         return datetime(2020, 2, 1)
 
 
@@ -767,16 +768,70 @@ class TestUtils(SupersetTestCase):
         expected = datetime(2016, 10, 31), datetime(2016, 11, 6)
         self.assertEqual(result, expected)
 
-        result = get_since_until(since="2020-02-01", time_offset="1 month")
+        result = get_since_until("2020-02-01T00:00:00 : #1 month")
         expected = datetime(2020, 2, 1), datetime(2020, 3, 1)
         self.assertEqual(result, expected)
 
-        result = get_since_until(until="2020-02-01", time_offset="-1 month")
+        result = get_since_until("2020-02-01T00:00:00 : #1m")
+        expected = datetime(2020, 2, 1), datetime(2020, 3, 1)
+        self.assertEqual(result, expected)
+
+        result = get_since_until("#-1 month : 2020-02-01T00:00:00")
         expected = datetime(2020, 1, 1), datetime(2020, 2, 1)
+        self.assertEqual(result, expected)
+
+        result = get_since_until("#-1m : 2020-02-01T00:00:00")
+        expected = datetime(2020, 1, 1), datetime(2020, 2, 1)
+        self.assertEqual(result, expected)
+
+        result = get_since_until("#-1 month : #2 days : 2020-02-01T00:00:00")
+        expected = datetime(2020, 1, 1), datetime(2020, 2, 3)
+        self.assertEqual(result, expected)
+
+        result = get_since_until("#-1m : #2d : 2020-02-01T00:00:00")
+        expected = datetime(2020, 1, 1), datetime(2020, 2, 3)
+        self.assertEqual(result, expected)
+
+        result = get_since_until("#-1 month : #5 days")
+        expected = datetime(2016, 10, 7, 9, 30, 10), datetime(2016, 11, 12, 9, 30, 10)
+        self.assertEqual(result, expected)
+
+        result = get_since_until("#-1m : #5d")
+        expected = datetime(2016, 10, 7, 9, 30, 10), datetime(2016, 11, 12, 9, 30, 10)
         self.assertEqual(result, expected)
 
         with self.assertRaises(ValueError):
             get_since_until(time_range="tomorrow : yesterday")
+
+    @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
+    def test_parse_time_range(self):
+        result = parse_time_range("today : #2Y")
+        expected = datetime(2016, 11, 7), datetime(2018, 11, 7)
+        self.assertEqual(result, expected)
+
+        result = parse_time_range("#-2m : today")
+        expected = datetime(2016, 9, 7), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        result = parse_time_range("#-2d : today")
+        expected = datetime(2016, 11, 5), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        result = parse_time_range("#-1W : 2020-02-01T00:00:00")
+        expected = datetime(2020, 1, 25), datetime(2020, 2, 1)
+        self.assertEqual(result, expected)
+
+        result = parse_time_range("2020-02-01T00:00:00 : #2H")
+        expected = datetime(2020, 2, 1, 0, 0, 0), datetime(2020, 2, 1, 2, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = parse_time_range("2020-02-01T00:00:00 : #20M")
+        expected = datetime(2020, 2, 1, 0, 0, 0), datetime(2020, 2, 1, 0, 20, 0)
+        self.assertEqual(result, expected)
+
+        result = parse_time_range("#-119S : 2020-02-01T00:00:00")
+        expected = datetime(2020, 1, 31, 23, 58, 1), datetime(2020, 2, 1, 0, 0, 0)
+        self.assertEqual(result, expected)
 
     @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
     def test_get_calendar_since_until(self):
