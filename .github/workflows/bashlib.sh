@@ -162,6 +162,9 @@ cypress-run() {
   export TERM="xterm"
 
   say "::group::Run Cypress for [$page]"
+  if [[ -z $CYPRESS_RECORD_KEY ]] && [[ -n $CYPRESS_RECORD_KEY_ENC ]]; then
+    export CYPRESS_RECORD_KEY=`echo $CYPRESS_RECORD_KEY_ENC | base64 --decode`
+  fi
   if [[ -z $CYPRESS_RECORD_KEY ]]; then
     $cypress --spec "cypress/integration/$page" --browser "$browser"
   else

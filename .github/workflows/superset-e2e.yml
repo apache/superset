@@ -77,6 +77,7 @@ jobs:
       env:
         CYPRESS_BROWSER: ${{ matrix.browser }}
         CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+        CYPRESS_RECORD_KEY_ENC: ZjI3Mjc1YzAtZGNmMi00YjQ2LTgzOTItOWY3NzgxZWU4YmRkCg==
       with:
         run: cypress-run-all
     - name: Upload Artifacts
