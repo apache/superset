@@ -105,6 +105,10 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
   .ant-tabs {
     margin-top: -${({ theme }) => theme.gridUnit * 4}px;
   }
+
+  &.no-content-padding .ant-modal-body {
+    padding: 0;
+  }
 `;
 
 const CustomModal = ({

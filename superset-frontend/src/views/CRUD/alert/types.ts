@@ -36,11 +36,13 @@ export type AlertObject = {
   changed_on_delta_humanized?: string;
   created_by?: user;
   created_on?: string;
+  description?: string;
   id?: number;
   last_eval_dttm?: number;
   last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
   name?: string;
   owners?: Array<Owner>;
+  query?: string;
   recipients?: recipients;
   type?: string;
 };
