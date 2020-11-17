@@ -882,7 +882,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             "row_offset": row_offset,
             "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "filter": filter,
-            "columns": {col.column_name: col for col in self.columns},
+            "columns": [col.column_name for col in self.columns],
         }
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         template_kwargs.update(self.template_params_dict)
