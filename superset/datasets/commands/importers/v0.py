@@ -25,6 +25,7 @@ from sqlalchemy.orm.session import make_transient
 
 from superset import db
 from superset.commands.base import BaseCommand
+from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.druid.models import (
     DruidCluster,
@@ -289,6 +290,7 @@ class ImportDatasetsCommand(BaseCommand):
         sync_metrics: bool = False,
     ):
         self.contents = contents
+        self._configs: Dict[str, Any] = {}
 
         self.sync = []
         if sync_columns:
@@ -299,15 +301,21 @@ class ImportDatasetsCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
 
-        for file_name, content in self.contents.items():
+        for file_name, config in self._configs.items():
             logger.info("Importing dataset from file %s", file_name)
-            import_from_dict(db.session, yaml.safe_load(content), sync=self.sync)
+            import_from_dict(db.session, config, sync=self.sync)
 
     def validate(self) -> None:
         # ensure all files are YAML
-        for content in self.contents.values():
+        for file_name, content in self.contents.items():
             try:
-                yaml.safe_load(content)
+                config = yaml.safe_load(content)
             except yaml.parser.ParserError:
                 logger.exception("Invalid YAML file")
-                raise
+                raise IncorrectVersionError(f"{file_name} is not a valid YAML file")
+
+            # check for keys
+            if DATABASES_KEY not in config and DRUID_CLUSTERS_KEY not in config:
+                raise IncorrectVersionError(f"{file_name} has no valid keys")
+
+            self._configs[file_name] = config

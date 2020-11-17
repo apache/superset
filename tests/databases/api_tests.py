@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+# pylint: disable=invalid-name, no-self-use, too-many-public-methods, too-many-arguments
 """Unit tests for Superset"""
 import json
 from io import BytesIO
-from zipfile import is_zipfile
+from zipfile import is_zipfile, ZipFile
 
 import prison
 import pytest
+import yaml
 
 from sqlalchemy.sql import func
 
@@ -31,6 +33,13 @@ from superset.models.core import Database
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.certificates import ssl_certificate
+from tests.fixtures.importexport import (
+    database_config,
+    dataset_config,
+    database_metadata_config,
+    dataset_metadata_config,
+)
+
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.test_app import app
 
@@ -817,3 +826,71 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
+
+    def test_import_database(self):
+        """
+        Database API: Test import database
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open("databases/imported_database.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("datasets/import_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "file": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.database_name == "imported_database"
+
+        assert len(database.tables) == 1
+        dataset = database.tables[0]
+        assert dataset.table_name == "imported_dataset"
+        assert str(dataset.uuid) == dataset_config["uuid"]
+
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_database_invalid(self):
+        """
+        Database API: Test import invalid database
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
+            with bundle.open("databases/imported_database.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("datasets/import_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "file": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "message": {"metadata.yaml": {"type": ["Must be equal to Database."]}}
+        }
