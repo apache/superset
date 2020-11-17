@@ -607,7 +607,7 @@ tox -e <environment> -- tests/test_file.py
 or for a specific test via,
 
 ```bash
-tox -e <environment> -- tests/test_file.py:TestClassName.test_method_name
+tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
 ```
 
 Note that the test environment uses a temporary directory for defining the
