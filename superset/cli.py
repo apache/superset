@@ -301,7 +301,7 @@ def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
 )
 def import_datasources(path: str, sync: str, recursive: bool) -> None:
     """Import datasources from YAML"""
-    from superset.datasets.commands.importers.v0 import ImportDatasetsCommand
+    from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
 
     sync_array = sync.split(",")
     sync_columns = "columns" in sync_array
