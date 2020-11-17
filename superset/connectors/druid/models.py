@@ -453,6 +453,8 @@ class DruidDatasource(Model, BaseDatasource):
     type = "druid"
     query_language = "json"
     cluster_class = DruidCluster
+    columns: List[DruidColumn] = []
+    metrics: List[DruidMetric] = []
     metric_class = DruidMetric
     column_class = DruidColumn
     owner_class = security_manager.user_model
