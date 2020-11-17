@@ -14,16 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=no-self-use, invalid-name
 
 from unittest.mock import patch
 
+import pytest
 import yaml
 
-from superset import security_manager
+from superset import db, security_manager
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.commands.export import ExportDatabasesCommand
+from superset.databases.commands.importers.v1 import ImportDatabasesCommand
+from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.importexport import (
+    database_config,
+    database_metadata_config,
+    dataset_config,
+    dataset_metadata_config,
+)
 
 
 class TestExportDatabasesCommand(SupersetTestCase):
@@ -265,3 +278,197 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "uuid",
             "version",
         ]
+
+    def test_import_v1_database(self):
+        """Test that a database can be imported"""
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.allow_csv_upload
+        assert database.allow_ctas
+        assert database.allow_cvas
+        assert not database.allow_run_async
+        assert database.cache_timeout is None
+        assert database.database_name == "imported_database"
+        assert database.expose_in_sqllab
+        assert database.extra == "{}"
+        assert database.sqlalchemy_uri == "sqlite:///test.db"
+
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_v1_database_multiple(self):
+        """Test that a database can be imported multiple times"""
+        num_databases = db.session.query(Database).count()
+
+        contents = {
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+        }
+        command = ImportDatabasesCommand(contents)
+
+        # import twice
+        command.run()
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.allow_csv_upload
+
+        # update allow_csv_upload to False
+        new_config = database_config.copy()
+        new_config["allow_csv_upload"] = False
+        contents = {
+            "databases/imported_database.yaml": yaml.safe_dump(new_config),
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert not database.allow_csv_upload
+
+        # test that only one database was created
+        new_num_databases = db.session.query(Database).count()
+        assert new_num_databases == num_databases + 1
+
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_v1_database_with_dataset(self):
+        """Test that a database can be imported with datasets"""
+        contents = {
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert len(database.tables) == 1
+        assert str(database.tables[0].uuid) == "10808100-158b-42c4-842e-f32b99d88dfb"
+
+        db.session.delete(database.tables[0])
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_v1_database_with_dataset_multiple(self):
+        """Test that a database can be imported multiple times w/o changing datasets"""
+        contents = {
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        dataset = (
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        assert dataset.offset == 66
+
+        new_config = dataset_config.copy()
+        new_config["offset"] = 67
+        contents = {
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(new_config),
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        # the underlying dataset should not be modified by the second import, since
+        # we're importing a database, not a dataset
+        dataset = (
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        assert dataset.offset == 66
+
+        db.session.delete(dataset)
+        db.session.delete(dataset.database)
+        db.session.commit()
+
+    def test_import_v1_database_validation(self):
+        """Test different validations applied when importing a database"""
+        # metadata.yaml must be present
+        contents = {
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(IncorrectVersionError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Missing metadata.yaml"
+
+        # version should be 1.0.0
+        contents["metadata.yaml"] = yaml.safe_dump(
+            {
+                "version": "2.0.0",
+                "type": "Database",
+                "timestamp": "2020-11-04T21:27:44.423819+00:00",
+            }
+        )
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(IncorrectVersionError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Must be equal to 1.0.0."
+
+        # type should be Database
+        contents["metadata.yaml"] = yaml.safe_dump(dataset_metadata_config)
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "metadata.yaml": {"type": ["Must be equal to Database."],}
+        }
+
+        # must also validate datasets
+        broken_config = dataset_config.copy()
+        del broken_config["table_name"]
+        contents["metadata.yaml"] = yaml.safe_dump(database_metadata_config)
+        contents["datasets/imported_dataset.yaml"] = yaml.safe_dump(broken_config)
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "datasets/imported_dataset.yaml": {
+                "table_name": ["Missing data for required field."],
+            }
+        }
+
+    @patch("superset.databases.commands.importers.v1.import_dataset")
+    def test_import_v1_rollback(self, mock_import_dataset):
+        """Test than on an exception everything is rolled back"""
+        num_databases = db.session.query(Database).count()
+
+        # raise an exception when importing the dataset, after the database has
+        # already been imported
+        mock_import_dataset.side_effect = Exception("A wild exception appears!")
+
+        contents = {
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(Exception) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "A wild exception appears!"
+
+        # verify that the database was not added
+        new_num_databases = db.session.query(Database).count()
+        assert new_num_databases == num_databases
