@@ -165,6 +165,8 @@
     "regenerator-runtime": "^0.13.5",
     "rison": "^0.1.1",
     "shortid": "^2.2.6",
+    "typeface-fira-code": "^1.1.13",
+    "typeface-inter": "^1.1.13",
     "urijs": "^1.18.10",
     "use-query-params": "^0.4.5"
   },
