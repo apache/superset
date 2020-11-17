@@ -109,16 +109,18 @@ const DetailsPanelPopover = ({
     <Panel>
       <Global
       styles={css`
-        .ant-popover-inner {
-          background-color: ${theme.colors.grayscale.dark2}cc;
-        }
-        .ant-popover > .ant-popover-content > .ant-popover-arrow{
-          border-top-color: ${theme.colors.grayscale.dark2}cc;
-          border-left-color: ${theme.colors.grayscale.dark2}cc;
-        }
-        .ant-popover *{
-          color: ${theme.colors.grayscale.light4};
-        }
+        .filterStatusPopover {
+          .ant-popover-inner {
+            background-color: ${theme.colors.grayscale.dark2}cc;
+          }
+          &.ant-popover > .ant-popover-content > .ant-popover-arrow{
+            border-top-color: ${theme.colors.grayscale.dark2}cc;
+            border-left-color: ${theme.colors.grayscale.dark2}cc;
+          }
+          &.ant-popover *{
+            color: ${theme.colors.grayscale.light4};
+          }
+        } 
       `}
       />
       <Reset>
@@ -201,6 +203,7 @@ const DetailsPanelPopover = ({
 
   return (
     <Popover
+      overlayClassName="filterStatusPopover"
       content={content}
       onVisibleChange={handlePopoverStatus}
       placement="bottomRight"
