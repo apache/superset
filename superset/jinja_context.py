@@ -235,7 +235,7 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     return return_value
 
 
-def validate_template_context(context: Dict[str, Any]) -> Dict[str, Any]:
+def validate_context_types(context: Dict[str, Any]) -> Dict[str, Any]:
     for key in context:
         arg_type = type(context[key]).__name__
         if arg_type not in ALLOWED_TYPES and key not in context_addons():
@@ -253,10 +253,23 @@ def validate_template_context(context: Dict[str, Any]) -> Dict[str, Any]:
                 context[key] = json.loads(json.dumps(context[key]))
             except TypeError:
                 raise SupersetTemplateException(
-                    _("Unsupported template value for key %(key)s", key=key,)
+                    _("Unsupported template value for key %(key)s", key=key)
                 )
 
     return context
+
+
+def validate_template_context(
+    engine: Optional[str], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    if engine and engine in context:
+        # validate engine context separately to allow for engine-specific methods
+        engine_context = validate_context_types(context.pop(engine))
+        valid_context = validate_context_types(context)
+        valid_context[engine] = engine_context
+        return valid_context
+
+    return validate_context_types(context)
 
 
 class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
@@ -300,7 +313,7 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         template = self._env.from_string(sql)
         kwargs.update(self._context)
 
-        context = validate_template_context(kwargs)
+        context = validate_template_context(self.engine, kwargs)
         return template.render(context)
 
 
@@ -404,7 +417,7 @@ DEFAULT_PROCESSORS = {"presto": PrestoTemplateProcessor, "hive": HiveTemplatePro
 
 
 @memoized
-def template_processors() -> Dict[str, Any]:
+def get_template_processors() -> Dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
     for engine in DEFAULT_PROCESSORS:
         # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
@@ -421,7 +434,7 @@ def get_template_processor(
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
     if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-        template_processor = template_processors().get(
+        template_processor = get_template_processors().get(
             database.backend, JinjaTemplateProcessor
         )
     else:

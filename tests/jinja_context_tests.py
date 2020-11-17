@@ -215,6 +215,16 @@ class TestJinja2Context(SupersetTestCase):
         with pytest.raises(SupersetTemplateException):
             tp.process_template(s, foo={"bar": datetime})
 
+    @mock.patch("superset.jinja_context.HiveTemplateProcessor.latest_partition")
+    def test_template_hive(self, lp_mock) -> None:
+        lp_mock.return_value = "the_latest"
+        db = mock.Mock()
+        db.backend = "hive"
+        s = "{{ hive.latest_partition('my_table') }}"
+        tp = get_template_processor(database=db)
+        rendered = tp.process_template(s)
+        self.assertEqual("the_latest", rendered)
+
     @mock.patch("superset.jinja_context.context_addons")
     def test_template_context_addons(self, addons_mock) -> None:
         addons_mock.return_value = {"datetime": datetime}
