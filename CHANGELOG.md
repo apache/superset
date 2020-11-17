@@ -18,7 +18,9 @@ under the License.
 -->
 ## Change Log
 
-### 0.38.0 (Wed Oct 28 21:41:39 2020 +0000)
+### 0.38.0 (Mon Nov 17 07:23:54 2020 +00:00)
+- [#11724](https://github.com/apache/incubator-superset/pull/11724) fix: prior npm font source had a glitch (#11724) (@rusackas)
+- [#11718](https://github.com/apache/incubator-superset/pull/11718) refactor: Load fonts from packages rather than local binaries (#11718) (@rusackas)
 - [#11365](https://github.com/apache/incubator-superset/pull/11365) fix(sqla): allow 'unknown' type queries in explore view (#11365) (@serenajiang)
 - [#11253](https://github.com/apache/incubator-superset/pull/11253) build: update webpack for npm linking plugins (#11253) (@ktmud)
 - [#11469](https://github.com/apache/incubator-superset/pull/11469) docs(release): script to generate a CHANGELOG.md (#11469) (@dpgaspar)
