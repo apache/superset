@@ -432,7 +432,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             command.run()
         assert str(excinfo.value) == "Error importing database"
         assert excinfo.value.normalized_messages() == {
-            "metadata.yaml": {"type": ["Must be equal to Database."],}
+            "metadata.yaml": {"type": ["Must be equal to Database."]}
         }
 
         # must also validate datasets
