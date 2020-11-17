@@ -184,6 +184,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def post(self) -> Response:
         """Creates a new Database
         ---
@@ -246,6 +247,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def put(  # pylint: disable=too-many-return-statements, arguments-differ
         self, pk: int
     ) -> Response:
@@ -319,6 +321,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Deletes a Database
         ---
@@ -369,6 +372,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @rison(database_schemas_query_schema)
     @statsd_metrics
+    @event_logger.log_this
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
         """Get all schemas from a database
         ---
@@ -617,6 +621,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this
     def related_objects(self, pk: int) -> Response:
         """Get charts and dashboards count associated to a database
         ---
@@ -675,6 +680,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
+    @event_logger.log_this
     def export(self, **kwargs: Any) -> Response:
         """Export database(s) with associated datasets
         ---
