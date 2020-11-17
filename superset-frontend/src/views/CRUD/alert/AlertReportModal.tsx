@@ -17,11 +17,13 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 // import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
+import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 import { AlertObject } from './types';
@@ -110,7 +112,8 @@ const StyledInputContainer = styled.div`
   }
 
   input,
-  textarea {
+  textarea,
+  .Select {
     flex: 1 1 auto;
   }
 
@@ -120,13 +123,15 @@ const StyledInputContainer = styled.div`
   }
 
   input::placeholder,
-  textarea::placeholder {
+  textarea::placeholder,
+  .Select__placeholder {
     color: ${({ theme }) => theme.colors.grayscale.light1};
   }
 
   textarea,
   input[type='text'],
-  input[type='number'] {
+  input[type='number'],
+  .Select__control {
     padding: ${({ theme }) => theme.gridUnit * 1.5}px
       ${({ theme }) => theme.gridUnit * 2}px;
     border-style: none;
@@ -136,6 +141,10 @@ const StyledInputContainer = styled.div`
     &[name='description'] {
       flex: 1 1 auto;
     }
+  }
+
+  .Select__control {
+    padding: 2px 0;
   }
 
   .input-label {
@@ -204,6 +213,36 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
+  // Fetch data to populate form dropdowns
+  const loadOwnerOptions = (input = '') => {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
+    }).then(
+      response => {
+        return response.json.result.map(item => ({
+          value: item.value,
+          label: item.text,
+        }));
+      },
+      badResponse => {
+        handleErrorResponse(badResponse);
+        return [];
+      },
+    );
+  };
+
+  // Updating alert/report state
+  const updateAlertState = (name: string, value: any) => {
+    const data = {
+      ...currentAlert,
+      // name: currentAlert ? currentAlert.name : '', // TODO: do we need this?
+    };
+
+    data[name] = value;
+    setCurrentAlert(data);
+  };
+
   // Handle input/textarea updates
   const onTextChange = (
     event:
@@ -211,17 +250,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       | React.ChangeEvent<HTMLInputElement>,
   ) => {
     const { target } = event;
-    const data = {
-      ...currentAlert,
-      name: currentAlert ? currentAlert.name : '',
-    };
 
-    data[target.name] = target.value;
-    setCurrentAlert(data);
+    updateAlertState(target.name, target.value);
+  };
+
+  const onOwnersChange = (value: Array<Owner>) => {
+    updateAlertState('owners', value || []);
   };
 
   const validate = () => {
-    if (currentAlert && currentAlert.name.length) {
+    if (
+      currentAlert &&
+      currentAlert.name.length &&
+      currentAlert.owners.length
+    ) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
@@ -250,13 +292,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     // TODO: update to match expected type variables
     setCurrentAlert({
       name: '',
+      owners: [],
     });
   }
 
   // Validation
-  useEffect(() => {
-    validate();
-  }, [currentAlert ? currentAlert.name : '']);
+  useEffect(
+    () => {
+      validate();
+    },
+    currentAlert ? [currentAlert.name, currentAlert.owners] : [],
+  );
 
   // Show/hide
   if (isHidden && show) {
@@ -296,7 +342,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <input
                 type="text"
                 name="name"
-                value={alert ? alert.name : ''}
+                value={currentAlert ? currentAlert.name : ''}
                 placeholder={t('Alert Name')}
                 onChange={onTextChange}
               />
@@ -308,12 +354,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </div>
             <div className="input-container">
-              <input
-                type="text"
+              <AsyncSelect
                 name="owners"
-                value={alert ? alert.owners : ''}
-                placeholder={t('Should be autocomplete token input')}
-                onChange={onTextChange}
+                isMulti
+                value={currentAlert ? currentAlert.owners : []}
+                loadOptions={loadOwnerOptions}
+                defaultOptions // load options on render
+                cacheOptions
+                onChange={onOwnersChange}
+                // disabled={!isDashboardLoaded}
+                filterOption={null} // options are filtered at the api
               />
             </div>
           </StyledInputContainer>
@@ -323,7 +373,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <input
                 type="text"
                 name="description"
-                value={alert ? alert.description : ''}
+                value={currentAlert ? currentAlert.description || '' : ''}
                 placeholder={t('Description')}
                 onChange={onTextChange}
               />
@@ -345,7 +395,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <input
                     type="text"
                     name="source"
-                    value={alert ? alert.source : ''}
+                    value={currentAlert ? currentAlert.source : ''}
                     placeholder={t('Source')}
                     onChange={onTextChange}
                   />
@@ -359,7 +409,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <div className="input-container">
                   <textarea
                     name="query"
-                    value={alert ? alert.query : ''}
+                    value={currentAlert ? currentAlert.query : ''}
                     onChange={onTextChange}
                   />
                 </div>
@@ -374,7 +424,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <input
                       type="text"
                       name="alert_condition_op"
-                      value={alert ? alert.alert_condition_op : ''}
+                      value={
+                        currentAlert ? currentAlert.alert_condition_op : ''
+                      }
                       placeholder={t('Should Be Dropdown')}
                       onChange={onTextChange}
                     />
@@ -389,7 +441,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <input
                       type="text"
                       name="alert_condition_val"
-                      value={alert ? alert.alert_condition_val : ''}
+                      value={
+                        currentAlert ? currentAlert.alert_condition_val : ''
+                      }
                       placeholder={t('Value')}
                       onChange={onTextChange}
                     />
@@ -420,7 +474,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <input
                   type="text"
                   name="log_retention"
-                  value={alert ? alert.log_retention : ''}
+                  value={currentAlert ? currentAlert.log_retention : ''}
                   placeholder={t('Should Be Dropdown')}
                   onChange={onTextChange}
                 />
@@ -432,7 +486,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <input
                   type="number"
                   name="grace_period"
-                  value={alert ? alert.grace_period : ''}
+                  value={currentAlert ? currentAlert.grace_period : ''}
                   placeholder={t('Time in seconds')}
                   onChange={onTextChange}
                 />
