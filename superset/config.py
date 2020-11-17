@@ -682,10 +682,6 @@ JINJA_CONTEXT_ADDONS: Dict[str, Callable[..., Any]] = {}
 # basis. Example value = `{"presto": CustomPrestoTemplateProcessor}`
 CUSTOM_TEMPLATE_PROCESSORS: Dict[str, Type[BaseTemplateProcessor]] = {}
 
-# Prevent access to classes/objects and proxy methods in the default Jinja context,
-# unless explicitly overridden by JINJA_CONTEXT_ADDONS or CUSTOM_TEMPLATE_PROCESSORS.
-SAFE_JINJA_PROCESSING: bool = True
-
 # Roles that are controlled by the API / Superset and should not be changes
 # by humans.
 ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]

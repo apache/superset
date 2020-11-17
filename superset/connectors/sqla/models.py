@@ -875,12 +875,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         template_kwargs = {
-            "from_dttm": from_dttm,
+            "from_dttm": from_dttm.isoformat() if from_dttm else None,
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
             "row_offset": row_offset,
-            "to_dttm": to_dttm,
+            "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "filter": filter,
             "columns": {col.column_name: col for col in self.columns},
         }
