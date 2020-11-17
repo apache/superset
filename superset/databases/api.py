@@ -761,7 +761,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         upload = request.files.get("file")
         if not upload:
-            return self._response_400()
+            return self.response_400()
         with ZipFile(upload) as bundle:
             contents = {
                 file_name: bundle.read(file_name).decode()
