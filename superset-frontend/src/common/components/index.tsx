@@ -53,6 +53,14 @@ export const MenuItem = styled(AntdMenu.Item)`
     height: ${({ theme }) => theme.gridUnit * 7}px;
     line-height: ${({ theme }) => theme.gridUnit * 7}px;
   }
+
+  &.ant-menu-item,
+  &.ant-dropdown-menu-item {
+    span[role='button'] {
+      display: inline-block;
+      width: 100%;
+    }
+  }
 `;
 
 export const Menu = Object.assign(AntdMenu, {
