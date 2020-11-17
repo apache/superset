@@ -30,7 +30,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.stats_logger import BaseStatsLogger
 
 
-def path_no_int(path: Optional[str]) -> str:
+def strip_int_from_path(path: Optional[str]) -> str:
     """Simple function to remove ints from '/' separated paths"""
     if path:
         return "/".join(["<int>" if s.isdigit() else s for s in path.split("/")])
@@ -107,7 +107,7 @@ class AbstractEventLogger(ABC):
             duration_ms=round((time.time() - start_time) * 1000),
             referrer=referrer,
             path=request.path,
-            path_no_int=path_no_int(request.path),
+            path_no_int=strip_int_from_path(request.path),
             ref=ref,
         )
 
