@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import React, { useState, Fragment } from 'react';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
-import { Form, Input } from 'src/common/components';
+import { Form, Input, Radio, Typography } from 'src/common/components';
 import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import { Filter } from './types';
+import ScopingTree from './ScopingTree';
 
 interface FilterConfigForm {
+  setFilterScopes: Function;
   dataset: any;
   setDataset: (arg0: string) => void;
   filterToEdit: {
@@ -56,6 +58,8 @@ const datasetToSelectOption = (item: any): DatasetSelectValue => ({
   value: item.id,
   label: item.table_name,
 });
+
+type Scoping = 'all' | 'specific';
 
 function ColumnSelect({ datasetId, value, onChange }: ColumnSelectProps) {
   const { addDangerToast } = useToasts();
@@ -92,13 +96,20 @@ function ColumnSelect({ datasetId, value, onChange }: ColumnSelectProps) {
   );
 }
 
+const ScopingTreeNote = styled.div`
+  margin-top: -20px;
+  margin-bottom: 10px;
+`;
+
 const FilterConfigForm = ({
   dataset,
   setDataset,
+  setFilterScopes,
   filterToEdit,
   form,
   edit,
 }: FilterConfigForm) => {
+  const [scoping, setScoping] = useState<Scoping>('all');
   return (
     <Form
       form={form}
@@ -153,6 +164,28 @@ const FilterConfigForm = ({
       <Form.Item name="isRequired" label={t('Required')}>
         <Input type="checkbox" />
       </Form.Item>
+      <Typography.Title level={4}>{t('Scoping')}</Typography.Title>
+      <Form.Item name="scope">
+        <Radio.Group
+          defaultValue="all"
+          onChange={({ target: { value } }) => {
+            setScoping(value as Scoping);
+          }}
+        >
+          <Radio value="all">{t('Apply to all panels')}</Radio>
+          <Radio value="specific">{t('Apply to specific panels')}</Radio>
+        </Radio.Group>
+      </Form.Item>
+      {scoping === 'specific' && (
+        <Fragment>
+          <ScopingTreeNote>
+            <Typography.Text type="secondary">
+              {t('Only selected panels will be affected by this filter')}
+            </Typography.Text>
+          </ScopingTreeNote>
+          <ScopingTree setFilterScopes={setFilterScopes} />
+        </Fragment>
+      )}
     </Form>
   );
 };

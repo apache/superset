@@ -20,7 +20,24 @@ import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectFilterOption } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { Filter, FilterState } from './types';
+import { t } from '@superset-ui/core';
+import {
+  ComponentType,
+  Filter,
+  FilterState,
+  Layout,
+  LayoutItem,
+  RootState,
+  TreeItem,
+} from './types';
+import { DASHBOARD_ROOT_ID } from '../../util/constants';
+import {
+  CHART_TYPE,
+  DASHBOARD_ROOT_TYPE,
+  TAB_TYPE,
+  TABS_TYPE,
+} from '../../util/componentTypes';
+import { buildTree } from './utils';
 
 export function useFilterConfigurations() {
   return useSelector<any, Filter[]>(
@@ -41,4 +58,20 @@ export function useFilterSetter(id: string) {
       dispatch(selectFilterOption(id, values)),
     [id, dispatch],
   );
+}
+export function useFilterScopeTree(): {
+  treeData: [TreeItem];
+  layout: Layout;
+} {
+  const layout = useSelector<RootState, Layout>(
+    ({ dashboardLayout: { present } }) => present,
+  );
+  const tree = {
+    children: [],
+    key: DASHBOARD_ROOT_ID,
+    type: DASHBOARD_ROOT_TYPE,
+    title: t('All Panels'),
+  };
+  buildTree(layout[DASHBOARD_ROOT_ID], tree, layout);
+  return { treeData: [tree], layout };
 }

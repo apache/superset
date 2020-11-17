@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import componentTypes from 'src/dashboard/util/componentTypes';
+
 export interface Column {
   name: string;
   displayName?: string;
@@ -65,4 +68,39 @@ export type FilterState = {
    * isDirty indicates that state.
    */
   isDirty: boolean;
+};
+
+/** Root state of redux */
+export type RootState = {
+  dashboardLayout: { present: { [key: string]: LayoutItem } };
+  dashboardFilters: {};
+};
+
+/** State of dashboardLayout in redux */
+export type Layout = { [key: string]: LayoutItem };
+
+type ComponentTypesKeys = keyof typeof componentTypes;
+export type ComponentType = typeof componentTypes[ComponentTypesKeys];
+
+/** State of dashboardLayout item in redux */
+export type LayoutItem = {
+  children: string[];
+  parents: string[];
+  type: ComponentType;
+  id: string;
+  meta: {
+    chartId: number;
+    height: number;
+    sliceName?: string;
+    text?: string;
+    uuid: string;
+    width: number;
+  };
+};
+
+/** UI Ant tree type */
+export type TreeItem = {
+  children: TreeItem[];
+  key: string;
+  title: string;
 };

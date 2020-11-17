@@ -25,8 +25,7 @@ import { Button, Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import { createFilter } from 'src/dashboard/actions/nativeFilters';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import value from '*.png';
-import { Filter } from './types';
+import { Filter, Scope } from './types';
 import FilterConfigForm from './FilterConfigForm';
 import FiltersList from './FiltersList';
 
@@ -48,12 +47,16 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
   const [dataset, setDataset] = useState<DatasetSelectValue | null>(null);
   const [edit, showEdit] = useState(false);
   const [filterToEdit, setFilterToEdit] = useState<FiltersToEdit>({});
+  const [filterScopes, setFilterScopes] = useState<Scope>({
+    rootPath: [],
+    excluded: [],
+  }); // TODO: when connect to store read from there
 
   function resetForm() {
     form.resetFields();
     setDataset(null);
   }
-  console.log('state', edit, filterToEdit);
+
   return (
     <StyledModal
       visible={isOpen}
@@ -83,6 +86,8 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
       <FilterConfigForm
         dataset={dataset}
         setDataset={setDataset}
+        setFilterScopes={setFilterScopes}
+        filterScopes={filterScopes}
         key={filterToEdit?.id}
         form={form}
         filterToEdit={filterToEdit}
@@ -108,6 +113,12 @@ const CreateFilterButton: React.FC<ButtonProps> = ({
   }
 
   async function submit(values: Record<string, any>) {
+    const scope = {
+      rootPath: [DASHBOARD_ROOT_ID],
+      excluded: [],
+    };
+    if (values.scope.value === 'specific') {
+    }
     dispatch(
       createFilter({
         id: generateFilterId(),
@@ -121,10 +132,7 @@ const CreateFilterButton: React.FC<ButtonProps> = ({
           },
         ],
         defaultValue: values.defaultValue,
-        scope: {
-          rootPath: [DASHBOARD_ROOT_ID],
-          excluded: [],
-        },
+        scope,
         isInstant: values.isInstant,
       }),
     );
