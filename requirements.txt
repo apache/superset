@@ -76,7 +76,7 @@ six==1.12.0               # via bleach, cryptography, flask-jwt-extended, flask-
 sqlalchemy-utils==0.34.1
 sqlalchemy==1.3.6
 sqlparse==0.3.0
-urllib3==1.25.3           # via selenium
+urllib3==1.25.4          # via selenium
 vine==1.3.0               # via amqp, celery
 webencodings==0.5.1       # via bleach
 werkzeug==0.15.5          # via flask, flask-jwt-extended
