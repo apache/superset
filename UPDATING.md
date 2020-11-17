@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [11704](https://github.com/apache/incubator-superset/pull/11704) Breaking change: Jinja templating for SQL queries has been updated, removing default modules such as `datetime` and `random` and enforcing static template values. To restore or extend functionality, use `JINJA_CONTEXT_ADDONS` and `CUSTOM_TEMPLATE_PROCESSORS` in `superset_config.py`.
+
 - [11509](https://github.com/apache/incubator-superset/pull/11509): Config value `TABLE_NAMES_CACHE_CONFIG` has been renamed to `DATA_CACHE_CONFIG`, which will now also hold query results cache from connected datasources (previously held in `CACHE_CONFIG`), in addition to the table names. If you will set `DATA_CACHE_CONFIG` to a new cache backend different than your previous `CACHE_CONFIG`, plan for additional cache warmup to avoid degrading charting performance for the end users.
 
 - [11575](https://github.com/apache/incubator-superset/pull/11575) The Row Level Security (RLS) config flag has been moved to a feature flag. To migrate, add `ROW_LEVEL_SECURITY: True` to the `FEATURE_FLAGS` dict in `superset_config.py`.
@@ -38,7 +40,7 @@ assists people when migrating to a new version.
   and requires more work. You can easily turn on the languages you want
   to expose in your environment in superset_config.py
 
-- [11172](https://github.com/apache/incubator-superset/pull/11172): Breaking change: SQL templating is turned off be default. To turn it on set `ENABLE_TEMPLATE_PROCESSING` to True on `DEFAULT_FEATURE_FLAGS`
+- [11172](https://github.com/apache/incubator-superset/pull/11172): Breaking change: SQL templating is turned off by default. To turn it on set `ENABLE_TEMPLATE_PROCESSING` to True on `FEATURE_FLAGS`
 
 - [11155](https://github.com/apache/incubator-superset/pull/11155): The `FAB_UPDATE_PERMS` config parameter is no longer required as the Superset application correctly informs FAB under which context permissions should be updated.
 
