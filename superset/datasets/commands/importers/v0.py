@@ -282,9 +282,19 @@ class ImportDatasetsCommand(BaseCommand):
     in Superset.
     """
 
-    def __init__(self, contents: Dict[str, str], sync: Optional[List[str]] = None):
+    def __init__(
+        self,
+        contents: Dict[str, str],
+        sync_columns: bool = False,
+        sync_metrics: bool = False,
+    ):
         self.contents = contents
-        self.sync = sync
+
+        self.sync = []
+        if sync_columns:
+            self.sync.append("columns")
+        if sync_metrics:
+            self.sync.append("metrics")
 
     def run(self) -> None:
         self.validate()

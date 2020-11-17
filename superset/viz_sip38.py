@@ -45,7 +45,7 @@ from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, cache, security_manager
+from superset import app
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -53,6 +53,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SpatialException,
 )
+from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.typing import QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils
@@ -413,7 +414,7 @@ class BaseViz:
             and self.datasource.database.cache_timeout
         ) is not None:
             return self.datasource.database.cache_timeout
-        return config["CACHE_DEFAULT_TIMEOUT"]
+        return cache_manager.data_cache.config["CACHE_DEFAULT_TIMEOUT"]
 
     def get_json(self):
         return json.dumps(
@@ -475,8 +476,8 @@ class BaseViz:
         stacktrace = None
         df = None
         cached_dttm = datetime.utcnow().isoformat().split(".")[0]
-        if cache_key and cache and not self.force:
-            cache_value = cache.get(cache_key)
+        if cache_key and cache_manager.data_cache and not self.force:
+            cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
                 stats_logger.incr("loading_from_cache")
                 try:
@@ -515,12 +516,7 @@ class BaseViz:
                 self.status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
-            if (
-                is_loaded
-                and cache_key
-                and cache
-                and self.status != utils.QueryStatus.FAILED
-            ):
+            if is_loaded and cache_key and self.status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
                     cache_key,
                     df,

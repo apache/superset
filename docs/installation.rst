@@ -367,8 +367,8 @@ Caching
 
 Superset uses `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ for
 caching purpose. Configuring your caching backend is as easy as providing
-a ``CACHE_CONFIG``, constant in your ``superset_config.py`` that
-complies with the Flask-Cache specifications.
+``CACHE_CONFIG`` and ``DATA_CACHE_CONFIG`, constants in ``superset_config.py``
+that complies with `the Flask-Cache specifications <https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching>`_.
 
 Flask-Cache supports multiple caching backends (Redis, Memcached,
 SimpleCache (in-memory), or the local filesystem). If you are going to use
@@ -378,14 +378,13 @@ the `redis <https://pypi.python.org/pypi/redis>`_ Python package: ::
 
     pip install redis
 
-For setting your timeouts, this is done in the Superset metadata and goes
-up the "timeout searchpath", from your slice configuration, to your
-data source's configuration, to your database's and ultimately falls back
-into your global default defined in ``CACHE_CONFIG``.
+For chart data, Superset goes up a “timeout search path”, from a slice's configuration
+to the datasource’s, the database’s, then ultimately falls back to the global default
+defined in ``DATA_CACHE_CONFIG``.
 
 .. code-block:: python
 
-    CACHE_CONFIG = {
+    DATA_CACHE_CONFIG = {
         'CACHE_TYPE': 'redis',
         'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
         'CACHE_KEY_PREFIX': 'superset_results',
@@ -400,7 +399,7 @@ object that is compatible with the `Flask-Cache <https://pythonhosted.org/Flask-
 
     from custom_caching import CustomCache
 
-    def init_cache(app):
+    def init_data_cache(app):
         """Takes an app instance and returns a custom cache backend"""
         config = {
             'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
@@ -408,7 +407,7 @@ object that is compatible with the `Flask-Cache <https://pythonhosted.org/Flask-
         }
         return CustomCache(app, config)
 
-    CACHE_CONFIG = init_cache
+    DATA_CACHE_CONFIG = init_data_cache
 
 Superset has a Celery task that will periodically warm up the cache based on
 different strategies. To use it, add the following to the `CELERYBEAT_SCHEDULE`

@@ -163,7 +163,7 @@ class ImportExportMixin:
         if sync is None:
             sync = []
         parent_refs = cls.parent_foreign_key_mappings()
-        export_fields = set(cls.export_fields) | set(parent_refs.keys())
+        export_fields = set(cls.export_fields) | set(parent_refs.keys()) | {"uuid"}
         new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
         unique_constrains = cls._unique_constrains()
 

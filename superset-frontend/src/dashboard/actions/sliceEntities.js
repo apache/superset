@@ -85,23 +85,21 @@ export function fetchAllSlices(userId) {
                 datasource,
               };
             }
-            if (['markup', 'separator'].indexOf(slice.viz_type) === -1) {
-              slices[slice.id] = {
-                slice_id: slice.id,
-                slice_url: slice.url,
-                slice_name: slice.slice_name,
-                edit_url: slice.edit_url,
-                form_data,
-                datasource_name: slice.datasource_name_text,
-                datasource_url: slice.datasource_url,
-                changed_on: new Date(slice.changed_on_utc).getTime(),
-                description: slice.description,
-                description_markdown: slice.description_markeddown,
-                viz_type: slice.viz_type,
-                modified: slice.changed_on_delta_humanized,
-                changed_on_humanized: slice.changed_on_delta_humanized,
-              };
-            }
+            slices[slice.id] = {
+              slice_id: slice.id,
+              slice_url: slice.url,
+              slice_name: slice.slice_name,
+              edit_url: slice.edit_url,
+              form_data,
+              datasource_name: slice.datasource_name_text,
+              datasource_url: slice.datasource_url,
+              changed_on: new Date(slice.changed_on_utc).getTime(),
+              description: slice.description,
+              description_markdown: slice.description_markeddown,
+              viz_type: slice.viz_type,
+              modified: slice.changed_on_delta_humanized,
+              changed_on_humanized: slice.changed_on_delta_humanized,
+            };
           });
 
           return dispatch(setAllSlices(slices));
