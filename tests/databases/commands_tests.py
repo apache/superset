@@ -20,10 +20,10 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from marshmallow.exceptions import ValidationError
 
 from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.commands.export import ExportDatabasesCommand
@@ -408,9 +408,9 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
         }
         command = ImportDatabasesCommand(contents)
-        with pytest.raises(CommandInvalidError) as excinfo:
+        with pytest.raises(IncorrectVersionError) as excinfo:
             command.run()
-        assert str(excinfo.value) == 'Missing file "metadata.yaml" in contents'
+        assert str(excinfo.value) == "Missing metadata.yaml"
 
         # version should be 1.0.0
         contents["metadata.yaml"] = yaml.safe_dump(
@@ -421,19 +421,18 @@ class TestExportDatabasesCommand(SupersetTestCase):
             }
         )
         command = ImportDatabasesCommand(contents)
-        with pytest.raises(ValidationError) as excinfo:
+        with pytest.raises(IncorrectVersionError) as excinfo:
             command.run()
-        assert excinfo.value.messages == {
-            "version": ["Must be equal to 1.0.0."],
-        }
+        assert str(excinfo.value) == "Must be equal to 1.0.0."
 
         # type should be Database
         contents["metadata.yaml"] = yaml.safe_dump(dataset_metadata_config)
         command = ImportDatabasesCommand(contents)
-        with pytest.raises(ValidationError) as excinfo:
+        with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert excinfo.value.messages == {
-            "type": ["Must be equal to Database."],
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "metadata.yaml": {"type": ["Must be equal to Database."],}
         }
 
         # must also validate datasets
@@ -442,13 +441,16 @@ class TestExportDatabasesCommand(SupersetTestCase):
         contents["metadata.yaml"] = yaml.safe_dump(database_metadata_config)
         contents["datasets/imported_dataset.yaml"] = yaml.safe_dump(broken_config)
         command = ImportDatabasesCommand(contents)
-        with pytest.raises(ValidationError) as excinfo:
+        with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert excinfo.value.messages == {
-            "table_name": ["Missing data for required field."],
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "datasets/imported_dataset.yaml": {
+                "table_name": ["Missing data for required field."],
+            }
         }
 
-    @patch("superset.datasets.commands.importers.v1.ImportDatasetsCommand.import_")
+    @patch("superset.databases.commands.importers.v1.import_dataset")
     def test_import_v1_rollback(self, mock_import_dataset):
         """Test than on an exception everything is rolled back"""
         num_databases = db.session.query(Database).count()
