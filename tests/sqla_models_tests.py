@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-from typing import Any, Dict, NamedTuple, List, Tuple, Union
+import re
+from typing import Any, Dict, NamedTuple, List, Pattern, Tuple, Union
 from unittest.mock import patch
 import pytest
 
@@ -28,6 +29,23 @@ from superset.models.core import Database
 from superset.utils.core import DbColumnType, get_example_database, FilterOperator
 
 from .base_tests import SupersetTestCase
+
+
+VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
+    "hive": re.compile(r"^INT_TYPE$"),
+    "mysql": re.compile("^LONGLONG$"),
+    "postgresql": re.compile(r"^INT$"),
+    "presto": re.compile(r"^INTEGER$"),
+    "sqlite": re.compile(r"^INT$"),
+}
+
+VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
+    "hive": re.compile(r"^STRING_TYPE$"),
+    "mysql": re.compile(r"^VAR_STRING$"),
+    "postgresql": re.compile(r"^STRING$"),
+    "presto": re.compile(r"^VARCHAR*"),
+    "sqlite": re.compile(r"^STRING$"),
+}
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -247,3 +265,44 @@ class TestDatabaseModel(SupersetTestCase):
         query_obj = dict(**base_query_obj, extras={})
         with pytest.raises(QueryObjectValidationError):
             table.get_sqla_query(**query_obj)
+
+    def test_fetch_metadata_for_updated_virtual_table(self):
+        table = SqlaTable(
+            table_name="updated_sql_table",
+            database=get_example_database(),
+            sql="select 123 as intcol, 'abc' as strcol, 'abc' as mycase",
+        )
+        TableColumn(column_name="intcol", type="FLOAT", table=table)
+        TableColumn(column_name="oldcol", type="INT", table=table)
+        TableColumn(
+            column_name="expr",
+            expression="case when 1 then 1 else 0 end",
+            type="INT",
+            table=table,
+        )
+        TableColumn(
+            column_name="mycase",
+            expression="case when 1 then 1 else 0 end",
+            type="INT",
+            table=table,
+        )
+
+        # make sure the columns have been mapped properly
+        assert len(table.columns) == 4
+        table.fetch_metadata()
+        # assert that the removed column has been dropped and
+        # the physical and calculated columns are present
+        assert {col.column_name for col in table.columns} == {
+            "intcol",
+            "strcol",
+            "mycase",
+            "expr",
+        }
+        cols: Dict[str, TableColumn] = {col.column_name: col for col in table.columns}
+        # assert that the type for intcol has been updated (asserting CI types)
+        backend = get_example_database().backend
+        assert VIRTUAL_TABLE_INT_TYPES[backend].match(cols["intcol"].type)
+        # assert that the expression has been replaced with the new physical column
+        assert cols["mycase"].expression == ""
+        assert VIRTUAL_TABLE_STRING_TYPES[backend].match(cols["mycase"].type)
+        assert cols["expr"].expression == "case when 1 then 1 else 0 end"
