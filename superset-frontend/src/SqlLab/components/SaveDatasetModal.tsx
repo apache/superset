@@ -53,7 +53,6 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
   };
 
   const onRadioChange = e => {
-    console.log('radio checked', e.target.value);
     setRadioOptions(e.target.value)
   };
 
