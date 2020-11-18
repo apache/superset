@@ -505,8 +505,7 @@ class DashboardEncoder(json.JSONEncoder):
 
 
 def parse_human_timedelta(
-    human_readable: Optional[str],
-    source_time: Optional[datetime] = None,
+    human_readable: Optional[str], source_time: Optional[datetime] = None,
 ) -> timedelta:
     """
     Returns ``datetime.timedelta`` from natural language time deltas
@@ -516,14 +515,14 @@ def parse_human_timedelta(
     """
     cal = parsedatetime.Calendar()
     source_dttm = dttm_from_timetuple(
-        source_time.timetuple() if source_time else datetime.now().timetuple())
+        source_time.timetuple() if source_time else datetime.now().timetuple()
+    )
     modified_dttm = dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
     return modified_dttm - source_dttm
 
 
 def parse_past_timedelta(
-    delta_str: str,
-    source_time: Optional[datetime] = None
+    delta_str: str, source_time: Optional[datetime] = None
 ) -> timedelta:
     """
     Takes a delta like '1 year' and finds the timedelta for that period in
@@ -534,8 +533,7 @@ def parse_past_timedelta(
     or datetime.timedelta(365).
     """
     return -parse_human_timedelta(
-        delta_str if delta_str.startswith("-") else f"-{delta_str}",
-        source_time,
+        delta_str if delta_str.startswith("-") else f"-{delta_str}", source_time,
     )
 
 
@@ -1237,8 +1235,7 @@ def ensure_path_exists(path: str) -> None:
 
 
 def get_calendar_since_until(
-    calendar_range: str,
-    relative_day: Optional[str] = "today",
+    calendar_range: str, relative_day: Optional[str] = "today",
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
     """
     Getting since datetime and until datetime tuple from calendar grains
@@ -1298,14 +1295,14 @@ def parse_time_range(
         return s
 
     def process_dttm_token(
-        dttm: Optional[str] = None,
-        source_time: Optional[datetime] = None,
+        dttm: Optional[str] = None, source_time: Optional[datetime] = None,
     ) -> Optional[datetime]:
         if not dttm:
             return None
         if is_timedelta(dttm):
             return source_time + parse_human_timedelta(
-                mini_delta_to_human(dttm[1:]), source_time)
+                mini_delta_to_human(dttm[1:]), source_time
+            )
         else:
             return parse_human_datetime(dttm)
 
@@ -1367,7 +1364,11 @@ def get_since_until(  # pylint: disable=too-many-arguments
     relative_start = parse_human_datetime(relative_start)
     relative_end = parse_human_datetime(relative_end)
     common_time_frames = (
-        "Last day", "Last week", "Last month", "Last quarter", "Last year",
+        "Last day",
+        "Last week",
+        "Last month",
+        "Last quarter",
+        "Last year",
     )
     if time_range in common_time_frames:
         rel, grain = time_range.split()
@@ -1376,7 +1377,7 @@ def get_since_until(  # pylint: disable=too-many-arguments
     if time_range:
         if separator in time_range:
             since, until = parse_time_range(time_range)
-        elif 'previous' in time_range.lower():
+        elif "previous" in time_range.lower():
             since, until = get_calendar_since_until(time_range)
         elif time_range == "No filter":
             since = until = None
