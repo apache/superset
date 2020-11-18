@@ -301,9 +301,12 @@ def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
 )
 def import_datasources(path: str, sync: str, recursive: bool) -> None:
     """Import datasources from YAML"""
-    from superset.datasets.commands.importers.v0 import ImportDatasetsCommand
+    from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
 
     sync_array = sync.split(",")
+    sync_columns = "columns" in sync_array
+    sync_metrics = "metrics" in sync_array
+
     path_object = Path(path)
     files: List[Path] = []
     if path_object.is_file():
@@ -316,7 +319,7 @@ def import_datasources(path: str, sync: str, recursive: bool) -> None:
         files.extend(path_object.rglob("*.yml"))
     contents = {path.name: open(path).read() for path in files}
     try:
-        ImportDatasetsCommand(contents, sync_array).run()
+        ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
     except Exception:  # pylint: disable=broad-except
         logger.exception("Error when importing dataset")
 

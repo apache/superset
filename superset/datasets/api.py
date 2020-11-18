@@ -28,6 +28,7 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
+from superset.commands.exceptions import CommandInvalidError
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.databases.filters import DatabaseFilter
@@ -45,6 +46,7 @@ from superset.datasets.commands.exceptions import (
     DatasetUpdateFailedError,
 )
 from superset.datasets.commands.export import ExportDatasetsCommand
+from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
 from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
@@ -76,6 +78,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     class_permission_name = "TableModelView"
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
+        RouteMethod.IMPORT,
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
         "bulk_delete",
@@ -589,3 +592,56 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/import/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def import_(self) -> Response:
+        """Import dataset (s) with associated databases
+        ---
+        post:
+          requestBody:
+            content:
+              application/zip:
+                schema:
+                  type: string
+                  format: binary
+          responses:
+            200:
+              description: Dataset import result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        upload = request.files.get("file")
+        if not upload:
+            return self.response_400()
+        with ZipFile(upload) as bundle:
+            contents = {
+                file_name: bundle.read(file_name).decode()
+                for file_name in bundle.namelist()
+            }
+
+        command = ImportDatasetsCommand(contents)
+        try:
+            command.run()
+            return self.response(200, message="OK")
+        except CommandInvalidError as exc:
+            logger.warning("Import dataset failed")
+            return self.response_422(message=exc.normalized_messages())
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.exception("Import dataset failed")
+            return self.response_500(message=str(exc))

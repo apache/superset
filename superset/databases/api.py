@@ -35,6 +35,7 @@ from sqlalchemy.exc import (
 )
 
 from superset import event_logger
+from superset.commands.exceptions import CommandInvalidError
 from superset.constants import RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
@@ -49,6 +50,7 @@ from superset.databases.commands.exceptions import (
     DatabaseUpdateFailedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
+from superset.databases.commands.importers.dispatcher import ImportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.dao import DatabaseDAO
@@ -80,6 +82,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
+        RouteMethod.IMPORT,
         "table_metadata",
         "select_star",
         "schemas",
@@ -722,3 +725,56 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             attachment_filename=filename,
         )
+
+    @expose("/import/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def import_(self) -> Response:
+        """Import database(s) with associated datasets
+        ---
+        post:
+          requestBody:
+            content:
+              application/zip:
+                schema:
+                  type: string
+                  format: binary
+          responses:
+            200:
+              description: Database import result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        upload = request.files.get("file")
+        if not upload:
+            return self.response_400()
+        with ZipFile(upload) as bundle:
+            contents = {
+                file_name: bundle.read(file_name).decode()
+                for file_name in bundle.namelist()
+            }
+
+        command = ImportDatabasesCommand(contents)
+        try:
+            command.run()
+            return self.response(200, message="OK")
+        except CommandInvalidError as exc:
+            logger.warning("Import database failed")
+            return self.response_422(message=exc.normalized_messages())
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.exception("Import database failed")
+            return self.response_500(message=str(exc))

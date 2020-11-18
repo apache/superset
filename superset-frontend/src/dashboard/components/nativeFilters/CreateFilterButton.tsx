@@ -165,9 +165,8 @@ function generateFilterId() {
   return `FILTER_V2-${shortid.generate()}`;
 }
 
-const CreateFilterButton: React.FC<ButtonProps> = ({
+const CreateFilterButton: React.FC = ({
   children,
-  ...buttonProps
 }) => {
   const [isOpen, setOpen] = useState(false);
   const dispatch = useDispatch();
@@ -202,9 +201,9 @@ const CreateFilterButton: React.FC<ButtonProps> = ({
 
   return (
     <>
-      <Button {...buttonProps} onClick={() => setOpen(true)}>
+      <div onClick={() => setOpen(true)}>
         {children}
-      </Button>
+      </div>
       <FilterCreateModal isOpen={isOpen} save={submit} onCancel={close} />
     </>
   );

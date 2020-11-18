@@ -408,3 +408,24 @@ class DatabaseRelatedDashboards(Schema):
 class DatabaseRelatedObjectsResponse(Schema):
     charts = fields.Nested(DatabaseRelatedCharts)
     dashboards = fields.Nested(DatabaseRelatedDashboards)
+
+
+class ImportV1DatabaseExtraSchema(Schema):
+    metadata_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
+    engine_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
+    metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
+    schemas_allowed_for_csv_upload = fields.List(fields.String)
+
+
+class ImportV1DatabaseSchema(Schema):
+    database_name = fields.String(required=True)
+    sqlalchemy_uri = fields.String(required=True)
+    cache_timeout = fields.Integer(allow_none=True)
+    expose_in_sqllab = fields.Boolean()
+    allow_run_async = fields.Boolean()
+    allow_ctas = fields.Boolean()
+    allow_cvas = fields.Boolean()
+    allow_csv_upload = fields.Boolean()
+    extra = fields.Nested(ImportV1DatabaseExtraSchema)
+    uuid = fields.UUID(required=True)
+    version = fields.String(required=True)

@@ -99,10 +99,7 @@ class AnnotationModelView(
     @expose("/<pk>/annotation/", methods=["GET"])
     @has_access
     def annotation(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_ANNOTATIONS_UI")
-        ):
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
             return super().list()
 
         return super().render_app_template()
@@ -126,10 +123,7 @@ class AnnotationLayerModelView(SupersetModelView):  # pylint: disable=too-many-a
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_ANNOTATIONS_UI")
-        ):
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
             return super().list()
 
         return super().render_app_template()

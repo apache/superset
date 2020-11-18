@@ -35,7 +35,6 @@ from superset.extensions import (
     csrf,
     db,
     feature_flag_manager,
-    jinja_context_manager,
     machine_auth_provider_factory,
     manifest_processor,
     migrate,
@@ -515,7 +514,6 @@ class SupersetAppInitializer:
         self.configure_logging()
         self.configure_middlewares()
         self.configure_cache()
-        self.configure_jinja_context()
 
         with self.flask_app.app_context():  # type: ignore
             self.init_app_in_ctx()
@@ -572,9 +570,6 @@ class SupersetAppInitializer:
 
         self.flask_app.url_map.converters["regex"] = RegexConverter
         self.flask_app.url_map.converters["object_type"] = ObjectTypeConverter
-
-    def configure_jinja_context(self) -> None:
-        jinja_context_manager.init_app(self.flask_app)
 
     def configure_middlewares(self) -> None:
         if self.config["ENABLE_CORS"]:
