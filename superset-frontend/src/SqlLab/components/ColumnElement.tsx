@@ -18,8 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { OverlayTrigger } from 'react-bootstrap';
 
-import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import Tooltip from 'src/common/components/Tooltip';
 
 const propTypes = {
   column: PropTypes.object.isRequired,
@@ -53,20 +54,20 @@ export default function ColumnElement({ column }: ColumnElementProps) {
     columnName = <strong>{column.name}</strong>;
     icons = column.keys.map((key, i) => (
       <span key={i} className="ColumnElement">
-        <OverlayTrigger
+        <Tooltip
           placement="right"
-          overlay={
-            <Tooltip id="idx-json" bsSize="lg">
+          title={
+            <>
               <strong>{tooltipTitleMap[key.type]}</strong>
               <hr />
               <pre className="text-small">
                 {JSON.stringify(key, null, '  ')}
               </pre>
-            </Tooltip>
+            </>
           }
         >
           <i className={`fa text-muted m-l-2 ${iconMap[key.type]}`} />
-        </OverlayTrigger>
+        </Tooltip>
       </span>
     ));
   }
