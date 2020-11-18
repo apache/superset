@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { OverlayTrigger } from 'react-bootstrap';
 
 import Tooltip from 'src/common/components/Tooltip';
 
