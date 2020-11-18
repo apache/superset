@@ -120,13 +120,15 @@ body {
   }
 }
 
-.modal {
-  .modal-body {
-    padding: 24px 24px 29px 24px;
+.ant-modal-root {
+  .ant-modal-body {
+    padding: 24px 24px 29px 24px !important;
   }
 
-  .modal-dialog.filter-scope-modal {
-    width: 80%;
+  .filter-scope-modal {
+    .ant-modal {
+      width: 80% !important;
+    }
   }
 
   .refresh-warning-container {
