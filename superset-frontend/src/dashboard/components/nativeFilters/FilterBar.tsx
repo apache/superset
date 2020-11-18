@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import React from 'react';
 import { Button, Form, Input, Dropdown, Menu } from 'src/common/components';
 import CreateFilterButton from './CreateFilterButton';
 import Icon from 'src/components/Icon';
+// import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
 import {
   useFilterConfigurations,
@@ -98,13 +99,15 @@ const menu = (
         Configure Filters
       </Menu.Item>
       <Menu.Item>
-        <CreateFilterButton type="text">
-          New Filter
+        <CreateFilterButton>
+          {t('New Filter')}
         </CreateFilterButton>
       </Menu.Item>
-      <Menu.Item>
-          Bulk Scoping
-      </Menu.Item>
+      {/* <Menu.Item>
+        <FilterScopeModal
+          triggerNode={t('Bulk Scoping')}
+        />
+      </Menu.Item> */}
 
     </Menu>
   );
