@@ -18,7 +18,8 @@
  */
 import { styled, t } from '@superset-ui/core';
 import React from 'react';
-import { Button, Form, Input, Dropdown, Menu } from 'src/common/components';
+import { Form, Input, Dropdown, Menu } from 'src/common/components';
+import Button from 'src/components/Button';
 import CreateFilterButton from './CreateFilterButton';
 import Icon from 'src/components/Icon';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
@@ -35,16 +36,32 @@ const Bar = styled.div`
   flex-direction: column;
   width: 250px; // arbitrary...
   flex-grow: 1;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
-const TitleArea = styled.h2`
+const TitleArea = styled.h4`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   margin: 0;
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding-top: 0;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  .btn {
+    flex: 1 1 50%;
+  }
+`;
+
+const FilterControls = styled.div`
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 interface FilterProps {
@@ -77,8 +94,8 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
       <Form.Item name="value">
         <Input />
       </Form.Item>
-      <Button type="primary" htmlType="submit">
-        apply
+      <Button buttonSize="sm" buttonStyle="tertiary" type="submit">
+        {t("Apply")}
       </Button>
     </Form>
   );
@@ -123,9 +140,20 @@ const FilterBar: React.FC = () => {
           <Icon name="more-horiz" />
         </Dropdown>
       </TitleArea>
-      {filterConfigs.map(filter => (
-        <FilterControl key={filter.id} filter={filter} />
-      ))}
+      <ActionButtons>
+        <Button buttonStyle="primary" type="submit" buttonSize="sm">
+          {t("Apply")}
+        </Button>
+        <Button buttonStyle="secondary" buttonSize="sm">
+          {t("Reset All")}
+        </Button>
+      </ActionButtons>
+      <FilterControls>
+        {filterConfigs.map(filter => (
+          <FilterControl key={filter.id} filter={filter} />
+        ))}
+      </FilterControls>
+      
     </Bar>
   );
 };
