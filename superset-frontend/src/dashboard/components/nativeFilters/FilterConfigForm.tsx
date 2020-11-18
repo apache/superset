@@ -164,7 +164,7 @@ const FilterConfigForm = ({
       <Form.Item name="isRequired" label={t('Required')}>
         <Input type="checkbox" />
       </Form.Item>
-      <Typography.Title level={4}>{t('Scoping')}</Typography.Title>
+      <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
       <Form.Item name="scope">
         <Radio.Group
           defaultValue={scoping}
