@@ -26,9 +26,11 @@ from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
+from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
+from superset.models.core import Database
 from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.importexport import (
@@ -326,7 +328,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             command.run()
         assert str(excinfo.value) == "Error importing dataset"
         assert excinfo.value.normalized_messages() == {
-            "metadata.yaml": {"type": ["Must be equal to SqlaTable."],}
+            "metadata.yaml": {"type": ["Must be equal to SqlaTable."]}
         }
 
         # must also validate databases
@@ -343,3 +345,32 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 "database_name": ["Missing data for required field."],
             }
         }
+
+    def test_import_v1_dataset_existing_database(self):
+        """Test that a dataset can be imported when the database already exists"""
+        # first import database...
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert len(database.tables) == 0
+
+        # ...then dataset
+        contents = {
+            "metadata.yaml": yaml.safe_dump(dataset_metadata_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        }
+        command = ImportDatasetsCommand(contents)
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert len(database.tables) == 1
