@@ -24,22 +24,28 @@ import shortid from 'shortid';
 import { Button, Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import { createFilter } from 'src/dashboard/actions/nativeFilters';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { Filter, Scope } from './types';
 import FilterConfigForm from './FilterConfigForm';
 import FiltersList from './FiltersList';
+import { DASHBOARD_ROOT_ID } from '../../util/constants';
 
 /** Special purpose AsyncSelect that selects a column from a dataset */
 
 interface FilterCreateModalProps {
   isOpen: boolean;
+  setFilterScope: Function;
   save: (values: Record<string, any>) => Promise<void>;
   onCancel: () => void;
 }
 
 type FiltersToEdit = Filter;
 
-function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
+function FilterCreateModal({
+  isOpen,
+  save,
+  onCancel,
+  setFilterScope,
+}: FilterCreateModalProps) {
   const [form] = Form.useForm();
 
   // antd form manages the dataset value,
@@ -47,10 +53,6 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
   const [dataset, setDataset] = useState<DatasetSelectValue | null>(null);
   const [edit, showEdit] = useState(false);
   const [filterToEdit, setFilterToEdit] = useState<FiltersToEdit>({});
-  const [filterScopes, setFilterScopes] = useState<Scope>({
-    rootPath: [],
-    excluded: [],
-  }); // TODO: when connect to store read from there
 
   function resetForm() {
     form.resetFields();
@@ -86,8 +88,7 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
       <FilterConfigForm
         dataset={dataset}
         setDataset={setDataset}
-        setFilterScopes={setFilterScopes}
-        filterScopes={filterScopes}
+        setFilterScope={setFilterScope}
         key={filterToEdit?.id}
         form={form}
         filterToEdit={filterToEdit}
@@ -106,6 +107,10 @@ const CreateFilterButton: React.FC<ButtonProps> = ({
   ...buttonProps
 }) => {
   const [isOpen, setOpen] = useState(false);
+  const [filterScope, setFilterScope] = useState<Scope>({
+    rootPath: [],
+    excluded: [],
+  }); // TODO: when connect to store read from there
   const dispatch = useDispatch();
 
   function close() {
@@ -113,11 +118,12 @@ const CreateFilterButton: React.FC<ButtonProps> = ({
   }
 
   async function submit(values: Record<string, any>) {
-    const scope = {
+    let scope: Scope = {
       rootPath: [DASHBOARD_ROOT_ID],
       excluded: [],
     };
-    if (values.scope.value === 'specific') {
+    if (values.scope === 'specific') {
+      scope = filterScope;
     }
     dispatch(
       createFilter({
@@ -144,7 +150,12 @@ const CreateFilterButton: React.FC<ButtonProps> = ({
       <Button {...buttonProps} onClick={() => setOpen(true)}>
         {children}
       </Button>
-      <FilterCreateModal isOpen={isOpen} save={submit} onCancel={close} />
+      <FilterCreateModal
+        isOpen={isOpen}
+        save={submit}
+        onCancel={close}
+        setFilterScope={setFilterScope}
+      />
     </>
   );
 };

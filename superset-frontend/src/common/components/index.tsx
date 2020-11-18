@@ -41,7 +41,6 @@ export {
   Input,
   Modal,
   Typography,
-  TreeProps,
   Tree,
   Popover,
   Select,
@@ -49,6 +48,7 @@ export {
   Tabs,
   Tooltip,
 } from 'antd';
+export { TreeProps } from 'antd/lib/tree';
 
 export const MenuItem = styled(AntdMenu.Item)`
   > a {

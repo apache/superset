@@ -27,7 +27,7 @@ import { Filter } from './types';
 import ScopingTree from './ScopingTree';
 
 interface FilterConfigForm {
-  setFilterScopes: Function;
+  setFilterScope: Function;
   dataset: any;
   setDataset: (arg0: string) => void;
   filterToEdit: {
@@ -104,7 +104,7 @@ const ScopingTreeNote = styled.div`
 const FilterConfigForm = ({
   dataset,
   setDataset,
-  setFilterScopes,
+  setFilterScope,
   filterToEdit,
   form,
   edit,
@@ -167,7 +167,7 @@ const FilterConfigForm = ({
       <Typography.Title level={4}>{t('Scoping')}</Typography.Title>
       <Form.Item name="scope">
         <Radio.Group
-          defaultValue="all"
+          defaultValue={scoping}
           onChange={({ target: { value } }) => {
             setScoping(value as Scoping);
           }}
@@ -183,7 +183,7 @@ const FilterConfigForm = ({
               {t('Only selected panels will be affected by this filter')}
             </Typography.Text>
           </ScopingTreeNote>
-          <ScopingTree setFilterScopes={setFilterScopes} />
+          <ScopingTree setFilterScope={setFilterScope} />
         </Fragment>
       )}
     </Form>

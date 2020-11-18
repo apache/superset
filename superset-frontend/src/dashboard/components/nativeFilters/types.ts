@@ -26,7 +26,7 @@ export interface Column {
 
 export interface Scope {
   rootPath: string[];
-  excluded: string[];
+  excluded: number[];
 }
 
 /** The target of a filter is the datasource/column being filtered */
@@ -70,14 +70,27 @@ export type FilterState = {
   isDirty: boolean;
 };
 
+/** Chart state of redux */
+export type Chart = {
+  id: number;
+  slice_id: 2107;
+  formData: {
+    viz_type: string;
+  };
+};
+
 /** Root state of redux */
 export type RootState = {
+  charts: { [key: string]: Chart };
   dashboardLayout: { present: { [key: string]: LayoutItem } };
   dashboardFilters: {};
 };
 
 /** State of dashboardLayout in redux */
 export type Layout = { [key: string]: LayoutItem };
+
+/** State of charts in redux */
+export type Charts = { [key: number]: Chart };
 
 type ComponentTypesKeys = keyof typeof componentTypes;
 export type ComponentType = typeof componentTypes[ComponentTypesKeys];

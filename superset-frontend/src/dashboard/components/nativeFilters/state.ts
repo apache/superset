@@ -22,21 +22,15 @@ import { selectFilterOption } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { t } from '@superset-ui/core';
 import {
-  ComponentType,
+  Charts,
   Filter,
   FilterState,
   Layout,
-  LayoutItem,
   RootState,
   TreeItem,
 } from './types';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
-import {
-  CHART_TYPE,
-  DASHBOARD_ROOT_TYPE,
-  TAB_TYPE,
-  TABS_TYPE,
-} from '../../util/componentTypes';
+import { DASHBOARD_ROOT_TYPE } from '../../util/componentTypes';
 import { buildTree } from './utils';
 
 export function useFilterConfigurations() {
@@ -66,12 +60,15 @@ export function useFilterScopeTree(): {
   const layout = useSelector<RootState, Layout>(
     ({ dashboardLayout: { present } }) => present,
   );
+
+  const charts = useSelector<RootState, Charts>(({ charts }) => charts);
+
   const tree = {
     children: [],
     key: DASHBOARD_ROOT_ID,
     type: DASHBOARD_ROOT_TYPE,
     title: t('All Panels'),
   };
-  buildTree(layout[DASHBOARD_ROOT_ID], tree, layout);
+  buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts);
   return { treeData: [tree], layout };
 }

@@ -2,13 +2,13 @@ import React, { FC, useState } from 'react';
 import { Tree } from 'src/common/components';
 import { useFilterScopeTree } from './state';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
-import { findRootPath, isShowTypeInTree } from './utils';
+import { findFilterScope } from './utils';
 
 type ScopingTreeProps = {
-  setFilterScopes: Function;
+  setFilterScope: Function;
 };
 
-const ScopingTree: FC<ScopingTreeProps> = ({ setFilterScopes }) => {
+const ScopingTree: FC<ScopingTreeProps> = ({ setFilterScope }) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([
     DASHBOARD_ROOT_ID,
   ]);
@@ -25,13 +25,7 @@ const ScopingTree: FC<ScopingTreeProps> = ({ setFilterScopes }) => {
 
   const onCheck = (checkedKeys: string[]) => {
     setCheckedKeys(checkedKeys);
-    const checkedItemParents = checkedKeys.map(key =>
-      (layout[key].parents || [])
-        .filter(parent => isShowTypeInTree(layout[parent].type))
-        .sort((p1, p2) => p1.length - p2.length),
-    );
-    const { rootPath } = findRootPath(checkedItemParents);
-    console.log(rootPath);
+    setFilterScope(findFilterScope(checkedKeys, layout));
   };
 
   return (
