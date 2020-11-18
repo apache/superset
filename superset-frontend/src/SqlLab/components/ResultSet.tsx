@@ -91,7 +91,8 @@ export default class ResultSet extends React.PureComponent<
       data: [],
       showSaveDatasetModal: false,
       newSaveDatasetName: '',
-      userDatasetsOwned: []
+      userDatasetsOwned: [],
+      saveDatasetRadioBtnState: 1,
     };
 
     this.changeSearch = this.changeSearch.bind(this);
@@ -104,6 +105,7 @@ export default class ResultSet extends React.PureComponent<
     this.handleSaveInDataset = this.handleSaveInDataset.bind(this);
     this.handleHideSaveModal = this.handleHideSaveModal.bind(this);
     this.handleDatasetNameChange = this.handleDatasetNameChange.bind(this);
+    this.handleSaveDatasetRadioBtnState = this.handleSaveDatasetRadioBtnState.bind(this);
   }
 
   componentDidMount() {
@@ -238,6 +240,11 @@ export default class ResultSet extends React.PureComponent<
     this.setState({showSaveDatasetModal: false})
   }
 
+  handleSaveDatasetRadioBtnState(e) {
+    console.log(e.target.value)
+    this.setState({saveDatasetRadioBtnState: e.target.value});
+  }
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let { data } = this.props.query.results;
@@ -254,6 +261,8 @@ export default class ResultSet extends React.PureComponent<
             onCancel={this.handleHideSaveModal}
             handleDatasetNameChange={this.handleDatasetNameChange}
             userDatasetsOwned={this.state.userDatasetsOwned}
+            handleSaveDatasetRadioBtnState={this.handleSaveDatasetRadioBtnState}
+            saveDatasetRadioBtnState={this.state.saveDatasetRadioBtnState}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&

@@ -33,8 +33,7 @@ interface SaveDatasetModalProps = {
 }
 
 // eslint-disable-next-line no-empty-pattern
-export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned}) => {
-  const [value, setValue] = useState('');
+export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState}) => {
   const [options, setOptions] = useState([]);
   const [radioOption, setRadioOptions] = useState(1);
 
@@ -50,10 +49,6 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
 
   const onSelect = (data) => {
     console.log('onSelect', data);
-  };
-
-  const onRadioChange = e => {
-    setRadioOptions(e.target.value)
   };
 
   const radioStyle = {
@@ -84,7 +79,7 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
         <div>
           To explore the results of this query, we need to save it as a virtual dataset
         </div>
-        <Radio.Group onChange={onRadioChange} value={radioOption}>
+        <Radio.Group onChange={handleSaveDatasetRadioBtnState} value={saveDatasetRadioBtnState}>
           <Radio style={radioStyle} value={1}>
             Save as new dataset
             <Input style={{ width: 200 }} defaultValue="my_new_dataset_A" onChange={handleDatasetNameChange} />
