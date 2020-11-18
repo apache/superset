@@ -33,7 +33,11 @@ export default function SearchFilter({
   onSubmit,
 }: SearchHeaderProps) {
   const [value, setValue] = useState(initialValue || '');
-  const handleSubmit = () => onSubmit(value);
+  const handleSubmit = () => {
+    if (value) {
+      onSubmit(value);
+    }
+  };
   const onClear = () => {
     setValue('');
     onSubmit('');

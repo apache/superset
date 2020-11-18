@@ -29,6 +29,7 @@ import QueryList from 'src/views/CRUD/data/query/QueryList';
 import QueryPreviewModal from 'src/views/CRUD/data/query/QueryPreviewModal';
 import { QueryObject } from 'src/views/CRUD/types';
 import ListView from 'src/components/ListView';
+import Filters from 'src/components/ListView/Filters';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 
 // store needed for withToasts
@@ -69,6 +70,19 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
 fetchMock.get(queriesEndpoint, {
   result: mockQueries,
   chart_count: 3,
+});
+
+fetchMock.get('glob:*/api/v1/query/related/user*', {
+  result: [],
+  count: 0,
+});
+fetchMock.get('glob:*/api/v1/query/related/database*', {
+  result: [],
+  count: 0,
+});
+fetchMock.get('glob:*/api/v1/query/disting/status*', {
+  result: [],
+  count: 0,
 });
 
 describe('QueryList', () => {
@@ -113,5 +127,18 @@ describe('QueryList', () => {
     wrapper.update();
 
     expect(wrapper.find(QueryPreviewModal)).toExist();
+  });
+
+  it('searches', async () => {
+    const filtersWrapper = wrapper.find(Filters);
+    act(() => {
+      const props = filtersWrapper.find('[name="sql"]').first().props();
+      // @ts-ignore
+      if (props.onSubmit) props.onSubmit('fooo');
+    });
+    await waitForComponentToPaint(wrapper);
+    expect((fetchMock.lastCall() ?? [])[0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/query/?q=(filters:!((col:sql,opr:ct,value:fooo)),order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 });
