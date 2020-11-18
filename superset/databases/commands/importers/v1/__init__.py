@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
 from marshmallow import Schema, validate
 from marshmallow.exceptions import ValidationError
