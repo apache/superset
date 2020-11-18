@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PlusOutlined } from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
 import React from 'react';
-import { Button, Form, Input } from 'src/common/components';
+import { Button, Form, Input, Dropdown, Menu } from 'src/common/components';
 import CreateFilterButton from './CreateFilterButton';
+import Icon from 'src/components/Icon';
+
 import {
   useFilterConfigurations,
   useFilterSetter,
@@ -91,6 +92,23 @@ const FilterControl: React.FC<FilterProps> = ({ filter }) => {
   );
 };
 
+const menu = (
+    <Menu>
+      <Menu.Item>
+        Configure Filters
+      </Menu.Item>
+      <Menu.Item>
+        <CreateFilterButton type="text">
+          New Filter
+        </CreateFilterButton>
+      </Menu.Item>
+      <Menu.Item>
+          Bulk Scoping
+      </Menu.Item>
+
+    </Menu>
+  );
+
 const FilterBar: React.FC = () => {
   const filterConfigs = useFilterConfigurations();
   console.log('filterConfigs', filterConfigs)
@@ -98,9 +116,9 @@ const FilterBar: React.FC = () => {
     <Bar>
       <TitleArea>
         <span>Filters ({filterConfigs.length})</span>
-        <CreateFilterButton type="text" shape="circle">
-          <PlusOutlined />
-        </CreateFilterButton>
+        <Dropdown overlay={menu}>
+          <Icon name="more-horiz" />
+        </Dropdown>
       </TitleArea>
       {filterConfigs.map(filter => (
         <FilterControl key={filter.id} filter={filter} />

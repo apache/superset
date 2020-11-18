@@ -17,11 +17,10 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ButtonProps } from 'antd/lib/button';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import shortid from 'shortid';
-import { Button, Form } from 'src/common/components';
+import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import { createFilter } from 'src/dashboard/actions/nativeFilters';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
@@ -96,9 +95,8 @@ function generateFilterId() {
   return `FILTER_V2-${shortid.generate()}`;
 }
 
-const CreateFilterButton: React.FC<ButtonProps> = ({
+const CreateFilterButton: React.FC = ({
   children,
-  ...buttonProps
 }) => {
   const [isOpen, setOpen] = useState(false);
   const dispatch = useDispatch();
@@ -133,9 +131,9 @@ const CreateFilterButton: React.FC<ButtonProps> = ({
 
   return (
     <>
-      <Button {...buttonProps} onClick={() => setOpen(true)}>
+      <div onClick={() => setOpen(true)}>
         {children}
-      </Button>
+      </div>
       <FilterCreateModal isOpen={isOpen} save={submit} onCancel={close} />
     </>
   );
