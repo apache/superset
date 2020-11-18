@@ -24,7 +24,19 @@ interface Props {
   className?: string;
   href?: string;
   onClick?: () => void;
-  placement?: string;
+  placement?:
+    | 'bottom'
+    | 'left'
+    | 'right'
+    | 'top'
+    | 'topLeft'
+    | 'topRight'
+    | 'bottomLeft'
+    | 'bottomRight'
+    | 'leftTop'
+    | 'leftBottom'
+    | 'rightTop'
+    | 'rightBottom';
   style?: object;
   tooltip?: string | null;
 }

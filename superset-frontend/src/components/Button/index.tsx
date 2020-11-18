@@ -36,7 +36,19 @@ export interface DropdownItemProps {
 export interface ButtonProps {
   className?: string;
   tooltip?: string;
-  placement?: string;
+  placement?:
+    | 'bottom'
+    | 'left'
+    | 'right'
+    | 'top'
+    | 'topLeft'
+    | 'topRight'
+    | 'bottomLeft'
+    | 'bottomRight'
+    | 'leftTop'
+    | 'leftBottom'
+    | 'rightTop'
+    | 'rightBottom';
   onClick?: OnClickHandler;
   disabled?: boolean;
   buttonStyle?: string;
