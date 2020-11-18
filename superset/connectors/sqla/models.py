@@ -438,6 +438,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     type = "table"
     query_language = "sql"
     is_rls_supported = True
+    columns: List[TableColumn] = []
+    metrics: List[SqlMetric] = []
     metric_class = SqlMetric
     column_class = TableColumn
     owner_class = security_manager.user_model
@@ -1333,7 +1335,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         db_engine_spec = self.database.db_engine_spec
         old_columns = db.session.query(TableColumn).filter(TableColumn.table == self)
 
-        old_columns_by_name = {col.column_name: col for col in old_columns}
+        old_columns_by_name: Dict[str, TableColumn] = {
+            col.column_name: col for col in old_columns
+        }
         results = MetadataResult(
             removed=[
                 col
@@ -1345,7 +1349,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         # clear old columns before adding modified columns back
         self.columns = []
         for col in new_columns:
-            old_column = old_columns_by_name.get(col["name"], None)
+            old_column = old_columns_by_name.pop(col["name"], None)
             if not old_column:
                 results.added.append(col["name"])
                 new_column = TableColumn(
@@ -1358,11 +1362,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 if new_column.type != col["type"]:
                     results.modified.append(col["name"])
                 new_column.type = col["type"]
+                new_column.expression = ""
             new_column.groupby = True
             new_column.filterable = True
             self.columns.append(new_column)
             if not any_date_col and new_column.is_temporal:
                 any_date_col = col["name"]
+        self.columns.extend(
+            [col for col in old_columns_by_name.values() if col.expression]
+        )
         metrics.append(
             SqlMetric(
                 metric_name="count",
