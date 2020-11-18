@@ -49,6 +49,7 @@ export {
   Tooltip,
 } from 'antd';
 export { TreeProps } from 'antd/lib/tree';
+export { FormInstance } from 'antd/lib/form';
 
 export const MenuItem = styled(AntdMenu.Item)`
   > a {

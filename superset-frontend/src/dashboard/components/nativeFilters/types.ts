@@ -19,6 +19,24 @@
 
 import componentTypes from 'src/dashboard/util/componentTypes';
 
+export enum Scoping {
+  all,
+  specific,
+}
+
+export interface NativeFiltersForm {
+  scoping: Scoping;
+  name: string;
+  dataset: {
+    value: number;
+  };
+  isInstant: boolean;
+  column: {
+    value: Column;
+  };
+  defaultValue: string;
+}
+
 export interface Column {
   name: string;
   displayName?: string;
@@ -52,7 +70,7 @@ export interface Filter {
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
-  defaultValue: string[] | number[] | null;
+  defaultValue: string;
   scope: Scope;
   isInstant: boolean;
 }

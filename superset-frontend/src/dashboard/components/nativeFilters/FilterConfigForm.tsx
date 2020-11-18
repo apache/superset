@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, Fragment } from 'react';
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import React, { Fragment, useState } from 'react';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import { Form, Input, Radio, Typography } from 'src/common/components';
 import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
-import { Filter } from './types';
+import { Filter, Scoping } from './types';
 import ScopingTree from './ScopingTree';
 
 interface FilterConfigForm {
@@ -58,8 +58,6 @@ const datasetToSelectOption = (item: any): DatasetSelectValue => ({
   value: item.id,
   label: item.table_name,
 });
-
-type Scoping = 'all' | 'specific';
 
 function ColumnSelect({ datasetId, value, onChange }: ColumnSelectProps) {
   const { addDangerToast } = useToasts();
@@ -109,7 +107,7 @@ const FilterConfigForm = ({
   form,
   edit,
 }: FilterConfigForm) => {
-  const [scoping, setScoping] = useState<Scoping>('all');
+  const [scoping, setScoping] = useState<Scoping>(Scoping.all);
   return (
     <Form
       form={form}
@@ -165,18 +163,20 @@ const FilterConfigForm = ({
         <Input type="checkbox" />
       </Form.Item>
       <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
-      <Form.Item name="scope">
+      <Form.Item name="scoping">
         <Radio.Group
           defaultValue={scoping}
           onChange={({ target: { value } }) => {
             setScoping(value as Scoping);
           }}
         >
-          <Radio value="all">{t('Apply to all panels')}</Radio>
-          <Radio value="specific">{t('Apply to specific panels')}</Radio>
+          <Radio value={Scoping.all}>{t('Apply to all panels')}</Radio>
+          <Radio value={Scoping.specific}>
+            {t('Apply to specific panels')}
+          </Radio>
         </Radio.Group>
       </Form.Item>
-      {scoping === 'specific' && (
+      {scoping === Scoping.specific && (
         <Fragment>
           <ScopingTreeNote>
             <Typography.Text type="secondary">

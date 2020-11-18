@@ -21,10 +21,10 @@ import { ButtonProps } from 'antd/lib/button';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import shortid from 'shortid';
-import { Button, Form } from 'src/common/components';
+import { Button, Form, FormInstance } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import { createFilter } from 'src/dashboard/actions/nativeFilters';
-import { Filter, Scope } from './types';
+import { Filter, NativeFiltersForm, Scope, Scoping } from './types';
 import FilterConfigForm from './FilterConfigForm';
 import FiltersList from './FiltersList';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
@@ -117,12 +117,12 @@ const CreateFilterButton: React.FC<ButtonProps> = ({
     setOpen(false);
   }
 
-  async function submit(values: Record<string, any>) {
+  async function submit(values: NativeFiltersForm) {
     let scope: Scope = {
       rootPath: [DASHBOARD_ROOT_ID],
       excluded: [],
     };
-    if (values.scope === 'specific') {
+    if (values.scoping === Scoping.specific) {
       scope = filterScope;
     }
     dispatch(
