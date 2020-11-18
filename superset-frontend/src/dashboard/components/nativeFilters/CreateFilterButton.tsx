@@ -21,7 +21,7 @@ import { ButtonProps } from 'antd/lib/button';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import shortid from 'shortid';
-import { Button, Form, FormInstance } from 'src/common/components';
+import { Button, Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import { createFilter } from 'src/dashboard/actions/nativeFilters';
 import { Filter, NativeFiltersForm, Scope, Scoping } from './types';
@@ -71,11 +71,11 @@ function FilterCreateModal({
         let values = {};
         try {
           values = await form.validateFields();
+          await save(values);
+          resetForm();
         } catch (info) {
           console.log('Validate Failed:', info);
         }
-        await save(values);
-        resetForm();
       }}
       okText={t('Save')}
       cancelText={t('Cancel')}

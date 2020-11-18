@@ -163,9 +163,8 @@ const FilterConfigForm = ({
         <Input type="checkbox" />
       </Form.Item>
       <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
-      <Form.Item name="scoping">
+      <Form.Item name="scoping" initialValue={scoping}>
         <Radio.Group
-          defaultValue={scoping}
           onChange={({ target: { value } }) => {
             setScoping(value as Scoping);
           }}
