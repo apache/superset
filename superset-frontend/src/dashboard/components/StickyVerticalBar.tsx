@@ -1,0 +1,68 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import React from 'react';
+import { StickyContainer, Sticky } from 'react-sticky';
+import { styled } from '@superset-ui/core';
+
+export const SUPERSET_HEADER_HEIGHT = 59;
+
+const Wrapper = styled.div<{ width: number }>`
+  position: relative;
+  flex: 0 0 ${({ width }) => width}px;
+`;
+
+const Contents = styled.div`
+  display: grid;
+  position: absolute;
+  overflow: auto;
+  height: 100%;
+`;
+
+export interface SVBProps {
+  topOffset: number;
+  width: number;
+}
+
+/**
+ * A vertical sidebar that uses sticky position to stay
+ * fixed on the page after the sitenav is scrolled out of the viewport.
+ *
+ * TODO use css position: sticky when sufficiently supported
+ * (should have better performance)
+ */
+export const StickyVerticalBar: React.FC<SVBProps> = ({
+  topOffset,
+  width,
+  children,
+}) => {
+  return (
+    <Wrapper width={width}>
+      <StickyContainer>
+        <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
+          {({ style, isSticky }: { style: any; isSticky: boolean }) => (
+            <Contents style={isSticky ? { ...style, top: topOffset } : null}>
+              {children}
+            </Contents>
+          )}
+        </Sticky>
+      </StickyContainer>
+    </Wrapper>
+  );
+};

@@ -41,13 +41,14 @@ import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponen
 
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
 import FilterBar from './nativeFilters/FilterBar';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { StickyVerticalBar } from './StickyVerticalBar';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -204,6 +205,8 @@ class DashboardBuilder extends React.Component {
 
     const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
 
+    const barTopOffset = HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0);
+
     return (
       <StickyContainer
         className={cx('dashboard', editMode && 'dashboard--editing')}
@@ -257,9 +260,9 @@ class DashboardBuilder extends React.Component {
 
         <StyledDashboardContent className="dashboard-content">
           {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
-            <div className="filter-container">
+            <StickyVerticalBar topOffset={barTopOffset} width={250}>
               <FilterBar />
-            </div>
+            </StickyVerticalBar>
           )}
           <div className="grid-container" data-test="grid-container">
             <ParentSize>
@@ -303,7 +306,7 @@ class DashboardBuilder extends React.Component {
           </div>
           {editMode && (
             <BuilderComponentPane
-              topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
+              topOffset={barTopOffset}
               showBuilderPane={showBuilderPane}
               setColorSchemeAndUnsavedChanges={setColorSchemeAndUnsavedChanges}
               colorScheme={colorScheme}
