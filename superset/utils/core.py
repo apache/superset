@@ -1380,39 +1380,39 @@ def get_since_until(  # pylint: disable=too-many-arguments
 
     if time_range:
         if separator in time_range:
-            since, until = parse_time_range(time_range)  # type: ignore
+            _since, _until = parse_time_range(time_range)
         elif "previous" in time_range.lower():
-            since, until = get_calendar_since_until(time_range)  # type: ignore
+            _since, _until = get_calendar_since_until(time_range)
         elif time_range == "No filter":
-            since = until = None
+            _since = _until = None
         else:
             rel, num, grain = time_range.split()
             if rel == "Last":
-                since = _relative_start - relativedelta(
+                _since = _relative_start - relativedelta(
                     **{grain: int(num)}  # type: ignore
                 )
-                until = _relative_end  # type: ignore
+                _until = _relative_end
             else:  # rel == 'Next'
-                since = _relative_start  # type: ignore
-                until = _relative_end + relativedelta(
+                _since = _relative_start
+                _until = _relative_end + relativedelta(
                     **{grain: int(num)}  # type: ignore
                 )
     else:
         since = since or ""
         if since:
             since = add_ago_to_since(since)
-        since = parse_human_datetime(since) if since else None  # type: ignore
-        until = parse_human_datetime(until) if until else _relative_end  # type: ignore
+        _since = parse_human_datetime(since) if since else None
+        _until = parse_human_datetime(until) if until else _relative_end
 
     if time_shift:
         time_delta = parse_past_timedelta(time_shift)
-        since = since if since is None else (since - time_delta)  # type: ignore
-        until = until if until is None else (until - time_delta)  # type: ignore
+        _since = _since if _since is None else (_since - time_delta)
+        _until = _until if _until is None else (_until - time_delta)
 
-    if since and until and since > until:
+    if _since and _until and _since > _until:
         raise ValueError(_("From date cannot be larger than to date"))
 
-    return since, until  # type: ignore
+    return _since, _until
 
 
 def add_ago_to_since(since: str) -> str:
