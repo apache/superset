@@ -43,13 +43,16 @@ const SyntaxHighlighterWrapper = styled.div`
   }
 `;
 
-export default function SyntaxHighlighterCopy(
-  props: SyntaxHighlighterProps & {
-    children: string;
-    addDangerToast?: ToastProps['addDangerToast'];
-    addSuccessToast?: ToastProps['addSuccessToast'];
-  },
-) {
+export default function SyntaxHighlighterCopy({
+  addDangerToast,
+  addSuccessToast,
+  children,
+  ...syntaxHighlighterProps
+}: SyntaxHighlighterProps & {
+  children: string;
+  addDangerToast?: ToastProps['addDangerToast'];
+  addSuccessToast?: ToastProps['addSuccessToast'];
+}) {
   function copyToClipboard(textToCopy: string) {
     const selection: Selection | null = document.getSelection();
     if (selection) {
@@ -71,10 +74,8 @@ export default function SyntaxHighlighterCopy(
           throw new Error(t('Not successful'));
         }
       } catch (err) {
-        if (props.addDangerToast) {
-          props.addDangerToast(
-            t('Sorry, your browser does not support copying.'),
-          );
+        if (addDangerToast) {
+          addDangerToast(t('Sorry, your browser does not support copying.'));
         }
       }
 
@@ -84,15 +85,11 @@ export default function SyntaxHighlighterCopy(
       } else {
         selection.removeAllRanges();
       }
-      if (props.addSuccessToast) {
-        props.addSuccessToast(t('SQL Copied!'));
+      if (addSuccessToast) {
+        addSuccessToast(t('SQL Copied!'));
       }
     }
   }
-  const syntaxHighlighterProps = { ...props };
-  delete syntaxHighlighterProps.addDangerToast;
-  delete syntaxHighlighterProps.addSuccessToast;
-
   return (
     <SyntaxHighlighterWrapper>
       <Icon
@@ -102,11 +99,11 @@ export default function SyntaxHighlighterCopy(
         onClick={e => {
           e.preventDefault();
           e.currentTarget.blur();
-          copyToClipboard(props.children);
+          copyToClipboard(children);
         }}
       />
       <SyntaxHighlighter style={github} {...syntaxHighlighterProps}>
-        {props.children}
+        {children}
       </SyntaxHighlighter>
     </SyntaxHighlighterWrapper>
   );

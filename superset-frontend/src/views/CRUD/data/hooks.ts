@@ -32,21 +32,12 @@ export function useQueryPreviewState<D extends BaseQueryObject = any>({
 }) {
   const index = queries.findIndex(query => query.id === currentQueryId);
   const [currentIndex, setCurrentIndex] = useState(index);
-  const [disablePrevious, setDisbalePrevious] = useState(false);
-  const [disableNext, setDisbaleNext] = useState(false);
+  const [disablePrevious, setDisablePrevious] = useState(false);
+  const [disableNext, setDisableNext] = useState(false);
 
   function checkIndex() {
-    if (currentIndex === 0) {
-      setDisbalePrevious(true);
-    } else {
-      setDisbalePrevious(false);
-    }
-
-    if (currentIndex === queries.length - 1) {
-      setDisbaleNext(true);
-    } else {
-      setDisbaleNext(false);
-    }
+    setDisablePrevious(currentIndex === 0);
+    setDisableNext(currentIndex === queries.length - 1);
   }
 
   function handleDataChange(previous: boolean) {
