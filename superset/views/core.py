@@ -61,6 +61,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import (
@@ -86,9 +87,9 @@ from superset.security.analytics_db_safety import (
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.typing import FlaskResponse
-from superset.utils import core as utils, dashboard_import_export
+from superset.utils import core as utils
+from superset.utils.cache import etag_cache
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import etag_cache
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -122,7 +123,6 @@ from superset.views.utils import (
 from superset.viz import BaseViz
 
 config = app.config
-CACHE_DEFAULT_TIMEOUT = config["CACHE_DEFAULT_TIMEOUT"]
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
 DAR = DatasourceAccessRequest
@@ -434,7 +434,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @expose("/slice_json/<int:slice_id>")
-    @etag_cache(CACHE_DEFAULT_TIMEOUT, check_perms=check_slice_perms)
+    @etag_cache(check_perms=check_slice_perms)
     def slice_json(self, slice_id: int) -> FlaskResponse:
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
@@ -493,7 +493,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         methods=EXPLORE_JSON_METHODS,
     )
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
-    @etag_cache(CACHE_DEFAULT_TIMEOUT, check_perms=check_datasource_perms)
+    @etag_cache(check_perms=check_datasource_perms)
     def explore_json(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
@@ -545,9 +545,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             success = False
             database_id = request.form.get("db_id")
             try:
-                dashboard_import_export.import_dashboards(
-                    db.session, import_file.stream, database_id
-                )
+                ImportDashboardsCommand(
+                    {import_file.filename: import_file.read()}, database_id
+                ).run()
                 success = True
             except DatabaseNotFound as ex:
                 logger.exception(ex)
@@ -2736,6 +2736,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self.render_template(
             "superset/basic.html", entry="sqllab", bootstrap_data=bootstrap_data
         )
+
+    @has_access
+    @expose("/sqllab/history/", methods=["GET"])
+    def sqllab_search(self) -> FlaskResponse:
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_QUERY_SEARCH_UI")
+        ):
+            return redirect("/superset/sqllab#search", code=307)
+
+        return super().render_app_template()
 
     @api
     @has_access_api

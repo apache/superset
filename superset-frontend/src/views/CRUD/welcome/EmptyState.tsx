@@ -29,6 +29,9 @@ interface EmptyStateProps {
 }
 const EmptyContainer = styled.div`
   min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
 `;
 const ButtonContainer = styled.div`
   Button {

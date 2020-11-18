@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
-import { Skeleton, Menu as AntdMenu } from 'antd';
+import { Dropdown, Skeleton, Menu as AntdMenu } from 'antd';
+import { DropDownProps } from 'antd/lib/dropdown';
 
 /*
   Antd is re-exported from here so we can override components with Emotion as needed.
@@ -51,11 +53,26 @@ export const MenuItem = styled(AntdMenu.Item)`
     height: ${({ theme }) => theme.gridUnit * 7}px;
     line-height: ${({ theme }) => theme.gridUnit * 7}px;
   }
+
+  &.ant-menu-item,
+  &.ant-dropdown-menu-item {
+    span[role='button'] {
+      display: inline-block;
+      width: 100%;
+    }
+  }
 `;
 
 export const Menu = Object.assign(AntdMenu, {
   Item: MenuItem,
 });
+
+export const NoAnimationDropdown = (props: DropDownProps) => (
+  <Dropdown
+    overlayStyle={{ zIndex: 4000, animationDuration: '0s' }}
+    {...props}
+  />
+);
 
 export const ThinSkeleton = styled(Skeleton)`
   h3 {

@@ -15,30 +15,31 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+# pylint: disable=invalid-name, no-self-use, too-many-public-methods, too-many-arguments
 """Unit tests for Superset"""
-import datetime
 import json
 from io import BytesIO
-from zipfile import is_zipfile
+from zipfile import is_zipfile, ZipFile
 
-import pandas as pd
 import prison
 import pytest
-import random
+import yaml
 
-from sqlalchemy import String, Date, Float
 from sqlalchemy.sql import func
 
-from superset import db, security_manager, ConnectorRegistry
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
-from tests.dashboard_utils import (
-    create_table_for_dashboard,
-    create_dashboard,
-)
 from tests.fixtures.certificates import ssl_certificate
+from tests.fixtures.importexport import (
+    database_config,
+    dataset_config,
+    database_metadata_config,
+    dataset_metadata_config,
+)
+
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.test_app import app
 
@@ -95,7 +96,7 @@ class TestDatabaseApi(SupersetTestCase):
             "function_names",
             "id",
         ]
-        self.assertEqual(response["count"], 2)
+        self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 
     def test_get_items_filter(self):
@@ -154,7 +155,7 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend == "sqlite":
             return
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "server_cert": ssl_certificate,
             "extra": json.dumps(extra),
@@ -179,7 +180,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         self.login(username="admin")
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database-invalid-cert",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "server_cert": "INVALID CERT",
         }
@@ -201,7 +202,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         self.login(username="admin")
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database-invalid-json",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "encrypted_extra": '{"A": "a", "B", "C"}',
             "extra": '["A": "a", "B", "C"]',
@@ -241,7 +242,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.login(username="admin")
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database-invalid-extra",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "extra": json.dumps(extra),
         }
@@ -289,7 +290,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="admin")
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-database-invalid-uri",
             "sqlalchemy_uri": "wrong_uri",
         }
 
@@ -297,24 +298,16 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
-        expected_response = {
-            "message": {
-                "sqlalchemy_uri": [
-                    "Invalid connection string, a valid string usually "
-                    "follows:'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
-                    "<p>Example:'postgresql://user:password@your-postgres-db/database'"
-                    "</p>"
-                ]
-            }
-        }
-        self.assertEqual(response, expected_response)
+        self.assertIn(
+            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+        )
 
     def test_create_database_fail_sqllite(self):
         """
         Database API: Test create fail with sqllite
         """
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-sqlite-database",
             "sqlalchemy_uri": "sqlite:////some.db",
         }
 
@@ -342,7 +335,7 @@ class TestDatabaseApi(SupersetTestCase):
             return
         example_db.password = "wrong_password"
         database_data = {
-            "database_name": "test-database",
+            "database_name": "test-create-database-wrong-password",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
         }
 
@@ -362,7 +355,6 @@ class TestDatabaseApi(SupersetTestCase):
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
-
         self.login(username="admin")
         database_data = {"database_name": "test-database-updated"}
         uri = f"api/v1/database/{test_database.id}"
@@ -456,17 +448,9 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
-        expected_response = {
-            "message": {
-                "sqlalchemy_uri": [
-                    "Invalid connection string, a valid string usually "
-                    "follows:'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
-                    "<p>Example:'postgresql://user:password@your-postgres-db/database'"
-                    "</p>"
-                ]
-            }
-        }
-        self.assertEqual(response, expected_response)
+        self.assertIn(
+            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+        )
 
     def test_delete_database(self):
         """
@@ -842,3 +826,71 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
+
+    def test_import_database(self):
+        """
+        Database API: Test import database
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open("databases/imported_database.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("datasets/import_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "file": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.database_name == "imported_database"
+
+        assert len(database.tables) == 1
+        dataset = database.tables[0]
+        assert dataset.table_name == "imported_dataset"
+        assert str(dataset.uuid) == dataset_config["uuid"]
+
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_database_invalid(self):
+        """
+        Database API: Test import invalid database
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
+            with bundle.open("databases/imported_database.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("datasets/import_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "file": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "message": {"metadata.yaml": {"type": ["Must be equal to Database."]}}
+        }

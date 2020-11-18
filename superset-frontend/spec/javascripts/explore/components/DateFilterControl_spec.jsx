@@ -81,6 +81,19 @@ describe('DateFilterControl', () => {
     expect(close).toBeCalled();
   });
 
+  it('should handle null value', () => {
+    const open = jest.fn();
+    const close = jest.fn();
+    const props = {
+      ...defaultProps,
+      value: null,
+      onOpenDateFilterControl: open,
+      onCloseDateFilterControl: close,
+    };
+
+    expect(mount(<DateFilterControl {...props} />)).toExist();
+  });
+
   it('renders two tabs in popover', () => {
     const popoverContent = wrapper.find(Popover).first().props().content;
     const popoverContentWrapper = mount(popoverContent);

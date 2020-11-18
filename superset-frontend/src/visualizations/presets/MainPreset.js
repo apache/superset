@@ -53,10 +53,10 @@ import {
   LineMultiChartPlugin,
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
-import { LegacyBoxPlotChartPlugin } from '@superset-ui/preset-chart-xy';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 import {
   EchartsPieChartPlugin,
+  EchartsBoxPlotChartPlugin,
   EchartsTimeseriesChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 
@@ -73,7 +73,7 @@ export default class MainPreset extends Preset {
         new BarChartPlugin().configure({ key: 'bar' }),
         new BigNumberChartPlugin().configure({ key: 'big_number' }),
         new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
-        new LegacyBoxPlotChartPlugin().configure({ key: 'box_plot' }),
+        new EchartsBoxPlotChartPlugin().configure({ key: 'box_plot' }),
         new BubbleChartPlugin().configure({ key: 'bubble' }),
         new BulletChartPlugin().configure({ key: 'bullet' }),
         new CalendarChartPlugin().configure({ key: 'cal_heatmap' }),

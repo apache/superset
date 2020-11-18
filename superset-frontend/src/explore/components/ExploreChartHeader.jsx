@@ -60,17 +60,21 @@ const StyledHeader = styled.div`
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
+  justify-content: space-between;
 
   span[role='button'] {
     display: flex;
     height: 100%;
   }
 
+  .title-panel {
+    display: flex;
+    align-items: center;
+  }
+
   .right-button-panel {
     display: flex;
-    flex: 1 1 auto;
     align-items: center;
-    justify-content: flex-end;
 
     > .btn-group {
       flex: 0 0 auto;
@@ -132,50 +136,52 @@ export class ExploreChartHeader extends React.PureComponent {
       this.props.chart.chartStatus,
     );
     return (
-      <StyledHeader id="slice-header" className="clearfix panel-title-large">
-        <EditableTitle
-          title={this.getSliceName()}
-          canEdit={!this.props.slice || this.props.can_overwrite}
-          onSaveTitle={this.props.actions.updateChartTitle}
-        />
-
-        {this.props.slice && (
-          <StyledButtons>
-            <FaveStar
-              itemId={this.props.slice.slice_id}
-              fetchFaveStar={this.props.actions.fetchFaveStar}
-              saveFaveStar={this.props.actions.saveFaveStar}
-              isStarred={this.props.isStarred}
-              showTooltip
-            />
-            <PropertiesModal
-              show={this.state.isPropertiesModalOpen}
-              onHide={this.closePropertiesModal}
-              onSave={this.props.sliceUpdated}
-              slice={this.props.slice}
-            />
-            <TooltipWrapper
-              label="edit-desc"
-              tooltip={t('Edit chart properties')}
-            >
-              <span
-                role="button"
-                tabIndex={0}
-                className="edit-desc-icon"
-                onClick={this.openProperiesModal}
-              >
-                <i className="fa fa-edit" />
-              </span>
-            </TooltipWrapper>
-          </StyledButtons>
-        )}
-        {this.props.chart.sliceFormData && (
-          <AlteredSliceTag
-            className="altered"
-            origFormData={this.props.chart.sliceFormData}
-            currentFormData={formData}
+      <StyledHeader id="slice-header" className="panel-title-large">
+        <div className="title-panel">
+          <EditableTitle
+            title={this.getSliceName()}
+            canEdit={!this.props.slice || this.props.can_overwrite}
+            onSaveTitle={this.props.actions.updateChartTitle}
           />
-        )}
+
+          {this.props.slice && (
+            <StyledButtons>
+              <FaveStar
+                itemId={this.props.slice.slice_id}
+                fetchFaveStar={this.props.actions.fetchFaveStar}
+                saveFaveStar={this.props.actions.saveFaveStar}
+                isStarred={this.props.isStarred}
+                showTooltip
+              />
+              <PropertiesModal
+                show={this.state.isPropertiesModalOpen}
+                onHide={this.closePropertiesModal}
+                onSave={this.props.sliceUpdated}
+                slice={this.props.slice}
+              />
+              <TooltipWrapper
+                label="edit-desc"
+                tooltip={t('Edit chart properties')}
+              >
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="edit-desc-icon"
+                  onClick={this.openProperiesModal}
+                >
+                  <i className="fa fa-edit" />
+                </span>
+              </TooltipWrapper>
+              {this.props.chart.sliceFormData && (
+                <AlteredSliceTag
+                  className="altered"
+                  origFormData={this.props.chart.sliceFormData}
+                  currentFormData={formData}
+                />
+              )}
+            </StyledButtons>
+          )}
+        </div>
         <div className="right-button-panel">
           {chartFinished && queryResponse && (
             <RowCountLabel

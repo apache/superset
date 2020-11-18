@@ -50,6 +50,7 @@ class RouteMethod:  # pylint: disable=too-few-public-methods
 
     # RestModelView specific
     EXPORT = "export"
+    IMPORT = "import_"
     GET = "get"
     GET_LIST = "get_list"
     POST = "post"

@@ -2,6 +2,7 @@
   "baseUrl": "http://localhost:8088",
   "chromeWebSecurity": false,
   "defaultCommandTimeout": 5000,
+  "numTestsKeptInMemory": 0,
   "experimentalFetchPolyfill": true,
   "requestTimeout": 10000,
   "ignoreTestFiles": [
@@ -13,7 +14,7 @@
   "viewportHeight": 1024,
   "projectId": "ukwxzo",
   "retries": {
-    "runMode": 2,
+    "runMode": 1,
     "openMode": 0
   }
 }

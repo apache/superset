@@ -236,11 +236,11 @@ class DateFilterControl extends React.Component {
     };
 
     const { value } = props;
-    if (value.indexOf(SEPARATOR) >= 0) {
+    if (value && value.indexOf(SEPARATOR) >= 0) {
       this.state = { ...this.state, ...getStateFromSeparator(value) };
     } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
       this.state = { ...this.state, ...getStateFromCommonTimeFrame(value) };
-    } else {
+    } else if (value) {
       this.state = { ...this.state, ...getStateFromCustomRange(value) };
     }
 

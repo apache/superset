@@ -333,6 +333,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
     "ROW_LEVEL_SECURITY": False,
+    # Enables Alerts and reports new implementation
+    "ALERT_REPORTS": False,
+    "SIP_34_QUERY_SEARCH_UI": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
@@ -390,10 +393,15 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # Setup image size default is (300, 200, True)
 # IMG_SIZE = (300, 200, True)
 
-CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24
+# Default cache timeout (in seconds), applies to all cache backends unless
+# specifically overridden in each cache config.
+CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24  # 1 day
+
+# Default cache for Superset objects
 CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
-TABLE_NAMES_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
-DASHBOARD_CACHE_TIMEOUT = 60 * 60 * 24 * 365
+
+# Cache for datasource metadata and query results
+DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # CORS Options
 ENABLE_CORS = False
@@ -665,14 +673,19 @@ CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
-# dictionary.
+# dictionary. Exposing functionality through JINJA_CONTEXT_ADDONS has security
+# implications as it opens a window for a user to execute untrusted code.
+# It's important to make sure that the objects exposed (as well as objects attached
+# to those objets) are harmless. We recommend only exposing simple/pure functions that
+# return native types.
 JINJA_CONTEXT_ADDONS: Dict[str, Callable[..., Any]] = {}
 
-# A dictionary of macro template processors that gets merged into global
+# A dictionary of macro template processors (by engine) that gets merged into global
 # template processors. The existing template processors get updated with this
 # dictionary, which means the existing keys get overwritten by the content of this
-# dictionary. The customized addons don't necessarily need to use jinjia templating
-# language. This allows you to define custom logic to process macro template.
+# dictionary. The customized addons don't necessarily need to use Jinja templating
+# language. This allows you to define custom logic to process templates on a per-engine
+# basis. Example value = `{"presto": CustomPrestoTemplateProcessor}`
 CUSTOM_TEMPLATE_PROCESSORS: Dict[str, Type[BaseTemplateProcessor]] = {}
 
 # Roles that are controlled by the API / Superset and should not be changes

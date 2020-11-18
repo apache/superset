@@ -139,7 +139,7 @@ function DashboardCard({
         }
         url={bulkSelectEnabled ? undefined : dashboard.url}
         imgURL={dashboard.thumbnail_url}
-        imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
+        imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
         description={t(
           'Last modified %s',
           dashboard.changed_on_delta_humanized,

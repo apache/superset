@@ -14,11 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-build: &superset-build
-  args:
-    NPM_BUILD_CMD: build-dev
-  context: ./
-  dockerfile: Dockerfile-dev
+x-superset-image: &superset-image apache/incubator-superset:latest-dev
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -53,7 +49,7 @@ services:
 
   superset:
     env_file: docker/.env
-    build: *superset-build
+    image: *superset-image
     container_name: superset_app
     command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
     restart: unless-stopped
@@ -63,7 +59,7 @@ services:
     volumes: *superset-volumes
 
   superset-init:
-    build: *superset-build
+    image: *superset-image
     container_name: superset_init
     command: ["/app/docker-init.sh"]
     env_file: docker/.env
@@ -79,7 +75,7 @@ services:
     volumes: *superset-volumes
 
   superset-worker:
-    build: *superset-build
+    image: *superset-image
     container_name: superset_worker
     command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
     env_file: docker/.env
@@ -88,7 +84,7 @@ services:
     volumes: *superset-volumes
 
   superset-tests-worker:
-    build: *superset-build
+    image: *superset-image
     container_name: superset_tests_worker
     command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
     env_file: docker/.env

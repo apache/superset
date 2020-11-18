@@ -128,10 +128,8 @@ class BaseDatasource(
             ),
         )
 
-    # placeholder for a relationship to a derivative of BaseColumn
-    columns: List[Any] = []
-    # placeholder for a relationship to a derivative of BaseMetric
-    metrics: List[Any] = []
+    columns: List["BaseColumn"] = []
+    metrics: List["BaseMetric"] = []
 
     @property
     def type(self) -> str:

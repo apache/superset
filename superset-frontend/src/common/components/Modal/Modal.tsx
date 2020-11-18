@@ -32,6 +32,7 @@ interface ModalProps {
   primaryButtonName?: string;
   primaryButtonType?: 'primary' | 'danger';
   show: boolean;
+  name?: string;
   title: React.ReactNode;
   width?: string;
   maxWidth?: string;
@@ -114,6 +115,7 @@ const CustomModal = ({
   primaryButtonName = t('OK'),
   primaryButtonType = 'primary',
   show,
+  name,
   title,
   width,
   maxWidth,
@@ -159,7 +161,7 @@ const CustomModal = ({
         </span>
       }
       footer={!hideFooter ? modalFooter : null}
-      wrapProps={{ 'data-test': `${title}-modal`, ...wrapProps }}
+      wrapProps={{ 'data-test': `${name || title}-modal`, ...wrapProps }}
       {...rest}
     >
       {children}
