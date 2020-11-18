@@ -22,7 +22,7 @@ import { TooltipProps } from 'antd/lib/tooltip';
 
 const Tooltip = (props: TooltipProps) => (
   <BaseTooltip
-    overlayStyle={{ fontSize: '12px' }}
+    overlayStyle={{ fontSize: '12px', lineHeight: '1.6' }}
     color="rgba(0, 0, 0, 0.9)"
     {...props}
   />
