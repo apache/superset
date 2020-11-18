@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from marshmallow import Schema, validate
 from marshmallow.exceptions import ValidationError
@@ -84,7 +84,7 @@ class ImportDatabasesCommand(BaseCommand):
 
         # verify that the metadata file is present and valid
         try:
-            metadata = load_metadata(self.contents)
+            metadata: Optional[Dict[str, str]] = load_metadata(self.contents)
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None
