@@ -17,43 +17,52 @@
  * under the License.
  */
 import React from 'react';
+import { styled } from '@superset-ui/core';
 import { Button } from 'src/common/components';
+import Icon from 'src/components/Icon';
 import { useFilterConfigurations } from './state';
 
-interface FiltersListProps {
-  setEditFilter: ({ arg0, arg1 }: Args) => void;
-  showEdit: (arg0: boolean) => void;
-  setDataset: (arg0: any) => void;
+interface Args {
+  filter: any;
+  index: number;
 }
 
-type Args = {
-  arg0: any;
-  arg1: number;
-};
+interface FiltersListProps {
+  setEditFilter: (arg0: Args) => void;
+  setDataset: (arg0: any) => void;
+}
+const FiltersStyle = styled.div`
+  display: flex;
+  flex-direction: row;
+`;
 
-const FiltersList = ({
-  setEditFilter,
-  showEdit,
-  setDataset,
-}: FiltersListProps) => {
+const FiltersList = ({ setEditFilter, setDataset }: FiltersListProps) => {
   const filterConfigs = useFilterConfigurations();
-  return (
-    <>
-      {filterConfigs.map((filter, i: number) => (
+  <>
+    {filterConfigs.map((filter, i: number) => (
+      <FiltersStyle>
         <Button
+          type="link"
           key={filter.name}
           onClick={() => {
             setEditFilter({ filter, index: i });
-            showEdit(true);
             setDataset(filter.targets[0].datasetId);
           }}
           role="button"
         >
           {filter.name}
         </Button>
-      ))}
-    </>
-  );
+        <span
+          role="button"
+          title="Edit Dashboard"
+          tabIndex={0}
+          className="action-button"
+        >
+          <Icon name="trash" />
+        </span>
+      </FiltersStyle>
+    ))}
+  </>;
 };
 
 export default FiltersList;

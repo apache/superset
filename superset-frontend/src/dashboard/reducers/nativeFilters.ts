@@ -24,6 +24,8 @@ import {
   CREATE_FILTER_COMPLETE,
   SelectFilterOptionAction,
   SELECT_FILTER_OPTION,
+  EDIT_FILTER,
+  EditFilterAction,
 } from '../actions/nativeFilters';
 import { Filter, FilterState } from '../components/nativeFilters/types';
 
@@ -71,6 +73,13 @@ export default function nativeFilterReducer(
       return {
         ...filters,
         [action.filter.id]: filterState,
+      };
+    },
+
+    [EDIT_FILTER]: (action: EditFilterAction): State => {
+      // still under contructions filter complete
+      return {
+        ...filters,
       };
     },
 

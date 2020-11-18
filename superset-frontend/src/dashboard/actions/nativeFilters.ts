@@ -25,6 +25,7 @@ import { dashboardInfoChanged } from './dashboardInfo';
 export const CREATE_FILTER_BEGIN = 'CREATE_FILTER_BEGIN';
 export const CREATE_FILTER_COMPLETE = 'CREATE_FILTER_COMPLETE';
 export const CREATE_FILTER_FAIL = 'CREATE_FILTER_FAIL';
+export const EDIT_FILTER_FAIL = 'EDIT_FILTER_FAIL';
 
 const updateDashboard = (filter: Filter, id: string, metadata: any) => {
   return SupersetClient.put({
@@ -41,6 +42,11 @@ const updateDashboard = (filter: Filter, id: string, metadata: any) => {
     }),
   });
 };
+
+export interface EditFilterAction {
+  type: typeof EDIT_FILTER;
+  filter: Filter;
+}
 
 export interface CreateFilterBeginAction {
   type: typeof CREATE_FILTER_BEGIN;
@@ -79,8 +85,32 @@ export const createFilter = (filter: Filter) => async (
 };
 
 export const EDIT_FILTER = 'EDIT_FILTER';
-export const editFilter = (filter: Filter) => ({
-  type: EDIT_FILTER,
+export const editFilter = (filter: Filter) => async (
+  dispatch: Dispatch,
+  getState: () => any,
+) => {
+  dispatch({
+    type: EDIT_FILTER,
+    filter,
+  });
+  const { id, metadata } = getState().dashboardInfo;
+  try {
+    const response = await updateDashboard(filter, id, metadata);
+    console.log('response', response)
+    dispatch(
+      dashboardInfoChanged({
+        metadata: JSON.parse(response.json.result.json_metadata),
+      }),
+    );
+  } catch (err) {
+    console.log('err', err);
+    //dispatch({ type: EDIT_FILTER_FAIL, filter });
+  }
+};
+
+export const DELETE_FILTER = 'DELETE_FILTER';
+export const deleteFilter = (filter: Filter) => ({
+  type: DELETE_FILTER,
   filter,
 });
 

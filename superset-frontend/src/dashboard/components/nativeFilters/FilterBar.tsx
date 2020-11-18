@@ -93,7 +93,6 @@ const FilterControl: React.FC<FilterProps> = ({ filter }) => {
 
 const FilterBar: React.FC = () => {
   const filterConfigs = useFilterConfigurations();
-  console.log('filterConfigs', filterConfigs)
   return (
     <Bar>
       <TitleArea>
