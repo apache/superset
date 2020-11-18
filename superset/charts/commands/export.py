@@ -21,13 +21,14 @@ import logging
 from typing import Iterator, Tuple
 
 import yaml
+from werkzeug.utils import secure_filename
 
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.datasets.commands.export import ExportDatasetsCommand
-from superset.importexport.commands.base import ExportModelsCommand
+from superset.commands.export import ExportModelsCommand
 from superset.models.slice import Slice
-from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
+from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class ExportChartsCommand(ExportModelsCommand):
 
     @staticmethod
     def export(model: Slice) -> Iterator[Tuple[str, str]]:
-        chart_slug = sanitize(model.slice_name)
+        chart_slug = secure_filename(model.slice_name)
         file_name = f"charts/{chart_slug}.yaml"
 
         payload = model.export_to_dict(
@@ -62,7 +63,7 @@ class ExportChartsCommand(ExportModelsCommand):
             except json.decoder.JSONDecodeError:
                 logger.info("Unable to decode `params` field: %s", payload["params"])
 
-        payload["version"] = IMPORT_EXPORT_VERSION
+        payload["version"] = EXPORT_VERSION
         if model.table:
             payload["dataset_uuid"] = str(model.table.uuid)
 

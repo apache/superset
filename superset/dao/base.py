@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -35,7 +35,7 @@ class BaseDAO:
     Base DAO, implement base CRUD sqlalchemy operations
     """
 
-    model_cls: Optional[Model] = None
+    model_cls: Optional[Type[Model]] = None
     """
     Child classes need to state the Model class so they don't need to implement basic
     create, update and delete methods

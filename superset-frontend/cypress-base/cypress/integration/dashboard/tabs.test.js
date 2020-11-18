@@ -97,15 +97,24 @@ describe('Dashboard tabs', () => {
 
     cy.get('[data-test="dashboard-component-tabs"]')
       .first()
-      .find('[data-test="nav-list"]')
-      .children()
+      .find('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab')
       .as('top-level-tabs');
 
-    cy.get('@top-level-tabs').first().click().should('have.class', 'active');
-    cy.get('@top-level-tabs').last().should('not.have.class', 'active');
+    cy.get('@top-level-tabs')
+      .first()
+      .click()
+      .should('have.class', 'ant-tabs-tab-active');
+    cy.get('@top-level-tabs')
+      .last()
+      .should('not.have.class', 'ant-tabs-tab-active');
 
-    cy.get('@top-level-tabs').last().click().should('have.class', 'active');
-    cy.get('@top-level-tabs').first().should('not.have.class', 'active');
+    cy.get('@top-level-tabs')
+      .last()
+      .click()
+      .should('have.class', 'ant-tabs-tab-active');
+    cy.get('@top-level-tabs')
+      .first()
+      .should('not.have.class', 'ant-tabs-tab-active');
   });
 
   it('should load charts when tab is visible', () => {
@@ -128,8 +137,7 @@ describe('Dashboard tabs', () => {
     // click row level tab, see 1 more chart
     cy.get('[data-test="dashboard-component-tabs"]')
       .last()
-      .find('[data-test="nav-list"]')
-      .children()
+      .find('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab')
       .as('row-level-tabs');
 
     cy.get('@row-level-tabs').last().click();
@@ -141,8 +149,7 @@ describe('Dashboard tabs', () => {
     handleException();
     cy.get('[data-test="dashboard-component-tabs"]')
       .first()
-      .find('[data-test="nav-list"]')
-      .children()
+      .find('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab')
       .as('top-level-tabs');
 
     cy.get('@top-level-tabs').last().click();

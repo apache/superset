@@ -21,6 +21,7 @@ import { t } from '@superset-ui/core';
 import {
   handleDashboardDelete,
   handleBulkDashboardExport,
+  CardStyles,
 } from 'src/views/CRUD/utils';
 import { Dropdown, Menu } from 'src/common/components';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -29,29 +30,40 @@ import Icon from 'src/components/Icon';
 import Label from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
-import { DashboardCardProps } from 'src/views/CRUD/types';
+import { Dashboard } from 'src/views/CRUD/types';
 
-import { useFavoriteStatus } from 'src/views/CRUD/hooks';
-
-const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
+interface DashboardCardProps {
+  isChart?: boolean;
+  dashboard: Dashboard;
+  hasPerm: (name: string) => boolean;
+  bulkSelectEnabled: boolean;
+  refreshData: () => void;
+  loading: boolean;
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  openDashboardEditModal?: (d: Dashboard) => void;
+  saveFavoriteStatus: (id: number, isStarred: boolean) => void;
+  favoriteStatus: boolean;
+  dashboardFilter?: string;
+  userId?: number;
+}
 
 function DashboardCard({
   dashboard,
   hasPerm,
   bulkSelectEnabled,
+  dashboardFilter,
   refreshData,
+  userId,
   addDangerToast,
   addSuccessToast,
   openDashboardEditModal,
+  favoriteStatus,
+  saveFavoriteStatus,
 }: DashboardCardProps) {
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canExport = hasPerm('can_mulexport');
-  const [, fetchFaveStar, saveFaveStar, favoriteStatus] = useFavoriteStatus(
-    {},
-    FAVESTAR_BASE_URL,
-    addDangerToast,
-  );
 
   const menu = (
     <Menu>
@@ -62,6 +74,7 @@ function DashboardCard({
           onClick={() =>
             openDashboardEditModal && openDashboardEditModal(dashboard)
           }
+          data-test="dashboard-card-option-edit-button"
         >
           <ListViewCard.MenuIcon name="edit-alt" /> Edit
         </Menu.Item>
@@ -91,6 +104,8 @@ function DashboardCard({
                 refreshData,
                 addSuccessToast,
                 addDangerToast,
+                dashboardFilter,
+                userId,
               )
             }
           >
@@ -100,6 +115,7 @@ function DashboardCard({
                 tabIndex={0}
                 className="action-button"
                 onClick={confirmDelete}
+                data-test="dashboard-card-option-delete-button"
               >
                 <ListViewCard.MenuIcon name="trash" /> Delete
               </div>
@@ -110,30 +126,44 @@ function DashboardCard({
     </Menu>
   );
   return (
-    <ListViewCard
-      loading={dashboard.loading || false}
-      title={dashboard.dashboard_title}
-      titleRight={<Label>{dashboard.published ? 'published' : 'draft'}</Label>}
-      url={bulkSelectEnabled ? undefined : dashboard.url}
-      imgURL={dashboard.thumbnail_url}
-      imgFallbackURL="/static/assets/images/dashboard-card-fallback.png"
-      description={t('Last modified %s', dashboard.changed_on_delta_humanized)}
-      coverLeft={<FacePile users={dashboard.owners || []} />}
-      actions={
-        <ListViewCard.Actions>
-          <FaveStar
-            itemId={dashboard.id}
-            fetchFaveStar={fetchFaveStar}
-            saveFaveStar={saveFaveStar}
-            isStarred={!!favoriteStatus[dashboard.id]}
-          />
-          <Dropdown overlay={menu}>
-            <Icon name="more-horiz" />
-          </Dropdown>
-        </ListViewCard.Actions>
-      }
-      showImg
-    />
+    <CardStyles
+      onClick={() => {
+        window.location.href = dashboard.url;
+      }}
+    >
+      <ListViewCard
+        loading={dashboard.loading || false}
+        title={dashboard.dashboard_title}
+        titleRight={
+          <Label>{dashboard.published ? 'published' : 'draft'}</Label>
+        }
+        url={bulkSelectEnabled ? undefined : dashboard.url}
+        imgURL={dashboard.thumbnail_url}
+        imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
+        description={t(
+          'Last modified %s',
+          dashboard.changed_on_delta_humanized,
+        )}
+        coverLeft={<FacePile users={dashboard.owners || []} />}
+        actions={
+          <ListViewCard.Actions
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            <FaveStar
+              itemId={dashboard.id}
+              saveFaveStar={saveFavoriteStatus}
+              isStarred={favoriteStatus}
+            />
+            <Dropdown overlay={menu}>
+              <Icon name="more-horiz" />
+            </Dropdown>
+          </ListViewCard.Actions>
+        }
+      />
+    </CardStyles>
   );
 }
 

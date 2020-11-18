@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
-import { useListViewResource } from 'src/views/CRUD/hooks';
+import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -40,9 +40,10 @@ function DashboardTable({
   user,
   addDangerToast,
   addSuccessToast,
+  mine,
 }: DashboardTableProps) {
   const {
-    state: { loading, resourceCollection: dashboards, bulkSelectEnabled },
+    state: { loading, resourceCollection: dashboards },
     setResourceCollection: setDashboards,
     hasPerm,
     refreshData,
@@ -51,8 +52,15 @@ function DashboardTable({
     'dashboard',
     t('dashboard'),
     addDangerToast,
+    true,
+    mine,
   );
-
+  const dashboardIds = useMemo(() => dashboards.map(c => c.id), [dashboards]);
+  const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
+    'dashboard',
+    dashboardIds,
+    addDangerToast,
+  );
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
@@ -78,10 +86,9 @@ function DashboardTable({
     );
   };
 
-  const getFilters = () => {
+  const getFilters = (filterName: string) => {
     const filters = [];
-
-    if (dashboardFilter === 'Mine') {
+    if (filterName === 'Mine') {
       filters.push({
         id: 'owners',
         operator: 'rel_m_m',
@@ -105,8 +112,8 @@ function DashboardTable({
     });
   }
 
-  useEffect(() => {
-    fetchData({
+  const getData = (filter: string) => {
+    return fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -115,9 +122,9 @@ function DashboardTable({
           desc: true,
         },
       ],
-      filters: getFilters(),
+      filters: getFilters(filter),
     });
-  }, [dashboardFilter]);
+  };
 
   return (
     <>
@@ -127,12 +134,16 @@ function DashboardTable({
           {
             name: 'Favorite',
             label: t('Favorite'),
-            onClick: () => setDashboardFilter('Favorite'),
+            onClick: () => {
+              getData('Favorite').then(() => setDashboardFilter('Favorite'));
+            },
           },
           {
             name: 'Mine',
             label: t('Mine'),
-            onClick: () => setDashboardFilter('Mine'),
+            onClick: () => {
+              getData('Mine').then(() => setDashboardFilter('Mine'));
+            },
           },
         ]}
         buttons={[
@@ -164,24 +175,30 @@ function DashboardTable({
           onSubmit={handleDashboardEdit}
         />
       )}
-      {dashboards.length > 0 ? (
+      {dashboards.length > 0 && (
         <CardContainer>
           {dashboards.map(e => (
             <DashboardCard
-              {...{
-                dashboard: e,
-                hasPerm,
-                bulkSelectEnabled,
-                refreshData,
-                addDangerToast,
-                addSuccessToast,
-                loading,
-                openDashboardEditModal: dashboard => setEditModal(dashboard),
-              }}
+              key={e.id}
+              dashboard={e}
+              hasPerm={hasPerm}
+              bulkSelectEnabled={false}
+              dashboardFilter={dashboardFilter}
+              refreshData={refreshData}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+              userId={user?.userId}
+              loading={loading}
+              openDashboardEditModal={(dashboard: Dashboard) =>
+                setEditModal(dashboard)
+              }
+              saveFavoriteStatus={saveFavoriteStatus}
+              favoriteStatus={favoriteStatus[e.id]}
             />
           ))}
         </CardContainer>
-      ) : (
+      )}
+      {dashboards.length === 0 && (
         <EmptyState tableName="DASHBOARDS" tab={dashboardFilter} />
       )}
     </>

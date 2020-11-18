@@ -27,7 +27,7 @@ import './Control.less';
 export type ControlProps = {
   // the actual action dispatcher (via bindActionCreators) has identical
   // signature to the original action factory.
-  actions: ExploreActions;
+  actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
   type: ControlType;
   label: string;
   name: string;

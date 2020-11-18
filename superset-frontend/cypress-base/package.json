@@ -4,17 +4,21 @@
   "description": "run cypress against superset",
   "scripts": {
     "cypress": "cypress",
+    "cypress-run-chrome": "cypress run --browser chrome --headless",
     "cypress-debug": "cypress open --config watchForFileChanges=true"
   },
   "author": "Apcahe",
   "license": "Apache-2.0",
   "dependencies": {
-    "@cypress/code-coverage": "^3.8.1",
+    "@cypress/code-coverage": "^3.8.3",
     "rison": "^0.1.1",
     "shortid": "^2.2.15"
   },
   "devDependencies": {
-    "cypress": "5.0.0",
+    "cypress": "^5.5.0",
     "eslint-plugin-cypress": "^2.11.1"
+  },
+  "nyc": {
+    "reporter": ["html", "json"]
   }
 }

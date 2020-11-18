@@ -18,7 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { DropdownButton, MenuItem } from 'react-bootstrap';
+import cx from 'classnames';
+import { styled } from '@superset-ui/core';
+import { DropdownButton } from 'react-bootstrap';
+import { Menu } from 'src/common/components';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -42,14 +45,44 @@ const defaultProps = {
   ),
 };
 
+const MenuItem = styled(Menu.Item)`
+  &.ant-menu-item {
+    height: auto;
+    line-height: 1.4;
+
+    padding-top: ${({ theme }) => theme.gridUnit}px;
+    padding-bottom: ${({ theme }) => theme.gridUnit}px;
+
+    margin-top: 0;
+    margin-bottom: 0;
+
+    &:not(:last-child) {
+      margin-bottom: 0;
+    }
+
+    &:hover {
+      background: ${({ theme }) => theme.colors.grayscale.light3};
+    }
+
+    &.active {
+      font-weight: ${({ theme }) => theme.typography.weights.bold};
+      background: ${({ theme }) => theme.colors.grayscale.light2};
+    }
+  }
+
+  &.ant-menu-item-selected {
+    color: unset;
+  }
+`;
+
 class PopoverDropdown extends React.PureComponent {
   constructor(props) {
     super(props);
     this.handleSelect = this.handleSelect.bind(this);
   }
 
-  handleSelect(nextValue) {
-    this.props.onChange(nextValue);
+  handleSelect({ key }) {
+    this.props.onChange(key);
   }
 
   render() {
@@ -62,17 +95,18 @@ class PopoverDropdown extends React.PureComponent {
         title={renderButton(selected)}
         className="popover-dropdown"
       >
-        {options.map(option => (
-          <MenuItem
-            key={option.value}
-            eventKey={option.value}
-            active={option.value === value}
-            onSelect={this.handleSelect}
-            className="dropdown-item"
-          >
-            {renderOption(option)}
-          </MenuItem>
-        ))}
+        <Menu onClick={this.handleSelect}>
+          {options.map(option => (
+            <MenuItem
+              key={option.value}
+              className={cx('dropdown-item', {
+                active: option.value === value,
+              })}
+            >
+              {renderOption(option)}
+            </MenuItem>
+          ))}
+        </Menu>
       </DropdownButton>
     );
   }

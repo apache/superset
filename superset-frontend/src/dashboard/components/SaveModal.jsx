@@ -41,14 +41,12 @@ const propTypes = {
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
   onSave: PropTypes.func.isRequired,
-  isMenuItem: PropTypes.bool,
   canOverwrite: PropTypes.bool.isRequired,
   refreshFrequency: PropTypes.number.isRequired,
   lastModifiedTime: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
-  isMenuItem: false,
   saveType: SAVE_TYPE_OVERWRITE,
   colorNamespace: undefined,
   colorScheme: undefined,
@@ -157,7 +155,6 @@ class SaveModal extends React.PureComponent {
     return (
       <ModalTrigger
         ref={this.setModalRef}
-        isMenuItem={this.props.isMenuItem}
         triggerNode={this.props.triggerNode}
         modalTitle={t('Save Dashboard')}
         modalBody={

@@ -1,0 +1,22 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<svg width="467" height="269" viewBox="0 0 467 269" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 0H467V269H0V0Z" fill="#D9DBE4"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M62 45C59.7909 45 58 46.7909 58 49V220C58 222.209 59.7909 224 62 224H166C168.209 224 170 222.209 170 220V49C170 46.7909 168.209 45 166 45H62ZM182 139C179.791 139 178 140.791 178 143V220C178 222.209 179.791 224 182 224H406C408.209 224 410 222.209 410 220V143C410 140.791 408.209 139 406 139H182ZM178 49C178 46.7909 179.791 45 182 45H286C288.209 45 290 46.7909 290 49V126C290 128.209 288.209 130 286 130H182C179.791 130 178 128.209 178 126V49ZM302 45C299.791 45 298 46.7909 298 49V126C298 128.209 299.791 130 302 130H406C408.209 130 410 128.209 410 126V49C410 46.7909 408.209 45 406 45H302Z" fill="#ECEEF2"/>
+</svg>

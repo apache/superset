@@ -28,6 +28,7 @@ export interface DashboardTableProps {
   addSuccessToast: (message: string) => void;
   search: string;
   user?: User;
+  mine: Array<Dashboard>;
 }
 
 export interface Dashboard {
@@ -45,17 +46,6 @@ export interface Dashboard {
   loading?: boolean;
 }
 
-export interface DashboardCardProps {
-  isChart?: boolean;
-  dashboard: Dashboard;
-  hasPerm: (name: string) => boolean;
-  bulkSelectEnabled: boolean;
-  refreshData: () => void;
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
-  openDashboardEditModal?: (d: Dashboard) => void;
-}
-
 export type SavedQueryObject = {
   database: {
     database_name: string;
@@ -66,6 +56,6 @@ export type SavedQueryObject = {
   id: number;
   label: string;
   schema: string;
-  sql: string;
-  sql_tables: Array<{ catalog?: string; schema: string; table: string }>;
+  sql: string | null;
+  sql_tables?: { catalog?: string; schema: string; table: string }[];
 };

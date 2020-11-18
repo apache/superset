@@ -131,9 +131,9 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       }
     } else if (currentLayer) {
       // Create
-      createResource(currentLayer).then(() => {
+      createResource(currentLayer).then(response => {
         if (onLayerAdd) {
-          onLayerAdd();
+          onLayerAdd(response);
         }
 
         hide();

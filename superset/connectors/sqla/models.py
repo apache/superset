@@ -47,7 +47,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
@@ -58,11 +57,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import (
-    DatabaseNotFound,
-    QueryObjectValidationError,
-    SupersetSecurityException,
-)
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -74,7 +69,7 @@ from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import Metric, QueryObjectDict
-from superset.utils import core as utils, import_datasource
+from superset.utils import core as utils
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -290,20 +285,6 @@ class TableColumn(Model, BaseColumn):
         )
         return self.table.make_sqla_column_compatible(time_expr, label)
 
-    @classmethod
-    def import_obj(cls, i_column: "TableColumn") -> "TableColumn":
-        def lookup_obj(lookup_column: TableColumn) -> TableColumn:
-            return (
-                db.session.query(TableColumn)
-                .filter(
-                    TableColumn.table_id == lookup_column.table_id,
-                    TableColumn.column_name == lookup_column.column_name,
-                )
-                .first()
-            )
-
-        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
-
     def dttm_sql_literal(
         self,
         dttm: DateTime,
@@ -411,20 +392,6 @@ class SqlMetric(Model, BaseMetric):
 
     def get_perm(self) -> Optional[str]:
         return self.perm
-
-    @classmethod
-    def import_obj(cls, i_metric: "SqlMetric") -> "SqlMetric":
-        def lookup_obj(lookup_metric: SqlMetric) -> SqlMetric:
-            return (
-                db.session.query(SqlMetric)
-                .filter(
-                    SqlMetric.table_id == lookup_metric.table_id,
-                    SqlMetric.metric_name == lookup_metric.metric_name,
-                )
-                .first()
-            )
-
-        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
 
     def get_extra_dict(self) -> Dict[str, Any]:
         try:
@@ -908,14 +875,14 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         template_kwargs = {
-            "from_dttm": from_dttm,
+            "from_dttm": from_dttm.isoformat() if from_dttm else None,
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
             "row_offset": row_offset,
-            "to_dttm": to_dttm,
+            "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "filter": filter,
-            "columns": {col.column_name: col for col in self.columns},
+            "columns": [col.column_name for col in self.columns],
         }
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         template_kwargs.update(self.template_params_dict)
@@ -1112,7 +1079,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-        if config["ENABLE_ROW_LEVEL_SECURITY"]:
+        if is_feature_enabled("ROW_LEVEL_SECURITY"):
             where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
@@ -1417,56 +1384,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return results
 
     @classmethod
-    def import_obj(
-        cls,
-        i_datasource: "SqlaTable",
-        database_id: Optional[int] = None,
-        import_time: Optional[int] = None,
-    ) -> int:
-        """Imports the datasource from the object to the database.
-
-        Metrics and columns and datasource will be overrided if exists.
-        This function can be used to import/export dashboards between multiple
-        superset instances. Audit metadata isn't copies over.
-        """
-
-        def lookup_sqlatable(table_: "SqlaTable") -> "SqlaTable":
-            return (
-                db.session.query(SqlaTable)
-                .join(Database)
-                .filter(
-                    SqlaTable.table_name == table_.table_name,
-                    SqlaTable.schema == table_.schema,
-                    Database.id == table_.database_id,
-                )
-                .first()
-            )
-
-        def lookup_database(table_: SqlaTable) -> Database:
-            try:
-                return (
-                    db.session.query(Database)
-                    .filter_by(database_name=table_.params_dict["database_name"])
-                    .one()
-                )
-            except NoResultFound:
-                raise DatabaseNotFound(
-                    _(
-                        "Database '%(name)s' is not found",
-                        name=table_.params_dict["database_name"],
-                    )
-                )
-
-        return import_datasource.import_datasource(
-            db.session,
-            i_datasource,
-            lookup_database,
-            lookup_sqlatable,
-            import_time,
-            database_id,
-        )
-
-    @classmethod
     def query_datasources_by_name(
         cls,
         session: Session,
@@ -1508,7 +1425,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
-        if config["ENABLE_ROW_LEVEL_SECURITY"] and self.is_rls_supported:
+        if is_feature_enabled("ROW_LEVEL_SECURITY") and self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
             ]

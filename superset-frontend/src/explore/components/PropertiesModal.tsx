@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Modal,
   Row,
   Col,
   FormControl,
   FormGroup,
   FormControlProps,
 } from 'react-bootstrap';
+import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
-import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
@@ -35,10 +34,11 @@ import Chart, { Slice } from 'src/types/Chart';
 import FormLabel from 'src/components/FormLabel';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 
-type InternalProps = {
+type PropertiesModalProps = {
   slice: Slice;
   onHide: () => void;
   onSave: (chart: Chart) => void;
+  show: boolean;
 };
 
 type OwnerOption = {
@@ -46,14 +46,13 @@ type OwnerOption = {
   value: number;
 };
 
-export type WrapperProps = InternalProps & {
-  show: boolean;
-  animation?: boolean; // for the modal
-};
-
-function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
+export default function PropertiesModal({
+  slice,
+  onHide,
+  onSave,
+  show,
+}: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-  const errorDialog = useRef<any>(null);
 
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
@@ -68,12 +67,10 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
     if (message === 'Forbidden') {
       errorText = t('You do not have permission to edit this chart');
     }
-    errorDialog.current.show({
+    Modal.error({
       title: 'Error',
-      bsSize: 'medium',
-      bsStyle: 'danger',
-      actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-      body: errorText,
+      content: errorText,
+      okButtonProps: { danger: true, className: 'btn-danger' },
     });
   }
 
@@ -157,11 +154,39 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   };
 
   return (
-    <form onSubmit={onSubmit}>
-      <Modal.Header data-test="properties-edit-modal" closeButton>
-        <Modal.Title>Edit Chart Properties</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Modal
+      show={show}
+      onHide={onHide}
+      title="Edit Chart Properties"
+      footer={
+        <>
+          <Button
+            data-test="properties-modal-cancel-button"
+            type="button"
+            buttonSize="sm"
+            onClick={onHide}
+            cta
+          >
+            {t('Cancel')}
+          </Button>
+          <Button
+            data-test="properties-modal-save-button"
+            type="button"
+            buttonSize="sm"
+            buttonStyle="primary"
+            // @ts-ignore
+            onClick={onSubmit}
+            disabled={!owners || submitting || !name}
+            cta
+          >
+            {t('Save')}
+          </Button>
+        </>
+      }
+      responsive
+      wrapProps={{ 'data-test': 'properties-edit-modal' }}
+    >
+      <form onSubmit={onSubmit}>
         <Row>
           <Col md={6}>
             <h3>{t('Basic Information')}</h3>
@@ -247,44 +272,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
             </FormGroup>
           </Col>
         </Row>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button
-          data-test="properties-modal-cancel-button"
-          type="button"
-          buttonSize="sm"
-          onClick={onHide}
-          cta
-        >
-          {t('Cancel')}
-        </Button>
-        <Button
-          data-test="properties-modal-save-button"
-          type="submit"
-          buttonSize="sm"
-          buttonStyle="primary"
-          disabled={!owners || submitting || !name}
-          cta
-        >
-          {t('Save')}
-        </Button>
-        <Dialog ref={errorDialog} />
-      </Modal.Footer>
-    </form>
-  );
-}
-
-export default function PropertiesModalWrapper({
-  show,
-  onHide,
-  animation,
-  slice,
-  onSave,
-}: WrapperProps) {
-  // The wrapper is a separate component so that hooks only run when the modal opens
-  return (
-    <Modal show={show} onHide={onHide} animation={animation} bsSize="large">
-      <PropertiesModal slice={slice} onHide={onHide} onSave={onSave} />
+      </form>
     </Modal>
   );
 }

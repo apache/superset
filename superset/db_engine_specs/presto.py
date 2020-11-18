@@ -37,7 +37,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import app, cache, is_feature_enabled, security_manager
+from superset import app, cache_manager, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -930,7 +930,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    @cache.memoize(timeout=60)
+    @cache_manager.data_cache.memoize(timeout=60)
     def latest_partition(
         cls,
         table_name: str,
@@ -1030,7 +1030,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return df.to_dict()[field_to_return][0]
 
     @classmethod
-    @cache.memoize()
+    @cache_manager.data_cache.memoize()
     def get_function_names(cls, database: "Database") -> List[str]:
         """
         Get a list of function names that are able to be called on the database.

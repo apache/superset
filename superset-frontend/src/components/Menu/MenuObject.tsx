@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { NavItem, MenuItem } from 'react-bootstrap';
+import { NavItem } from 'react-bootstrap';
+import { Menu } from 'src/common/components';
 import NavDropdown from '../NavDropdown';
 
 export interface MenuObjectChildProps {
@@ -52,24 +53,22 @@ export default function MenuObject({
   }
 
   return (
-    <NavDropdown id={`menu-dropdown-${label}`} eventKey={index} title={label}>
-      {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-        if (typeof child === 'string' && child === '-') {
-          return <MenuItem key={`$${index1}`} divider />;
-        }
-        if (typeof child !== 'string') {
-          return (
-            <MenuItem
-              key={`${child.label}`}
-              href={child.url}
-              eventKey={parseFloat(`${index}.${index1}`)}
-            >
-              &nbsp; {child.label}
-            </MenuItem>
-          );
-        }
-        return null;
-      })}
+    <NavDropdown id={`menu-dropdown-${label}`} title={label}>
+      <Menu>
+        {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
+          if (typeof child === 'string' && child === '-') {
+            return <Menu.Divider key={`$${index1}`} />;
+          }
+          if (typeof child !== 'string') {
+            return (
+              <Menu.Item key={`${child.label}`}>
+                <a href={child.url}>&nbsp; {child.label}</a>
+              </Menu.Item>
+            );
+          }
+          return null;
+        })}
+      </Menu>
     </NavDropdown>
   );
 }

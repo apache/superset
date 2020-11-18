@@ -35,7 +35,6 @@ from superset.extensions import (
     csrf,
     db,
     feature_flag_manager,
-    jinja_context_manager,
     machine_auth_provider_factory,
     manifest_processor,
     migrate,
@@ -125,6 +124,7 @@ class SupersetAppInitializer:
         #
         # pylint: disable=too-many-locals
         # pylint: disable=too-many-statements
+        # pylint: disable=too-many-branches
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.cachekeys.api import CacheRestApi
@@ -148,6 +148,8 @@ class SupersetAppInitializer:
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
+        from superset.reports.api import ReportScheduleRestApi
+        from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import (
             AlertLogModelView,
@@ -206,6 +208,9 @@ class SupersetAppInitializer:
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        if feature_flag_manager.is_feature_enabled("ALERTS_REPORTS"):
+            appbuilder.add_api(ReportScheduleRestApi)
+            appbuilder.add_api(ReportExecutionLogRestApi)
         #
         # Setup regular views
         #
@@ -262,7 +267,7 @@ class SupersetAppInitializer:
             category_label=__("Manage"),
             category_icon="",
         )
-        if self.config["ENABLE_ROW_LEVEL_SECURITY"]:
+        if feature_flag_manager.is_feature_enabled("ROW_LEVEL_SECURITY"):
             appbuilder.add_view(
                 RowLevelSecurityFiltersModelView,
                 "Row Level Security",
@@ -509,7 +514,6 @@ class SupersetAppInitializer:
         self.configure_logging()
         self.configure_middlewares()
         self.configure_cache()
-        self.configure_jinja_context()
 
         with self.flask_app.app_context():  # type: ignore
             self.init_app_in_ctx()
@@ -566,9 +570,6 @@ class SupersetAppInitializer:
 
         self.flask_app.url_map.converters["regex"] = RegexConverter
         self.flask_app.url_map.converters["object_type"] = ObjectTypeConverter
-
-    def configure_jinja_context(self) -> None:
-        jinja_context_manager.init_app(self.flask_app)
 
     def configure_middlewares(self) -> None:
         if self.config["ENABLE_CORS"]:

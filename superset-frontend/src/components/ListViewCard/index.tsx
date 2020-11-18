@@ -37,6 +37,8 @@ const ActionsWrapper = styled.div`
 
 const StyledCard = styled(Card)`
   border: 1px solid #d9dbe4;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+  overflow: hidden;
 
   .ant-card-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px
@@ -80,6 +82,7 @@ const StyledCard = styled(Card)`
 
 const Cover = styled.div`
   height: 264px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   overflow: hidden;
 
   .cover-footer {
@@ -147,16 +150,14 @@ interface CardProps {
   imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
   description: string;
-  loading: boolean;
+  loading?: boolean;
   titleRight?: React.ReactNode;
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
   actions: React.ReactNode | null;
-  showImg?: boolean;
   rows?: number | string;
   avatar?: string;
-  isRecent?: boolean;
-  renderCover?: React.ReactNode | null;
+  cover?: React.ReactNode | null;
 }
 
 function ListViewCard({
@@ -167,42 +168,39 @@ function ListViewCard({
   imgFallbackURL,
   description,
   coverLeft,
-  isRecent,
   coverRight,
   actions,
   avatar,
   loading,
   imgPosition = 'top',
-  renderCover,
+  cover,
 }: CardProps) {
   return (
     <StyledCard
       data-test="styled-card"
       cover={
-        !isRecent
-          ? renderCover || (
-              <Cover>
-                <a href={url}>
-                  <div className="gradient-container">
-                    <ImageLoader
-                      src={imgURL || ''}
-                      fallback={imgFallbackURL || ''}
-                      isLoading={loading}
-                      position={imgPosition}
-                    />
-                  </div>
-                </a>
-                <CoverFooter className="cover-footer">
-                  {!loading && coverLeft && (
-                    <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
-                  )}
-                  {!loading && coverRight && (
-                    <CoverFooterRight>{coverRight}</CoverFooterRight>
-                  )}
-                </CoverFooter>
-              </Cover>
-            )
-          : null
+        cover || (
+          <Cover>
+            <a href={url}>
+              <div className="gradient-container">
+                <ImageLoader
+                  src={imgURL || ''}
+                  fallback={imgFallbackURL || ''}
+                  isLoading={loading}
+                  position={imgPosition}
+                />
+              </div>
+            </a>
+            <CoverFooter className="cover-footer">
+              {!loading && coverLeft && (
+                <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
+              )}
+              {!loading && coverRight && (
+                <CoverFooterRight>{coverRight}</CoverFooterRight>
+              )}
+            </CoverFooter>
+          </Cover>
+        )
       }
     >
       {loading && (

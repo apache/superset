@@ -54,6 +54,7 @@ const getHotKeys = () =>
 
 const Styles = styled.div`
   display: flex;
+  flex-shrink: 0;
   flex-direction: row;
   align-items: center;
   padding-bottom: ${({ theme }) => 2 * theme.gridUnit}px;

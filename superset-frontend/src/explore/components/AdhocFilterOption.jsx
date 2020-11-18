@@ -53,15 +53,11 @@ class AdhocFilterOption extends React.PureComponent {
     };
   }
 
-  componentDidMount() {
-    const { adhocFilter } = this.props;
-    // isNew is used to auto-open the popup. Once popup is opened, it's not
-    // considered new anymore.
-    // put behind setTimeout so in case consequetive re-renderings are triggered
-    // for some reason, the popup can still show up.
-    setTimeout(() => {
-      adhocFilter.isNew = false;
-    });
+  componentWillUnmount() {
+    // isNew is used to auto-open the popup. Once popup is viewed, it's not
+    // considered new anymore. We mutate the prop directly because we don't
+    // want excessive rerenderings.
+    this.props.adhocFilter.isNew = false;
   }
 
   onPopoverResize() {
@@ -69,11 +65,12 @@ class AdhocFilterOption extends React.PureComponent {
   }
 
   closePopover() {
-    this.setState({ popoverVisible: false });
+    this.togglePopover(false);
   }
 
   togglePopover(visible) {
     this.setState(({ popoverVisible }) => {
+      this.props.adhocFilter.isNew = false;
       return {
         popoverVisible: visible === undefined ? !popoverVisible : visible,
       };
@@ -116,7 +113,7 @@ class AdhocFilterOption extends React.PureComponent {
           placement="right"
           trigger="click"
           content={overlayContent}
-          defaultVisible={adhocFilter.isNew}
+          defaultVisible={this.state.popoverVisible || adhocFilter.isNew}
           visible={this.state.popoverVisible}
           onVisibleChange={this.togglePopover}
         >

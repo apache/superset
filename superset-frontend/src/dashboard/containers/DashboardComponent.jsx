@@ -35,7 +35,7 @@ import {
   updateComponents,
   handleComponentDrop,
 } from '../actions/dashboardLayout';
-import { setDirectPathToChild, setMountedTab } from '../actions/dashboardState';
+import { setDirectPathToChild } from '../actions/dashboardState';
 
 const propTypes = {
   component: componentShape.isRequired,
@@ -127,7 +127,6 @@ function mapDispatchToProps(dispatch) {
       updateComponents,
       handleComponentDrop,
       setDirectPathToChild,
-      setMountedTab,
       logEvent,
     },
     dispatch,

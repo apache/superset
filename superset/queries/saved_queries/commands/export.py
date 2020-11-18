@@ -21,12 +21,13 @@ import logging
 from typing import Iterator, Tuple
 
 import yaml
+from werkzeug.utils import secure_filename
 
-from superset.importexport.commands.base import ExportModelsCommand
+from superset.commands.export import ExportModelsCommand
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
 from superset.queries.saved_queries.dao import SavedQueryDAO
-from superset.utils.dict_import_export import IMPORT_EXPORT_VERSION, sanitize
+from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +40,9 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
     @staticmethod
     def export(model: SavedQuery) -> Iterator[Tuple[str, str]]:
         # build filename based on database, optional schema, and label
-        database_slug = sanitize(model.database.database_name)
-        schema_slug = sanitize(model.schema)
-        query_slug = sanitize(model.label) or str(model.uuid)
+        database_slug = secure_filename(model.database.database_name)
+        schema_slug = secure_filename(model.schema)
+        query_slug = secure_filename(model.label) or str(model.uuid)
         file_name = f"queries/{database_slug}/{schema_slug}/{query_slug}.yaml"
 
         payload = model.export_to_dict(
@@ -50,7 +51,7 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
             include_defaults=True,
             export_uuids=True,
         )
-        payload["version"] = IMPORT_EXPORT_VERSION
+        payload["version"] = EXPORT_VERSION
         payload["database_uuid"] = str(model.database.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
@@ -73,7 +74,7 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
             except json.decoder.JSONDecodeError:
                 logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
-        payload["version"] = IMPORT_EXPORT_VERSION
+        payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content

@@ -67,7 +67,6 @@ describe('DashboardBuilder', () => {
     colorScheme: undefined,
     handleComponentDrop() {},
     setDirectPathToChild: sinon.spy(),
-    setMountedTab() {},
   };
 
   function setup(overrideProps, useProvider = false, store = mockStore) {
@@ -179,7 +178,7 @@ describe('DashboardBuilder', () => {
     expect(wrapper.find(TabContainer).prop('activeKey')).toBe(0);
 
     wrapper
-      .find('.dashboard-component-tabs .nav-tabs a')
+      .find('.dashboard-component-tabs .ant-tabs .ant-tabs-tab')
       .at(1)
       .simulate('click');
 

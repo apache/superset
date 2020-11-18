@@ -24,6 +24,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
+  handleBulkChartExport,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
 import {
@@ -47,7 +48,6 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
-const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
 const createFetchDatasets = (handleError: (err: Response) => void) => async (
   filterValue = '',
@@ -62,7 +62,8 @@ const createFetchDatasets = (handleError: (err: Response) => void) => async (
     const queryParams = rison.encode({
       columns: ['datasource_name', 'datasource_id'],
       keys: ['none'],
-      order_by: 'datasource_name',
+      order_column: 'table_name',
+      order_direction: 'asc',
       ...(pageIndex ? { page: pageIndex } : {}),
       ...(pageSize ? { page_size: pageSize } : {}),
       ...filters,
@@ -105,9 +106,12 @@ function ChartList(props: ChartListProps) {
     toggleBulkSelect,
     refreshData,
   } = useListViewResource<Chart>('chart', t('chart'), props.addDangerToast);
-  const [favoriteStatusRef, fetchFaveStar, saveFaveStar] = useFavoriteStatus(
-    {},
-    FAVESTAR_BASE_URL,
+
+  const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
+
+  const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
+    'chart',
+    chartIds,
     props.addDangerToast,
   );
   const {
@@ -120,6 +124,8 @@ function ChartList(props: ChartListProps) {
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
+  const canExport =
+    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
@@ -140,17 +146,6 @@ function ChartList(props: ChartListProps) {
     );
   }
 
-  function renderFaveStar(id: number) {
-    return (
-      <FaveStar
-        itemId={id}
-        fetchFaveStar={fetchFaveStar}
-        saveFaveStar={saveFaveStar}
-        isStarred={!!favoriteStatusRef.current[id]}
-      />
-    );
-  }
-
   const columns = useMemo(
     () => [
       {
@@ -158,7 +153,13 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { id },
           },
-        }: any) => renderFaveStar(id),
+        }: any) => (
+          <FaveStar
+            itemId={id}
+            saveFaveStar={saveFavoriteStatus}
+            isStarred={favoriteStatus[id]}
+          />
+        ),
         Header: '',
         id: 'favorite',
         disableSortBy: true,
@@ -194,6 +195,7 @@ function ChartList(props: ChartListProps) {
         }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
         Header: t('Dataset'),
         accessor: 'datasource_id',
+        disableSortBy: true,
         size: 'xl',
       },
       {
@@ -246,6 +248,10 @@ function ChartList(props: ChartListProps) {
               refreshData,
             );
           const openEditModal = () => openChartEditModal(original);
+          const handleExport = () => handleBulkChartExport([original]);
+          if (!canEdit && !canDelete && !canExport) {
+            return null;
+          }
 
           return (
             <span className="actions">
@@ -278,6 +284,22 @@ function ChartList(props: ChartListProps) {
                   )}
                 </ConfirmStatusChange>
               )}
+              {canExport && (
+                <TooltipWrapper
+                  label="export-action"
+                  tooltip={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icon name="share" />
+                  </span>
+                </TooltipWrapper>
+              )}
               {canEdit && (
                 <TooltipWrapper
                   label="edit-action"
@@ -303,7 +325,7 @@ function ChartList(props: ChartListProps) {
         hidden: !canEdit && !canDelete,
       },
     ],
-    [canEdit, canDelete],
+    [canEdit, canDelete, canExport, favoriteStatus],
   );
 
   const filters: Filters = [
@@ -355,7 +377,21 @@ function ChartList(props: ChartListProps) {
       unfilteredLabel: 'All',
       selects: getChartMetadataRegistry()
         .keys()
-        .map(k => ({ label: k, value: k })),
+        .map(k => ({ label: k, value: k }))
+        .sort((a, b) => {
+          if (!a.label || !b.label) {
+            return 0;
+          }
+
+          if (a.label > b.label) {
+            return 1;
+          }
+          if (a.label < b.label) {
+            return -1;
+          }
+
+          return 0;
+        }),
     },
     {
       Header: t('Dataset'),
@@ -415,11 +451,13 @@ function ChartList(props: ChartListProps) {
         addSuccessToast={props.addSuccessToast}
         refreshData={refreshData}
         loading={loading}
+        favoriteStatus={favoriteStatus[chart.id]}
+        saveFavoriteStatus={saveFavoriteStatus}
       />
     );
   }
   const subMenuButtons: SubMenuProps['buttons'] = [];
-  if (canDelete) {
+  if (canDelete || canExport) {
     subMenuButtons.push({
       name: t('Bulk Select'),
       buttonStyle: 'secondary',
@@ -456,17 +494,23 @@ function ChartList(props: ChartListProps) {
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = canDelete
-            ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
-            : [];
-
+          const bulkActions: ListViewProps['bulkActions'] = [];
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              type: 'danger',
+              onSelect: confirmDelete,
+            });
+          }
+          if (canExport) {
+            bulkActions.push({
+              key: 'export',
+              name: t('Export'),
+              type: 'primary',
+              onSelect: handleBulkChartExport,
+            });
+          }
           return (
             <ListView<Chart>
               bulkActions={bulkActions}

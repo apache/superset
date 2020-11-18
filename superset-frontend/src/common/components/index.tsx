@@ -16,17 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Skeleton } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+import { Dropdown, Skeleton, Menu as AntdMenu } from 'antd';
+import { DropDownProps } from 'antd/lib/dropdown';
 
 /*
-  Antd is exported from here so we can override components with Emotion as needed.
+  Antd is re-exported from here so we can override components with Emotion as needed.
 
   For documentation, see https://ant.design/components/overview/
  */
-/* eslint no-restricted-imports: 0 */
+// eslint-disable-next-line no-restricted-imports
+export {
+  Avatar,
+  Card,
+  Collapse,
+  DatePicker,
+  Dropdown,
+  Empty,
+  Input,
+  Modal,
+  Popover,
+  Select,
+  Skeleton,
+  Tabs,
+  Tooltip,
+} from 'antd';
 
-export * from 'antd';
+export const MenuItem = styled(AntdMenu.Item)`
+  > a {
+    text-decoration: none;
+  }
+
+  &.ant-menu-item {
+    height: ${({ theme }) => theme.gridUnit * 7}px;
+    line-height: ${({ theme }) => theme.gridUnit * 7}px;
+  }
+
+  &.ant-menu-item,
+  &.ant-dropdown-menu-item {
+    span[role='button'] {
+      display: inline-block;
+      width: 100%;
+    }
+  }
+`;
+
+export const Menu = Object.assign(AntdMenu, {
+  Item: MenuItem,
+});
+
+export const NoAnimationDropdown = (props: DropDownProps) => (
+  <Dropdown
+    overlayStyle={{ zIndex: 4000, animationDuration: '0s' }}
+    {...props}
+  />
+);
 
 export const ThinSkeleton = styled(Skeleton)`
   h3 {

@@ -22,11 +22,11 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
-import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import shortid from 'shortid';
 
+import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { exploreChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
@@ -229,11 +229,6 @@ class ExploreResultsButton extends React.PureComponent {
           />{' '}
           {t('Explore')}
         </Button>
-        <Dialog
-          ref={el => {
-            this.dialog = el;
-          }}
-        />
       </>
     );
   }

@@ -44,6 +44,7 @@ from superset.dashboards.commands.exceptions import (
 )
 from superset.dashboards.commands.export import ExportDashboardsCommand
 from superset.dashboards.commands.update import UpdateDashboardCommand
+from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filters import (
     DashboardFavoriteFilter,
     DashboardFilter,
@@ -54,6 +55,8 @@ from superset.dashboards.schemas import (
     DashboardPutSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
+    get_fav_star_ids_schema,
+    GetFavStarIdsSchema,
     openapi_spec_methods_override,
     thumbnail_query_schema,
 )
@@ -78,6 +81,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         RouteMethod.EXPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "favorite_status",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -181,10 +185,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"owners", "created_by"}
 
     openapi_spec_tag = "Dashboards"
+    """ Override the name set for this collection of endpoints """
+    openapi_spec_component_schemas = (GetFavStarIdsSchema,)
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
         "thumbnail_query_schema": thumbnail_query_schema,
+        "get_fav_star_ids_schema": get_fav_star_ids_schema,
     }
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
@@ -589,3 +596,48 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
+
+    @expose("/favorite_status/", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @rison(get_fav_star_ids_schema)
+    def favorite_status(self, **kwargs: Any) -> Response:
+        """Favorite Stars for Dashboards
+        ---
+        get:
+          description: >-
+            Check favorited dashboards for current user
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_fav_star_ids_schema'
+          responses:
+            200:
+              description:
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/GetFavStarIdsSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        requested_ids = kwargs["rison"]
+        dashboards = DashboardDAO.find_by_ids(requested_ids)
+        if not dashboards:
+            return self.response_404()
+        favorited_dashboard_ids = DashboardDAO.favorited_ids(dashboards, g.user.id)
+        res = [
+            {"id": request_id, "value": request_id in favorited_dashboard_ids}
+            for request_id in requested_ids
+        ]
+        return self.response(200, result=res)

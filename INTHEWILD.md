@@ -38,6 +38,7 @@ Join our growing community!
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
+- [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
 - [Digit Game Studios](https://www.digitgaming.com/)
@@ -64,6 +65,7 @@ Join our growing community!
 ### Enterprise Technology
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
+- [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [CnOvit](http://www.cnovit.com/) [@xieshaohu]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]

@@ -65,8 +65,6 @@ const propTypes = {
   onQuery: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
-  // id of the last mounted parent tab
-  mountedParent: PropTypes.string,
 };
 
 const BLANK = {};

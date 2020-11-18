@@ -17,11 +17,16 @@
  * under the License.
  */
 import readResponseBlob from '../../utils/readResponseBlob';
+import {
+  getChartAliases,
+  isLegacyResponse,
+  getSliceIdFromRequestUrl,
+} from '../../utils/vizPlugins';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard load', () => {
-  const aliases = [];
-
+  let dashboard;
+  let aliases;
   beforeEach(() => {
     cy.server();
     cy.login();
@@ -30,14 +35,10 @@ describe('Dashboard load', () => {
 
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const { slices } = bootstrapData.dashboard_data;
+      dashboard = bootstrapData.dashboard_data;
+      const { slices } = dashboard;
       // then define routes and create alias for each requests
-      slices.forEach(slice => {
-        const alias = `getJson_${slice.slice_id}`;
-        const formData = `{"slice_id":${slice.slice_id}}`;
-        cy.route('POST', `/superset/explore_json/?*${formData}*`).as(alias);
-        aliases.push(`@${alias}`);
-      });
+      aliases = getChartAliases(slices);
     });
   });
 
@@ -48,9 +49,18 @@ describe('Dashboard load', () => {
         requests.map(async xhr => {
           expect(xhr.status).to.eq(200);
           const responseBody = await readResponseBlob(xhr.response.body);
-          expect(responseBody).to.have.property('errors');
-          expect(responseBody.errors.length).to.eq(0);
-          const sliceId = responseBody.form_data.slice_id;
+          let sliceId;
+          if (isLegacyResponse(responseBody)) {
+            expect(responseBody).to.have.property('errors');
+            expect(responseBody.errors.length).to.eq(0);
+            sliceId = responseBody.form_data.slice_id;
+          } else {
+            sliceId = getSliceIdFromRequestUrl(xhr.url);
+            responseBody.result.forEach(element => {
+              expect(element).to.have.property('error', null);
+              expect(element).to.have.property('status', 'success');
+            });
+          }
           cy.get('[data-test="grid-content"]')
             .find(`#chart-id-${sliceId}`)
             .should('be.visible');

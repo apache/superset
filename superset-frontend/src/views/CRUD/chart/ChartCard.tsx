@@ -17,8 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { t } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icon from 'src/components/Icon';
 import Chart from 'src/types/Chart';
@@ -28,9 +28,7 @@ import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
-import { handleChartDelete } from '../utils';
-
-const FAVESTAR_BASE_URL = '/superset/favstar/slice';
+import { handleChartDelete, handleBulkChartExport, CardStyles } from '../utils';
 
 interface ChartCardProps {
   chart: Chart;
@@ -40,7 +38,11 @@ interface ChartCardProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   refreshData: () => void;
-  loading: boolean;
+  loading?: boolean;
+  saveFavoriteStatus: (id: number, isStarred: boolean) => void;
+  favoriteStatus: boolean;
+  chartFilter?: string;
+  userId?: number;
 }
 
 export default function ChartCard({
@@ -52,14 +54,15 @@ export default function ChartCard({
   addSuccessToast,
   refreshData,
   loading,
+  saveFavoriteStatus,
+  favoriteStatus,
+  chartFilter,
+  userId,
 }: ChartCardProps) {
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
-  const [, fetchFaveStar, saveFaveStar, favoriteStatus] = useFavoriteStatus(
-    {},
-    FAVESTAR_BASE_URL,
-    addDangerToast,
-  );
+  const canExport =
+    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const menu = (
     <Menu>
@@ -79,6 +82,8 @@ export default function ChartCard({
                 addSuccessToast,
                 addDangerToast,
                 refreshData,
+                chartFilter,
+                userId,
               )
             }
           >
@@ -96,6 +101,15 @@ export default function ChartCard({
           </ConfirmStatusChange>
         </Menu.Item>
       )}
+      {canExport && (
+        <Menu.Item
+          role="button"
+          tabIndex={0}
+          onClick={() => handleBulkChartExport([chart])}
+        >
+          <ListViewCard.MenuIcon name="share" /> {t('Export')}
+        </Menu.Item>
+      )}
       {canEdit && (
         <Menu.Item
           data-test="chart-list-edit-option"
@@ -109,30 +123,40 @@ export default function ChartCard({
     </Menu>
   );
   return (
-    <ListViewCard
-      loading={loading}
-      title={chart.slice_name}
-      url={bulkSelectEnabled ? undefined : chart.url}
-      imgURL={chart.thumbnail_url || ''}
-      imgFallbackURL="/static/assets/images/chart-card-fallback.png"
-      description={t('Last modified %s', chart.changed_on_delta_humanized)}
-      coverLeft={<FacePile users={chart.owners || []} />}
-      coverRight={
-        <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
-      }
-      actions={
-        <ListViewCard.Actions>
-          <FaveStar
-            itemId={chart.id}
-            fetchFaveStar={fetchFaveStar}
-            saveFaveStar={saveFaveStar}
-            isStarred={!!favoriteStatus[chart.id]}
-          />
-          <Dropdown overlay={menu}>
-            <Icon name="more-horiz" />
-          </Dropdown>
-        </ListViewCard.Actions>
-      }
-    />
+    <CardStyles
+      onClick={() => {
+        window.location.href = chart.url;
+      }}
+    >
+      <ListViewCard
+        loading={loading}
+        title={chart.slice_name}
+        url={bulkSelectEnabled ? undefined : chart.url}
+        imgURL={chart.thumbnail_url || ''}
+        imgFallbackURL="/static/assets/images/chart-card-fallback.svg"
+        description={t('Last modified %s', chart.changed_on_delta_humanized)}
+        coverLeft={<FacePile users={chart.owners || []} />}
+        coverRight={
+          <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
+        }
+        actions={
+          <ListViewCard.Actions
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            <FaveStar
+              itemId={chart.id}
+              saveFaveStar={saveFavoriteStatus}
+              isStarred={favoriteStatus}
+            />
+            <Dropdown overlay={menu}>
+              <Icon name="more-horiz" />
+            </Dropdown>
+          </ListViewCard.Actions>
+        }
+      />
+    </CardStyles>
   );
 }
