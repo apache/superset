@@ -15,21 +15,48 @@
 # specific language governing permissions and limitations
 # under the License.
 """Defines the templating context for SQL Lab"""
-import inspect
+import json
 import re
-from typing import Any, cast, List, Optional, Tuple, TYPE_CHECKING
+from functools import partial
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-from flask import g, request
+from flask import current_app, g, request
+from flask_babel import gettext as _
 from jinja2.sandbox import SandboxedEnvironment
 
-from superset import jinja_base_context
-from superset.extensions import feature_flag_manager, jinja_context_manager
-from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
+from superset.exceptions import SupersetTemplateException
+from superset.extensions import feature_flag_manager
+from superset.utils.core import (
+    convert_legacy_filters_into_adhoc,
+    memoized,
+    merge_extra_filters,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.sql_lab import Query
+
+NONE_TYPE = type(None).__name__
+ALLOWED_TYPES = (
+    NONE_TYPE,
+    "bool",
+    "str",
+    "unicode",
+    "int",
+    "long",
+    "float",
+    "list",
+    "dict",
+    "tuple",
+    "set",
+)
+COLLECTION_TYPES = ("list", "dict", "tuple", "set")
+
+
+@memoized
+def context_addons() -> Dict[str, Any]:
+    return current_app.config.get("JINJA_CONTEXT_ADDONS", {})
 
 
 def filter_values(column: str, default: Optional[str] = None) -> List[str]:
@@ -151,7 +178,7 @@ class ExtraCache:
 
     def url_param(
         self, param: str, default: Optional[str] = None, add_to_cache_keys: bool = True
-    ) -> Optional[Any]:
+    ) -> Optional[str]:
         """
         Read a url or post parameter and use it in your SQL Lab query.
 
@@ -186,19 +213,68 @@ class ExtraCache:
         return result
 
 
+def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    return_value = func(*args, **kwargs)
+    value_type = type(return_value).__name__
+    if value_type not in ALLOWED_TYPES:
+        raise SupersetTemplateException(
+            _(
+                "Unsafe return type for function %(func)s: %(value_type)s",
+                func=func.__name__,
+                value_type=value_type,
+            )
+        )
+    if value_type in COLLECTION_TYPES:
+        try:
+            return_value = json.loads(json.dumps(return_value))
+        except TypeError:
+            raise SupersetTemplateException(
+                _("Unsupported return value for method %(name)s", name=func.__name__,)
+            )
+
+    return return_value
+
+
+def validate_context_types(context: Dict[str, Any]) -> Dict[str, Any]:
+    for key in context:
+        arg_type = type(context[key]).__name__
+        if arg_type not in ALLOWED_TYPES and key not in context_addons():
+            if arg_type == "partial" and context[key].func.__name__ == "safe_proxy":
+                continue
+            raise SupersetTemplateException(
+                _(
+                    "Unsafe template value for key %(key)s: %(value_type)s",
+                    key=key,
+                    value_type=arg_type,
+                )
+            )
+        if arg_type in COLLECTION_TYPES:
+            try:
+                context[key] = json.loads(json.dumps(context[key]))
+            except TypeError:
+                raise SupersetTemplateException(
+                    _("Unsupported template value for key %(key)s", key=key)
+                )
+
+    return context
+
+
+def validate_template_context(
+    engine: Optional[str], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    if engine and engine in context:
+        # validate engine context separately to allow for engine-specific methods
+        engine_context = validate_context_types(context.pop(engine))
+        valid_context = validate_context_types(context)
+        valid_context[engine] = engine_context
+        return valid_context
+
+    return validate_context_types(context)
+
+
 class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
-    """Base class for database-specific jinja context
-
-    There's this bit of magic in ``process_template`` that instantiates only
-    the database context for the active database as a ``models.Database``
-    object binds it to the context object, so that object methods
-    have access to
-    that context. This way, {{ hive.latest_partition('mytable') }} just
-    knows about the database it is operating in.
-
-    This means that object methods are only available for the active database
-    and are given access to the ``models.Database`` object and schema
-    name. For globally available methods use ``@classmethod``.
+    """
+    Base class for database-specific jinja context
     """
 
     engine: Optional[str] = None
@@ -218,22 +294,14 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
             self._schema = query.schema
         elif table:
             self._schema = table.schema
-
-        extra_cache = ExtraCache(extra_cache_keys)
-
-        self._context = {
-            "url_param": extra_cache.url_param,
-            "current_user_id": extra_cache.current_user_id,
-            "current_username": extra_cache.current_username,
-            "cache_key_wrapper": extra_cache.cache_key_wrapper,
-            "filter_values": filter_values,
-            "form_data": {},
-        }
-        self._context.update(kwargs)
-        self._context.update(jinja_base_context)
-        if self.engine:
-            self._context[self.engine] = self
+        self._extra_cache_keys = extra_cache_keys
+        self._context: Dict[str, Any] = {}
         self._env = SandboxedEnvironment()
+        self.set_context(**kwargs)
+
+    def set_context(self, **kwargs: Any) -> None:
+        self._context.update(kwargs)
+        self._context.update(context_addons())
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
@@ -244,7 +312,24 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         """
         template = self._env.from_string(sql)
         kwargs.update(self._context)
-        return template.render(kwargs)
+
+        context = validate_template_context(self.engine, kwargs)
+        return template.render(context)
+
+
+class JinjaTemplateProcessor(BaseTemplateProcessor):
+    def set_context(self, **kwargs: Any) -> None:
+        super().set_context(**kwargs)
+        extra_cache = ExtraCache(self._extra_cache_keys)
+        self._context.update(
+            {
+                "url_param": partial(safe_proxy, extra_cache.url_param),
+                "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
+                "current_username": partial(safe_proxy, extra_cache.current_username),
+                "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
+                "filter_values": partial(safe_proxy, filter_values),
+            }
+        )
 
 
 class NoOpTemplateProcessor(
@@ -257,7 +342,7 @@ class NoOpTemplateProcessor(
         return sql
 
 
-class PrestoTemplateProcessor(BaseTemplateProcessor):
+class PrestoTemplateProcessor(JinjaTemplateProcessor):
     """Presto Jinja context
 
     The methods described here are namespaced under ``presto`` in the
@@ -265,6 +350,15 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
     """
 
     engine = "presto"
+
+    def set_context(self, **kwargs: Any) -> None:
+        super().set_context(**kwargs)
+        self._context[self.engine] = {
+            "first_latest_partition": partial(safe_proxy, self.first_latest_partition),
+            "latest_partitions": partial(safe_proxy, self.latest_partitions),
+            "latest_sub_partition": partial(safe_proxy, self.latest_sub_partition),
+            "latest_partition": partial(safe_proxy, self.latest_partition),
+        }
 
     @staticmethod
     def _schema_table(
@@ -319,13 +413,18 @@ class HiveTemplateProcessor(PrestoTemplateProcessor):
     engine = "hive"
 
 
-# The global template processors from Jinja context manager.
-template_processors = jinja_context_manager.template_processors
-keys = tuple(globals().keys())
-for k in keys:
-    o = globals()[k]
-    if o and inspect.isclass(o) and issubclass(o, BaseTemplateProcessor):
-        template_processors[o.engine] = o
+DEFAULT_PROCESSORS = {"presto": PrestoTemplateProcessor, "hive": HiveTemplateProcessor}
+
+
+@memoized
+def get_template_processors() -> Dict[str, Any]:
+    processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
+    for engine in DEFAULT_PROCESSORS:
+        # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
+        if not engine in processors:
+            processors[engine] = DEFAULT_PROCESSORS[engine]
+
+    return processors
 
 
 def get_template_processor(
@@ -335,8 +434,8 @@ def get_template_processor(
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
     if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-        template_processor = template_processors.get(
-            database.backend, BaseTemplateProcessor
+        template_processor = get_template_processors().get(
+            database.backend, JinjaTemplateProcessor
         )
     else:
         template_processor = NoOpTemplateProcessor

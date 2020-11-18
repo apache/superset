@@ -109,6 +109,8 @@
     "d3-scale": "^2.1.2",
     "dnd-core": "^2.6.0",
     "dom-to-image": "^2.6.0",
+    "fontsource-fira-code": "^3.0.5",
+    "fontsource-inter": "^3.0.5",
     "geolib": "^2.0.24",
     "global-box": "^1.2.0",
     "immutable": "^4.0.0-rc.12",
