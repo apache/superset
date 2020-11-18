@@ -764,35 +764,35 @@ class TestUtils(SupersetTestCase):
         expected = datetime(2016, 10, 31), datetime(2016, 11, 6)
         self.assertEqual(result, expected)
 
-        result = get_since_until("2020-02-01T00:00:00 : #1 month")
+        result = get_since_until("2020-02-01T00:00:00 : ^1 month")
         expected = datetime(2020, 2, 1), datetime(2020, 3, 1)
         self.assertEqual(result, expected)
 
-        result = get_since_until("2020-02-01T00:00:00 : #1m")
+        result = get_since_until("2020-02-01T00:00:00 : ^1m")
         expected = datetime(2020, 2, 1), datetime(2020, 3, 1)
         self.assertEqual(result, expected)
 
-        result = get_since_until("#-1 month : 2020-02-01T00:00:00")
+        result = get_since_until("^-1 month : 2020-02-01T00:00:00")
         expected = datetime(2020, 1, 1), datetime(2020, 2, 1)
         self.assertEqual(result, expected)
 
-        result = get_since_until("#-1m : 2020-02-01T00:00:00")
+        result = get_since_until("^-1m : 2020-02-01T00:00:00")
         expected = datetime(2020, 1, 1), datetime(2020, 2, 1)
         self.assertEqual(result, expected)
 
-        result = get_since_until("#-1 month : #2 days : 2020-02-01T00:00:00")
+        result = get_since_until("^-1 month : ^2 days : 2020-02-01T00:00:00")
         expected = datetime(2020, 1, 1), datetime(2020, 2, 3)
         self.assertEqual(result, expected)
 
-        result = get_since_until("#-1m : #2d : 2020-02-01T00:00:00")
+        result = get_since_until("^-1m : ^2d : 2020-02-01T00:00:00")
         expected = datetime(2020, 1, 1), datetime(2020, 2, 3)
         self.assertEqual(result, expected)
 
-        result = get_since_until("#-1 month : #5 days")
+        result = get_since_until("^-1 month : ^5 days")
         expected = datetime(2016, 10, 7, 9, 30, 10), datetime(2016, 11, 12, 9, 30, 10)
         self.assertEqual(result, expected)
 
-        result = get_since_until("#-1m : #5d")
+        result = get_since_until("^-1m : ^5d")
         expected = datetime(2016, 10, 7, 9, 30, 10), datetime(2016, 11, 12, 9, 30, 10)
         self.assertEqual(result, expected)
 
@@ -801,31 +801,31 @@ class TestUtils(SupersetTestCase):
 
     @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
     def test_parse_time_range(self):
-        result = parse_time_range("today : #2Y")
+        result = parse_time_range("today : ^2Y")
         expected = datetime(2016, 11, 7), datetime(2018, 11, 7)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("#-2m : today")
+        result = parse_time_range("^-2m : today")
         expected = datetime(2016, 9, 7), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("#-2d : today")
+        result = parse_time_range("^-2d : today")
         expected = datetime(2016, 11, 5), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("#-1W : 2020-02-01T00:00:00")
+        result = parse_time_range("^-1W : 2020-02-01T00:00:00")
         expected = datetime(2020, 1, 25), datetime(2020, 2, 1)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("2020-02-01T00:00:00 : #2H")
+        result = parse_time_range("2020-02-01T00:00:00 : ^2H")
         expected = datetime(2020, 2, 1, 0, 0, 0), datetime(2020, 2, 1, 2, 0, 0)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("2020-02-01T00:00:00 : #20M")
+        result = parse_time_range("2020-02-01T00:00:00 : ^20M")
         expected = datetime(2020, 2, 1, 0, 0, 0), datetime(2020, 2, 1, 0, 20, 0)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("#-119S : 2020-02-01T00:00:00")
+        result = parse_time_range("^-119S : 2020-02-01T00:00:00")
         expected = datetime(2020, 1, 31, 23, 58, 1), datetime(2020, 2, 1, 0, 0, 0)
         self.assertEqual(result, expected)
 

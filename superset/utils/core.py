@@ -1243,6 +1243,12 @@ def get_calendar_since_until(
     :param calendar_range: Human-readable calendar range. eg: previous 2 months
     :param relative_day: Calculate the calendar range on a specific date
     :return: since datetime and until datetime
+
+    >>> from datetime import datetime
+    >>> get_calendar_since_until('previous 1 year', relative_day='2020-03-10')
+    (datetime.datetime(2020, 1, 1, 0, 0), datetime.datetime(2020, 12, 31, 0, 0))
+    >>> get_calendar_since_until('previous 1 month', relative_day='2020-03-10')
+    (datetime.datetime(2020, 2, 1, 0, 0), datetime.datetime(2020, 2, 29, 0, 0))
     """
     relative_day_dttm = parse_human_datetime(relative_day)
     try:
@@ -1274,10 +1280,11 @@ def parse_time_range(
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
     separator = " : "
     default_anchor = "now"
+    delta_symbol = "^"
     _time_range = "" if time_range is None else time_range
 
     def is_timedelta(s: Optional[str]) -> bool:
-        return True if s and s.startswith("#") else False
+        return True if s and s.startswith(delta_symbol) else False
 
     def mini_delta_to_human(s: str) -> str:
         token_mapping = [
@@ -1320,6 +1327,7 @@ def parse_time_range(
         else:
             anchor = parse_human_datetime(default_anchor)
     else:
+        # len(partition) == 3
         since, until, _anchor = partition
         anchor = parse_human_datetime(_anchor or default_anchor)
 
@@ -1368,15 +1376,15 @@ def get_since_until(  # pylint: disable=too-many-arguments
     )
     _relative_end = parse_human_datetime(relative_end if relative_end else "today")
     common_time_frames = (
-        "Last day",
-        "Last week",
-        "Last month",
-        "Last quarter",
-        "Last year",
+        "last day",
+        "last week",
+        "last month",
+        "last quarter",
+        "last year",
     )
-    if time_range in common_time_frames:
+    if time_range and time_range.lower() in common_time_frames:
         rel, grain = time_range.split()
-        time_range = f"{rel} 1 {grain}s"
+        time_range = f"{rel.lower()} 1 {grain.lower()}s"
 
     if time_range:
         if separator in time_range:
@@ -1387,7 +1395,7 @@ def get_since_until(  # pylint: disable=too-many-arguments
             _since = _until = None
         else:
             rel, num, grain = time_range.split()
-            if rel == "Last":
+            if rel.lower() == "last":
                 _since = _relative_start - relativedelta(
                     **{grain: int(num)}  # type: ignore
                 )
