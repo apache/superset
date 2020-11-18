@@ -1,0 +1,40 @@
+name: Deploy
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    if: ${{ github.event_name != 'pull_request' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push to docker hub
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64
+        push: true
+        build-args: |
+            NPM_BUILD_CMD=build
+        tags: |
+          blotoutlabs/blotout:superset-${{ github.event.pull_request.head.ref }}-${{ github.event.pull_request.head.sha }}
+    - name: Image digest
+      run: echo ${{ steps.docker_build.outputs.digest }}
