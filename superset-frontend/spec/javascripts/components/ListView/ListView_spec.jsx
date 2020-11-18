@@ -97,8 +97,8 @@ const mockedProps = {
     },
   ],
   data: [
-    { id: 1, name: 'data 1', age: 10, time: new Date().toISOString() },
-    { id: 2, name: 'data 2', age: 1, time: new Date().toISOString() },
+    { id: 1, name: 'data 1', age: 10, time: '2020-11-18T07:53:45.354Z' },
+    { id: 2, name: 'data 2', age: 1, time: '2020-11-18T07:53:45.354Z' },
   ],
   count: 2,
   pageSize: 1,
