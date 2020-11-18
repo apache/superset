@@ -19,8 +19,10 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
+import { AutoComplete } from 'antd'
 import { Dropdown, Skeleton, Menu as AntdMenu } from 'antd';
 import { DropDownProps } from 'antd/lib/dropdown';
+import { Radio } from 'antd'
 
 /*
   Antd is re-exported from here so we can override components with Emotion as needed.
@@ -29,6 +31,7 @@ import { DropDownProps } from 'antd/lib/dropdown';
  */
 // eslint-disable-next-line no-restricted-imports
 export {
+  AutoComplete,
   Avatar,
   Card,
   Collapse,
@@ -40,6 +43,7 @@ export {
   Popover,
   Select,
   Skeleton,
+  Radio,
   Tabs,
   Tooltip,
 } from 'antd';
