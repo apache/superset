@@ -93,6 +93,7 @@ export default class ResultSet extends React.PureComponent<
       newSaveDatasetName: '',
       userDatasetsOwned: [],
       saveDatasetRadioBtnState: 1,
+      overwriteDataSet: false,
     };
 
     this.changeSearch = this.changeSearch.bind(this);
@@ -106,6 +107,7 @@ export default class ResultSet extends React.PureComponent<
     this.handleHideSaveModal = this.handleHideSaveModal.bind(this);
     this.handleDatasetNameChange = this.handleDatasetNameChange.bind(this);
     this.handleSaveDatasetRadioBtnState = this.handleSaveDatasetRadioBtnState.bind(this);
+    this.handleOverwriteCancel = this.handleOverwriteCancel.bind(this);
   }
 
   componentDidMount() {
@@ -190,6 +192,13 @@ export default class ResultSet extends React.PureComponent<
 
   handleSaveInDataset() {
     console.log('Saving dataset');
+    console.log(this.state.saveDatasetRadioBtnState)
+    if (this.state.saveDatasetRadioBtnState === 2) {
+      this.setState({overwriteDataSet: true})
+      console.log('make sure user is okay with overwriting')
+      return
+    }
+
     console.log(this.props.query);
     console.log(this.props.actions.createDatasource);
     const { schema, sql, dbId, templateParams } = this.props.query;
@@ -231,18 +240,19 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleDatasetNameChange(e) {
-    console.log(e.target.value)
     this.setState({ newSaveDatasetName: e.target.value })
   }
 
   handleHideSaveModal() {
-    console.log('hiding the modal');
     this.setState({showSaveDatasetModal: false})
   }
 
   handleSaveDatasetRadioBtnState(e) {
-    console.log(e.target.value)
     this.setState({saveDatasetRadioBtnState: e.target.value});
+  }
+
+  handleOverwriteCancel() {
+    this.setState({overwriteDataSet: false})
   }
 
   renderControls() {
@@ -253,6 +263,7 @@ export default class ResultSet extends React.PureComponent<
       }
 
       const { showSaveDatasetModal } = this.state;
+      console.log(this.state.overwriteDataSet)
       return (
         <div className="ResultSetControls">
           <SaveDatasetModal
@@ -263,6 +274,8 @@ export default class ResultSet extends React.PureComponent<
             userDatasetsOwned={this.state.userDatasetsOwned}
             handleSaveDatasetRadioBtnState={this.handleSaveDatasetRadioBtnState}
             saveDatasetRadioBtnState={this.state.saveDatasetRadioBtnState}
+            overwriteDataSet={this.state.overwriteDataSet}
+            handleOverwriteCancel={this.handleOverwriteCancel}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&

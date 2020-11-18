@@ -33,7 +33,7 @@ interface SaveDatasetModalProps = {
 }
 
 // eslint-disable-next-line no-empty-pattern
-export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState}) => {
+export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState, overwriteDataSet, handleOverwriteCancel}) => {
   const [options, setOptions] = useState([]);
   const [radioOption, setRadioOptions] = useState(1);
 
@@ -63,7 +63,9 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
       onHide={() => {}}
       title="Save a new dataset"
       onCancel={onCancel}
-      footer={<>
+      footer={
+      <>
+       {!overwriteDataSet &&
           <Button
             buttonSize="sm"
             buttonStyle="primary"
@@ -71,11 +73,29 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
             onClick={onOk}
           >
             Save & Explore
-        </Button>
+          </Button>
+        }
+        {overwriteDataSet && <> <Button
+            buttonSize="sm"
+            buttonStyle="danger"
+            className="m-r-5"
+            onClick={() => {
+              console.log('go back to original screen')
+              handleOverwriteCancel()
+            }}
+          >Cancel</Button>
+          <Button
+            buttonSize="sm"
+            buttonStyle="primary"
+            className="m-r-5"
+            onClick={() => {
+              console.log('overwriting dataset')
+            }}
+          >Ok</Button> </>}
       </>
     }
     >
-      <div>
+      {!overwriteDataSet && <div>
         <div>
           To explore the results of this query, we need to save it as a virtual dataset
         </div>
@@ -98,7 +118,13 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
             />
           </Radio>
         </Radio.Group>
-      </div>
+        </div>
+      }
+      {overwriteDataSet &&
+        <div>
+          Are you sure you want to overwrite this dataset?
+        </div>
+      }
     </Modal>
   );
 };
