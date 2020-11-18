@@ -44,6 +44,10 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
     );
   };
 
+  const filterAutocompleteOption = (inputValue, option) => {
+    return option.value.includes(inputValue)
+  }
+
   const onSelect = (data) => {
     console.log('onSelect', data);
   };
@@ -96,6 +100,7 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
               onSelect={onSelect}
               onSearch={onSearch}
               placeholder="input here"
+              filterOption={filterAutocompleteOption}
             />
           </Radio>
         </Radio.Group>
