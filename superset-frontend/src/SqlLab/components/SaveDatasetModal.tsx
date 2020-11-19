@@ -33,7 +33,7 @@ interface SaveDatasetModalProps = {
 }
 
 // eslint-disable-next-line no-empty-pattern
-export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState, overwriteDataSet, handleOverwriteCancel, handleOverwriteDataset, handleOverwriteDatasetOption}) => {
+export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState, overwriteDataSet, handleOverwriteCancel, handleOverwriteDataset, handleOverwriteDatasetOption, defaultCreateDatasetValue}) => {
   const [options, setOptions] = useState([]);
   const [radioOption, setRadioOptions] = useState(1);
 
@@ -96,7 +96,7 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
         <Radio.Group onChange={handleSaveDatasetRadioBtnState} value={saveDatasetRadioBtnState}>
           <Radio style={radioStyle} value={1}>
             Save as new dataset
-            <Input style={{ width: 200 }} defaultValue="my_new_dataset_A" onChange={handleDatasetNameChange} />
+            <Input style={{ width: 200 }} defaultValue={defaultCreateDatasetValue} onChange={handleDatasetNameChange} />
           </Radio>
           <Radio style={radioStyle} value={2}>
             Overwrite existing dataset
