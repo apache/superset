@@ -328,7 +328,14 @@ def create_mul_alert_email_chart(request):
             yield report_schedule
 
             # needed for MySQL
-            report_schedule.logs = []
+            logs = (
+                db.session.query(ReportExecutionLog)
+                .filter(ReportExecutionLog.report_schedule == report_schedule)
+                .all()
+            )
+            for log in logs:
+                db.session.delete(log)
+            db.session.commit()
             db.session.delete(report_schedule)
             db.session.commit()
 

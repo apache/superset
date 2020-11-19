@@ -65,10 +65,7 @@ class AlertCommand(BaseCommand):
         if df.empty:
             return
         rows = df.to_records()
-        if (
-            self._report_schedule.validator_type
-            == ReportScheduleValidatorType.NOT_NULL
-        ):
+        if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
             self._result = rows[0][1]
             return
         # check if query return more then one row
