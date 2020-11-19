@@ -68,13 +68,21 @@ export function useAllFilterState() {
       const { id, targets } = filter;
       const [target] = targets;
       const { column, datasetId } = target;
-      const filterState = state.nativeFilters[id] || getInitialFilterState(id);
+      const datasource = `table__${datasetId}`;
+      const filterState: FilterState =
+        state.nativeFilters[id] || getInitialFilterState(id);
       const { selectedValues } = filterState;
+      const filterClause =
+        selectedValues && selectedValues.length > 0
+          ? { col: column, op: 'IN', val: selectedValues }
+          : undefined;
       return {
         column,
         datasetId,
+        datasource,
+        filterClause,
         id,
-        selectedValues,
+        selectValues: selectedValues || [],
       };
     });
   });
