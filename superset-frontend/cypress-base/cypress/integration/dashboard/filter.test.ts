@@ -95,23 +95,21 @@ describe('Dashboard filter', () => {
         requests.map(async xhr => {
           expect(xhr.status).to.eq(200);
           const responseBody = await readResponseBlob(xhr.response.body);
+          let requestFilter;
           if (isLegacyResponse(responseBody)) {
             const requestFormData = xhr.request.body as FormData;
             const requestParams = JSON.parse(
               requestFormData.get('form_data') as string,
             );
-            expect(requestParams.extra_filters[0]).deep.eq({
-              col: 'region',
-              op: '==',
-              val: 'South Asia',
-            });
+            requestFilter = requestParams.extra_filters[0];
           } else {
-            responseBody.result.forEach((element: any) => {
-              expect(element.applied_filters[0]).deep.eq({ column: 'region' });
-              expect(element.data[0]).to.have.property('region', 'South Asia');
-              expect(element.data).to.have.length(1);
-            });
+            requestFilter = xhr.request.body.queries[0].filters[0];
           }
+          expect(requestFilter).deep.eq({
+            col: 'region',
+            op: '==',
+            val: 'South Asia',
+          });
         }),
       );
     });
