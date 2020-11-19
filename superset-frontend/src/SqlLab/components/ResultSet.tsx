@@ -116,16 +116,18 @@ export default class ResultSet extends React.PureComponent<
   componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
+
+    // Todo: figure out how to get user information to properly query datasets they own
+    // Todo: move this to actions file
     const userId = 3;
     SupersetClient.get({
       endpoint: `/api/v1/dataset/?q=(filters:!((col:owners,opr:rel_m_m,value:${userId}),(col:table_name,opr:ct,value:%27%27)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)`,
-      }).then(data => {
-          const userDatasetsOwned = data.json.result.map(r => {
-            return { dataSetName: r.table_name, dataSetId: r.id }
-          })
-          this.setState({userDatasetsOwned})
+    }).then(data => {
+      const userDatasetsOwned = data.json.result.map(r => {
+        return { dataSetName: r.table_name, dataSetId: r.id };
+      });
+      this.setState({ userDatasetsOwned })
     });
-
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
@@ -193,7 +195,6 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleOverwriteDatasetOption(data, option) {
-    console.log(option);
     this.setState({ datasetToOverwrite: option })
   }
 
@@ -203,15 +204,18 @@ export default class ResultSet extends React.PureComponent<
 
     // HACK: to clear the columns in the previous dataset and update
     // it with the new selected columns from the query
+    // Todo: move this to actions file
     SupersetClient.put({
       endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        columns: []
+        columns: [],
       }),
-    }).then(d => {
-        console.log(d)
-    }).catch(err => console.log(err))
+    })
+      .then(d => {
+        console.log(d);
+      })
+      .catch(err => console.log(err));
 
     SupersetClient.put({
       endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}`,
@@ -221,20 +225,21 @@ export default class ResultSet extends React.PureComponent<
         columns: results.selected_columns.map(d => ({column_name: d.name}))
       }),
     }).then(d => {
-      console.log(d)
-    }).catch(err => console.log(err))
+        console.log(d);
+      })
+      .catch(err => console.log(err));
   }
 
   handleSaveInDataset() {
     // if user wants to overwrite a dataset we need to prompt them
     if (this.state.saveDatasetRadioBtnState === 2) {
       this.setState({overwriteDataSet: true})
-      return
+      return;
     }
 
     const { schema, sql, dbId, templateParams } = this.props.query;
 
-    let selectedColumns;
+    let selectedColumns: any[];
     if (
       this.props.query &&
       this.props.query.results &&
@@ -253,8 +258,8 @@ export default class ResultSet extends React.PureComponent<
         templateParams,
         datasourceName: this.state.newSaveDatasetName,
         columns: selectedColumns,
-    }).then(data => {
-        console.log('Create datasource successfully');
+      })
+      .then((data: { table_id: any }) => {
         exploreChart({
           datasource: `${data.table_id}__table`,
           metrics: [],
@@ -263,8 +268,8 @@ export default class ResultSet extends React.PureComponent<
           viz_type: 'table',
           all_columns: selectedColumns.map(c => c.name),
           row_limit: 1000,
-        })
-      }).catch(error => {
+        });
+      }).catch((error: any) => {
         console.log('an error occurred trying to create a datasource');
         console.log(error);
       });
@@ -294,7 +299,6 @@ export default class ResultSet extends React.PureComponent<
       }
 
       const { showSaveDatasetModal } = this.state;
-      console.log(this.state.overwriteDataSet)
       return (
         <div className="ResultSetControls">
           <SaveDatasetModal
