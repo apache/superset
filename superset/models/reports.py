@@ -177,6 +177,6 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("logs", cascade="all,delete"),
+        backref=backref("logs", cascade="all,delete,delete-orphan"),
         foreign_keys=[report_schedule_id],
     )
