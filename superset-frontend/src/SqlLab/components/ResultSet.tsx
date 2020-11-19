@@ -116,10 +116,9 @@ export default class ResultSet extends React.PureComponent<
   componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
-
+    const userId = 3;
     SupersetClient.get({
-      endpoint:
-        'api/v1/dataset/?q=(filters:!((col:table_name,opr:ct,value:%27%27)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)',
+      endpoint: `/api/v1/dataset/?q=(filters:!((col:owners,opr:rel_m_m,value:${userId}),(col:table_name,opr:ct,value:%27%27)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)`,
       }).then(data => {
           const userDatasetsOwned = data.json.result.map(r => {
             return { dataSetName: r.table_name, dataSetId: r.id }
@@ -211,7 +210,7 @@ export default class ResultSet extends React.PureComponent<
         columns: []
       }),
     }).then(d => {
-      console.log(d)
+        console.log(d)
     }).catch(err => console.log(err))
 
     SupersetClient.put({
