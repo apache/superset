@@ -60,9 +60,9 @@ const SelectAsyncControl = props => {
   const onSelectionChange = options => {
     let val;
     if (multi) {
-      val = options?.map(option => option.value) || null;
+      val = options?.map(option => option.value) ?? null;
     } else {
-      val = options?.value || null;
+      val = options?.value ?? null;
     }
     onChange(val);
   };
