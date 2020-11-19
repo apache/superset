@@ -128,10 +128,6 @@ class TestReportSchedulesApi(SupersetTestCase):
             "last_value_row_json": report_schedule.last_value_row_json,
             "log_retention": report_schedule.log_retention,
             "name": report_schedule.name,
-            "owners": [
-                {"first_name": "admin", "id": 1, "last_name": "user"},
-                {"first_name": "alpha", "id": 5, "last_name": "user"},
-            ],
             "recipients": [
                 {
                     "id": report_schedule.recipients[0].id,
@@ -143,7 +139,16 @@ class TestReportSchedulesApi(SupersetTestCase):
             "validator_config_json": report_schedule.validator_config_json,
             "validator_type": report_schedule.validator_type,
         }
-        assert data["result"] == expected_result
+        for key in expected_result:
+            assert data["result"][key] == expected_result[key]
+        # needed because order may vary
+        assert {"first_name": "admin", "id": 1, "last_name": "user"} in data["result"][
+            "owners"
+        ]
+        assert {"first_name": "alpha", "id": 5, "last_name": "user"} in data["result"][
+            "owners"
+        ]
+        assert len(data["result"]["owners"]) == 2
 
     def test_info_report_schedule(self):
         """
