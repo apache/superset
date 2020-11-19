@@ -18,12 +18,17 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { styled } from '@superset-ui/core';
 
 import Tooltip from 'src/common/components/Tooltip';
 
 const propTypes = {
   column: PropTypes.object.isRequired,
 };
+
+const Hr = styled.hr`
+  margin-top: ${({ theme }) => theme.gridUnit * 1.5}px;
+`;
 
 const iconMap = {
   pk: 'fa-key',
@@ -58,7 +63,7 @@ export default function ColumnElement({ column }: ColumnElementProps) {
           title={
             <>
               <strong>{tooltipTitleMap[key.type]}</strong>
-              <hr />
+              <Hr />
               <pre className="text-small">
                 {JSON.stringify(key, null, '  ')}
               </pre>
