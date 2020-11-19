@@ -39,6 +39,7 @@ export {
   Input,
   Modal,
   Popover,
+  Radio,
   Select,
   Skeleton,
   Switch,

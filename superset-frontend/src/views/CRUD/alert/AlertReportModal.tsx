@@ -23,6 +23,9 @@ import rison from 'rison';
 
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
+import { Switch } from 'src/common/components/Switch';
+import { Select } from 'src/common/components/Select';
+import { Radio } from 'src/common/components/Radio';
 import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
@@ -37,6 +40,15 @@ interface AlertReportModalProps {
   show: boolean;
 }
 
+const CONDITIONS = [
+  '< (Smaller than)',
+  '> (Larger than)',
+  '<= (Smaller or equal)',
+  '>= (Larger or equal)',
+  '== (Is Equal)',
+  '!= (Is Not Equal)',
+];
+
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
@@ -48,6 +60,7 @@ const StyledSectionContainer = styled.div`
   .header-section {
     display: flex;
     flex: 0 0 auto;
+    align-items: center;
     width: 100%;
     padding: ${({ theme }) => theme.gridUnit * 4}px;
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -75,9 +88,22 @@ const StyledSectionContainer = styled.div`
   .inline-container {
     display: flex;
     flex-direction: row;
+    align-items: center;
 
     > div {
       flex: 1 1 auto;
+    }
+
+    &.format-option {
+      margin-bottom: 5px;
+    }
+
+    .styled-input {
+      margin: 0 0 0 10px;
+
+      input {
+        flex: 0 0 auto;
+      }
     }
   }
 `;
@@ -85,6 +111,16 @@ const StyledSectionContainer = styled.div`
 const StyledSectionTitle = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
     ${({ theme }) => theme.gridUnit * 4}px auto;
+`;
+
+const StyledSwitchContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+
+  .switch-label {
+    margin-left: 10px;
+  }
 `;
 
 const StyledInputContainer = styled.div`
@@ -113,7 +149,8 @@ const StyledInputContainer = styled.div`
 
   input,
   textarea,
-  .Select {
+  .Select,
+  .ant-select {
     flex: 1 1 auto;
   }
 
@@ -131,7 +168,8 @@ const StyledInputContainer = styled.div`
   textarea,
   input[type='text'],
   input[type='number'],
-  .Select__control {
+  .Select__control,
+  .ant-select-single .ant-select-selector {
     padding: ${({ theme }) => theme.gridUnit * 1.5}px
       ${({ theme }) => theme.gridUnit * 2}px;
     border-style: none;
@@ -258,6 +296,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('owners', value || []);
   };
 
+  const onActiveSwitch = (checked: boolean) => {
+    updateAlertState('active', checked);
+  };
+
+  const onConditionChange = (condition) => {
+    updateAlertState('condition_operator', condition);
+  };
+
+  const onScheduleFormatChange = (event: React.ChangeEvent) => {
+    const { target } = event;
+
+    updateAlertState('schedule_format', target.value);
+  };
+
   const validate = () => {
     if (
       currentAlert &&
@@ -293,6 +345,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setCurrentAlert({
       name: '',
       owners: [],
+      active: true,
     });
   }
 
@@ -308,6 +361,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   if (isHidden && show) {
     setIsHidden(false);
   }
+
+  // Dropdown options
+  const conditionOptions = CONDITIONS.map(condition => {
+    return (<Select.Option value={condition}>{condition}</Select.Option>
+  });
 
   return (
     <Modal
@@ -379,6 +437,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               />
             </div>
           </StyledInputContainer>
+          <StyledSwitchContainer>
+            <Switch onChange={onActiveSwitch} checked={currentAlert ? currentAlert.active : true}/>
+            <div className="switch-label">Active</div>
+          </StyledSwitchContainer>
         </div>
         <div className="column-section">
           {!isReport && (
@@ -421,15 +483,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
-                    <input
-                      type="text"
-                      name="alert_condition_op"
-                      value={
-                        currentAlert ? currentAlert.alert_condition_op : ''
-                      }
-                      placeholder={t('Should Be Dropdown')}
-                      onChange={onTextChange}
-                    />
+                    <Select
+                      onChange={onConditionChange}
+                      placeholder="Condition"
+                      defaultValue={currentAlert ? currentAlert.condition_operator || null : null}
+                    >
+                      {conditionOptions}
+                    </Select>
                   </div>
                 </StyledInputContainer>
                 <StyledInputContainer>
@@ -456,12 +516,30 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledSectionTitle>
               <h4>{t('Alert Condition Schedule')}</h4>
             </StyledSectionTitle>
-            <div className="inline-container">
-              "Every x minutes" radio button here
-            </div>
-            <div className="inline-container">
-              CRON Schedule radio button here
-            </div>
+            <Radio.Group
+              onChange={onScheduleFormatChange}
+              value={currentAlert ? currentAlert.schedule_format || 'dropdown-format' : 'dropdown-format'}
+            >
+              <div className="inline-container format-option">
+                <Radio value="dropdown-format"/>
+                <span className="input-label">Every x Minutes (should be set of dropdown options)</span>
+              </div>
+              <div className="inline-container format-option">
+                <Radio value="cron-format"/>
+                <span className="input-label">CRON Schedule</span>
+                <StyledInputContainer className="styled-input">
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      name="cron_string"
+                      value={currentAlert ? currentAlert.cron_string || '' : ''}
+                      placeholder={t('CRON Expression')}
+                      onChange={onTextChange}
+                    />
+                  </div>
+                </StyledInputContainer>
+              </div>
+            </Radio.Group>
             <StyledSectionTitle>
               <h4>{t('Schedule Settings')}</h4>
             </StyledSectionTitle>
