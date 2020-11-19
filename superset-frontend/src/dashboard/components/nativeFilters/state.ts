@@ -66,7 +66,6 @@ export function useFilterConfigMap() {
 
 export function useAllFilterState() {
   const filterConfig = useFilterConfiguration();
-  const dispatch = useDispatch();
   const filterState = useSelector<any, AllFilterState[]>(state => {
     return (filterConfig || []).map(filter => {
       const { id, targets } = filter;
@@ -90,7 +89,6 @@ export function useAllFilterState() {
       };
     });
   });
-  dispatch(setFilterState(filterState));
   return filterState;
 }
 
@@ -103,8 +101,10 @@ export function useFilterState(id: string) {
 export function useFilterSetter(id: string) {
   const dispatch = useDispatch();
   return useCallback(
-    (values: string | string[] | null) =>
-      dispatch(selectFilterOption(id, values)),
+    (values: string | string[] | null) => {
+      dispatch(selectFilterOption(id, values));
+      dispatch(setFilterState([{ col: 'gender', op: 'IN', val: ['girl'] }]));
+    },
     [id, dispatch],
   );
 }

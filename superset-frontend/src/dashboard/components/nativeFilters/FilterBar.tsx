@@ -32,6 +32,7 @@ import {
 } from './state';
 import { Filter } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
+import { useDispatch } from 'react-redux';
 
 const Bar = styled.div`
   display: flex;
@@ -91,7 +92,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
     label_colors: {},
     metrics: ['count'],
     multiSelect: true,
-    // native_filters: [{ col: 'gender', op: 'IN', val: ['male', 'female'] }],
+    native_filters: [{ col: 'gender', op: 'IN', val: ['boy', 'girl'] }],
     row_limit: 10000,
     setSelectedValues,
     showSearch: true,
@@ -159,10 +160,9 @@ const menu = (
 );
 
 const FilterBar: React.FC = () => {
-  const allFilters = useAllFilterState();
+  const filterState = useAllFilterState();
   const filterConfigs = useFilterConfiguration();
-
-  console.log(allFilters);
+  console.log(filterState);
 
   return (
     <Bar>

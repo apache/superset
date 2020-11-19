@@ -68,14 +68,15 @@ function mapStateToProps(
       colorScheme,
       colorNamespace,
       sliceId: id,
+      nativeFilters: nativeFilters.filterList,
     }),
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
-    nativeFilters: nativeFilters.filterList,
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
   };
+  // console.log('abc', abc);
   return abc;
 }
 
