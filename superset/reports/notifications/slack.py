@@ -23,12 +23,13 @@ from typing import cast, Optional, Union
 from flask_babel import gettext as __
 from retry.api import retry
 from slack import WebClient
-from slack.errors import SlackApiError
+from slack.errors import SlackApiError, SlackClientError
 from slack.web.slack_response import SlackResponse
 
 from superset import app
 from superset.models.reports import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
+from superset.reports.notifications.exceptions import NotificationError
 
 logger = logging.getLogger(__name__)
 
@@ -62,21 +63,27 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         channel = self._get_channel()
         body = self._get_body()
 
-        client = WebClient(
-            token=app.config["SLACK_API_TOKEN"], proxy=app.config["SLACK_PROXY"]
-        )
-        # files_upload returns SlackResponse as we run it in sync mode.
-        if file:
-            response = cast(
-                SlackResponse,
-                client.files_upload(
-                    channels=channel, file=file, initial_comment=body, title="subject"
-                ),
+        try:
+            client = WebClient(
+                token=app.config["SLACK_API_TOKEN"], proxy=app.config["SLACK_PROXY"]
             )
-            assert response["file"], str(response)  # the uploaded file
-        else:
-            response = cast(
-                SlackResponse, client.chat_postMessage(channel=channel, text=body),
-            )
-            assert response["message"]["text"], str(response)
-        logger.info("Report sent to slack")
+            # files_upload returns SlackResponse as we run it in sync mode.
+            if file:
+                response = cast(
+                    SlackResponse,
+                    client.files_upload(
+                        channels=channel,
+                        file=file,
+                        initial_comment=body,
+                        title="subject",
+                    ),
+                )
+                assert response["file"], str(response)  # the uploaded file
+            else:
+                response = cast(
+                    SlackResponse, client.chat_postMessage(channel=channel, text=body),
+                )
+                assert response["message"]["text"], str(response)
+            logger.info("Report sent to slack")
+        except SlackClientError as ex:
+            raise NotificationError(ex)

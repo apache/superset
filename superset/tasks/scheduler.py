@@ -58,7 +58,7 @@ def execute(report_schedule_id: int, scheduled_dttm: datetime) -> None:
     try:
         AsyncExecuteReportScheduleCommand(report_schedule_id, scheduled_dttm).run()
     except CommandException as ex:
-        logger.error("An exception occurred while executing the report %s", ex)
+        logger.error("An exception occurred while executing the report: %s", ex)
 
 
 @celery_app.task(name="reports.prune_log")
@@ -66,4 +66,4 @@ def prune_log() -> None:
     try:
         AsyncPruneReportScheduleLogCommand().run()
     except CommandException as ex:
-        logger.error("An exception occurred while pruning report schedule logs %s", ex)
+        logger.error("An exception occurred while pruning report schedule logs: %s", ex)

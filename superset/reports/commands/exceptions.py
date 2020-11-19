@@ -108,15 +108,15 @@ class PruneReportScheduleLogFailedError(CommandException):
 
 
 class ReportScheduleScreenshotFailedError(CommandException):
-    message = _("Report Schedule execute screenshot failed.")
+    message = _("Report Schedule execution failed when generating a screenshot.")
 
 
 class ReportScheduleExecuteUnexpectedError(CommandException):
-    message = _("Report Schedule execute got an unexpected error.")
+    message = _("Report Schedule execution got an unexpected error.")
 
 
 class ReportSchedulePreviousWorkingError(CommandException):
-    message = _("Report Schedule is still working error, refused to re compute.")
+    message = _("Report Schedule is still working, refusing to re-compute.")
 
 
 class ReportScheduleNameUniquenessValidationError(ValidationError):
@@ -137,8 +137,12 @@ class AlertQueryMultipleColumnsError(CommandException):
 
 
 class AlertQueryInvalidTypeError(CommandException):
-    message = _("Alert query returned a non-number value")
+    message = _("Alert query returned a non-number value.")
 
 
 class ReportScheduleAlertGracePeriodError(CommandException):
+    message = _("Alert fired during grace period.")
+
+
+class ReportScheduleNotificationError(CommandException):
     message = _("Alert on grace period")

@@ -43,10 +43,11 @@ class AlertCommand(BaseCommand):
 
     def run(self) -> bool:
         self.validate()
-        self._report_schedule.last_value = self._result
 
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
+            self._report_schedule.last_value_row_json = self._result
             return self._result not in (0, None, np.nan)
+        self._report_schedule.last_value = self._result
         operator = json.loads(self._report_schedule.validator_config_json)["op"]
         threshold = json.loads(self._report_schedule.validator_config_json)["threshold"]
         return OPERATOR_FUNCTIONS[operator](self._result, threshold)
@@ -72,8 +73,15 @@ class AlertCommand(BaseCommand):
         if rows[0][1] is None:
             return
         try:
-            # Check if it's float or if we can convert it
-            self._result = float(rows[0][1])
+
+            if (
+                self._report_schedule.validator_type
+                == ReportScheduleValidatorType.NOT_NULL
+            ):
+                self._result = rows[0][1]
+            else:
+                # Check if it's float or if we can convert it
+                self._result = float(rows[0][1])
             return
         except (AssertionError, TypeError, ValueError):
             raise AlertQueryInvalidTypeError()

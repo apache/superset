@@ -26,6 +26,7 @@ from flask_babel import gettext as __
 from superset import app
 from superset.models.reports import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
+from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import send_email_smtp
 
 logger = logging.getLogger(__name__)
@@ -79,16 +80,19 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         subject = self._get_subject()
         content = self._get_content()
         to = self._get_to()
-        send_email_smtp(
-            to,
-            subject,
-            content.body,
-            app.config,
-            files=[],
-            data=None,
-            images=content.images,
-            bcc="",
-            mime_subtype="related",
-            dryrun=False,
-        )
-        logger.info("Report sent to email")
+        try:
+            send_email_smtp(
+                to,
+                subject,
+                content.body,
+                app.config,
+                files=[],
+                data=None,
+                images=content.images,
+                bcc="",
+                mime_subtype="related",
+                dryrun=False,
+            )
+            logger.info("Report sent to email")
+        except Exception as ex:
+            raise NotificationError(ex)
