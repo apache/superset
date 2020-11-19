@@ -102,7 +102,9 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   }
 
   // styling for Tabs component
-  .ant-tabs {
+  // Aaron note 20-11-19: this seems to be exclusively here for the Edit Database modal.
+  // TODO: remove this as it is a special case.
+  .ant-tabs-top {
     margin-top: -${({ theme }) => theme.gridUnit * 4}px;
   }
 `;

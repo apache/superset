@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import shortid from 'shortid';
 import { Store } from 'antd/lib/form/interface';
+import { DeleteFilled } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
-import { Button, Form, Icon } from 'src/common/components';
+import { Button, Form } from 'src/common/components';
+import Icon from 'src/components/Icon';
 import { StyledModal } from 'src/common/components/Modal';
-import Tabs from 'src/common/components/Tabs';
+import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
@@ -80,6 +82,13 @@ export function FilterConfigModal({
   const [removedFilters, setRemovedFilters] = useState<Record<string, boolean>>(
     {},
   );
+  const [formValues, setFormValues] = useState<NativeFiltersForm>({
+    filters: {},
+  });
+
+  useEffect(() => {
+    form.setFieldsValue({ filters: {} });
+  }, [form, filterConfig]);
 
   function resetForm() {
     form.resetFields();
@@ -101,8 +110,9 @@ export function FilterConfigModal({
   }
 
   function getFilterTitle(id: string) {
-    // TODO use edited name from the form here
-    return filterConfigMap[id]?.name ?? 'New Filter';
+    return (
+      formValues.filters[id]?.name ?? filterConfigMap[id]?.name ?? 'New Filter'
+    );
   }
 
   async function onOk() {
@@ -144,6 +154,7 @@ export function FilterConfigModal({
     <StyledModal
       visible={isOpen}
       title={t('Filter Configuration and Scoping')}
+      width="55%"
       onCancel={() => {
         resetForm();
         onCancel();
@@ -153,31 +164,34 @@ export function FilterConfigModal({
       cancelText={t('Cancel')}
     >
       <StyledModalBody>
-        <Form>
-          <Tabs
-            type="editable-card"
+        <Form
+          form={form}
+          onValuesChange={(changes, values) => setFormValues(values)}
+        >
+          <LineEditableTabs
+            tabPosition="left"
             onChange={setCurrentFilterId}
             activeKey={currentFilterId}
             onEdit={onTabEdit}
           >
             {filterIds.map(id => (
-              <Tabs.TabPane
+              <LineEditableTabs.TabPane
                 tab={
                   <RemovedStatus removed={!!removedFilters[id]}>
                     {getFilterTitle(id)}
                   </RemovedStatus>
                 }
                 key={id}
-                closeIcon={<Icon name="trash" />}
+                closeIcon={<DeleteFilled />}
               >
                 <FilterConfigForm
                   form={form}
                   filterId={id}
                   filterToEdit={filterConfigMap[id]}
                 />
-              </Tabs.TabPane>
+              </LineEditableTabs.TabPane>
             ))}
-          </Tabs>
+          </LineEditableTabs>
         </Form>
       </StyledModalBody>
     </StyledModal>
