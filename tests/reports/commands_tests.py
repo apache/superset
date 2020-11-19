@@ -106,7 +106,7 @@ def create_report_notification(
     return report_schedule
 
 
-@pytest.yield_fixture()
+@pytest.yield_fixture(scope="module")
 def create_report_email_chart():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -280,6 +280,7 @@ def test_email_chart_report_schedule(
         AsyncExecuteReportScheduleCommand(
             create_report_email_chart.id, datetime.utcnow()
         ).run()
+        db.session.commit()
 
         notification_targets = get_target_from_report_schedule(
             create_report_email_chart
@@ -442,5 +443,5 @@ def test_slack_chart_no_alert(create_no_alert_email_chart):
         AsyncExecuteReportScheduleCommand(
             create_no_alert_email_chart.id, datetime.utcnow()
         ).run()
-        db.session.commit()
-        assert create_no_alert_email_chart.last_state == ReportLogState.NOOP
+    db.session.commit()
+    assert create_no_alert_email_chart.last_state == ReportLogState.NOOP
