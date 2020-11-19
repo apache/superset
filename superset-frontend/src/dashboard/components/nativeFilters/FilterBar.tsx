@@ -79,14 +79,14 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   const [state, setState] = useState({ data: undefined });
   const { targets } = filter;
   const [target] = targets;
-  const { datasetId = 18, groupby = 'gender' } = target;
+  const { datasetId = 18, column = 'gender' } = target;
 
   const formData = {
     adhoc_filters: [],
     datasource: `${datasetId}__table`,
     extra_filters: [],
     granularity_sqla: 'ds',
-    groupby: [groupby],
+    groupby: [column],
     label_colors: {},
     metrics: ['count'],
     multiSelect: true,
