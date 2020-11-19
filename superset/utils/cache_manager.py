@@ -23,17 +23,35 @@ class CacheManager:
         super().__init__()
 
         self._cache = Cache()
-        self._tables_cache = Cache()
+        self._data_cache = Cache()
         self._thumbnail_cache = Cache()
 
     def init_app(self, app: Flask) -> None:
-        self._cache.init_app(app, app.config["CACHE_CONFIG"])
-        self._tables_cache.init_app(app, app.config["TABLE_NAMES_CACHE_CONFIG"])
-        self._thumbnail_cache.init_app(app, app.config["THUMBNAIL_CACHE_CONFIG"])
+        self._cache.init_app(
+            app,
+            {
+                "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
+                **app.config["CACHE_CONFIG"],
+            },
+        )
+        self._data_cache.init_app(
+            app,
+            {
+                "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
+                **app.config["DATA_CACHE_CONFIG"],
+            },
+        )
+        self._thumbnail_cache.init_app(
+            app,
+            {
+                "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
+                **app.config["THUMBNAIL_CACHE_CONFIG"],
+            },
+        )
 
     @property
-    def tables_cache(self) -> Cache:
-        return self._tables_cache
+    def data_cache(self) -> Cache:
+        return self._data_cache
 
     @property
     def cache(self) -> Cache:

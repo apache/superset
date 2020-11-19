@@ -57,6 +57,11 @@ export interface Target {
   // clarityColumns?: Column[];
 }
 
+export type DatasetSelectValue = {
+  value: number;
+  label: string;
+};
+
 export type FilterType = 'text' | 'date';
 
 /**

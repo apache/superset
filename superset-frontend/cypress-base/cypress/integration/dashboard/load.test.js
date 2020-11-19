@@ -17,13 +17,16 @@
  * under the License.
  */
 import readResponseBlob from '../../utils/readResponseBlob';
-import { isLegacyChart } from '../../utils/vizPlugins';
+import {
+  getChartAliases,
+  isLegacyResponse,
+  getSliceIdFromRequestUrl,
+} from '../../utils/vizPlugins';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard load', () => {
-  const aliases = [];
   let dashboard;
-
+  let aliases;
   beforeEach(() => {
     cy.server();
     cy.login();
@@ -33,35 +36,31 @@ describe('Dashboard load', () => {
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       dashboard = bootstrapData.dashboard_data;
+      const { slices } = dashboard;
+      // then define routes and create alias for each requests
+      aliases = getChartAliases(slices);
     });
   });
 
   it('should load dashboard', () => {
-    const { slices } = dashboard;
-
-    // then define routes and create alias for each requests
-    slices.forEach(slice => {
-      const vizType = slice.form_data.viz_type;
-      const isLegacy = isLegacyChart(vizType);
-      // TODO(villebro): enable V1 charts
-      if (isLegacy) {
-        const alias = `getJson_${slice.slice_id}`;
-        const formData = `{"slice_id":${slice.slice_id}}`;
-        const route = `/superset/explore_json/?*${formData}*`;
-        cy.route('POST', `${route}`).as(alias);
-        aliases.push(`@${alias}`);
-      }
-    });
-
     // wait and verify one-by-one
     cy.wait(aliases).then(requests => {
       return Promise.all(
         requests.map(async xhr => {
           expect(xhr.status).to.eq(200);
           const responseBody = await readResponseBlob(xhr.response.body);
-          expect(responseBody).to.have.property('errors');
-          expect(responseBody.errors.length).to.eq(0);
-          const sliceId = responseBody.form_data.slice_id;
+          let sliceId;
+          if (isLegacyResponse(responseBody)) {
+            expect(responseBody).to.have.property('errors');
+            expect(responseBody.errors.length).to.eq(0);
+            sliceId = responseBody.form_data.slice_id;
+          } else {
+            sliceId = getSliceIdFromRequestUrl(xhr.url);
+            responseBody.result.forEach(element => {
+              expect(element).to.have.property('error', null);
+              expect(element).to.have.property('status', 'success');
+            });
+          }
           cy.get('[data-test="grid-content"]')
             .find(`#chart-id-${sliceId}`)
             .should('be.visible');

@@ -16,32 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useState } from 'react';
+import React, {  Fragment, useEffect, useState } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import { Form, Input, Radio, Typography } from 'src/common/components';
 import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
-import { Filter, Scoping } from './types';
+import { DatasetSelectValue, Filter, Scoping } from './types';
 import ScopingTree from './ScopingTree';
 
 interface FilterConfigForm {
   setFilterScope: Function;
   dataset: any;
-  setDataset: (arg0: string) => void;
-  filterToEdit: {
-    filter: Filter;
-    index: number;
-  };
+  setDataset: (arg0: DatasetSelectValue) => void;
+  filterToEdit?: Filter;
   form: any;
-  edit: boolean;
+  filterConfigs: any;
+  onFormChange: (arg0: any) => any;
 }
-
-type DatasetSelectValue = {
-  value: number;
-  label: string;
-};
 
 type ColumnSelectValue = {
   value: string;
@@ -105,13 +98,23 @@ const FilterConfigForm = ({
   setFilterScope,
   filterToEdit,
   form,
-  edit,
+  onFormChange,
 }: FilterConfigForm) => {
   const [scoping, setScoping] = useState<Scoping>(Scoping.all);
+
+  useEffect(() => {
+    form.setFieldsValue({
+      name: filterToEdit?.name,
+      column:
+        filterToEdit?.targets?.length && filterToEdit.targets[0].datasetId,
+    });
+  }, [filterToEdit]);
+        
   return (
     <Form
       form={form}
       onValuesChange={changes => {
+        onFormChange(changes);
         // un-set the "column" value whenever the dataset changes.
         // Doing this in the onChange handler of the
         // dataset selector doesn't work for some reason.
@@ -122,10 +125,10 @@ const FilterConfigForm = ({
       }}
     >
       <Form.Item
-        name={['filterName', filterToEdit.index, 'name']}
+        name="name"
         label="Filter Name"
+        initialValue={filterToEdit?.name}
         rules={[{ required: true }]}
-        initialValue={edit ? filterToEdit?.filter?.name : 'test'}
       >
         <Input />
       </Form.Item>
@@ -140,10 +143,12 @@ const FilterConfigForm = ({
       <Form.Item
         // don't show the column select unless we have a dataset
         style={{ display: dataset ? undefined : 'none' }}
-        name={['column', 'target', 0, 'datasetId']}
+        name="column"
+        initialValue={
+          filterToEdit?.targets?.length && filterToEdit?.targets[0]?.datasetId
+        }
         label="Field"
         rules={[{ required: true }]}
-        initialValue={filterToEdit?.filter?.targets[0]?.datasetId}
       >
         <ColumnSelect datasetId={dataset?.value} />
       </Form.Item>

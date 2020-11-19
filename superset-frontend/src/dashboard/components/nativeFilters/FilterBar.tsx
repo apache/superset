@@ -16,33 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PlusOutlined } from '@ant-design/icons';
-import { styled } from '@superset-ui/core';
-import React from 'react';
-import { Button, Form, Input } from 'src/common/components';
+import { styled, SuperChart, t } from '@superset-ui/core';
+import React, { useState } from 'react';
+import { Form, Dropdown, Menu } from 'src/common/components';
+import Button from 'src/components/Button';
 import CreateFilterButton from './CreateFilterButton';
+import Icon from 'src/components/Icon';
+// import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
+
 import {
   useFilterConfigurations,
   useFilterSetter,
   useFilterState,
 } from './state';
 import { Filter } from './types';
+import { getChartDataRequest } from '../../../chart/chartAction';
 
 const Bar = styled.div`
   display: flex;
   flex-direction: column;
   width: 250px; // arbitrary...
   flex-grow: 1;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
-const TitleArea = styled.h2`
+const TitleArea = styled.h4`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   margin: 0;
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding-top: 0;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  .btn {
+    flex: 1 1 50%;
+  }
+`;
+
+const FilterControls = styled.div`
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 interface FilterProps {
@@ -55,6 +75,37 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   // Please don't send this component to prod.
   const { selectedValues } = useFilterState(filter.id);
   const setSelectedValues = useFilterSetter(filter.id);
+
+  const [state, setState] = useState({ data: undefined });
+
+  const formData = {
+    adhoc_filters: [],
+    datasource: `${filter.targets[0].datasetId}__table`,
+    extra_filters: [],
+    granularity_sqla: 'ds',
+    groupby: ['name'],
+    label_colors: {},
+    metrics: ['count'],
+    multiSelect: true,
+    row_limit: 10000,
+    showSearch: true,
+    slice_id: 10001,
+    time_range: 'No filter',
+    time_range_endpoints: ['inclusive', 'exclusive'],
+    url_params: {},
+    viz_type: 'filter_select',
+  };
+
+  if (!state.data)
+    getChartDataRequest({
+      formData,
+      force: false,
+      requestParams: { dashboardId: 0 },
+    }).then(response => {
+      setState({ data: response.result[0].data });
+    });
+
+  console.log('filter', filter);
 
   if (selectedValues) {
     return (
@@ -73,10 +124,16 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
       }}
     >
       <Form.Item name="value">
-        <Input />
+        <SuperChart
+          height={20}
+          width={220}
+          formData={formData}
+          queryData={state}
+          chartType="filter_select"
+        />
       </Form.Item>
-      <Button type="primary" htmlType="submit">
-        apply
+      <Button buttonSize="sm" buttonStyle="tertiary" type="submit">
+        {t("Apply")}
       </Button>
     </Form>
   );
@@ -91,20 +148,51 @@ const FilterControl: React.FC<FilterProps> = ({ filter }) => {
   );
 };
 
+const menu = (
+  <Menu>
+    <Menu.Item>
+      Configure Filters
+    </Menu.Item>
+    <Menu.Item>
+      <CreateFilterButton>
+        {t('New Filter')}
+      </CreateFilterButton>
+    </Menu.Item>
+    {/* <Menu.Item>
+        <FilterScopeModal
+          triggerNode={t('Bulk Scoping')}
+        />
+      </Menu.Item> */}
+
+  </Menu>
+);
+
 const FilterBar: React.FC = () => {
   const filterConfigs = useFilterConfigurations();
-  console.log('filterConfigs', filterConfigs)
+  // console.log('filterConfigs', filterConfigs);
+  const [filterState, setFilterState] = useState({});
+
   return (
     <Bar>
       <TitleArea>
         <span>Filters ({filterConfigs.length})</span>
-        <CreateFilterButton type="text" shape="circle">
-          <PlusOutlined />
-        </CreateFilterButton>
+        <Dropdown overlay={menu}>
+          <Icon name="more-horiz" />
+        </Dropdown>
       </TitleArea>
-      {filterConfigs.map(filter => (
-        <FilterControl key={filter.id} filter={filter} />
-      ))}
+      <ActionButtons>
+        <Button buttonStyle="primary" type="submit" buttonSize="sm">
+          {t("Apply")}
+        </Button>
+        <Button buttonStyle="secondary" buttonSize="sm">
+          {t("Reset All")}
+        </Button>
+      </ActionButtons>
+      <FilterControls>
+        {filterConfigs.map(filter => (
+          <FilterControl key={filter.id} filter={filter} />
+        ))}
+      </FilterControls>
     </Bar>
   );
 };

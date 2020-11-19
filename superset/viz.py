@@ -53,7 +53,7 @@ from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, cache, db, is_feature_enabled, security_manager
+from superset import app, db, is_feature_enabled
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -61,6 +61,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SpatialException,
 )
+from superset.extensions import cache_manager, security_manager
 from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
 from superset.typing import QueryObjectDict, VizData, VizPayload
@@ -107,7 +108,7 @@ def set_and_log_cache(
     try:
         cache_value = dict(dttm=cached_dttm, df=df, query=query)
         stats_logger.incr("set_cache_key")
-        cache.set(cache_key, cache_value, timeout=cache_timeout)
+        cache_manager.data_cache.set(cache_key, cache_value, timeout=cache_timeout)
 
         if datasource_uid:
             ck = CacheKey(
@@ -121,7 +122,7 @@ def set_and_log_cache(
         # the key is too large or whatever other reasons
         logger.warning("Could not cache key {}".format(cache_key))
         logger.exception(ex)
-        cache.delete(cache_key)
+        cache_manager.data_cache.delete(cache_key)
 
 
 class BaseViz:
@@ -430,6 +431,8 @@ class BaseViz:
             and self.datasource.database.cache_timeout
         ) is not None:
             return self.datasource.database.cache_timeout
+        if config["DATA_CACHE_CONFIG"].get("CACHE_DEFAULT_TIMEOUT") is not None:
+            return config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
         return config["CACHE_DEFAULT_TIMEOUT"]
 
     def get_json(self) -> str:
@@ -513,8 +516,8 @@ class BaseViz:
         stacktrace = None
         df = None
         cached_dttm = datetime.utcnow().isoformat().split(".")[0]
-        if cache_key and cache and not self.force:
-            cache_value = cache.get(cache_key)
+        if cache_key and cache_manager.data_cache and not self.force:
+            cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
                 stats_logger.incr("loading_from_cache")
                 try:
@@ -582,12 +585,7 @@ class BaseViz:
                 self.status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
-            if (
-                is_loaded
-                and cache_key
-                and cache
-                and self.status != utils.QueryStatus.FAILED
-            ):
+            if is_loaded and cache_key and self.status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
                     cache_key,
                     df,
