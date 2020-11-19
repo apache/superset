@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { FormItemProps } from 'antd/lib/form';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import {
@@ -31,13 +32,6 @@ import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import { Filter, FilterConfiguration, Scope, Scoping } from './types';
 import ScopingTree from './ScopingTree';
-
-interface FilterConfigFormProps {
-  filterId: string;
-  filterToEdit?: Filter;
-  removed?: boolean;
-  form: FormInstance;
-}
 
 type DatasetSelectValue = {
   value: number;
@@ -101,7 +95,23 @@ const ScopingTreeNote = styled.div`
   margin-bottom: 10px;
 `;
 
-const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
+const RemovedContent = styled.div`
+  display: flex;
+  height: 400px; // arbitrary
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
+export interface FilterConfigFormProps {
+  filterId: string;
+  filterToEdit?: Filter;
+  removed?: boolean;
+  form: FormInstance;
+}
+
+export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   filterId,
   filterToEdit,
   removed,
@@ -115,6 +125,16 @@ const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     rootPath: [],
     excluded: [],
   }); // TODO: when connect to store read from there
+
+  if (removed) {
+    return (
+      <RemovedContent>
+        {t(
+          'You have removed this filter. Click the trash again to bring it back.',
+        )}
+      </RemovedContent>
+    );
+  }
 
   return (
     <>

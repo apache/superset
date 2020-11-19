@@ -18,6 +18,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { findLastIndex } from 'lodash';
 import shortid from 'shortid';
 import { Store } from 'antd/lib/form/interface';
 import { DeleteFilled } from '@ant-design/icons';
@@ -27,6 +28,7 @@ import Icon from 'src/components/Icon';
 import { StyledModal } from 'src/common/components/Modal';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { usePrevious } from 'src/common/hooks/usePrevious';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
 import {
@@ -36,7 +38,6 @@ import {
   Scope,
   Scoping,
 } from './types';
-import { usePrevious } from 'src/common/hooks/usePrevious';
 
 const StyledModalBody = styled.div`
   display: flex;
@@ -47,8 +48,10 @@ const StyledModalBody = styled.div`
   }
 `;
 
-const RemovedStatus = styled.span<{ removed: boolean }>`
-  text-decoration: ${({ removed }) => (removed ? 'line-through' : 'none')};
+const RemovedStatus = styled.span`
+  &.removed {
+    text-decoration: line-through;
+  }
 `;
 
 function generateFilterId() {
@@ -107,12 +110,12 @@ export function FilterConfigModal({
     form.setFieldsValue({ filters: {} });
   }, [form, filterConfig]);
 
-  function resetForm() {
+  const resetForm = useCallback(() => {
     form.resetFields();
     setFilterIds(getInitialFilterIds());
     setCurrentFilterId(getInitialCurrentFilterId());
     setRemovedFilters({});
-  }
+  }, [form]);
 
   function onTabEdit(filterId: string, action: 'add' | 'remove') {
     if (action === 'remove') {
@@ -121,6 +124,15 @@ export function FilterConfigModal({
         // trash can button is actually a toggle
         [filterId]: !removedFilters[filterId],
       });
+      if (filterId === currentFilterId && !removedFilters[filterId]) {
+        // when a filter is removed, switch the view to a non-removed one
+        const lastNotRemoved = findLastIndex(
+          filterIds,
+          id => !removedFilters[id] && id !== filterId,
+        );
+        if (lastNotRemoved !== -1)
+          setCurrentFilterId(filterIds[lastNotRemoved]);
+      }
     } else if (action === 'add') {
       addFilter();
     }
@@ -132,7 +144,7 @@ export function FilterConfigModal({
     );
   }
 
-  async function onOk() {
+  const onOk = useCallback(async () => {
     try {
       const values = (await form.validateFields()) as NativeFiltersForm;
       const newFilterConfig: FilterConfiguration = filterIds
@@ -165,7 +177,7 @@ export function FilterConfigModal({
     } catch (info) {
       console.log('Filter Configuration Failed:', info);
     }
-  }
+  }, [form, save, resetForm, filterIds, removedFilters]);
 
   return (
     <StyledModal
@@ -183,7 +195,17 @@ export function FilterConfigModal({
       <StyledModalBody>
         <Form
           form={form}
-          onValuesChange={(changes, values) => setFormValues(values)}
+          onValuesChange={(changes, values) => {
+            if (
+              changes.filters &&
+              Object.values(changes.filters).some(
+                (filter: any) => filter.name != null,
+              )
+            ) {
+              // we only need to set this if a name changed
+              setFormValues(values);
+            }
+          }}
         >
           <LineEditableTabs
             tabPosition="left"
@@ -194,7 +216,9 @@ export function FilterConfigModal({
             {filterIds.map(id => (
               <LineEditableTabs.TabPane
                 tab={
-                  <RemovedStatus removed={!!removedFilters[id]}>
+                  <RemovedStatus
+                    className={removedFilters[id] ? 'removed' : ''}
+                  >
                     {getFilterTitle(id)}
                   </RemovedStatus>
                 }
