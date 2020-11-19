@@ -77,19 +77,22 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   const setSelectedValues = useFilterSetter(filter.id);
 
   const [state, setState] = useState({ data: undefined });
+  const { targets } = filter;
+  const [target] = targets;
+  const { datasetId = 18, groupby = 'gender' } = target;
 
   const formData = {
     adhoc_filters: [],
-    datasource: `${filter.targets[0].datasetId}__table`,
+    datasource: `${datasetId}__table`,
     extra_filters: [],
     granularity_sqla: 'ds',
-    groupby: ['name'],
+    groupby: [groupby],
     label_colors: {},
     metrics: ['count'],
     multiSelect: true,
     row_limit: 10000,
+    setSelectedValues,
     showSearch: true,
-    slice_id: 10001,
     time_range: 'No filter',
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
@@ -140,9 +143,10 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
 };
 
 const FilterControl: React.FC<FilterProps> = ({ filter }) => {
+  const { name = '<undefined>' } = filter;
   return (
     <div>
-      <h3>{filter.name}</h3>
+      <h3>{name}</h3>
       <FilterValue filter={filter} />
     </div>
   );
