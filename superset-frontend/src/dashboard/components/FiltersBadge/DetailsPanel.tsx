@@ -112,6 +112,13 @@ const DetailsPanelPopover = ({
         .filterStatusPopover {
           .ant-popover-inner {
             background-color: ${theme.colors.grayscale.dark2}cc;
+            .ant-popover-inner-content {
+              padding-top: 0;
+              padding-bottom: 0;
+            }
+          }
+          .ant-collapse-item:last-of-type.ant-collapse-item-active{
+            padding-bottom: ${theme.gridUnit * 3}px;
           }
           &.ant-popover-placement-bottom,
           &.ant-popover-placement-bottomLeft,
@@ -145,7 +152,10 @@ const DetailsPanelPopover = ({
               border-left-color: ${theme.colors.grayscale.dark2}cc;
             }
           }
-          &.ant-popover *{
+          &.ant-popover {
+            color: ${theme.colors.grayscale.light4};
+          }
+          .ant-collapse-arrow svg {
             color: ${theme.colors.grayscale.light4};
           }
         } 
@@ -161,8 +171,8 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="applied"
               header={
-                <Title bold>
-                  <CheckCircleFilled color={theme.colors.success.base} />{' '}
+                <Title bold color={theme.colors.success.base}>
+                  <CheckCircleFilled />{' '}
                   {t('Applied Filters (%d)', appliedIndicators.length)}
                 </Title>
               }
@@ -182,8 +192,8 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="incompatible"
               header={
-                <Title bold>
-                  <ExclamationCircleFilled color={theme.colors.alert.base} />{' '}
+                <Title bold color={theme.colors.alert.base}>
+                  <ExclamationCircleFilled />{' '}
                   {t(
                     'Incompatible Filters (%d)',
                     incompatibleIndicators.length,
@@ -206,7 +216,7 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="unset"
               header={
-                <Title bold>
+                <Title bold color={theme.colors.grayscale.light1}>
                   <MinusCircleFilled />{' '}
                   {t('Unset Filters (%d)', unsetIndicators.length)}
                 </Title>
