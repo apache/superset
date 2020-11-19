@@ -22,6 +22,7 @@ import { selectFilterOption } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { t } from '@superset-ui/core';
 import {
+  AllFilterState,
   Charts,
   Filter,
   FilterConfiguration,
@@ -61,6 +62,25 @@ export function useFilterConfigMap() {
       }, {} as Record<string, Filter>),
     [filterConfig],
   );
+}
+
+export function useAllFilterState() {
+  const filterConfig = useFilterConfiguration();
+  return useSelector<any, AllFilterState[]>(state => {
+    return filterConfig.map(filter => {
+      const { id, targets } = filter;
+      const [target] = targets;
+      const { column, datasetId } = target;
+      const filterState = state.nativeFilters[id] || getInitialFilterState(id);
+      const { selectedValues } = filterState;
+      return {
+        column,
+        datasetId,
+        id,
+        selectedValues,
+      }
+    });
+  });
 }
 
 export function useFilterState(id: string) {

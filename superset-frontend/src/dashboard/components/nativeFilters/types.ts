@@ -82,17 +82,27 @@ export interface Filter {
 
 export type FilterConfiguration = Filter[];
 
+export type SelectedValues = string[] | null;
+
 /** Current state of the filter, stored in `nativeFilters` in redux */
 export type FilterState = {
   id: string; // ties this filter state to the config object
   optionsStatus: 'loading' | 'success' | 'fail';
   options: string[] | null;
-  selectedValues: string[] | null;
+  selectedValues: SelectedValues;
   /**
    * If the config changes, the current options/values may no longer be valid.
    * isDirty indicates that state.
    */
   isDirty: boolean;
+};
+
+
+export type AllFilterState = {
+  column: Column;
+  datasetId: number;
+  id: string;
+  selectedValues: SelectedValues;
 };
 
 /** Chart state of redux */
