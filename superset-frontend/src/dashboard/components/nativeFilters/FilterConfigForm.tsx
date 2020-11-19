@@ -115,27 +115,20 @@ const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   }); // TODO: when connect to store read from there
 
   return (
-    <Form
-      form={form}
-      onValuesChange={changes => {
-        // un-set the "column" value whenever the dataset changes.
-        // Doing this in the onChange handler of the
-        // dataset selector doesn't work for some reason.
-        if ('dataset' in changes && changes.dataset?.value !== datasetId) {
-          form.setFieldsValue({ column: null });
-          setDatasetId(changes.dataset.value);
-        }
-      }}
-    >
+    <>
       <Form.Item
-        name="name"
+        name={['filters', filterId, 'name']}
         label="Filter Name"
         initialValue={filterToEdit?.name}
         rules={[{ required: true }]}
       >
         <Input />
       </Form.Item>
-      <Form.Item name="dataset" label="Datasource" rules={[{ required: true }]}>
+      <Form.Item
+        name={['filters', filterId, 'dataset']}
+        label="Datasource"
+        rules={[{ required: true }]}
+      >
         <SupersetResourceSelect
           resource="dataset"
           searchColumn="table_name"
@@ -146,7 +139,7 @@ const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <Form.Item
         // don't show the column select unless we have a dataset
         style={{ display: datasetId == null ? undefined : 'none' }}
-        name="column"
+        name={['filters', filterId, 'column']}
         initialValue={
           filterToEdit?.targets?.length && filterToEdit?.targets[0]?.datasetId
         }
@@ -155,23 +148,32 @@ const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       >
         <ColumnSelect datasetId={datasetId} />
       </Form.Item>
-      <Form.Item name="defaultValue" label="Default Value">
+      <Form.Item
+        name={['filters', filterId, 'defaultValue']}
+        label="Default Value"
+      >
         <Input />
       </Form.Item>
-      <Form.Item name="isInstant" label={t('Apply changes instantly')}>
+      <Form.Item
+        name={['filters', filterId, 'isInstant']}
+        label={t('Apply changes instantly')}
+      >
         <Input type="checkbox" />
       </Form.Item>
       <Form.Item
-        name="allowsMultipleValues"
+        name={['filters', filterId, 'allowsMultipleValues']}
         label={t('Allow multiple selections')}
       >
         <Input type="checkbox" />
       </Form.Item>
-      <Form.Item name="isRequired" label={t('Required')}>
+      <Form.Item
+        name={['filters', filterId, 'isRequired']}
+        label={t('Required')}
+      >
         <Input type="checkbox" />
       </Form.Item>
       <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
-      <Form.Item name="scoping" initialValue={scoping}>
+      <Form.Item name={['filters', filterId, 'scoping']} initialValue={scoping}>
         <Radio.Group
           onChange={({ target: { value } }) => {
             setScoping(value as Scoping);
@@ -193,7 +195,7 @@ const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           <ScopingTree setFilterScope={setFilterScope} />
         </>
       )}
-    </Form>
+    </>
   );
 };
 
