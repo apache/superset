@@ -19,20 +19,20 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import CreateFilterButton from 'src/dashboard/components/nativeFilters/CreateFilterButton';
+import FilterConfigurationButton from 'src/dashboard/components/nativeFilters/FilterConfigurationButton';
 
-describe('CreateFilterButton', () => {
+describe('FilterConfigurationButton', () => {
   const mockedProps = {};
   it('it is valid', () => {
-    expect(React.isValidElement(<CreateFilterButton {...mockedProps} />)).toBe(
-      true,
-    );
+    expect(
+      React.isValidElement(<FilterConfigurationButton {...mockedProps} />),
+    ).toBe(true);
   });
   it('takes in children', () => {
     const wrapper = mount(
-      <CreateFilterButton>
+      <FilterConfigurationButton>
         <span>Test</span>{' '}
-      </CreateFilterButton>,
+      </FilterConfigurationButton>,
       {
         wrappingComponent: ThemeProvider,
         wrappingComponentProps: {

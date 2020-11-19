@@ -24,8 +24,9 @@ export enum Scoping {
   specific,
 }
 
-export interface NativeFiltersForm {
+interface NativeFiltersFormItem {
   scoping: Scoping;
+  filterScope: Scope;
   name: string;
   dataset: {
     value: number;
@@ -35,6 +36,10 @@ export interface NativeFiltersForm {
     value: Column;
   };
   defaultValue: string;
+}
+
+export interface NativeFiltersForm {
+  filters: Record<string, NativeFiltersFormItem>;
 }
 
 export interface Column {
@@ -57,11 +62,6 @@ export interface Target {
   // clarityColumns?: Column[];
 }
 
-export type DatasetSelectValue = {
-  value: number;
-  label: string;
-};
-
 export type FilterType = 'text' | 'date';
 
 /**
@@ -79,6 +79,8 @@ export interface Filter {
   scope: Scope;
   isInstant: boolean;
 }
+
+export type FilterConfiguration = Filter[];
 
 /** Current state of the filter, stored in `nativeFilters` in redux */
 export type FilterState = {

@@ -20,12 +20,12 @@ import { styled, t } from '@superset-ui/core';
 import React from 'react';
 import { Form, Input, Dropdown, Menu } from 'src/common/components';
 import Button from 'src/components/Button';
-import CreateFilterButton from './CreateFilterButton';
+import FilterConfigurationButton from './FilterConfigurationButton';
 import Icon from 'src/components/Icon';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
 import {
-  useFilterConfigurations,
+  useFilterConfiguration,
   useFilterSetter,
   useFilterState,
 } from './state';
@@ -95,7 +95,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
         <Input />
       </Form.Item>
       <Button buttonSize="sm" buttonStyle="tertiary" type="submit">
-        {t("Apply")}
+        {t('Apply')}
       </Button>
     </Form>
   );
@@ -111,27 +111,22 @@ const FilterControl: React.FC<FilterProps> = ({ filter }) => {
 };
 
 const menu = (
-    <Menu>
-      <Menu.Item>
-        Configure Filters
-      </Menu.Item>
-      <Menu.Item>
-        <CreateFilterButton>
-          {t('New Filter')}
-        </CreateFilterButton>
-      </Menu.Item>
-      {/* <Menu.Item>
+  <Menu>
+    <Menu.Item>Configure Filters</Menu.Item>
+    <Menu.Item>
+      <FilterConfigurationButton>{t('New Filter')}</FilterConfigurationButton>
+    </Menu.Item>
+    {/* <Menu.Item>
         <FilterScopeModal
           triggerNode={t('Bulk Scoping')}
         />
       </Menu.Item> */}
-
-    </Menu>
-  );
+  </Menu>
+);
 
 const FilterBar: React.FC = () => {
-  const filterConfigs = useFilterConfigurations();
-  console.log('filterConfigs', filterConfigs)
+  const filterConfigs = useFilterConfiguration();
+  console.log('filterConfigs', filterConfigs);
   return (
     <Bar>
       <TitleArea>
@@ -142,10 +137,10 @@ const FilterBar: React.FC = () => {
       </TitleArea>
       <ActionButtons>
         <Button buttonStyle="primary" type="submit" buttonSize="sm">
-          {t("Apply")}
+          {t('Apply')}
         </Button>
         <Button buttonStyle="secondary" buttonSize="sm">
-          {t("Reset All")}
+          {t('Reset All')}
         </Button>
       </ActionButtons>
       <FilterControls>
@@ -153,7 +148,6 @@ const FilterBar: React.FC = () => {
           <FilterControl key={filter.id} filter={filter} />
         ))}
       </FilterControls>
-      
     </Bar>
   );
 };

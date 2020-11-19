@@ -19,100 +19,57 @@
 
 import { SupersetClient } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { Filter } from '../components/nativeFilters/types';
+import { FilterConfiguration } from '../components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
 
-export const CREATE_FILTER_BEGIN = 'CREATE_FILTER_BEGIN';
-export const CREATE_FILTER_COMPLETE = 'CREATE_FILTER_COMPLETE';
-export const CREATE_FILTER_FAIL = 'CREATE_FILTER_FAIL';
-export const EDIT_FILTER_FAIL = 'EDIT_FILTER_FAIL';
-
-const updateDashboard = (filter: Filter, id: string, metadata: any) => {
-  return SupersetClient.put({
-    endpoint: `/api/v1/dashboard/${id}`,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      json_metadata: JSON.stringify({
-        ...metadata,
-        filter_configuration: [
-          ...(metadata.filter_configuration || []),
-          filter,
-        ],
-      }),
-    }),
-  });
-};
-
-export interface EditFilterAction {
-  type: typeof EDIT_FILTER;
-  filter: Filter;
+export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
+export interface SetFilterConfigBegin {
+  type: typeof SET_FILTER_CONFIG_BEGIN;
+  filterConfig: FilterConfiguration;
+}
+export const SET_FILTER_CONFIG_COMPLETE = 'SET_FILTER_CONFIG_COMPLETE';
+export interface SetFilterConfigComplete {
+  type: typeof SET_FILTER_CONFIG_COMPLETE;
+  filterConfig: FilterConfiguration;
+}
+export const SET_FILTER_CONFIG_FAIL = 'SET_FILTER_CONFIG_FAIL';
+export interface SetFilterConfigFail {
+  type: typeof SET_FILTER_CONFIG_FAIL;
+  filterConfig: FilterConfiguration;
 }
 
-export interface CreateFilterBeginAction {
-  type: typeof CREATE_FILTER_BEGIN;
-  filter: Filter;
-}
-export interface CreateFilterCompleteAction {
-  type: typeof CREATE_FILTER_COMPLETE;
-  filter: Filter;
-}
-export interface CreateFilterFailAction {
-  type: typeof CREATE_FILTER_FAIL;
-  filter: Filter;
-}
-export const createFilter = (filter: Filter) => async (
-  dispatch: Dispatch,
-  getState: () => any,
-) => {
-  // start
+export const setFilterConfiguration = (
+  filterConfig: FilterConfiguration,
+) => async (dispatch: Dispatch, getState: () => any) => {
   dispatch({
-    type: CREATE_FILTER_BEGIN,
-    filter,
+    type: SET_FILTER_CONFIG_BEGIN,
+    filterConfig,
   });
-  // make api request
   const { id, metadata } = getState().dashboardInfo;
   try {
-    const response = await updateDashboard(filter, id, metadata);
+    const response = await SupersetClient.put({
+      endpoint: `/api/v1/dashboard/${id}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        json_metadata: JSON.stringify({
+          ...metadata,
+          filter_configuration: filterConfig,
+        }),
+      }),
+    });
     dispatch(
       dashboardInfoChanged({
         metadata: JSON.parse(response.json.result.json_metadata),
       }),
     );
-    dispatch({ type: CREATE_FILTER_COMPLETE, filter });
+    dispatch({
+      type: SET_FILTER_CONFIG_COMPLETE,
+      filterConfig,
+    });
   } catch (err) {
-    dispatch({ type: CREATE_FILTER_FAIL, filter });
+    dispatch({ type: SET_FILTER_CONFIG_FAIL, filterConfig });
   }
 };
-
-export const EDIT_FILTER = 'EDIT_FILTER';
-export const editFilter = (filter: Filter) => async (
-  dispatch: Dispatch,
-  getState: () => any,
-) => {
-  dispatch({
-    type: EDIT_FILTER,
-    filter,
-  });
-  const { id, metadata } = getState().dashboardInfo;
-  try {
-    const response = await updateDashboard(filter, id, metadata);
-    console.log('response', response)
-    dispatch(
-      dashboardInfoChanged({
-        metadata: JSON.parse(response.json.result.json_metadata),
-      }),
-    );
-  } catch (err) {
-    console.log('err', err);
-    //dispatch({ type: EDIT_FILTER_FAIL, filter });
-  }
-};
-
-export const DELETE_FILTER = 'DELETE_FILTER';
-export const deleteFilter = (filter: Filter) => ({
-  type: DELETE_FILTER,
-  filter,
-});
 
 // wraps a value in an array if necessary.
 function toArray<T>(value: T | T[] | null): T[] | null {
@@ -122,7 +79,7 @@ function toArray<T>(value: T | T[] | null): T[] | null {
 }
 
 export const SELECT_FILTER_OPTION = 'SELECT_FILTER_OPTION';
-export interface SelectFilterOptionAction {
+export interface SelectFilterOption {
   type: typeof SELECT_FILTER_OPTION;
   filterId: string;
   selectedValues: string[] | null;
@@ -136,10 +93,16 @@ export interface SelectFilterOptionAction {
 export function selectFilterOption(
   filterId: string,
   values: string | string[] | null,
-): SelectFilterOptionAction {
+): SelectFilterOption {
   return {
     type: SELECT_FILTER_OPTION,
     filterId,
     selectedValues: toArray(values),
   };
 }
+
+export type AnyFilterAction =
+  | SetFilterConfigBegin
+  | SetFilterConfigComplete
+  | SetFilterConfigFail
+  | SelectFilterOption;

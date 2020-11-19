@@ -16,18 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Action } from 'redux';
 import {
-  CreateFilterBeginAction,
-  CreateFilterCompleteAction,
-  CREATE_FILTER_BEGIN,
-  CREATE_FILTER_COMPLETE,
-  SelectFilterOptionAction,
   SELECT_FILTER_OPTION,
-  EDIT_FILTER,
-  EditFilterAction,
+  AnyFilterAction,
+  SET_FILTER_CONFIG_COMPLETE,
 } from '../actions/nativeFilters';
-import { Filter, FilterState } from '../components/nativeFilters/types';
+import {
+  FilterConfiguration,
+  FilterState,
+} from '../components/nativeFilters/types';
 
 export type State = {
   [filterId: string]: FilterState;
@@ -37,13 +34,13 @@ export function getInitialFilterState(id: string): FilterState {
   return {
     id,
     optionsStatus: 'loading',
-    isDirty: false,
+    isDirty: false, // TODO set this to true when appropriate
     options: null,
     selectedValues: null,
   };
 }
 
-export function getInitialState(filterConfig: Filter[]): State {
+export function getInitialState(filterConfig: FilterConfiguration): State {
   const filters = {};
   filterConfig.forEach(filter => {
     filters[filter.id] = getInitialFilterState(filter.id);
@@ -53,50 +50,22 @@ export function getInitialState(filterConfig: Filter[]): State {
 
 export default function nativeFilterReducer(
   filters: State = {},
-  action: Action,
+  action: AnyFilterAction,
 ) {
-  const actionMap = {
-    [SELECT_FILTER_OPTION]: (action: SelectFilterOptionAction): State => {
-      const filterState = filters[action.filterId];
+  switch (action.type) {
+    case SELECT_FILTER_OPTION:
       return {
         ...filters,
         [action.filterId]: {
-          ...filterState,
+          ...filters[action.filterId],
           selectedValues: action.selectedValues,
         },
       };
-    },
 
-    [CREATE_FILTER_BEGIN]: (action: CreateFilterBeginAction): State => {
-      const filterState = getInitialFilterState(action.filter.id);
-      filterState.isDirty = true;
-      return {
-        ...filters,
-        [action.filter.id]: filterState,
-      };
-    },
-
-    [EDIT_FILTER]: (action: EditFilterAction): State => {
-      // still under contructions filter complete
-      return {
-        ...filters,
-      };
-    },
-
-    [CREATE_FILTER_COMPLETE]: (action: CreateFilterCompleteAction): State => {
-      const filterState = filters[action.filter.id];
-      return {
-        ...filters,
-        [action.filter.id]: {
-          ...filterState,
-          isDirty: false,
-        },
-      };
-    },
-  };
-
-  if (actionMap[action.type]) {
-    return actionMap[action.type](action);
+    case SET_FILTER_CONFIG_COMPLETE:
+      return getInitialState(action.filterConfig);
+    // TODO handle SET_FILTER_CONFIG_FAIL action
+    default:
+      return filters;
   }
-  return filters;
 }

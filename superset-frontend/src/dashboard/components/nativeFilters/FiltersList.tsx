@@ -20,7 +20,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Button } from 'src/common/components';
 import Icon from 'src/components/Icon';
-import { useFilterConfigurations } from './state';
+import { useFilterConfiguration } from './state';
 
 interface Args {
   filter: any;
@@ -37,7 +37,7 @@ const FiltersStyle = styled.div`
 `;
 
 const FiltersList = ({ setEditFilter, setDataset }: FiltersListProps) => {
-  const filterConfigs = useFilterConfigurations();
+  const filterConfigs = useFilterConfiguration();
   <>
     {filterConfigs.map((filter, i: number) => (
       <FiltersStyle>

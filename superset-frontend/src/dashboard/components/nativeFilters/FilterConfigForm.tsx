@@ -16,25 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {  Fragment, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
-import { Form, Input, Radio, Typography } from 'src/common/components';
+import {
+  Form,
+  FormInstance,
+  Input,
+  Radio,
+  Typography,
+} from 'src/common/components';
 import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
-import { DatasetSelectValue, Filter, Scoping } from './types';
+import { Filter, FilterConfiguration, Scope, Scoping } from './types';
 import ScopingTree from './ScopingTree';
 
-interface FilterConfigForm {
-  setFilterScope: Function;
-  dataset: any;
-  setDataset: (arg0: DatasetSelectValue) => void;
+interface FilterConfigFormProps {
+  filterId: string;
   filterToEdit?: Filter;
-  form: any;
-  filterConfigs: any;
-  onFormChange: (arg0: any) => any;
+  form: FormInstance;
 }
+
+type DatasetSelectValue = {
+  value: number;
+  label: string;
+};
 
 type ColumnSelectValue = {
   value: string;
@@ -52,6 +59,7 @@ const datasetToSelectOption = (item: any): DatasetSelectValue => ({
   label: item.table_name,
 });
 
+/** Special purpose AsyncSelect that selects a column from a dataset */
 function ColumnSelect({ datasetId, value, onChange }: ColumnSelectProps) {
   const { addDangerToast } = useToasts();
   function loadOptions() {
@@ -92,35 +100,30 @@ const ScopingTreeNote = styled.div`
   margin-bottom: 10px;
 `;
 
-const FilterConfigForm = ({
-  dataset,
-  setDataset,
-  setFilterScope,
+const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
+  filterId,
   filterToEdit,
   form,
-  onFormChange,
-}: FilterConfigForm) => {
+}) => {
   const [scoping, setScoping] = useState<Scoping>(Scoping.all);
+  const [datasetId, setDatasetId] = useState<number | undefined>(
+    filterToEdit?.targets[0].datasetId,
+  );
+  const [filterScope, setFilterScope] = useState<Scope>({
+    rootPath: [],
+    excluded: [],
+  }); // TODO: when connect to store read from there
 
-  useEffect(() => {
-    form.setFieldsValue({
-      name: filterToEdit?.name,
-      column:
-        filterToEdit?.targets?.length && filterToEdit.targets[0].datasetId,
-    });
-  }, [filterToEdit]);
-        
   return (
     <Form
       form={form}
       onValuesChange={changes => {
-        onFormChange(changes);
         // un-set the "column" value whenever the dataset changes.
         // Doing this in the onChange handler of the
         // dataset selector doesn't work for some reason.
-        if ('dataset' in changes && changes.dataset?.value !== dataset?.value) {
+        if ('dataset' in changes && changes.dataset?.value !== datasetId) {
           form.setFieldsValue({ column: null });
-          setDataset(changes.dataset);
+          setDatasetId(changes.dataset.value);
         }
       }}
     >
@@ -142,7 +145,7 @@ const FilterConfigForm = ({
       </Form.Item>
       <Form.Item
         // don't show the column select unless we have a dataset
-        style={{ display: dataset ? undefined : 'none' }}
+        style={{ display: datasetId == null ? undefined : 'none' }}
         name="column"
         initialValue={
           filterToEdit?.targets?.length && filterToEdit?.targets[0]?.datasetId
@@ -150,7 +153,7 @@ const FilterConfigForm = ({
         label="Field"
         rules={[{ required: true }]}
       >
-        <ColumnSelect datasetId={dataset?.value} />
+        <ColumnSelect datasetId={datasetId} />
       </Form.Item>
       <Form.Item name="defaultValue" label="Default Value">
         <Input />
@@ -181,14 +184,14 @@ const FilterConfigForm = ({
         </Radio.Group>
       </Form.Item>
       {scoping === Scoping.specific && (
-        <Fragment>
+        <>
           <ScopingTreeNote>
             <Typography.Text type="secondary">
               {t('Only selected panels will be affected by this filter')}
             </Typography.Text>
           </ScopingTreeNote>
           <ScopingTree setFilterScope={setFilterScope} />
-        </Fragment>
+        </>
       )}
     </Form>
   );

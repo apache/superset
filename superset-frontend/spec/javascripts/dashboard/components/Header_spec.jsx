@@ -25,7 +25,7 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
 import Button from 'src/components/Button';
 import UndoRedoKeylisteners from 'src/dashboard/components/UndoRedoKeylisteners';
-import CreateFilterButton from 'src/dashboard/components/nativeFilters/CreateFilterButton';
+import FilterConfigurationButton from 'src/dashboard/components/nativeFilters/FilterConfigurationButton';
 
 describe('Header', () => {
   const props = {
@@ -166,9 +166,9 @@ describe('Header', () => {
       },
     };
 
-    it('should render the CreateFilterButton component', () => {
+    it('should render the FilterConfigurationButton component', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(CreateFilterButton)).toExist();
+      expect(wrapper.find(FilterConfigurationButton)).toExist();
     });
 
     it('should render the EditableTitle', () => {
