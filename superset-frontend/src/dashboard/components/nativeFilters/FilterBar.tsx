@@ -91,6 +91,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
     label_colors: {},
     metrics: ['count'],
     multiSelect: true,
+    // native_filters: [{ col: 'gender', op: 'IN', val: ['male', 'female'] }],
     row_limit: 10000,
     setSelectedValues,
     showSearch: true,

@@ -912,6 +912,11 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
     # Note extra_filters only support simple filters.
     applied_time_extras: Dict[str, str] = {}
     form_data["applied_time_extras"] = applied_time_extras
+    native_filters = form_data.pop("native_filters", None)
+    if native_filters:
+        filters = form_data.get("filters", [])
+        filters.extend([fltr for fltr in form_data["native_filters"] if fltr])
+        form_data["filters"] = filters
     if "extra_filters" in form_data:
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
