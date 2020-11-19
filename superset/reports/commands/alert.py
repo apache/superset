@@ -65,6 +65,12 @@ class AlertCommand(BaseCommand):
         if df.empty:
             return
         rows = df.to_records()
+        if (
+            self._report_schedule.validator_type
+            == ReportScheduleValidatorType.NOT_NULL
+        ):
+            self._result = rows[0][1]
+            return
         # check if query return more then one row
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError()
@@ -73,15 +79,8 @@ class AlertCommand(BaseCommand):
         if rows[0][1] is None:
             return
         try:
-
-            if (
-                self._report_schedule.validator_type
-                == ReportScheduleValidatorType.NOT_NULL
-            ):
-                self._result = rows[0][1]
-            else:
-                # Check if it's float or if we can convert it
-                self._result = float(rows[0][1])
+            # Check if it's float or if we can convert it
+            self._result = float(rows[0][1])
             return
         except (AssertionError, TypeError, ValueError):
             raise AlertQueryInvalidTypeError()

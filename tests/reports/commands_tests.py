@@ -327,6 +327,8 @@ def create_mul_alert_email_chart(request):
             )
             yield report_schedule
 
+            # needed for MySQL
+            report_schedule.logs = []
             db.session.delete(report_schedule)
             db.session.commit()
 
