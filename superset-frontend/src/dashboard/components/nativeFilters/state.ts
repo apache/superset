@@ -35,10 +35,7 @@ import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import { DASHBOARD_ROOT_TYPE } from '../../util/componentTypes';
 import { buildTree } from './utils';
 
-const defaultFilterConfiguration = {
-  filters: {},
-  filterOrder: [],
-};
+const defaultFilterConfiguration: Filter[] = [];
 
 export function useFilterConfiguration() {
   return useSelector<any, FilterConfiguration>(
@@ -78,7 +75,7 @@ export function useAllFilterState() {
         datasetId,
         id,
         selectedValues,
-      }
+      };
     });
   });
 }
