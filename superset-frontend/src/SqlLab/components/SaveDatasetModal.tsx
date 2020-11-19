@@ -33,23 +33,20 @@ interface SaveDatasetModalProps = {
 }
 
 // eslint-disable-next-line no-empty-pattern
-export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState, overwriteDataSet, handleOverwriteCancel}) => {
+export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState, overwriteDataSet, handleOverwriteCancel, handleOverwriteDataset, handleOverwriteDatasetOption}) => {
   const [options, setOptions] = useState([]);
   const [radioOption, setRadioOptions] = useState(1);
 
   const onSearch = (searchText) => {
+    console.log(userDatasetsOwned)
     setOptions(
-      !searchText ? [] : userDatasetsOwned.map(d => ({value: d.dataSetName})),
+      !searchText ? [] : userDatasetsOwned.map(d => ({value: d.dataSetName, dataSetId: d.dataSetId})),
     );
   };
 
   const filterAutocompleteOption = (inputValue, option) => {
     return option.value.includes(inputValue)
   }
-
-  const onSelect = (data) => {
-    console.log('onSelect', data);
-  };
 
   const radioStyle = {
     display: 'block',
@@ -80,7 +77,6 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
             buttonStyle="danger"
             className="m-r-5"
             onClick={() => {
-              console.log('go back to original screen')
               handleOverwriteCancel()
             }}
           >Cancel</Button>
@@ -88,9 +84,7 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
             buttonSize="sm"
             buttonStyle="primary"
             className="m-r-5"
-            onClick={() => {
-              console.log('overwriting dataset')
-            }}
+            onClick={handleOverwriteDataset}
           >Ok</Button> </>}
       </>
     }
@@ -111,7 +105,7 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
               style={{
                 width: 200,
               }}
-              onSelect={onSelect}
+              onSelect={handleOverwriteDatasetOption}
               onSearch={onSearch}
               placeholder="input here"
               filterOption={filterAutocompleteOption}

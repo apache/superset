@@ -94,6 +94,7 @@ export default class ResultSet extends React.PureComponent<
       userDatasetsOwned: [],
       saveDatasetRadioBtnState: 1,
       overwriteDataSet: false,
+      datasetToOverwrite: {}
     };
 
     this.changeSearch = this.changeSearch.bind(this);
@@ -108,6 +109,8 @@ export default class ResultSet extends React.PureComponent<
     this.handleDatasetNameChange = this.handleDatasetNameChange.bind(this);
     this.handleSaveDatasetRadioBtnState = this.handleSaveDatasetRadioBtnState.bind(this);
     this.handleOverwriteCancel = this.handleOverwriteCancel.bind(this);
+    this.handleOverwriteDataset = this.handleOverwriteDataset.bind(this);
+    this.handleOverwriteDatasetOption = this.handleOverwriteDatasetOption.bind(this);
   }
 
   componentDidMount() {
@@ -188,6 +191,43 @@ export default class ResultSet extends React.PureComponent<
     ) {
       this.props.actions.runQuery(query, true);
     }
+  }
+
+  handleOverwriteDatasetOption(data, option) {
+    console.log(option);
+    this.setState({ datasetToOverwrite: option })
+  }
+
+  handleOverwriteDataset() {
+    console.log('handle overwrite dataset')
+    const { sql, results } = this.props.query;
+    const { datasetToOverwrite } = this.state
+    console.log(sql)
+    console.log(results.selected_columns)
+    console.log(datasetToOverwrite)
+
+    // HACK: to clear the columns in the previous dataset and update
+    // it with the new selected columns from the query
+    SupersetClient.put({
+      endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        columns: []
+      }),
+    }).then(d => {
+      console.log(d)
+    }).catch(err => console.log(err))
+
+    SupersetClient.put({
+      endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sql,
+        columns: results.selected_columns.map(d => ({column_name: d.name}))
+      }),
+    }).then(d => {
+      console.log(d)
+    }).catch(err => console.log(err))
   }
 
   handleSaveInDataset() {
@@ -276,6 +316,8 @@ export default class ResultSet extends React.PureComponent<
             saveDatasetRadioBtnState={this.state.saveDatasetRadioBtnState}
             overwriteDataSet={this.state.overwriteDataSet}
             handleOverwriteCancel={this.handleOverwriteCancel}
+            handleOverwriteDataset={this.handleOverwriteDataset}
+            handleOverwriteDatasetOption={this.handleOverwriteDatasetOption}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&
