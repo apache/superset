@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
-import React from 'react';
-import { Form, Input, Dropdown, Menu } from 'src/common/components';
+import { styled, SuperChart, t } from '@superset-ui/core';
+import React, { useState } from 'react';
+import { Form, Dropdown, Menu } from 'src/common/components';
 import Button from 'src/components/Button';
 import FilterConfigurationButton from './FilterConfigurationButton';
 import Icon from 'src/components/Icon';
@@ -30,6 +30,7 @@ import {
   useFilterState,
 } from './state';
 import { Filter } from './types';
+import { getChartDataRequest } from '../../../chart/chartAction';
 
 const Bar = styled.div`
   display: flex;
@@ -75,6 +76,40 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   const { selectedValues } = useFilterState(filter.id);
   const setSelectedValues = useFilterSetter(filter.id);
 
+  const [state, setState] = useState({ data: undefined });
+  const { targets } = filter;
+  const [target] = targets;
+  const { datasetId = 18, groupby = 'gender' } = target;
+
+  const formData = {
+    adhoc_filters: [],
+    datasource: `${datasetId}__table`,
+    extra_filters: [],
+    granularity_sqla: 'ds',
+    groupby: [groupby],
+    label_colors: {},
+    metrics: ['count'],
+    multiSelect: true,
+    row_limit: 10000,
+    setSelectedValues,
+    showSearch: true,
+    time_range: 'No filter',
+    time_range_endpoints: ['inclusive', 'exclusive'],
+    url_params: {},
+    viz_type: 'filter_select',
+  };
+
+  if (!state.data)
+    getChartDataRequest({
+      formData,
+      force: false,
+      requestParams: { dashboardId: 0 },
+    }).then(response => {
+      setState({ data: response.result[0].data });
+    });
+
+  console.log('filter', filter);
+
   if (selectedValues) {
     return (
       <span>
@@ -92,7 +127,13 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
       }}
     >
       <Form.Item name="value">
-        <Input />
+        <SuperChart
+          height={20}
+          width={220}
+          formData={formData}
+          queryData={state}
+          chartType="filter_select"
+        />
       </Form.Item>
       <Button buttonSize="sm" buttonStyle="tertiary" type="submit">
         {t('Apply')}
@@ -102,9 +143,10 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
 };
 
 const FilterControl: React.FC<FilterProps> = ({ filter }) => {
+  const { name = '<undefined>' } = filter;
   return (
     <div>
-      <h3>{filter.name}</h3>
+      <h3>{name}</h3>
       <FilterValue filter={filter} />
     </div>
   );
@@ -126,7 +168,6 @@ const menu = (
 
 const FilterBar: React.FC = () => {
   const filterConfigs = useFilterConfiguration();
-  console.log('filterConfigs', filterConfigs);
   return (
     <Bar>
       <TitleArea>

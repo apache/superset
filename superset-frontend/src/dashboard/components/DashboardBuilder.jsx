@@ -79,6 +79,7 @@ const StyledDashboardContent = styled.div`
   flex-direction: row;
   flex-wrap: nowrap;
   height: auto;
+  flex-grow: 1;
 
   .grid-container .dashboard-component-tabs {
     box-shadow: none;
