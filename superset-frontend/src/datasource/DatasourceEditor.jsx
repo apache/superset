@@ -46,6 +46,7 @@ import Fieldset from 'src/CRUD/Fieldset';
 import Field from 'src/CRUD/Field';
 
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -305,6 +306,9 @@ class DatasourceEditor extends React.PureComponent {
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
+    this.allowEditSource = isFeatureEnabled(
+      FeatureFlag.ENABLE_DATASET_SOURCE_EDIT,
+    );
   }
 
   onChange() {
@@ -653,12 +657,14 @@ class DatasourceEditor extends React.PureComponent {
               {type.label}
             </Radio>
           ))}
-          <EditLockContainer href="#" onClick={this.onChangeEditMode}>
-            <Icon
-              color={supersetTheme.colors.primary.base}
-              name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
-            />
-          </EditLockContainer>
+          {this.allowEditSource && (
+            <EditLockContainer href="#" onClick={this.onChangeEditMode}>
+              <Icon
+                color={supersetTheme.colors.primary.base}
+                name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
+              />
+            </EditLockContainer>
+          )}
         </div>
         <hr />
         <Fieldset item={datasource} onChange={this.onDatasourceChange} compact>
