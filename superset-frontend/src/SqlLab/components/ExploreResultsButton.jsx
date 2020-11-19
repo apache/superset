@@ -45,7 +45,6 @@ const defaultProps = {
 class ExploreResultsButton extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.visualize = this.visualize.bind(this);
     this.getInvalidColumns = this.getInvalidColumns.bind(this);
     this.renderInvalidColumnMessage = this.renderInvalidColumnMessage.bind(
       this,
@@ -100,35 +99,6 @@ class ExploreResultsButton extends React.PureComponent {
       datasourceName: this.datasourceName(),
       columns: this.getColumns(),
     };
-  }
-
-  visualize() {
-    this.props.actions
-      .createDatasource(this.buildVizOptions())
-      .then(data => {
-        const columns = this.getColumns();
-        const formData = {
-          datasource: `${data.table_id}__table`,
-          metrics: [],
-          groupby: [],
-          time_range: 'No filter',
-          viz_type: 'table',
-          all_columns: columns.map(c => c.name),
-          row_limit: 1000,
-        };
-
-        this.props.actions.addInfoToast(
-          t('Creating a data source and creating a new tab'),
-        );
-
-        // open new window for data visualization
-        exploreChart(formData);
-      })
-      .catch(() => {
-        this.props.actions.addDangerToast(
-          this.props.errorMessage || t('An error occurred'),
-        );
-      });
   }
 
   renderTimeoutWarning() {
