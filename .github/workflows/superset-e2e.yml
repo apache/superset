@@ -5,6 +5,7 @@ on:
     branches:
       - master
   pull_request_target:
+  pull_request:
 
 jobs:
   Cypress:
@@ -43,7 +44,7 @@ jobs:
       if: github.event_name == 'push'
       uses: actions/checkout@v2
     - name: Checkout code (PR)
-      if: github.event_name == 'pull_request_target'
+      if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
       uses: actions/checkout@v2
       with:
         ref: ${{github.event.pull_request.head.ref}}
