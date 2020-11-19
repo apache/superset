@@ -30,6 +30,8 @@ import { Props as SelectProps } from 'react-select/src/Select';
 import { colors as reactSelectColros } from 'react-select/src/theme';
 import { supersetColors } from 'src/components/styles';
 import { DeepNonNullable } from 'react-select/src/components';
+import { OptionType } from 'antd/lib/select';
+import { SupersetStyledSelectProps } from './SupersetStyledSelect';
 
 export const DEFAULT_CLASS_NAME = 'Select';
 export const DEFAULT_CLASS_NAME_PREFIX = 'Select';
@@ -255,15 +257,29 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   ],
 };
 
-type SelectComponentsType = Omit<SelectComponentsConfig<any>, 'Input'> & {
+const inputTagStyles = {
+  background: 'none',
+  border: 'none',
+  outline: 'none',
+  padding: 0,
+  width: '100%',
+};
+
+export type SelectComponentsType = Omit<
+  SelectComponentsConfig<any>,
+  'Input'
+> & {
   Input: ComponentType<InputProps>;
 };
 
 // react-select is missing selectProps from their props type
 // so overwriting it here to avoid errors
-type InputProps = ReactSelectInputProps & {
+export type InputProps = ReactSelectInputProps & {
   placeholder?: ReactNode;
   selectProps: SelectProps;
+  autocomplete?: string;
+  onPaste?: SupersetStyledSelectProps<OptionType>['onPaste'];
+  inputStyle?: object;
 };
 
 const {
@@ -313,6 +329,8 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
         {...props}
         placeholder={isMultiWithValue ? placeholder : undefined}
         css={getStyles('input', props)}
+        autocomplete="chrome-off"
+        inputStyle={inputTagStyles}
       />
     );
   },
@@ -326,11 +344,12 @@ export const VALUE_LABELED_STYLES: PartialStylesConfig = {
       theme: {
         spacing: { baseUnit },
       },
+      isMulti,
     },
   ) => ({
     ...provider,
     paddingLeft: getValue().length > 0 ? 1 : baseUnit * 3,
-    overflow: 'visible',
+    overflow: isMulti && getValue().length > 0 ? 'visible' : 'hidden',
   }),
   // render single value as is they are multi-value
   singleValue: (provider, props) => {
