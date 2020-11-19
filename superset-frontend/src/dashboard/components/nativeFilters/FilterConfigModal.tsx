@@ -27,7 +27,11 @@ import Icon from 'src/components/Icon';
 import { StyledModal } from 'src/common/components/Modal';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { useFilterConfigMap, useFilterConfiguration } from './state';
+import {
+  useFilterConfigMap,
+  useFilterConfiguration,
+  useAllFilterState,
+} from './state';
 import FilterConfigForm from './FilterConfigForm';
 import {
   Filter,
@@ -74,7 +78,6 @@ export function FilterConfigModal({
 
   const filterConfig = useFilterConfiguration();
   const filterConfigMap = useFilterConfigMap();
-
   // some filter ids may belong to filters that do not exist yet
   const getInitialFilterIds = () => filterConfig.map(filter => filter.id);
   const [filterIds, setFilterIds] = useState(getInitialFilterIds);
