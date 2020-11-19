@@ -25,7 +25,6 @@ import { Button, Form, Icon } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { createFilter } from 'src/dashboard/actions/nativeFilters';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
 import {
