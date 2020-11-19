@@ -18,7 +18,10 @@
  */
 import { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectFilterOption } from 'src/dashboard/actions/nativeFilters';
+import {
+  selectFilterOption,
+  setFilterState,
+} from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { t } from '@superset-ui/core';
 import {
@@ -63,8 +66,9 @@ export function useFilterConfigMap() {
 
 export function useAllFilterState() {
   const filterConfig = useFilterConfiguration();
-  return useSelector<any, AllFilterState[]>(state => {
-    return filterConfig.map(filter => {
+  const dispatch = useDispatch();
+  const filterState = useSelector<any, AllFilterState[]>(state => {
+    return (filterConfig || []).map(filter => {
       const { id, targets } = filter;
       const [target] = targets;
       const { column, datasetId } = target;
@@ -86,6 +90,8 @@ export function useAllFilterState() {
       };
     });
   });
+  dispatch(setFilterState(filterState));
+  return filterState;
 }
 
 export function useFilterState(id: string) {

@@ -45,11 +45,11 @@ function mapStateToProps(
     dashboardState,
     datasources,
     sliceEntities,
+    nativeFilters,
   },
   ownProps,
 ) {
   const { id } = ownProps;
-
   const chart = chartQueries[id] || {};
   const { colorScheme, colorNamespace } = dashboardState;
 
@@ -71,6 +71,7 @@ function mapStateToProps(
     }),
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
+    nativeFilters: nativeFilters.filterList,
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
