@@ -25,6 +25,7 @@ import {
   ExclamationCircleFilled,
 } from '@ant-design/icons';
 import { Collapse, Popover } from 'src/common/components/index';
+import { Global } from '@emotion/core';
 import {
   Indent,
   Item,
@@ -35,7 +36,6 @@ import {
   FilterValue,
 } from './Styles';
 import { Indicator } from './selectors';
-import { Global } from '@emotion/core'
 
 export interface IndicatorProps {
   indicator: Indicator;
@@ -108,58 +108,58 @@ const DetailsPanelPopover = ({
   const content = (
     <Panel>
       <Global
-      styles={css`
-        .filterStatusPopover {
-          .ant-popover-inner {
-            background-color: ${theme.colors.grayscale.dark2}cc;
-            .ant-popover-inner-content {
-              padding-top: 0;
-              padding-bottom: 0;
+        styles={css`
+          .filterStatusPopover {
+            .ant-popover-inner {
+              background-color: ${theme.colors.grayscale.dark2}cc;
+              .ant-popover-inner-content {
+                padding-top: 0;
+                padding-bottom: 0;
+              }
+            }
+            .ant-collapse-item:last-of-type.ant-collapse-item-active {
+              padding-bottom: ${theme.gridUnit * 3}px;
+            }
+            &.ant-popover-placement-bottom,
+            &.ant-popover-placement-bottomLeft,
+            &.ant-popover-placement-bottomRight {
+              & > .ant-popover-content > .ant-popover-arrow {
+                border-top-color: ${theme.colors.grayscale.dark2}cc;
+                border-left-color: ${theme.colors.grayscale.dark2}cc;
+              }
+            }
+            &.ant-popover-placement-top,
+            &.ant-popover-placement-topLeft,
+            &.ant-popover-placement-topRight {
+              & > .ant-popover-content > .ant-popover-arrow {
+                border-bottom-color: ${theme.colors.grayscale.dark2}cc;
+                border-right-color: ${theme.colors.grayscale.dark2}cc;
+              }
+            }
+            &.ant-popover-placement-left,
+            &.ant-popover-placement-leftTop,
+            &.ant-popover-placement-leftBottom {
+              & > .ant-popover-content > .ant-popover-arrow {
+                border-top-color: ${theme.colors.grayscale.dark2}cc;
+                border-right-color: ${theme.colors.grayscale.dark2}cc;
+              }
+            }
+            &.ant-popover-placement-right,
+            &.ant-popover-placement-rightTop,
+            &.ant-popover-placement-rightBottom {
+              & > .ant-popover-content > .ant-popover-arrow {
+                border-bottom-color: ${theme.colors.grayscale.dark2}cc;
+                border-left-color: ${theme.colors.grayscale.dark2}cc;
+              }
+            }
+            &.ant-popover {
+              color: ${theme.colors.grayscale.light4};
+            }
+            .ant-collapse-arrow svg {
+              color: ${theme.colors.grayscale.light4};
             }
           }
-          .ant-collapse-item:last-of-type.ant-collapse-item-active{
-            padding-bottom: ${theme.gridUnit * 3}px;
-          }
-          &.ant-popover-placement-bottom,
-          &.ant-popover-placement-bottomLeft,
-          &.ant-popover-placement-bottomRight {
-            & > .ant-popover-content > .ant-popover-arrow{
-              border-top-color: ${theme.colors.grayscale.dark2}cc;
-              border-left-color: ${theme.colors.grayscale.dark2}cc;
-            }
-          }
-          &.ant-popover-placement-top,
-          &.ant-popover-placement-topLeft,
-          &.ant-popover-placement-topRight {
-            & > .ant-popover-content > .ant-popover-arrow{
-              border-bottom-color: ${theme.colors.grayscale.dark2}cc;
-              border-right-color: ${theme.colors.grayscale.dark2}cc;
-            }
-          }
-          &.ant-popover-placement-left,
-          &.ant-popover-placement-leftTop,
-          &.ant-popover-placement-leftBottom {
-            & > .ant-popover-content > .ant-popover-arrow{
-              border-top-color: ${theme.colors.grayscale.dark2}cc;
-              border-right-color: ${theme.colors.grayscale.dark2}cc;
-            }
-          }
-          &.ant-popover-placement-right,
-          &.ant-popover-placement-rightTop,
-          &.ant-popover-placement-rightBottom {
-            & > .ant-popover-content > .ant-popover-arrow{
-              border-bottom-color: ${theme.colors.grayscale.dark2}cc;
-              border-left-color: ${theme.colors.grayscale.dark2}cc;
-            }
-          }
-          &.ant-popover {
-            color: ${theme.colors.grayscale.light4};
-          }
-          .ant-collapse-arrow svg {
-            color: ${theme.colors.grayscale.light4};
-          }
-        } 
-      `}
+        `}
       />
       <Reset>
         <Collapse
