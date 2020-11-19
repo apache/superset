@@ -199,12 +199,8 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleOverwriteDataset() {
-    console.log('handle overwrite dataset')
     const { sql, results } = this.props.query;
     const { datasetToOverwrite } = this.state
-    console.log(sql)
-    console.log(results.selected_columns)
-    console.log(datasetToOverwrite)
 
     // HACK: to clear the columns in the previous dataset and update
     // it with the new selected columns from the query
@@ -231,16 +227,12 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleSaveInDataset() {
-    console.log('Saving dataset');
-    console.log(this.state.saveDatasetRadioBtnState)
+    // if user wants to overwrite a dataset we need to prompt them
     if (this.state.saveDatasetRadioBtnState === 2) {
       this.setState({overwriteDataSet: true})
-      console.log('make sure user is okay with overwriting')
       return
     }
 
-    console.log(this.props.query);
-    console.log(this.props.actions.createDatasource);
     const { schema, sql, dbId, templateParams } = this.props.query;
 
     let selectedColumns;
@@ -284,7 +276,7 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleHideSaveModal() {
-    this.setState({showSaveDatasetModal: false})
+    this.setState({showSaveDatasetModal: false, overwriteDataSet: false})
   }
 
   handleSaveDatasetRadioBtnState(e) {
