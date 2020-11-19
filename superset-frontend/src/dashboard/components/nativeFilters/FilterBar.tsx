@@ -156,7 +156,9 @@ const menu = (
   <Menu>
     <Menu.Item>Configure Filters</Menu.Item>
     <Menu.Item>
-      <FilterConfigurationButton>{t('New Filter')}</FilterConfigurationButton>
+      <FilterConfigurationButton createNewOnOpen>
+        {t('New Filter')}
+      </FilterConfigurationButton>
     </Menu.Item>
     {/* <Menu.Item>
         <FilterScopeModal

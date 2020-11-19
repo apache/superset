@@ -33,7 +33,14 @@ import {
   Scoping,
 } from './types';
 
-const FilterConfigurationButton: React.FC = ({ children }) => {
+export interface FCBProps {
+  createNewOnOpen?: boolean;
+}
+
+export const FilterConfigurationButton: React.FC<FCBProps> = ({
+  createNewOnOpen,
+  children,
+}) => {
   const dispatch = useDispatch();
   const [isOpen, setOpen] = useState(false);
 
@@ -51,7 +58,12 @@ const FilterConfigurationButton: React.FC = ({ children }) => {
       <Button type="text" onClick={() => setOpen(true)}>
         {children}
       </Button>
-      <FilterConfigModal isOpen={isOpen} save={submit} onCancel={close} />
+      <FilterConfigModal
+        isOpen={isOpen}
+        save={submit}
+        onCancel={close}
+        createNewOnOpen={createNewOnOpen}
+      />
     </>
   );
 };

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import shortid from 'shortid';
 import { Store } from 'antd/lib/form/interface';
@@ -36,6 +36,7 @@ import {
   Scope,
   Scoping,
 } from './types';
+import { usePrevious } from 'src/common/hooks/usePrevious';
 
 const StyledModalBody = styled.div`
   display: flex;
@@ -57,6 +58,7 @@ function generateFilterId() {
 export interface FilterConfigModalProps {
   isOpen: boolean;
   initialFilterId?: string;
+  createNewOnOpen?: boolean;
   save: (filterConfig: FilterConfiguration) => Promise<void>;
   onCancel: () => void;
 }
@@ -64,6 +66,7 @@ export interface FilterConfigModalProps {
 export function FilterConfigModal({
   isOpen,
   initialFilterId,
+  createNewOnOpen,
   save,
   onCancel,
 }: FilterConfigModalProps) {
@@ -82,9 +85,23 @@ export function FilterConfigModal({
   const [removedFilters, setRemovedFilters] = useState<Record<string, boolean>>(
     {},
   );
+  // the form values are managed by the antd form, but we copy them to here
   const [formValues, setFormValues] = useState<NativeFiltersForm>({
     filters: {},
   });
+  const wasOpen = usePrevious(isOpen);
+
+  const addFilter = useCallback(() => {
+    const newFilterId = generateFilterId();
+    setFilterIds([...filterIds, newFilterId]);
+    setCurrentFilterId(newFilterId);
+  }, [filterIds, setFilterIds, setCurrentFilterId]);
+
+  useEffect(() => {
+    if (createNewOnOpen && isOpen && !wasOpen) {
+      addFilter();
+    }
+  }, [createNewOnOpen, isOpen, wasOpen, addFilter]);
 
   useEffect(() => {
     form.setFieldsValue({ filters: {} });
@@ -105,7 +122,7 @@ export function FilterConfigModal({
         [filterId]: !removedFilters[filterId],
       });
     } else if (action === 'add') {
-      setFilterIds([...filterIds, generateFilterId()]);
+      addFilter();
     }
   }
 
