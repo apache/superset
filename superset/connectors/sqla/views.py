@@ -454,9 +454,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         validate_sqlatable(item)
 
     def post_add(  # pylint: disable=arguments-differ
-        self, item: "TableModelView", flash_message: bool = True
+        self,
+        item: "TableModelView",
+        flash_message: bool = True,
+        fetch_metadata: bool = True,
     ) -> None:
-        item.fetch_metadata()
+        if fetch_metadata:
+            item.fetch_metadata()
         create_table_permissions(item)
         if flash_message:
             flash(
@@ -470,7 +474,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             )
 
     def post_update(self, item: "TableModelView") -> None:
-        self.post_add(item, flash_message=False)
+        self.post_add(item, flash_message=False, fetch_metadata=False)
 
     def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
