@@ -27,13 +27,15 @@ import { StyledModal } from 'src/common/components/Modal';
 import { createFilter } from 'src/dashboard/actions/nativeFilters';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import Icon from 'src/components/Icon';
-import { DatasetSelectValue } from './types';
+import { DatasetSelectValue, Filter, NativeFiltersForm, Scope, Scoping } from './types';
 import { useFilterConfigurations } from './state';
 import FilterConfigForm from './FilterConfigForm';
+import FiltersList from './FiltersList';
 /** Special purpose AsyncSelect that selects a column from a dataset */
 
 interface FilterCreateModalProps {
   isOpen: boolean;
+  setFilterScope: Function;
   save: (values: Record<string, any>) => Promise<void>;
   onCancel: () => void;
 }
@@ -65,7 +67,12 @@ const initVals = {
   isInstant: '',
 };
 
-function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
+function FilterCreateModal({
+  isOpen,
+  save,
+  onCancel,
+  setFilterScope,
+}: FilterCreateModalProps) {
   const [form] = Form.useForm();
 
   // antd form manages the dataset value,
@@ -79,11 +86,9 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
     form.resetFields();
     setDataset(null);
   }
-  console.log('filters on load', filters);
   function onFormChange(changes: any) {
     filters[currentFilter] = { ...filters[currentFilter], ...changes };
     setFilters([...filters]);
-    console.log('filters onChange form', filters);
   }
   return (
     <StyledModal
@@ -97,11 +102,11 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
         let values = {};
         try {
           values = await form.validateFields();
+          await save(values);
+          resetForm();
         } catch (info) {
           console.log('Validate Failed:', info);
         }
-        await save(values);
-        resetForm();
       }}
       okText={t('Save')}
       cancelText={t('Cancel')}
@@ -150,8 +155,10 @@ function FilterCreateModal({ isOpen, save, onCancel }: FilterCreateModalProps) {
           </div>
         </div>
         <FilterConfigForm
+          key={filterToEdit?.id}
           dataset={dataset}
           setDataset={setDataset}
+          setFilterScope={setFilterScope}
           form={form}
           filterToEdit={filters[currentFilter]}
           onFormChange={onFormChange}
@@ -169,13 +176,24 @@ const CreateFilterButton: React.FC = ({
   children,
 }) => {
   const [isOpen, setOpen] = useState(false);
+  const [filterScope, setFilterScope] = useState<Scope>({
+    rootPath: [],
+    excluded: [],
+  }); // TODO: when connect to store read from there
   const dispatch = useDispatch();
 
   function close() {
     setOpen(false);
   }
 
-  async function submit(values: Record<string, any>) {
+  async function submit(values: NativeFiltersForm) {
+    let scope: Scope = {
+      rootPath: [DASHBOARD_ROOT_ID],
+      excluded: [],
+    };
+    if (values.scoping === Scoping.specific) {
+      scope = filterScope;
+    }
     dispatch(
       createFilter({
         id: generateFilterId(),
@@ -189,10 +207,7 @@ const CreateFilterButton: React.FC = ({
           },
         ],
         defaultValue: values.defaultValue,
-        scope: {
-          rootPath: [DASHBOARD_ROOT_ID],
-          excluded: [],
-        },
+        scope,
         isInstant: values.isInstant,
       }),
     );
@@ -204,7 +219,12 @@ const CreateFilterButton: React.FC = ({
       <div onClick={() => setOpen(true)}>
         {children}
       </div>
-      <FilterCreateModal isOpen={isOpen} save={submit} onCancel={close} />
+      <FilterCreateModal
+        isOpen={isOpen}
+        save={submit}
+        onCancel={close}
+        setFilterScope={setFilterScope}
+      />
     </>
   );
 };

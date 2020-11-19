@@ -36,15 +36,20 @@ export {
   DatePicker,
   Dropdown,
   Form,
+  Radio,
   Empty,
   Input,
   Modal,
+  Typography,
+  Tree,
   Popover,
   Select,
   Skeleton,
   Tabs,
   Tooltip,
 } from 'antd';
+export { TreeProps } from 'antd/lib/tree';
+export { FormInstance } from 'antd/lib/form';
 
 export const MenuItem = styled(AntdMenu.Item)`
   > a {

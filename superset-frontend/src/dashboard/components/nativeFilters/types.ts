@@ -16,6 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import componentTypes from 'src/dashboard/util/componentTypes';
+
+export enum Scoping {
+  all,
+  specific,
+}
+
+export interface NativeFiltersForm {
+  scoping: Scoping;
+  name: string;
+  dataset: {
+    value: number;
+  };
+  isInstant: boolean;
+  column: {
+    value: Column;
+  };
+  defaultValue: string;
+}
+
 export interface Column {
   name: string;
   displayName?: string;
@@ -23,7 +44,7 @@ export interface Column {
 
 export interface Scope {
   rootPath: string[];
-  excluded: string[];
+  excluded: number[];
 }
 
 /** The target of a filter is the datasource/column being filtered */
@@ -54,7 +75,7 @@ export interface Filter {
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
-  defaultValue: string[] | number[] | null;
+  defaultValue: string;
   scope: Scope;
   isInstant: boolean;
 }
@@ -70,4 +91,52 @@ export type FilterState = {
    * isDirty indicates that state.
    */
   isDirty: boolean;
+};
+
+/** Chart state of redux */
+export type Chart = {
+  id: number;
+  slice_id: 2107;
+  formData: {
+    viz_type: string;
+  };
+};
+
+/** Root state of redux */
+export type RootState = {
+  charts: { [key: string]: Chart };
+  dashboardLayout: { present: { [key: string]: LayoutItem } };
+  dashboardFilters: {};
+};
+
+/** State of dashboardLayout in redux */
+export type Layout = { [key: string]: LayoutItem };
+
+/** State of charts in redux */
+export type Charts = { [key: number]: Chart };
+
+type ComponentTypesKeys = keyof typeof componentTypes;
+export type ComponentType = typeof componentTypes[ComponentTypesKeys];
+
+/** State of dashboardLayout item in redux */
+export type LayoutItem = {
+  children: string[];
+  parents: string[];
+  type: ComponentType;
+  id: string;
+  meta: {
+    chartId: number;
+    height: number;
+    sliceName?: string;
+    text?: string;
+    uuid: string;
+    width: number;
+  };
+};
+
+/** UI Ant tree type */
+export type TreeItem = {
+  children: TreeItem[];
+  key: string;
+  title: string;
 };
