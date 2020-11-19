@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SuperChart, t } from '@superset-ui/core';
-import React, { useState } from 'react';
-import { Form, Dropdown, Menu } from 'src/common/components';
+import { styled, t } from '@superset-ui/core';
+import React from 'react';
+import { Form, Input, Dropdown, Menu } from 'src/common/components';
 import Button from 'src/components/Button';
 import CreateFilterButton from './CreateFilterButton';
 import Icon from 'src/components/Icon';
@@ -30,7 +30,6 @@ import {
   useFilterState,
 } from './state';
 import { Filter } from './types';
-import { getChartDataRequest } from '../../../chart/chartAction';
 
 const Bar = styled.div`
   display: flex;
@@ -76,37 +75,6 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   const { selectedValues } = useFilterState(filter.id);
   const setSelectedValues = useFilterSetter(filter.id);
 
-  const [state, setState] = useState({ data: undefined });
-
-  const formData = {
-    adhoc_filters: [],
-    datasource: `${filter.targets[0].datasetId}__table`,
-    extra_filters: [],
-    granularity_sqla: 'ds',
-    groupby: ['name'],
-    label_colors: {},
-    metrics: ['count'],
-    multiSelect: true,
-    row_limit: 10000,
-    showSearch: true,
-    slice_id: 10001,
-    time_range: 'No filter',
-    time_range_endpoints: ['inclusive', 'exclusive'],
-    url_params: {},
-    viz_type: 'filter_select',
-  };
-
-  if (!state.data)
-    getChartDataRequest({
-      formData,
-      force: false,
-      requestParams: { dashboardId: 0 },
-    }).then(response => {
-      setState({ data: response.result[0].data });
-    });
-
-  console.log('filter', filter);
-
   if (selectedValues) {
     return (
       <span>
@@ -124,13 +92,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
       }}
     >
       <Form.Item name="value">
-        <SuperChart
-          height={20}
-          width={220}
-          formData={formData}
-          queryData={state}
-          chartType="filter_select"
-        />
+        <Input />
       </Form.Item>
       <Button buttonSize="sm" buttonStyle="tertiary" type="submit">
         {t("Apply")}
@@ -149,29 +111,27 @@ const FilterControl: React.FC<FilterProps> = ({ filter }) => {
 };
 
 const menu = (
-  <Menu>
-    <Menu.Item>
-      Configure Filters
-    </Menu.Item>
-    <Menu.Item>
-      <CreateFilterButton>
-        {t('New Filter')}
-      </CreateFilterButton>
-    </Menu.Item>
-    {/* <Menu.Item>
+    <Menu>
+      <Menu.Item>
+        Configure Filters
+      </Menu.Item>
+      <Menu.Item>
+        <CreateFilterButton>
+          {t('New Filter')}
+        </CreateFilterButton>
+      </Menu.Item>
+      {/* <Menu.Item>
         <FilterScopeModal
           triggerNode={t('Bulk Scoping')}
         />
       </Menu.Item> */}
 
-  </Menu>
-);
+    </Menu>
+  );
 
 const FilterBar: React.FC = () => {
   const filterConfigs = useFilterConfigurations();
-  // console.log('filterConfigs', filterConfigs);
-  const [filterState, setFilterState] = useState({});
-
+  console.log('filterConfigs', filterConfigs)
   return (
     <Bar>
       <TitleArea>
@@ -193,6 +153,7 @@ const FilterBar: React.FC = () => {
           <FilterControl key={filter.id} filter={filter} />
         ))}
       </FilterControls>
+      
     </Bar>
   );
 };

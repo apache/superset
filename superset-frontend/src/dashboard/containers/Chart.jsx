@@ -49,11 +49,10 @@ function mapStateToProps(
   ownProps,
 ) {
   const { id } = ownProps;
-
   const chart = chartQueries[id] || {};
   const { colorScheme, colorNamespace } = dashboardState;
 
-  const abc = {
+  return {
     chart,
     datasource:
       (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
@@ -75,7 +74,6 @@ function mapStateToProps(
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
   };
-  return abc;
 }
 
 function mapDispatchToProps(dispatch) {
