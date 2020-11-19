@@ -213,8 +213,8 @@ class QueryContext:
             set_and_log_cache(
                 cache_manager.cache,
                 cache_key,
-                self.cache_timeout,
                 {"data": self.cache_values},
+                self.cache_timeout,
             )
             return_value["cache_key"] = cache_key  # type: ignore
 
@@ -295,7 +295,9 @@ class QueryContext:
                 logger.info("Serving from cache")
 
         if force_cached and not is_loaded:
-            logger.warning(f"force_cached: value not found for key {cache_key}")
+            logger.warning(
+                f"force_cached (QueryContext): value not found for key {cache_key}"
+            )
             raise CacheLoadError()
 
         if query_obj and not is_loaded:
@@ -338,8 +340,8 @@ class QueryContext:
                 set_and_log_cache(
                     cache_manager.cache,
                     cache_key,
-                    self.cache_timeout,
                     {"df": df, "query": query},
+                    self.cache_timeout,
                 )
         return {
             "cache_key": cache_key,

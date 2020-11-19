@@ -48,13 +48,14 @@ def generate_cache_key(values_dict: Dict[str, Any], key_prefix: str = "") -> str
 def set_and_log_cache(
     cache_instance: Cache,
     cache_key: str,
-    cache_timeout: int,
     cache_value: Dict[str, Any],
+    cache_timeout: Optional[int] = None,
 ) -> None:
+    timeout = cache_timeout if cache_timeout else config["CACHE_DEFAULT_TIMEOUT"]
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
-        cache_instance.set(cache_key, value, timeout=cache_timeout)
+        cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger.incr("set_cache_key")
     except Exception as ex:
         # cache.set call can fail if the backend is down or if

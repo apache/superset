@@ -38,6 +38,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Type,
     TYPE_CHECKING,
     Union,
 )
@@ -57,6 +58,7 @@ from superset import app, db, is_feature_enabled
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    CacheLoadError,
     NullValueException,
     QueryObjectValidationError,
     SpatialException,
@@ -141,6 +143,7 @@ class BaseViz:
         datasource: "BaseDatasource",
         form_data: Dict[str, Any],
         force: bool = False,
+        force_cached: bool = False,
     ) -> None:
         if not datasource:
             raise QueryObjectValidationError(_("Viz is missing a datasource"))
@@ -161,6 +164,7 @@ class BaseViz:
         self.results: Optional[QueryResult] = None
         self.errors: List[Dict[str, Any]] = []
         self.force = force
+        self.force_cached = force_cached
         self.from_dttm: Optional[datetime] = None
         self.to_dttm: Optional[datetime] = None
 
@@ -269,7 +273,7 @@ class BaseViz:
                 "columns": [o.column_name for o in self.datasource.columns],
             }
         )
-        df = self.get_df(query_obj)
+        df = self.get_df_payload(query_obj)["df"]  # leverage caching logic
         return df.to_dict(orient="records")
 
     def get_df(self, query_obj: Optional[QueryObjectDict] = None) -> pd.DataFrame:
@@ -535,6 +539,12 @@ class BaseViz:
                     )
                 logger.info("Serving from cache")
 
+        if self.force_cached and not is_loaded:
+            logger.warning(
+                f"force_cached (viz.py): value not found for key {cache_key}"
+            )
+            raise CacheLoadError()
+
         if query_obj and not is_loaded:
             try:
                 invalid_columns = [
@@ -635,7 +645,7 @@ class BaseViz:
         return content
 
     def get_csv(self) -> Optional[str]:
-        df = self.get_df()
+        df = self.get_df_payload()["df"]  # leverage caching logic
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config["CSV_EXPORT"])
 
@@ -2979,12 +2989,14 @@ class PartitionViz(NVD3TimeSeriesViz):
         return self.nest_values(levels)
 
 
+def get_subclasses(cls: Type[BaseViz]) -> Set[Type[BaseViz]]:
+    return set(cls.__subclasses__()).union(
+        [sc for c in cls.__subclasses__() for sc in get_subclasses(c)]
+    )
+
+
 viz_types = {
     o.viz_type: o
-    for o in globals().values()
-    if (
-        inspect.isclass(o)
-        and issubclass(o, BaseViz)
-        and o.viz_type not in config["VIZ_TYPE_DENYLIST"]
-    )
+    for o in get_subclasses(BaseViz)
+    if o.viz_type not in config["VIZ_TYPE_DENYLIST"]
 }
