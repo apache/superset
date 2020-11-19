@@ -598,7 +598,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def import_(self) -> Response:
-        """Import dataset (s) with associated databases
+        """Import dataset(s) with associated databases
         ---
         post:
           requestBody:
