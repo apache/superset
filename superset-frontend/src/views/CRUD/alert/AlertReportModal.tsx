@@ -49,6 +49,13 @@ const CONDITIONS = [
   '!= (Is Not Equal)',
 ];
 
+const RETENTION_OPTIONS = [
+  'None',
+  '30 days',
+  '60 days',
+  '90 days',
+];
+
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
@@ -94,7 +101,7 @@ const StyledSectionContainer = styled.div`
       flex: 1 1 auto;
     }
 
-    &.format-option {
+    &.add-margin {
       margin-bottom: 5px;
     }
 
@@ -105,6 +112,10 @@ const StyledSectionContainer = styled.div`
         flex: 0 0 auto;
       }
     }
+  }
+
+  .hide-dropdown {
+    display: none;
   }
 `;
 
@@ -201,6 +212,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentAlert, setCurrentAlert] = useState<AlertObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
+  const [contentType, setContentType] = useState<string>(alert ? alert.content_type || 'dashboard' : 'dashboard');
   const isEditMode = alert !== null;
 
   // TODO: Alert fetch logic
@@ -270,6 +282,42 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     );
   };
 
+  const loadDashboardOptions = (input = '') => {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dashboard?q=${query}`,
+    }).then(
+      response => {
+        return response.json.result.map(item => ({
+          value: item.id,
+          label: item.dashboard_title,
+        }));
+      },
+      badResponse => {
+        handleErrorResponse(badResponse);
+        return [];
+      },
+    );
+  };
+
+  const loadChartOptions = (input = '') => {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/chart?q=${query}`,
+    }).then(
+      response => {
+        return response.json.result.map(item => ({
+          value: item.id,
+          label: item.slice_name,
+        }));
+      },
+      badResponse => {
+        handleErrorResponse(badResponse);
+        return [];
+      },
+    );
+  };
+
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
     const data = {
@@ -296,6 +344,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('owners', value || []);
   };
 
+  const onDashboardChange = (value: number) => {
+    updateAlertState('dashboard', value || null);
+  };
+
+  const onChartChange = (value: number) => {
+    updateAlertState('chart', value || null);
+  };
+
   const onActiveSwitch = (checked: boolean) => {
     updateAlertState('active', checked);
   };
@@ -310,10 +366,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('schedule_format', target.value);
   };
 
+  const onLogRetentionChange = (retention) => {
+    updateAlertState('log_retention', retention);
+  };
+
+  const onContentTypeChange = (event: React.ChangeEvent) => {
+    const { target } = event;
+
+    updateAlertState('content_type', target.value);
+    setContentType(target.value);
+  };
+
   const validate = () => {
     if (
       currentAlert &&
-      currentAlert.name.length &&
+      currentAlert.label.length &&
       currentAlert.owners.length
     ) {
       setDisableSave(false);
@@ -343,7 +410,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ) {
     // TODO: update to match expected type variables
     setCurrentAlert({
-      name: '',
+      label: '',
       owners: [],
       active: true,
     });
@@ -354,7 +421,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     () => {
       validate();
     },
-    currentAlert ? [currentAlert.name, currentAlert.owners] : [],
+    currentAlert ? [currentAlert.label, currentAlert.owners] : [],
   );
 
   // Show/hide
@@ -365,6 +432,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   // Dropdown options
   const conditionOptions = CONDITIONS.map(condition => {
     return (<Select.Option value={condition}>{condition}</Select.Option>
+  });
+
+  const retentionOptions = RETENTION_OPTIONS.map(option => {
+    return (<Select.Option value={option}>{option}</Select.Option>
   });
 
   return (
@@ -399,8 +470,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <div className="input-container">
               <input
                 type="text"
-                name="name"
-                value={currentAlert ? currentAlert.name : ''}
+                name="label"
+                value={currentAlert ? currentAlert.label : ''}
                 placeholder={t('Alert Name')}
                 onChange={onTextChange}
               />
@@ -499,10 +570,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   </div>
                   <div className="input-container">
                     <input
-                      type="text"
-                      name="alert_condition_val"
+                      type="number"
+                      name="condition_value"
                       value={
-                        currentAlert ? currentAlert.alert_condition_val : ''
+                        currentAlert ? currentAlert.condition_value : ''
                       }
                       placeholder={t('Value')}
                       onChange={onTextChange}
@@ -520,11 +591,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={onScheduleFormatChange}
               value={currentAlert ? currentAlert.schedule_format || 'dropdown-format' : 'dropdown-format'}
             >
-              <div className="inline-container format-option">
+              <div className="inline-container add-margin">
                 <Radio value="dropdown-format"/>
                 <span className="input-label">Every x Minutes (should be set of dropdown options)</span>
               </div>
-              <div className="inline-container format-option">
+              <div className="inline-container add-margin">
                 <Radio value="cron-format"/>
                 <span className="input-label">CRON Schedule</span>
                 <StyledInputContainer className="styled-input">
@@ -549,13 +620,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <span className="required">*</span>
               </div>
               <div className="input-container">
-                <input
-                  type="text"
-                  name="log_retention"
-                  value={currentAlert ? currentAlert.log_retention : ''}
-                  placeholder={t('Should Be Dropdown')}
-                  onChange={onTextChange}
-                />
+                <Select
+                  onChange={onLogRetentionChange}
+                  placeholder
+                  defaultValue={currentAlert ? currentAlert.log_retention || '90 days' : '90 days'}
+                >
+                  {retentionOptions}
+                </Select>
               </div>
             </StyledInputContainer>
             <StyledInputContainer>
@@ -576,10 +647,35 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledSectionTitle>
               <h4>{t('Message Content')}</h4>
             </StyledSectionTitle>
-            <div className="inline-container">
-              Dashboard/Chart radio buttons here
+            <div className="inline-container add-margin">
+              <Radio.Group
+                onChange={onContentTypeChange}
+                value={currentAlert ? currentAlert.content_type || 'dashboard' : 'dashboard'}
+              >
+                <Radio value="dashboard">Dashboard</Radio>
+                <Radio value="chart">Chart</Radio>
+              </Radio.Group>
             </div>
-            <div>Dashboard/Chart dropdown select here</div>
+            <AsyncSelect
+              className={contentType === 'chart' ? '' : 'hide-dropdown'}
+              name="chart"
+              value={currentAlert ? currentAlert.chart : null}
+              loadOptions={loadChartOptions}
+              defaultOptions // load options on render
+              cacheOptions
+              onChange={onChartChange}
+              filterOption={null} // options are filtered at the api
+            />
+            <AsyncSelect
+              className={contentType === 'dashboard' ? '' : 'hide-dropdown'}
+              name="dashboard"
+              value={currentAlert ? currentAlert.dashboard : null}
+              loadOptions={loadDashboardOptions}
+              defaultOptions // load options on render
+              cacheOptions
+              onChange={onDashboardChange}
+              filterOption={null} // options are filtered at the api
+            />
             <StyledSectionTitle>
               <h4>{t('Notification Method')}</h4>
             </StyledSectionTitle>
