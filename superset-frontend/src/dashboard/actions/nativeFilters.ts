@@ -92,7 +92,6 @@ export interface SelectFilterOption {
 }
 
 export function setFilterState(filtersList: Array<any>) {
-  console.log('filterList action', filtersList)
   return {
     type: SET_FILTER_STATE,
     filtersList,

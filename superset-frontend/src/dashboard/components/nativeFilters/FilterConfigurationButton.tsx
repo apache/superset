@@ -20,10 +20,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import shortid from 'shortid';
 import { Button } from 'src/common/components';
-import {
-  createFilter,
-  setFilterConfiguration,
-} from 'src/dashboard/actions/nativeFilters';
+import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { FilterConfigModal } from './FilterConfigModal';
 import {

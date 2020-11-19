@@ -160,10 +160,7 @@ const menu = (
 );
 
 const FilterBar: React.FC = () => {
-  const filterState = useAllFilterState();
   const filterConfigs = useFilterConfiguration();
-  console.log(filterState);
-
   return (
     <Bar>
       <TitleArea>
