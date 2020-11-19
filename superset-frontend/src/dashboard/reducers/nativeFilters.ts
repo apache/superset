@@ -20,6 +20,7 @@ import {
   SELECT_FILTER_OPTION,
   AnyFilterAction,
   SET_FILTER_CONFIG_COMPLETE,
+  SET_FILTER_STATE,
 } from '../actions/nativeFilters';
 import {
   FilterConfiguration,
@@ -67,5 +68,10 @@ export default function nativeFilterReducer(
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return filters;
+    case SET_FILTER_STATE:
+      return {
+        ...filters,
+        filterList: action.filtersList,
+      };
   }
 }

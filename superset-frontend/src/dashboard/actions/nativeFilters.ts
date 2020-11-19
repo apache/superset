@@ -38,6 +38,12 @@ export interface SetFilterConfigFail {
   filterConfig: FilterConfiguration;
 }
 
+export const SET_FILTER_STATE = 'SET_FILTER_STATE';
+export interface SetFilterState {
+  type: typeof SET_FILTER_STATE;
+  filterConfig: FilterConfiguration;
+}
+
 export const setFilterConfiguration = (
   filterConfig: FilterConfiguration,
 ) => async (dispatch: Dispatch, getState: () => any) => {
@@ -85,6 +91,12 @@ export interface SelectFilterOption {
   selectedValues: string[] | null;
 }
 
+export function setFilterState(filtersList: Array<any>) {
+  return {
+    type: SET_FILTER_STATE,
+    filtersList,
+  };
+}
 /**
  * Sets the selected option(s) for a given filter
  * @param filterId the id of the native filter
@@ -105,4 +117,5 @@ export type AnyFilterAction =
   | SetFilterConfigBegin
   | SetFilterConfigComplete
   | SetFilterConfigFail
-  | SelectFilterOption;
+  | SelectFilterOption
+  | SetFilterState;
