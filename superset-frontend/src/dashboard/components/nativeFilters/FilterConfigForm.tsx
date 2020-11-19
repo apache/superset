@@ -35,6 +35,7 @@ import ScopingTree from './ScopingTree';
 interface FilterConfigFormProps {
   filterId: string;
   filterToEdit?: Filter;
+  removed?: boolean;
   form: FormInstance;
 }
 
@@ -103,6 +104,7 @@ const ScopingTreeNote = styled.div`
 const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   filterId,
   filterToEdit,
+  removed,
   form,
 }) => {
   const [scoping, setScoping] = useState<Scoping>(Scoping.all);
@@ -118,16 +120,16 @@ const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     <>
       <Form.Item
         name={['filters', filterId, 'name']}
-        label="Filter Name"
+        label={t('Filter Name')}
         initialValue={filterToEdit?.name}
-        rules={[{ required: true }]}
+        rules={[{ required: !removed, message: t('Name is required') }]}
       >
         <Input />
       </Form.Item>
       <Form.Item
         name={['filters', filterId, 'dataset']}
-        label="Datasource"
-        rules={[{ required: true }]}
+        label={t('Datasource')}
+        rules={[{ required: !removed, message: t('Datasource is required') }]}
       >
         <SupersetResourceSelect
           resource="dataset"
@@ -143,14 +145,14 @@ const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         initialValue={
           filterToEdit?.targets?.length && filterToEdit?.targets[0]?.datasetId
         }
-        label="Field"
-        rules={[{ required: true }]}
+        label={t('Field')}
+        rules={[{ required: !removed, message: t('Field is required') }]}
       >
         <ColumnSelect datasetId={datasetId} />
       </Form.Item>
       <Form.Item
         name={['filters', filterId, 'defaultValue']}
-        label="Default Value"
+        label={t('Default Value')}
       >
         <Input />
       </Form.Item>

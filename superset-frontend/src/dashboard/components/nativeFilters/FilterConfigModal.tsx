@@ -205,6 +205,7 @@ export function FilterConfigModal({
                   form={form}
                   filterId={id}
                   filterToEdit={filterConfigMap[id]}
+                  removed={!!removedFilters[id]}
                 />
               </LineEditableTabs.TabPane>
             ))}
