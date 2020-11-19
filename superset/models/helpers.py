@@ -212,6 +212,8 @@ class ImportExportMixin:
             # Create new DB object
             obj = cls(**dict_rep)  # type: ignore
             logger.info("Importing new %s %s", obj.__tablename__, str(obj))
+            print(obj)
+            print(obj.uuid)
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
             session.add(obj)
