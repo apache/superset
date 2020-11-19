@@ -56,6 +56,7 @@ def get_target_from_report_schedule(report_schedule) -> List[str]:
 
 
 def assert_success_log():
+    db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
     assert len(logs) == 1
     assert logs[0].scheduled_dttm == datetime.utcnow()
@@ -74,11 +75,9 @@ def create_report_notification(
     validator_type: Optional[str] = None,
     validator_config_json: Optional[str] = None,
 ) -> ReportSchedule:
-
     report_type = report_type or ReportScheduleType.REPORT
     target = email_target or slack_channel
     config_json = {"target": target}
-
     if slack_channel:
         recipient = ReportRecipients(
             type=ReportRecipientType.SLACK,
@@ -106,7 +105,7 @@ def create_report_notification(
     return report_schedule
 
 
-@pytest.yield_fixture(scope="module")
+@pytest.yield_fixture()
 def create_report_email_chart():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -215,7 +214,9 @@ def create_alert_email_chart(request):
         db.session.commit()
 
 
-@pytest.yield_fixture(params=["alert1", "alert2", "alert3", "alert4", "alert5"])
+@pytest.yield_fixture(
+    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6"]
+)
 def create_no_alert_email_chart(request):
     param_config = {
         "alert1": {
@@ -243,10 +244,21 @@ def create_no_alert_email_chart(request):
             "validator_type": ReportScheduleValidatorType.OPERATOR,
             "validator_config_json": '{"op": "!=", "threshold": 10}',
         },
+        "alert6": {
+            "sql": "SELECT first from test_table where first=0",
+            "validator_type": ReportScheduleValidatorType.NOT_NULL,
+            "validator_config_json": "{}",
+        },
     }
     with app.app_context():
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
+        example_database.get_sqla_engine().execute(
+            "CREATE TABLE test_table AS SELECT 1 as first, 2 as second"
+        )
+        example_database.get_sqla_engine().execute(
+            "INSERT INTO test_table (first, second) VALUES (3, 4)"
+        )
 
         report_schedule = create_report_notification(
             email_target="target@email.com",
@@ -261,6 +273,7 @@ def create_no_alert_email_chart(request):
 
         db.session.delete(report_schedule)
         db.session.commit()
+        example_database.get_sqla_engine().execute("DROP TABLE test_table")
 
 
 @pytest.mark.usefixtures("create_report_email_chart")
@@ -280,7 +293,6 @@ def test_email_chart_report_schedule(
         AsyncExecuteReportScheduleCommand(
             create_report_email_chart.id, datetime.utcnow()
         ).run()
-        db.session.commit()
 
         notification_targets = get_target_from_report_schedule(
             create_report_email_chart
