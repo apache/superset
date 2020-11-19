@@ -20,6 +20,7 @@ from typing import List, Optional
 from unittest.mock import patch
 
 import pytest
+from contextlib2 import contextmanager
 from freezegun import freeze_time
 from sqlalchemy.sql import func
 
@@ -37,6 +38,8 @@ from superset.models.reports import (
 )
 from superset.models.slice import Slice
 from superset.reports.commands.exceptions import (
+    AlertQueryMultipleColumnsError,
+    AlertQueryMultipleRowsError,
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
@@ -55,13 +58,12 @@ def get_target_from_report_schedule(report_schedule) -> List[str]:
     ]
 
 
-def assert_success_log():
+def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
     assert len(logs) == 1
-    assert logs[0].scheduled_dttm == datetime.utcnow()
-    assert logs[0].error_message == None
-    assert logs[0].state == ReportLogState.SUCCESS
+    assert logs[0].error_message == error_message
+    assert logs[0].state == state
 
 
 def create_report_notification(
@@ -160,7 +162,7 @@ def create_report_slack_chart_working():
 
 
 @pytest.yield_fixture(
-    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6"]
+    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6", "alert7"]
 )
 def create_alert_email_chart(request):
     param_config = {
@@ -194,6 +196,11 @@ def create_alert_email_chart(request):
             "validator_type": ReportScheduleValidatorType.NOT_NULL,
             "validator_config_json": "{}",
         },
+        "alert7": {
+            "sql": "SELECT {{ 5 + 5 }} as metric",
+            "validator_type": ReportScheduleValidatorType.OPERATOR,
+            "validator_config_json": '{"op": "!=", "threshold": 11}',
+        },
     }
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -212,6 +219,22 @@ def create_alert_email_chart(request):
 
         db.session.delete(report_schedule)
         db.session.commit()
+
+
+@contextmanager
+def create_test_table_context(database: Database):
+    database.get_sqla_engine().execute(
+        "CREATE TABLE test_table AS SELECT 1 as first, 2 as second"
+    )
+    database.get_sqla_engine().execute(
+        "INSERT INTO test_table (first, second) VALUES (1, 2)"
+    )
+    database.get_sqla_engine().execute(
+        "INSERT INTO test_table (first, second) VALUES (3, 4)"
+    )
+
+    yield db.session
+    database.get_sqla_engine().execute("DROP TABLE test_table")
 
 
 @pytest.yield_fixture(
@@ -253,27 +276,59 @@ def create_no_alert_email_chart(request):
     with app.app_context():
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
-        example_database.get_sqla_engine().execute(
-            "CREATE TABLE test_table AS SELECT 1 as first, 2 as second"
-        )
-        example_database.get_sqla_engine().execute(
-            "INSERT INTO test_table (first, second) VALUES (3, 4)"
-        )
+        with create_test_table_context(example_database):
 
-        report_schedule = create_report_notification(
-            email_target="target@email.com",
-            chart=chart,
-            report_type=ReportScheduleType.ALERT,
-            database=example_database,
-            sql=param_config[request.param]["sql"],
-            validator_type=param_config[request.param]["validator_type"],
-            validator_config_json=param_config[request.param]["validator_config_json"],
-        )
-        yield report_schedule
+            report_schedule = create_report_notification(
+                email_target="target@email.com",
+                chart=chart,
+                report_type=ReportScheduleType.ALERT,
+                database=example_database,
+                sql=param_config[request.param]["sql"],
+                validator_type=param_config[request.param]["validator_type"],
+                validator_config_json=param_config[request.param][
+                    "validator_config_json"
+                ],
+            )
+            yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
-        example_database.get_sqla_engine().execute("DROP TABLE test_table")
+            db.session.delete(report_schedule)
+            db.session.commit()
+
+
+@pytest.yield_fixture(params=["alert1", "alert2"])
+def create_mul_alert_email_chart(request):
+    param_config = {
+        "alert1": {
+            "sql": "SELECT first from test_table",
+            "validator_type": ReportScheduleValidatorType.OPERATOR,
+            "validator_config_json": '{"op": "<", "threshold": 10}',
+        },
+        "alert2": {
+            "sql": "SELECT first, second from test_table",
+            "validator_type": ReportScheduleValidatorType.OPERATOR,
+            "validator_config_json": '{"op": "<", "threshold": 10}',
+        },
+    }
+    with app.app_context():
+        chart = db.session.query(Slice).first()
+        example_database = get_example_database()
+        with create_test_table_context(example_database):
+
+            report_schedule = create_report_notification(
+                email_target="target@email.com",
+                chart=chart,
+                report_type=ReportScheduleType.ALERT,
+                database=example_database,
+                sql=param_config[request.param]["sql"],
+                validator_type=param_config[request.param]["validator_type"],
+                validator_config_json=param_config[request.param][
+                    "validator_config_json"
+                ],
+            )
+            yield report_schedule
+
+            db.session.delete(report_schedule)
+            db.session.commit()
 
 
 @pytest.mark.usefixtures("create_report_email_chart")
@@ -303,7 +358,7 @@ def test_email_chart_report_schedule(
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
-        assert_success_log()
+        assert_log(ReportLogState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_report_email_dashboard")
@@ -333,7 +388,7 @@ def test_email_dashboard_report_schedule(
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
-        assert_success_log()
+        assert_log(ReportLogState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
@@ -361,7 +416,7 @@ def test_slack_chart_report_schedule(
         assert file_upload_mock.call_args[1]["file"] == screenshot
 
         # Assert logs are correct
-        assert_success_log()
+        assert_log(ReportLogState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
@@ -385,11 +440,9 @@ def test_report_schedule_working(create_report_slack_chart_working):
             create_report_slack_chart_working.id, datetime.utcnow()
         ).run()
 
-    logs = db.session.query(ReportExecutionLog).all()
-    assert len(logs) == 1
-    assert logs[0].error_message == ReportSchedulePreviousWorkingError.message
-    assert logs[0].state == ReportLogState.ERROR
-
+    assert_log(
+        ReportLogState.ERROR, error_message=ReportSchedulePreviousWorkingError.message
+    )
     assert create_report_slack_chart_working.last_state == ReportLogState.WORKING
 
 
@@ -414,10 +467,7 @@ def test_email_dashboard_report_fails(
             create_report_email_dashboard.id, datetime.utcnow()
         ).run()
 
-    logs = db.session.query(ReportExecutionLog).all()
-    assert len(logs) == 1
-    assert logs[0].error_message == "Could not connect to SMTP XPTO"
-    assert logs[0].state == ReportLogState.ERROR
+    assert_log(ReportLogState.ERROR, error_message="Could not connect to SMTP XPTO")
 
 
 @pytest.mark.usefixtures("create_alert_email_chart")
@@ -443,17 +493,30 @@ def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
-        assert_success_log()
+        assert_log(ReportLogState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_no_alert_email_chart")
-def test_slack_chart_no_alert(create_no_alert_email_chart):
+def test_email_chart_no_alert(create_no_alert_email_chart):
     """
-    ExecuteReport Command: Test chart slack no alert
+    ExecuteReport Command: Test chart email no alert
     """
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
             create_no_alert_email_chart.id, datetime.utcnow()
         ).run()
-    db.session.commit()
-    assert create_no_alert_email_chart.last_state == ReportLogState.NOOP
+    assert_log(ReportLogState.NOOP)
+
+
+@pytest.mark.usefixtures("create_mul_alert_email_chart")
+def test_email_mul_alert(create_mul_alert_email_chart):
+    """
+    ExecuteReport Command: Test chart email multiple rows
+    """
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises(
+            (AlertQueryMultipleRowsError, AlertQueryMultipleColumnsError)
+        ):
+            AsyncExecuteReportScheduleCommand(
+                create_mul_alert_email_chart.id, datetime.utcnow()
+            ).run()
