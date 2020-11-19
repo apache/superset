@@ -66,7 +66,6 @@ class ChartDataCommand(BaseCommand):
         return return_value
 
     def run_async(self) -> Dict[str, Any]:
-        # TODO: confirm cache backend is configured
         job_metadata = async_query_manager.init_job(self._async_channel_id)
         load_chart_data_into_cache.delay(job_metadata, self._form_data)
 

@@ -556,12 +556,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     def data_from_cache(self, cache_key: str) -> Response:
         """
-        Takes a query context cache key returns payload
+        Takes a query context cache key and returns payload
         data response for the given query.
         ---
         get:
           description: >-
-            Takes a query context constructed in the client and returns payload data
+            Takes a query context cache key and returns payload data
             response for the given query.
           parameters:
           - in: path
