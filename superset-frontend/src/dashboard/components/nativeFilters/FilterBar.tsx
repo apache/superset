@@ -25,6 +25,7 @@ import Icon from 'src/components/Icon';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
 import {
+  useAllFilterState,
   useFilterConfiguration,
   useFilterSetter,
   useFilterState,
@@ -108,18 +109,6 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
       setState({ data: response.result[0].data });
     });
 
-  console.log('filter', filter);
-
-  if (selectedValues) {
-    return (
-      <span>
-        {selectedValues.join(', ')}
-        <button type="button" onClick={() => setSelectedValues(null)}>
-          X
-        </button>
-      </span>
-    );
-  }
   return (
     <Form
       onFinish={values => {
@@ -167,7 +156,11 @@ const menu = (
 );
 
 const FilterBar: React.FC = () => {
+  const allFilters = useAllFilterState();
   const filterConfigs = useFilterConfiguration();
+
+  console.log(allFilters);
+
   return (
     <Bar>
       <TitleArea>
