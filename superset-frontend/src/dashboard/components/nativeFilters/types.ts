@@ -32,9 +32,7 @@ interface NativeFiltersFormItem {
     value: number;
   };
   isInstant: boolean;
-  column: {
-    value: Column;
-  };
+  column: string;
   defaultValue: string;
 }
 

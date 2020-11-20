@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import { AsyncSelect } from 'src/components/Select';
@@ -27,6 +27,7 @@ export type Value<V> = { value: V; label: string };
 
 export interface SupersetResourceSelectProps<T = unknown, V = string> {
   value?: Value<V> | null;
+  initialId?: number | string;
   onChange?: (value: Value<V>) => void;
   isMulti?: boolean;
   searchColumn?: string;
@@ -47,6 +48,7 @@ export interface SupersetResourceSelectProps<T = unknown, V = string> {
  */
 export default function SupersetResourceSelect<T = unknown, V = string>({
   value,
+  initialId,
   onChange,
   isMulti,
   resource,
@@ -54,6 +56,16 @@ export default function SupersetResourceSelect<T = unknown, V = string>({
   transformItem,
 }: SupersetResourceSelectProps<T, V>) {
   const { addDangerToast } = useToasts();
+
+  useEffect(() => {
+    SupersetClient.get({
+      endpoint: `/api/v1/${resource}/${initialId}`,
+    }).then(response => {
+      const value = transformItem(response.json.result);
+      if (onChange) onChange(value);
+    });
+  }, [resource, initialId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function loadOptions(input: string) {
     const query = searchColumn
       ? rison.encode({
@@ -77,6 +89,7 @@ export default function SupersetResourceSelect<T = unknown, V = string>({
       },
     );
   }
+
   return (
     <AsyncSelect
       value={value}

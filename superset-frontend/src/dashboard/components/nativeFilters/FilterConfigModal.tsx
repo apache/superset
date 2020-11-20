@@ -164,7 +164,9 @@ export function FilterConfigModal({
             targets: [
               {
                 datasetId: formInputs.dataset.value,
-                column: formInputs.column.value,
+                column: {
+                  name: formInputs.column,
+                },
               },
             ],
             defaultValue: formInputs.defaultValue,
