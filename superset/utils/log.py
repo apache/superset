@@ -57,7 +57,7 @@ class AbstractEventLogger(ABC):
 
     @contextmanager
     def log_context(
-        self, action: str, ref: Optional[str] = None
+        self, action: str, ref: Optional[str] = None, log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """
         Log an event while reading information from the request context.
@@ -89,7 +89,8 @@ class AbstractEventLogger(ABC):
         except (TypeError, ValueError):
             slice_id = 0
 
-        self.stats_logger.incr(action)
+        if log_to_statsd:
+            self.stats_logger.incr(action)
 
         # bulk insert
         try:
