@@ -2472,7 +2472,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         quoted_csv_name = parse.quote(query.name)
         response.headers[
             "Content-Disposition"
-        ] = f"attachment; filename=\"{quoted_csv_name}.csv\"; filename*=UTF-8''{quoted_csv_name}.csv"
+        ] = f"attachment; filename=\"{quoted_csv_name}.csv\"; " \
+            f"filename*=UTF-8''{quoted_csv_name}.csv"
         event_info = {
             "event_type": "data_export",
             "client_id": client_id,
