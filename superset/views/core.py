@@ -2470,10 +2470,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             csv = df.to_csv(index=False, **config["CSV_EXPORT"])
         response = Response(csv, mimetype="text/csv")
         quoted_csv_name = parse.quote(query.name)
-        response.headers[
-            "Content-Disposition"
-        ] = f"attachment; filename=\"{quoted_csv_name}.csv\"; " \
+        response.headers["Content-Disposition"] = (
+            f'attachment; filename="{quoted_csv_name}.csv"; '
             f"filename*=UTF-8''{quoted_csv_name}.csv"
+        )
         event_info = {
             "event_type": "data_export",
             "client_id": client_id,
