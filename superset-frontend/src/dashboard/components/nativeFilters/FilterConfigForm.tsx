@@ -22,7 +22,13 @@ import { styled, SupersetClient, t } from '@superset-ui/core';
 import SupersetResourceSelect, {
   Value,
 } from 'src/components/SupersetResourceSelect';
-import { Form, Input, Radio, Typography } from 'src/common/components';
+import {
+  Checkbox,
+  Form,
+  Input,
+  Radio,
+  Typography,
+} from 'src/common/components';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
@@ -199,26 +205,33 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <Form.Item
         name={['filters', filterId, 'defaultValue']}
         label={t('Default Value')}
+        initialValue={filterToEdit?.defaultValue}
       >
         <Input />
       </Form.Item>
       <Form.Item
         name={['filters', filterId, 'isInstant']}
         label={t('Apply changes instantly')}
+        initialValue={filterToEdit?.isInstant}
+        valuePropName="checked"
       >
-        <Input type="checkbox" />
+        <Checkbox />
       </Form.Item>
       <Form.Item
         name={['filters', filterId, 'allowsMultipleValues']}
         label={t('Allow multiple selections')}
+        initialValue={filterToEdit?.allowsMultipleValues}
+        valuePropName="checked"
       >
-        <Input type="checkbox" />
+        <Checkbox />
       </Form.Item>
       <Form.Item
         name={['filters', filterId, 'isRequired']}
         label={t('Required')}
+        initialValue={filterToEdit?.isRequired}
+        valuePropName="checked"
       >
-        <Input type="checkbox" />
+        <Checkbox />
       </Form.Item>
       <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
       <Form.Item

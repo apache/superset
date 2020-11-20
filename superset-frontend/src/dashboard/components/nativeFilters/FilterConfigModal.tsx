@@ -118,6 +118,7 @@ export function FilterConfigModal({
     setFilterIds(getInitialFilterIds());
     setCurrentFilterId(getInitialCurrentFilterId());
     setRemovedFilters({});
+    setFormValues({ filters: {} });
   }, [form]);
 
   function onTabEdit(filterId: string, action: 'add' | 'remove') {
@@ -174,7 +175,9 @@ export function FilterConfigModal({
               rootPath: [DASHBOARD_ROOT_ID],
               excluded: [],
             },
-            isInstant: formInputs.isInstant,
+            isInstant: !!formInputs.isInstant,
+            allowsMultipleValues: !!formInputs.allowsMultipleValues,
+            isRequired: !!formInputs.isRequired,
           };
         });
       await save(newFilterConfig);
