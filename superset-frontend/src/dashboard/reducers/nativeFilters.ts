@@ -76,9 +76,10 @@ export default function nativeFilterReducer(
           const filterState: FilterState =
             filters[id] || getInitialFilterState(id);
           const { selectedValues } = filterState;
+          const { name: col } = column;
           const filterClause =
             selectedValues && selectedValues.length > 0
-              ? { col: column, op: 'IN', val: selectedValues }
+              ? { col, op: 'IN', val: selectedValues }
               : undefined;
           return {
             column,

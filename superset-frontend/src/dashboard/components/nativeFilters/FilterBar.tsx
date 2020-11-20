@@ -102,7 +102,8 @@ const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
   const [state, setState] = useState({ data: undefined });
   const { targets } = filter;
   const [target] = targets;
-  const { datasetId = 18, column = 'gender' } = target;
+  const { datasetId = 18, column } = target;
+  const { name: groupby } = column;
   const setter = (values: string[]): void => {
     return setSelectedValues(values, filter, filters);
   };
@@ -112,7 +113,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
     datasource: `${datasetId}__table`,
     extra_filters: [],
     granularity_sqla: 'ds',
-    groupby: [column],
+    groupby: [groupby],
     label_colors: {},
     metrics: ['count'],
     multiSelect: true,
@@ -196,6 +197,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const filterConfigs = useFilterConfiguration();
+  console.log(filterConfigs);
 
   const handleVisibleChange = (flag: boolean) => {
     setDropdownOpen(flag);
