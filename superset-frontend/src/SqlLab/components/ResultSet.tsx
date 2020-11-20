@@ -205,32 +205,26 @@ export default class ResultSet extends React.PureComponent<
     const { sql, results } = this.props.query;
     const { datasetToOverwrite } = this.state
 
-    // HACK: to clear the columns in the previous dataset and update
-    // it with the new selected columns from the query
-    // Todo: move this to actions file
-    SupersetClient.put({
-      endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}`,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        columns: [],
-      }),
-    })
-      .then(d => {
-        console.log(d);
-      })
-      .catch(err => console.log(err));
-
     SupersetClient.put({
       endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sql,
         columns: results.selected_columns.map(d => ({column_name: d.name}))
+        //columns: []
       }),
     }).then(d => {
         console.log(d);
       })
       .catch(err => console.log(err));
+
+    // sync columns for dataset
+    // SupersetClient.get({
+    //   endpoint: `/datasource/external_metadata/table/${datasetToOverwrite.dataSetId}`,
+    //   headers: { 'Content-Type': 'application/json' },
+    // }).then(d => {
+    //   console.log(d);
+    // }).catch(err => console.log(err));
   }
 
   handleSaveInDataset() {
