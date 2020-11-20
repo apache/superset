@@ -70,9 +70,9 @@ function updateInList(list: any[], index: number, update: any): any[] {
 
 function mergeCreateFilterValues(list: Filter[], updateObj: any) {
   return list.map(({ id, operator }) => {
-    const update = updateObj[id] || [];
+    const update = updateObj[id];
 
-    return { id, operator, value: update[0] };
+    return { id, operator, value: update };
   });
 }
 
@@ -84,17 +84,31 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
 }
 
 // convertFilters but to handle new decoded rison format
-export function convertFiltersRison(filterObj: any): FilterValue[] {
+export function convertFiltersRison(
+  filterObj: any,
+  list: Filter[],
+): FilterValue[] {
   const filters: FilterValue[] = [];
+  const refs = {};
 
   Object.keys(filterObj).forEach(id => {
     const filter: FilterValue = {
       id,
-      value: filterObj[id][0],
-      operator: filterObj[id][1], // TODO: can probably get rid of this
+      value: filterObj[id],
+      // operator: filterObj[id][1], // TODO: can probably get rid of this
     };
 
+    refs[id] = filter;
     filters.push(filter);
+  });
+
+  // Add operators from filter list
+  list.forEach(value => {
+    const filter = refs[value.id];
+
+    if (filter) {
+      filter.operator = value.operator;
+    }
   });
 
   return filters;
@@ -166,7 +180,9 @@ export function useListViewState({
   );
 
   const initialState = {
-    filters: query.filters ? convertFiltersRison(query.filters) : [],
+    filters: query.filters
+      ? convertFiltersRison(query.filters, initialFilters)
+      : [],
     pageIndex: query.pageIndex || 0,
     pageSize: initialPageSize,
     sortBy: initialSortBy,
@@ -246,7 +262,7 @@ export function useListViewState({
         filter.value !== undefined &&
         (typeof filter.value !== 'string' || filter.value.length > 0)
       ) {
-        filterObj[filter.id] = [filter.value, filter.operator];
+        filterObj[filter.id] = filter.value;
       }
     });
 

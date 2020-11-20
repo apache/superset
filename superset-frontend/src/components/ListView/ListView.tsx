@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Alert } from 'react-bootstrap';
 import { Empty } from 'src/common/components';
 import { ReactComponent as EmptyImage } from 'images/empty.svg';
@@ -294,14 +294,6 @@ function ListView<T extends object = any>({
   }
 
   const cardViewEnabled = Boolean(renderCard);
-  const [viewingMode, setViewingMode] = useState<ViewModeType>(
-    cardViewEnabled ? viewMode || defaultViewMode : 'table',
-  );
-
-  const updateViewingMode = (mode: ViewModeType) => {
-    setViewingMode(mode);
-    setViewMode(mode);
-  };
 
   useEffect(() => {
     // discard selections if bulk select is disabled
@@ -314,7 +306,7 @@ function ListView<T extends object = any>({
         <div className="header">
           <div className="header-left">
             {cardViewEnabled && (
-              <ViewModeToggle mode={viewingMode} setMode={updateViewingMode} />
+              <ViewModeToggle mode={viewMode} setMode={setViewMode} />
             )}
             {filterable && (
               <FilterControls
@@ -325,7 +317,7 @@ function ListView<T extends object = any>({
             )}
           </div>
           <div className="header-right">
-            {viewingMode === 'card' && cardSortSelectOptions && (
+            {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
                 initialSort={initialSort}
                 onChange={fetchData}
@@ -375,7 +367,7 @@ function ListView<T extends object = any>({
               )}
             </BulkSelectWrapper>
           )}
-          {viewingMode === 'card' && (
+          {viewMode === 'card' && (
             <CardCollection
               bulkSelectEnabled={bulkSelectEnabled}
               prepareRow={prepareRow}
@@ -384,7 +376,7 @@ function ListView<T extends object = any>({
               loading={loading}
             />
           )}
-          {viewingMode === 'table' && (
+          {viewMode === 'table' && (
             <TableCollection
               getTableProps={getTableProps}
               getTableBodyProps={getTableBodyProps}
@@ -397,7 +389,7 @@ function ListView<T extends object = any>({
             />
           )}
           {!loading && rows.length === 0 && (
-            <EmptyWrapper className={viewingMode}>
+            <EmptyWrapper className={viewMode}>
               <Empty
                 image={<EmptyImage />}
                 description={emptyState.message || 'No Data'}
