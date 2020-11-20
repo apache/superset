@@ -63,3 +63,36 @@ class RouteMethod:  # pylint: disable=too-few-public-methods
     CRUD_SET = {ADD, LIST, EDIT, DELETE, ACTION_POST, SHOW}
     RELATED_VIEW_SET = {ADD, LIST, EDIT, DELETE}
     REST_MODEL_VIEW_CRUD_SET = {DELETE, GET, GET_LIST, POST, PUT, INFO}
+
+
+MODEL_VIEW_RW_METHOD_PERMISSION_MAP = {
+    "add": "write",
+    "api": "read",
+    "api_column_add": "write",
+    "api_column_edit": "write",
+    "api_create": "write",
+    "api_delete": "write",
+    "api_get": "read",
+    "api_read": "read",
+    "api_readvalues": "read",
+    "api_update": "write",
+    "delete": "write",
+    "download": "read",
+    "edit": "write",
+    "list": "read",
+    "muldelete": "write",
+    "show": "read",
+}
+
+MODEL_API_RW_METHOD_PERMISSION_MAP = {
+    "bulk_delete": "write",
+    "delete": "write",
+    "distinct": "read",
+    "export": "read",
+    "get": "read",
+    "get_list": "read",
+    "info": "read",
+    "post": "write",
+    "put": "write",
+    "related": "read",
+}
