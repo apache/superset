@@ -18,6 +18,7 @@
  */
 import { styled, SuperChart, t } from '@superset-ui/core';
 import React, { useState } from 'react';
+import cx from 'classnames';
 import { Form, Dropdown, Menu } from 'src/common/components';
 import Button from 'src/components/Button';
 import FilterConfigurationButton from './FilterConfigurationButton';
@@ -34,12 +35,26 @@ import { Filter } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
 
 const Bar = styled.div`
-  display: flex;
+  display: none;
   flex-direction: column;
   width: 250px; // arbitrary...
   flex-grow: 1;
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  &.open{
+    display: flex;
+  }
+`;
+
+const CollapsedBar = styled.div`
+  width: ${({ theme }) => theme.gridUnit * 4}px;
+  height: ${({ theme }) => theme.gridUnit * 4}px;
+  background: ${({ theme }) => theme.colors.grayscale.light5};
+  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  display: none;
+  &.open{
+    display: block;
+  }
 `;
 
 const TitleArea = styled.h4`
@@ -70,13 +85,21 @@ interface FilterProps {
   filter: Filter;
 }
 
+interface FiltersMenuProps {
+  toggleSideBar: any;
+}
+
+interface FiltersBarProps {
+  filtersOpen: boolean;
+  toggleFiltersBar: any;
+}
+
 const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   // THIS ONE IS BUILT TO THROW AWAY
   // this is a temporary POC implementation just to get state hooked up.
   // Please don't send this component to prod.
   const { selectedValues } = useFilterState(filter.id);
   const setSelectedValues = useFilterSetter(filter.id);
-
   const [state, setState] = useState({ data: undefined });
   const { targets } = filter;
   const [target] = targets;
@@ -141,48 +164,56 @@ const FilterControl: React.FC<FilterProps> = ({ filter }) => {
   );
 };
 
-const menu = (
-  <Menu>
-    <Menu.Item>Configure Filters</Menu.Item>
-    <Menu.Item>
-      <FilterConfigurationButton>{t('New Filter')}</FilterConfigurationButton>
-    </Menu.Item>
-    {/* <Menu.Item>
-        <FilterScopeModal
-          triggerNode={t('Bulk Scoping')}
-        />
-      </Menu.Item> */}
-  </Menu>
-);
+const MenuItems: React.FC<FiltersMenuProps> = ({ toggleSideBar }) => {
+  return (
+    <Menu>
+      <Menu.Item>Configure Filters</Menu.Item>
+      <Menu.Item>
+        <FilterConfigurationButton>{t('New Filter')}</FilterConfigurationButton>
+      </Menu.Item>
+      {/* <Menu.Item>
+          <FilterScopeModal
+            triggerNode={t('Bulk Scoping')}
+          />
+        </Menu.Item> */}
+      <Menu.Item>
+        <div onClick={toggleSideBar}>Collapse</div>
+      </Menu.Item>
+    </Menu>
+  );
+}
 
-const FilterBar: React.FC = () => {
+const FilterBar: React.FC<FiltersBarProps> = ({ filtersOpen, toggleFiltersBar }) => {
   const allFilters = useAllFilterState();
   const filterConfigs = useFilterConfiguration();
 
   console.log(allFilters);
 
   return (
-    <Bar>
-      <TitleArea>
-        <span>Filters ({filterConfigs.length})</span>
-        <Dropdown overlay={menu}>
-          <Icon name="more-horiz" />
-        </Dropdown>
-      </TitleArea>
-      <ActionButtons>
-        <Button buttonStyle="primary" type="submit" buttonSize="sm">
-          {t('Apply')}
-        </Button>
-        <Button buttonStyle="secondary" buttonSize="sm">
-          {t('Reset All')}
-        </Button>
-      </ActionButtons>
-      <FilterControls>
-        {filterConfigs.map(filter => (
-          <FilterControl key={filter.id} filter={filter} />
-        ))}
-      </FilterControls>
-    </Bar>
+    <>
+      <CollapsedBar onClick={toggleFiltersBar} className={cx({'open' : !filtersOpen})} />
+      <Bar className={cx({'open' : filtersOpen})}>
+        <TitleArea>
+          <span>Filters ({filterConfigs.length})</span>
+          <Dropdown overlay={<MenuItems toggleSideBar={toggleFiltersBar} />}>
+            <Icon name="more-horiz" />
+          </Dropdown>
+        </TitleArea>
+        <ActionButtons>
+          <Button buttonStyle="primary" type="submit" buttonSize="sm">
+            {t('Apply')}
+          </Button>
+          <Button buttonStyle="secondary" buttonSize="sm">
+            {t('Reset All')}
+          </Button>
+        </ActionButtons>
+        <FilterControls>
+          {filterConfigs.map(filter => (
+            <FilterControl key={filter.id} filter={filter} />
+          ))}
+        </FilterControls>
+      </Bar>
+    </>
   );
 };
 

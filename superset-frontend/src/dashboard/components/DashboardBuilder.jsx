@@ -144,6 +144,7 @@ class DashboardBuilder extends React.Component {
     );
     this.state = {
       tabIndex,
+      dashboardFiltersOpen: true
     };
 
     this.handleChangeTab = this.handleChangeTab.bind(this);
@@ -187,6 +188,11 @@ class DashboardBuilder extends React.Component {
 
   handleChangeTab({ pathToTabIndex }) {
     this.props.setDirectPathToChild(pathToTabIndex);
+  }
+
+  toggleDashboardFiltersOpen = () => {
+    const nextState = !this.state.dashboardFiltersOpen;
+    this.setState(() => ({...this.state, dashboardFiltersOpen: nextState}));
   }
 
   render() {
@@ -261,9 +267,10 @@ class DashboardBuilder extends React.Component {
 
         <StyledDashboardContent className="dashboard-content">
           {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
-            <StickyVerticalBar topOffset={barTopOffset} width={250}>
-              <FilterBar />
+            <StickyVerticalBar topOffset={barTopOffset} width={this.state.dashboardFiltersOpen ? 250 : 16}>
+              <FilterBar filtersOpen={this.state.dashboardFiltersOpen} toggleFiltersBar={this.toggleDashboardFiltersOpen} />
             </StickyVerticalBar>
+            // <FilterBar />
           )}
           <div className="grid-container" data-test="grid-container">
             <ParentSize>
