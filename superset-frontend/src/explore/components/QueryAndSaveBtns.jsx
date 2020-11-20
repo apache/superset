@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { ButtonGroup } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
 
-import Tooltip from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Button from 'src/components/Button';
 import Hotkeys from '../../components/Hotkeys';
 

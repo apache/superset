@@ -22,7 +22,7 @@ import { Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 import { styledMount as mount } from 'spec/helpers/theming';
 
-import Tooltip from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Popover from 'src/common/components/Popover';
 import Tabs from 'src/common/components/Tabs';
 import Label from 'src/components/Label';

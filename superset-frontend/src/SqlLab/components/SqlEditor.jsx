@@ -25,7 +25,7 @@ import { t } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 
-import Tooltip from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Label from 'src/components/Label';
 import Button from 'src/components/Button';
 import Checkbox from 'src/components/Checkbox';

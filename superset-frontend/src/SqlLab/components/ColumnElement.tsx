@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { styled } from '@superset-ui/core';
 
-import Tooltip from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   column: PropTypes.object.isRequired,

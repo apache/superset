@@ -22,7 +22,7 @@ import { mix } from 'polished';
 import cx from 'classnames';
 import { Button as BootstrapButton } from 'react-bootstrap';
 import { styled } from '@superset-ui/core';
-import Tooltip from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/common/components/Tooltip';
 import { Menu } from 'src/common/components';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
