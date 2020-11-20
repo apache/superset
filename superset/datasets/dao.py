@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
@@ -144,7 +144,11 @@ class DatasetDAO(BaseDAO):
 
     @classmethod
     def update(
-        cls, model: SqlaTable, properties: Dict[str, Any], commit: bool = True
+        cls,
+        model: SqlaTable,
+        properties: Dict[str, Any],
+        commit: bool = True,
+        override_columns: Union[bool, Any, None] = False,
     ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB
@@ -174,6 +178,13 @@ class DatasetDAO(BaseDAO):
                     metric_obj = DatasetDAO.create_metric(metric, commit=commit)
                 new_metrics.append(metric_obj)
             properties["metrics"] = new_metrics
+
+        if override_columns:
+            # remove columns initially for full refresh
+            original_properties = properties["columns"]
+            properties["columns"] = []
+            super().update(model, properties, commit=commit)
+            properties["columns"] = original_properties
 
         return super().update(model, properties, commit=commit)
 
