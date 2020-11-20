@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { QueryObjectFilterClause } from '@superset-ui/core';
 import componentTypes from 'src/dashboard/util/componentTypes';
 
 export enum Scoping {
@@ -89,7 +89,7 @@ export type FilterState = {
   id: string; // ties this filter state to the config object
   optionsStatus: 'loading' | 'success' | 'fail';
   options: string[] | null;
-  selectedValues: SelectedValues;
+  selectedValues?: SelectedValues;
   /**
    * If the config changes, the current options/values may no longer be valid.
    * isDirty indicates that state.
@@ -101,8 +101,10 @@ export type FilterState = {
 export type AllFilterState = {
   column: Column;
   datasetId: number;
+  datasource: string;
   id: string;
   selectedValues: SelectedValues;
+  filterClause?: QueryObjectFilterClause;
 };
 
 /** Chart state of redux */

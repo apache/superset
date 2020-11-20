@@ -18,7 +18,10 @@
  */
 import { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectFilterOption } from 'src/dashboard/actions/nativeFilters';
+import {
+  selectFilterOption,
+  setFilterState,
+} from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { t } from '@superset-ui/core';
 import {
@@ -35,10 +38,7 @@ import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import { DASHBOARD_ROOT_TYPE } from '../../util/componentTypes';
 import { buildTree } from './utils';
 
-const defaultFilterConfiguration = {
-  filters: {},
-  filterOrder: [],
-};
+const defaultFilterConfiguration: Filter[] = [];
 
 export function useFilterConfiguration() {
   return useSelector<any, FilterConfiguration>(
@@ -66,21 +66,30 @@ export function useFilterConfigMap() {
 
 export function useAllFilterState() {
   const filterConfig = useFilterConfiguration();
-  return useSelector<any, AllFilterState[]>(state => {
-    return filterConfig.map(filter => {
+  const filterState = useSelector<any, AllFilterState[]>(state => {
+    return (filterConfig || []).map(filter => {
       const { id, targets } = filter;
       const [target] = targets;
       const { column, datasetId } = target;
-      const filterState = state.nativeFilters[id] || getInitialFilterState(id);
+      const datasource = `table__${datasetId}`;
+      const filterState: FilterState =
+        state.nativeFilters[id] || getInitialFilterState(id);
       const { selectedValues } = filterState;
+      const filterClause =
+        selectedValues && selectedValues.length > 0
+          ? { col: column, op: 'IN', val: selectedValues }
+          : undefined;
       return {
         column,
         datasetId,
+        datasource,
+        filterClause,
         id,
-        selectedValues,
-      }
+        selectValues: selectedValues || [],
+      };
     });
   });
+  return filterState;
 }
 
 export function useFilterState(id: string) {
@@ -92,8 +101,10 @@ export function useFilterState(id: string) {
 export function useFilterSetter(id: string) {
   const dispatch = useDispatch();
   return useCallback(
-    (values: string | string[] | null) =>
-      dispatch(selectFilterOption(id, values)),
+    (values: string | string[] | null) => {
+      dispatch(selectFilterOption(id, values));
+      dispatch(setFilterState([{ col: 'gender', op: 'IN', val: ['girl'] }]));
+    },
     [id, dispatch],
   );
 }

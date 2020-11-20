@@ -33,6 +33,7 @@ import {
 } from './state';
 import { Filter } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
+import { useDispatch } from 'react-redux';
 
 const Bar = styled.div`
   display: none;
@@ -114,6 +115,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
     label_colors: {},
     metrics: ['count'],
     multiSelect: true,
+    native_filters: [{ col: 'gender', op: 'IN', val: ['boy', 'girl'] }],
     row_limit: 10000,
     setSelectedValues,
     showSearch: true,
@@ -169,7 +171,7 @@ const MenuItems: React.FC<FiltersMenuProps> = ({ toggleSideBar }) => {
     <Menu>
       <Menu.Item>Configure Filters</Menu.Item>
       <Menu.Item>
-        <FilterConfigurationButton>{t('New Filter')}</FilterConfigurationButton>
+        <FilterConfigurationButton createNewOnOpen>{t('New Filter')}</FilterConfigurationButton>
       </Menu.Item>
       {/* <Menu.Item>
           <FilterScopeModal
@@ -184,11 +186,7 @@ const MenuItems: React.FC<FiltersMenuProps> = ({ toggleSideBar }) => {
 }
 
 const FilterBar: React.FC<FiltersBarProps> = ({ filtersOpen, toggleFiltersBar }) => {
-  const allFilters = useAllFilterState();
   const filterConfigs = useFilterConfiguration();
-
-  console.log(allFilters);
-
   return (
     <>
       <CollapsedBar onClick={toggleFiltersBar} className={cx({'open' : !filtersOpen})} />
