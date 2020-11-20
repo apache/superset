@@ -118,6 +118,7 @@ export function FilterConfigModal({
     setFilterIds(getInitialFilterIds());
     setCurrentFilterId(getInitialCurrentFilterId());
     setRemovedFilters({});
+    setFormValues({ filters: {} });
   }, [form]);
 
   function onTabEdit(filterId: string, action: 'add' | 'remove') {
@@ -151,7 +152,9 @@ export function FilterConfigModal({
     try {
       const values = (await form.validateFields()) as NativeFiltersForm;
       const newFilterConfig: FilterConfiguration = filterIds
-        .filter(id => !!values.filters[id] && !removedFilters[id])
+        .filter(
+          id => values.filters && values.filters[id] && !removedFilters[id],
+        )
         .map(id => {
           // create a filter config object from the form inputs
 
@@ -164,7 +167,9 @@ export function FilterConfigModal({
             targets: [
               {
                 datasetId: formInputs.dataset.value,
-                column: formInputs.column.value,
+                column: {
+                  name: formInputs.column,
+                },
               },
             ],
             defaultValue: formInputs.defaultValue,
@@ -172,7 +177,9 @@ export function FilterConfigModal({
               rootPath: [DASHBOARD_ROOT_ID],
               excluded: [],
             },
-            isInstant: formInputs.isInstant,
+            isInstant: !!formInputs.isInstant,
+            allowsMultipleValues: !!formInputs.allowsMultipleValues,
+            isRequired: !!formInputs.isRequired,
           };
         });
       await save(newFilterConfig);

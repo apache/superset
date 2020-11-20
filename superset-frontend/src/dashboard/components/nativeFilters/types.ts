@@ -30,12 +30,13 @@ interface NativeFiltersFormItem {
   name: string;
   dataset: {
     value: number;
+    label: string;
   };
-  isInstant: boolean;
-  column: {
-    value: Column;
-  };
+  column: string;
   defaultValue: string;
+  isInstant: boolean;
+  allowsMultipleValues: boolean;
+  isRequired: boolean;
 }
 
 export interface NativeFiltersForm {
@@ -78,6 +79,8 @@ export interface Filter {
   defaultValue: string;
   scope: Scope;
   isInstant: boolean;
+  allowsMultipleValues: boolean;
+  isRequired: boolean;
 }
 
 export type FilterConfiguration = Filter[];

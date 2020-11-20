@@ -32,6 +32,7 @@ export {
   Avatar,
   Button,
   Card,
+  Checkbox,
   Collapse,
   DatePicker,
   Dropdown,
