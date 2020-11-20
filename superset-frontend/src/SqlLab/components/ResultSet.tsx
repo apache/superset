@@ -215,8 +215,19 @@ export default class ResultSet extends React.PureComponent<
       }),
     }).then(d => {
         console.log(d);
+        exploreChart({
+          datasource: `${datasetToOverwrite.dataSetId}__table`,
+          metrics: [],
+          groupby: [],
+          time_range: 'No filter',
+          viz_type: 'table',
+          all_columns: results.selected_columns.map(d => d.name) // selectedColumns.map(c => c.name),
+          row_limit: 1000,
+        });
       })
       .catch(err => console.log(err));
+
+      this.setState({showSaveDatasetModal: false, overwriteDataSet: false})
 
     // sync columns for dataset
     // SupersetClient.get({
