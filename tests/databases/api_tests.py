@@ -840,7 +840,7 @@ class TestDatabaseApi(SupersetTestCase):
                 fp.write(yaml.safe_dump(database_metadata_config).encode())
             with bundle.open("databases/imported_database.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/import_dataset.yaml", "w") as fp:
+            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
@@ -880,7 +880,7 @@ class TestDatabaseApi(SupersetTestCase):
                 fp.write(yaml.safe_dump(dataset_metadata_config).encode())
             with bundle.open("databases/imported_database.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/import_dataset.yaml", "w") as fp:
+            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
