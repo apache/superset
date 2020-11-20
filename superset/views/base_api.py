@@ -313,7 +313,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         """
         Add statsd metrics to builtin FAB _info endpoint
         """
-        with log_context(f"{self.__class__.__name__}.info", log_to_statsd=False):
+        ref = f"{self.__class__.__name__}.info"
+        with log_context(ref, ref, log_to_statsd=False):
             duration, response = time_function(super().info_headless, **kwargs)
             self.send_stats_metrics(response, self.info.__name__, duration)
             return response
@@ -322,7 +323,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         """
         Add statsd metrics to builtin FAB GET endpoint
         """
-        with log_context(f"{self.__class__.__name__}.get", log_to_statsd=False):
+        ref = f"{self.__class__.__name__}.get"
+        with log_context(ref, ref, log_to_statsd=False):
             duration, response = time_function(super().get_headless, pk, **kwargs)
             self.send_stats_metrics(response, self.get.__name__, duration)
             return response
@@ -331,7 +333,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         """
         Add statsd metrics to builtin FAB GET list endpoint
         """
-        with log_context(f"{self.__class__.__name__}.get_list", log_to_statsd=False):
+        ref = f"{self.__class__.__name__}.get_list"
+        with log_context(ref, ref, log_to_statsd=False):
             duration, response = time_function(super().get_list_headless, **kwargs)
             self.send_stats_metrics(response, self.get_list.__name__, duration)
             return response
@@ -340,7 +343,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         """
         Add statsd metrics to builtin FAB POST endpoint
         """
-        with log_context(f"{self.__class__.__name__}.post", log_to_statsd=False):
+        ref = f"{self.__class__.__name__}.post"
+        with log_context(ref, ref, log_to_statsd=False):
             duration, response = time_function(super().post_headless)
             self.send_stats_metrics(response, self.post.__name__, duration)
             return response
@@ -349,7 +353,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         """
         Add statsd metrics to builtin FAB PUT endpoint
         """
-        with log_context(f"{self.__class__.__name__}.put", log_to_statsd=False):
+        ref = f"{self.__class__.__name__}.put"
+        with log_context(ref, ref, log_to_statsd=False):
             duration, response = time_function(super().put_headless, pk)
             self.send_stats_metrics(response, self.put.__name__, duration)
             return response
@@ -358,7 +363,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         """
         Add statsd metrics to builtin FAB DELETE endpoint
         """
-        with log_context(f"{self.__class__.__name__}.delete", log_to_statsd=False):
+        ref = f"{self.__class__.__name__}.delete"
+        with log_context(ref, ref, log_to_statsd=False):
             duration, response = time_function(super().delete_headless, pk)
             self.send_stats_metrics(response, self.delete.__name__, duration)
             return response
