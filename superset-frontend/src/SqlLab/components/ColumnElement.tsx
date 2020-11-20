@@ -27,7 +27,7 @@ const propTypes = {
   column: PropTypes.object.isRequired,
 };
 
-const StyledTooltip = props => {
+const StyledTooltip = (props: any) => {
   const theme = useTheme();
   return (
     <ClassNames>
