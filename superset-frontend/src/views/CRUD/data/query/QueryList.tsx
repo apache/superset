@@ -125,7 +125,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     ...commonMenuData,
   };
 
-  const initialSort = [{ id: 'changed_on', desc: true }];
+  const initialSort = [{ id: 'start_time', desc: true }];
   const columns = useMemo(
     () => [
       {
