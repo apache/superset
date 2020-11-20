@@ -19,7 +19,11 @@
 
 import { SupersetClient } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { FilterConfiguration } from '../components/nativeFilters/types';
+import {
+  Filter,
+  FilterConfiguration,
+  SelectedValues,
+} from '../components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
@@ -41,7 +45,9 @@ export interface SetFilterConfigFail {
 export const SET_FILTER_STATE = 'SET_FILTER_STATE';
 export interface SetFilterState {
   type: typeof SET_FILTER_STATE;
-  filterConfig: FilterConfiguration;
+  selectedValues: SelectedValues;
+  filter: Filter;
+  filters: FilterConfiguration;
 }
 
 export const setFilterConfiguration = (
@@ -91,10 +97,16 @@ export interface SelectFilterOption {
   selectedValues: string[] | null;
 }
 
-export function setFilterState(filtersList: Array<any>) {
+export function setFilterState(
+  selectedValues: SelectedValues,
+  filter: Filter,
+  filters: FilterConfiguration,
+) {
   return {
     type: SET_FILTER_STATE,
-    filtersList,
+    selectedValues,
+    filter,
+    filters,
   };
 }
 /**

@@ -149,8 +149,8 @@ class Dashboard extends React.PureComponent {
     const { appliedFilters, nativeFilters: appliedNativeFilters } = this;
     const { activeFilters, nativeFilters } = this.props;
     // do not apply filter when dashboard in edit mode
-    console.log('areObjectsEqual', areObjectsEqual(appliedNativeFilters, nativeFilters), appliedNativeFilters, nativeFilters);
     if (!areObjectsEqual(appliedNativeFilters, nativeFilters)) {
+      // TODO (villebro): only refresh the charts that have actually changed
       this.nativeFilters = nativeFilters;
       this.refreshCharts(this.getAllCharts().map(chart => chart.id));
     }

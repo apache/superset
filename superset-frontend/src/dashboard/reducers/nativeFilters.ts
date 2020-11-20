@@ -65,13 +65,34 @@ export default function nativeFilterReducer(
 
     case SET_FILTER_CONFIG_COMPLETE:
       return getInitialState(action.filterConfig);
+
+    case SET_FILTER_STATE:
+      return {
+        filterList: (action.filters || []).map(filter => {
+          const { id, targets } = filter;
+          const [target] = targets;
+          const { column, datasetId } = target;
+          const datasource = `table__${datasetId}`;
+          const filterState: FilterState =
+            filters[id] || getInitialFilterState(id);
+          const { selectedValues } = filterState;
+          const filterClause =
+            selectedValues && selectedValues.length > 0
+              ? { col: column, op: 'IN', val: selectedValues }
+              : undefined;
+          return {
+            column,
+            datasetId,
+            datasource,
+            filterClause,
+            id,
+            selectValues: selectedValues || [],
+          };
+        }),
+      };
+
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return filters;
-    case SET_FILTER_STATE:
-      return {
-        ...filters,
-        filterList: action.filtersList,
-      };
   }
 }

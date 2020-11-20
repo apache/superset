@@ -22,17 +22,14 @@ import cx from 'classnames';
 import { Form, Dropdown, Menu } from 'src/common/components';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
-import { useDispatch } from 'react-redux';
 import FilterConfigurationButton from './FilterConfigurationButton';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
 import {
-  useAllFilterState,
   useFilterConfiguration,
   useFilterSetter,
-  useFilterState,
 } from './state';
-import { Filter } from './types';
+import { Filter, FilterConfiguration } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
 
 const Bar = styled.div`
@@ -84,6 +81,7 @@ const FilterControls = styled.div`
 
 interface FilterProps {
   filter: Filter;
+  filters: FilterConfiguration;
 }
 
 interface FiltersMenuProps {
@@ -96,16 +94,18 @@ interface FiltersBarProps {
   toggleFiltersBar: any;
 }
 
-const FilterValue: React.FC<FilterProps> = ({ filter }) => {
+const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
   // THIS ONE IS BUILT TO THROW AWAY
   // this is a temporary POC implementation just to get state hooked up.
   // Please don't send this component to prod.
-  const { selectedValues } = useFilterState(filter.id);
   const setSelectedValues = useFilterSetter(filter.id);
   const [state, setState] = useState({ data: undefined });
   const { targets } = filter;
   const [target] = targets;
   const { datasetId = 18, column = 'gender' } = target;
+  const setter = (values: string[]): void => {
+    return setSelectedValues(values, filter, filters);
+  };
 
   const formData = {
     adhoc_filters: [],
@@ -117,7 +117,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
     metrics: ['count'],
     multiSelect: true,
     row_limit: 10000,
-    setSelectedValues,
+    setSelectedValues: setter,
     showSearch: true,
     time_range: 'No filter',
     time_range_endpoints: ['inclusive', 'exclusive'],
@@ -137,7 +137,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   return (
     <Form
       onFinish={values => {
-        setSelectedValues(values.value);
+        setSelectedValues(values.value, undefined, undefined);
       }}
     >
       <Form.Item name="value">
@@ -156,12 +156,12 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   );
 };
 
-const FilterControl: React.FC<FilterProps> = ({ filter }) => {
+const FilterControl: React.FC<FilterProps> = ({ filter, filters }) => {
   const { name = '<undefined>' } = filter;
   return (
     <div>
       <h3>{name}</h3>
-      <FilterValue filter={filter} />
+      <FilterValue filter={filter} filters={filters} />
     </div>
   );
 };
@@ -235,7 +235,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         </ActionButtons>
         <FilterControls>
           {filterConfigs.map(filter => (
-            <FilterControl key={filter.id} filter={filter} />
+            <FilterControl
+              key={filter.id}
+              filter={filter}
+              filters={filterConfigs}
+            />
           ))}
         </FilterControls>
       </Bar>

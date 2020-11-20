@@ -20,10 +20,10 @@ import { isEqual } from 'lodash';
 import {
   CategoricalColorNamespace,
   DataRecordFilters,
-  QueryObjectFilterClause,
 } from '@superset-ui/core';
 import { ChartQueryPayload } from 'src/dashboard/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
+import { AllFilterState } from '../../components/nativeFilters/types';
 
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1
@@ -36,7 +36,7 @@ interface GetFormDataWithExtraFiltersArguments {
   colorScheme?: string;
   colorNamespace?: string;
   sliceId: number;
-  nativeFilters?: QueryObjectFilterClause[];
+  nativeFilters?: AllFilterState[];
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -72,7 +72,9 @@ export default function getFormDataWithExtraFilters({
     ...(colorScheme && { color_scheme: colorScheme }),
     label_colors: labelColors,
     extra_filters: getEffectiveExtraFilters(filters),
-    native_filters: nativeFilters,
+    native_filters: nativeFilters
+      ?.filter(filter => filter.filterClause)
+      .map(filter => filter.filterClause),
   };
 
   cachedFiltersByChart[sliceId] = filters;

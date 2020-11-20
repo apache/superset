@@ -101,10 +101,14 @@ export function useFilterState(id: string) {
 export function useFilterSetter(id: string) {
   const dispatch = useDispatch();
   return useCallback(
-    (values: string | string[] | null) => {
-      console.log(values);
+    (
+      values: string | string[] | null,
+      filter: Filter,
+      filters: FilterConfiguration,
+    ) => {
+      console.log('useFilterSetter', values, filter, filters);
       dispatch(selectFilterOption(id, values));
-      dispatch(setFilterState([{ col: 'gender', op: 'IN', val: ['girl'] }]));
+      dispatch(setFilterState(values || [], filter, filters));
     },
     [id, dispatch],
   );
