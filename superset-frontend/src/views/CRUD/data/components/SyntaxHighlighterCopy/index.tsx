@@ -19,13 +19,19 @@
 import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { SyntaxHighlighterProps } from 'react-syntax-highlighter';
-import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
+import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
+import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
+import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
+import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import { ToastProps } from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 
-SyntaxHighlighter.registerLanguage('sql', sql);
+SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
+SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
+SyntaxHighlighter.registerLanguage('html', htmlSyntax);
+SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
 const SyntaxHighlighterWrapper = styled.div`
   margin-top: -24px;
@@ -52,6 +58,7 @@ export default function SyntaxHighlighterCopy({
   children: string;
   addDangerToast?: ToastProps['addDangerToast'];
   addSuccessToast?: ToastProps['addSuccessToast'];
+  language: 'sql' | 'markdown' | 'html' | 'json';
 }) {
   function copyToClipboard(textToCopy: string) {
     const selection: Selection | null = document.getSelection();
