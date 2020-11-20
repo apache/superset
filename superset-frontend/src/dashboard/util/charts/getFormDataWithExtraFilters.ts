@@ -19,7 +19,8 @@
 import { isEqual } from 'lodash';
 import {
   CategoricalColorNamespace,
-  DataRecordFilters, QueryObjectFilterClause,
+  DataRecordFilters,
+  QueryObjectFilterClause,
 } from '@superset-ui/core';
 import { ChartQueryPayload } from 'src/dashboard/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
@@ -60,7 +61,8 @@ export default function getFormDataWithExtraFilters({
       cachedFormdataByChart[sliceId].color_scheme === colorScheme) &&
     cachedFormdataByChart[sliceId].color_namespace === colorNamespace &&
     isEqual(cachedFormdataByChart[sliceId].label_colors, labelColors) &&
-    !!cachedFormdataByChart[sliceId] && nativeFilters === undefined
+    !!cachedFormdataByChart[sliceId] &&
+    nativeFilters === undefined
   ) {
     return cachedFormdataByChart[sliceId];
   }

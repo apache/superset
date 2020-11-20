@@ -97,7 +97,6 @@ export type FilterState = {
   isDirty: boolean;
 };
 
-
 export type AllFilterState = {
   column: Column;
   datasetId: number;
