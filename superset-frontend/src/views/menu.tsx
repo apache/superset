@@ -19,19 +19,19 @@
 
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { ThemeProvider } from '@superset-ui/core';
-import Menu from 'src/components/Menu/Menu';
-import { theme } from '../preamble';
-
-const container = document.getElementById('app');
-const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
-const bootstrap = JSON.parse(bootstrapJson);
-const menu = { ...bootstrap.common.menu_data };
-const app = (
-  <ThemeProvider theme={theme}>
-    <Menu data={menu} />
-  </ThemeProvider>
-);
-ReactDOM.render(app, document.getElementById('app-menu'));
+// import React from 'react';
+// import ReactDOM from 'react-dom';
+// import { ThemeProvider } from '@superset-ui/core';
+// import Menu from 'src/components/Menu/Menu';
+// import { theme } from '../preamble';
+//
+// const container = document.getElementById('app');
+// const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
+// const bootstrap = JSON.parse(bootstrapJson);
+// const menu = { ...bootstrap.common.menu_data };
+// const app = (
+//   <ThemeProvider theme={theme}>
+//     <Menu data={menu} />
+//   </ThemeProvider>
+// );
+// ReactDOM.render(app, document.getElementById('app-menu'));
