@@ -21,8 +21,9 @@ import React, { useState } from 'react';
 import cx from 'classnames';
 import { Form, Dropdown, Menu } from 'src/common/components';
 import Button from 'src/components/Button';
-import FilterConfigurationButton from './FilterConfigurationButton';
 import Icon from 'src/components/Icon';
+import { useDispatch } from 'react-redux';
+import FilterConfigurationButton from './FilterConfigurationButton';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
 import {
@@ -33,7 +34,6 @@ import {
 } from './state';
 import { Filter } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
-import { useDispatch } from 'react-redux';
 
 const Bar = styled.div`
   display: none;
@@ -42,7 +42,7 @@ const Bar = styled.div`
   flex-grow: 1;
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  &.open{
+  &.open {
     display: flex;
   }
 `;
@@ -53,7 +53,7 @@ const CollapsedBar = styled.div`
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   display: none;
-  &.open{
+  &.open {
     display: block;
   }
 `;
@@ -87,7 +87,8 @@ interface FilterProps {
 }
 
 interface FiltersMenuProps {
-  toggleSideBar: any;
+  toggleSideBar: () => void;
+  closeDropdown: () => void;
 }
 
 interface FiltersBarProps {
@@ -166,12 +167,17 @@ const FilterControl: React.FC<FilterProps> = ({ filter }) => {
   );
 };
 
-const MenuItems: React.FC<FiltersMenuProps> = ({ toggleSideBar }) => {
+const MenuItems: React.FC<FiltersMenuProps> = ({
+  toggleSideBar,
+  closeDropdown,
+}) => {
   return (
-    <Menu>
+    <Menu onClick={closeDropdown}>
       <Menu.Item>Configure Filters</Menu.Item>
       <Menu.Item>
-        <FilterConfigurationButton createNewOnOpen>{t('New Filter')}</FilterConfigurationButton>
+        <FilterConfigurationButton createNewOnOpen>
+          {t('New Filter')}
+        </FilterConfigurationButton>
       </Menu.Item>
       {/* <Menu.Item>
           <FilterScopeModal
@@ -183,17 +189,40 @@ const MenuItems: React.FC<FiltersMenuProps> = ({ toggleSideBar }) => {
       </Menu.Item>
     </Menu>
   );
-}
+};
 
-const FilterBar: React.FC<FiltersBarProps> = ({ filtersOpen, toggleFiltersBar }) => {
+const FilterBar: React.FC<FiltersBarProps> = ({
+  filtersOpen,
+  toggleFiltersBar,
+}) => {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const filterConfigs = useFilterConfiguration();
+
+  const handleVisibleChange = (flag: boolean) => {
+    setDropdownOpen(flag);
+    // this.setState({ visible: flag });
+  };
+
   return (
     <>
-      <CollapsedBar onClick={toggleFiltersBar} className={cx({'open' : !filtersOpen})} />
-      <Bar className={cx({'open' : filtersOpen})}>
+      <CollapsedBar
+        onClick={toggleFiltersBar}
+        className={cx({ open: !filtersOpen })}
+      />
+      <Bar className={cx({ open: filtersOpen })}>
         <TitleArea>
           <span>Filters ({filterConfigs.length})</span>
-          <Dropdown overlay={<MenuItems toggleSideBar={toggleFiltersBar} />}>
+          <Dropdown
+            overlay={
+              <MenuItems
+                toggleSideBar={toggleFiltersBar}
+                closeDropdown={() => setDropdownOpen(false)}
+              />
+            }
+            trigger={['click']}
+            visible={dropdownOpen}
+            onVisibleChange={handleVisibleChange}
+          >
             <Icon name="more-horiz" />
           </Dropdown>
         </TitleArea>
