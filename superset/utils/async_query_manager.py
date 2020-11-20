@@ -17,7 +17,7 @@
 import json
 import logging
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import jwt
 import redis
@@ -35,6 +35,7 @@ class AsyncQueryJobException(Exception):
 
 
 class AsyncQueryManager:
+    MAX_EVENT_COUNT = 100
     STATUS_PENDING = "pending"
     STATUS_RUNNING = "running"
     STATUS_ERROR = "error"
@@ -57,7 +58,9 @@ class AsyncQueryManager:
                 "Please provide a JWT secret at least 32 bytes long"
             )
 
-        self._redis = redis.Redis(**config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"])
+        self._redis = redis.Redis(  # type: ignore
+            **config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"], decode_responses=True
+        )
         self._stream_prefix = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
         self._stream_limit = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT"]
         self._stream_limit_firehose = config[
@@ -133,6 +136,19 @@ class AsyncQueryManager:
             "msg": kwargs["msg"] if "msg" in kwargs else None,
             "cache_key": kwargs["cache_key"] if "cache_key" in kwargs else None,
         }
+
+    def read_events(
+        self, channel: str, last_id: Optional[str]
+    ) -> List[Optional[Dict[str, Any]]]:
+        stream_name = f"{self._stream_prefix}{channel}"
+        start_id = last_id if last_id else "-"
+        results = self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)  # type: ignore
+        return [] if not results else list(map(self.parse_event, results))
+
+    def parse_event(self, event_data: Tuple[str, Dict[str, Any]]) -> Dict[str, Any]:
+        event_id = event_data[0]
+        event_payload = event_data[1]["data"]
+        return {"id": event_id, **json.loads(event_payload)}
 
     def update_job(
         self, job_metadata: Dict[str, Any], status: str, **kwargs: Any
