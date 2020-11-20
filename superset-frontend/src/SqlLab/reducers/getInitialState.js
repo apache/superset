@@ -27,6 +27,7 @@ export default function getInitialState({
   databases,
   queries: queries_,
   requested_query: requestedQuery,
+  user,
 }) {
   /**
    * Before YYYY-MM-DD, the state for SQL Lab was stored exclusively in the
@@ -190,5 +191,6 @@ export default function getInitialState({
       flash_messages: common.flash_messages,
       conf: common.conf,
     },
+    user,
   };
 }

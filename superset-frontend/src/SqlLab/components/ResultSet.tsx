@@ -94,7 +94,7 @@ export default class ResultSet extends React.PureComponent<
       userDatasetsOwned: [],
       saveDatasetRadioBtnState: 1,
       overwriteDataSet: false,
-      datasetToOverwrite: {}
+      datasetToOverwrite: {},
     };
 
     this.changeSearch = this.changeSearch.bind(this);
@@ -117,11 +117,14 @@ export default class ResultSet extends React.PureComponent<
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
 
+    // Hack: waiting for talks with tai to pull data out of the initial state
+    const appContainer = document.getElementById('app');
+    const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+
     // Todo: figure out how to get user information to properly query datasets they own
     // Todo: move this to actions file
-    const userId = 3;
     SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=(filters:!((col:owners,opr:rel_m_m,value:${userId}),(col:table_name,opr:ct,value:%27%27)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)`,
+      endpoint: `/api/v1/dataset/?q=(filters:!((col:owners,opr:rel_m_m,value:${bootstrapData.user.userId}),(col:table_name,opr:ct,value:%27%27)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)`,
     }).then(data => {
       const userDatasetsOwned = data.json.result.map(r => {
         return { dataSetName: r.table_name, dataSetId: r.id };
