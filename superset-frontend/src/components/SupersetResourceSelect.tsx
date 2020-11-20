@@ -58,6 +58,7 @@ export default function SupersetResourceSelect<T = unknown, V = string>({
   const { addDangerToast } = useToasts();
 
   useEffect(() => {
+    if (initialId == null) return;
     SupersetClient.get({
       endpoint: `/api/v1/${resource}/${initialId}`,
     }).then(response => {

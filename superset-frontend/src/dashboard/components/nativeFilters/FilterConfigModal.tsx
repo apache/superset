@@ -152,7 +152,9 @@ export function FilterConfigModal({
     try {
       const values = (await form.validateFields()) as NativeFiltersForm;
       const newFilterConfig: FilterConfiguration = filterIds
-        .filter(id => !!values.filters[id] && !removedFilters[id])
+        .filter(
+          id => values.filters && values.filters[id] && !removedFilters[id],
+        )
         .map(id => {
           // create a filter config object from the form inputs
 
