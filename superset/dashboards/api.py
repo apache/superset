@@ -44,7 +44,7 @@ from superset.dashboards.commands.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.dashboards.commands.export import ExportDashboardsCommand
-from superset.dashboards.commands.importers.v1 import ImportDashboardsCommand
+from superset.dashboards.commands.importers.dispatcher import ImportDashboardsCommand
 from superset.dashboards.commands.update import UpdateDashboardCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filters import (
