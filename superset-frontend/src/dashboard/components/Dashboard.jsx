@@ -86,6 +86,7 @@ class Dashboard extends React.PureComponent {
   constructor(props) {
     super(props);
     this.appliedFilters = props.activeFilters || {};
+    this.nativeFilters = [];
 
     this.onVisibilityChange = this.onVisibilityChange.bind(this);
   }
@@ -145,9 +146,16 @@ class Dashboard extends React.PureComponent {
   componentDidUpdate() {
     const { hasUnsavedChanges, editMode } = this.props.dashboardState;
 
-    const { appliedFilters } = this;
-    const { activeFilters } = this.props;
+    const { appliedFilters, nativeFilters: appliedNativeFilters } = this;
+    const { activeFilters, nativeFilters } = this.props;
     // do not apply filter when dashboard in edit mode
+    console.log('areObjectsEqual', areObjectsEqual(appliedNativeFilters, nativeFilters), appliedNativeFilters, nativeFilters);
+    if (!areObjectsEqual(appliedNativeFilters, nativeFilters)) {
+      this.nativeFilters = nativeFilters;
+      this.refreshCharts(this.getAllCharts().map(chart => chart.id));
+    }
+    console.log('dashboard componentDidUpdate', this, nativeFilters, this.getAllCharts());
+
     if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
       this.applyFilters();
     }

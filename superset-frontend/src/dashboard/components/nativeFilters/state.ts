@@ -102,6 +102,7 @@ export function useFilterSetter(id: string) {
   const dispatch = useDispatch();
   return useCallback(
     (values: string | string[] | null) => {
+      console.log(values);
       dispatch(selectFilterOption(id, values));
       dispatch(setFilterState([{ col: 'gender', op: 'IN', val: ['girl'] }]));
     },

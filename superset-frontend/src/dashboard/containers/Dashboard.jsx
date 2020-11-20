@@ -30,6 +30,7 @@ import { logEvent } from '../../logger/actions';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 
 function mapStateToProps(state) {
+  console.log('mapStateToProps', state);
   const {
     datasources,
     sliceEntities,
@@ -38,6 +39,7 @@ function mapStateToProps(state) {
     dashboardState,
     dashboardLayout,
     impressionId,
+    nativeFilters,
   } = state;
 
   return {
@@ -56,6 +58,7 @@ function mapStateToProps(state) {
     activeFilters: getActiveFilters(),
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
+    nativeFilters: nativeFilters.filterList || [],
     impressionId,
   };
 }
