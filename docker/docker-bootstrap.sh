@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -14,31 +15,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-COMPOSE_PROJECT_NAME=superset
 
-# database configurations (do not modify)
-DATABASE_DB=superset
-DATABASE_HOST=db
-DATABASE_PASSWORD=superset
-DATABASE_USER=superset
+set -eo pipefail
 
-# database engine specific environment variables
-# change the below if you prefers another database engine
-DATABASE_PORT=5432
-DATABASE_DIALECT=postgresql
-POSTGRES_DB=superset
-POSTGRES_USER=superset
-POSTGRES_PASSWORD=superset
-#MYSQL_DATABASE=superset
-#MYSQL_USER=superset
-#MYSQL_PASSWORD=superset
-#MYSQL_RANDOM_ROOT_PASSWORD=yes
+REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
 
-# Add the mapped in /app/pythonpath_docker which allows devs to override stuff
-PYTHONPATH=/app/pythonpath:/app/docker/pythonpath_dev
-REDIS_HOST=redis
-REDIS_PORT=6379
+#
+# Make sure we have dev requirements installed
+#
+if [ -f "${REQUIREMENTS_LOCAL}" ]; then
+  echo "Installing local overrides at ${REQUIREMENTS_LOCAL}"
+  pip install -r "${REQUIREMENTS_LOCAL}"
+else
+  echo "Skipping local overrides"
+fi
 
-FLASK_ENV=development
-SUPERSET_ENV=development
-SUPERSET_LOAD_EXAMPLES=yes
+if [[ "${1}" == "worker" ]]; then
+  echo "Starting Celery worker..."
+  celery worker --app=superset.tasks.celery_app:app -Ofair -l INFO
+elif [[ "${1}" == "app" ]]; then
+  echo "Starting web app..."
+  flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+fi
