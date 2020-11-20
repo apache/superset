@@ -23,12 +23,6 @@ import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { SupersetClient } from '@superset-ui/core';
 
-const mockVal = (str, repeat = 1) => {
-  return {
-    value: str.repeat(repeat),
-  };
-};
-
 interface SaveDatasetModalProps = {
 }
 

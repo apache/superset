@@ -299,9 +299,6 @@ export default class ResultSet extends React.PureComponent<
       }
 
       const { showSaveDatasetModal } = this.state;
-
-      console.log(this.props)
-
       return (
         <div className="ResultSetControls">
           <SaveDatasetModal
