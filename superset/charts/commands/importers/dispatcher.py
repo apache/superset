@@ -34,7 +34,7 @@ command_versions = [
 
 class ImportChartsCommand(BaseCommand):
     """
-    Import datasets.
+    Import charts.
 
     This command dispatches the import to different versions of the command
     until it finds one that matches.
