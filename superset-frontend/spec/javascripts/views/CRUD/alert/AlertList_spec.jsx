@@ -20,7 +20,6 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { act } from 'react-dom/test-utils';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import AlertList from 'src/views/CRUD/alert/AlertList';
@@ -34,7 +33,7 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const alertsEndpoint = 'glob:*/api/v1/report/?*';
-const alertEndpoint = 'glob:*/api/v1/report/0';
+const alertEndpoint = 'glob:*/api/v1/report/*';
 const alertsInfoEndpoint = 'glob:*/api/v1/report/_info*';
 
 const mockalerts = [...new Array(3)].map((_, i) => ({
@@ -71,6 +70,9 @@ fetchMock.get(alertsEndpoint, {
 fetchMock.get(alertsInfoEndpoint, {
   permissions: ['can_delete', 'can_edit'],
 });
+fetchMock.put(alertEndpoint, { ...mockalerts[0], active: false });
+fetchMock.put(alertsEndpoint, { ...mockalerts[0], active: false });
+
 async function mountAndWait(props) {
   const mounted = mount(<AlertList {...props} />, {
     context: { store },
@@ -101,23 +103,5 @@ describe('AlertList', () => {
 
   it('renders switches', () => {
     expect(wrapper.find(Switch)).toHaveLength(3);
-  });
-
-  it('toggles active', async () => {
-    fetchMock.put(alertEndpoint, { active: false });
-
-    expect(
-      wrapper.find('[data-test="toggle-active"]').first().props().checked,
-    ).toBe(true);
-    act(() => {
-      wrapper.find('[data-test="toggle-active"]').first().props().onChange();
-    });
-    await waitForComponentToPaint(wrapper);
-
-    wrapper.update();
-
-    expect(
-      wrapper.find('[data-test="toggle-active"]').first().props().checked,
-    ).toBe(false);
   });
 });

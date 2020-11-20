@@ -130,9 +130,9 @@ const App = () => (
                   <AlertList user={user} />
                 </ErrorBoundary>
               </Route>
-              <Route path="/reports/list/">
+              <Route path="/report/list/">
                 <ErrorBoundary>
-                  <AlertList user={user} reportEnabled />
+                  <AlertList user={user} isReportEnabled />
                 </ErrorBoundary>
               </Route>
             </Switch>

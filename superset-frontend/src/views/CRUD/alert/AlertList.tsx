@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { t, styled } from '@superset-ui/core';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
@@ -41,7 +41,7 @@ const PAGE_SIZE = 25;
 interface AlertListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  reportEnabled: boolean;
+  isReportEnabled: boolean;
 }
 
 const StatusIcon = styled(Icon)<{ status: string }>`
@@ -54,15 +54,35 @@ const StatusIcon = styled(Icon)<{ status: string }>`
   }};
 `;
 
-function AlertList({ addDangerToast, reportEnabled = false }: AlertListProps) {
+function AlertList({
+  addDangerToast,
+  isReportEnabled = false,
+}: AlertListProps) {
+  const title = isReportEnabled ? t('report') : t('alert');
+  const initalFilters = useMemo(
+    () => [
+      {
+        id: 'type',
+        operator: 'eq',
+        value: isReportEnabled ? 'report' : 'alert',
+      },
+    ],
+    [isReportEnabled],
+  );
   const {
     state: { loading, resourceCount: alertsCount, resourceCollection: alerts },
     hasPerm,
     fetchData,
     refreshData,
-  } = useListViewResource<AlertObject>('report', t('reports'), addDangerToast);
-  const title = reportEnabled ? t('report') : t('alert');
-  const pathName = reportEnabled ? 'reports' : 'alerts';
+  } = useListViewResource<AlertObject>(
+    'report',
+    t('reports'),
+    addDangerToast,
+    true,
+    undefined,
+    initalFilters,
+  );
+  const pathName = isReportEnabled ? 'Reports' : 'Alerts';
   const { updateResource } = useSingleViewResource<AlertObject>(
     'report',
     t('reports'),
@@ -75,14 +95,18 @@ function AlertList({ addDangerToast, reportEnabled = false }: AlertListProps) {
 
   const initialSort = [{ id: 'name', desc: true }];
 
-  const toggleActive = (data: AlertObject) => {
+  const toggleActive = (data: AlertObject, checked: boolean) => {
     if (data && data.id) {
       const update_id = data.id;
-      updateResource(update_id, { active: !data.active }).then(() => {
+      updateResource(update_id, { active: checked }).then(() => {
         refreshData();
       });
     }
   };
+
+  useEffect(() => {
+    refreshData();
+  }, [isReportEnabled]);
 
   const columns = useMemo(
     () => [
@@ -162,7 +186,7 @@ function AlertList({ addDangerToast, reportEnabled = false }: AlertListProps) {
           <Switch
             data-test="toggle-active"
             checked={original.active}
-            onChange={() => toggleActive(original)}
+            onClick={(checked: boolean) => toggleActive(original, checked)}
             size="small"
           />
         ),
@@ -178,7 +202,7 @@ function AlertList({ addDangerToast, reportEnabled = false }: AlertListProps) {
             canEdit
               ? {
                   label: 'preview-action',
-                  tooltip: t('Preview Alert'),
+                  tooltip: t('Execution Log'),
                   placement: 'bottom',
                   icon: 'note' as IconName,
                   onClick: handleEdit,
@@ -236,7 +260,7 @@ function AlertList({ addDangerToast, reportEnabled = false }: AlertListProps) {
   );
 
   const emptyState = {
-    message: t('No alert yet'),
+    message: t('No %s yet', title),
     slot: canCreate ? EmptyStateButton : null,
   };
 
@@ -255,7 +279,7 @@ function AlertList({ addDangerToast, reportEnabled = false }: AlertListProps) {
           {
             name: 'Reports',
             label: t('Reports'),
-            url: '/reports/list/',
+            url: '/report/list/',
             usesRouter: true,
           },
         ]}

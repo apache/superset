@@ -24,6 +24,7 @@ from flask_babel import lazy_gettext as _
 from superset import is_feature_enabled
 from superset.constants import RouteMethod
 from superset.models.alerts import Alert, AlertLog, SQLObservation
+from superset.models.reports import ReportSchedule
 from superset.tasks.alerts.validator import check_validator
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -65,6 +66,23 @@ class AlertObservationModelView(
     label_columns = {
         "error_msg": _("Error Message"),
     }
+
+
+class AlertReportModelView(SupersetModelView):
+    datamodel = SQLAInterface(ReportSchedule)
+    route_base = "/report"
+    include_route_methods = RouteMethod.CRUD_SET
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_ALERTS_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
 
 
 class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
