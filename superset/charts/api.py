@@ -44,7 +44,7 @@ from superset.charts.commands.exceptions import (
     ChartUpdateFailedError,
 )
 from superset.charts.commands.export import ExportChartsCommand
-from superset.charts.commands.importers.v1 import ImportChartsCommand
+from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
