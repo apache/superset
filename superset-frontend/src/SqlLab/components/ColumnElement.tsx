@@ -18,12 +18,41 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled } from '@superset-ui/core';
+import { ClassNames } from '@emotion/core';
+import { styled, useTheme } from '@superset-ui/core';
 
 import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   column: PropTypes.object.isRequired,
+};
+
+const StyledTooltip = props => {
+  const theme = useTheme();
+  return (
+    <ClassNames>
+      {({ css }) => (
+        <Tooltip
+          overlayClassName={css`
+            .ant-tooltip-inner {
+              max-width: ${theme.gridUnit * 125}px;
+              word-wrap: break-word;
+              text-align: center;
+
+              pre {
+                background: transparent;
+                border: none;
+                text-align: left;
+                color: ${theme.colors.grayscale.light5};
+                font-size: ${theme.typography.sizes.xs}px;
+              }
+            }
+          `}
+          {...props}
+        />
+      )}
+    </ClassNames>
+  );
 };
 
 const Hr = styled.hr`
@@ -58,7 +87,7 @@ export default function ColumnElement({ column }: ColumnElementProps) {
     columnName = <strong>{column.name}</strong>;
     icons = column.keys.map((key, i) => (
       <span key={i} className="ColumnElement">
-        <Tooltip
+        <StyledTooltip
           placement="right"
           title={
             <>
@@ -71,7 +100,7 @@ export default function ColumnElement({ column }: ColumnElementProps) {
           }
         >
           <i className={`fa text-muted m-l-2 ${iconMap[key.type]}`} />
-        </Tooltip>
+        </StyledTooltip>
       </span>
     ));
   }
