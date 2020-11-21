@@ -1,0 +1,95 @@
+header > nav {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+}
+
+header > nav .navbar-header,
+header > nav .navbar-nav {
+  display: none;
+}
+
+header > nav .navbar-right {
+  padding-top: 15px !important;
+  margin-bottom: -10px !important;
+}
+
+header > nav .navbar-right .btn-default {
+  display: none;
+}
+
+.superset-list-view {
+  padding-top: 20px !important;
+}
+
+#explore-container {
+  height: 100% !important;
+  min-height: 100% !important;
+  padding-top: 20px !important;
+}
+
+[data-original-title="Back"] {
+  display: none !important;
+}
+
+.panel {
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
+.panel-body {
+  padding-top: 15px !important;
+}
+
+.panel-body .panel-body {
+  padding-top: 0 !important;
+}
+
+.panel-heading {
+  display: none !important;
+}
+
+.panel-title .caret {
+  display: none !important;
+}
+
+.panel-default .panel-title {
+  border: none !important;
+}
+
+.panel-primary .panel-heading {
+  padding-left: 15px !important;
+}
+
+.panel-title .accordion-toggle:hover {
+  text-decoration: none !important;
+}
+
+.list-search-container .dropdown-toggle {
+  top: 20px !important;
+}
+
+.list-container .list-add-action {
+  display: none !important;
+}
+
+.App.SqlLab {
+  padding-top: 20px;
+}
+
+body {
+  background-color: #fff;
+}
+
+body > footer {
+  display: none;
+}
+
+.well {
+  border-radius: 0;
+  background: none;
+  border: none;
+  box-shadow: none
+}
