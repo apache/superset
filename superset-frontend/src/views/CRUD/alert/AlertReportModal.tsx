@@ -40,6 +40,11 @@ interface AlertReportModalProps {
   show: boolean;
 }
 
+const NOTIFICATION_METHODS = [
+  'email',
+  'slack',
+];
+
 const CONDITIONS = [
   '< (Smaller than)',
   '> (Larger than)',
@@ -81,6 +86,10 @@ const StyledSectionContainer = styled.div`
       flex: 1 1 auto;
       min-width: 33.33%;
       padding: ${({ theme }) => theme.gridUnit * 4}px;
+
+      .async-select {
+        margin: 10px 0 20px;
+      }
 
       &.condition {
         border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -201,6 +210,175 @@ const StyledInputContainer = styled.div`
   }
 `;
 
+// Notification Method components
+const StyledNotificationAddButton = styled.div`
+  color: ${({ theme }) => theme.colors.primary.dark1};
+  cursor: pointer;
+
+  i {
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px
+  }
+
+  &.disabled {
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    cursor: default;
+  }
+`;
+
+const StyledNotificationMethod = styled.div`
+  margin-bottom: 10px;
+
+  .input-container {
+    textarea {
+      height: auto;
+    }
+  }
+
+  .inline-container {
+    margin-bottom: 10px;
+
+    .input-container {
+      margin-left: 10px;
+    }
+
+    > div {
+      margin: 0;
+    }
+
+    .delete-button {
+      margin-left: 10px;
+      padding-top: 3px;
+    }
+  }
+`;
+
+type NotificationAddStatus = 'active' | 'disabled' | 'hidden';
+
+interface NotificationMethodAddProps {
+  status: NotificationAddStatus;
+  onClick: () => void;
+}
+
+const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
+  status = 'active',
+  onClick,
+}) => {
+  if ( status === 'hidden' ) {
+    return null;
+  }
+
+  const checkStatus = () => {
+    if ( status !== 'disabled' ) {
+      onClick();
+    }
+  };
+
+  return (
+    <StyledNotificationAddButton className={status} onClick={checkStatus}>
+      <i className="fa fa-plus" /> {status === 'active' ? t('Add notification method') : t('Add delivery method')}
+    </StyledNotificationAddButton>
+  );
+};
+
+type NotificationMethod = 'email' | 'slack' | null;
+
+type NotificationSetting = {
+  method: NotificationMethod;
+  recipients: string;
+  options: NotificationMethod[];
+};
+
+interface NotificationMethodProps {
+  setting?: NotificationSetting | null;
+  index: number;
+  onUpdate?: (index: number, method: NotificationMethod, recipients: string) => void;
+  onRemove?: (index: number) => void;
+}
+
+const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
+  setting = null,
+  index,
+  onUpdate,
+  onRemove,
+}) => {
+  if (!setting) {
+    return null;
+  };
+
+  const { method, recipients, options } = setting;
+  const [recipientValue, setRecipientValue] = useState<string>(recipients || '');
+
+  const onMethodChange = (method: NotificationMethod) => {
+    console.log('method', method);
+    if (onUpdate) {
+      const updatedSetting = {
+        ...setting,
+        method,
+        recipients: '',
+      };
+
+      console.log('updated setting', updatedSetting);
+      onUpdate(index, updatedSetting);
+    }
+  };
+
+  const onRecipientsChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const { target } = event;
+
+    setRecipientValue(target.value);
+  };
+
+  const methodOptions = options.map((method: NotificationMethod) => {
+    return (<Select.Option key={method} value={method}>{method}</Select.Option>
+  });
+
+  return (
+    <StyledNotificationMethod>
+      <div className="inline-container">
+        <StyledInputContainer>
+          <div className="input-container">
+            <Select
+              onChange={onMethodChange}
+              placeholder="Select Delivery Method"
+              defaultValue={method}
+            >
+              {methodOptions}
+            </Select>
+          </div>
+        </StyledInputContainer>
+        {method !== null && !!onRemove ?
+          (<span
+            role="button"
+            tabIndex={0}
+            className="delete-button"
+            onClick={() => onRemove(index)}
+          >
+            <Icon name="trash" />
+          </span>)
+          : null
+        }
+      </div>
+      {method !== null ?
+        (<StyledInputContainer>
+          <div className="control-label">
+            {t(method)}
+          </div>
+          <div className="input-container">
+            <textarea
+              name="recipients"
+              value={recipientValue}
+              onChange={onRecipientsChange}
+            />
+          </div>
+        </StyledInputContainer>)
+        : null
+      }
+    </StyledNotificationMethod>
+  );
+};
+
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addDangerToast,
   onAdd,
@@ -214,6 +392,42 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>(alert ? alert.content_type || 'dashboard' : 'dashboard');
   const isEditMode = alert !== null;
+
+  // TODO: need to set status/settings list based on alert's notification settings
+  const [notificationAddState, setNotificationAddState] = useState<NotificationAddStatus>('active');
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([]);
+
+  const onNotificationAdd = () => {
+    const settings: NotificationSetting[] = notificationSettings.slice();
+
+    settings.push({
+      method: null,
+      recipients: '',
+      options: ['email', 'slack'], // Need better logic for this
+    });
+
+    setNotificationSettings(settings);
+    setNotificationAddState(settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'disabled');
+  };
+
+  const updateNotificationSetting = (index: number, setting: NotificationSetting) => {
+    let settings = notificationSettings.slice();
+
+    settings[index] = setting;
+    setNotificationSettings(settings);
+
+    if (setting.method !== null && notificationAddState !== 'hidden') {
+      setNotificationAddState('active');
+    }
+  };
+
+  const removeNotificationSetting = (index: number) => {
+    let settings = notificationSettings.slice();
+
+    settings.splice(index, 1);
+    setNotificationSettings(settings);
+    setNotificationAddState('active');
+  };
 
   // TODO: Alert fetch logic
   /* const {
@@ -414,6 +628,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       owners: [],
       active: true,
     });
+
+    setNotificationSettings([]);
+    setNotificationAddState('active');
   }
 
   // Validation
@@ -657,7 +874,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </Radio.Group>
             </div>
             <AsyncSelect
-              className={contentType === 'chart' ? '' : 'hide-dropdown'}
+              className={contentType === 'chart' ? 'async-select' : 'hide-dropdown async-select'}
               name="chart"
               value={currentAlert ? currentAlert.chart : null}
               loadOptions={loadChartOptions}
@@ -667,7 +884,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               filterOption={null} // options are filtered at the api
             />
             <AsyncSelect
-              className={contentType === 'dashboard' ? '' : 'hide-dropdown'}
+              className={contentType === 'dashboard' ? 'async-select' : 'hide-dropdown async-select'}
               name="dashboard"
               value={currentAlert ? currentAlert.dashboard : null}
               loadOptions={loadDashboardOptions}
@@ -679,6 +896,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledSectionTitle>
               <h4>{t('Notification Method')}</h4>
             </StyledSectionTitle>
+            <NotificationMethod
+              setting={notificationSettings[0]}
+              index={0}
+              onUpdate={updateNotificationSetting}
+              onRemove={removeNotificationSetting}
+            />
+            <NotificationMethod
+              setting={notificationSettings[1]}
+              index={1}
+              onUpdate={updateNotificationSetting}
+              onRemove={removeNotificationSetting}
+            />
+            <NotificationMethodAdd status={notificationAddState} onClick={onNotificationAdd}/>
           </div>
         </div>
       </StyledSectionContainer>
