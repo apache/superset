@@ -17,20 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from 'spec/helpers/testing-library';
 import ControlSetRow from 'src/explore/components/ControlRow';
 
 describe('ControlSetRow', () => {
   it('renders a single row with one element', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toExist();
+    const { getAllByText } = render(
+      <ControlSetRow controls={[<p>My Control 1</p>]} />,
+    );
+    expect(getAllByText('My Control 1')).toHaveLength(1);
   });
   it('renders a single row with two elements', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />, <a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toHaveLength(2);
+    const { getAllByText } = render(
+      <ControlSetRow controls={[<p>My Control 1</p>, <p>My Control 2</p>]} />,
+    );
+    expect(getAllByText(/My Control/)).toHaveLength(2);
   });
 });

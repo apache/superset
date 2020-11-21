@@ -16,20 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "plugins": ["jest", "jest-dom", "no-only-tests", "testing-library"],
-  "env": {
-    "jest/globals": true
-  },
-  "extends": [
-    "plugin:jest/recommended",
-    "plugin:jest-dom/recommended",
-    "plugin:testing-library/react"
-  ],
-  "rules": {
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
-    "jest/consistent-test-it": "error",
-    "no-only-tests/no-only-tests": "error",
-    "prefer-promise-reject-errors": 0
-  }
-}
+import 'jest-enzyme';
+import './shim';
+import '@testing-library/jest-dom/extend-expect';
+import { configure as configureTestingLibrary } from '@testing-library/react';
+
+configureTestingLibrary({
+  testIdAttribute: 'data-test-id',
+});
