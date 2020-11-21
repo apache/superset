@@ -51,7 +51,7 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
 
   return (
     <>
-      <div type="text" onClick={() => setOpen(true)}>
+      <div onClick={() => setOpen(true)}>
         {children}
       </div>
       <FilterConfigModal
