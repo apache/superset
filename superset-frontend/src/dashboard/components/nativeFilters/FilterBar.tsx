@@ -45,13 +45,19 @@ const Bar = styled.div`
 `;
 
 const CollapsedBar = styled.div`
-  width: ${({ theme }) => theme.gridUnit * 4}px;
-  height: ${({ theme }) => theme.gridUnit * 4}px;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  width: ${({ theme }) => theme.gridUnit * 6}px;
+  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+  background: ${({ theme }) => theme.colors.grayscale.light4};
+  /* border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2}; */
   display: none;
+  text-align: center;
   &.open {
     display: block;
+    
+  }
+  svg {
+    width: ${({ theme }) => theme.gridUnit * 4}px;
+    height: ${({ theme }) => theme.gridUnit * 4}px;
   }
 `;
 
@@ -216,12 +222,17 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   return (
     <>
       <CollapsedBar
-        onClick={toggleFiltersBar}
         className={cx({ open: !filtersOpen })}
-      />
+        onClick={toggleFiltersBar}
+      >
+        <Icon name="filter" />
+        <Icon name="collapse" />
+      </CollapsedBar>
       <Bar className={cx({ open: filtersOpen })}>
         <TitleArea>
-          <span>Filters ({filterConfigs.length})</span>
+          <span>
+            {t('Filters')} ({filterConfigs.length})
+          </span>
           {/* <Dropdown
             overlay={
               <MenuItems
