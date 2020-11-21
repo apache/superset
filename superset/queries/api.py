@@ -41,6 +41,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "id",
         "changed_on",
         "database.database_name",
+        "executed_sql",
         "rows",
         "schema",
         "sql",
@@ -57,6 +58,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "tracking_url",
     ]
     show_columns = [
+        "id",
         "changed_on",
         "client_id",
         "database.id",
