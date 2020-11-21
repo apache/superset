@@ -22,7 +22,7 @@ import cx from 'classnames';
 import { Form, Dropdown, Menu } from 'src/common/components';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
-import FilterConfigurationButton from './FilterConfigurationButton';
+import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
 import {
@@ -175,9 +175,9 @@ const MenuItems: React.FC<FiltersMenuProps> = ({
     <Menu onClick={closeDropdown}>
       <Menu.Item>Configure Filters</Menu.Item>
       <Menu.Item>
-        <FilterConfigurationButton createNewOnOpen>
+        <FilterConfigurationLink createNewOnOpen>
           {t('New Filter')}
-        </FilterConfigurationButton>
+        </FilterConfigurationLink>
       </Menu.Item>
       {/* <Menu.Item>
           <FilterScopeModal

@@ -18,10 +18,9 @@
  */
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import shortid from 'shortid';
-import { Button } from 'src/common/components';
+// import shortid from 'shortid';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+// import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { FilterConfigModal } from './FilterConfigModal';
 import {
   FilterConfiguration,
@@ -34,7 +33,7 @@ export interface FCBProps {
   createNewOnOpen?: boolean;
 }
 
-export const FilterConfigurationButton: React.FC<FCBProps> = ({
+export const FilterConfigurationLink: React.FC<FCBProps> = ({
   createNewOnOpen,
   children,
 }) => {
@@ -52,9 +51,9 @@ export const FilterConfigurationButton: React.FC<FCBProps> = ({
 
   return (
     <>
-      <Button type="text" onClick={() => setOpen(true)}>
+      <div type="text" onClick={() => setOpen(true)}>
         {children}
-      </Button>
+      </div>
       <FilterConfigModal
         isOpen={isOpen}
         save={submit}
@@ -65,4 +64,4 @@ export const FilterConfigurationButton: React.FC<FCBProps> = ({
   );
 };
 
-export default FilterConfigurationButton;
+export default FilterConfigurationLink;
