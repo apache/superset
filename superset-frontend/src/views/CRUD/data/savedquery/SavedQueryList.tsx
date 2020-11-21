@@ -262,7 +262,7 @@ function SavedQueryList({
                   content={
                     <>
                       {names.map((name: string) => (
-                        <StyledPopoverItem>{name}</StyledPopoverItem>
+                        <StyledPopoverItem key={name}>{name}</StyledPopoverItem>
                       ))}
                     </>
                   }
