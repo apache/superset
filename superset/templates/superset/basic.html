@@ -45,7 +45,6 @@
       {% endfor %}
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
-      <script src="/static/parent_post.js"></script>
 
       {{ css_bundle("theme") }}
 
@@ -53,9 +52,11 @@
         {{ css_bundle(entry) }}
       {% endif %}
 
+    <link media="all" rel="stylesheet" href="/static/blotout.css" />
     {% endblock %}
 
     {{ js_bundle("theme") }}
+    <script src="/static/blotout.js"></script>
 
     <input
       type="hidden"
@@ -66,12 +67,6 @@
   </head>
 
   <body {% if standalone_mode %}class="standalone"{% endif %}>
-    {% block navbar %}
-      {% if not standalone_mode %}
-        {% include 'appbuilder/navbar.html' %}
-      {% endif %}
-    {% endblock %}
-
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
         <img src="/static/assets/images/loading.gif" style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%)">
