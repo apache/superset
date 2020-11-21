@@ -201,6 +201,7 @@ export function FilterConfigModal({
       onOk={onOk}
       okText={t('Save')}
       cancelText={t('Cancel')}
+      centered={true}
     >
       <StyledModalBody>
         <Form
