@@ -109,6 +109,7 @@ Join our growing community!
 - [Netflix](https://www.netflix.com/)
 - [TME QQMUSIC/WESING](https://www.tencentmusic.com/)
 - [Zaihang](http://www.zaih.com/)
+- [Xite](https://xite.com/) [@shashankkoppar]
 
 ### Education
 - [Brilliant.org](https://brilliant.org/)
