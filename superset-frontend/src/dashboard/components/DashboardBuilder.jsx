@@ -92,7 +92,7 @@ const StyledDashboardContent = styled.div`
     width: 100%;
     flex-grow: 1;
     position: relative;
-    margin: 24px 36px 24px;
+    margin: ${({ theme }) => theme.gridUnit * 6}px ${({ theme }) => theme.gridUnit * 9}px;
   }
 
   .dashboard-component-chart-holder {
