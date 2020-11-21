@@ -143,7 +143,7 @@ export const getRecentAcitivtyObjs = (
           })
           .catch(e =>
             addDangerToast(
-              'There was an error fetching you recent activity:',
+              t('There was an error fetching your recent activity:'),
               e,
             ),
           );
