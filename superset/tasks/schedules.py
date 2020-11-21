@@ -16,7 +16,6 @@
 # under the License.
 
 """Utility functions used across Superset"""
-
 import logging
 import time
 import urllib.request
@@ -494,11 +493,6 @@ def schedule_email_report(
     model_cls = get_scheduler_model(report_type)
     with session_scope(nullpool=True) as session:
         schedule = session.query(model_cls).get(schedule_id)
-
-        # The user may have disabled the schedule. If so, ignore this
-        if not schedule or not schedule.active:
-            logger.info("Ignoring deactivated schedule")
-            return
 
         recipients = recipients or schedule.recipients
         slack_channel = slack_channel or schedule.slack_channel

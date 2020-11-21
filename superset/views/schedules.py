@@ -131,16 +131,20 @@ class EmailScheduleView(
 
     def post_add(self, item: "EmailScheduleView") -> None:
         # Schedule a test mail if the user requested for it.
-        if self._extra_data["test_email"]:
-            recipients = self._extra_data["test_email_recipients"] or item.recipients
-            slack_channel = self._extra_data["test_slack_channel"] or item.slack_channel
-            args = (self.schedule_type, item.id)
-            kwargs = dict(recipients=recipients, slack_channel=slack_channel)
-            schedule_email_report.apply_async(args=args, kwargs=kwargs)
-
-        # Notify the user that schedule changes will be activate only in the
-        # next hour
         if item.active:
+            if self._extra_data["test_email"]:
+                recipients = (
+                    self._extra_data["test_email_recipients"] or item.recipients
+                )
+                slack_channel = (
+                    self._extra_data["test_slack_channel"] or item.slack_channel
+                )
+                args = (self.schedule_type, item.id)
+                kwargs = dict(recipients=recipients, slack_channel=slack_channel)
+                schedule_email_report.apply_async(args=args, kwargs=kwargs)
+
+            # Notify the user that schedule changes will be activate only in the
+            # next hour
             flash("Schedule changes will get applied in one hour", "warning")
 
     def post_update(self, item: "EmailScheduleView") -> None:
