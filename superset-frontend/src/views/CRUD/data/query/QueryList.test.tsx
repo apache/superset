@@ -108,7 +108,7 @@ describe('QueryList', () => {
     const callsD = fetchMock.calls(/query\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/query/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/query/?q=(order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 
@@ -138,7 +138,7 @@ describe('QueryList', () => {
     });
     await waitForComponentToPaint(wrapper);
     expect((fetchMock.lastCall() ?? [])[0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/query/?q=(filters:!((col:sql,opr:ct,value:fooo)),order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/query/?q=(filters:!((col:sql,opr:ct,value:fooo)),order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 });
