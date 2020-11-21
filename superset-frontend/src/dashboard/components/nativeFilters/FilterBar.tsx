@@ -61,6 +61,15 @@ const TitleArea = styled.h4`
   justify-content: space-between;
   margin: 0;
   padding: ${({ theme }) => theme.gridUnit * 4}px;
+  & > span {
+    flex-grow: 1;
+  }
+  & :not(:first-child) {
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+    &:hover {
+      cursor: pointer;
+    }
+  }
 `;
 
 const ActionButtons = styled.div`
@@ -213,7 +222,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       <Bar className={cx({ open: filtersOpen })}>
         <TitleArea>
           <span>Filters ({filterConfigs.length})</span>
-          <Dropdown
+          {/* <Dropdown
             overlay={
               <MenuItems
                 toggleSideBar={toggleFiltersBar}
@@ -225,7 +234,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             onVisibleChange={handleVisibleChange}
           >
             <Icon name="more-horiz" />
-          </Dropdown>
+          </Dropdown> */}
+          <FilterConfigurationLink createNewOnOpen>
+            <Icon name="plus-large" title={t('new filter')} />
+          </FilterConfigurationLink>
+          <Icon name="expand" onClick={toggleFiltersBar} />
         </TitleArea>
         <ActionButtons>
           <Button buttonStyle="primary" type="submit" buttonSize="sm">
