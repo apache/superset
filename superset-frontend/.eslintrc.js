@@ -169,11 +169,7 @@ module.exports = {
       env: {
         'jest/globals': true,
       },
-      extends: [
-        'plugin:jest/recommended',
-        'plugin:jest-dom/recommended',
-        'plugin:testing-library/react',
-      ],
+      extends: ['plugin:jest/recommended', 'plugin:testing-library/react'],
       rules: {
         'import/no-extraneous-dependencies': [
           'error',

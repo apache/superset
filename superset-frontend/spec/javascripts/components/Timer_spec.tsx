@@ -38,34 +38,34 @@ describe('Timer', () => {
 
   it('should render correctly', async () => {
     const screen = render(<Timer {...mockProps} />);
-    let node = screen.getByRole('timer');
-    let text = node.textContent;
+    const node = screen.getByRole('timer');
+    let text = node.textContent || '';
     expect(node).toBeInTheDocument();
     expect(node).toHaveClass('label-warning');
-    expect(node.textContent).toEqual('00:00:00.00');
+    expect(node).toHaveTextContent('00:00:00.00');
     // should start running
     await waitFor(() => {
       expect(parseTime(screen.getByRole('timer')?.textContent)).toBeGreaterThan(
         0.2,
       );
     });
-    text = node.textContent;
+    text = node.textContent || '';
 
     // should stop
     screen.rerender(<Timer {...mockProps} isRunning={false} />);
     // the same node should still be in DOM and the content should not change
     expect(screen.getByRole('timer')).toBe(node);
-    expect(node.textContent).toBe(text);
+    expect(node).toHaveTextContent(text);
 
     // the timestamp should not change even after while
     await sleep(100);
     expect(screen.getByRole('timer')).toBe(node);
-    expect(node.textContent).toBe(text);
+    expect(node).toHaveTextContent(text);
 
     // should continue and start from stopped time
     screen.rerender(<Timer {...mockProps} isRunning />);
     expect(screen.getByRole('timer')).toBe(node);
-    expect(node.textContent).toBe(text);
+    expect(node).toHaveTextContent(text);
 
     await waitFor(() => {
       expect(screen.getByRole('timer')).toBe(node);
