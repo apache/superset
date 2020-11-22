@@ -32,32 +32,70 @@ import {
 import { Filter, FilterConfiguration } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
 
+const barWidth=`250px`;
+
+const BarWrapper = styled.div`
+  width: ${({ theme }) => theme.gridUnit * 6}px;
+  &.open {
+    width: ${barWidth}; // arbitrary...
+  }
+`;
+
 const Bar = styled.div`
-  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* bottom: 100%;
+  right: 100%; */
   flex-direction: column;
-  width: 250px; // arbitrary...
   flex-grow: 1;
+  width: ${barWidth}; // arbitrary...
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  height: 100%;
+  max-height: 100%;
+  display: none;
+  /* &.animated {
+    display: flex;
+    transform: translateX(-100%);
+    transition: transform ${({ theme }) => theme.transitionTiming}s;
+    transition-delay: 0s;
+  }  */
   &.open {
     display: flex;
+    /* &.animated {
+      transform: translateX(0);
+      transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
+    } */
   }
 `;
 
 const CollapsedBar = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
   width: ${({ theme }) => theme.gridUnit * 6}px;
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
-  background: ${({ theme }) => theme.colors.grayscale.light4};
-  /* border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2}; */
   display: none;
   text-align: center;
+  /* &.animated {
+    display: block;
+    transform: translateX(-100%);  
+    transition: transform ${({ theme }) => theme.transitionTiming}s;
+    transition-delay: 0s;
+  } */
   &.open {
     display: block;
-    
+    /* &.animated {
+      transform: translateX(0);
+      transition-delay: ${({ theme }) => theme.transitionTiming * 3}s;
+    } */
   }
   svg {
     width: ${({ theme }) => theme.gridUnit * 4}px;
     height: ${({ theme }) => theme.gridUnit * 4}px;
+    cursor: pointer;
   }
 `;
 
@@ -220,7 +258,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   };
 
   return (
-    <>
+    <BarWrapper className={cx({ open: filtersOpen })}>
       <CollapsedBar
         className={cx({ open: !filtersOpen })}
         onClick={toggleFiltersBar}
@@ -269,7 +307,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           ))}
         </FilterControls>
       </Bar>
-    </>
+    </BarWrapper>
   );
 };
 

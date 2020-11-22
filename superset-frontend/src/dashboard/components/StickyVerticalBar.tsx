@@ -28,10 +28,16 @@ const Wrapper = styled.div`
   position: relative;
   width: 16px;
   flex: 0 0 16px;
-  transition: all 0.25s;
+  /* &.animated {
+    transition: width 0;
+    transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
+  } */
   &.open {
     width: 250px;
     flex: 0 0 250px;
+    /* &.animated {
+      transition-delay: 0s;
+    } */
   }
 `;
 
