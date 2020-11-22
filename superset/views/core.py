@@ -154,8 +154,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     logger = logging.getLogger(__name__)
 
-    @event_logger.log_this
     @has_access_api
+    @event_logger.log_this
     @expose("/datasources/")
     def datasources(self) -> FlaskResponse:
         return self.json_response(
@@ -169,8 +169,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
         )
 
-    @event_logger.log_this
     @has_access_api
+    @event_logger.log_this
     @expose("/override_role_permissions/", methods=["POST"])
     def override_role_permissions(self) -> FlaskResponse:
         """Updates the role with the give datasource permissions.
@@ -222,8 +222,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             {"granted": granted_perms, "requested": list(db_ds_names)}, status=201
         )
 
-    @event_logger.log_this
     @has_access
+    @event_logger.log_this
     @expose("/request_access/")
     def request_access(self) -> FlaskResponse:
         datasources = set()
@@ -265,8 +265,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             datasource_names=", ".join([o.name for o in datasources]),
         )
 
-    @event_logger.log_this
     @has_access
+    @event_logger.log_this
     @expose("/approve")
     def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
@@ -369,8 +369,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         session.commit()
         return redirect("/accessrequestsmodelview/list/")
 
-    @event_logger.log_this
     @has_access
+    @event_logger.log_this
     @expose("/slice/<int:slice_id>/")
     def slice(self, slice_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
         _, slc = get_form_data(slice_id, use_slice_data=True)
@@ -453,9 +453,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex))
 
-    @event_logger.log_this
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/annotation_json/<int:layer_id>")
     def annotation_json(  # pylint: disable=no-self-use
         self, layer_id: int
@@ -487,10 +487,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     if not is_feature_enabled("ENABLE_EXPLORE_JSON_CSRF_PROTECTION"):
         EXPLORE_JSON_METHODS.append("GET")
 
-    @event_logger.log_this
     @api
     @has_access_api
     @handle_api_exception
+    @event_logger.log_this
     @expose(
         "/explore_json/<datasource_type>/<int:datasource_id>/",
         methods=EXPLORE_JSON_METHODS,
@@ -538,8 +538,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
-    @event_logger.log_this
     @has_access
+    @event_logger.log_this
     @expose("/import_dashboards", methods=["GET", "POST"])
     def import_dashboards(self) -> FlaskResponse:
         """Overrides the dashboards using json instances from the file."""
@@ -581,8 +581,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/import_dashboards.html", databases=databases
         )
 
-    @event_logger.log_this
     @has_access
+    @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
     def explore(  # pylint: disable=too-many-locals,too-many-return-statements
@@ -734,9 +734,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @api
-    @event_logger.log_this
     @handle_api_exception
     @has_access_api
+    @event_logger.log_this
     @expose("/filter/<datasource_type>/<int:datasource_id>/<column>/")
     def filter(  # pylint: disable=no-self-use
         self, datasource_type: str, datasource_id: int, column: str
@@ -883,9 +883,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return json_success(json.dumps(response))
 
-    @event_logger.log_this
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/schemas/<int:db_id>/")
     @expose("/schemas/<int:db_id>/<force_refresh>/")
     def schemas(  # pylint: disable=no-self-use
@@ -908,9 +908,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return Response(json.dumps({"schemas": schemas}), mimetype="application/json")
 
-    @event_logger.log_this
     @api
     @has_access_api
+    @event_logger.log_this
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
     def tables(  # pylint: disable=too-many-locals,no-self-use
@@ -2135,7 +2135,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/validate_sql_json/", methods=["POST", "GET"])
-    @event_logger.log_this
     def validate_sql_json(  # pylint: disable=too-many-locals,too-many-return-statements,no-self-use
         self,
     ) -> FlaskResponse:
