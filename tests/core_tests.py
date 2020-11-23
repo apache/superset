@@ -155,7 +155,7 @@ class TestCore(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
 
-        expeted_response = {
+        expected_response = {
             "options": [
                 {
                     "label": "ab_role",
@@ -163,11 +163,12 @@ class TestCore(SupersetTestCase):
                     "title": "ab_role",
                     "type": "table",
                     "value": "ab_role",
+                    "extra": None,
                 }
             ],
             "tableLength": 1,
         }
-        self.assertEqual(response, expeted_response)
+        self.assertEqual(response, expected_response)
 
     def test_get_superset_tables_not_found(self):
         self.login(username="admin")
@@ -862,7 +863,7 @@ class TestCore(SupersetTestCase):
 
     def test_get_select_star_not_allowed(self):
         """
-            Database API: Test get select star not allowed
+        Database API: Test get select star not allowed
         """
         self.login(username="gamma")
         example_db = utils.get_example_database()
