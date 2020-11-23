@@ -20,6 +20,7 @@ from operator import eq, ge, gt, le, lt, ne
 from typing import Optional
 
 import numpy as np
+from flask_babel import lazy_gettext as _
 
 from superset import jinja_context
 from superset.commands.base import BaseCommand
@@ -52,6 +53,36 @@ class AlertCommand(BaseCommand):
         threshold = json.loads(self._report_schedule.validator_config_json)["threshold"]
         return OPERATOR_FUNCTIONS[operator](self._result, threshold)
 
+    def _validate_not_null(self, rows: np.recarray) -> None:
+        self._result = rows[0][1]
+        return
+
+    def _validate_operator(self, rows: np.recarray) -> None:
+        # check if query return more then one row
+        if len(rows) > 1:
+            raise AlertQueryMultipleRowsError(
+                message=_(
+                    "Alert query returned more then one row. %s rows returned"
+                    % len(rows),
+                )
+            )
+        # check if query returned more then one column
+        if len(rows[0]) > 2:
+            raise AlertQueryMultipleColumnsError(
+                _(
+                    "Alert query returned more then one column. %s columns returned"
+                    % len(rows[0])
+                )
+            )
+        if rows[0][1] is None:
+            return
+        try:
+            # Check if it's float or if we can convert it
+            self._result = float(rows[0][1])
+            return
+        except (AssertionError, TypeError, ValueError):
+            raise AlertQueryInvalidTypeError()
+
     def validate(self) -> None:
         """
         Validate the query result as a Pandas DataFrame
@@ -66,18 +97,5 @@ class AlertCommand(BaseCommand):
             return
         rows = df.to_records()
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
-            self._result = rows[0][1]
-            return
-        # check if query return more then one row
-        if len(rows) > 1:
-            raise AlertQueryMultipleRowsError()
-        if len(rows[0]) > 2:
-            raise AlertQueryMultipleColumnsError()
-        if rows[0][1] is None:
-            return
-        try:
-            # Check if it's float or if we can convert it
-            self._result = float(rows[0][1])
-            return
-        except (AssertionError, TypeError, ValueError):
-            raise AlertQueryInvalidTypeError()
+            return self._validate_not_null(rows)
+        return self._validate_operator(rows)

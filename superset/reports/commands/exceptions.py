@@ -129,6 +129,7 @@ class ReportScheduleNameUniquenessValidationError(ValidationError):
 
 
 class AlertQueryMultipleRowsError(CommandException):
+
     message = _("Alert query returned more then one row.")
 
 
