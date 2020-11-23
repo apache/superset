@@ -68,7 +68,7 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
       <StyledModal
         show={visible}
         onHide={() => {}}
-        title="Save or Overwrite Datasets"
+        title="Save or Overwrite Dataset"
         onCancel={onCancel}
         footer={
         <>
@@ -102,21 +102,21 @@ export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, 
       <Styles>
         {!overwriteDataSet && <div className="smd-body">
           <div className="smd-prompt">
-            To explore the results of this query, we need to save it as a virtual dataset
+            Save this query as virtual dataset to continue exploring.
           </div>
           <Radio.Group onChange={handleSaveDatasetRadioBtnState} value={saveDatasetRadioBtnState}>
             <Radio className="smd-radio" value={1}>
-              Save as new dataset
+              Save as new
               <Input className="smd-input" defaultValue={defaultCreateDatasetValue} onChange={handleDatasetNameChange} />
             </Radio>
             <Radio className="smd-radio" value={2}>
-              Overwrite existing dataset
+              Overwrite existing
               <AutoComplete
                 className="smd-autocomplete"
                 options={options}
                 onSelect={handleOverwriteDatasetOption}
                 onSearch={onSearch}
-                placeholder="input here"
+                placeholder="Select or type dataset name"
                 filterOption={filterAutocompleteOption}
               />
             </Radio>

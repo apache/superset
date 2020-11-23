@@ -306,7 +306,8 @@ export default class ResultSet extends React.PureComponent<
         ({ data } = this.state);
       }
 
-      const { showSaveDatasetModal } = this.state;
+      const defaultCreateDatasetValue = `${this.props.query.tab} ${new Date().toLocaleString().replace(',', '')}`
+
       return (
         <div className="ResultSetControls">
           <SaveDatasetModal
@@ -321,7 +322,7 @@ export default class ResultSet extends React.PureComponent<
             handleOverwriteCancel={this.handleOverwriteCancel}
             handleOverwriteDataset={this.handleOverwriteDataset}
             handleOverwriteDatasetOption={this.handleOverwriteDatasetOption}
-            defaultCreateDatasetValue={`${this.props.query.tab}_${Date.now()}`}
+            defaultCreateDatasetValue={defaultCreateDatasetValue}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&
