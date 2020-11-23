@@ -1488,11 +1488,11 @@ def get_since_until(
             ),
             (
                 r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long
             ),
             (
                 r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long
             ),
             (
                 r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
