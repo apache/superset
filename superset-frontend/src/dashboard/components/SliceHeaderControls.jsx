@@ -87,6 +87,8 @@ const RefreshTooltip = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const screenshotNodeSelector = '.dashboard-component-chart-holder';
+
 const VerticalDotsTrigger = () => (
   <VerticalDotsContainer>
     <span className="dot" />
@@ -144,7 +146,7 @@ class SliceHeaderControls extends React.PureComponent {
         setTimeout(
           () =>
             downloadAsImage(
-              '.dashboard-component-chart-holder',
+              screenshotNodeSelector,
               this.props.slice.slice_name,
             )({ currentTarget }),
           1000,
@@ -238,7 +240,7 @@ class SliceHeaderControls extends React.PureComponent {
           offset: [-40, 4],
         }}
         getPopupContainer={triggerNode =>
-          triggerNode.closest('.dashboard-component-chart-holder')
+          triggerNode.closest(screenshotNodeSelector)
         }
       >
         <a id={`slice_${slice.slice_id}-controls`} role="button">

@@ -87,6 +87,8 @@ const DropdownButton = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 2.5}px;
 `;
 
+const screenshotNodeSelector = '.dashboard';
+
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
     window.location.reload();
@@ -149,7 +151,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         setTimeout(
           () =>
             downloadAsImage(
-              '.dashboard',
+              screenshotNodeSelector,
               this.props.dashboardTitle,
             )({ currentTarget }),
           1000,
@@ -305,7 +307,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       <NoAnimationDropdown
         overlay={menu}
         trigger={['click']}
-        getPopupContainer={triggerNode => triggerNode.closest('.dashboard')}
+        getPopupContainer={triggerNode => triggerNode.closest(screenshotNodeSelector)}
       >
         <DropdownButton id="save-dash-split-button" role="button">
           <Icon name="more-horiz" />
