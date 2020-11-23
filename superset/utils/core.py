@@ -1472,7 +1472,7 @@ def get_since_until(
     _relative_end = relative_end if relative_end else "today"
 
     if time_range == "No filter":
-        _since = _until = None
+        return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
         time_range = time_range + separator + _relative_end
