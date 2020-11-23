@@ -137,6 +137,7 @@ class HeaderActionsDropdown extends React.PureComponent {
   }
 
   handleMenuClick({ key, domEvent }) {
+    const { currentTarget } = domEvent;
     switch (key) {
       case MENU_KEYS.REFRESH_DASHBOARD:
         this.props.forceRefreshAllCharts();
@@ -145,7 +146,14 @@ class HeaderActionsDropdown extends React.PureComponent {
         this.props.showPropertiesModal();
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE:
-        downloadAsImage('.dashboard', this.props.dashboardTitle)(domEvent);
+        setTimeout(
+          () =>
+            downloadAsImage(
+              '.dashboard',
+              this.props.dashboardTitle,
+            )({ currentTarget }),
+          1000,
+        );
         break;
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
         const hasStandalone = window.location.search.includes(
@@ -297,7 +305,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       <NoAnimationDropdown
         overlay={menu}
         trigger={['click']}
-        getPopupContainer={() => document.querySelector('.dashboard')}
+        getPopupContainer={triggerNode => triggerNode.closest('.dashboard')}
       >
         <DropdownButton id="save-dash-split-button" role="button">
           <Icon name="more-horiz" />

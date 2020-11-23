@@ -123,6 +123,7 @@ class SliceHeaderControls extends React.PureComponent {
   }
 
   handleMenuClick({ key, domEvent }) {
+    const { currentTarget } = domEvent;
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
         this.refreshChart();
@@ -140,10 +141,14 @@ class SliceHeaderControls extends React.PureComponent {
         this.props.handleToggleFullSize();
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE:
-        downloadAsImage(
-          '.dashboard-component-chart-holder',
-          this.props.slice.slice_name,
-        )(domEvent);
+        setTimeout(
+          () =>
+            downloadAsImage(
+              '.dashboard-component-chart-holder',
+              this.props.slice.slice_name,
+            )({ currentTarget }),
+          1000,
+        );
         break;
       default:
         break;
@@ -232,6 +237,9 @@ class SliceHeaderControls extends React.PureComponent {
         dropdownAlign={{
           offset: [-40, 4],
         }}
+        getPopupContainer={triggerNode =>
+          triggerNode.closest('.dashboard-component-chart-holder')
+        }
       >
         <a id={`slice_${slice.slice_id}-controls`} role="button">
           <VerticalDotsTrigger />
