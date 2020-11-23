@@ -216,11 +216,11 @@ def migrate_roles(
 
 def get_reversed_new_pvms() -> Dict[str, Tuple[str, str]]:
     new_pvms = {}
-    for k, v in PVM_MAP.items():
-        if k[0] not in new_pvms:
-            new_pvms[k[0]] = (k[1],)
+    for old_pvm, new_pvms in PVM_MAP.items():
+        if old_pvm[0] not in new_pvms:
+            new_pvms[old_pvm[0]] = (old_pvm[1],)
         else:
-            new_pvms[k[0]] = new_pvms[k[0]] + (k[1],)
+            new_pvms[old_pvm[0]] = new_pvms[old_pvm[0]] + (old_pvm[1],)
     return new_pvms
 
 
