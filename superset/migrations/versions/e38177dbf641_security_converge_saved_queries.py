@@ -171,8 +171,6 @@ def migrate_roles(
                     pvm_map[old_pvm] = [new_pvm]
                 else:
                     pvm_map[old_pvm].append(new_pvm)
-        else:
-            print(f"Could not find pvm: {old_pvm_key[0]}.{old_pvm_key[1]}")
 
     # Replace old permissions by the new ones on all existing roles
     roles = session.query(Role).options(Load(Role).joinedload(Role.permissions)).all()
