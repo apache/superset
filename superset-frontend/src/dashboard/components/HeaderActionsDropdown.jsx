@@ -294,7 +294,11 @@ class HeaderActionsDropdown extends React.PureComponent {
       </Menu>
     );
     return (
-      <NoAnimationDropdown overlay={menu} trigger={['click']}>
+      <NoAnimationDropdown
+        overlay={menu}
+        trigger={['click']}
+        getPopupContainer={() => document.querySelector('.dashboard')}
+      >
         <DropdownButton id="save-dash-split-button" role="button">
           <Icon name="more-horiz" />
         </DropdownButton>
