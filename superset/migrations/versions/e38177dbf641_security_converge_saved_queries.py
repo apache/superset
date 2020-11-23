@@ -23,10 +23,11 @@ Create Date: 2020-11-20 14:24:03.643031
 """
 
 # revision identifiers, used by Alembic.
-revision = 'e38177dbf641'
-down_revision = '49b5a32daba5'
+revision = "e38177dbf641"
+down_revision = "49b5a32daba5"
 
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
+
 from alembic import op
 from sqlalchemy import (
     Column,
@@ -90,6 +91,9 @@ class Role(Base):
         "PermissionView", secondary=assoc_permissionview_role, backref="role"
     )
 
+    def __repr__(self):
+        return f"{self.name}"
+
 
 class PermissionView(Base):
     __tablename__ = "ab_permission_view"
@@ -109,25 +113,31 @@ def add_pvms(
 ) -> None:
     for view_name, permissions in pvm_data.items():
         # Check and add the new View
-        new_view = session.query(
-            ViewMenu
-        ).filter(ViewMenu.name == view_name).one_or_none()
+        new_view = (
+            session.query(ViewMenu).filter(ViewMenu.name == view_name).one_or_none()
+        )
         if not new_view:
             new_view = ViewMenu(name=view_name)
             session.add(new_view)
         for permission_name in permissions:
             # Check and add the new Permission
-            new_permission = session.query(
-                Permission
-            ).filter(Permission.name == permission_name).one_or_none()
+            new_permission = (
+                session.query(Permission)
+                .filter(Permission.name == permission_name)
+                .one_or_none()
+            )
             if not new_permission:
                 new_permission = Permission(name=permission_name)
                 session.add(new_permission)
             # Check and add the new PVM
-            new_pvm = session.query(PermissionView).filter(
-                PermissionView.view_menu_id == new_view.id,
-                PermissionView.permission_id == new_permission.id,
-            ).one_or_none()
+            new_pvm = (
+                session.query(PermissionView)
+                .filter(
+                    PermissionView.view_menu_id == new_view.id,
+                    PermissionView.permission_id == new_permission.id,
+                )
+                .one_or_none()
+            )
             if not new_pvm:
                 new_pvm = PermissionView(view_menu=new_view, permission=new_permission)
                 session.add(new_pvm)
@@ -140,39 +150,45 @@ def find_pvm(session: Session, view_name: str, permission_name: str) -> Permissi
         session.query(PermissionView)
         .join(Permission)
         .join(ViewMenu)
-        .filter(
-            ViewMenu.name == view_name,
-            Permission.name == permission_name
-        )
+        .filter(ViewMenu.name == view_name, Permission.name == permission_name)
     ).one_or_none()
 
 
 def migrate_roles(
     session: Session,
-    pvm_key_map: Dict[Tuple[str, str], Tuple[str, str]],
-    commit: bool = False
+    pvm_key_map: Dict[Tuple[str, str], Tuple[Tuple[str, str]]],
+    commit: bool = False,
 ) -> None:
     from sqlalchemy.orm import Load
 
-    pvm_map: Dict[PermissionView, PermissionView] = {}
-    for old_pvm_key, new_pvm_key in pvm_key_map.items():
+    pvm_map: Dict[PermissionView, List[PermissionView]] = {}
+    for old_pvm_key, new_pvms in pvm_key_map.items():
         old_pvm = find_pvm(session, old_pvm_key[0], old_pvm_key[1])
         if old_pvm:
-            new_pvm = find_pvm(session, new_pvm_key[0], new_pvm_key[1])
-            pvm_map[old_pvm] = new_pvm
+            for new_pvm_key in new_pvms:
+                new_pvm = find_pvm(session, new_pvm_key[0], new_pvm_key[1])
+                if old_pvm not in pvm_map:
+                    pvm_map[old_pvm] = [new_pvm]
+                else:
+                    pvm_map[old_pvm].append(new_pvm)
         else:
             print(f"Could not find pvm: {old_pvm_key[0]}.{old_pvm_key[1]}")
-    roles = session.query(Role).options(Load(Role).joinedload(Role.permissions)).all()
+
     # Replace old permissions by the new ones on all existing roles
+    roles = session.query(Role).options(Load(Role).joinedload(Role.permissions)).all()
     for role in roles:
-        for old_pvm, new_pvm in pvm_map.items():
+        for old_pvm, new_pvms in pvm_map.items():
             if old_pvm in role.permissions:
+                print(f"Removing {old_pvm} from {role}")
                 role.permissions.remove(old_pvm)
-                if new_pvm not in role.permissions:
-                    role.permissions.append(new_pvm)
+                for new_pvm in new_pvms:
+                    if new_pvm not in role.permissions:
+                        print(f"Add {new_pvm} to {role}")
+                        role.permissions.append(new_pvm)
         session.merge(role)
+
     # Delete old permissions
-    for old_pvm, new_pvm in pvm_map.items():
+    for old_pvm, new_pvms in pvm_map.items():
         old_permission_name = old_pvm.permission.name
         old_view_name = old_pvm.view_menu.name
         print(f"Going to delete pvm: {old_pvm}")
@@ -198,36 +214,68 @@ def migrate_roles(
         session.commit()
 
 
+def get_reversed_new_pvms() -> Dict[str, Tuple[str, str]]:
+    new_pvms = {}
+    for k, v in PVM_MAP.items():
+        if k[0] not in new_pvms:
+            new_pvms[k[0]] = (k[1],)
+        else:
+            new_pvms[k[0]] = new_pvms[k[0]] + (k[1],)
+    return new_pvms
+
+
+def get_reversed_pvm_map() -> Dict[Tuple[str, str], Tuple[Tuple[str, str]]]:
+    pvm_map = {}
+    for old_pvm, new_pvms in PVM_MAP.items():
+        for new_pvm in new_pvms:
+            if new_pvm not in pvm_map:
+                pvm_map[new_pvm] = (old_pvm,)
+            else:
+                pvm_map[new_pvm] = pvm_map[new_pvm] + (old_pvm,)
+    return pvm_map
+
+
+NEW_PVMS = {"SavedQuery": ("can_read", "can_write",)}
+PVM_MAP = {
+    ("SavedQueryView", "can_list",): (("SavedQuery", "can_read",),),
+    ("SavedQueryView", "can_show",): (("SavedQuery", "can_read",),),
+    ("SavedQueryView", "can_add",): (("SavedQuery", "can_write",),),
+    ("SavedQueryView", "can_edit",): (("SavedQuery", "can_write",),),
+    ("SavedQueryView", "can_delete",): (("SavedQuery", "can_write",),),
+    ("SavedQueryView", "muldelete",): (("SavedQuery", "can_write",),),
+    ("SavedQueryView", "can_mulexport",): (("SavedQuery", "can_read",),),
+    ("SavedQueryViewApi", "can_show",): (("SavedQuery", "can_read",),),
+    ("SavedQueryViewApi", "can_edit",): (("SavedQuery", "can_write",),),
+    ("SavedQueryViewApi", "can_list",): (("SavedQuery", "can_read",),),
+    ("SavedQueryViewApi", "can_add",): (("SavedQuery", "can_write",),),
+    ("SavedQueryViewApi", "muldelete",): (("SavedQuery", "can_write",),),
+}
+
+
 def upgrade():
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    new_pvms = {
-        "SavedQuery": ("can_read", "can_write",)
-    }
-    pvm_map = {
-        ("SavedQueryView", "can_list",): ("SavedQuery", "can_read",),
-        ("SavedQueryView", "can_show",): ("SavedQuery", "can_read",),
-        ("SavedQueryView", "can_add",): ("SavedQuery", "can_write",),
-        ("SavedQueryView", "can_edit",): ("SavedQuery", "can_write",),
-        ("SavedQueryView", "can_delete",): ("SavedQuery", "can_write",),
-        ("SavedQueryView", "muldelete",): ("SavedQuery", "can_write",),
-        ("SavedQueryView", "can_mulexport",): ("SavedQuery", "can_read",),
-        ("SavedQueryViewApi", "can_show",): ("SavedQuery", "can_read",),
-        ("SavedQueryViewApi", "can_edit",): ("SavedQuery", "can_write",),
-        ("SavedQueryViewApi", "can_list",): ("SavedQuery", "can_read",),
-        ("SavedQueryViewApi", "can_add",): ("SavedQuery", "can_write",),
-        ("SavedQueryViewApi", "muldelete",): ("SavedQuery", "can_write",),
-    }
     # Add the new permissions on the migration itself
-    add_pvms(session, new_pvms)
-    migrate_roles(session, pvm_map)
+    add_pvms(session, NEW_PVMS)
+    migrate_roles(session, PVM_MAP)
     try:
         session.commit()
     except SQLAlchemyError as ex:
-        print(f"An error occurred while migrating permissions: {ex}")
+        print(f"An error occurred while upgrading permissions: {ex}")
         session.rollback()
 
 
 def downgrade():
+    bind = op.get_bind()
+    session = Session(bind=bind)
+
+    # Add the new permissions on the migration itself
+    add_pvms(session, get_reversed_new_pvms())
+    migrate_roles(session, get_reversed_pvm_map())
+    try:
+        session.commit()
+    except SQLAlchemyError as ex:
+        print(f"An error occurred while downgrading permissions: {ex}")
+        session.rollback()
     pass
