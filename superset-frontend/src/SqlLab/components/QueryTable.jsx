@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { ProgressBar, Well } from 'react-bootstrap';
 import Label from 'src/components/Label';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
@@ -46,6 +46,18 @@ const defaultProps = {
   onUserClicked: () => {},
   onDbClicked: () => {},
 };
+
+const StyledButtonContainer = styled.div`
+  width: 100px;
+`;
+
+const StyledLinksContainer = styled.div`
+  width: 75px;
+`;
+
+const StyledProgressBar = styled(ProgressBar)`
+  width: 75px;
+`;
 
 const openQuery = id => {
   const url = `/superset/sqllab?queryId=${id}`;
@@ -118,7 +130,7 @@ const QueryTable = props => {
         );
         q.started = moment(q.startDttm).format('HH:mm:ss');
         q.querylink = (
-          <div style={{ width: '100px' }}>
+          <StyledButtonContainer>
             <Button
               buttonSize="small"
               buttonStyle="link"
@@ -127,7 +139,7 @@ const QueryTable = props => {
               <i className="fa fa-external-link m-r-3" />
               {t('Edit')}
             </Button>
-          </div>
+          </StyledButtonContainer>
         );
         q.sql = (
           <Well>
@@ -171,8 +183,7 @@ const QueryTable = props => {
           q.output = [schemaUsed, q.tempTable].filter(v => v).join('.');
         }
         q.progress = (
-          <ProgressBar
-            style={{ width: '75px' }}
+          <StyledProgressBar
             striped
             now={q.progress}
             label={`${q.progress.toFixed(0)}%`}
@@ -193,7 +204,7 @@ const QueryTable = props => {
           </div>
         );
         q.actions = (
-          <div style={{ width: '75px' }}>
+          <StyledLinksContainer>
             <Link
               className="fa fa-pencil m-r-3"
               onClick={() => restoreSql(query)}
@@ -213,7 +224,7 @@ const QueryTable = props => {
               tooltip={t('Remove query from log')}
               onClick={() => removeQuery(query)}
             />
-          </div>
+          </StyledLinksContainer>
         );
         return q;
       })
