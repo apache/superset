@@ -18,7 +18,7 @@
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import readResponseBlob from '../../utils/readResponseBlob';
-import { getChartAliases, isLegacyChart } from '../../utils/vizPlugins';
+import { getChartAliases, isLegacyResponse } from '../../utils/vizPlugins';
 
 describe('Dashboard top-level controls', () => {
   let mapId;
@@ -41,56 +41,56 @@ describe('Dashboard top-level controls', () => {
 
   it('should allow chart level refresh', () => {
     cy.wait(aliases);
-    cy.get('[data-test="grid-container"]')
-      .find('.world_map')
-      .should('be.exist');
+    cy.get('[data-test="grid-container"]').find('.world_map').should('exist');
     cy.get(`#slice_${mapId}-controls`).click();
     cy.get(`[data-test="slice_${mapId}-menu"]`)
-      .should('be.visible')
       .find('[data-test="refresh-chart-menu-item"]')
-      .click({ force: true });
-
-    // not allow chart level force refresh when it is loading
-    cy.get(`[data-test="slice_${mapId}-menu"]`)
-      .find('[data-test="refresh-chart-menu-item"]')
-      .should('be.visible')
-      .and('have.class', 'ant-dropdown-menu-item-disabled');
+      .click({ force: true })
+      .then($el => {
+        cy.get($el).should('have.class', 'ant-dropdown-menu-item-disabled');
+      });
 
     cy.wait(`@getJson_${mapId}`);
-    cy.get('[data-test="refresh-chart-menu-item"]')
-      .should('be.visible')
-      .and('not.have.class', 'ant-dropdown-menu-item-disabled');
+    cy.get('[data-test="refresh-chart-menu-item"]').should(
+      'not.have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
   });
 
   it('should allow dashboard level force refresh', () => {
+    // wait the all dash finish loading.
+    cy.wait(aliases);
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
     cy.get('[data-test="more-horiz"]').click();
-    cy.get('[data-test="refresh-dashboard-menu-item"]')
-      .should('be.visible')
-      .and('not.have.class', 'ant-dropdown-menu-item-disabled');
+    cy.get('[data-test="refresh-dashboard-menu-item"]').should(
+      'not.have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
 
-    // wait the all dash finish loading.
-    cy.wait(aliases);
     cy.get('[data-test="refresh-dashboard-menu-item"]').click({ force: true });
-    cy.get('[data-test="refresh-dashboard-menu-item"]')
-      .should('be.visible')
-      .and('have.class', 'ant-dropdown-menu-item-disabled');
+    cy.get('[data-test="refresh-dashboard-menu-item"]').should(
+      'have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
 
     // wait all charts force refreshed
     cy.wait(aliases, { responseTimeout: 15000 }).then(xhrs => {
-      // is_cached in response should be false
-      xhrs.forEach(xhr => {
+      xhrs.forEach(async xhr => {
+        const responseBody = await readResponseBlob(xhr.response.body);
+        const isCached = isLegacyResponse(responseBody)
+          ? responseBody.is_cached
+          : responseBody.result[0].is_cached;
+        // request url should indicate force-refresh operation
         expect(xhr.url).to.have.string('force=true');
-        readResponseBlob(xhr.response.body).then(responseBody => {
-          expect(responseBody.is_cached).to.equal(false);
-        });
+        // is_cached in response should be false
+        expect(isCached).to.equal(false);
       });
     });
-
     cy.get('[data-test="more-horiz"]').click();
-    cy.get('[data-test="refresh-dashboard-menu-item"]')
-      .should('be.visible')
-      .and('not.have.class', 'ant-dropdown-menu-item-disabled');
+    cy.get('[data-test="refresh-dashboard-menu-item"]').and(
+      'not.have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
   });
 });
