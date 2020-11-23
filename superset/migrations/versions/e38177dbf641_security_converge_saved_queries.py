@@ -213,13 +213,13 @@ def migrate_roles(
 
 
 def get_reversed_new_pvms() -> Dict[str, Tuple[str, str]]:
-    new_pvms = {}
+    reversed_pvms = {}
     for old_pvm, new_pvms in PVM_MAP.items():
-        if old_pvm[0] not in new_pvms:
-            new_pvms[old_pvm[0]] = (old_pvm[1],)
+        if old_pvm[0] not in reversed_pvms:
+            reversed_pvms[old_pvm[0]] = (old_pvm[1],)
         else:
-            new_pvms[old_pvm[0]] = new_pvms[old_pvm[0]] + (old_pvm[1],)
-    return new_pvms
+            reversed_pvms[old_pvm[0]] = reversed_pvms[old_pvm[0]] + (old_pvm[1],)
+    return reversed_pvms
 
 
 def get_reversed_pvm_map() -> Dict[Tuple[str, str], Tuple[Tuple[str, str]]]:
@@ -268,7 +268,7 @@ def downgrade():
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    # Add the new permissions on the migration itself
+    # Add the old permissions on the migration itself
     add_pvms(session, get_reversed_new_pvms())
     migrate_roles(session, get_reversed_pvm_map())
     try:
