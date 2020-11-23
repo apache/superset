@@ -206,7 +206,7 @@ export default class ResultSet extends React.PureComponent<
     const { datasetToOverwrite } = this.state
 
     SupersetClient.put({
-      endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}`,
+      endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}?override_column=true`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sql,
