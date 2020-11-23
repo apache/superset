@@ -33,7 +33,6 @@ import {
   IconContainer,
   CardContainer,
   createErrorHandler,
-  CardStyles,
   shortenSQL,
 } from '../utils';
 
@@ -65,6 +64,16 @@ interface SavedQueriesProps {
   mine: Array<Query>;
 }
 
+export const CardStyles = styled.div`
+  cursor: pointer;
+  a {
+    text-decoration: none;
+  }
+  .ant-card-cover {
+    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+`;
+
 const QueryData = styled.div`
   svg {
     margin-left: ${({ theme }) => theme.gridUnit * 10}px;
@@ -80,7 +89,7 @@ const ShowEmptyState = styled.div`
   width: 100%;
   height: 171px;
   background-repeat: no-repeat;
-  background-size: 500px;
+  background-size: 539px;
 `;
 
 const QueryContainer = styled.div`
@@ -88,7 +97,7 @@ const QueryContainer = styled.div`
     height: ${({ theme }) => theme.gridUnit * 40}px;
     border: none !important;
     background-color: ${({ theme }) =>
-      theme.colors.grayscale.light4} !important;
+      theme.colors.grayscale.light5} !important;
     overflow: hidden;
     padding: ${({ theme }) => theme.gridUnit * 4}px !important;
   }
@@ -217,6 +226,7 @@ const SavedQueries = ({
       )}
     </Menu>
   );
+  console.log('queries', queries);
   return (
     <>
       {queryDeleteModal && (
@@ -301,6 +311,10 @@ const SavedQueries = ({
                         }}
                         style={github}
                         wrapLines
+                        lineNumberStyle={{
+                          display: 'none',
+                        }}
+                        showLineNumbers={false}
                       >
                         {shortenSQL(q.sql, 6)}
                       </SyntaxHighlighter>
