@@ -55,7 +55,6 @@ class AlertCommand(BaseCommand):
 
     def _validate_not_null(self, rows: np.recarray) -> None:
         self._result = rows[0][1]
-        return
 
     def _validate_operator(self, rows: np.recarray) -> None:
         # check if query return more then one row
@@ -97,5 +96,6 @@ class AlertCommand(BaseCommand):
             return
         rows = df.to_records()
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
-            return self._validate_not_null(rows)
-        return self._validate_operator(rows)
+            self._validate_not_null(rows)
+            return
+        self._validate_operator(rows)
