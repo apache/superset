@@ -76,6 +76,17 @@ from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __, lazy_gettext as _
+from holidays import CountryHoliday
+from pyparsing import (
+    CaselessKeyword,
+    Forward,
+    Group,
+    Optional as ppOptional,
+    ParseResults,
+    pyparsing_common,
+    quotedString,
+    Suppress,
+)
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -1234,111 +1245,197 @@ def ensure_path_exists(path: str) -> None:
             raise
 
 
-def get_calendar_since_until(
-    calendar_range: str, relative_day: str = "today",
-) -> Tuple[Optional[datetime], Optional[datetime]]:
-    """
-    Getting since datetime and until datetime tuple from calendar grains
+class EvalText:  # pylint: disable=too-few-public-methods
+    def __init__(self, tokens: ParseResults) -> None:
+        self.value = tokens[0]
 
-    :param calendar_range: Human-readable calendar range. eg: previous 2 months
-    :param relative_day: Calculate the calendar range on a specific date
-    :return: since datetime and until datetime
-
-    >>> from datetime import datetime
-    >>> get_calendar_since_until('previous 1 year', relative_day='2020-03-10')
-    (datetime.datetime(2020, 1, 1, 0, 0), datetime.datetime(2020, 12, 31, 0, 0))
-    >>> get_calendar_since_until('previous 1 month', relative_day='2020-03-10')
-    (datetime.datetime(2020, 2, 1, 0, 0), datetime.datetime(2020, 2, 29, 0, 0))
-    """
-    relative_day_dttm = parse_human_datetime(relative_day)
-    try:
-        rel, num, grain = calendar_range.lower().split()
-    except ValueError:
-        raise ValueError("Invalid calendar range string")
-
-    if grain in ("day", "week", "month", "year"):
-        grain = f"{grain}s"
-    anchor = relative_day_dttm - relativedelta(**{grain: int(num)})  # type: ignore
-    if grain == "days":
-        since, until = anchor, relative_day_dttm
-    elif grain == "weeks":
-        since = anchor - relativedelta(days=anchor.weekday())
-        until = since + relativedelta(days=6)
-    elif grain == "months":
-        since = anchor.replace(day=1)
-        until = anchor.replace(day=calendar.monthrange(anchor.year, anchor.month)[1])
-    elif grain == "years":
-        since = anchor.replace(month=1, day=1)
-        until = anchor.replace(month=12, day=31)
-    else:
-        since, until = None, None  # type: ignore
-    return since, until
+    def eval(self) -> str:
+        # strip quotes
+        return self.value[1:-1]
 
 
-def parse_time_range(
-    time_range: Optional[str] = None,
-) -> Tuple[Optional[datetime], Optional[datetime]]:
-    separator = " : "
-    default_anchor = "now"
-    delta_symbol = "^"
-    _time_range = "" if time_range is None else time_range
+class EvalDateTimeFunc:  # pylint: disable=too-few-public-methods
+    def __init__(self, tokens: ParseResults) -> None:
+        self.value = tokens[1]
 
-    def is_timedelta(s: Optional[str]) -> bool:
-        return True if s and s.startswith(delta_symbol) else False
+    def eval(self) -> datetime:
+        return parse_human_datetime(self.value.eval())
 
-    def mini_delta_to_human(s: str) -> str:
-        token_mapping = [
-            (r"^[-]?[1-9][0-9]*Y$", lambda x: f"{x[:-1]} years"),
-            (r"^[-]?[1-9][0-9]*m$", lambda x: f"{x[:-1]} months"),
-            (r"^[-]?[1-9][0-9]*d$", lambda x: f"{x[:-1]} days"),
-            (r"^[-]?[1-9][0-9]*W$", lambda x: f"{x[:-1]} weeks"),
-            (r"^[-]?[1-9][0-9]*H$", lambda x: f"{x[:-1]} hours"),
-            (r"^[-]?[1-9][0-9]*M$", lambda x: f"{x[:-1]} minutes"),
-            (r"^[-]?[1-9][0-9]*S$", lambda x: f"{x[:-1]} seconds"),
-        ]
-        for pattern, fn in token_mapping:
-            if re.search(pattern, s):
-                return fn(s)  # type: ignore
-        # could not find tokens, return original token
-        return s
 
-    def process_dttm_token(
-        source_time: datetime, dttm: Optional[str] = None,
-    ) -> Optional[datetime]:
-        if not dttm:
-            return None
-        if is_timedelta(dttm):
-            return source_time + parse_human_timedelta(
-                mini_delta_to_human(dttm[1:]), source_time
+class EvalDateAddFunc:  # pylint: disable=too-few-public-methods
+    def __init__(self, tokens: ParseResults) -> None:
+        self.value = tokens[1]
+
+    def eval(self) -> datetime:
+        dttm_expression, delta, unit = self.value
+        dttm = dttm_expression.eval()
+        return dttm + parse_human_timedelta(f"{delta} {unit}s", dttm)
+
+
+class EvalDateTruncFunc:  # pylint: disable=too-few-public-methods
+    def __init__(self, tokens: ParseResults) -> None:
+        self.value = tokens[1]
+
+    def eval(self) -> datetime:
+        dttm_expression, unit = self.value
+        dttm = dttm_expression.eval()
+        if unit == "year":
+            dttm = dttm.replace(
+                month=1, day=1, hour=0, minute=0, second=0, microsecond=0
             )
+        elif unit == "month":
+            dttm = dttm.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        elif unit == "week":
+            dttm = dttm - relativedelta(days=dttm.weekday())
+            dttm = dttm.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif unit == "day":
+            dttm = dttm.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif unit == "hour":
+            dttm = dttm.replace(minute=0, second=0, microsecond=0)
+        elif unit == "minute":
+            dttm = dttm.replace(second=0, microsecond=0)
         else:
-            return parse_human_datetime(dttm)
-
-    if separator not in _time_range:
-        return None, None
-
-    partition = _time_range.split(separator, 2)
-    if len(partition) == 2:
-        since, until = partition
-        if not is_timedelta(since) and is_timedelta(until):
-            anchor = parse_human_datetime(since)
-        elif is_timedelta(since) and not is_timedelta(until):
-            anchor = parse_human_datetime(until)
-        else:
-            anchor = parse_human_datetime(default_anchor)
-    else:
-        # len(partition) == 3
-        since, until, _anchor = partition
-        anchor = parse_human_datetime(_anchor or default_anchor)
-
-    if since:
-        since = add_ago_to_since(since)
-
-    _since, _until = [process_dttm_token(anchor, d) for d in [since, until]]
-    return _since, _until
+            dttm = dttm.replace(microsecond=0)
+        return dttm
 
 
-def get_since_until(  # pylint: disable=too-many-arguments
+class EvalLastDayFunc:  # pylint: disable=too-few-public-methods
+    def __init__(self, tokens: ParseResults) -> None:
+        self.value = tokens[1]
+
+    def eval(self) -> datetime:
+        dttm_expression, unit = self.value
+        dttm = dttm_expression.eval()
+        if unit == "year":
+            return dttm.replace(
+                month=12, day=31, hour=0, minute=0, second=0, microsecond=0
+            )
+        if unit == "month":
+            return dttm.replace(
+                day=calendar.monthrange(dttm.year, dttm.month)[1],
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
+            )
+        # unit == "week":
+        mon = dttm - relativedelta(days=dttm.weekday())
+        mon = mon.replace(hour=0, minute=0, second=0, microsecond=0)
+        return mon + relativedelta(days=6)
+
+
+class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
+    def __init__(self, tokens: ParseResults) -> None:
+        self.value = tokens[1]
+
+    def eval(self) -> datetime:
+        holiday = self.value[0].eval()
+        dttm, country = [None, None]
+        if len(self.value) >= 2:
+            dttm = self.value[1].eval()
+        if len(self.value) == 3:
+            country = self.value[2]
+        holiday_year = dttm.year if dttm else parse_human_datetime("today").year
+        country = country.eval() if country else "US"
+
+        holiday_lookup = CountryHoliday(country, years=[holiday_year], observed=False)
+        searched_result = holiday_lookup.get_named(holiday)
+        if len(searched_result) == 1:
+            return dttm_from_timetuple(searched_result[0].timetuple())
+        raise ValueError
+
+
+def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
+    (  # pylint: disable=invalid-name
+        DATETIME,
+        DATEADD,
+        DATETRUNC,
+        LASTDAY,
+        HOLIDAY,
+        YEAR,
+        MONTH,
+        WEEK,
+        DAY,
+        HOUR,
+        MINUTE,
+        SECOND,
+    ) = map(
+        CaselessKeyword,
+        "datetime dateadd datetrunc lastday holiday "
+        "year month week day hour minute second".split(),
+    )
+    lparen, rparen, comma = map(Suppress, "(),")
+    int_operand = pyparsing_common.signed_integer().setName("int_operand")
+    text_operand = quotedString.setName("text_operand").setParseAction(EvalText)
+
+    # allow expression to be used recursively
+    datetime_func = Forward().setName("datetime")
+    dateadd_func = Forward().setName("dateadd")
+    datetrunc_func = Forward().setName("datetrunc")
+    lastday_func = Forward().setName("lastday")
+    holiday_func = Forward().setName("holiday")
+    date_expr = (
+        datetime_func | dateadd_func | datetrunc_func | lastday_func | holiday_func
+    )
+
+    datetime_func <<= (DATETIME + lparen + text_operand + rparen).setParseAction(
+        EvalDateTimeFunc
+    )
+    dateadd_func <<= (
+        DATEADD
+        + lparen
+        + Group(
+            date_expr
+            + comma
+            + int_operand
+            + comma
+            + (YEAR | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
+            + ppOptional(comma)
+        )
+        + rparen
+    ).setParseAction(EvalDateAddFunc)
+    datetrunc_func <<= (
+        DATETRUNC
+        + lparen
+        + Group(
+            date_expr
+            + comma
+            + (YEAR | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
+            + ppOptional(comma)
+        )
+        + rparen
+    ).setParseAction(EvalDateTruncFunc)
+    lastday_func <<= (
+        LASTDAY
+        + lparen
+        + Group(date_expr + comma + (YEAR | MONTH | WEEK) + ppOptional(comma))
+        + rparen
+    ).setParseAction(EvalLastDayFunc)
+    holiday_func <<= (
+        HOLIDAY
+        + lparen
+        + Group(
+            text_operand
+            + ppOptional(comma)
+            + ppOptional(date_expr)
+            + ppOptional(comma)
+            + ppOptional(text_operand)
+            + ppOptional(comma)
+        )
+        + rparen
+    ).setParseAction(EvalHolidayFunc)
+
+    return date_expr
+
+
+def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetime]:
+    if datetime_expression:
+        return datetime_parser().parseString(datetime_expression)[0].eval()
+    return None
+
+
+# pylint: disable=too-many-arguments, too-many-locals, too-many-branches
+def get_since_until(
     time_range: Optional[str] = None,
     since: Optional[str] = None,
     until: Optional[str] = None,
@@ -1371,46 +1468,67 @@ def get_since_until(  # pylint: disable=too-many-arguments
 
     """
     separator = " : "
-    _relative_start = parse_human_datetime(
-        relative_start if relative_start else "today"
-    )
-    _relative_end = parse_human_datetime(relative_end if relative_end else "today")
-    common_time_frames = (
-        "last day",
-        "last week",
-        "last month",
-        "last quarter",
-        "last year",
-    )
-    if time_range and time_range.lower() in common_time_frames:
-        rel, grain = time_range.split()
-        time_range = f"{rel.lower()} 1 {grain.lower()}s"
+    _relative_start = relative_start if relative_start else "today"
+    _relative_end = relative_end if relative_end else "today"
 
-    if time_range:
-        if separator in time_range:
-            _since, _until = parse_time_range(time_range)
-        elif "previous" in time_range.lower():
-            _since, _until = get_calendar_since_until(time_range)
-        elif time_range == "No filter":
-            _since = _until = None
-        else:
-            rel, num, grain = time_range.split()
-            if rel.lower() == "last":
-                _since = _relative_start - relativedelta(
-                    **{grain: int(num)}  # type: ignore
-                )
-                _until = _relative_end
-            else:  # rel == 'Next'
-                _since = _relative_start
-                _until = _relative_end + relativedelta(
-                    **{grain: int(num)}  # type: ignore
-                )
+    if time_range == "No filter":
+        _since = _until = None
+
+    if time_range and time_range.startswith("Last") and separator not in time_range:
+        time_range = time_range + separator + _relative_end
+
+    if time_range and time_range.startswith("Next") and separator not in time_range:
+        time_range = _relative_start + separator + time_range
+
+    if time_range and separator in time_range:
+        time_range_lookup = [
+            (
+                r"^last\s+(day|week|month|quarter|year)$",
+                lambda unit: f"DATEADD(DATETIME('{_relative_start}'), -1, {unit})",
+            ),
+            (
+                r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long
+            ),
+            (
+                r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long
+            ),
+            (
+                r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
+                lambda text: text,
+            ),
+        ]
+
+        since_and_until_partition = [_.strip() for _ in time_range.split(separator, 1)]
+        since_and_until: List[Optional[str]] = []
+        for part in since_and_until_partition:
+            if not part:
+                # if since or until is None
+                since_and_until.append(None)
+                continue
+
+            matched = False
+            for pattern, fn in time_range_lookup:
+                result = re.search(pattern, part, re.IGNORECASE)
+                if result:
+                    matched = True
+                    since_and_until.append(fn(*result.groups()))  # type: ignore
+            if not matched:
+                # default matched case
+                since_and_until.append(f"DATETIME('{part}')")
+
+        _since, _until = map(datetime_eval, since_and_until)
     else:
         since = since or ""
         if since:
             since = add_ago_to_since(since)
         _since = parse_human_datetime(since) if since else None
-        _until = parse_human_datetime(until) if until else _relative_end
+        _until = (
+            parse_human_datetime(until)
+            if until
+            else parse_human_datetime(_relative_end)
+        )
 
     if time_shift:
         time_delta = parse_past_timedelta(time_shift)

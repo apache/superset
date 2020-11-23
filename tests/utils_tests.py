@@ -47,7 +47,6 @@ from superset.utils.core import (
     get_email_address_list,
     get_or_create_db,
     get_since_until,
-    get_calendar_since_until,
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
@@ -64,7 +63,7 @@ from superset.utils.core import (
     validate_json,
     zlib_compress,
     zlib_decompress,
-    parse_time_range,
+    datetime_eval,
 )
 from superset.utils import schema
 from superset.views.utils import (
@@ -100,8 +99,6 @@ def mock_parse_human_datetime(s):
         return datetime(2018, 1, 1)
     elif s == "2018-12-31T23:59:59":
         return datetime(2018, 12, 31, 23, 59, 59)
-    elif s == "2020-02-01T00:00:00":
-        return datetime(2020, 2, 1)
 
 
 def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
@@ -760,107 +757,106 @@ class TestUtils(SupersetTestCase):
         expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
         self.assertEqual(result, expected)
 
-        result = get_since_until("Previous 1 week")
-        expected = datetime(2016, 10, 31), datetime(2016, 11, 6)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("2020-02-01T00:00:00 : ^1 month")
-        expected = datetime(2020, 2, 1), datetime(2020, 3, 1)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("2020-02-01T00:00:00 : ^1m")
-        expected = datetime(2020, 2, 1), datetime(2020, 3, 1)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("^-1 month : 2020-02-01T00:00:00")
-        expected = datetime(2020, 1, 1), datetime(2020, 2, 1)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("^-1m : 2020-02-01T00:00:00")
-        expected = datetime(2020, 1, 1), datetime(2020, 2, 1)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("^-1 month : ^2 days : 2020-02-01T00:00:00")
-        expected = datetime(2020, 1, 1), datetime(2020, 2, 3)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("^-1m : ^2d : 2020-02-01T00:00:00")
-        expected = datetime(2020, 1, 1), datetime(2020, 2, 3)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("^-1 month : ^5 days")
-        expected = datetime(2016, 10, 7, 9, 30, 10), datetime(2016, 11, 12, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("^-1m : ^5d")
-        expected = datetime(2016, 10, 7, 9, 30, 10), datetime(2016, 11, 12, 9, 30, 10)
-        self.assertEqual(result, expected)
-
         with self.assertRaises(ValueError):
             get_since_until(time_range="tomorrow : yesterday")
 
     @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
-    def test_parse_time_range(self):
-        result = parse_time_range("today : ^2Y")
-        expected = datetime(2016, 11, 7), datetime(2018, 11, 7)
+    def test_datetime_eval(self):
+        result = datetime_eval("datetime('now')")
+        expected = datetime(2016, 11, 7, 9, 30, 10)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("^-2m : today")
-        expected = datetime(2016, 9, 7), datetime(2016, 11, 7)
+        result = datetime_eval("datetime('today'  )")
+        expected = datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("^-2d : today")
-        expected = datetime(2016, 11, 5), datetime(2016, 11, 7)
+        # Parse compact arguments spelling
+        result = datetime_eval("dateadd(datetime('today'),1,year,)")
+        expected = datetime(2017, 11, 7)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("^-1W : 2020-02-01T00:00:00")
-        expected = datetime(2020, 1, 25), datetime(2020, 2, 1)
+        result = datetime_eval("dateadd(datetime('today'), -2, year)")
+        expected = datetime(2014, 11, 7)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("2020-02-01T00:00:00 : ^2H")
-        expected = datetime(2020, 2, 1, 0, 0, 0), datetime(2020, 2, 1, 2, 0, 0)
+        result = datetime_eval("dateadd(datetime('today'), 3, month)")
+        expected = datetime(2017, 2, 7)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("2020-02-01T00:00:00 : ^20M")
-        expected = datetime(2020, 2, 1, 0, 0, 0), datetime(2020, 2, 1, 0, 20, 0)
+        result = datetime_eval("dateadd(datetime('today'), -3, week)")
+        expected = datetime(2016, 10, 17)
         self.assertEqual(result, expected)
 
-        result = parse_time_range("^-119S : 2020-02-01T00:00:00")
-        expected = datetime(2020, 1, 31, 23, 58, 1), datetime(2020, 2, 1, 0, 0, 0)
+        result = datetime_eval("dateadd(datetime('today'), 3, day)")
+        expected = datetime(2016, 11, 10)
         self.assertEqual(result, expected)
 
-    @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
-    def test_get_calendar_since_until(self):
-        result = get_calendar_since_until("previous 1 day")
-        expected = datetime(2016, 11, 6), datetime(2016, 11, 7)
+        result = datetime_eval("dateadd(datetime('now'), 3, hour)")
+        expected = datetime(2016, 11, 7, 12, 30, 10)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until("previous 1 week")
-        expected = datetime(2016, 10, 31), datetime(2016, 11, 6)
+        result = datetime_eval("dateadd(datetime('now'), 40, minute)")
+        expected = datetime(2016, 11, 7, 10, 10, 10)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until("previous 1 month")
-        expected = datetime(2016, 10, 1), datetime(2016, 10, 31)
+        result = datetime_eval("dateadd(datetime('now'), -11, second)")
+        expected = datetime(2016, 11, 7, 9, 29, 59)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until("previous 1 year")
-        expected = datetime(2015, 1, 1), datetime(2015, 12, 31)
+        result = datetime_eval("datetrunc(datetime('now'), year)")
+        expected = datetime(2016, 1, 1, 0, 0, 0)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until("previous 2 years")
-        expected = datetime(2014, 1, 1), datetime(2014, 12, 31)
+        result = datetime_eval("datetrunc(datetime('now'), month)")
+        expected = datetime(2016, 11, 1, 0, 0, 0)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until(
-            "previous 1 year", relative_day="2018-01-01T00:00:00",
+        result = datetime_eval("datetrunc(datetime('now'), day)")
+        expected = datetime(2016, 11, 7, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), week)")
+        expected = datetime(2016, 11, 7, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), hour)")
+        expected = datetime(2016, 11, 7, 9, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), minute)")
+        expected = datetime(2016, 11, 7, 9, 30, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), second)")
+        expected = datetime(2016, 11, 7, 9, 30, 10)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("lastday(datetime('now'), year)")
+        expected = datetime(2016, 12, 31, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("lastday(datetime('today'), month)")
+        expected = datetime(2016, 11, 30, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("holiday('Christmas')")
+        expected = datetime(2016, 12, 25, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("holiday('Labor day', datetime('2018-01-01T00:00:00'))")
+        expected = datetime(2018, 9, 3, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval(
+            "holiday('Boxing day', datetime('2018-01-01T00:00:00'), 'UK')"
         )
-        expected = datetime(2017, 1, 1), datetime(2017, 12, 31)
+        expected = datetime(2018, 12, 26, 0, 0, 0)
         self.assertEqual(result, expected)
 
-        result = get_calendar_since_until(
-            "previous 1 month", relative_day="2018-01-01T00:00:00",
+        result = datetime_eval(
+            "lastday(dateadd(datetime('2018-01-01T00:00:00'), 1, month), month)"
         )
-        expected = datetime(2017, 12, 1), datetime(2017, 12, 31)
+        expected = datetime(2018, 2, 28, 0, 0, 0)
         self.assertEqual(result, expected)
 
     @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
