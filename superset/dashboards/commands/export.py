@@ -56,12 +56,13 @@ class ExportDashboardsCommand(ExportModelsCommand):
         # TODO (betodealmeida): move this logic to export_to_dict once this
         # becomes the default export endpoint
         for key, new_name in JSON_KEYS.items():
-            if payload.get(key):
+            if key in payload:
                 value = payload.pop(key)
                 try:
                     payload[new_name] = json.loads(value)
-                except json.decoder.JSONDecodeError:
+                except (TypeError, json.decoder.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
+                    payload[new_name] = ""
 
         payload["version"] = EXPORT_VERSION
 

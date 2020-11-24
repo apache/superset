@@ -36,6 +36,12 @@ chart_metadata_config: Dict[str, Any] = {
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
 
+dashboard_metadata_config: Dict[str, Any] = {
+    "version": "1.0.0",
+    "type": "Dashboard",
+    "timestamp": "2020-11-04T21:27:44.423819+00:00",
+}
+
 database_config: Dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
@@ -134,4 +140,57 @@ chart_config: Dict[str, Any] = {
     "uuid": "0c23747a-6528-4629-97bf-e4b78d3b9df1",
     "version": "1.0.0",
     "dataset_uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
+}
+
+dashboard_config = {
+    "dashboard_title": "Test dash",
+    "description": None,
+    "css": "",
+    "slug": None,
+    "uuid": "c4b28c4e-a1fe-4cf8-a5ac-d6f11d6fdd51",
+    "position": {
+        "CHART-SVAlICPOSJ": {
+            "children": [],
+            "id": "CHART-SVAlICPOSJ",
+            "meta": {
+                "chartId": 83,
+                "height": 50,
+                "sliceName": "Number of California Births",
+                "uuid": "0c23747a-6528-4629-97bf-e4b78d3b9df1",
+                "width": 4,
+            },
+            "parents": ["ROOT_ID", "GRID_ID", "ROW-dP_CHaK2q"],
+            "type": "CHART",
+        },
+        "DASHBOARD_VERSION_KEY": "v2",
+        "GRID_ID": {
+            "children": ["ROW-dP_CHaK2q"],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+        "HEADER_ID": {
+            "id": "HEADER_ID",
+            "meta": {"text": "Test dash"},
+            "type": "HEADER",
+        },
+        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+        "ROW-dP_CHaK2q": {
+            "children": ["CHART-SVAlICPOSJ"],
+            "id": "ROW-dP_CHaK2q",
+            "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "ROW",
+        },
+    },
+    "metadata": {
+        "timed_refresh_immune_slices": [],
+        "expanded_slices": {},
+        "refresh_frequency": 0,
+        "default_filters": "{}",
+        "color_scheme": None,
+        "remote_id": 7,
+        "import_time": 1604342885,
+    },
+    "version": "1.0.0",
 }
