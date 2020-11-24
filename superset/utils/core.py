@@ -1269,6 +1269,9 @@ class EvalDateAddFunc:  # pylint: disable=too-few-public-methods
     def eval(self) -> datetime:
         dttm_expression, delta, unit = self.value
         dttm = dttm_expression.eval()
+        if unit.lower() == "quarter":
+            delta = delta * 3
+            unit = 'month'
         return dttm + parse_human_timedelta(f"{delta} {unit}s", dttm)
 
 
@@ -1353,6 +1356,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         LASTDAY,
         HOLIDAY,
         YEAR,
+        QUARTER,
         MONTH,
         WEEK,
         DAY,
@@ -1362,7 +1366,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     ) = map(
         CaselessKeyword,
         "datetime dateadd datetrunc lastday holiday "
-        "year month week day hour minute second".split(),
+        "year quarter month week day hour minute second".split(),
     )
     lparen, rparen, comma = map(Suppress, "(),")
     int_operand = pyparsing_common.signed_integer().setName("int_operand")
@@ -1389,7 +1393,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + comma
             + int_operand
             + comma
-            + (YEAR | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
+            + (YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
             + ppOptional(comma)
         )
         + rparen
@@ -1518,6 +1522,9 @@ def get_since_until(
                 # default matched case
                 since_and_until.append(f"DATETIME('{part}')")
 
+        logger.debug(f"Raw [time_range] text: {time_range}")
+        logger.debug(f"[since] datetime_eval text: {since_and_until[0]}")
+        logger.debug(f"[until] datetime_eval text: {since_and_until[1]}")
         _since, _until = map(datetime_eval, since_and_until)
     else:
         since = since or ""

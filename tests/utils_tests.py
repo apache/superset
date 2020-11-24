@@ -721,6 +721,10 @@ class TestUtils(SupersetTestCase):
         expected = datetime(2015, 11, 7), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
+        result = get_since_until("Last quarter")
+        expected = datetime(2016, 8, 7), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
         result = get_since_until("Last 5 months")
         expected = datetime(2016, 6, 7), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
@@ -777,6 +781,10 @@ class TestUtils(SupersetTestCase):
 
         result = datetime_eval("dateadd(datetime('today'), -2, year)")
         expected = datetime(2014, 11, 7)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("dateadd(datetime('today'), 2, quarter)")
+        expected = datetime(2017, 5, 7)
         self.assertEqual(result, expected)
 
         result = datetime_eval("dateadd(datetime('today'), 3, month)")
