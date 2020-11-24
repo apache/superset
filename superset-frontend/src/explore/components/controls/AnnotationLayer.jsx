@@ -70,36 +70,38 @@ const propTypes = {
   }),
   error: PropTypes.string,
   colorScheme: PropTypes.string,
-
   isNew: PropTypes.bool,
-  addAnnotationLayer: PropTypes.func,
-  removeAnnotationLayer: PropTypes.func,
-  close: PropTypes.func,
+
+  onSubmit: PropTypes.func,
+  onRemove: PropTypes.func,
+  onClose: PropTypes.func,
+};
+
+const defaultAnnotationValues = {
+  name: '',
+  annotationType: DEFAULT_ANNOTATION_TYPE,
+  sourceType: '',
+  color: AUTOMATIC_COLOR,
+  opacity: '',
+  style: 'solid',
+  width: 1,
+  showMarkers: false,
+  hideLine: false,
+  overrides: {},
+  colorScheme: 'd3Category10',
+  show: true,
+  titleColumn: '',
+  descriptionColumns: [],
+  timeColumn: '',
+  intervalEndColumn: '',
 };
 
 const defaultProps = {
-  annotation: {
-    name: '',
-    annotationType: DEFAULT_ANNOTATION_TYPE,
-    sourceType: '',
-    color: AUTOMATIC_COLOR,
-    opacity: '',
-    style: 'solid',
-    width: 1,
-    showMarkers: false,
-    hideLine: false,
-    overrides: {},
-    colorScheme: 'd3Category10',
-    show: true,
-    titleColumn: '',
-    descriptionColumns: [],
-    timeColumn: '',
-    intervalEndColumn: '',
-  },
+  annotation: defaultAnnotationValues,
   isNew: false,
-  addAnnotationLayer: () => {},
-  removeAnnotationLayer: () => {},
-  close: () => {},
+  onSubmit: () => {},
+  onRemove: () => {},
+  onClose: () => {},
 };
 
 export default class AnnotationLayer extends React.PureComponent {
@@ -126,9 +128,11 @@ export default class AnnotationLayer extends React.PureComponent {
       isLoadingOptions: true,
       valueOptions: [],
     };
+
     this.setAnnotationState = this.setAnnotationState.bind(this);
     this.submitAnnotation = this.submitAnnotation.bind(this);
-    this.deleteAnnotation = this.deleteAnnotation.bind(this);
+    this.cancelAnnotation = this.cancelAnnotation.bind(this);
+    this.removeAnnotation = this.removeAnnotation.bind(this);
     this.applyAnnotation = this.applyAnnotation.bind(this);
     this.fetchOptions = this.fetchOptions.bind(this);
     this.handleAnnotationType = this.handleAnnotationType.bind(this);
@@ -147,9 +151,9 @@ export default class AnnotationLayer extends React.PureComponent {
     this.fetchOptions(annotationType, sourceType, isLoadingOptions);
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.sourceType !== this.state.sourceType) {
-      const { annotationType, sourceType } = this.state.annotation;
+  componentDidUpdate(_prevProps, prevState) {
+    const { annotationType, sourceType } = this.state.annotation;
+    if (prevState.annotation.sourceType !== sourceType) {
       this.fetchOptions(annotationType, sourceType, true);
     }
   }
@@ -287,13 +291,9 @@ export default class AnnotationLayer extends React.PureComponent {
     }
   }
 
-  deleteAnnotation() {
-    this.props.close();
-    if (this.props.isNew) {
-      this.setState({ annotation: defaultProps.annotation });
-    } else {
-      this.props.removeAnnotationLayer(this.props.annotation);
-    }
+  cancelAnnotation() {
+    this.setState({ annotation: defaultAnnotationValues });
+    this.props.onClose();
   }
 
   applyAnnotation() {
@@ -302,17 +302,22 @@ export default class AnnotationLayer extends React.PureComponent {
       if (annotation.color === AUTOMATIC_COLOR) {
         annotation.color = null;
       }
-      this.props.addAnnotationLayer(annotation);
-      // TODO: pass oldName
+      this.props.onSubmit(annotation);
+
       if (this.props.isNew) {
         this.setState({ annotation: defaultProps.annotation });
       }
     }
   }
 
+  removeAnnotation() {
+    this.props.onRemove();
+    this.props.onClose();
+  }
+
   submitAnnotation() {
     this.applyAnnotation();
-    this.props.close();
+    this.props.onClose();
   }
 
   renderOption(option) {
@@ -712,9 +717,15 @@ export default class AnnotationLayer extends React.PureComponent {
           {this.renderDisplayConfiguration()}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button buttonSize="sm" onClick={this.deleteAnnotation}>
-            {!isNew ? t('Remove') : t('Cancel')}
-          </Button>
+          {isNew ? (
+            <Button buttonSize="sm" onClick={this.cancelAnnotation}>
+              {t('Cancel')}
+            </Button>
+          ) : (
+            <Button buttonSize="sm" onClick={this.removeAnnotation}>
+              {t('Remove')}
+            </Button>
+          )}
           <div>
             <Button
               buttonSize="sm"
