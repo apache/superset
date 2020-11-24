@@ -68,7 +68,10 @@ const App = () => (
     <ThemeProvider theme={supersetTheme}>
       <FlashProvider common={common}>
         <Router>
-          <QueryParamProvider ReactRouterRoute={Route}>
+          <QueryParamProvider
+            ReactRouterRoute={Route}
+            stringifyOptions={{ encode: false }}
+          >
             <Menu data={menu} />
             <Switch>
               <Route path="/superset/welcome/">
