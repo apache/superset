@@ -119,7 +119,6 @@ class AnnotationLayerControl extends React.PureComponent {
         <AnnotationLayer
           annotation={annotation}
           isNew={isNew}
-          parent={this.refs[parent]}
           error={error}
           colorScheme={this.props.colorScheme}
           vizType={this.props.vizType}
