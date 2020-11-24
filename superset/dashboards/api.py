@@ -39,6 +39,7 @@ from superset.dashboards.commands.exceptions import (
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
     DashboardForbiddenError,
+    DashboardImportError,
     DashboardInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
@@ -694,6 +695,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except CommandInvalidError as exc:
             logger.warning("Import dashboard failed")
             return self.response_422(message=exc.normalized_messages())
-        except Exception as exc:  # pylint: disable=broad-except
+        except DashboardImportError as exc:
             logger.exception("Import dashboard failed")
             return self.response_500(message=str(exc))
