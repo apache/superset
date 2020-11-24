@@ -230,7 +230,11 @@ export default class ResultSet extends React.PureComponent<
           row_limit: 1000,
         });
       })
-      .catch(err => alert(err));
+      .catch(() => {
+        this.props.actions.addDangerToast(
+          t('An error occurred overwriting dataset'),
+        );
+      });
 
     this.setState({showSaveDatasetModal: false, overwriteDataSet: false})
   }
@@ -275,7 +279,7 @@ export default class ResultSet extends React.PureComponent<
           row_limit: 1000,
         });
       })
-      .catch((error: any) => {
+      .catch(() => {
         this.props.actions.addDangerToast(
           t('An error occurred saving dataset'),
         );
