@@ -273,7 +273,7 @@ export default class ResultSet extends React.PureComponent<
         datasourceName: this.state.newSaveDatasetName,
         columns: selectedColumns,
       })
-      .then((data: { table_id: any }) => {
+      .then((data: { table_id: number }) => {
         exploreChart({
           datasource: `${data.table_id}__table`,
           metrics: [],
