@@ -40,6 +40,9 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal'
 
 const SEARCH_HEIGHT = 46;
 
+const SAVE_NEW_DATASET_RADIO_STATE = 1;
+const OVERWRITE_DATASET_RADIO_STATE = 2;
+
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
 interface ResultSetProps {
@@ -99,7 +102,7 @@ export default class ResultSet extends React.PureComponent<
       showSaveDatasetModal: false,
       newSaveDatasetName: '',
       userDatasetsOwned: [],
-      saveDatasetRadioBtnState: 1,
+      saveDatasetRadioBtnState: SAVE_NEW_DATASET_RADIO_STATE,
       overwriteDataSet: false,
       datasetToOverwrite: {},
     };
@@ -241,8 +244,8 @@ export default class ResultSet extends React.PureComponent<
 
   handleSaveInDataset() {
     // if user wants to overwrite a dataset we need to prompt them
-    if (this.state.saveDatasetRadioBtnState === 2) {
-      this.setState({overwriteDataSet: true})
+    if (this.state.saveDatasetRadioBtnState === OVERWRITE_DATASET_RADIO_STATE) {
+      this.setState({ overwriteDataSet: true });
       return;
     }
 
