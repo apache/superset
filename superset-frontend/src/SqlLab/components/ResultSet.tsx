@@ -211,10 +211,8 @@ export default class ResultSet extends React.PureComponent<
       body: JSON.stringify({
         sql,
         columns: results.selected_columns.map(d => ({column_name: d.name}))
-        //columns: []
       }),
     }).then(d => {
-        console.log(d);
         exploreChart({
           datasource: `${datasetToOverwrite.dataSetId}__table`,
           metrics: [],
@@ -225,17 +223,9 @@ export default class ResultSet extends React.PureComponent<
           row_limit: 1000,
         });
       })
-      .catch(err => console.log(err));
+      .catch(err => alert(err));
 
       this.setState({showSaveDatasetModal: false, overwriteDataSet: false})
-
-    // sync columns for dataset
-    // SupersetClient.get({
-    //   endpoint: `/datasource/external_metadata/table/${datasetToOverwrite.dataSetId}`,
-    //   headers: { 'Content-Type': 'application/json' },
-    // }).then(d => {
-    //   console.log(d);
-    // }).catch(err => console.log(err));
   }
 
   handleSaveInDataset() {
