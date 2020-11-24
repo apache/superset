@@ -362,7 +362,10 @@ export default class ResultSet extends React.PureComponent<
                   database={this.props.database}
                   actions={this.props.actions}
                   onClick={() => {
-                    this.setState({showSaveDatasetModal: true, ctasSave: false})
+                    this.setState({
+                      showSaveDatasetModal: true,
+                      ctasSave: false,
+                    });
                   }}
                 />
               )}
