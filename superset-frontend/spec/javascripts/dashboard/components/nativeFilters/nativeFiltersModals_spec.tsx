@@ -17,29 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import FilterConfigurationButton from 'src/dashboard/components/nativeFilters/FilterConfigurationButton';
+//import { mount } from 'enzyme';
+import FilterConfigModal from 'src/dashboard/components/nativeFilters/FilterConfigModal';
 
-describe('FilterConfigurationButton', () => {
-  const mockedProps = {};
-  it('it is valid', () => {
-    expect(
-      React.isValidElement(<FilterConfigurationButton {...mockedProps} />),
-    ).toBe(true);
-  });
-  it('takes in children', () => {
-    const wrapper = mount(
-      <FilterConfigurationButton>
-        <span>Test</span>{' '}
-      </FilterConfigurationButton>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: {
-          theme: supersetTheme,
-        },
-      },
+describe('FiltersConfigModal', () => {
+  const mockedProps = {
+    isOpen: true,
+    initialFilterId: 'DefaultFilterId',
+    createNewOnOpen: true,
+    save: jest.fn(),
+    onCanel: jest.fn(),
+  };
+  it('should be a valid', () => {
+    expect(React.isValidElement(<FilterConfigModal {...mockedProps} />)).toBe(
+      true,
     );
-    expect(wrapper.find('span')).toHaveLength(1);
   });
 });
