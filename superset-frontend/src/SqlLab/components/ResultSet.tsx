@@ -242,7 +242,7 @@ export default class ResultSet extends React.PureComponent<
         );
       });
 
-    this.setState({showSaveDatasetModal: false, overwriteDataSet: false})
+    this.setState({showSaveDatasetModal: false, overwriteDataSet: false, datasetToOverwrite: {}})
   }
 
   handleSaveInDataset() {
