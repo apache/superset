@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import { getCategoricalSchemeRegistry, styled } from '@superset-ui/core';
-import { Avatar, Tooltip } from 'src/common/components';
+import { Tooltip } from 'src/common/components/Tooltip';
+import { Avatar } from 'src/common/components';
 import { getRandomColor } from './utils';
 
 interface FacePileProps {

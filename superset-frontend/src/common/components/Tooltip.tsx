@@ -17,11 +17,17 @@
  * under the License.
  */
 import React from 'react';
+import { useTheme } from '@superset-ui/core';
 import { Tooltip as BaseTooltip } from 'src/common/components';
 import { TooltipProps } from 'antd/lib/tooltip';
 
-const Tooltip = (props: TooltipProps) => (
-  <BaseTooltip overlayStyle={{ fontSize: '12px' }} {...props} />
-);
-
-export default Tooltip;
+export const Tooltip = (props: TooltipProps) => {
+  const theme = useTheme();
+  return (
+    <BaseTooltip
+      overlayStyle={{ fontSize: theme.typography.sizes.s, lineHeight: '1.6' }}
+      color={`${theme.colors.grayscale.dark2}e6`}
+      {...props}
+    />
+  );
+};
