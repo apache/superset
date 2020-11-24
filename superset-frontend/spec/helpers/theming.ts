@@ -17,8 +17,9 @@
  * under the License.
  */
 import { shallow as enzymeShallow, mount as enzymeMount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { supersetTheme } from '@superset-ui/core';
 import { ReactElement } from 'react';
+import { ProviderWrapper } from './ProviderWrapper';
 
 type optionsType = {
   wrappingComponentProps?: any;
@@ -32,7 +33,7 @@ export function styledMount(
 ) {
   return enzymeMount(component, {
     ...options,
-    wrappingComponent: ThemeProvider,
+    wrappingComponent: ProviderWrapper,
     wrappingComponentProps: {
       theme: supersetTheme,
       ...options?.wrappingComponentProps,
@@ -46,7 +47,7 @@ export function styledShallow(
 ) {
   return enzymeShallow(component, {
     ...options,
-    wrappingComponent: ThemeProvider,
+    wrappingComponent: ProviderWrapper,
     wrappingComponentProps: {
       theme: supersetTheme,
       ...options?.wrappingComponentProps,

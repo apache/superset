@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
@@ -34,7 +34,7 @@ import {
 } from './fixtures/AlteredSliceTag';
 
 const getTableWrapperFromModalBody = modalBody =>
-  modalBody.find(ListView).shallow().find(TableCollection).shallow();
+  modalBody.find(ListView).find(TableCollection);
 
 describe('AlteredSliceTag', () => {
   let wrapper;
@@ -47,7 +47,7 @@ describe('AlteredSliceTag', () => {
       fakePluginControls,
     );
     props = { ...defaultProps };
-    wrapper = shallow(<AlteredSliceTag {...props} />);
+    wrapper = mount(<AlteredSliceTag {...props} />);
     ({ controlsMap } = wrapper.instance().state);
   });
 
@@ -63,7 +63,7 @@ describe('AlteredSliceTag', () => {
       origFormData: props.origFormData,
       currentFormData: props.origFormData,
     };
-    wrapper = shallow(<AlteredSliceTag {...props} />);
+    wrapper = mount(<AlteredSliceTag {...props} />);
     expect(wrapper.instance().state.rows).toEqual([]);
     expect(wrapper.instance().state.hasDiffs).toBe(false);
     expect(wrapper.instance().render()).toBeNull();
@@ -78,7 +78,7 @@ describe('AlteredSliceTag', () => {
       currentFormData: { ...props.currentFormData },
       origFormData: { ...props.origFormData },
     };
-    wrapper = shallow(<AlteredSliceTag {...props} />);
+    wrapper = mount(<AlteredSliceTag {...props} />);
     const wrapperInstance = wrapper.instance();
     wrapperInstance.UNSAFE_componentWillReceiveProps(newProps);
     expect(getRowsFromDiffsStub).toHaveBeenCalled();
@@ -98,7 +98,7 @@ describe('AlteredSliceTag', () => {
 
   describe('renderTriggerNode', () => {
     it('renders a TooltipWrapper', () => {
-      const triggerNode = shallow(
+      const triggerNode = mount(
         <div>{wrapper.instance().renderTriggerNode()}</div>,
       );
       expect(triggerNode.find(TooltipWrapper)).toHaveLength(1);
@@ -107,14 +107,14 @@ describe('AlteredSliceTag', () => {
 
   describe('renderModalBody', () => {
     it('renders a Table', () => {
-      const modalBody = shallow(
+      const modalBody = mount(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
       expect(modalBody.find(ListView)).toHaveLength(1);
     });
 
     it('renders a thead', () => {
-      const modalBody = shallow(
+      const modalBody = mount(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
       expect(
@@ -123,7 +123,7 @@ describe('AlteredSliceTag', () => {
     });
 
     it('renders th', () => {
-      const modalBody = shallow(
+      const modalBody = mount(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
       const th = getTableWrapperFromModalBody(modalBody).find('th');
@@ -134,7 +134,7 @@ describe('AlteredSliceTag', () => {
     });
 
     it('renders the correct number of Tr', () => {
-      const modalBody = shallow(
+      const modalBody = mount(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
       const tr = getTableWrapperFromModalBody(modalBody).find('tr');
@@ -142,7 +142,7 @@ describe('AlteredSliceTag', () => {
     });
 
     it('renders the correct number of td', () => {
-      const modalBody = shallow(
+      const modalBody = mount(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
       const td = getTableWrapperFromModalBody(modalBody).find('td');
@@ -155,12 +155,12 @@ describe('AlteredSliceTag', () => {
 
   describe('renderRows', () => {
     it('returns an array of rows with one tr and three td', () => {
-      const modalBody = shallow(
+      const modalBody = mount(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
       const rows = getTableWrapperFromModalBody(modalBody).find('tr');
       expect(rows).toHaveLength(8);
-      const fakeRow = shallow(<div>{rows.get(1)}</div>);
+      const fakeRow = mount(<div>{rows.get(1)}</div>);
       expect(fakeRow.find('tr')).toHaveLength(1);
       expect(fakeRow.find('td')).toHaveLength(3);
     });
