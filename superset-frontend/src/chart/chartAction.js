@@ -66,6 +66,11 @@ export function chartUpdateFailed(queryResponse, key) {
   return { type: CHART_UPDATE_FAILED, queryResponse, key };
 }
 
+export const CHART_UPDATE_QUEUED = 'CHART_UPDATE_QUEUED';
+export function chartUpdateQueued(asyncJobMeta, key) {
+  return { type: CHART_UPDATE_QUEUED, asyncJobMeta, key };
+}
+
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
 export function chartRenderingFailed(error, key, stackTrace) {
   return { type: CHART_RENDERING_FAILED, error, key, stackTrace };
@@ -354,32 +359,37 @@ export function exploreJSON(
 
     const chartDataRequestCaught = chartDataRequest
       .then(response => {
-        // new API returns an object with an array of restults
-        // problem: response holds a list of results, when before we were just getting one result.
-        // How to make the entire app compatible with multiple results?
-        // For now just use the first result.
-        const result = response.result[0];
+        if(isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          return dispatch(chartUpdateQueued(response, key));
 
-        dispatch(
-          logEvent(LOG_ACTIONS_LOAD_CHART, {
-            slice_id: key,
-            applied_filters: result.applied_filters,
-            is_cached: result.is_cached,
-            force_refresh: force,
-            row_count: result.rowcount,
-            datasource: formData.datasource,
-            start_offset: logStart,
-            ts: new Date().getTime(),
-            duration: Logger.getTimestamp() - logStart,
-            has_extra_filters:
-              formData.extra_filters && formData.extra_filters.length > 0,
-            viz_type: formData.viz_type,
-            data_age: result.is_cached
-              ? moment(new Date()).diff(moment.utc(result.cached_dttm))
-              : null,
-          }),
-        );
-        return dispatch(chartUpdateSucceeded(result, key));
+        } else {
+          // new API returns an object with an array of restults
+          // problem: response holds a list of results, when before we were just getting one result.
+          // How to make the entire app compatible with multiple results?
+          // For now just use the first result.
+          const result = response.result[0];
+
+          dispatch(
+            logEvent(LOG_ACTIONS_LOAD_CHART, {
+              slice_id: key,
+              applied_filters: result.applied_filters,
+              is_cached: result.is_cached,
+              force_refresh: force,
+              row_count: result.rowcount,
+              datasource: formData.datasource,
+              start_offset: logStart,
+              ts: new Date().getTime(),
+              duration: Logger.getTimestamp() - logStart,
+              has_extra_filters:
+                formData.extra_filters && formData.extra_filters.length > 0,
+              viz_type: formData.viz_type,
+              data_age: result.is_cached
+                ? moment(new Date()).diff(moment.utc(result.cached_dttm))
+                : null,
+            }),
+          );
+          return dispatch(chartUpdateSucceeded(result, key));
+        }
       })
       .catch(response => {
         const appendErrorLog = (errorDetails, isCached) => {

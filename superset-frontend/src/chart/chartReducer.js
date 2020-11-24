@@ -71,6 +71,15 @@ export default function chartReducer(charts = {}, action) {
         chartUpdateEndTime: now(),
       };
     },
+    [actions.CHART_UPDATE_QUEUED](state) {
+      return {
+        ...state,
+        asyncJobId: action.asyncJobMeta["job_id"],
+        chartStatus: 'queued',
+        chartAlert: null,
+        chartUpdateEndTime: now(),
+      };
+    },
     [actions.CHART_RENDERING_SUCCEEDED](state) {
       return { ...state, chartStatus: 'rendered', chartUpdateEndTime: now() };
     },

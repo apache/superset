@@ -16,31 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
+/* eslint-disable camelcase */
 
-import asyncEvents from './asyncEvents';
-import charts from '../../chart/chartReducer';
-import dashboardInfo from './dashboardInfo';
-import dashboardState from './dashboardState';
-import dashboardFilters from './dashboardFilters';
-import datasources from './datasources';
-import sliceEntities from './sliceEntities';
-import dashboardLayout from './undoableDashboardLayout';
-import messageToasts from '../../messageToasts/reducers';
+// TODO: move this to a more generic location
+export const ASYNC_EVENT_RECEIVED = 'ASYNC_EVENT_RECEIVED';
+// export function asyncEventReceived(eventId) {
+//   return { type: ASYNC_EVENT_RECEIVED, eventId };
+// }
 
-const impressionId = (state = '') => state;
+export default function asyncEventsReducer(state = {}, action) {
+  const actionHandlers = {
+    [ASYNC_EVENT_RECEIVED]() {
+      return { ...state, last_event_id: action.eventId };
+    },
+  }
 
-const asyncEvent = (state = {}, eventId) => ({ ...state, async_last_event: eventId });
-
-export default combineReducers({
-  asyncEvents,
-  charts,
-  datasources,
-  dashboardInfo,
-  dashboardFilters,
-  dashboardState,
-  dashboardLayout,
-  impressionId,
-  messageToasts,
-  sliceEntities,
-});
+  if (action.type in actionHandlers) {
+    return actionHandlers[action.type]();
+  }
+  return state;
+}
