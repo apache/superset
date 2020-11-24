@@ -26,7 +26,12 @@ import {
   useTable,
 } from 'react-table';
 
-import { NumberParam, StringParam, useQueryParams } from 'use-query-params';
+import {
+  NumberParam,
+  StringParam,
+  useQueryParams,
+  QueryParamConfig,
+} from 'use-query-params';
 
 import rison from 'rison';
 import { isEqual } from 'lodash';
@@ -41,11 +46,13 @@ import {
 } from './types';
 
 // Define custom RisonParam for proper encoding/decoding
-const RisonParam = {
-  encode: (data: any | null | undefined) =>
+const RisonParam: QueryParamConfig<string, any> = {
+  encode: (data?: any | null) =>
     data === undefined ? undefined : rison.encode(data),
-  decode: (dataStr: string | undefined) =>
-    dataStr === undefined ? undefined : rison.decode(dataStr),
+  decode: (dataStr?: string | string[]) =>
+    dataStr === undefined || Array.isArray(dataStr)
+      ? undefined
+      : rison.decode(dataStr),
 };
 
 export class ListViewError extends Error {
@@ -68,7 +75,11 @@ function updateInList(list: any[], index: number, update: any): any[] {
   ];
 }
 
-function mergeCreateFilterValues(list: Filter[], updateObj: any) {
+type QueryFilterState = {
+  [id: string]: FilterValue['value'];
+};
+
+function mergeCreateFilterValues(list: Filter[], updateObj: QueryFilterState) {
   return list.map(({ id, operator }) => {
     const update = updateObj[id];
 
