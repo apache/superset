@@ -29,6 +29,7 @@ import FormLabel from 'src/components/FormLabel';
 
 import DatabaseSelector from './DatabaseSelector';
 import RefreshLabel from './RefreshLabel';
+import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -65,7 +66,14 @@ const TableSelectorWrapper = styled.div`
 `;
 
 const TableLabel = styled.span`
+  align-items: center;
+  display: flex;
   white-space: nowrap;
+
+  > svg,
+  > small {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 interface TableSelectorProps {
@@ -146,6 +154,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
             label: o.label,
             title: o.title,
             type: o.type,
+            extra: o?.extra,
           }));
           setTableLoading(false);
           setTableOptions(options);
@@ -244,13 +253,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderTableOption(option: any) {
     return (
       <TableLabel title={option.label}>
-        <span className="m-r-5">
-          <small className="text-muted">
-            <i
-              className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`}
-            />
-          </small>
-        </span>
+        {option.extra?.certification && (
+          <CertifiedIconWithTooltip
+            certifiedBy={option.extra.certification.certified_by}
+            details={option.extra.certification.details}
+            size={20}
+          />
+        )}
+        <small className="text-muted">
+          <i className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`} />
+        </small>
         {option.label}
       </TableLabel>
     );
@@ -308,6 +320,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           // @ts-ignore
           value={currentTableName}
           optionRenderer={renderTableOption}
+          valueRenderer={renderTableOption}
         />
       );
     } else if (formMode) {

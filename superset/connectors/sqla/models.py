@@ -700,6 +700,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["is_sqllab_view"] = self.is_sqllab_view
         return data_
 
+    @property
+    def extra_dict(self) -> Dict[str, Any]:
+        try:
+            return json.loads(self.extra)
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
     def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
