@@ -2777,7 +2777,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def sqllab_search(self) -> FlaskResponse:
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_QUERY_SEARCH_UI")
         ):
             return redirect("/superset/sqllab#search", code=307)
 
