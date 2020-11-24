@@ -2317,9 +2317,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(payload=data)
         return json_success(payload)
 
-    @event_logger.log_this
     @has_access_api
     @handle_api_exception
+    @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
     def sql_json(self) -> FlaskResponse:
         log_params = {
@@ -2452,8 +2452,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             session, rendered_query, query, expand_data, log_params
         )
 
-    @event_logger.log_this
     @has_access
+    @event_logger.log_this
     @expose("/csv/<client_id>")
     def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
         """Download the query results as csv."""
@@ -2508,8 +2508,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @handle_api_exception
     @has_access
-    @expose("/fetch_datasource_metadata")
     @event_logger.log_this
+    @expose("/fetch_datasource_metadata")
     def fetch_datasource_metadata(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Fetch the datasource metadata.
@@ -2564,8 +2564,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(json.dumps(dict_queries, default=utils.json_int_dttm_ser))
 
     @has_access
-    @expose("/search_queries")
     @event_logger.log_this
+    @expose("/search_queries")
     def search_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Search for previously run sqllab queries. Used for Sqllab Query Search
@@ -2665,8 +2665,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ),
         )
 
-    @event_logger.log_this
     @has_access
+    @event_logger.log_this
     @expose("/profile/<username>/")
     def profile(self, username: str) -> FlaskResponse:
         """User profile page"""
@@ -2736,8 +2736,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "queries": queries,
         }
 
-    @event_logger.log_this
     @has_access
+    @event_logger.log_this
     @expose("/sqllab", methods=["GET", "POST"])
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
@@ -2764,6 +2764,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @has_access
+    @event_logger.log_this
     @expose("/sqllab/history/", methods=["GET"])
     @event_logger.log_this
     def sqllab_search(self) -> FlaskResponse:
@@ -2777,8 +2778,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access_api
-    @expose("/schemas_access_for_csv_upload")
     @event_logger.log_this
+    @expose("/schemas_access_for_csv_upload")
     def schemas_access_for_csv_upload(self) -> FlaskResponse:
         """
         This method exposes an API endpoint to
