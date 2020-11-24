@@ -35,7 +35,7 @@ export interface ToastProps {
   addWarningToast: typeof addWarningToast;
 }
 
-const toasters: ToastProps = {
+const toasters = {
   addInfoToast,
   addSuccessToast,
   addWarningToast,
@@ -53,8 +53,5 @@ export default function withToasts(BaseComponent: ComponentType<any>) {
 
 export function useToasts() {
   const dispatch = useDispatch();
-  const toasts = useMemo(() => bindActionCreators(toasters, dispatch), [
-    dispatch,
-  ]);
-  return toasts;
+  return useMemo(() => bindActionCreators(toasters, dispatch), [dispatch]);
 }
