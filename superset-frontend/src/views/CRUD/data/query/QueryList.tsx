@@ -20,7 +20,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import moment from 'moment';
 
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import { createErrorHandler, shortenSQL } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
@@ -34,7 +34,6 @@ import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject } from 'src/views/CRUD/types';
-import { shortenSQL } from 'src/views/CRUD/utils';
 
 import QueryPreviewModal from './QueryPreviewModal';
 
