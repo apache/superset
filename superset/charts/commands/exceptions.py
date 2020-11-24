@@ -77,9 +77,17 @@ class ChartDeleteFailedError(DeleteFailedError):
     message = _("Chart could not be deleted.")
 
 
+class ChartDeleteFailedReportsExistError(ChartDeleteFailedError):
+    message = _("There are associated alerts or reports associated")
+
+
 class ChartForbiddenError(ForbiddenError):
     message = _("Changing this chart is forbidden")
 
 
-class ChartBulkDeleteFailedError(CreateFailedError):
+class ChartBulkDeleteFailedError(DeleteFailedError):
     message = _("Charts could not be deleted.")
+
+
+class ChartBulkDeleteFailedReportsExistError(ChartBulkDeleteFailedError):
+    message = _("There are associated alerts or reports associated")
