@@ -246,7 +246,6 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)
-        db.session.delete(database)
         db.session.commit()
 
     def test_import_v1_dashboard(self):
