@@ -218,6 +218,12 @@ export default class ResultSet extends React.PureComponent<
     const { sql, results } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
+    if (Object.keys(datasetToOverwrite).length === 0 && datasetToOverwrite.constructor === Object) {
+      this.props.actions.addDangerToast(
+        t('You must select a dataset that has already been created'),
+      );
+    }
+
     SupersetClient.put({
       endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}?override_column=true`,
       headers: { 'Content-Type': 'application/json' },
