@@ -27,12 +27,10 @@ const propTypes = {
   triggerNode: PropTypes.node.isRequired,
 };
 
-const FilterScopeModalBody = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 3}px
-    ${({ theme }) => theme.gridUnit * 2}px;
-`;
+const FilterScopeModalBody = styled.div(({ theme: { gridUnit } }) => ({
+  padding: gridUnit * 2,
+  paddingBottom: gridUnit * 3,
+}));
 
 export default class FilterScopeModal extends React.PureComponent {
   constructor(props) {
