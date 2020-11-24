@@ -22,7 +22,6 @@ import { ThemeProvider } from '@superset-ui/core';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 
-// Wrapper component for mounting TODO: move to util file
 export function ProviderWrapper(props: any) {
   const { children, theme } = props;
 
