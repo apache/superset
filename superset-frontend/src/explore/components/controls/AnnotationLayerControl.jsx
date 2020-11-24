@@ -113,20 +113,20 @@ class AnnotationLayerControl extends React.PureComponent {
   renderPopover(parent, popoverKey, annotation, error) {
     const id = annotation?.name || '_new';
     const isNew = !annotation;
+    const onSubmit = annotationData =>
+      isNew
+        ? this.addAnnotationLayer(annotationData)
+        : this.editAnnotationLayer(annotation, annotationData);
 
     return (
       <div id={`annotation-pop-${id}`} data-test="popover-content">
         <AnnotationLayer
-          annotation={annotation}
+          {...annotation}
           isNew={isNew}
           error={error}
           colorScheme={this.props.colorScheme}
           vizType={this.props.vizType}
-          onSubmit={annotationData =>
-            isNew
-              ? this.addAnnotationLayer(annotationData)
-              : this.editAnnotationLayer(annotation, annotationData)
-          }
+          onSubmit={onSubmit}
           onRemove={() => this.removeAnnotationLayer(annotation)}
           onClose={() => this.handleVisibleChange(false, popoverKey)}
         />

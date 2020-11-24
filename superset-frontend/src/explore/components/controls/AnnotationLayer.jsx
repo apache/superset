@@ -45,6 +45,7 @@ import {
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import './AnnotationLayer.less';
+import { annotations } from '@superset-ui/chart-controls/lib/sections';
 
 const AUTOMATIC_COLOR = '';
 
@@ -107,7 +108,6 @@ const defaultProps = {
 export default class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
-
     const {
       name,
       annotationType,
@@ -159,7 +159,6 @@ export default class AnnotationLayer extends React.PureComponent {
       valueOptions: [],
     };
 
-    this.setState = this.setState.bind(this);
     this.submitAnnotation = this.submitAnnotation.bind(this);
     this.cancelAnnotation = this.cancelAnnotation.bind(this);
     this.removeAnnotation = this.removeAnnotation.bind(this);
@@ -178,7 +177,7 @@ export default class AnnotationLayer extends React.PureComponent {
     this.fetchOptions(annotationType, sourceType, isLoadingOptions);
   }
 
-  componentDidUpdate(_prevProps, prevState) {
+  componentDidUpdate(prevProps, prevState) {
     if (prevState.sourceType !== this.state.sourceType) {
       this.fetchOptions(this.state.annotationType, this.state.sourceType, true);
     }
@@ -316,17 +315,37 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   applyAnnotation() {
-    const annotationFields = Object.keys(annotationDefaults);
-    const annotationData = {};
-    annotationFields.forEach(field => {
-      annotationData[field] = this.state[field];
-    });
-
     if (this.isValidForm()) {
-      if (annotationData.color === AUTOMATIC_COLOR) {
-        annotationData.color = null;
+      const annotationFields = [
+        'name',
+        'annotationType',
+        'sourceType',
+        'color',
+        'opacity',
+        'style',
+        'width',
+        'showMarkers',
+        'hideLine',
+        'value',
+        'overrides',
+        'show',
+        'titleColumn',
+        'descriptionColumns',
+        'timeColumn',
+        'intervalEndColumn',
+      ];
+      const annotation = {};
+      annotationFields.forEach(field => {
+        if (this.state[field] !== null) {
+          annotation[field] = this.state[field];
+        }
+      });
+
+      if (annotation.color === AUTOMATIC_COLOR) {
+        annotation.color = null;
       }
-      this.props.onSubmit(annotationData);
+
+      this.props.onSubmit(annotation);
 
       if (this.props.isNew) {
         this.setState({ ...annotationDefaults });
@@ -423,12 +442,12 @@ export default class AnnotationLayer extends React.PureComponent {
       annotationType,
       sourceType,
       value,
+      valueOptions,
       overrides,
       titleColumn,
       timeColumn,
       intervalEndColumn,
       descriptionColumns,
-      valueOptions,
     } = this.state;
     const { slice } = valueOptions.find(x => x.value === value) || {};
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE && slice) {
@@ -550,9 +569,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 placeholder=""
                 value={overrides.time_shift}
                 onChange={v =>
-                  this.setState({
-                    overrides: { ...overrides, time_shift: v },
-                  })
+                  this.setState({ overrides: { ...overrides, time_shift: v } })
                 }
               />
             </div>
