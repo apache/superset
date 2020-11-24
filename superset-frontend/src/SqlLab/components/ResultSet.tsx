@@ -129,7 +129,7 @@ export default class ResultSet extends React.PureComponent<
       const userDatasetsOwned = data.json.result.map(r => {
         return { dataSetName: r.table_name, dataSetId: r.id };
       });
-      this.setState({ userDatasetsOwned })
+      this.setState({ userDatasetsOwned });
     });
   }
 
@@ -203,7 +203,7 @@ export default class ResultSet extends React.PureComponent<
 
   handleOverwriteDataset() {
     const { sql, results } = this.props.query;
-    const { datasetToOverwrite } = this.state
+    const { datasetToOverwrite } = this.state;
 
     SupersetClient.put({
       endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}?override_column=true`,
@@ -219,13 +219,13 @@ export default class ResultSet extends React.PureComponent<
           groupby: [],
           time_range: 'No filter',
           viz_type: 'table',
-          all_columns: results.selected_columns.map(d => d.name) // selectedColumns.map(c => c.name),
+          all_columns: results.selected_columns.map(d => d.name),
           row_limit: 1000,
         });
       })
       .catch(err => alert(err));
 
-      this.setState({showSaveDatasetModal: false, overwriteDataSet: false})
+    this.setState({showSaveDatasetModal: false, overwriteDataSet: false})
   }
 
   handleSaveInDataset() {
@@ -273,16 +273,16 @@ export default class ResultSet extends React.PureComponent<
       });
   }
 
-  handleDatasetNameChange(e) {
-    this.setState({ newSaveDatasetName: e.target.value })
+  handleDatasetNameChange(e: { target: { value: any } }) {
+    this.setState({ newSaveDatasetName: e.target.value });
   }
 
   handleHideSaveModal() {
     this.setState({showSaveDatasetModal: false, overwriteDataSet: false})
   }
 
-  handleSaveDatasetRadioBtnState(e) {
-    this.setState({saveDatasetRadioBtnState: e.target.value});
+  handleSaveDatasetRadioBtnState(e: { target: { value: any } }) {
+    this.setState({ saveDatasetRadioBtnState: e.target.value });
   }
 
   handleOverwriteCancel() {
@@ -296,7 +296,9 @@ export default class ResultSet extends React.PureComponent<
         ({ data } = this.state);
       }
 
-      const defaultCreateDatasetValue = `${this.props.query.tab} ${new Date().toLocaleString().replace(',', '')}`
+      const defaultCreateDatasetValue = `${
+        this.props.query.tab
+      } ${new Date().toLocaleString().replace(',', '')}`;
 
       return (
         <div className="ResultSetControls">
