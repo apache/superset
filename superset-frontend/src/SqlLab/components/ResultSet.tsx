@@ -273,9 +273,11 @@ export default class ResultSet extends React.PureComponent<
           all_columns: selectedColumns.map(c => c.name),
           row_limit: 1000,
         });
-      }).catch((error: any) => {
-        console.log('an error occurred trying to create a datasource');
-        console.log(error);
+      })
+      .catch((error: any) => {
+        this.props.actions.addDangerToast(
+          t('An error occurred saving dataset'),
+        );
       });
   }
 
