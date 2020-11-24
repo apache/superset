@@ -21,11 +21,12 @@ from typing import List, Optional
 from datetime import datetime
 from io import BytesIO
 from unittest import mock
-from zipfile import is_zipfile
+from zipfile import is_zipfile, ZipFile
 
 import humanize
 import prison
 import pytest
+import yaml
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
@@ -35,12 +36,19 @@ from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.test_app import app
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
-from superset.models.core import FavStar, FavStarClassName
+from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import core as utils
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.importexport import (
+    chart_config,
+    chart_metadata_config,
+    database_config,
+    dataset_config,
+    dataset_metadata_config,
+)
 from tests.fixtures.query_context import get_query_context
 
 CHART_DATA_URI = "api/v1/chart/data"
@@ -1131,7 +1139,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_export_chart(self):
         """
-        Chart API: Test export dataset
+        Chart API: Test export chart
         """
         example_chart = db.session.query(Slice).all()[0]
         argument = [example_chart.id]
@@ -1147,7 +1155,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_export_chart_not_found(self):
         """
-        Dataset API: Test export dataset not found
+        Chart API: Test export chart not found
         """
         # Just one does not exist and we get 404
         argument = [-1, 1]
@@ -1159,7 +1167,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_export_chart_gamma(self):
         """
-        Dataset API: Test export dataset has gamma
+        Chart API: Test export chart has gamma
         """
         example_chart = db.session.query(Slice).all()[0]
         argument = [example_chart.id]
@@ -1169,3 +1177,79 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.get(uri)
 
         assert rv.status_code == 404
+
+    def test_import_chart(self):
+        """
+        Chart API: Test import chart
+        """
+        self.login(username="admin")
+        uri = "api/v1/chart/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_metadata_config).encode())
+            with bundle.open("databases/imported_database.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+            with bundle.open("charts/imported_chart.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "file": (buf, "chart_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.database_name == "imported_database"
+
+        assert len(database.tables) == 1
+        dataset = database.tables[0]
+        assert dataset.table_name == "imported_dataset"
+        assert str(dataset.uuid) == dataset_config["uuid"]
+
+        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        assert chart.table == dataset
+
+        db.session.delete(chart)
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_chart_invalid(self):
+        """
+        Chart API: Test import invalid chart
+        """
+        self.login(username="admin")
+        uri = "api/v1/chart/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
+            with bundle.open("databases/imported_database.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+            with bundle.open("charts/imported_chart.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "file": (buf, "chart_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "message": {"metadata.yaml": {"type": ["Must be equal to Slice."]}}
+        }

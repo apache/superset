@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { t, styled } from '@superset-ui/core';
+import React, { useMemo, useState, useCallback } from 'react';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 import moment from 'moment';
 
+import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
@@ -32,8 +33,11 @@ import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
+import { QueryObject } from 'src/views/CRUD/types';
 
-SyntaxHighlighter.registerLanguage('sql', sql);
+import QueryPreviewModal from './QueryPreviewModal';
+
+const PAGE_SIZE = 25;
 
 const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
   table .table-cell {
@@ -41,13 +45,13 @@ const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
   }
 `;
 
+SyntaxHighlighter.registerLanguage('sql', sql);
 const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
   height: ${({ theme }) => theme.gridUnit * 26}px;
   overflow-x: hidden !important; /* needed to override inline styles */
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
-const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
 function shortenSQL(sql: string) {
   let lines: string[] = sql.split('\n');
@@ -60,37 +64,6 @@ function shortenSQL(sql: string) {
 interface QueryListProps {
   addDangerToast: (msg: string, config?: any) => any;
   addSuccessToast: (msg: string, config?: any) => any;
-}
-
-export interface QueryObject {
-  id: number;
-  changed_on: string;
-  database: {
-    database_name: string;
-  };
-  schema: string;
-  sql: string;
-  sql_tables?: { catalog?: string; schema: string; table: string }[];
-  status:
-    | 'success'
-    | 'failed'
-    | 'stopped'
-    | 'running'
-    | 'timed_out'
-    | 'scheduled'
-    | 'pending';
-  tab_name: string;
-  user: {
-    first_name: string;
-    id: number;
-    last_name: string;
-    username: string;
-  };
-  start_time: number;
-  end_time: number;
-  rows: number;
-  tmp_table_name: string;
-  tracking_url: string;
 }
 
 const StyledTableLabel = styled.div`
@@ -126,6 +99,28 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     t('Query History'),
     addDangerToast,
     false,
+  );
+
+  const [queryCurrentlyPreviewing, setQueryCurrentlyPreviewing] = useState<
+    QueryObject
+  >();
+
+  const handleQueryPreview = useCallback(
+    (id: number) => {
+      SupersetClient.get({
+        endpoint: `/api/v1/query/${id}`,
+      }).then(
+        ({ json = {} }) => {
+          setQueryCurrentlyPreviewing({ ...json.result });
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue previewing the selected query. %s', errMsg),
+          ),
+        ),
+      );
+    },
+    [addDangerToast],
   );
 
   const menuData: SubMenuProps = {
@@ -174,10 +169,12 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           }
           return (
             <Tooltip title={statusConfig.label} placement="bottom">
-              <StatusIcon
-                name={statusConfig.name as IconName}
-                status={statusConfig.status}
-              />
+              <span>
+                <StatusIcon
+                  name={statusConfig.name as IconName}
+                  status={statusConfig.status}
+                />
+              </span>
             </Tooltip>
           );
         },
@@ -256,7 +253,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
                   content={
                     <>
                       {names.map((name: string) => (
-                        <StyledPopoverItem>{name}</StyledPopoverItem>
+                        <StyledPopoverItem key={name}>{name}</StyledPopoverItem>
                       ))}
                     </>
                   }
@@ -292,15 +289,18 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       {
         accessor: 'sql',
         Header: t('SQL'),
-        Cell: ({
-          row: {
-            original: { sql },
-          },
-        }: any) => {
+        Cell: ({ row: { original, id } }: any) => {
           return (
-            <StyledSyntaxHighlighter language="sql" style={github}>
-              {shortenSQL(sql)}
-            </StyledSyntaxHighlighter>
+            <div
+              tabIndex={0}
+              role="button"
+              data-test={`open-sql-preview-${id}`}
+              onClick={() => setQueryCurrentlyPreviewing(original)}
+            >
+              <StyledSyntaxHighlighter language="sql" style={github}>
+                {shortenSQL(original.sql)}
+              </StyledSyntaxHighlighter>
+            </div>
           );
         },
       },
@@ -331,6 +331,18 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
   return (
     <>
       <SubMenu {...menuData} />
+      {queryCurrentlyPreviewing && (
+        <QueryPreviewModal
+          onHide={() => setQueryCurrentlyPreviewing(undefined)}
+          query={queryCurrentlyPreviewing}
+          queries={queries}
+          fetchData={handleQueryPreview}
+          openInSqlLab={(id: number) =>
+            window.location.assign(`/superset/sqllab?queryId=${id}`)
+          }
+          show
+        />
+      )}
       <TopAlignedListView
         className="query-history-list-view"
         columns={columns}
@@ -341,6 +353,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
+        highlightRowId={queryCurrentlyPreviewing?.id}
       />
     </>
   );

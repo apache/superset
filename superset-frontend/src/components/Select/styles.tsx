@@ -30,6 +30,8 @@ import { Props as SelectProps } from 'react-select/src/Select';
 import { colors as reactSelectColros } from 'react-select/src/theme';
 import { supersetColors } from 'src/components/styles';
 import { DeepNonNullable } from 'react-select/src/components';
+import { OptionType } from 'antd/lib/select';
+import { SupersetStyledSelectProps } from './SupersetStyledSelect';
 
 export const DEFAULT_CLASS_NAME = 'Select';
 export const DEFAULT_CLASS_NAME_PREFIX = 'Select';
@@ -128,7 +130,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   clearIndicator: provider => [
     provider,
     css`
-      padding-right: 0;
+      padding: 4px 0 4px 6px;
     `,
   ],
   control: (
@@ -156,6 +158,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
           border-color: ${borderColor};
           box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
         }
+        flex-wrap: nowrap;
       `,
     ];
   },
@@ -245,24 +248,38 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   input: (provider, { selectProps }) => [
     provider,
     css`
-      padding: ${selectProps?.isMulti && selectProps?.value?.length
-        ? '0 6px'
-        : '0'};
       margin-left: 0;
       vertical-align: middle;
+      ${selectProps?.isMulti && selectProps?.value?.length
+        ? 'padding: 0 6px; width: 100%'
+        : 'padding: 0; flex: 1 1 auto;'};
     `,
   ],
 };
 
-type SelectComponentsType = Omit<SelectComponentsConfig<any>, 'Input'> & {
+const inputTagStyles = {
+  background: 'none',
+  border: 'none',
+  outline: 'none',
+  padding: 0,
+  width: '100%',
+};
+
+export type SelectComponentsType = Omit<
+  SelectComponentsConfig<any>,
+  'Input'
+> & {
   Input: ComponentType<InputProps>;
 };
 
 // react-select is missing selectProps from their props type
 // so overwriting it here to avoid errors
-type InputProps = ReactSelectInputProps & {
+export type InputProps = ReactSelectInputProps & {
   placeholder?: ReactNode;
   selectProps: SelectProps;
+  autocomplete?: string;
+  onPaste?: SupersetStyledSelectProps<OptionType>['onPaste'];
+  inputStyle?: object;
 };
 
 const {
@@ -312,6 +329,8 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
         {...props}
         placeholder={isMultiWithValue ? placeholder : undefined}
         css={getStyles('input', props)}
+        autocomplete="chrome-off"
+        inputStyle={inputTagStyles}
       />
     );
   },
@@ -325,10 +344,12 @@ export const VALUE_LABELED_STYLES: PartialStylesConfig = {
       theme: {
         spacing: { baseUnit },
       },
+      isMulti,
     },
   ) => ({
     ...provider,
     paddingLeft: getValue().length > 0 ? 1 : baseUnit * 3,
+    overflow: isMulti && getValue().length > 0 ? 'visible' : 'hidden',
   }),
   // render single value as is they are multi-value
   singleValue: (provider, props) => {

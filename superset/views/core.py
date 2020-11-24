@@ -2729,6 +2729,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 payload["requested_query"] = json.loads(form_data)
             except json.JSONDecodeError:
                 pass
+
+        payload["user"] = bootstrap_user_data(g.user)
         bootstrap_data = json.dumps(
             payload, default=utils.pessimistic_json_iso_dttm_ser
         )
