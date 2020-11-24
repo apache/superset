@@ -58,6 +58,12 @@ interface ResultSetState {
   searchText: string;
   showExploreResultsButton: boolean;
   data: Record<string, any>[];
+  showSaveDatasetModal: boolean;
+  newSaveDatasetName: string;
+  userDatasetsOwned: [];
+  saveDatasetRadioBtnState: number;
+  overwriteDataSet: boolean;
+  datasetToOverwrite: Record<string, any>;
 }
 
 // Making text render line breaks/tabs as is as monospace,
@@ -303,7 +309,7 @@ export default class ResultSet extends React.PureComponent<
       return (
         <div className="ResultSetControls">
           <SaveDatasetModal
-            visible={showSaveDatasetModal}
+            visible={this.state.showSaveDatasetModal}
             onOk={this.handleSaveInDataset}
             onCancel={this.handleHideSaveModal}
             handleDatasetNameChange={this.handleDatasetNameChange}

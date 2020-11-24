@@ -52,14 +52,13 @@ const Styles = styled.div`
 export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState, overwriteDataSet, handleOverwriteCancel, handleOverwriteDataset, handleOverwriteDatasetOption, defaultCreateDatasetValue}) => {
   const [options, setOptions] = useState([]);
 
-  const onSearch = (searchText) => {
-    console.log(userDatasetsOwned)
+  const onSearch = (searchText: any) => {
     setOptions(
-      !searchText ? [] : userDatasetsOwned.map(d => ({value: d.dataSetName, dataSetId: d.dataSetId})),
+      !searchText ? [] : userDatasetsOwned.map((d: { dataSetName: any; dataSetId: any; }) => ({value: d.dataSetName, dataSetId: d.dataSetId})),
     );
   };
 
-  const filterAutocompleteOption = (inputValue, option) => {
+  const filterAutocompleteOption = (inputValue: any, option: { value: string | any[]; }) => {
     return option.value.includes(inputValue)
   }
 
