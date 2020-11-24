@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { t, styled, TimeRangeEndpoints } from '@superset-ui/core';
+import rison from 'rison';
+import { SupersetClient, t, styled, TimeRangeEndpoints } from '@superset-ui/core';
 import {
   Col,
   DatePicker,
@@ -43,13 +44,13 @@ const ANCHOR_OPTIONS: SelectOptionType[] = [
 ];
 
 const GRAIN_OPTIONS = [
-  { value: 'seconds', label: (rel: string) => `${t('Seconds')} ${rel}` },
-  { value: 'minutes', label: (rel: string) => `${t('Minutes')} ${rel}` },
-  { value: 'hours', label: (rel: string) => `${t('Hours')} ${rel}` },
-  { value: 'days', label: (rel: string) => `${t('Days')} ${rel}` },
-  { value: 'weeks', label: (rel: string) => `${t('Weeks')} ${rel}` },
-  { value: 'months', label: (rel: string) => `${t('Months')} ${rel}` },
-  { value: 'years', label: (rel: string) => `${t('Years')} ${rel}` },
+  { value: 'S', label: (rel: string) => `${t('Seconds')} ${rel}` },
+  { value: 'M', label: (rel: string) => `${t('Minutes')} ${rel}` },
+  { value: 'H', label: (rel: string) => `${t('Hours')} ${rel}` },
+  { value: 'd', label: (rel: string) => `${t('Days')} ${rel}` },
+  { value: 'W', label: (rel: string) => `${t('Weeks')} ${rel}` },
+  { value: 'm', label: (rel: string) => `${t('Months')} ${rel}` },
+  { value: 'Y', label: (rel: string) => `${t('Years')} ${rel}` },
 ];
 const SINCE_GRAIN_OPTIONS: SelectOptionType[] = GRAIN_OPTIONS.map(item => ({
   value: item.value,
@@ -88,11 +89,11 @@ export default function DateRangeModal(props: DateRangeModalProps) {
   const defaultTimeRangeObject: TimeRangeType = {
     sinceDatetime: null,
     sinceMode: 'relative',
-    sinceGrain: 'seconds',
+    sinceGrain: 'S',
     sinceGrainValue: 1,
     untilDatetime: null,
     untilMode: 'relative',
-    untilGrain: 'seconds',
+    untilGrain: 'S',
     untilGrainValue: 1,
     anchorMode: 'now',
     anchorValue: null,
@@ -149,38 +150,22 @@ export default function DateRangeModal(props: DateRangeModalProps) {
     });
   }
 
-  function getTimeRangeObject(): TimeRangeType {
-    let timeRangeObject: TimeRangeType = {};
+  function getTimeRangeString(): string {
+    let [since, until, anchor] = [null, null, null];
+    const default_anchor = 'now';
+
     // collect since panel
     if (timeRange.sinceMode === 'relative') {
-      timeRangeObject = {
-        ...timeRangeObject,
-        sinceMode: timeRange.sinceMode,
-        sinceGrain: timeRange.sinceGrain,
-        sinceGrainValue: timeRange.sinceGrainValue,
-      };
+      since = `^-${timeRange.sinceGrainValue}${timeRange.sinceGrain}`
     } else {
-      timeRangeObject = {
-        ...timeRangeObject,
-        sinceMode: timeRange.sinceMode,
-        sinceDatetime: timeRange.sinceDatetime,
-      };
+      since = timeRange.sinceDatetime && timeRange.sinceDatetime.toISOString().split('.')[0];
     }
 
     // collect until panel
     if (timeRange.untilMode === 'relative') {
-      timeRangeObject = {
-        ...timeRangeObject,
-        untilMode: timeRange.untilMode,
-        untilGrain: timeRange.untilGrain,
-        untilGrainValue: timeRange.untilGrainValue,
-      };
+      until = `^${timeRange.untilGrainValue}${timeRange.untilGrain}`
     } else {
-      timeRangeObject = {
-        ...timeRangeObject,
-        untilMode: timeRange.untilMode,
-        untilDatetime: timeRange.untilDatetime,
-      };
+      until = timeRange.untilDatetime && timeRange.untilDatetime.toISOString().split('.')[0];
     }
 
     // collect anchor panel
@@ -188,34 +173,50 @@ export default function DateRangeModal(props: DateRangeModalProps) {
       timeRange.sinceMode === 'relative' &&
       timeRange.untilMode === 'relative') {
       if (timeRange.anchorMode === 'now') {
-        timeRangeObject = {
-          ...timeRangeObject,
-          anchorMode: timeRange.anchorMode,
-          anchorValue: timeRange.anchorValue,
-        };
+        anchor = default_anchor;
       } else {
-        timeRangeObject = {
-          ...timeRangeObject,
-          anchorMode: timeRange.anchorMode,
-          anchorValue: timeRange.anchorValue,
-        };
+        anchor = timeRange.anchorValue && timeRange.anchorValue.toISOString().split('.')[0];
       }
     }
 
-    return timeRangeObject;
+    let timeRangeString;
+    if (anchor) {
+      timeRangeString = [since, until, anchor].join(' : ');
+    } else {
+      timeRangeString = [since, until].join(' : ');
+    }
+    console.log(timeRangeString);
+    return timeRangeString;
   }
 
   useEffect(() => {
-    setActualRange("world");
-    console.log(getTimeRangeObject());
+    fetchActualTimeRange(getTimeRangeString());
   }, [timeRange])
+
+  const fetchActualTimeRange = (timeRangeString: string) => {
+    const query = rison.encode(timeRangeString);
+
+    return SupersetClient.get({
+      endpoint: `/api/v1/chart/time_range/?q=${query}`,
+    }).then(
+      ({ json = {} }) => {
+        setActualRange(`${json.result[0]} : ${json.result[1]}`);
+      }
+    );
+  };
+
+  function onClose() {
+    console.log("on close");
+    // props.onCloseDateFilterControl();
+    props.onChange(actualRange);
+  }
 
   return (
     <Modal
       title="Range"
       show={props.show}
       onHide={props.onHide}
-      onHandledPrimaryAction={()=>{}}
+      onHandledPrimaryAction={onClose}
       primaryButtonName={t('APPLY')}
       primaryButtonType="primary"
     >

@@ -4,13 +4,13 @@ export type SelectOptionType = {
 };
 
 export type DateTimeGrainType =
-  | 'seconds'
-  | 'minutes'
-  | 'hours'
-  | 'days'
-  | 'weeks'
-  | 'months'
-  | 'years'
+  | 'S'
+  | 'M'
+  | 'H'
+  | 'd'
+  | 'W'
+  | 'm'
+  | 'Y'
   | undefined;
 
 export type ModeType = 'relative' | 'specific';

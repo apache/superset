@@ -63,6 +63,7 @@ interface DateFilterDropdownProps {
 export default function DateFilterDropdown(props: DateFilterDropdownProps) {
   const { value = 'Last week', endpoints } = props;
   const [showRangeModal, setRangeModal] = useState<boolean>(false);
+  // const [showAdvancedModal, setAdvancedModal] = useState<boolean>(false);
 
   function renderMenu() {
     const lastSubMenu = COMMON_TIME_FRAMES.map(timeFrame => (
