@@ -113,14 +113,14 @@ class AbstractEventLogger(ABC):
         )
 
     def _wrapper(
-        self, f: Callable[..., Any], action: Optional[str] = None
+        self, f: Callable[..., Any], **wrapper_kwargs: Any
     ) -> Callable[..., Any]:
-        action_str: str = action or f.__name__
+        action_str = wrapper_kwargs.get("action") or f.__name__
         ref = f.__qualname__ if hasattr(f, "__qualname__") else None
 
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            with self.log_context(action_str, ref) as log:
+            with self.log_context(action_str, ref, **wrapper_kwargs) as log:
                 value = f(*args, **kwargs)
                 log(**kwargs)
             return value
@@ -131,11 +131,11 @@ class AbstractEventLogger(ABC):
         """Decorator that uses the function name as the action"""
         return self._wrapper(f)
 
-    def log_this_as(self, action: str) -> Callable[..., Any]:
-        """Decorator that uses the function name as the action"""
+    def log_this_with_context(self, **kwargs: Any) -> Callable[..., Any]:
+        """Decorator that can override kwargs of log_context"""
 
         def func(f: Callable[..., Any]) -> Callable[..., Any]:
-            return self._wrapper(f, action)
+            return self._wrapper(f, **kwargs)
 
         return func
 
