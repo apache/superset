@@ -309,8 +309,8 @@ class ImportDatasetsCommand(BaseCommand):
                 import_from_dict(db.session, config, sync=self.sync)
             else:  # list
                 for dataset in config:
-                    # UI exports don't have the database name, so we assume
-                    # that the name hasn't changed
+                    # UI exports don't have the database metadata, so we assume
+                    # the DB exists and has the same name
                     params = json.loads(dataset["params"])
                     database = (
                         db.session.query(Database)
