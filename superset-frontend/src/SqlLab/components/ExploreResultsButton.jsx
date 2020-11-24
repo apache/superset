@@ -37,6 +37,7 @@ const propTypes = {
   errorMessage: PropTypes.string,
   timeout: PropTypes.number,
   database: PropTypes.object.isRequired,
+  onClick: PropTypes.func.isRequired,
 };
 const defaultProps = {
   query: {},
