@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, List, Tuple
 
 from sqlalchemy import (
     Column,
@@ -27,7 +27,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy.orm import Load, relationship, Session
 
 Base = declarative_base()
 
@@ -97,44 +97,53 @@ class PermissionView(Base):  # type: ignore
         return f"{self.permission} {self.view_menu}"
 
 
-def add_pvms(
-    session: Session, pvm_data: Dict[str, Tuple[str, ...]], commit: bool = False
-) -> None:
-    for view_name, permissions in pvm_data.items():
-        # Check and add the new View
-        new_view = (
-            session.query(ViewMenu).filter(ViewMenu.name == view_name).one_or_none()
+def _add_view_menu(session: Session, view_name: str) -> ViewMenu:
+    """
+    Check and add the new view menu
+    """
+    new_view = session.query(ViewMenu).filter(ViewMenu.name == view_name).one_or_none()
+    if not new_view:
+        new_view = ViewMenu(name=view_name)
+        session.add(new_view)
+    return new_view
+
+
+def _add_permission(session: Session, permission_name: str) -> Permission:
+    """
+    Check and add the new Permission
+    """
+    new_permission = (
+        session.query(Permission)
+        .filter(Permission.name == permission_name)
+        .one_or_none()
+    )
+    if not new_permission:
+        new_permission = Permission(name=permission_name)
+        session.add(new_permission)
+    return new_permission
+
+
+def _add_permission_view(
+    session: Session, permission: Permission, view_menu: ViewMenu
+) -> PermissionView:
+    """
+    Check and add the new Permission View
+    """
+    new_pvm = (
+        session.query(PermissionView)
+        .filter(
+            PermissionView.view_menu_id == view_menu.id,
+            PermissionView.permission_id == permission.id,
         )
-        if not new_view:
-            new_view = ViewMenu(name=view_name)
-            session.add(new_view)
-        for permission_name in permissions:
-            # Check and add the new Permission
-            new_permission = (
-                session.query(Permission)
-                .filter(Permission.name == permission_name)
-                .one_or_none()
-            )
-            if not new_permission:
-                new_permission = Permission(name=permission_name)
-                session.add(new_permission)
-            # Check and add the new PVM
-            new_pvm = (
-                session.query(PermissionView)
-                .filter(
-                    PermissionView.view_menu_id == new_view.id,
-                    PermissionView.permission_id == new_permission.id,
-                )
-                .one_or_none()
-            )
-            if not new_pvm:
-                new_pvm = PermissionView(view_menu=new_view, permission=new_permission)
-                session.add(new_pvm)
-    if commit:
-        session.commit()
+        .one_or_none()
+    )
+    if not new_pvm:
+        new_pvm = PermissionView(view_menu=view_menu, permission=permission)
+        session.add(new_pvm)
+    return new_pvm
 
 
-def find_pvm(session: Session, view_name: str, permission_name: str) -> PermissionView:
+def _find_pvm(session: Session, view_name: str, permission_name: str) -> PermissionView:
     return (
         session.query(PermissionView)
         .join(Permission)
@@ -143,35 +152,32 @@ def find_pvm(session: Session, view_name: str, permission_name: str) -> Permissi
     ).one_or_none()
 
 
-def migrate_roles(
-    session: Session, pvm_key_map: PvmMigrationMapType, commit: bool = False,
+def add_pvms(
+    session: Session, pvm_data: Dict[str, Tuple[str, ...]], commit: bool = False
 ) -> None:
-    from sqlalchemy.orm import Load
+    """
+    Checks if exists and adds new Permissions, Views and PermissionView's
+    """
+    for view_name, permissions in pvm_data.items():
+        # Check and add the new View
+        new_view = _add_view_menu(session, view_name)
+        for permission_name in permissions:
+            new_permission = _add_permission(session, permission_name)
+            # Check and add the new PVM
+            _add_permission_view(session, new_permission, new_view)
+    if commit:
+        session.commit()
 
-    pvm_map: Dict[PermissionView, List[PermissionView]] = {}
-    for old_pvm_key, new_pvms_ in pvm_key_map.items():
-        old_pvm = find_pvm(session, old_pvm_key[0], old_pvm_key[1])
-        if old_pvm:
-            for new_pvm_key in new_pvms_:
-                new_pvm = find_pvm(session, new_pvm_key[0], new_pvm_key[1])
-                if old_pvm not in pvm_map:
-                    pvm_map[old_pvm] = [new_pvm]
-                else:
-                    pvm_map[old_pvm].append(new_pvm)
 
-    # Replace old permissions by the new ones on all existing roles
-    roles = session.query(Role).options(Load(Role).joinedload(Role.permissions)).all()
-    for role in roles:
-        for old_pvm, new_pvms in pvm_map.items():
-            if old_pvm in role.permissions:
-                print(f"Removing {old_pvm} from {role}")
-                role.permissions.remove(old_pvm)
-                for new_pvm in new_pvms:
-                    if new_pvm not in role.permissions:
-                        print(f"Add {new_pvm} to {role}")
-                        role.permissions.append(new_pvm)
-        session.merge(role)
-
+def _delete_old_permissions(
+    session: Session, pvm_map: Dict[PermissionView, List[PermissionView]]
+) -> None:
+    """
+    Delete old permissions:
+    - Delete the PermissionView
+    - Deletes the Permission if it's an orphan now
+    - Deletes the ViewMenu if it's an orphan now
+    """
     # Delete old permissions
     for old_pvm, new_pvms in pvm_map.items():
         old_permission_name = old_pvm.permission.name
@@ -195,6 +201,40 @@ def migrate_roles(
             print(f"Going to delete view_menu: {old_pvm.view_menu}")
             session.delete(old_pvm.view_menu)
 
+
+def migrate_roles(
+    session: Session, pvm_key_map: PvmMigrationMapType, commit: bool = False,
+) -> None:
+    """
+    Migrates all existing roles that have the permissions to be migrated
+    """
+    # Collect a map of PermissionView objects for migration
+    pvm_map: Dict[PermissionView, List[PermissionView]] = {}
+    for old_pvm_key, new_pvms_ in pvm_key_map.items():
+        old_pvm = _find_pvm(session, old_pvm_key[0], old_pvm_key[1])
+        if old_pvm:
+            for new_pvm_key in new_pvms_:
+                new_pvm = _find_pvm(session, new_pvm_key[0], new_pvm_key[1])
+                if old_pvm not in pvm_map:
+                    pvm_map[old_pvm] = [new_pvm]
+                else:
+                    pvm_map[old_pvm].append(new_pvm)
+
+    # Replace old permissions by the new ones on all existing roles
+    roles = session.query(Role).options(Load(Role).joinedload(Role.permissions)).all()
+    for role in roles:
+        for old_pvm, new_pvms in pvm_map.items():
+            if old_pvm in role.permissions:
+                print(f"Removing {old_pvm} from {role}")
+                role.permissions.remove(old_pvm)
+                for new_pvm in new_pvms:
+                    if new_pvm not in role.permissions:
+                        print(f"Add {new_pvm} to {role}")
+                        role.permissions.append(new_pvm)
+        session.merge(role)
+
+    # Delete old permissions
+    _delete_old_permissions(session, pvm_map)
     if commit:
         session.commit()
 
