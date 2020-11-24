@@ -16,10 +16,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import sys
 from datetime import datetime, timedelta
 from subprocess import Popen
-from sys import stdout
-from typing import Any, Dict, List, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
+from zipfile import ZipFile
 
 import click
 import yaml
@@ -30,9 +31,13 @@ from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
 from pathlib2 import Path
 
-from superset import app, appbuilder, security_manager
+from superset import app, appbuilder, is_feature_enabled, security_manager
 from superset.app import create_app
+from superset.connectors.sqla.models import SqlaTable
+from superset.dashboards.commands.export import ExportDashboardsCommand
+from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.extensions import celery_app, db
+from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
 from superset.utils.celery import session_scope
 from superset.utils.urls import get_url_path
@@ -261,11 +266,23 @@ def import_dashboards(path: str, recursive: bool, username: str) -> None:
 @click.option(
     "--dashboard-file", "-f", default=None, help="Specify the the file to export to"
 )
-@click.option(
-    "--print_stdout", "-p", is_flag=True, default=False, help="Print JSON to stdout"
-)
-def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
+def export_dashboards(
+    dashboard_file: Optional[str], print_stdout: bool = False
+) -> None:
     """Export dashboards to JSON"""
+    if is_feature_enabled("VERSIONED_EXPORT"):
+        dashboard_ids = db.session.query(Dashboard.id).all()
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dashboard_export_{timestamp}"
+        dashboard_file = dashboard_file or f"{root}.zip"
+
+        with ZipFile(dashboard_file, "w") as bundle:
+            for file_name, file_content in ExportDashboardsCommand(dashboard_ids).run():
+                with bundle.open(f"{root}/{file_name}", "w") as fp:
+                    fp.write(file_content.encode())
+
+        sys.exit(0)
+
     from superset.utils import dashboard_import_export
 
     data = dashboard_import_export.export_dashboards(db.session)
@@ -275,6 +292,14 @@ def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
         logger.info("Exporting dashboards to %s", dashboard_file)
         with open(dashboard_file, "w") as data_stream:
             data_stream.write(data)
+
+
+# the old export (feature flag disabled) supports dumping JSON to stdout
+if not is_feature_enabled("VERSIONED_EXPORT"):
+    print_stdout_option = click.option(
+        "--print_stdout", "-p", is_flag=True, default=False, help="Print JSON to stdout"
+    )
+    export_dashboards = print_stdout_option(export_dashboards)
 
 
 @superset.command()
@@ -331,30 +356,26 @@ def import_datasources(path: str, sync: str, recursive: bool) -> None:
 @click.option(
     "--datasource-file", "-f", default=None, help="Specify the the file to export to"
 )
-@click.option(
-    "--print_stdout", "-p", is_flag=True, default=False, help="Print YAML to stdout"
-)
-@click.option(
-    "--back-references",
-    "-b",
-    is_flag=True,
-    default=False,
-    help="Include parent back references",
-)
-@click.option(
-    "--include-defaults",
-    "-d",
-    is_flag=True,
-    default=False,
-    help="Include fields containing defaults",
-)
 def export_datasources(
-    print_stdout: bool,
-    datasource_file: str,
-    back_references: bool,
-    include_defaults: bool,
+    datasource_file: Optional[str],
+    print_stdout: bool = False,
+    back_references: bool = False,
+    include_defaults: bool = False,
 ) -> None:
     """Export datasources to YAML"""
+    if is_feature_enabled("VERSIONED_EXPORT"):
+        dataset_ids = db.session.query(SqlaTable.id).all()
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dataset_export_{timestamp}"
+        datasource_file = datasource_file or f"{root}.zip"
+
+        with ZipFile(datasource_file, "w") as bundle:
+            for file_name, file_content in ExportDatasetsCommand(dataset_ids).run():
+                with bundle.open(f"{root}/{file_name}", "w") as fp:
+                    fp.write(file_content.encode())
+
+        sys.exit(0)
+
     from superset.utils import dict_import_export
 
     data = dict_import_export.export_to_dict(
@@ -364,11 +385,40 @@ def export_datasources(
         include_defaults=include_defaults,
     )
     if print_stdout or not datasource_file:
-        yaml.safe_dump(data, stdout, default_flow_style=False)
+        yaml.safe_dump(data, sys.stdout, default_flow_style=False)
     if datasource_file:
         logger.info("Exporting datasources to %s", datasource_file)
         with open(datasource_file, "w") as data_stream:
             yaml.safe_dump(data, data_stream, default_flow_style=False)
+
+
+# the old export (feature flag disabled) supports dumping JSON to stdout and more
+if not is_feature_enabled("VERSIONED_EXPORT"):
+    extra_options = [
+        click.option(
+            "--print_stdout",
+            "-p",
+            is_flag=True,
+            default=False,
+            help="Print YAML to stdout",
+        ),
+        click.option(
+            "--back-references",
+            "-b",
+            is_flag=True,
+            default=False,
+            help="Include parent back references",
+        ),
+        click.option(
+            "--include-defaults",
+            "-d",
+            is_flag=True,
+            default=False,
+            help="Include fields containing defaults",
+        ),
+    ]
+    for extra_option in extra_options:
+        export_datasources = extra_option(export_datasources)
 
 
 @superset.command()
@@ -385,7 +435,7 @@ def export_datasource_schema(back_references: bool) -> None:
     from superset.utils import dict_import_export
 
     data = dict_import_export.export_schema_to_dict(back_references=back_references)
-    yaml.safe_dump(data, stdout, default_flow_style=False)
+    yaml.safe_dump(data, sys.stdout, default_flow_style=False)
 
 
 @superset.command()
