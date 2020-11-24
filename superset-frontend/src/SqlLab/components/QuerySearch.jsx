@@ -58,6 +58,10 @@ const TableStyles = styled.div`
   }
 `;
 
+const StyledTableStylesContainer = styled.div`
+  overflow: auto;
+`;
+
 class QuerySearch extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -293,11 +297,11 @@ class QuerySearch extends React.PureComponent {
             </Button>
           </div>
         </div>
-        <div className="scrollbar-container">
+        <StyledTableStylesContainer>
           {this.state.queriesLoading ? (
             <Loading />
           ) : (
-            <TableStyles className="scrollbar-content">
+            <TableStyles>
               <QueryTable
                 columns={[
                   'state',
@@ -317,7 +321,7 @@ class QuerySearch extends React.PureComponent {
               />
             </TableStyles>
           )}
-        </div>
+        </StyledTableStylesContainer>
       </TableWrapper>
     );
   }

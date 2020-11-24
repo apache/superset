@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import Form from 'react-jsonschema-form';
 import chrono from 'chrono-node';
 import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import ModalTrigger from 'src/components/ModalTrigger';
@@ -92,6 +92,10 @@ const defaultProps = {
   tooltip: null,
 };
 
+const StyledRow = styled(Row)`
+  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 class ScheduleQueryButton extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -139,7 +143,7 @@ class ScheduleQueryButton extends React.PureComponent {
   renderModalBody() {
     return (
       <FormGroup>
-        <Row style={{ paddingBottom: '10px' }}>
+        <StyledRow>
           <Col md={12}>
             <FormLabel className="control-label" htmlFor="embed-height">
               {t('Label')}
@@ -151,8 +155,8 @@ class ScheduleQueryButton extends React.PureComponent {
               onChange={this.onLabelChange}
             />
           </Col>
-        </Row>
-        <Row style={{ paddingBottom: '10px' }}>
+        </StyledRow>
+        <StyledRow>
           <Col md={12}>
             <FormLabel className="control-label" htmlFor="embed-height">
               {t('Description')}
@@ -164,7 +168,7 @@ class ScheduleQueryButton extends React.PureComponent {
               onChange={this.onDescriptionChange}
             />
           </Col>
-        </Row>
+        </StyledRow>
         <Row>
           <Col md={12}>
             <div className="json-schema">
