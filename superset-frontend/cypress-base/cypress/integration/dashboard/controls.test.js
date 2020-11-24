@@ -27,9 +27,7 @@ import {
 describe('Dashboard top-level controls', () => {
   let mapId;
   let aliases;
-  const getAlias = (id: number) => {
-    return `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
-  };
+
   beforeEach(() => {
     cy.server();
     cy.login();
@@ -56,7 +54,7 @@ describe('Dashboard top-level controls', () => {
         cy.get($el).should('have.class', 'ant-dropdown-menu-item-disabled');
       });
 
-    cy.wait(getAlias(mapId));
+    cy.wait(`@${DASHBOARD_CHART_ALIAS_PREFIX}${mapId}`);
     cy.get('[data-test="refresh-chart-menu-item"]').should(
       'not.have.class',
       'ant-dropdown-menu-item-disabled',
