@@ -19,7 +19,7 @@
 
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import Tooltip from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 
 interface InfoTooltipProps {
