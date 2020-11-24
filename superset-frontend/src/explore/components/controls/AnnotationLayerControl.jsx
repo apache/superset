@@ -106,18 +106,20 @@ class AnnotationLayerControl extends React.PureComponent {
   }
 
   removeAnnotationLayer(annotation) {
+    // TODO: use oldName instead of name
     const annotations = this.props.value
       .slice()
-      .filter(x => x.name !== annotation.oldName);
+      .filter(x => x.name !== annotation.name);
     this.props.onChange(annotations);
   }
 
   renderPopover(parent, popoverKey, annotation, error) {
-    const id = !annotation ? '_new' : annotation.name;
+    const id = annotation?.name || '_new';
     return (
       <div id={`annotation-pop-${id}`} data-test="popover-content">
         <AnnotationLayer
-          {...annotation}
+          annotation={annotation}
+          isNew={!annotation}
           parent={this.refs[parent]}
           error={error}
           colorScheme={this.props.colorScheme}

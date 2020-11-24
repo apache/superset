@@ -49,50 +49,54 @@ import './AnnotationLayer.less';
 const AUTOMATIC_COLOR = '';
 
 const propTypes = {
-  name: PropTypes.string,
-  annotationType: PropTypes.string,
-  sourceType: PropTypes.string,
-  color: PropTypes.string,
-  opacity: PropTypes.string,
-  style: PropTypes.string,
-  width: PropTypes.number,
-  showMarkers: PropTypes.bool,
-  hideLine: PropTypes.bool,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  overrides: PropTypes.object,
-  show: PropTypes.bool,
-  titleColumn: PropTypes.string,
-  descriptionColumns: PropTypes.arrayOf(PropTypes.string),
-  timeColumn: PropTypes.string,
-  intervalEndColumn: PropTypes.string,
-  vizType: PropTypes.string,
-
+  annotation: PropTypes.shape({
+    name: PropTypes.string,
+    annotationType: PropTypes.string,
+    sourceType: PropTypes.string,
+    color: PropTypes.string,
+    opacity: PropTypes.string,
+    style: PropTypes.string,
+    width: PropTypes.number,
+    showMarkers: PropTypes.bool,
+    hideLine: PropTypes.bool,
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    overrides: PropTypes.object,
+    show: PropTypes.bool,
+    titleColumn: PropTypes.string,
+    descriptionColumns: PropTypes.arrayOf(PropTypes.string),
+    timeColumn: PropTypes.string,
+    intervalEndColumn: PropTypes.string,
+    vizType: PropTypes.string,
+  }),
   error: PropTypes.string,
   colorScheme: PropTypes.string,
 
+  isNew: PropTypes.bool,
   addAnnotationLayer: PropTypes.func,
   removeAnnotationLayer: PropTypes.func,
   close: PropTypes.func,
 };
 
 const defaultProps = {
-  name: '',
-  annotationType: DEFAULT_ANNOTATION_TYPE,
-  sourceType: '',
-  color: AUTOMATIC_COLOR,
-  opacity: '',
-  style: 'solid',
-  width: 1,
-  showMarkers: false,
-  hideLine: false,
-  overrides: {},
-  colorScheme: 'd3Category10',
-  show: true,
-  titleColumn: '',
-  descriptionColumns: [],
-  timeColumn: '',
-  intervalEndColumn: '',
-
+  annotation: {
+    name: '',
+    annotationType: DEFAULT_ANNOTATION_TYPE,
+    sourceType: '',
+    color: AUTOMATIC_COLOR,
+    opacity: '',
+    style: 'solid',
+    width: 1,
+    showMarkers: false,
+    hideLine: false,
+    overrides: {},
+    colorScheme: 'd3Category10',
+    show: true,
+    titleColumn: '',
+    descriptionColumns: [],
+    timeColumn: '',
+    intervalEndColumn: '',
+  },
+  isNew: false,
   addAnnotationLayer: () => {},
   removeAnnotationLayer: () => {},
   close: () => {},
@@ -101,59 +105,24 @@ const defaultProps = {
 export default class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
-    const {
-      name,
-      annotationType,
-      sourceType,
-      color,
-      opacity,
-      style,
-      width,
-      showMarkers,
-      hideLine,
-      value,
-      overrides,
-      show,
-      titleColumn,
-      descriptionColumns,
-      timeColumn,
-      intervalEndColumn,
-    } = props;
 
-    const overridesKeys = Object.keys(overrides);
+    const { annotation } = props;
+    // TODO: refactor this
+    annotation.color = annotation.color || AUTOMATIC_COLOR;
+
+    const overridesKeys = Object.keys(annotation.overrides);
     if (overridesKeys.includes('since') || overridesKeys.includes('until')) {
-      overrides.time_range = null;
-      delete overrides.since;
-      delete overrides.until;
+      annotation.overrides.time_range = null;
+      delete annotation.overrides.since;
+      delete annotation.overrides.until;
     }
 
     this.state = {
-      // base
-      name,
-      oldName: !this.props.name ? null : name,
-      annotationType,
-      sourceType,
-      value,
-      overrides,
-      show,
-      // slice
-      titleColumn,
-      descriptionColumns,
-      timeColumn,
-      intervalEndColumn,
-      // display
-      color: color || AUTOMATIC_COLOR,
-      opacity,
-      style,
-      width,
-      showMarkers,
-      hideLine,
-      // refData
-      isNew: !this.props.name,
+      annotation,
       isLoadingOptions: true,
       valueOptions: [],
-      validationErrors: {},
     };
+    this.setAnnotationState = this.setAnnotationState.bind(this);
     this.submitAnnotation = this.submitAnnotation.bind(this);
     this.deleteAnnotation = this.deleteAnnotation.bind(this);
     this.applyAnnotation = this.applyAnnotation.bind(this);
@@ -167,14 +136,24 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   componentDidMount() {
-    const { annotationType, sourceType, isLoadingOptions } = this.state;
+    const {
+      annotation: { annotationType, sourceType },
+      isLoadingOptions,
+    } = this.state;
     this.fetchOptions(annotationType, sourceType, isLoadingOptions);
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.sourceType !== this.state.sourceType) {
-      this.fetchOptions(this.state.annotationType, this.state.sourceType, true);
+      const { annotationType, sourceType } = this.state.annotation;
+      this.fetchOptions(annotationType, sourceType, true);
     }
+  }
+
+  setAnnotationState(annotation) {
+    this.setState(prevState => ({
+      annotation: { ...prevState.annotation, ...annotation },
+    }));
   }
 
   getSupportedSourceTypes(annotationType) {
@@ -214,7 +193,7 @@ export default class AnnotationLayer extends React.PureComponent {
       value,
       timeColumn,
       intervalEndColumn,
-    } = this.state;
+    } = this.state.annotation;
     const errors = [
       validateNonEmpty(name),
       validateNonEmpty(annotationType),
@@ -234,29 +213,24 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   handleAnnotationType(annotationType) {
-    this.setState({
+    this.setAnnotationState({
       annotationType,
       sourceType: null,
-      validationErrors: {},
       value: null,
     });
   }
 
   handleAnnotationSourceType(sourceType) {
-    const { sourceType: prevSourceType } = this.state;
+    const { sourceType: prevSourceType } = this.state.annotation;
 
     if (prevSourceType !== sourceType) {
-      this.setState({
-        sourceType,
-        isLoadingOptions: true,
-        validationErrors: {},
-        value: null,
-      });
+      this.setAnnotationState({ sourceType, value: null });
+      this.setState({ isLoadingOptions: true });
     }
   }
 
   handleValue(value) {
-    this.setState({
+    this.setAnnotationState({
       value,
       descriptionColumns: null,
       intervalEndColumn: null,
@@ -267,7 +241,7 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   fetchOptions(annotationType, sourceType, isLoadingOptions) {
-    if (isLoadingOptions === true) {
+    if (isLoadingOptions) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
         SupersetClient.get({
           endpoint: '/annotationlayermodelview/api/read?',
@@ -311,27 +285,24 @@ export default class AnnotationLayer extends React.PureComponent {
 
   deleteAnnotation() {
     this.props.close();
-    if (!this.state.isNew) {
-      this.props.removeAnnotationLayer(this.state);
+    if (this.props.isNew) {
+      this.setState({ annotation: defaultProps.annotation });
+    } else {
+      this.props.removeAnnotationLayer(this.props.annotation);
     }
   }
 
   applyAnnotation() {
-    if (this.state.name.length) {
-      const annotation = {};
-      Object.keys(this.state).forEach(k => {
-        if (this.state[k] !== null) {
-          annotation[k] = this.state[k];
-        }
-      });
-      delete annotation.isNew;
-      delete annotation.valueOptions;
-      delete annotation.isLoadingOptions;
-      delete annotation.validationErrors;
-      annotation.color =
-        annotation.color === AUTOMATIC_COLOR ? null : annotation.color;
+    const { annotation } = this.state;
+    if (annotation.name) {
+      if (annotation.color === AUTOMATIC_COLOR) {
+        annotation.color = null;
+      }
       this.props.addAnnotationLayer(annotation);
-      this.setState(prevState => ({ isNew: false, oldName: prevState.name }));
+      // TODO: pass oldName
+      if (this.props.isNew) {
+        this.setState({ annotation: defaultProps.annotation });
+      }
     }
   }
 
@@ -350,9 +321,7 @@ export default class AnnotationLayer extends React.PureComponent {
 
   renderValueConfiguration() {
     const {
-      annotationType,
-      sourceType,
-      value,
+      annotation: { annotationType, sourceType, value },
       valueOptions,
       isLoadingOptions,
     } = this.state;
@@ -416,15 +385,17 @@ export default class AnnotationLayer extends React.PureComponent {
 
   renderSliceConfiguration() {
     const {
-      annotationType,
-      sourceType,
-      value,
+      annotation: {
+        annotationType,
+        sourceType,
+        value,
+        overrides,
+        titleColumn,
+        timeColumn,
+        intervalEndColumn,
+        descriptionColumns,
+      },
       valueOptions,
-      overrides,
-      titleColumn,
-      timeColumn,
-      intervalEndColumn,
-      descriptionColumns,
     } = this.state;
     const { slice } = valueOptions.find(x => x.value === value) || {};
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE && slice) {
@@ -458,7 +429,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 clearable={false}
                 options={timeColumnOptions}
                 value={timeColumn}
-                onChange={v => this.setState({ timeColumn: v })}
+                onChange={v => this.setAnnotationState({ timeColumn: v })}
               />
             )}
             {annotationType === ANNOTATION_TYPES.INTERVAL && (
@@ -470,7 +441,9 @@ export default class AnnotationLayer extends React.PureComponent {
                 validationErrors={!intervalEndColumn ? ['Mandatory'] : []}
                 options={columns}
                 value={intervalEndColumn}
-                onChange={v => this.setState({ intervalEndColumn: v })}
+                onChange={v =>
+                  this.setAnnotationState({ intervalEndColumn: v })
+                }
               />
             )}
             <SelectControl
@@ -480,7 +453,7 @@ export default class AnnotationLayer extends React.PureComponent {
               description="Pick a title for you annotation."
               options={[{ value: '', label: 'None' }].concat(columns)}
               value={titleColumn}
-              onChange={v => this.setState({ titleColumn: v })}
+              onChange={v => this.setAnnotationState({ titleColumn: v })}
             />
             {annotationType !== ANNOTATION_TYPES.TIME_SERIES && (
               <SelectControl
@@ -492,7 +465,9 @@ export default class AnnotationLayer extends React.PureComponent {
                 multi
                 options={columns}
                 value={descriptionColumns}
-                onChange={v => this.setState({ descriptionColumns: v })}
+                onChange={v =>
+                  this.setAnnotationState({ descriptionColumns: v })
+                }
               />
             )}
             <div style={{ marginTop: '1rem' }}>
@@ -506,11 +481,11 @@ export default class AnnotationLayer extends React.PureComponent {
                 onChange={v => {
                   delete overrides.time_range;
                   if (v) {
-                    this.setState({
+                    this.setAnnotationState({
                       overrides: { ...overrides, time_range: null },
                     });
                   } else {
-                    this.setState({ overrides: { ...overrides } });
+                    this.setAnnotationState({ overrides: { ...overrides } });
                   }
                 }}
               />
@@ -527,7 +502,7 @@ export default class AnnotationLayer extends React.PureComponent {
                   delete overrides.time_grain_sqla;
                   delete overrides.granularity;
                   if (v) {
-                    this.setState({
+                    this.setAnnotationState({
                       overrides: {
                         ...overrides,
                         time_grain_sqla: null,
@@ -535,7 +510,7 @@ export default class AnnotationLayer extends React.PureComponent {
                       },
                     });
                   } else {
-                    this.setState({ overrides: { ...overrides } });
+                    this.setAnnotationState({ overrides: { ...overrides } });
                   }
                 }}
               />
@@ -548,7 +523,9 @@ export default class AnnotationLayer extends React.PureComponent {
                 placeholder=""
                 value={overrides.time_shift}
                 onChange={v =>
-                  this.setState({ overrides: { ...overrides, time_shift: v } })
+                  this.setAnnotationState({
+                    overrides: { ...overrides, time_shift: v },
+                  })
                 }
               />
             </div>
@@ -568,7 +545,7 @@ export default class AnnotationLayer extends React.PureComponent {
       showMarkers,
       hideLine,
       annotationType,
-    } = this.state;
+    } = this.state.annotation;
     const colorScheme = getCategoricalSchemeRegistry()
       .get(this.props.colorScheme)
       .colors.concat();
@@ -598,7 +575,7 @@ export default class AnnotationLayer extends React.PureComponent {
           ]}
           value={style}
           clearable={false}
-          onChange={v => this.setState({ style: v })}
+          onChange={v => this.setAnnotationState({ style: v })}
         />
         <SelectControl
           name="annotation-layer-opacity"
@@ -611,7 +588,7 @@ export default class AnnotationLayer extends React.PureComponent {
             { value: 'opacityHigh', label: '0.8' },
           ]}
           value={opacity}
-          onChange={v => this.setState({ opacity: v })}
+          onChange={v => this.setAnnotationState({ opacity: v })}
         />
         <div>
           <ControlHeader label={t('Color')} />
@@ -619,13 +596,15 @@ export default class AnnotationLayer extends React.PureComponent {
             <CompactPicker
               color={color}
               colors={colorScheme}
-              onChangeComplete={v => this.setState({ color: v.hex })}
+              onChangeComplete={v => this.setAnnotationState({ color: v.hex })}
             />
             <Button
               style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
               buttonStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
               buttonSize="xsmall"
-              onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
+              onClick={() =>
+                this.setAnnotationState({ color: AUTOMATIC_COLOR })
+              }
             >
               Automatic Color
             </Button>
@@ -636,7 +615,7 @@ export default class AnnotationLayer extends React.PureComponent {
           label={t('Line Width')}
           isInt
           value={width}
-          onChange={v => this.setState({ width: v })}
+          onChange={v => this.setAnnotationState({ width: v })}
         />
         {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
           <CheckboxControl
@@ -645,7 +624,7 @@ export default class AnnotationLayer extends React.PureComponent {
             label="Show Markers"
             description="Shows or hides markers for the time series"
             value={showMarkers}
-            onChange={v => this.setState({ showMarkers: v })}
+            onChange={v => this.setAnnotationState({ showMarkers: v })}
           />
         )}
         {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
@@ -655,7 +634,7 @@ export default class AnnotationLayer extends React.PureComponent {
             label="Hide Line"
             description="Hides the Line for the time series"
             value={hideLine}
-            onChange={v => this.setState({ hideLine: v })}
+            onChange={v => this.setAnnotationState({ hideLine: v })}
           />
         )}
       </PopoverSection>
@@ -663,7 +642,10 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   render() {
-    const { isNew, name, annotationType, sourceType, show } = this.state;
+    const { isNew } = this.props;
+    const {
+      annotation: { name, annotationType, sourceType, show },
+    } = this.state;
     const isValid = this.isValidForm();
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
@@ -691,14 +673,14 @@ export default class AnnotationLayer extends React.PureComponent {
                 label={t('Name')}
                 placeholder=""
                 value={name}
-                onChange={v => this.setState({ name: v })}
+                onChange={v => this.setAnnotationState({ name: v })}
                 validationErrors={!name ? [t('Mandatory')] : []}
               />
               <CheckboxControl
                 name="annotation-layer-hide"
                 label={t('Hide Layer')}
                 value={!show}
-                onChange={v => this.setState({ show: !v })}
+                onChange={v => this.setAnnotationState({ show: !v })}
               />
               <SelectControl
                 hovered
