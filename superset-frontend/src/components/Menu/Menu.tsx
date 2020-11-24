@@ -134,6 +134,19 @@ const StyledHeader = styled.header`
     display: flex;
     align-items: center;
   }
+
+  .ant-menu {
+    .ant-menu-item-group-title {
+      padding-bottom: ${({ theme }) => theme.gridUnit}px;
+    }
+    .ant-menu-item {
+      margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+    .about-section {
+      margin: ${({ theme }) => theme.gridUnit}px 0
+        ${({ theme }) => theme.gridUnit * 2}px;
+    }
+  }
 `;
 
 export function Menu({
@@ -196,16 +209,18 @@ export function Menu({
                     key="about-section"
                     title={t('About')}
                   >
-                    {navbarRight.version_string && (
-                      <li className="version-info">
-                        <span>Version: {navbarRight.version_string}</span>
-                      </li>
-                    )}
-                    {navbarRight.version_sha && (
-                      <li className="version-info">
-                        <span>SHA: {navbarRight.version_sha}</span>
-                      </li>
-                    )}
+                    <div className="about-section">
+                      {navbarRight.version_string && (
+                        <li className="version-info">
+                          <span>Version: {navbarRight.version_string}</span>
+                        </li>
+                      )}
+                      {navbarRight.version_sha && (
+                        <li className="version-info">
+                          <span>SHA: {navbarRight.version_sha}</span>
+                        </li>
+                      )}
+                    </div>
                   </DropdownMenu.ItemGroup>,
                 ]}
               </DropdownMenu>

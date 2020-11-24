@@ -30,6 +30,18 @@ dataset_metadata_config: Dict[str, Any] = {
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
 
+chart_metadata_config: Dict[str, Any] = {
+    "version": "1.0.0",
+    "type": "Slice",
+    "timestamp": "2020-11-04T21:27:44.423819+00:00",
+}
+
+dashboard_metadata_config: Dict[str, Any] = {
+    "version": "1.0.0",
+    "type": "Dashboard",
+    "timestamp": "2020-11-04T21:27:44.423819+00:00",
+}
+
 database_config: Dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
@@ -87,4 +99,98 @@ dataset_config: Dict[str, Any] = {
     "version": "1.0.0",
     "uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
     "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+}
+
+chart_config: Dict[str, Any] = {
+    "params": {
+        "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0,},
+        "datasource": "12__table",
+        "js_columns": ["color"],
+        "js_data_mutator": r"data => data.map(d => ({\n    ...d,\n    color: colors.hexToRGB(d.extraProps.color)\n}));",
+        "js_onclick_href": "",
+        "js_tooltip": "",
+        "line_column": "path_json",
+        "line_type": "json",
+        "line_width": 150,
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "reverse_long_lat": False,
+        "row_limit": 5000,
+        "slice_id": 43,
+        "time_grain_sqla": None,
+        "time_range": " : ",
+        "viewport": {
+            "altitude": 1.5,
+            "bearing": 0,
+            "height": 1094,
+            "latitude": 37.73671752604488,
+            "longitude": -122.18885402582598,
+            "maxLatitude": 85.05113,
+            "maxPitch": 60,
+            "maxZoom": 20,
+            "minLatitude": -85.05113,
+            "minPitch": 0,
+            "minZoom": 0,
+            "pitch": 0,
+            "width": 669,
+            "zoom": 9.51847667620428,
+        },
+        "viz_type": "deck_path",
+    },
+    "cache_timeout": None,
+    "uuid": "0c23747a-6528-4629-97bf-e4b78d3b9df1",
+    "version": "1.0.0",
+    "dataset_uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
+}
+
+dashboard_config = {
+    "dashboard_title": "Test dash",
+    "description": None,
+    "css": "",
+    "slug": None,
+    "uuid": "c4b28c4e-a1fe-4cf8-a5ac-d6f11d6fdd51",
+    "position": {
+        "CHART-SVAlICPOSJ": {
+            "children": [],
+            "id": "CHART-SVAlICPOSJ",
+            "meta": {
+                "chartId": 83,
+                "height": 50,
+                "sliceName": "Number of California Births",
+                "uuid": "0c23747a-6528-4629-97bf-e4b78d3b9df1",
+                "width": 4,
+            },
+            "parents": ["ROOT_ID", "GRID_ID", "ROW-dP_CHaK2q"],
+            "type": "CHART",
+        },
+        "DASHBOARD_VERSION_KEY": "v2",
+        "GRID_ID": {
+            "children": ["ROW-dP_CHaK2q"],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+        "HEADER_ID": {
+            "id": "HEADER_ID",
+            "meta": {"text": "Test dash"},
+            "type": "HEADER",
+        },
+        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+        "ROW-dP_CHaK2q": {
+            "children": ["CHART-SVAlICPOSJ"],
+            "id": "ROW-dP_CHaK2q",
+            "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "ROW",
+        },
+    },
+    "metadata": {
+        "timed_refresh_immune_slices": [],
+        "expanded_slices": {},
+        "refresh_frequency": 0,
+        "default_filters": "{}",
+        "color_scheme": None,
+        "remote_id": 7,
+        "import_time": 1604342885,
+    },
+    "version": "1.0.0",
 }

@@ -28,7 +28,14 @@ import {
   addWarningToast,
 } from '../actions';
 
-const toasters = {
+export interface ToastProps {
+  addDangerToast: typeof addDangerToast;
+  addInfoToast: typeof addInfoToast;
+  addSuccessToast: typeof addSuccessToast;
+  addWarningToast: typeof addWarningToast;
+}
+
+const toasters: ToastProps = {
   addInfoToast,
   addSuccessToast,
   addWarningToast,
