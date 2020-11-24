@@ -148,9 +148,6 @@ interface FiltersBarProps {
 }
 
 const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
-  // THIS ONE IS BUILT TO THROW AWAY
-  // this is a temporary POC implementation just to get state hooked up.
-  // Please don't send this component to prod.
   const setSelectedValues = useFilterSetter(filter.id);
   const [state, setState] = useState({ data: undefined });
   const { targets } = filter;
@@ -203,9 +200,6 @@ const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
           chartType="filter_select"
         />
       </Form.Item>
-      <Button buttonSize="sm" buttonStyle="tertiary" type="submit">
-        {t('Apply')}
-      </Button>
     </Form>
   );
 };
