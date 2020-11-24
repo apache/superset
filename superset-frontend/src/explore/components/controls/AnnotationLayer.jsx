@@ -107,18 +107,22 @@ export default class AnnotationLayer extends React.PureComponent {
     super(props);
 
     const { annotation } = props;
-    // TODO: refactor this
-    annotation.color = annotation.color || AUTOMATIC_COLOR;
 
-    const overridesKeys = Object.keys(annotation.overrides);
-    if (overridesKeys.includes('since') || overridesKeys.includes('until')) {
-      annotation.overrides.time_range = null;
-      delete annotation.overrides.since;
-      delete annotation.overrides.until;
+    const overrides = { ...annotation.overrides };
+
+    // Only allow override whole time_range
+    if ('since' in overrides || 'until' in overrides) {
+      overrides.time_range = null;
+      delete overrides.since;
+      delete overrides.until;
     }
 
     this.state = {
-      annotation,
+      annotation: {
+        ...annotation,
+        overrides,
+        color: annotation.color || AUTOMATIC_COLOR,
+      },
       isLoadingOptions: true,
       valueOptions: [],
     };
@@ -332,7 +336,7 @@ export default class AnnotationLayer extends React.PureComponent {
         label = 'Annotation Layer';
         description = 'Select the Annotation Layer you would like to use.';
       } else {
-        label = label = t('Chart');
+        label = t('Chart');
         description = `Use a pre defined Superset Chart as a source for annotations and overlays.
         your chart must be one of these visualization types:
         [${this.getSupportedSourceTypes(annotationType)
@@ -477,7 +481,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 label="Override time range"
                 description={`This controls whether the "time_range" field from the current
                   view should be passed down to the chart containing the annotation data.`}
-                value={!!Object.keys(overrides).find(x => x === 'time_range')}
+                value={'time_range' in overrides}
                 onChange={v => {
                   delete overrides.time_range;
                   if (v) {
@@ -495,9 +499,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 label="Override time grain"
                 description={`This controls whether the time grain field from the current
                   view should be passed down to the chart containing the annotation data.`}
-                value={
-                  !!Object.keys(overrides).find(x => x === 'time_grain_sqla')
-                }
+                value={'time_grain_sqla' in overrides}
                 onChange={v => {
                   delete overrides.time_grain_sqla;
                   delete overrides.granularity;
@@ -692,7 +694,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 value={annotationType}
                 onChange={this.handleAnnotationType}
               />
-              {!!supportedSourceTypes.length && (
+              {supportedSourceTypes.length > 0 && (
                 <SelectControl
                   hovered
                   description="Choose the source of your annotations"
