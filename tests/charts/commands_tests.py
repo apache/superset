@@ -116,6 +116,8 @@ class TestExportChartsCommand(SupersetTestCase):
             "dataset_uuid",
         ]
 
+
+class TestImportChartsCommand(SupersetTestCase):
     def test_import_v1_chart(self):
         """Test that we can import a chart"""
         contents = {

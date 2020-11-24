@@ -200,6 +200,8 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "database_uuid",
         ]
 
+
+class TestImportDatasetsCommand(SupersetTestCase):
     def test_import_v1_dataset(self):
         """Test that we can import a dataset"""
         contents = {

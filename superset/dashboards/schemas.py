@@ -176,3 +176,14 @@ class GetFavStarIdsSchema(Schema):
         fields.Nested(ChartFavStarResponseResult),
         description="A list of results for each corresponding chart in the request",
     )
+
+
+class ImportV1DashboardSchema(Schema):
+    dashboard_title = fields.String(required=True)
+    description = fields.String(allow_none=True)
+    css = fields.String()
+    slug = fields.String(allow_none=True)
+    uuid = fields.UUID(required=True)
+    position = fields.Dict()
+    metadata = fields.Dict()
+    version = fields.String(required=True)
