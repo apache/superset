@@ -49,7 +49,7 @@ const Styles = styled.div`
 `;
 
 // eslint-disable-next-line no-empty-pattern
-export const SaveDatasetModal: FunctionComponent<> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState, overwriteDataSet, handleOverwriteCancel, handleOverwriteDataset, handleOverwriteDatasetOption, defaultCreateDatasetValue}) => {
+export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({visible, onOk, onCancel, handleDatasetNameChange, userDatasetsOwned, handleSaveDatasetRadioBtnState, saveDatasetRadioBtnState, overwriteDataSet, handleOverwriteCancel, handleOverwriteDataset, handleOverwriteDatasetOption, defaultCreateDatasetValue}) => {
   const [options, setOptions] = useState([]);
 
   const onSearch = (searchText: any) => {

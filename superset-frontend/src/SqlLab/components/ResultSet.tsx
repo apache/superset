@@ -100,7 +100,9 @@ export default class ResultSet extends React.PureComponent<
       showExploreResultsButton: false,
       data: [],
       showSaveDatasetModal: false,
-      newSaveDatasetName: '',
+      newSaveDatasetName: `${props.query.tab} ${moment().format(
+        'MM/DD/YYYY HH:mm:ss',
+      )}`,
       userDatasetsOwned: [],
       saveDatasetRadioBtnState: SAVE_NEW_DATASET_RADIO_STATE,
       overwriteDataSet: false,
@@ -312,10 +314,6 @@ export default class ResultSet extends React.PureComponent<
         ({ data } = this.state);
       }
 
-      const defaultCreateDatasetValue = `${
-        this.props.query.tab
-      } ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
-
       return (
         <div className="ResultSetControls">
           <SaveDatasetModal
@@ -330,7 +328,7 @@ export default class ResultSet extends React.PureComponent<
             handleOverwriteCancel={this.handleOverwriteCancel}
             handleOverwriteDataset={this.handleOverwriteDataset}
             handleOverwriteDatasetOption={this.handleOverwriteDatasetOption}
-            defaultCreateDatasetValue={defaultCreateDatasetValue}
+            defaultCreateDatasetValue={this.state.newSaveDatasetName}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&
