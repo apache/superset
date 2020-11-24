@@ -155,6 +155,7 @@ class SupersetAppInitializer:
             AlertLogModelView,
             AlertModelView,
             AlertObservationModelView,
+            AlertReportModelView,
         )
         from superset.views.annotations import (
             AnnotationLayerModelView,
@@ -422,8 +423,10 @@ class SupersetAppInitializer:
                 category_label=__("Manage"),
                 icon="fa-exclamation-triangle",
             )
-            appbuilder.add_view_no_menu(AlertObservationModelView)
             appbuilder.add_view_no_menu(AlertLogModelView)
+            appbuilder.add_view_no_menu(AlertObservationModelView)
+            if feature_flag_manager.is_feature_enabled("SIP_34_ALERTS_UI"):
+                appbuilder.add_view_no_menu(AlertReportModelView)
 
         #
         # Conditionally add Access Request Model View

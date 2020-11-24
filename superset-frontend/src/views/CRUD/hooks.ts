@@ -41,7 +41,7 @@ export function useListViewResource<D extends object = any>(
   handleErrorMsg: (errorMsg: string) => void,
   infoEnable = true,
   defaultCollectionValue: D[] = [],
-  baseFilters: FilterValue[] = [], // must memolize otherwise infinite loop
+  baseFilters: FilterValue[] = [], // must be memoized
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,

@@ -22,7 +22,7 @@ import { t, styled } from '@superset-ui/core';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import Icon, { IconName } from 'src/components/Icon';
-import Tooltip from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/common/components/Tooltip';
 import { Switch } from 'src/common/components/Switch';
 import FacePile from 'src/components/FacePile';
 import ListView from 'src/components/ListView';
@@ -46,11 +46,16 @@ interface AlertListProps {
 
 const StatusIcon = styled(Icon)<{ status: string }>`
   color: ${({ status, theme }) => {
-    if (status === 'alerting') return '#FBC700';
-    if (status === 'failed') return theme.colors.error.base;
-    if (status === 'ok') return theme.colors.success.base;
-
-    return theme.colors.grayscale.base;
+    switch (status) {
+      case 'alerting':
+        return '#FBC700';
+      case 'failed':
+        return theme.colors.error.base;
+      case 'ok':
+        return theme.colors.success.base;
+      default:
+        return theme.colors.grayscale.base;
+    }
   }};
 `;
 
@@ -121,25 +126,31 @@ function AlertList({
             label: '',
             status: '',
           };
-          if (lastState === 'ok') {
-            lastStateConfig.name = 'check';
-            lastStateConfig.label = t('OK');
-            lastStateConfig.status = 'ok';
-          }
-          if (lastState === 'alerting' || !lastState) {
-            lastStateConfig.name = 'exclamation';
-            lastStateConfig.label = t('Alerting');
-            lastStateConfig.status = 'alerting';
-          }
-          if (lastState === 'failed') {
-            lastStateConfig.name = 'x-small';
-            lastStateConfig.label = t('Failed');
-            lastStateConfig.status = 'failed';
+          switch (lastState) {
+            case 'ok':
+              lastStateConfig.name = 'check';
+              lastStateConfig.label = t('OK');
+              lastStateConfig.status = 'ok';
+              break;
+            case 'alerting':
+              lastStateConfig.name = 'exclamation';
+              lastStateConfig.label = t('Alerting');
+              lastStateConfig.status = 'alerting';
+              break;
+            case 'failed':
+              lastStateConfig.name = 'x-small';
+              lastStateConfig.label = t('Failed');
+              lastStateConfig.status = 'failed';
+              break;
+            default:
+              lastStateConfig.name = 'exclamation';
+              lastStateConfig.label = t('Alerting');
+              lastStateConfig.status = 'alerting';
           }
           return (
             <Tooltip title={lastStateConfig.label} placement="bottom">
               <StatusIcon
-                name={(lastStateConfig.name as IconName) || 'check'}
+                name={lastStateConfig.name as IconName}
                 status={lastStateConfig.status}
               />
             </Tooltip>
