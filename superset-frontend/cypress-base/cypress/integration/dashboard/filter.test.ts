@@ -17,7 +17,12 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
-import { isLegacyChart } from '../../utils/vizPlugins';
+import {
+  getChartAliases,
+  DASHBOARD_CHART_ALIAS_PREFIX,
+  isLegacyResponse,
+} from '../../utils/vizPlugins';
+import readResponseBlob from '../../utils/readResponseBlob';
 
 interface Slice {
   slice_id: number;
@@ -36,7 +41,7 @@ describe('Dashboard filter', () => {
   let aliases: string[];
 
   const getAlias = (id: number) => {
-    return `@slice_${id}`;
+    return `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
   };
 
   beforeEach(() => {
@@ -53,16 +58,8 @@ describe('Dashboard filter', () => {
         dashboard.slices.find(
           slice => slice.form_data.viz_type === 'filter_box',
         )?.slice_id || 0;
-      aliases = slices
-        // TODO(villebro): enable V1 charts
-        .filter(slice => isLegacyChart(slice.form_data.viz_type))
-        .map(slice => {
-          const id = slice.slice_id;
-          const alias = getAlias(id);
-          const url = `/superset/explore_json/?*{"slice_id":${id}}*`;
-          cy.route('POST', url).as(alias.slice(1));
-          return alias;
-        });
+
+      aliases = getChartAliases(slices);
 
       // wait the initial page load requests
       cy.wait(aliases);
@@ -93,20 +90,28 @@ describe('Dashboard filter', () => {
     cy.get('.Select__menu').first().contains('South Asia').click();
 
     cy.get('.filter_box button').click({ force: true });
-
-    // wait again after applied filters
     cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
-      requests.forEach(xhr => {
-        const requestFormData = xhr.request.body as FormData;
-        const requestParams = JSON.parse(
-          requestFormData.get('form_data') as string,
-        );
-        expect(requestParams.extra_filters[0]).deep.eq({
-          col: 'region',
-          op: '==',
-          val: 'South Asia',
-        });
-      });
+      return Promise.all(
+        requests.map(async xhr => {
+          expect(xhr.status).to.eq(200);
+          const responseBody = await readResponseBlob(xhr.response.body);
+          let requestFilter;
+          if (isLegacyResponse(responseBody)) {
+            const requestFormData = xhr.request.body as FormData;
+            const requestParams = JSON.parse(
+              requestFormData.get('form_data') as string,
+            );
+            requestFilter = requestParams.extra_filters[0];
+          } else {
+            requestFilter = xhr.request.body.queries[0].filters[0];
+          }
+          expect(requestFilter).deep.eq({
+            col: 'region',
+            op: '==',
+            val: 'South Asia',
+          });
+        }),
+      );
     });
 
     // TODO add test with South Asia{enter} type action to select filter
