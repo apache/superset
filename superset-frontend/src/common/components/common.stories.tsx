@@ -23,7 +23,7 @@ import Button from 'src/components/Button';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import AntdPopover from './Popover';
-import AntdTooltip from './Tooltip';
+import { Tooltip as AntdTooltip } from './Tooltip';
 import { Menu } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';

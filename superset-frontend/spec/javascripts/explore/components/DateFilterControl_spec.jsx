@@ -18,10 +18,11 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { OverlayTrigger, Radio } from 'react-bootstrap';
+import { Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 import { styledMount as mount } from 'spec/helpers/theming';
 
+import { Tooltip } from 'src/common/components/Tooltip';
 import Popover from 'src/common/components/Popover';
 import Tabs from 'src/common/components/Tabs';
 import Label from 'src/components/Label';
@@ -115,17 +116,19 @@ describe('DateFilterControl', () => {
     const popoverContent = wrapper.find(Popover).first().props().content;
     const popoverContentWrapper = mount(popoverContent);
     const defaultTab = popoverContentWrapper.find(Tabs.TabPane).first();
-    const radioTrigger = defaultTab.find(OverlayTrigger);
+    const radioTooltip = defaultTab.find(Tooltip);
 
-    expect(radioTrigger).toExist();
-    expect(radioTrigger).toHaveLength(6);
+    expect(radioTooltip).toExist();
+    expect(radioTooltip).toHaveLength(6);
   });
 
   it('renders the correct time range in tooltip', () => {
     const popoverContent = wrapper.find(Popover).first().props().content;
     const popoverContentWrapper = mount(popoverContent);
     const defaultTab = popoverContentWrapper.find(Tabs.TabPane).first();
-    const triggers = defaultTab.find(OverlayTrigger);
+    const tooltips = defaultTab.find(Tooltip);
+
+    expect(tooltips).toHaveLength(6);
 
     const expectedLabels = {
       'Last day': '2020-09-06 < col < 2020-09-07',
@@ -136,13 +139,10 @@ describe('DateFilterControl', () => {
       'No filter': '-∞ < col < ∞',
     };
 
-    triggers.forEach(trigger => {
-      const { props } = trigger.props().overlay;
-      const label = props.id.split('tooltip-')[1];
+    tooltips.forEach(tooltip => {
+      const label = tooltip.props().id.split('tooltip-')[1];
 
-      expect(trigger.props().overlay.props.children).toEqual(
-        expectedLabels[label],
-      );
+      expect(tooltip.props().title).toEqual(expectedLabels[label]);
     });
   });
 });
