@@ -1,10 +1,6 @@
 name: E2E
 
-on:
-  push:
-    branches:
-      - master
-  pull_request_target:
+on: [push, pull_request_target]
 
 jobs:
   Cypress:
