@@ -252,17 +252,7 @@ export default class ResultSet extends React.PureComponent<
     }
 
     const { schema, sql, dbId, templateParams } = this.props.query;
-
-    let selectedColumns: any[];
-    if (
-      this.props.query &&
-      this.props.query.results &&
-      this.props.query.results.selected_columns
-    ) {
-      selectedColumns = this.props.query.results.selected_columns;
-    } else {
-      selectedColumns = []
-    }
+    const selectedColumns = this.props.query?.results?.selected_columns || [];
 
     this.props.actions
       .createDatasource({
