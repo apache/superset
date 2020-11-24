@@ -18,6 +18,7 @@
  */
 import React, { CSSProperties } from 'react';
 import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
+import moment from 'moment';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import { styled, t, SupersetClient} from '@superset-ui/core';
@@ -306,7 +307,7 @@ export default class ResultSet extends React.PureComponent<
 
       const defaultCreateDatasetValue = `${
         this.props.query.tab
-      } ${new Date().toLocaleString().replace(',', '')}`;
+      } ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
 
       return (
         <div className="ResultSetControls">
