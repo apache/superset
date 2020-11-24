@@ -281,6 +281,43 @@ export default class ResultSet extends React.PureComponent<
       });
   }
 
+  handleCTASSaveInDataset() {
+    // if user wants to overwrite a dataset we need to prompt them
+    if (this.state.saveDatasetRadioBtnState === OVERWRITE_DATASET_RADIO_STATE) {
+      this.setState({ overwriteDataSet: true });
+      return;
+    }
+
+    const { schema, sql, dbId, templateParams } = this.props.query;
+    this.props.actions
+      .createCtasDatasource({
+        schema,
+        dbId,
+        templateParams,
+        datasourceName: this.state.newSaveDatasetName,
+      })
+      .then((data: { table_id: number }) => {
+        const formData = {
+          datasource: `${data.table_id}__table`,
+          metrics: ['count'],
+          groupby: [],
+          viz_type: 'table',
+          since: '100 years ago',
+          all_columns: [],
+          row_limit: 1000,
+        };
+        this.props.actions.addInfoToast(
+          t('Creating a data source and creating a new tab'),
+        );
+
+        // open new window for data visualization
+        exploreChart(formData);
+      })
+      .catch(() => {
+        this.props.actions.addDangerToast(t('An error occurred'));
+      });
+  }
+
   handleDatasetNameChange(e: { target: { value: any } }) {
     this.setState({ newSaveDatasetName: e.target.value });
   }
