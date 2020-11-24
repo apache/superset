@@ -45,7 +45,6 @@ import {
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import './AnnotationLayer.less';
-import { annotations } from '@superset-ui/chart-controls/lib/sections';
 
 const AUTOMATIC_COLOR = '';
 
@@ -684,7 +683,6 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   render() {
-    const { isNew } = this.props;
     const { name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
@@ -750,7 +748,7 @@ export default class AnnotationLayer extends React.PureComponent {
           {this.renderDisplayConfiguration()}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          {isNew ? (
+          {this.props.isNew ? (
             <Button buttonSize="sm" onClick={this.cancelAnnotation}>
               {t('Cancel')}
             </Button>
