@@ -93,7 +93,7 @@ const defaultProps = {
 };
 
 const StyledRow = styled(Row)`
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2.5}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 class ScheduleQueryButton extends React.PureComponent {
