@@ -25,14 +25,11 @@ import Icon from 'src/components/Icon';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
-import {
-  useFilterConfiguration,
-  useFilterSetter,
-} from './state';
+import { useFilterConfiguration, useFilterSetter } from './state';
 import { Filter, FilterConfiguration } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
 
-const barWidth=`250px`;
+const barWidth = `250px`;
 
 const BarWrapper = styled.div`
   width: ${({ theme }) => theme.gridUnit * 6}px;
@@ -58,14 +55,18 @@ const Bar = styled.div`
   /* &.animated {
     display: flex;
     transform: translateX(-100%);
-    transition: transform ${({ theme }) => theme.transitionTiming}s;
+    transition: transform ${({
+    theme,
+  }) => theme.transitionTiming}s;
     transition-delay: 0s;
   }  */
   &.open {
     display: flex;
     /* &.animated {
       transform: translateX(0);
-      transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
+      transition-delay: ${({
+      theme,
+    }) => theme.transitionTiming * 2}s;
     } */
   }
 `;
@@ -81,15 +82,19 @@ const CollapsedBar = styled.div`
   text-align: center;
   /* &.animated {
     display: block;
-    transform: translateX(-100%);  
-    transition: transform ${({ theme }) => theme.transitionTiming}s;
+    transform: translateX(-100%);
+    transition: transform ${({
+    theme,
+  }) => theme.transitionTiming}s;
     transition-delay: 0s;
   } */
   &.open {
     display: block;
     /* &.animated {
       transform: translateX(0);
-      transition-delay: ${({ theme }) => theme.transitionTiming * 3}s;
+      transition-delay: ${({
+      theme,
+    }) => theme.transitionTiming * 3}s;
     } */
   }
   svg {
@@ -244,7 +249,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const filterConfigs = useFilterConfiguration();
-  console.log(filterConfigs);
 
   const handleVisibleChange = (flag: boolean) => {
     setDropdownOpen(flag);

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { findLastIndex } from 'lodash';
+import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
 import { Store } from 'antd/lib/form/interface';
 import { DeleteFilled } from '@ant-design/icons';
@@ -70,6 +70,9 @@ export interface FilterConfigModalProps {
   onCancel: () => void;
 }
 
+const getFilterIds = (config: FilterConfiguration) =>
+  config.map(filter => filter.id);
+
 export function FilterConfigModal({
   isOpen,
   initialFilterId,
@@ -81,15 +84,22 @@ export function FilterConfigModal({
 
   const filterConfig = useFilterConfiguration();
   const filterConfigMap = useFilterConfigMap();
-  // some filter ids may belong to filters that do not exist yet
-  const getInitialFilterIds = () => filterConfig.map(filter => filter.id);
-  const [filterIds, setFilterIds] = useState(getInitialFilterIds);
-  const getInitialCurrentFilterId = () => initialFilterId ?? filterIds[0];
-  const [currentFilterId, setCurrentFilterId] = useState(
-    getInitialCurrentFilterId,
-  );
+  // new filter ids may belong to filters that do not exist yet
+  const [newFilterIds, setNewFilterIds] = useState<string[]>([]);
+  // store ids of filters that have been removed but keep them around in the state
   const [removedFilters, setRemovedFilters] = useState<Record<string, boolean>>(
     {},
+  );
+  const filterIds = useMemo(
+    () => uniq([...getFilterIds(filterConfig), ...newFilterIds]),
+    [filterConfig, newFilterIds],
+  );
+  const getInitialCurrentFilterId = useCallback(
+    () => initialFilterId ?? filterIds[0],
+    [initialFilterId, filterIds],
+  );
+  const [currentFilterId, setCurrentFilterId] = useState(
+    getInitialCurrentFilterId,
   );
   // the form values are managed by the antd form, but we copy them to here
   const [formValues, setFormValues] = useState<NativeFiltersForm>({
@@ -99,9 +109,9 @@ export function FilterConfigModal({
 
   const addFilter = useCallback(() => {
     const newFilterId = generateFilterId();
-    setFilterIds([...filterIds, newFilterId]);
+    setNewFilterIds([...newFilterIds, newFilterId]);
     setCurrentFilterId(newFilterId);
-  }, [filterIds, setFilterIds, setCurrentFilterId]);
+  }, [newFilterIds, setCurrentFilterId]);
 
   useEffect(() => {
     if (createNewOnOpen && isOpen && !wasOpen) {
@@ -109,17 +119,12 @@ export function FilterConfigModal({
     }
   }, [createNewOnOpen, isOpen, wasOpen, addFilter]);
 
-  useEffect(() => {
-    form.setFieldsValue({ filters: {} });
-  }, [form, filterConfig]);
-
   const resetForm = useCallback(() => {
     form.resetFields();
-    setFilterIds(getInitialFilterIds());
+    setNewFilterIds([]);
     setCurrentFilterId(getInitialCurrentFilterId());
     setRemovedFilters({});
-    setFormValues({ filters: {} });
-  }, [form]);
+  }, [form, getInitialCurrentFilterId]);
 
   function onTabEdit(filterId: string, action: 'add' | 'remove') {
     if (action === 'remove') {
@@ -152,13 +157,12 @@ export function FilterConfigModal({
     try {
       const values = (await form.validateFields()) as NativeFiltersForm;
       const newFilterConfig: FilterConfiguration = filterIds
-        .filter(
-          id => values.filters && values.filters[id] && !removedFilters[id],
-        )
+        .filter(id => !removedFilters[id])
         .map(id => {
           // create a filter config object from the form inputs
-
           const formInputs = values.filters[id];
+          // if user didn't open a filter, return the original config
+          if (!formInputs) return filterConfigMap[id];
           return {
             id,
             name: formInputs.name,
@@ -172,7 +176,7 @@ export function FilterConfigModal({
                 },
               },
             ],
-            defaultValue: formInputs.defaultValue,
+            defaultValue: formInputs.defaultValue || null,
             scope: {
               rootPath: [DASHBOARD_ROOT_ID],
               excluded: [],
@@ -187,7 +191,7 @@ export function FilterConfigModal({
     } catch (info) {
       console.log('Filter Configuration Failed:', info);
     }
-  }, [form, save, resetForm, filterIds, removedFilters]);
+  }, [form, save, resetForm, filterIds, removedFilters, filterConfigMap]);
 
   return (
     <StyledModal
@@ -201,7 +205,7 @@ export function FilterConfigModal({
       onOk={onOk}
       okText={t('Save')}
       cancelText={t('Cancel')}
-      centered={true}
+      centered
     >
       <StyledModalBody>
         <Form

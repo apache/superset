@@ -30,7 +30,6 @@ import { logEvent } from '../../logger/actions';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 
 function mapStateToProps(state) {
-  console.log('mapStateToProps', state);
   const {
     datasources,
     sliceEntities,

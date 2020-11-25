@@ -106,7 +106,6 @@ export function useFilterSetter(id: string) {
       filter: Filter,
       filters: FilterConfiguration,
     ) => {
-      console.log('useFilterSetter', values, filter, filters);
       dispatch(selectFilterOption(id, values));
       dispatch(setFilterState(values || [], filter, filters));
     },

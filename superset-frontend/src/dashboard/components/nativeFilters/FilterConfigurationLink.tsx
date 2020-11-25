@@ -45,15 +45,13 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
   }
 
   async function submit(filterConfig: FilterConfiguration) {
-    dispatch(setFilterConfiguration(filterConfig));
+    await dispatch(setFilterConfiguration(filterConfig));
     close();
   }
 
   return (
     <>
-      <div onClick={() => setOpen(true)}>
-        {children}
-      </div>
+      <div onClick={() => setOpen(true)}>{children}</div>
       <FilterConfigModal
         isOpen={isOpen}
         save={submit}
