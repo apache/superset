@@ -88,14 +88,6 @@ class ImportExportMixin:
     __mapper__: Mapper
 
     @classmethod
-    def _parent_foreign_key_mappings(cls) -> Dict[str, str]:
-        """Get a mapping of foreign name to the local name of foreign keys"""
-        parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
-        if parent_rel:
-            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
-        return {}
-
-    @classmethod
     def _unique_constrains(cls) -> List[Set[str]]:
         """Get all (single column and multi column) unique constraints"""
         unique = [
@@ -171,7 +163,7 @@ class ImportExportMixin:
 
         # Remove fields that should not get imported
         for k in list(dict_rep):
-            if k not in export_fields:
+            if k not in export_fields and k not in parent_refs:
                 del dict_rep[k]
 
         if not parent:

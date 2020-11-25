@@ -40,6 +40,7 @@ from superset.models.reports import (
 )
 
 from tests.base_tests import SupersetTestCase
+from tests.reports.utils import insert_report_schedule
 from superset.utils.core import get_example_database
 
 
@@ -47,48 +48,6 @@ REPORTS_COUNT = 10
 
 
 class TestReportSchedulesApi(SupersetTestCase):
-    def insert_report_schedule(
-        self,
-        type: str,
-        name: str,
-        crontab: str,
-        sql: Optional[str] = None,
-        description: Optional[str] = None,
-        chart: Optional[Slice] = None,
-        dashboard: Optional[Dashboard] = None,
-        database: Optional[Database] = None,
-        owners: Optional[List[User]] = None,
-        validator_type: Optional[str] = None,
-        validator_config_json: Optional[str] = None,
-        log_retention: Optional[int] = None,
-        grace_period: Optional[int] = None,
-        recipients: Optional[List[ReportRecipients]] = None,
-        logs: Optional[List[ReportExecutionLog]] = None,
-    ) -> ReportSchedule:
-        owners = owners or []
-        recipients = recipients or []
-        logs = logs or []
-        report_schedule = ReportSchedule(
-            type=type,
-            name=name,
-            crontab=crontab,
-            sql=sql,
-            description=description,
-            chart=chart,
-            dashboard=dashboard,
-            database=database,
-            owners=owners,
-            validator_type=validator_type,
-            validator_config_json=validator_config_json,
-            log_retention=log_retention,
-            grace_period=grace_period,
-            recipients=recipients,
-            logs=logs,
-        )
-        db.session.add(report_schedule)
-        db.session.commit()
-        return report_schedule
-
     @pytest.fixture()
     def create_report_schedules(self):
         with self.create_app().app_context():
@@ -116,7 +75,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                         )
                     )
                 report_schedules.append(
-                    self.insert_report_schedule(
+                    insert_report_schedule(
                         type=ReportScheduleType.ALERT,
                         name=f"name{cx}",
                         crontab=f"*/{cx} * * * *",
@@ -169,10 +128,6 @@ class TestReportSchedulesApi(SupersetTestCase):
             "last_value_row_json": report_schedule.last_value_row_json,
             "log_retention": report_schedule.log_retention,
             "name": report_schedule.name,
-            "owners": [
-                {"first_name": "admin", "id": 1, "last_name": "user"},
-                {"first_name": "alpha", "id": 5, "last_name": "user"},
-            ],
             "recipients": [
                 {
                     "id": report_schedule.recipients[0].id,
@@ -184,7 +139,16 @@ class TestReportSchedulesApi(SupersetTestCase):
             "validator_config_json": report_schedule.validator_config_json,
             "validator_type": report_schedule.validator_type,
         }
-        assert data["result"] == expected_result
+        for key in expected_result:
+            assert data["result"][key] == expected_result[key]
+        # needed because order may vary
+        assert {"first_name": "admin", "id": 1, "last_name": "user"} in data["result"][
+            "owners"
+        ]
+        assert {"first_name": "alpha", "id": 5, "last_name": "user"} in data["result"][
+            "owners"
+        ]
+        assert len(data["result"]["owners"]) == 2
 
     def test_info_report_schedule(self):
         """

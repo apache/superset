@@ -87,8 +87,18 @@ function SelectFilter({
   };
 
   const options = [clearFilterSelect, ...selects];
+  let initialOption = clearFilterSelect;
 
-  const [selectedOption, setSelectedOption] = useState(clearFilterSelect);
+  // Set initial value if not async
+  if (!fetchSelects) {
+    const matchingOption = options.find(x => x.value === initialValue);
+
+    if (matchingOption) {
+      initialOption = matchingOption;
+    }
+  }
+
+  const [selectedOption, setSelectedOption] = useState(initialOption);
   const onChange = (selected: SelectOption | null) => {
     if (selected === null) return;
     onSelect(

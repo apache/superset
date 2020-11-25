@@ -15,18 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+# pylint: disable=too-many-public-methods, no-self-use, invalid-name, too-many-arguments
 """Unit tests for Superset"""
 import json
 from io import BytesIO
 from typing import List, Optional
 from unittest.mock import patch
-from zipfile import is_zipfile
+from zipfile import is_zipfile, ZipFile
 
 import pytest
 import prison
+import yaml
 from sqlalchemy.sql import func
 
-import tests.test_app
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager
@@ -37,6 +38,14 @@ from superset.views.base import generate_download_headers
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.importexport import (
+    chart_config,
+    database_config,
+    dashboard_config,
+    dashboard_metadata_config,
+    dataset_config,
+    dataset_metadata_config,
+)
 
 
 DASHBOARDS_FIXTURE_COUNT = 10
@@ -142,7 +151,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             ],
             "position_json": "",
             "published": False,
-            "url": f"/superset/dashboard/slug1/",
+            "url": "/superset/dashboard/slug1/",
             "slug": "slug1",
             "table_names": "",
             "thumbnail_url": dashboard.thumbnail_url,
@@ -162,7 +171,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test info
         """
         self.login(username="admin")
-        uri = f"api/v1/dashboard/_info"
+        uri = "api/v1/dashboard/_info"
         rv = self.get_assert_metric(uri, "info")
         self.assertEqual(rv.status_code, 200)
 
@@ -1077,3 +1086,86 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         db.session.delete(dashboard)
         db.session.commit()
+
+    def test_import_dashboard(self):
+        """
+        Dashboard API: Test import dashboard
+        """
+        self.login(username="admin")
+        uri = "api/v1/dashboard/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dashboard_metadata_config).encode())
+            with bundle.open("databases/imported_database.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+            with bundle.open("charts/imported_chart.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_config).encode())
+            with bundle.open("dashboards/imported_dashboard.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dashboard_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "file": (buf, "dashboard_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+        )
+        assert dashboard.dashboard_title == "Test dash"
+
+        assert len(dashboard.slices) == 1
+        chart = dashboard.slices[0]
+        assert str(chart.uuid) == chart_config["uuid"]
+
+        dataset = chart.table
+        assert str(dataset.uuid) == dataset_config["uuid"]
+
+        database = dataset.database
+        assert str(database.uuid) == database_config["uuid"]
+
+        db.session.delete(dashboard)
+        db.session.delete(chart)
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_dashboard_invalid(self):
+        """
+        Dataset API: Test import invalid dashboard
+        """
+        self.login(username="admin")
+        uri = "api/v1/dashboard/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
+            with bundle.open("databases/imported_database.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+            with bundle.open("charts/imported_chart.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_config).encode())
+            with bundle.open("dashboards/imported_dashboard.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dashboard_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "file": (buf, "dashboard_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "message": {"metadata.yaml": {"type": ["Must be equal to Dashboard."]}}
+        }

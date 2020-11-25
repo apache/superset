@@ -40,6 +40,7 @@ from superset.datasets.commands.exceptions import (
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
     DatasetForbiddenError,
+    DatasetImportError,
     DatasetInvalidError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,
@@ -598,7 +599,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def import_(self) -> Response:
-        """Import dataset (s) with associated databases
+        """Import dataset(s) with associated databases
         ---
         post:
           requestBody:
@@ -642,6 +643,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except CommandInvalidError as exc:
             logger.warning("Import dataset failed")
             return self.response_422(message=exc.normalized_messages())
-        except Exception as exc:  # pylint: disable=broad-except
+        except DatasetImportError as exc:
             logger.exception("Import dataset failed")
             return self.response_500(message=str(exc))
