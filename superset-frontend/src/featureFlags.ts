@@ -49,11 +49,9 @@ declare global {
   }
 }
 
-let initialized = false;
 export function initFeatureFlags(featureFlags: FeatureFlagMap) {
-  if (!initialized) {
+  if (!window.featureFlags) {
     window.featureFlags = featureFlags || {};
-    initialized = true;
   }
 }
 
