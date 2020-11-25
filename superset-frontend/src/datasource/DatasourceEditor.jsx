@@ -306,8 +306,8 @@ class DatasourceEditor extends React.PureComponent {
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
-    this.allowEditSource = isFeatureEnabled(
-      FeatureFlag.ENABLE_DATASET_SOURCE_EDIT,
+    this.allowEditSource = !isFeatureEnabled(
+      FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
     );
   }
 

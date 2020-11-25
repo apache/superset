@@ -155,6 +155,7 @@ describe('DatasourceEditor', () => {
         .mockImplementation(
           feature => feature === 'ENABLE_DATASET_SOURCE_EDIT',
         );
+      wrapper = shallow(el, { context: { store } }).dive();
     });
 
     afterAll(() => {
@@ -194,7 +195,8 @@ describe('DatasourceEditor', () => {
     // when edit is disabled, show readOnly controls and no padlock
     isFeatureEnabledMock = jest
       .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockImplementation(() => false);
+      .mockImplementation(() => true);
+    wrapper = shallow(el, { context: { store } }).dive();
     wrapper.setState({ activeTabKey: 0 });
 
     const sourceTab = wrapper.find(Tabs.TabPane).first();
