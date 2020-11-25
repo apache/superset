@@ -31,7 +31,7 @@ from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
 from pathlib2 import Path
 
-from superset import app, appbuilder, is_feature_enabled, security_manager
+from superset import app, appbuilder, security_manager
 from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
@@ -347,6 +347,7 @@ def import_datasources(path: str, sync: str, recursive: bool) -> None:
         logger.exception("Error when importing dataset")
 
 
+# pylint: disable=too-many-locals
 @superset.command()
 @with_appcontext
 @click.option(
