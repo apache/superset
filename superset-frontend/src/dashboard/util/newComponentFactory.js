@@ -49,7 +49,7 @@ const typeToDefaultMetaData = {
   },
   [MARKDOWN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
-  [TABS_TYPE]: null,
+  [TABS_TYPE]: { text: 'New Tabs' },
   [TAB_TYPE]: { text: 'New Tab' },
 };
 

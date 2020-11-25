@@ -144,8 +144,9 @@ EditableTabs.TabPane.defaultProps = {
 
 export const StyledLineEditableTabs = styled(EditableTabs)`
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
-    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 4}px;
     padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit}px`};
+    background: ${({ theme }) => theme.colors.grayscale.light4};
     background: transparent;
     border: none;
   }

@@ -34,6 +34,7 @@ import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { TAB_TYPE } from '../../util/componentTypes';
+import EditableTitle from '../../../components/EditableTitle';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -77,6 +78,10 @@ const defaultProps = {
 };
 
 const StyledTabsContainer = styled.div`
+  &&& {
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+  }
   width: 100%;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 
@@ -112,6 +117,12 @@ const StyledTabsContainer = styled.div`
 
   div .ant-tabs-tab-btn {
     text-transform: none;
+  }
+`;
+
+const StyledHeader = styled.div`
+  &&& .editable-title {
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
 `;
 
@@ -248,6 +259,21 @@ class Tabs extends React.PureComponent {
     }
   }
 
+  handleChangeText = nextText => {
+    const { updateComponents, component } = this.props;
+    if (nextText && nextText !== component.meta.text) {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            text: nextText,
+          },
+        },
+      });
+    }
+  };
+
   render() {
     const {
       depth,
@@ -267,7 +293,7 @@ class Tabs extends React.PureComponent {
     } = this.props;
 
     const { tabIndex: selectedTabIndex } = this.state;
-    const { children: tabIds } = tabsComponent;
+    const { children: tabIds, meta } = tabsComponent;
 
     const activeKey = tabIds[selectedTabIndex];
 
@@ -289,6 +315,14 @@ class Tabs extends React.PureComponent {
             className="dashboard-component dashboard-component-tabs"
             data-test="dashboard-component-tabs"
           >
+            <StyledHeader>
+              <EditableTitle
+                title={meta.text}
+                canEdit={editMode}
+                onSaveTitle={this.handleChangeText}
+                showTooltip={false}
+              />
+            </StyledHeader>
             {editMode && renderHoverMenu && (
               <HoverMenu innerRef={tabsDragSourceRef} position="left">
                 <DragHandle position="left" />

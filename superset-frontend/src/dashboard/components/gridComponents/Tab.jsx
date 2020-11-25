@@ -24,6 +24,7 @@ import DragDroppable from '../dnd/DragDroppable';
 import EditableTitle from '../../../components/EditableTitle';
 import AnchorLink from '../../../components/AnchorLink';
 import { componentShape } from '../../util/propShapes';
+import { styled } from '@superset-ui/core';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -52,6 +53,11 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
 };
+
+const StyledTab = styled.div`
+  background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
 
 const defaultProps = {
   availableColumnCount: 0,
@@ -123,7 +129,7 @@ export default class Tab extends React.PureComponent {
     } = this.props;
 
     return (
-      <div className="dashboard-component-tabs-content">
+      <StyledTab className="dashboard-component-tabs-content">
         {/* Make top of tab droppable */}
         {editMode && (
           <DragDroppable
@@ -179,7 +185,7 @@ export default class Tab extends React.PureComponent {
             }
           </DragDroppable>
         )}
-      </div>
+      </StyledTab>
     );
   }
 
