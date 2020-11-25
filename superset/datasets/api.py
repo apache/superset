@@ -27,7 +27,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import is_feature_enabled
+from superset import event_logger, is_feature_enabled
 from superset.commands.exceptions import CommandInvalidError
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
@@ -182,6 +182,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def post(self) -> Response:
         """Creates a new Dataset
         ---
@@ -238,6 +239,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def put(self, pk: int) -> Response:
         """Changes a Dataset
         ---
@@ -308,6 +310,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def delete(self, pk: int) -> Response:
         """Deletes a Dataset
         ---
@@ -358,6 +361,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def export(self, **kwargs: Any) -> Response:
         """Export datasets
         ---
@@ -433,6 +437,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def refresh(self, pk: int) -> Response:
         """Refresh a Dataset
         ---
@@ -482,6 +487,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def related_objects(self, pk: int) -> Response:
         """Get charts and dashboards count associated to a dataset
         ---
@@ -540,6 +546,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Datasets
         ---
