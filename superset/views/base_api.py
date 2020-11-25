@@ -31,7 +31,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
-from superset.extensions import db, security_manager
+from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -49,6 +49,7 @@ get_related_schema = {
         "filter": {"type": "string"},
     },
 }
+log_context = event_logger.log_context
 
 
 class RelatedResultResponseSchema(Schema):
@@ -312,49 +313,61 @@ class BaseSupersetModelRestApi(ModelRestApi):
         """
         Add statsd metrics to builtin FAB _info endpoint
         """
-        duration, response = time_function(super().info_headless, **kwargs)
-        self.send_stats_metrics(response, self.info.__name__, duration)
-        return response
+        ref = f"{self.__class__.__name__}.info"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().info_headless, **kwargs)
+            self.send_stats_metrics(response, self.info.__name__, duration)
+            return response
 
     def get_headless(self, pk: int, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET endpoint
         """
-        duration, response = time_function(super().get_headless, pk, **kwargs)
-        self.send_stats_metrics(response, self.get.__name__, duration)
-        return response
+        ref = f"{self.__class__.__name__}.get"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().get_headless, pk, **kwargs)
+            self.send_stats_metrics(response, self.get.__name__, duration)
+            return response
 
     def get_list_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET list endpoint
         """
-        duration, response = time_function(super().get_list_headless, **kwargs)
-        self.send_stats_metrics(response, self.get_list.__name__, duration)
-        return response
+        ref = f"{self.__class__.__name__}.get_list"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().get_list_headless, **kwargs)
+            self.send_stats_metrics(response, self.get_list.__name__, duration)
+            return response
 
     def post_headless(self) -> Response:
         """
         Add statsd metrics to builtin FAB POST endpoint
         """
-        duration, response = time_function(super().post_headless)
-        self.send_stats_metrics(response, self.post.__name__, duration)
-        return response
+        ref = f"{self.__class__.__name__}.post"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().post_headless)
+            self.send_stats_metrics(response, self.post.__name__, duration)
+            return response
 
     def put_headless(self, pk: int) -> Response:
         """
         Add statsd metrics to builtin FAB PUT endpoint
         """
-        duration, response = time_function(super().put_headless, pk)
-        self.send_stats_metrics(response, self.put.__name__, duration)
-        return response
+        ref = f"{self.__class__.__name__}.put"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().put_headless, pk)
+            self.send_stats_metrics(response, self.put.__name__, duration)
+            return response
 
     def delete_headless(self, pk: int) -> Response:
         """
         Add statsd metrics to builtin FAB DELETE endpoint
         """
-        duration, response = time_function(super().delete_headless, pk)
-        self.send_stats_metrics(response, self.delete.__name__, duration)
-        return response
+        ref = f"{self.__class__.__name__}.delete"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().delete_headless, pk)
+            self.send_stats_metrics(response, self.delete.__name__, duration)
+            return response
 
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
