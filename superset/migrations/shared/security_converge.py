@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
+import logging
 from typing import Dict, List, Tuple
 
 from sqlalchemy import (
@@ -28,6 +28,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Load, relationship, Session
+
+logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
@@ -154,19 +156,21 @@ def _find_pvm(session: Session, view_name: str, permission_name: str) -> Permiss
 
 def add_pvms(
     session: Session, pvm_data: Dict[str, Tuple[str, ...]], commit: bool = False
-) -> None:
+) -> List[PermissionView]:
     """
     Checks if exists and adds new Permissions, Views and PermissionView's
     """
+    pvms = []
     for view_name, permissions in pvm_data.items():
         # Check and add the new View
         new_view = _add_view_menu(session, view_name)
         for permission_name in permissions:
             new_permission = _add_permission(session, permission_name)
             # Check and add the new PVM
-            _add_permission_view(session, new_permission, new_view)
+            pvms.append(_add_permission_view(session, new_permission, new_view))
     if commit:
         session.commit()
+    return pvms
 
 
 def _delete_old_permissions(
@@ -182,7 +186,7 @@ def _delete_old_permissions(
     for old_pvm, new_pvms in pvm_map.items():
         old_permission_name = old_pvm.permission.name
         old_view_name = old_pvm.view_menu.name
-        print(f"Going to delete pvm: {old_pvm}")
+        logger.info(f"Going to delete pvm: {old_pvm}")
         session.delete(old_pvm)
         pvms_with_permission = (
             session.query(PermissionView)
@@ -190,7 +194,7 @@ def _delete_old_permissions(
             .filter(Permission.name == old_permission_name)
         ).first()
         if not pvms_with_permission:
-            print(f"Going to delete permission: {old_pvm.permission}")
+            logger.info(f"Going to delete permission: {old_pvm.permission}")
             session.delete(old_pvm.permission)
         pvms_with_view_menu = (
             session.query(PermissionView)
@@ -198,7 +202,7 @@ def _delete_old_permissions(
             .filter(ViewMenu.name == old_view_name)
         ).first()
         if not pvms_with_view_menu:
-            print(f"Going to delete view_menu: {old_pvm.view_menu}")
+            logger.info(f"Going to delete view_menu: {old_pvm.view_menu}")
             session.delete(old_pvm.view_menu)
 
 
@@ -225,11 +229,11 @@ def migrate_roles(
     for role in roles:
         for old_pvm, new_pvms in pvm_map.items():
             if old_pvm in role.permissions:
-                print(f"Removing {old_pvm} from {role}")
+                logger.info(f"Removing {old_pvm} from {role}")
                 role.permissions.remove(old_pvm)
                 for new_pvm in new_pvms:
                     if new_pvm not in role.permissions:
-                        print(f"Add {new_pvm} to {role}")
+                        logger.info(f"Add {new_pvm} to {role}")
                         role.permissions.append(new_pvm)
         session.merge(role)
 
