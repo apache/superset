@@ -14,7 +14,6 @@
 # under the License.
 
 import logging
-import os.path
 from pathlib import Path
 from typing import Any, Dict
 
