@@ -322,7 +322,7 @@ const SavedQueries = ({
                         }}
                         showLineNumbers={false}
                       >
-                        {shortenSQL(q.sql, 6)}
+                        {shortenSQL(q.sql, 25)}
                       </SyntaxHighlighter>
                     </QueryContainer>
                   ) : (
