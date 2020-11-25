@@ -17,6 +17,11 @@
 #
 set -e
 
+#
+# Always install local overrides first
+#
+/app/docker/docker-bootstrap.sh
+
 STEP_CNT=4
 
 echo_step() {

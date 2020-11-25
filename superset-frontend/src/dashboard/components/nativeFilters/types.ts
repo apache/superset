@@ -76,7 +76,7 @@ export interface Filter {
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
-  defaultValue: string;
+  defaultValue: string | null;
   scope: Scope;
   isInstant: boolean;
   allowsMultipleValues: boolean;
@@ -155,4 +155,14 @@ export type TreeItem = {
   children: TreeItem[];
   key: string;
   title: string;
+};
+
+
+export type NativeFiltersState = {
+  filters: {
+    [filterId: string]: Filter;
+  };
+  filtersState: {
+    [filterId: string]: FilterState;
+  };
 };

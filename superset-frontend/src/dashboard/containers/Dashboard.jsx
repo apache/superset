@@ -28,9 +28,9 @@ import {
 import { triggerQuery } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import { getActiveFilters } from '../util/activeDashboardFilters';
+import { getNativeFilterClauses } from '../util/nativeFilters';
 
 function mapStateToProps(state) {
-  console.log('mapStateToProps', state);
   const {
     datasources,
     sliceEntities,
@@ -58,7 +58,7 @@ function mapStateToProps(state) {
     activeFilters: getActiveFilters(),
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
-    nativeFilters: nativeFilters.filterList || [],
+    nativeFilters: getNativeFilterClauses(nativeFilters) || [],
     impressionId,
   };
 }

@@ -20,11 +20,14 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { act } from 'react-dom/test-utils';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 
-import QueryList, { QueryObject } from 'src/views/CRUD/data/query/QueryList';
+import QueryList from 'src/views/CRUD/data/query/QueryList';
+import QueryPreviewModal from 'src/views/CRUD/data/query/QueryPreviewModal';
+import { QueryObject } from 'src/views/CRUD/types';
 import ListView from 'src/components/ListView';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 
@@ -43,6 +46,7 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
   },
   schema: 'public',
   sql: `SELECT ${i} FROM table`,
+  executed_sql: `SELECT ${i} FROM table`,
   sql_tables: [
     { schema: 'foo', table: 'table' },
     { schema: 'bar', table: 'table_2' },
@@ -96,5 +100,18 @@ describe('QueryList', () => {
 
   it('renders a SyntaxHighlight', () => {
     expect(wrapper.find(SyntaxHighlighter)).toExist();
+  });
+
+  it('opens a query preview', () => {
+    act(() => {
+      const props = wrapper
+        .find('[data-test="open-sql-preview-0"]')
+        .first()
+        .props();
+      if (props.onClick) props.onClick({} as React.MouseEvent);
+    });
+    wrapper.update();
+
+    expect(wrapper.find(QueryPreviewModal)).toExist();
   });
 });

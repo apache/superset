@@ -28,6 +28,13 @@ import {
   addWarningToast,
 } from '../actions';
 
+export interface ToastProps {
+  addDangerToast: typeof addDangerToast;
+  addInfoToast: typeof addInfoToast;
+  addSuccessToast: typeof addSuccessToast;
+  addWarningToast: typeof addWarningToast;
+}
+
 const toasters = {
   addInfoToast,
   addSuccessToast,
@@ -46,8 +53,5 @@ export default function withToasts(BaseComponent: ComponentType<any>) {
 
 export function useToasts() {
   const dispatch = useDispatch();
-  const toasts = useMemo(() => bindActionCreators(toasters, dispatch), [
-    dispatch,
-  ]);
-  return toasts;
+  return useMemo(() => bindActionCreators(toasters, dispatch), [dispatch]);
 }

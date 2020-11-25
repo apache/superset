@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, css } from '@superset-ui/core';
 import {
   SearchOutlined,
   MinusCircleFilled,
@@ -25,6 +25,7 @@ import {
   ExclamationCircleFilled,
 } from '@ant-design/icons';
 import { Collapse, Popover } from 'src/common/components/index';
+import { Global } from '@emotion/core';
 import {
   Indent,
   Item,
@@ -106,6 +107,60 @@ const DetailsPanelPopover = ({
 
   const content = (
     <Panel>
+      <Global
+        styles={css`
+          .filterStatusPopover {
+            .ant-popover-inner {
+              background-color: ${theme.colors.grayscale.dark2}cc;
+              .ant-popover-inner-content {
+                padding-top: 0;
+                padding-bottom: 0;
+              }
+            }
+            .ant-collapse-item:last-of-type.ant-collapse-item-active {
+              padding-bottom: ${theme.gridUnit * 3}px;
+            }
+            &.ant-popover-placement-bottom,
+            &.ant-popover-placement-bottomLeft,
+            &.ant-popover-placement-bottomRight {
+              & > .ant-popover-content > .ant-popover-arrow {
+                border-top-color: ${theme.colors.grayscale.dark2}cc;
+                border-left-color: ${theme.colors.grayscale.dark2}cc;
+              }
+            }
+            &.ant-popover-placement-top,
+            &.ant-popover-placement-topLeft,
+            &.ant-popover-placement-topRight {
+              & > .ant-popover-content > .ant-popover-arrow {
+                border-bottom-color: ${theme.colors.grayscale.dark2}cc;
+                border-right-color: ${theme.colors.grayscale.dark2}cc;
+              }
+            }
+            &.ant-popover-placement-left,
+            &.ant-popover-placement-leftTop,
+            &.ant-popover-placement-leftBottom {
+              & > .ant-popover-content > .ant-popover-arrow {
+                border-top-color: ${theme.colors.grayscale.dark2}cc;
+                border-right-color: ${theme.colors.grayscale.dark2}cc;
+              }
+            }
+            &.ant-popover-placement-right,
+            &.ant-popover-placement-rightTop,
+            &.ant-popover-placement-rightBottom {
+              & > .ant-popover-content > .ant-popover-arrow {
+                border-bottom-color: ${theme.colors.grayscale.dark2}cc;
+                border-left-color: ${theme.colors.grayscale.dark2}cc;
+              }
+            }
+            &.ant-popover {
+              color: ${theme.colors.grayscale.light4};
+            }
+            .ant-collapse-arrow svg {
+              color: ${theme.colors.grayscale.light4};
+            }
+          }
+        `}
+      />
       <Reset>
         <Collapse
           ghost
@@ -116,8 +171,8 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="applied"
               header={
-                <Title bold>
-                  <CheckCircleFilled color={theme.colors.success.base} />{' '}
+                <Title bold color={theme.colors.success.base}>
+                  <CheckCircleFilled />{' '}
                   {t('Applied Filters (%d)', appliedIndicators.length)}
                 </Title>
               }
@@ -137,8 +192,8 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="incompatible"
               header={
-                <Title bold>
-                  <ExclamationCircleFilled color={theme.colors.alert.base} />{' '}
+                <Title bold color={theme.colors.alert.base}>
+                  <ExclamationCircleFilled />{' '}
                   {t(
                     'Incompatible Filters (%d)',
                     incompatibleIndicators.length,
@@ -161,7 +216,7 @@ const DetailsPanelPopover = ({
             <Collapse.Panel
               key="unset"
               header={
-                <Title bold>
+                <Title bold color={theme.colors.grayscale.light1}>
                   <MinusCircleFilled />{' '}
                   {t('Unset Filters (%d)', unsetIndicators.length)}
                 </Title>
@@ -186,9 +241,10 @@ const DetailsPanelPopover = ({
 
   return (
     <Popover
+      overlayClassName="filterStatusPopover"
       content={content}
       onVisibleChange={handlePopoverStatus}
-      placement="bottomRight"
+      placement="bottom"
       trigger="click"
     >
       {children}

@@ -59,3 +59,35 @@ export type SavedQueryObject = {
   sql: string | null;
   sql_tables?: { catalog?: string; schema: string; table: string }[];
 };
+
+export interface QueryObject {
+  id: number;
+  changed_on: string;
+  database: {
+    database_name: string;
+  };
+  schema: string;
+  sql: string;
+  executed_sql: string | null;
+  sql_tables?: { catalog?: string; schema: string; table: string }[];
+  status:
+    | 'success'
+    | 'failed'
+    | 'stopped'
+    | 'running'
+    | 'timed_out'
+    | 'scheduled'
+    | 'pending';
+  tab_name: string;
+  user: {
+    first_name: string;
+    id: number;
+    last_name: string;
+    username: string;
+  };
+  start_time: number;
+  end_time: number;
+  rows: number;
+  tmp_table_name: string;
+  tracking_url: string;
+}

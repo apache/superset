@@ -26,7 +26,10 @@ module.exports = {
     '^spec/(.*)$': '<rootDir>/spec/$1',
   },
   testEnvironment: 'enzyme',
-  setupFilesAfterEnv: ['jest-enzyme', '<rootDir>/spec/helpers/shim.ts'],
+  setupFilesAfterEnv: [
+    '<rootDir>/node_modules/jest-enzyme/lib/index.js',
+    '<rootDir>/spec/helpers/shim.ts',
+  ],
   testURL: 'http://localhost',
   collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
   coverageDirectory: '<rootDir>/coverage/',

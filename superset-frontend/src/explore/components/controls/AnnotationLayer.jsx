@@ -597,6 +597,7 @@ export default class AnnotationLayer extends React.PureComponent {
             { value: 'dotted', label: 'Dotted' },
           ]}
           value={style}
+          clearable={false}
           onChange={v => this.setState({ style: v })}
         />
         <SelectControl
@@ -704,6 +705,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 description={t('Choose the Annotation Layer Type')}
                 label={t('Annotation Layer Type')}
                 name="annotation-layer-type"
+                clearable={false}
                 options={supportedAnnotationTypes}
                 value={annotationType}
                 onChange={this.handleAnnotationType}
@@ -740,6 +742,7 @@ export default class AnnotationLayer extends React.PureComponent {
 
             <Button
               buttonSize="sm"
+              buttonStyle="primary"
               disabled={!isValid}
               onClick={this.submitAnnotation}
             >

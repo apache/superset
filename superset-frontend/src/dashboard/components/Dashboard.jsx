@@ -154,7 +154,6 @@ class Dashboard extends React.PureComponent {
       this.nativeFilters = nativeFilters;
       this.refreshCharts(this.getAllCharts().map(chart => chart.id));
     }
-    console.log('dashboard componentDidUpdate', this, nativeFilters, this.getAllCharts());
 
     if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
       this.applyFilters();

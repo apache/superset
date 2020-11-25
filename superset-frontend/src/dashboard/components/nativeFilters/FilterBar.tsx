@@ -19,45 +19,88 @@
 import { styled, SuperChart, t } from '@superset-ui/core';
 import React, { useState } from 'react';
 import cx from 'classnames';
-import { Form, Dropdown, Menu } from 'src/common/components';
+import { Form, Menu } from 'src/common/components';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
-import {
-  useFilterConfiguration,
-  useFilterSetter,
-} from './state';
+import { useFilterConfiguration, useFilterSetter } from './state';
 import { Filter, FilterConfiguration } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
 
+const barWidth = `250px`;
+
+const BarWrapper = styled.div`
+  width: ${({ theme }) => theme.gridUnit * 6}px;
+  &.open {
+    width: ${barWidth}; // arbitrary...
+  }
+`;
+
 const Bar = styled.div`
-  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* bottom: 100%;
+  right: 100%; */
   flex-direction: column;
-  width: 250px; // arbitrary...
   flex-grow: 1;
+  width: ${barWidth}; // arbitrary...
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  height: 100%;
+  max-height: 100%;
+  display: none;
+  /* &.animated {
+    display: flex;
+    transform: translateX(-100%);
+    transition: transform ${({
+    theme,
+  }) => theme.transitionTiming}s;
+    transition-delay: 0s;
+  }  */
   &.open {
     display: flex;
+    /* &.animated {
+      transform: translateX(0);
+      transition-delay: ${({
+      theme,
+    }) => theme.transitionTiming * 2}s;
+    } */
   }
 `;
 
 const CollapsedBar = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
   width: ${({ theme }) => theme.gridUnit * 6}px;
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
-  background: ${({ theme }) => theme.colors.grayscale.light4};
-  /* border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2}; */
   display: none;
   text-align: center;
+  /* &.animated {
+    display: block;
+    transform: translateX(-100%);
+    transition: transform ${({
+    theme,
+  }) => theme.transitionTiming}s;
+    transition-delay: 0s;
+  } */
   &.open {
     display: block;
-    
+    /* &.animated {
+      transform: translateX(0);
+      transition-delay: ${({
+      theme,
+    }) => theme.transitionTiming * 3}s;
+    } */
   }
   svg {
     width: ${({ theme }) => theme.gridUnit * 4}px;
     height: ${({ theme }) => theme.gridUnit * 4}px;
+    cursor: pointer;
   }
 `;
 
@@ -110,9 +153,6 @@ interface FiltersBarProps {
 }
 
 const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
-  // THIS ONE IS BUILT TO THROW AWAY
-  // this is a temporary POC implementation just to get state hooked up.
-  // Please don't send this component to prod.
   const setSelectedValues = useFilterSetter(filter.id);
   const [state, setState] = useState({ data: undefined });
   const { targets } = filter;
@@ -165,9 +205,6 @@ const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
           chartType="filter_select"
         />
       </Form.Item>
-      <Button buttonSize="sm" buttonStyle="tertiary" type="submit">
-        {t('Apply')}
-      </Button>
     </Form>
   );
 };
@@ -212,7 +249,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const filterConfigs = useFilterConfiguration();
-  console.log(filterConfigs);
 
   const handleVisibleChange = (flag: boolean) => {
     setDropdownOpen(flag);
@@ -220,7 +256,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   };
 
   return (
-    <>
+    <BarWrapper className={cx({ open: filtersOpen })}>
       <CollapsedBar
         className={cx({ open: !filtersOpen })}
         onClick={toggleFiltersBar}
@@ -269,7 +305,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           ))}
         </FilterControls>
       </Bar>
-    </>
+    </BarWrapper>
   );
 };
 
