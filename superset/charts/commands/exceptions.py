@@ -23,6 +23,7 @@ from superset.commands.exceptions import (
     CreateFailedError,
     DeleteFailedError,
     ForbiddenError,
+    ImportFailedError,
     UpdateFailedError,
 )
 
@@ -83,3 +84,7 @@ class ChartForbiddenError(ForbiddenError):
 
 class ChartBulkDeleteFailedError(CreateFailedError):
     message = _("Charts could not be deleted.")
+
+
+class ChartImportError(ImportFailedError):
+    message = _("Import chart failed for an unknown reason")

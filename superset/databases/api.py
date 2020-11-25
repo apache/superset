@@ -44,6 +44,7 @@ from superset.databases.commands.exceptions import (
     DatabaseCreateFailedError,
     DatabaseDeleteDatasetsExistFailedError,
     DatabaseDeleteFailedError,
+    DatabaseImportError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
@@ -775,6 +776,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except CommandInvalidError as exc:
             logger.warning("Import database failed")
             return self.response_422(message=exc.normalized_messages())
-        except Exception as exc:  # pylint: disable=broad-except
+        except DatabaseImportError as exc:
             logger.exception("Import database failed")
             return self.response_500(message=str(exc))
