@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,22 +15,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset.models.reports import ReportRecipients
+from superset.reports.notifications.base import BaseNotification, NotificationContent
+from superset.reports.notifications.email import EmailNotification
+from superset.reports.notifications.slack import SlackNotification
 
-"""
-This is the main entrypoint used by Celery workers. As such,
-it needs to call create_app() in order to initialize things properly
-"""
 
-# Superset framework imports
-from superset import create_app
-from superset.extensions import celery_app
-
-# Init the Flask app / configure everything
-create_app()
-
-# Need to import late, as the celery_app will have been setup by "create_app()"
-# pylint: disable=wrong-import-position, unused-import
-from . import cache, schedules, scheduler  # isort:skip
-
-# Export the celery app globally for Celery (as run on the cmd line) to find
-app = celery_app
+def create_notification(
+    recipient: ReportRecipients, screenshot_data: NotificationContent
+) -> BaseNotification:
+    """
+    Notification polymorphic factory
+    Returns the Notification class for the recipient type
+    """
+    for plugin in BaseNotification.plugins:
+        if plugin.type == recipient.type:
+            return plugin(recipient, screenshot_data)
+    raise Exception("Recipient type not supported")
