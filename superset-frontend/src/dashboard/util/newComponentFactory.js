@@ -17,7 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
-
+import { t } from '@superset-ui/core';
 import {
   CHART_TYPE,
   COLUMN_TYPE,
@@ -43,14 +43,14 @@ export const typeToDefaultMetaData = {
   },
   [DIVIDER_TYPE]: null,
   [HEADER_TYPE]: {
-    text: 'New header',
+    text: t('New header'),
     headerSize: MEDIUM_HEADER,
     background: BACKGROUND_TRANSPARENT,
   },
   [MARKDOWN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
-  [TABS_TYPE]: { text: 'New Tabs' },
-  [TAB_TYPE]: { text: 'New Tab' },
+  [TABS_TYPE]: { text: t('New Tabs') },
+  [TAB_TYPE]: { text: t('New Tab') },
 };
 
 function uuid(type) {
