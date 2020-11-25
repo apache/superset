@@ -89,6 +89,8 @@ const RefreshTooltip = styled.div`
 
 const screenshotNodeSelector = '.dashboard-component-chart-holder';
 
+const takeScreenshotDelay = 1000;
+
 const VerticalDotsTrigger = () => (
   <VerticalDotsContainer>
     <span className="dot" />
@@ -143,13 +145,15 @@ class SliceHeaderControls extends React.PureComponent {
         this.props.handleToggleFullSize();
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE:
+        // menu closes with a delay, we need to wait so
+        // that we don't capture it on the screenshot
         setTimeout(
           () =>
             downloadAsImage(
               screenshotNodeSelector,
               this.props.slice.slice_name,
             )({ currentTarget }),
-          1000,
+          takeScreenshotDelay,
         );
         break;
       default:

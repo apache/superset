@@ -89,6 +89,8 @@ const DropdownButton = styled.div`
 
 const screenshotNodeSelector = '.dashboard';
 
+const takeScreenshotDelay = 1000;
+
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
     window.location.reload();
@@ -148,13 +150,15 @@ class HeaderActionsDropdown extends React.PureComponent {
         this.props.showPropertiesModal();
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE:
+        // menu closes with a delay, we need to wait so
+        // that we don't capture it on the screenshot
         setTimeout(
           () =>
             downloadAsImage(
               screenshotNodeSelector,
               this.props.dashboardTitle,
             )({ currentTarget }),
-          1000,
+          takeScreenshotDelay,
         );
         break;
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
