@@ -282,8 +282,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           >
             <Icon name="more-horiz" />
           </Dropdown> */}
-          <FilterConfigurationLink createNewOnOpen>
-            <Icon name="plus-large" title={t('new filter')} />
+          <FilterConfigurationLink>
+            <Icon name="edit" />
           </FilterConfigurationLink>
           <Icon name="expand" onClick={toggleFiltersBar} />
         </TitleArea>
