@@ -20,21 +20,24 @@ from typing import Any, Dict
 
 from marshmallow.exceptions import ValidationError
 
-from superset.charts.commands.importers import v1
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.dashboards.commands.importers import v0, v1
 
 logger = logging.getLogger(__name__)
 
+# list of different import formats supported; v0 should be last because
+# the files are not versioned
 command_versions = [
-    v1.ImportChartsCommand,
+    v1.ImportDashboardsCommand,
+    v0.ImportDashboardsCommand,
 ]
 
 
-class ImportChartsCommand(BaseCommand):
+class ImportDashboardsCommand(BaseCommand):
     """
-    Import charts.
+    Import dashboards.
 
     This command dispatches the import to different versions of the command
     until it finds one that matches.
