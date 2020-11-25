@@ -71,6 +71,20 @@ export const CardStyles = styled.div`
   }
   .ant-card-cover {
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    & > div {
+      height: 171px;
+    }
+  }
+  .gradient-container > div {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: #d8dbe4;
+    display: inline-block;
+    width: 100%;
+    height: 179px;
+    background-repeat: no-repeat;
+    vertical-align: middle;
   }
 `;
 
@@ -82,14 +96,6 @@ const QueryData = styled.div`
     padding: ${({ theme }) => theme.gridUnit * 2 + 2}px;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
   }
-`;
-
-const ShowEmptyState = styled.div`
-  background-image: url('/static/assets/images/emptyquery.svg');
-  width: 100%;
-  height: 171px;
-  background-repeat: no-repeat;
-  background-size: 539px;
 `;
 
 const QueryContainer = styled.div`
@@ -226,7 +232,6 @@ const SavedQueries = ({
       )}
     </Menu>
   );
-  console.log('queries', queries);
   return (
     <>
       {queryDeleteModal && (
@@ -296,6 +301,7 @@ const SavedQueries = ({
                 imgURL=""
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
+                imgFallbackURL="/static/assets/images/empty-query.svg"
                 description={t('Last run %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length ? (
@@ -320,7 +326,7 @@ const SavedQueries = ({
                       </SyntaxHighlighter>
                     </QueryContainer>
                   ) : (
-                    <ShowEmptyState />
+                    false
                   )
                 }
                 actions={
