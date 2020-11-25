@@ -83,16 +83,15 @@ class AnnotationLayerControl extends React.PureComponent {
     }
   }
 
-  addAnnotationLayer(newAnnotation) {
-    const annotations = [...this.props.value, newAnnotation];
-    this.props.refreshAnnotationData(newAnnotation);
-    this.props.onChange(annotations);
-  }
-
-  editAnnotationLayer(annotation, newAnnotation) {
-    const annotations = this.props.value.map(a =>
-      a.name === annotation.name ? newAnnotation : a,
-    );
+  addAnnotationLayer(originalName, annotation) {
+    let annotations;
+    if (originalName) {
+      annotations = this.props.value.map(a =>
+        a.name === originalName ? annotation : a,
+      );
+    } else {
+      annotations = [...this.props.value, annotation];
+    }
     this.props.refreshAnnotationData(annotation);
     this.props.onChange(annotations);
   }
@@ -103,32 +102,26 @@ class AnnotationLayerControl extends React.PureComponent {
     }));
   }
 
-  removeAnnotationLayer(annotation) {
-    const annotations = this.props.value.filter(
-      a => a.name !== annotation.name,
-    );
+  removeAnnotationLayer(originalName) {
+    const annotations = this.props.value.filter(a => a.name !== originalName);
     this.props.onChange(annotations);
   }
 
   renderPopover(parent, popoverKey, annotation, error) {
     const id = annotation?.name || '_new';
-    const isNew = !annotation;
-    const onSubmit = annotationData =>
-      isNew
-        ? this.addAnnotationLayer(annotationData)
-        : this.editAnnotationLayer(annotation, annotationData);
 
     return (
       <div id={`annotation-pop-${id}`} data-test="popover-content">
         <AnnotationLayer
           {...annotation}
-          isNew={isNew}
           error={error}
           colorScheme={this.props.colorScheme}
           vizType={this.props.vizType}
-          onSubmit={onSubmit}
-          onRemove={() => this.removeAnnotationLayer(annotation)}
-          onClose={() => this.handleVisibleChange(false, popoverKey)}
+          addAnnotationLayer={this.addAnnotationLayer}
+          removeAnnotationLayer={this.removeAnnotationLayer}
+          close={() => {
+            this.handleVisibleChange(false, popoverKey);
+          }}
         />
       </div>
     );
@@ -190,6 +183,7 @@ class AnnotationLayerControl extends React.PureComponent {
             content={this.renderPopover('overlay-new', addLayerPopoverKey)}
             title={t('Add Annotation Layer')}
             visible={this.state.popoverVisible[addLayerPopoverKey]}
+            destroyTooltipOnHide
             onVisibleChange={visible =>
               this.handleVisibleChange(visible, addLayerPopoverKey)
             }

@@ -71,12 +71,12 @@ const propTypes = {
   colorScheme: PropTypes.string,
   isNew: PropTypes.bool,
 
-  onSubmit: PropTypes.func,
-  onRemove: PropTypes.func,
-  onClose: PropTypes.func,
+  addAnnotationLayer: PropTypes.func,
+  removeAnnotationLayer: PropTypes.func,
+  close: PropTypes.func,
 };
 
-const annotationDefaults = {
+const defaultProps = {
   name: '',
   annotationType: DEFAULT_ANNOTATION_TYPE,
   sourceType: '',
@@ -86,22 +86,17 @@ const annotationDefaults = {
   width: 1,
   showMarkers: false,
   hideLine: false,
-  value: '',
+  value: null,
   overrides: {},
   show: true,
   titleColumn: '',
   descriptionColumns: [],
   timeColumn: '',
   intervalEndColumn: '',
-};
-
-const defaultProps = {
-  ...annotationDefaults,
-  isNew: false,
   colorScheme: 'd3Category10',
-  onSubmit: () => {},
-  onRemove: () => {},
-  onClose: () => {},
+  addAnnotationLayer: () => {},
+  removeAnnotationLayer: () => {},
+  close: () => {},
 };
 
 export default class AnnotationLayer extends React.PureComponent {
@@ -154,12 +149,13 @@ export default class AnnotationLayer extends React.PureComponent {
       showMarkers,
       hideLine,
       // refData
+      originalName: name,
+      isNew: !name,
       isLoadingOptions: true,
       valueOptions: [],
     };
 
     this.submitAnnotation = this.submitAnnotation.bind(this);
-    this.cancelAnnotation = this.cancelAnnotation.bind(this);
     this.removeAnnotation = this.removeAnnotation.bind(this);
     this.applyAnnotation = this.applyAnnotation.bind(this);
     this.fetchOptions = this.fetchOptions.bind(this);
@@ -308,11 +304,6 @@ export default class AnnotationLayer extends React.PureComponent {
     }
   }
 
-  cancelAnnotation() {
-    this.setState({ ...annotationDefaults });
-    this.props.onClose();
-  }
-
   applyAnnotation() {
     if (this.isValidForm()) {
       const annotationFields = [
@@ -333,33 +324,33 @@ export default class AnnotationLayer extends React.PureComponent {
         'timeColumn',
         'intervalEndColumn',
       ];
-      const annotation = {};
+      const newAnnotation = {};
       annotationFields.forEach(field => {
         if (this.state[field] !== null) {
-          annotation[field] = this.state[field];
+          newAnnotation[field] = this.state[field];
         }
       });
 
-      if (annotation.color === AUTOMATIC_COLOR) {
-        annotation.color = null;
+      if (newAnnotation.color === AUTOMATIC_COLOR) {
+        newAnnotation.color = null;
       }
 
-      this.props.onSubmit(annotation);
-
-      if (this.props.isNew) {
-        this.setState({ ...annotationDefaults });
-      }
+      this.props.addAnnotationLayer(this.state.originalName, newAnnotation);
+      this.setState(prevState => ({
+        isNew: false,
+        originalName: prevState.name,
+      }));
     }
   }
 
   removeAnnotation() {
-    this.props.onRemove();
-    this.props.onClose();
+    this.props.removeAnnotationLayer(this.state.originalName);
+    this.props.close();
   }
 
   submitAnnotation() {
     this.applyAnnotation();
-    this.props.onClose();
+    this.props.close();
   }
 
   renderOption(option) {
@@ -683,7 +674,7 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   render() {
-    const { name, annotationType, sourceType, show } = this.state;
+    const { isNew, name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
@@ -748,8 +739,8 @@ export default class AnnotationLayer extends React.PureComponent {
           {this.renderDisplayConfiguration()}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          {this.props.isNew ? (
-            <Button buttonSize="sm" onClick={this.cancelAnnotation}>
+          {isNew ? (
+            <Button buttonSize="sm" onClick={() => this.props.close()}>
               {t('Cancel')}
             </Button>
           ) : (
