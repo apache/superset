@@ -25,6 +25,7 @@ import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 import { FavoriteStatus } from './types';
 
 interface ListViewResourceState<D extends object = any> {
@@ -35,6 +36,16 @@ interface ListViewResourceState<D extends object = any> {
   lastFetchDataConfig: FetchDataConfig | null;
   bulkSelectEnabled: boolean;
 }
+
+const needsPassword = (errMsg: Record<string, Record<string, string[]>>) =>
+  Object.values(errMsg).every(validationErrors =>
+    Object.entries(validationErrors as Object).every(
+      ([field, messages]) =>
+        field === '_schema' &&
+        messages.length === 1 &&
+        messages[0] === 'Must provide a password for the database',
+    ),
+  );
 
 export function useListViewResource<D extends object = any>(
   resource: string,
@@ -297,6 +308,55 @@ export function useSingleViewResource<D extends object = any>(
       });
   }, []);
 
+  const importResource = useCallback(
+    (bundle: File, databasePasswords: Record<string, string> = {}) => {
+      // Set loading state
+      updateState({
+        loading: true,
+      });
+
+      const formData = new FormData();
+      formData.append('formData', bundle);
+
+      /* The import bundle never contains database passwords; if required
+       * they should be provided by the user during import.
+       */
+      if (databasePasswords) {
+        formData.append('passwords', JSON.stringify(databasePasswords));
+      }
+
+      return SupersetClient.post({
+        endpoint: `/api/v1/${resourceName}/import/`,
+        body: formData,
+      })
+        .then(() => true)
+        .catch(response =>
+          getClientErrorObject(response).then(error => {
+            /* When importing a bundle, if all validation errors are because
+             * the databases need passwords we return a list of the database
+             * files so that the user can type in the passwords and resubmit
+             * the file.
+             */
+            const errMsg = error.message || error.error;
+            if (typeof errMsg !== 'string' && needsPassword(errMsg)) {
+              return Object.keys(errMsg);
+            }
+            return handleErrorMsg(
+              t(
+                'An error occurred while importing %%s: %s',
+                resourceLabel,
+                JSON.stringify(errMsg),
+              ),
+            );
+          }),
+        )
+        .finally(() => {
+          updateState({ loading: false });
+        });
+    },
+    [],
+  );
+
   return {
     state: {
       loading: state.loading,
@@ -309,6 +369,7 @@ export function useSingleViewResource<D extends object = any>(
     fetchResource,
     createResource,
     updateResource,
+    importResource,
   };
 }
 
