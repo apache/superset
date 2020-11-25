@@ -59,7 +59,7 @@ export const LOG_EVENT_TYPE_USER = new Set([
 ]);
 
 export const Logger = {
-  // note that this returns ms since page load, NOT ms since epoc
+  // note that this returns ms since page load, NOT ms since epoch
   getTimestamp() {
     return Math.round(window.performance.now());
   },
