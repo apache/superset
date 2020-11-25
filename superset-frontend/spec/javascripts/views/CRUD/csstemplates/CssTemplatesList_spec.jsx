@@ -53,6 +53,10 @@ const mocktemplates = [...new Array(3)].map((_, i) => ({
   template_name: `template ${i}`,
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(templatesInfoEndpoint, {
   permissions: ['can_delete'],
 });
@@ -72,7 +76,9 @@ fetchMock.get(templatesRelatedEndpoint, {
 });
 
 describe('CssTemplatesList', () => {
-  const wrapper = mount(<CssTemplatesList />, { context: { store } });
+  const wrapper = mount(<CssTemplatesList user={mockUser} />, {
+    context: { store },
+  });
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

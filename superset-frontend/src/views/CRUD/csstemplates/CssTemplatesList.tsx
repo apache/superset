@@ -40,11 +40,15 @@ const PAGE_SIZE = 25;
 interface CssTemplatesListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+  };
 }
 
 function CssTemplatesList({
   addDangerToast,
   addSuccessToast,
+  user,
 }: CssTemplatesListProps) {
   const {
     state: {
@@ -280,6 +284,7 @@ function CssTemplatesList({
               errMsg,
             ),
           ),
+          user.userId,
         ),
         paginate: true,
       },
