@@ -114,7 +114,7 @@ class DatabaseDeleteFailedError(DeleteFailedError):
 
 
 class DatabaseDeleteFailedReportsExistError(DatabaseDeleteFailedError):
-    message = _("There are associated alerts or reports associated")
+    message = _("There are associated alerts or reports")
 
 
 class DatabaseSecurityUnsafeError(DBSecurityException):

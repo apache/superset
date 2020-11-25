@@ -79,7 +79,7 @@ class ChartDeleteFailedError(DeleteFailedError):
 
 
 class ChartDeleteFailedReportsExistError(ChartDeleteFailedError):
-    message = _("There are associated alerts or reports associated")
+    message = _("There are associated alerts or reports")
 
 
 class ChartForbiddenError(ForbiddenError):
@@ -91,7 +91,7 @@ class ChartBulkDeleteFailedError(DeleteFailedError):
 
 
 class ChartBulkDeleteFailedReportsExistError(ChartBulkDeleteFailedError):
-    message = _("There are associated alerts or reports associated")
+    message = _("There are associated alerts or reports")
 
 
 class ChartImportError(ImportFailedError):

@@ -54,7 +54,7 @@ class DashboardBulkDeleteFailedError(CreateFailedError):
 
 
 class DashboardBulkDeleteFailedReportsExistError(DashboardBulkDeleteFailedError):
-    message = _("There are associated alerts or reports associated")
+    message = _("There are associated alerts or reports")
 
 
 class DashboardUpdateFailedError(UpdateFailedError):
@@ -66,7 +66,7 @@ class DashboardDeleteFailedError(DeleteFailedError):
 
 
 class DashboardDeleteFailedReportsExistError(DashboardDeleteFailedError):
-    message = _("There are associated alerts or reports associated")
+    message = _("There are associated alerts or reports")
 
 
 class DashboardForbiddenError(ForbiddenError):
