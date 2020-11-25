@@ -219,41 +219,11 @@ const FilterControl: React.FC<FilterProps> = ({ filter, filters }) => {
   );
 };
 
-const MenuItems: React.FC<FiltersMenuProps> = ({
-  toggleSideBar,
-  closeDropdown,
-}) => {
-  return (
-    <Menu onClick={closeDropdown}>
-      <Menu.Item>Configure Filters</Menu.Item>
-      <Menu.Item>
-        <FilterConfigurationLink createNewOnOpen>
-          {t('New Filter')}
-        </FilterConfigurationLink>
-      </Menu.Item>
-      {/* <Menu.Item>
-          <FilterScopeModal
-            triggerNode={t('Bulk Scoping')}
-          />
-        </Menu.Item> */}
-      <Menu.Item>
-        <div onClick={toggleSideBar}>Collapse</div>
-      </Menu.Item>
-    </Menu>
-  );
-};
-
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const filterConfigs = useFilterConfiguration();
-
-  const handleVisibleChange = (flag: boolean) => {
-    setDropdownOpen(flag);
-    // this.setState({ visible: flag });
-  };
 
   return (
     <BarWrapper className={cx({ open: filtersOpen })}>
@@ -269,19 +239,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <span>
             {t('Filters')} ({filterConfigs.length})
           </span>
-          {/* <Dropdown
-            overlay={
-              <MenuItems
-                toggleSideBar={toggleFiltersBar}
-                closeDropdown={() => setDropdownOpen(false)}
-              />
-            }
-            trigger={['click']}
-            visible={dropdownOpen}
-            onVisibleChange={handleVisibleChange}
-          >
-            <Icon name="more-horiz" />
-          </Dropdown> */}
           <FilterConfigurationLink>
             <Icon name="edit" />
           </FilterConfigurationLink>

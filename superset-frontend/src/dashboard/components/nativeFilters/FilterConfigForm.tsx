@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { FormInstance, FormItemProps } from 'antd/lib/form';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import React, { useState } from 'react';
+import { FormInstance } from 'antd/lib/form';
+import { styled, t } from '@superset-ui/core';
 import SupersetResourceSelect, {
   Value,
 } from 'src/components/SupersetResourceSelect';
@@ -29,94 +29,19 @@ import {
   Radio,
   Typography,
 } from 'src/common/components';
-import { usePrevious } from 'src/common/hooks/usePrevious';
-import { AsyncSelect } from 'src/components/Select';
-import { useToasts } from 'src/messageToasts/enhancers/withToasts';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
-import {
-  Filter,
-  FilterConfiguration,
-  NativeFiltersForm,
-  Scope,
-  Scoping,
-} from './types';
+import { Filter, NativeFiltersForm, Scope, Scoping } from './types';
 import ScopingTree from './ScopingTree';
+import { ColumnSelect } from './ColumnSelect';
 
 type DatasetSelectValue = {
   value: number;
   label: string;
 };
 
-type ColumnSelectValue = {
-  value: string;
-  label: string;
-};
-
-interface ColumnSelectProps {
-  form: FormInstance<NativeFiltersForm>;
-  filterId: string;
-  datasetId?: number | null | undefined;
-  value?: ColumnSelectValue | null;
-  onChange?: (value: ColumnSelectValue | null) => void;
-}
-
 const datasetToSelectOption = (item: any): DatasetSelectValue => ({
   value: item.id,
   label: item.table_name,
 });
-
-/** Special purpose AsyncSelect that selects a column from a dataset */
-function ColumnSelect({
-  form,
-  filterId,
-  datasetId,
-  value,
-  onChange,
-}: ColumnSelectProps) {
-  const { addDangerToast } = useToasts();
-  const lastDatasetId = usePrevious(datasetId);
-  useEffect(() => {
-    if (onChange && lastDatasetId && datasetId !== lastDatasetId) {
-      form.setFields([
-        { name: ['filters', filterId, 'column'], touched: false, value: null },
-      ]);
-    }
-  }, [datasetId, lastDatasetId, form, filterId]);
-
-  function loadOptions() {
-    if (datasetId == null) return [];
-    return SupersetClient.get({
-      endpoint: `/api/v1/dataset/${datasetId}`,
-    }).then(
-      ({ json: { result } }) => {
-        return result.columns.map((col: any) => col.column_name);
-      },
-      async badResponse => {
-        const { error, message } = await getClientErrorObject(badResponse);
-        let errorText = message || error || t('An error has occurred');
-        if (message === 'Forbidden') {
-          errorText = t('You do not have permission to edit this dashboard');
-        }
-        addDangerToast(errorText);
-        return [];
-      },
-    );
-  }
-
-  return (
-    <AsyncSelect
-      // "key" prop makes react render a new instance of the select whenever the dataset changes
-      key={datasetId == null ? '*no dataset*' : datasetId}
-      isDisabled={datasetId == null}
-      value={value}
-      onChange={onChange}
-      isMulti={false}
-      loadOptions={loadOptions}
-      defaultOptions // load options on render
-      cacheOptions
-    />
-  );
-}
 
 const ScopingTreeNote = styled.div`
   margin-top: -20px;
@@ -136,9 +61,13 @@ export interface FilterConfigFormProps {
   filterId: string;
   filterToEdit?: Filter;
   removed?: boolean;
-  form: FormInstance;
+  form: FormInstance<NativeFiltersForm>;
 }
 
+/**
+ * The configuration form for a specific filter.
+ * Assigns field values to `filters[filterId]` in the form.
+ */
 export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   filterId,
   filterToEdit,

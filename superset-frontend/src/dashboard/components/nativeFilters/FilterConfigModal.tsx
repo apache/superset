@@ -17,31 +17,18 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useDispatch } from 'react-redux';
 import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
-import { Store } from 'antd/lib/form/interface';
 import { DeleteFilled } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
-import { Button, Form } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
-import {
-  useFilterConfigMap,
-  useFilterConfiguration,
-  useAllFilterState,
-} from './state';
+import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
-import {
-  Filter,
-  FilterConfiguration,
-  NativeFiltersForm,
-  Scope,
-  Scoping,
-} from './types';
+import { FilterConfiguration, NativeFiltersForm } from './types';
 
 const StyledModalBody = styled.div`
   display: flex;
@@ -73,6 +60,14 @@ export interface FilterConfigModalProps {
 const getFilterIds = (config: FilterConfiguration) =>
   config.map(filter => filter.id);
 
+/**
+ * This is the modal to configure all the dashboard-native filters.
+ * Manages modal-level state, such as what filters are in the list,
+ * and which filter is currently being edited.
+ *
+ * Calls the `save` callback with the new FilterConfiguration object
+ * when the user saves the filters.
+ */
 export function FilterConfigModal({
   isOpen,
   initialFilterId,
