@@ -41,11 +41,6 @@ const Styles = styled.div`
       margin: 10px 0px;
       line-height: 30px;
     }
-    .smd-body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
 `;
 
 // eslint-disable-next-line no-empty-pattern
