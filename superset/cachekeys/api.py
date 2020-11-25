@@ -45,10 +45,10 @@ class CacheRestApi(BaseSupersetModelRestApi):
     openapi_spec_component_schemas = (CacheInvalidationRequestSchema,)
 
     @expose("/invalidate", methods=["POST"])
-    @event_logger.log_this
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def invalidate(self) -> Response:
         """
         Takes a list of datasources, finds the associated cache records and
