@@ -33,8 +33,9 @@ import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
-import { TAB_TYPE } from '../../util/componentTypes';
+import { TAB_TYPE, TABS_TYPE } from '../../util/componentTypes';
 import EditableTitle from '../../../components/EditableTitle';
+import { typeToDefaultMetaData } from '../../util/newComponentFactory';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -174,6 +175,21 @@ class Tabs extends React.PureComponent {
     }
   }
 
+  handleChangeText = nextText => {
+    const { updateComponents, component } = this.props;
+    if (nextText && nextText !== component.meta.text) {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            text: nextText,
+          },
+        },
+      });
+    }
+  };
+
   showDeleteConfirmModal = key => {
     const { component, deleteComponent } = this.props;
     Modal.confirm({
@@ -259,21 +275,6 @@ class Tabs extends React.PureComponent {
     }
   }
 
-  handleChangeText = nextText => {
-    const { updateComponents, component } = this.props;
-    if (nextText && nextText !== component.meta.text) {
-      updateComponents({
-        [component.id]: {
-          ...component,
-          meta: {
-            ...component.meta,
-            text: nextText,
-          },
-        },
-      });
-    }
-  };
-
   render() {
     const {
       depth,
@@ -317,7 +318,7 @@ class Tabs extends React.PureComponent {
           >
             <StyledHeader>
               <EditableTitle
-                title={meta.text}
+                title={meta.text || typeToDefaultMetaData[TABS_TYPE].text}
                 canEdit={editMode}
                 onSaveTitle={this.handleChangeText}
                 showTooltip={false}

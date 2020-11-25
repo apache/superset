@@ -35,7 +35,7 @@ import {
   GRID_DEFAULT_CHART_WIDTH,
 } from './constants';
 
-const typeToDefaultMetaData = {
+export const typeToDefaultMetaData = {
   [CHART_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [COLUMN_TYPE]: {
     width: GRID_DEFAULT_CHART_WIDTH,

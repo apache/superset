@@ -18,13 +18,12 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
+import { styled } from '@superset-ui/core';
 import DashboardComponent from '../../containers/DashboardComponent';
 import DragDroppable from '../dnd/DragDroppable';
 import EditableTitle from '../../../components/EditableTitle';
 import AnchorLink from '../../../components/AnchorLink';
 import { componentShape } from '../../util/propShapes';
-import { styled } from '@superset-ui/core';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
