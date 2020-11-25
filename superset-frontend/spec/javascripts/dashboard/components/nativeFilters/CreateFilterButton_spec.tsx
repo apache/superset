@@ -21,11 +21,10 @@ import { mount } from 'enzyme';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterConfigurationLink';
-import { mockStore } from '../fixtures/mockedNativeFilterInfo';
+import { mockStore } from '../../fixtures/mockStore';
 
 describe('FilterConfigurationButton', () => {
   const mockedProps = {
-    children: <span>Test</span>,
     createNewOnOpen: false,
   };
   it('it is valid', () => {
@@ -36,7 +35,7 @@ describe('FilterConfigurationButton', () => {
   it('takes in children', () => {
     const wrapper = mount(
       <Provider store={mockStore}>
-        <FilterConfigurationLink {...mockedProps}> </FilterConfigurationLink>
+        <FilterConfigurationLink {...mockedProps}> <span>Test</span></FilterConfigurationLink>
       </Provider>,
       {
         wrappingComponent: ThemeProvider,

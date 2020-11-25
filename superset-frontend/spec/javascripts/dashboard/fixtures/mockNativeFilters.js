@@ -16,21 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-//import { mount } from 'enzyme';
-import FilterConfigModal from 'src/dashboard/components/nativeFilters/FilterConfigModal';
-
-describe('FiltersConfigModal', () => {
-  const mockedProps = {
-    isOpen: true,
-    initialFilterId: 'DefaultFilterId',
-    createNewOnOpen: true,
-    save: jest.fn(),
-    onCanel: jest.fn(),
-  };
-  it('should be a valid', () => {
-    expect(React.isValidElement(<FilterConfigModal {...mockedProps} />)).toBe(
-      true,
-    );
-  });
-});
+export const nativeFiltersInfo = {
+  filters: {
+    DefaultID1: {
+      id: 'DefaultID1',
+      name: 'test',
+      type: 'text',
+      targets: [
+        {
+          datasetId: 0,
+          column: {
+            name: 'test column',
+            displayName: 'test column',
+          },
+        },
+      ],
+      defaultValue: null,
+      scope: {
+        rootPath: [],
+        excluded: [],
+      },
+      isInstant: true,
+      allowsMultipleValues: true,
+      isRequired: false,
+    },
+  },
+  filtersState: {
+    DefaultsID: {
+      id: 'DefaultId',
+      optionsStatus: 'loading',
+      options: [],
+      selectedValues: [],
+      isDirty: true,
+    },
+  },
+};
