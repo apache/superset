@@ -22,6 +22,7 @@ from marshmallow.exceptions import ValidationError
 from sqlalchemy.orm import Session
 
 from superset import db
+from superset.charts.commands.exceptions import ChartImportError
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.base import BaseCommand
@@ -105,9 +106,9 @@ class ImportChartsCommand(BaseCommand):
         try:
             self._import_bundle(db.session)
             db.session.commit()
-        except Exception as exc:
+        except Exception:
             db.session.rollback()
-            raise exc
+            raise ChartImportError()
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
