@@ -25,8 +25,9 @@ import Icon, { IconName } from 'src/components/Icon';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { Switch } from 'src/common/components/Switch';
 import FacePile from 'src/components/FacePile';
-import ListView from 'src/components/ListView';
+import ListView, { Filters } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 import {
@@ -42,6 +43,9 @@ interface AlertListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   isReportEnabled: boolean;
+  user: {
+    userId: string | number;
+  };
 }
 
 const StatusIcon = styled(Icon)<{ status: string }>`
@@ -62,6 +66,7 @@ const StatusIcon = styled(Icon)<{ status: string }>`
 function AlertList({
   addDangerToast,
   isReportEnabled = false,
+  user,
 }: AlertListProps) {
   const title = isReportEnabled ? t('report') : t('alert');
   const initalFilters = useMemo(
@@ -69,7 +74,7 @@ function AlertList({
       {
         id: 'type',
         operator: 'eq',
-        value: isReportEnabled ? 'report' : 'alert',
+        value: isReportEnabled ? 'Report' : 'Alert',
       },
     ],
     [isReportEnabled],
@@ -182,6 +187,11 @@ function AlertList({
         accessor: 'crontab',
       },
       {
+        accessor: 'created_by',
+        disableSortBy: true,
+        hidden: true,
+      },
+      {
         Cell: ({
           row: {
             original: { owners = [] },
@@ -275,6 +285,49 @@ function AlertList({
     slot: canCreate ? EmptyStateButton : null,
   };
 
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Created By'),
+        id: 'created_by',
+        input: 'select',
+        operator: 'rel_o_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'report',
+          'created_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user.userId,
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Status'),
+        id: 'last_state',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'Any',
+        selects: [
+          { label: t('Ok'), value: 'ok' },
+          { label: t('Alerting'), value: 'alerting' },
+          { label: t('Failed'), value: 'failed' },
+        ],
+      },
+      {
+        Header: t('Search'),
+        id: 'name',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [],
+  );
+
   return (
     <>
       <SubMenu
@@ -303,6 +356,7 @@ function AlertList({
         data={alerts}
         emptyState={emptyState}
         fetchData={fetchData}
+        filters={filters}
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
