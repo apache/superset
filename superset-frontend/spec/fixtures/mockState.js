@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import datasources from 'spec/fixtures/mockDatasource';
+import messageToasts from 'spec/javascripts/messageToasts/mockMessageToasts';
 import chartQueries from './mockChartQueries';
 import { dashboardLayout } from './mockDashboardLayout';
 import dashboardInfo from './mockDashboardInfo';
 import { emptyFilters } from './mockDashboardFilters';
 import dashboardState from './mockDashboardState';
-import messageToasts from '../../messageToasts/mockMessageToasts';
-import datasources from '../../../fixtures/mockDatasource';
 import sliceEntities from './mockSliceEntities';
 
 export default {
