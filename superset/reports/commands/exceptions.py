@@ -103,6 +103,22 @@ class ReportScheduleDeleteFailedError(CommandException):
     message = _("Report Schedule delete failed.")
 
 
+class PruneReportScheduleLogFailedError(CommandException):
+    message = _("Report Schedule log prune failed.")
+
+
+class ReportScheduleScreenshotFailedError(CommandException):
+    message = _("Report Schedule execution failed when generating a screenshot.")
+
+
+class ReportScheduleExecuteUnexpectedError(CommandException):
+    message = _("Report Schedule execution got an unexpected error.")
+
+
+class ReportSchedulePreviousWorkingError(CommandException):
+    message = _("Report Schedule is still working, refusing to re-compute.")
+
+
 class ReportScheduleNameUniquenessValidationError(ValidationError):
     """
     Marshmallow validation error for Report Schedule name already exists
@@ -110,3 +126,24 @@ class ReportScheduleNameUniquenessValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__([_("Name must be unique")], field_name="name")
+
+
+class AlertQueryMultipleRowsError(CommandException):
+
+    message = _("Alert query returned more then one row.")
+
+
+class AlertQueryMultipleColumnsError(CommandException):
+    message = _("Alert query returned more then one column.")
+
+
+class AlertQueryInvalidTypeError(CommandException):
+    message = _("Alert query returned a non-number value.")
+
+
+class ReportScheduleAlertGracePeriodError(CommandException):
+    message = _("Alert fired during grace period.")
+
+
+class ReportScheduleNotificationError(CommandException):
+    message = _("Alert on grace period")
