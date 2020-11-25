@@ -1187,13 +1187,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("root/metadata.yaml", "w") as fp:
+            with bundle.open("chart_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(chart_metadata_config).encode())
-            with bundle.open("root/databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "chart_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("root/datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("root/charts/imported_chart.yaml", "w") as fp:
+            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(chart_config).encode())
         buf.seek(0)
 
@@ -1233,13 +1235,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("root/metadata.yaml", "w") as fp:
+            with bundle.open("chart_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open("root/databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "chart_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("root/datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("root/charts/imported_chart.yaml", "w") as fp:
+            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(chart_config).encode())
         buf.seek(0)
 

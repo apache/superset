@@ -1185,11 +1185,15 @@ class TestDatasetApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("root/metadata.yaml", "w") as fp:
+            with bundle.open("dataset_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open("root/databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("root/datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
@@ -1225,11 +1229,15 @@ class TestDatasetApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("root/metadata.yaml", "w") as fp:
+            with bundle.open("dataset_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open("root/databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("root/datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
@@ -1253,9 +1261,13 @@ class TestDatasetApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("root/databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("root/datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
