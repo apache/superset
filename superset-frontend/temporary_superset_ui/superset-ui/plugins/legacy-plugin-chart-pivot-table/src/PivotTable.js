@@ -112,6 +112,9 @@ function PivotTable(element, props) {
             const date = new Date(parseFloat(regexMatch[1]));
             $(this)[0].textContent = dateFormatter(date);
             $(this).attr('data-sort', date);
+          } else {
+            $(this)[0].textContent = '';
+            $(this).attr('data-sort', Number.NEGATIVE_INFINITY);
           }
         } else {
           $(this)[0].textContent = formatNumber(format, parsedValue);
