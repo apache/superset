@@ -153,11 +153,11 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
         ),
     ],
 )
-def test_migrate_role_simple(
+def test_migrate_role(
     new_pvms, pvm_map, external_pvms, deleted_views, deleted_permissions
 ):
     """
-    Permission migration: Simple base test
+    Permission migration: generic tests
     """
     with create_old_role(pvm_map, external_pvms) as old_role:
         role_name = old_role.name
