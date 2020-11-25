@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Dispatch } from 'react-redux';
+
 export const LOG_EVENT = 'LOG_EVENT';
 
-export function logEvent(eventName, eventData) {
-  return dispatch =>
+export function logEvent(eventName: string, eventData: Record<string, any>) {
+  return (dispatch: Dispatch<never>) =>
     dispatch({
       type: LOG_EVENT,
       payload: {

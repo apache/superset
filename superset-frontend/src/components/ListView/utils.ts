@@ -26,13 +26,9 @@ import {
   useTable,
 } from 'react-table';
 
-import {
-  JsonParam,
-  NumberParam,
-  StringParam,
-  useQueryParams,
-} from 'use-query-params';
+import { NumberParam, StringParam, useQueryParams } from 'use-query-params';
 
+import rison from 'rison';
 import { isEqual } from 'lodash';
 import { PartialStylesConfig } from 'src/components/Select';
 import {
@@ -41,7 +37,16 @@ import {
   FilterValue,
   InternalFilter,
   SortColumn,
+  ViewModeType,
 } from './types';
+
+// Define custom RisonParam for proper encoding/decoding
+const RisonParam = {
+  encode: (data: any | null | undefined) =>
+    data === undefined ? undefined : rison.encode(data),
+  decode: (dataStr: string | undefined) =>
+    dataStr === undefined ? undefined : rison.decode(dataStr),
+};
 
 export class ListViewError extends Error {
   name = 'ListViewError';
@@ -63,11 +68,11 @@ function updateInList(list: any[], index: number, update: any): any[] {
   ];
 }
 
-function mergeCreateFilterValues(list: Filter[], updateList: FilterValue[]) {
+function mergeCreateFilterValues(list: Filter[], updateObj: any) {
   return list.map(({ id, operator }) => {
-    const update = updateList.find(obj => obj.id === id);
+    const update = updateObj[id];
 
-    return { id, operator, value: update?.value };
+    return { id, operator, value: update };
   });
 }
 
@@ -76,6 +81,37 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
   return fts
     .filter(f => typeof f.value !== 'undefined')
     .map(({ value, operator, id }) => ({ value, operator, id }));
+}
+
+// convertFilters but to handle new decoded rison format
+export function convertFiltersRison(
+  filterObj: any,
+  list: Filter[],
+): FilterValue[] {
+  const filters: FilterValue[] = [];
+  const refs = {};
+
+  Object.keys(filterObj).forEach(id => {
+    const filter: FilterValue = {
+      id,
+      value: filterObj[id],
+      // operator: filterObj[id][1], // TODO: can probably get rid of this
+    };
+
+    refs[id] = filter;
+    filters.push(filter);
+  });
+
+  // Add operators from filter list
+  list.forEach(value => {
+    const filter = refs[value.id];
+
+    if (filter) {
+      filter.operator = value.operator;
+    }
+  });
+
+  return filters;
 }
 
 export function extractInputValue(inputType: Filter['input'], event: any) {
@@ -110,6 +146,8 @@ interface UseListViewConfig {
     Header: (conf: any) => React.ReactNode;
     Cell: (conf: any) => React.ReactNode;
   };
+  renderCard?: boolean;
+  defaultViewMode?: ViewModeType;
 }
 
 export function useListViewState({
@@ -122,12 +160,15 @@ export function useListViewState({
   initialSort = [],
   bulkSelectMode = false,
   bulkSelectColumnConfig,
+  renderCard = false,
+  defaultViewMode = 'card',
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
-    filters: JsonParam,
+    filters: RisonParam,
     pageIndex: NumberParam,
     sortColumn: StringParam,
     sortOrder: StringParam,
+    viewMode: StringParam,
   });
 
   const initialSortBy = useMemo(
@@ -139,11 +180,18 @@ export function useListViewState({
   );
 
   const initialState = {
-    filters: convertFilters(query.filters || []),
+    filters: query.filters
+      ? convertFiltersRison(query.filters, initialFilters)
+      : [],
     pageIndex: query.pageIndex || 0,
     pageSize: initialPageSize,
     sortBy: initialSortBy,
   };
+
+  const [viewMode, setViewMode] = useState<ViewModeType>(
+    (query.viewMode as ViewModeType) ||
+      (renderCard ? defaultViewMode : 'table'),
+  );
 
   const columnsWithSelect = useMemo(() => {
     // add exact filter type so filters with falsey values are not filtered out
@@ -189,25 +237,46 @@ export function useListViewState({
   );
 
   const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
-    query.filters || [],
+    query.filters && initialFilters.length
+      ? mergeCreateFilterValues(initialFilters, query.filters)
+      : [],
   );
 
   useEffect(() => {
     if (initialFilters.length) {
       setInternalFilters(
-        mergeCreateFilterValues(initialFilters, query.filters || []),
+        mergeCreateFilterValues(
+          initialFilters,
+          query.filters ? query.filters : {},
+        ),
       );
     }
   }, [initialFilters]);
 
   useEffect(() => {
+    // From internalFilters, produce a simplified obj
+    const filterObj = {};
+
+    internalFilters.forEach(filter => {
+      if (
+        filter.value !== undefined &&
+        (typeof filter.value !== 'string' || filter.value.length > 0)
+      ) {
+        filterObj[filter.id] = filter.value;
+      }
+    });
+
     const queryParams: any = {
-      filters: internalFilters,
+      filters: Object.keys(filterObj).length ? filterObj : undefined,
       pageIndex,
     };
     if (sortBy[0]) {
       queryParams.sortColumn = sortBy[0].id;
       queryParams.sortOrder = sortBy[0].desc ? 'desc' : 'asc';
+    }
+
+    if (renderCard) {
+      queryParams.viewMode = viewMode;
     }
 
     const method =
@@ -218,7 +287,7 @@ export function useListViewState({
 
     setQuery(queryParams, method);
     fetchData({ pageIndex, pageSize, sortBy, filters });
-  }, [fetchData, pageIndex, pageSize, sortBy, filters]);
+  }, [fetchData, pageIndex, pageSize, sortBy, filters, viewMode]);
 
   useEffect(() => {
     if (!isEqual(initialState.pageIndex, pageIndex)) {
@@ -256,9 +325,10 @@ export function useListViewState({
     rows,
     selectedFlatRows,
     setAllFilters,
-    state: { pageIndex, pageSize, sortBy, filters, internalFilters },
+    state: { pageIndex, pageSize, sortBy, filters, internalFilters, viewMode },
     toggleAllRowsSelected,
     applyFilterValue,
+    setViewMode,
   };
 }
 

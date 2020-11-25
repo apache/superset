@@ -28,7 +28,7 @@ import { Popover } from 'src/common/components';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ListView, { Filters, ListViewProps } from 'src/components/ListView';
 import Icon, { IconName } from 'src/components/Icon';
-import Tooltip from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/common/components/Tooltip';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
