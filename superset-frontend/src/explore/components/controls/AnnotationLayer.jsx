@@ -149,7 +149,6 @@ export default class AnnotationLayer extends React.PureComponent {
       hideLine,
       // refData
       isNew: !name,
-      originalName: name,
       isLoadingOptions: true,
       valueOptions: [],
     };
@@ -303,7 +302,7 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   deleteAnnotation() {
-    this.props.removeAnnotationLayer(this.state.originalName);
+    this.props.removeAnnotationLayer();
     this.props.close();
   }
 
@@ -338,11 +337,8 @@ export default class AnnotationLayer extends React.PureComponent {
         newAnnotation.color = null;
       }
 
-      this.props.addAnnotationLayer(this.state.originalName, newAnnotation);
-      this.setState(prevState => ({
-        isNew: false,
-        originalName: prevState.name,
-      }));
+      this.props.addAnnotationLayer(newAnnotation);
+      this.setState({ isNew: false });
     }
   }
 

@@ -58,7 +58,7 @@ const defaultProps = {
 class AnnotationLayerControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { popoverVisible: {} };
+    this.state = { popoverVisible: {}, addedAnnotationIndex: null };
     this.addAnnotationLayer = this.addAnnotationLayer.bind(this);
     this.removeAnnotationLayer = this.removeAnnotationLayer.bind(this);
     this.handleVisibleChange = this.handleVisibleChange.bind(this);
@@ -83,16 +83,18 @@ class AnnotationLayerControl extends React.PureComponent {
     }
   }
 
-  addAnnotationLayer(originalName, annotation) {
-    let annotations;
-    if (originalName) {
-      annotations = this.props.value.map(a =>
-        a.name === originalName ? annotation : a,
+  addAnnotationLayer(originalAnnotation, newAnnotation) {
+    let annotations = this.props.value;
+    if (annotations.includes(originalAnnotation)) {
+      annotations = annotations.map(anno =>
+        anno === originalAnnotation ? newAnnotation : anno,
       );
     } else {
-      annotations = [...this.props.value, annotation];
+      annotations = [...annotations, newAnnotation];
+      this.setState({ addedAnnotationIndex: annotations.length - 1 });
     }
-    this.props.refreshAnnotationData(annotation);
+
+    this.props.refreshAnnotationData(newAnnotation);
     this.props.onChange(annotations);
   }
 
@@ -102,8 +104,8 @@ class AnnotationLayerControl extends React.PureComponent {
     }));
   }
 
-  removeAnnotationLayer(originalName) {
-    const annotations = this.props.value.filter(a => a.name !== originalName);
+  removeAnnotationLayer(annotation) {
+    const annotations = this.props.value.filter(anno => anno !== annotation);
     this.props.onChange(annotations);
   }
 
@@ -117,10 +119,13 @@ class AnnotationLayerControl extends React.PureComponent {
           error={error}
           colorScheme={this.props.colorScheme}
           vizType={this.props.vizType}
-          addAnnotationLayer={this.addAnnotationLayer}
-          removeAnnotationLayer={this.removeAnnotationLayer}
+          addAnnotationLayer={newAnnotation =>
+            this.addAnnotationLayer(annotation, newAnnotation)
+          }
+          removeAnnotationLayer={() => this.removeAnnotationLayer(annotation)}
           close={() => {
             this.handleVisibleChange(false, popoverKey);
+            this.setState({ addedAnnotationIndex: null });
           }}
         />
       </div>
@@ -150,6 +155,9 @@ class AnnotationLayerControl extends React.PureComponent {
   }
 
   render() {
+    const { addedAnnotationIndex } = this.state;
+    const addedAnnotation = this.props.value[addedAnnotationIndex];
+
     const annotations = this.props.value.map((anno, i) => (
       <Popover
         key={i}
@@ -179,7 +187,7 @@ class AnnotationLayerControl extends React.PureComponent {
           <Popover
             trigger="click"
             placement="right"
-            content={this.renderPopover(addLayerPopoverKey)}
+            content={this.renderPopover(addLayerPopoverKey, addedAnnotation)}
             title={t('Add Annotation Layer')}
             visible={this.state.popoverVisible[addLayerPopoverKey]}
             destroyTooltipOnHide
