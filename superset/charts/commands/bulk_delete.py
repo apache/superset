@@ -61,10 +61,7 @@ class BulkDeleteChartCommand(BaseCommand):
         if reports:
             report_names = [report.name for report in reports]
             raise ChartBulkDeleteFailedReportsExistError(
-                _(
-                    "There are associated alerts or reports associated: %s"
-                    % ",".join(report_names)
-                )
+                _("There are associated alerts or reports: %s" % ",".join(report_names))
             )
         # Check ownership
         for model in self._models:

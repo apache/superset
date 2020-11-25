@@ -514,7 +514,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         self.login(username="admin")
         dashboard = (
-            db.session.query(Dashboard)
+            db.session.query(Dashboard.id)
             .filter(Dashboard.dashboard_title == "dashboard_report")
             .one_or_none()
         )
@@ -537,6 +537,34 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboard_with_report", "create_dashboards")
+    def test_bulk_delete_dashboard_with_report(self):
+        """
+        Dashboard API: Test bulk delete with associated report
+        """
+        self.login(username="admin")
+        dashboard_with_report = (
+            db.session.query(Dashboard.id)
+            .filter(Dashboard.dashboard_title == "dashboard_report")
+            .one_or_none()
+        )
+        dashboards = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title.like("title%"))
+            .all()
+        )
+
+        dashboard_ids = [dashboard.id for dashboard in dashboards]
+        dashboard_ids.append(dashboard_with_report.id)
+        uri = f"api/v1/dashboard/?q={prison.dumps(dashboard_ids)}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_dashboard"
+        }
+        self.assertEqual(response, expected_response)
 
     def test_delete_dashboard_admin_not_owned(self):
         """

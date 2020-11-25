@@ -222,10 +222,34 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         max_id = db.session.query(func.max(Slice.id)).scalar()
         chart_ids = [max_id + 1, max_id + 2]
         self.login(username="admin")
-        argument = chart_ids
-        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_chart_with_report", "create_charts")
+    def test_bulk_delete_chart_with_report(self):
+        """
+        Chart API: Test bulk delete with associated report
+        """
+        self.login(username="admin")
+        chart_with_report = (
+            db.session.query(Slice.id)
+            .filter(Slice.slice_name == "chart_report")
+            .one_or_none()
+        )
+
+        charts = db.session.query(Slice.id).filter(Slice.slice_name.like("name%")).all()
+        chart_ids = [chart.id for chart in charts]
+        chart_ids.append(chart_with_report.id)
+
+        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_chart"
+        }
+        self.assertEqual(response, expected_response)
 
     def test_delete_chart_admin_not_owned(self):
         """

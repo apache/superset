@@ -30,6 +30,7 @@ from sqlalchemy.sql import func
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
+from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.certificates import ssl_certificate
@@ -65,6 +66,30 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.add(database)
         db.session.commit()
         return database
+
+    @pytest.fixture()
+    def create_database_with_report(self):
+        with self.create_app().app_context():
+            example_db = get_example_database()
+            database = self.insert_database(
+                "database_with_report",
+                example_db.sqlalchemy_uri_decrypted,
+                expose_in_sqllab=True,
+            )
+            report_schedule = ReportSchedule(
+                type=ReportScheduleType.ALERT,
+                name="report_with_database",
+                crontab="* * * * *",
+                database=database,
+            )
+            db.session.add(report_schedule)
+            db.session.commit()
+            yield database
+
+            # rollback changes
+            db.session.delete(report_schedule)
+            db.session.delete(database)
+            db.session.commit()
 
     def test_get_items(self):
         """
@@ -485,6 +510,26 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{database_id}"
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 422)
+
+    @pytest.mark.usefixtures("create_database_with_report")
+    def test_delete_database_with_report(self):
+        """
+        Database API: Test delete with associated report
+        """
+        self.login(username="admin")
+        database = (
+            db.session.query(Database)
+            .filter(Database.database_name == "database_with_report")
+            .one_or_none()
+        )
+        uri = f"api/v1/database/{database.id}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_database"
+        }
+        self.assertEqual(response, expected_response)
 
     def test_get_table_metadata(self):
         """

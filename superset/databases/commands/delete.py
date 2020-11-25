@@ -57,7 +57,8 @@ class DeleteDatabaseCommand(BaseCommand):
         if not self._model:
             raise DatabaseNotFoundError()
         # Check there are no associated ReportSchedules
-        reports = ReportScheduleDAO.find_by_chart_id(self._model_id)
+        reports = ReportScheduleDAO.find_by_database_id(self._model_id)
+
         if reports:
             report_names = [report.name for report in reports]
             raise DatabaseDeleteFailedReportsExistError(
