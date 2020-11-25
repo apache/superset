@@ -67,7 +67,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   useEffect(() => {
     const selectDatasource = (datasource: any) => {
-      console.log(datasource);
       SupersetClient.get({
         endpoint: `/datasource/get/table/${datasource.id}`,
       })
