@@ -153,14 +153,13 @@ export function FilterConfigModal({
     );
   }
 
-  const onOk = useCallback(async () => {
-    let values: NativeFiltersForm | null = null;
+  const validateForm = useCallback(async () => {
     try {
-      values = (await form.validateFields()) as NativeFiltersForm;
+      return (await form.validateFields()) as NativeFiltersForm;
     } catch (error) {
       console.warn('Filter Configuration Failed:', error);
 
-      if (!error.errorFields || !error.errorFields.length) return; // not a validation error
+      if (!error.errorFields || !error.errorFields.length) return null; // not a validation error
 
       // the name is in array format since the fields are nested
       type ErrorFields = { name: ['filters', string, string] }[];
@@ -170,8 +169,12 @@ export function FilterConfigModal({
         // switch to the first tab that had a validation error
         setCurrentFilterId(errorFields[0].name[1]);
       }
+      return null;
     }
+  }, [form, currentFilterId]);
 
+  const onOk = useCallback(async () => {
+    const values: NativeFiltersForm | null = await validateForm();
     if (values == null) return;
 
     const newFilterConfig: FilterConfiguration = filterIds
@@ -207,13 +210,12 @@ export function FilterConfigModal({
     await save(newFilterConfig);
     resetForm();
   }, [
-    form,
     save,
     resetForm,
     filterIds,
-    currentFilterId,
     removedFilters,
     filterConfigMap,
+    validateForm,
   ]);
 
   return (
