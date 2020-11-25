@@ -69,7 +69,6 @@ const propTypes = {
 
   error: PropTypes.string,
   colorScheme: PropTypes.string,
-  isNew: PropTypes.bool,
 
   addAnnotationLayer: PropTypes.func,
   removeAnnotationLayer: PropTypes.func,
@@ -86,14 +85,14 @@ const defaultProps = {
   width: 1,
   showMarkers: false,
   hideLine: false,
-  value: null,
   overrides: {},
+  colorScheme: 'd3Category10',
   show: true,
   titleColumn: '',
   descriptionColumns: [],
   timeColumn: '',
   intervalEndColumn: '',
-  colorScheme: 'd3Category10',
+
   addAnnotationLayer: () => {},
   removeAnnotationLayer: () => {},
   close: () => {},
@@ -149,14 +148,13 @@ export default class AnnotationLayer extends React.PureComponent {
       showMarkers,
       hideLine,
       // refData
-      originalName: name,
       isNew: !name,
+      originalName: name,
       isLoadingOptions: true,
       valueOptions: [],
     };
-
     this.submitAnnotation = this.submitAnnotation.bind(this);
-    this.removeAnnotation = this.removeAnnotation.bind(this);
+    this.deleteAnnotation = this.deleteAnnotation.bind(this);
     this.applyAnnotation = this.applyAnnotation.bind(this);
     this.fetchOptions = this.fetchOptions.bind(this);
     this.handleAnnotationType = this.handleAnnotationType.bind(this);
@@ -304,6 +302,11 @@ export default class AnnotationLayer extends React.PureComponent {
     }
   }
 
+  deleteAnnotation() {
+    this.props.removeAnnotationLayer(this.state.originalName);
+    this.props.close();
+  }
+
   applyAnnotation() {
     if (this.isValidForm()) {
       const annotationFields = [
@@ -341,11 +344,6 @@ export default class AnnotationLayer extends React.PureComponent {
         originalName: prevState.name,
       }));
     }
-  }
-
-  removeAnnotation() {
-    this.props.removeAnnotationLayer(this.state.originalName);
-    this.props.close();
   }
 
   submitAnnotation() {
@@ -744,7 +742,7 @@ export default class AnnotationLayer extends React.PureComponent {
               {t('Cancel')}
             </Button>
           ) : (
-            <Button buttonSize="sm" onClick={this.removeAnnotation}>
+            <Button buttonSize="sm" onClick={this.deleteAnnotation}>
               {t('Remove')}
             </Button>
           )}

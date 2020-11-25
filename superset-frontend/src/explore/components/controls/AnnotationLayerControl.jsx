@@ -107,7 +107,7 @@ class AnnotationLayerControl extends React.PureComponent {
     this.props.onChange(annotations);
   }
 
-  renderPopover(parent, popoverKey, annotation, error) {
+  renderPopover(popoverKey, annotation, error) {
     const id = annotation?.name || '_new';
 
     return (
@@ -157,7 +157,6 @@ class AnnotationLayerControl extends React.PureComponent {
         placement="right"
         title={t('Edit Annotation Layer')}
         content={this.renderPopover(
-          `overlay-${i}`,
           i,
           anno,
           this.props.annotationError[anno.name],
@@ -180,7 +179,7 @@ class AnnotationLayerControl extends React.PureComponent {
           <Popover
             trigger="click"
             placement="right"
-            content={this.renderPopover('overlay-new', addLayerPopoverKey)}
+            content={this.renderPopover(addLayerPopoverKey)}
             title={t('Add Annotation Layer')}
             visible={this.state.popoverVisible[addLayerPopoverKey]}
             destroyTooltipOnHide
