@@ -29,6 +29,8 @@ function getDomainsConfig() {
   }
 
   const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+  // this module is a little special, it may be loaded before index.jsx,
+  // where window.featureFlags get initialized
   // eslint-disable-next-line camelcase
   initFeatureFlags(bootstrapData?.common?.feature_flags);
   const availableDomains = new Set([window.location.hostname]);
