@@ -38,6 +38,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
+from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils import core as utils
 from tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -117,6 +118,26 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                 db.session.delete(fav_chart)
             db.session.commit()
 
+    @pytest.fixture()
+    def create_chart_with_report(self):
+        with self.create_app().app_context():
+            admin = self.get_user("admin")
+            chart = self.insert_chart(f"chart_report", [admin.id], 1)
+            report_schedule = ReportSchedule(
+                type=ReportScheduleType.REPORT,
+                name="report_with_chart",
+                crontab="* * * * *",
+                chart=chart,
+            )
+            db.session.commit()
+
+            yield chart
+
+            # rollback changes
+            db.session.delete(report_schedule)
+            db.session.delete(chart)
+            db.session.commit()
+
     def test_delete_chart(self):
         """
         Chart API: Test delete
@@ -173,6 +194,26 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/chart/{chart_id}"
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_chart_with_report")
+    def test_delete_chart_with_report(self):
+        """
+        Chart API: Test delete with associated report
+        """
+        self.login(username="admin")
+        chart = (
+            db.session.query(Slice)
+            .filter(Slice.slice_name == "chart_report")
+            .one_or_none()
+        )
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_chart"
+        }
+        self.assertEqual(response, expected_response)
 
     def test_delete_bulk_charts_not_found(self):
         """

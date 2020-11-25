@@ -24,8 +24,8 @@ from flask_babel import lazy_gettext as _
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.dashboards.commands.exceptions import (
-    DashboardBulkDeleteFailedReportsExistError,
     DashboardDeleteFailedError,
+    DashboardDeleteFailedReportsExistError,
     DashboardForbiddenError,
     DashboardNotFoundError,
 )
@@ -62,11 +62,8 @@ class DeleteDashboardCommand(BaseCommand):
         reports = ReportScheduleDAO.find_by_dashboard_id(self._model_id)
         if reports:
             report_names = [report.name for report in reports]
-            raise DashboardBulkDeleteFailedReportsExistError(
-                _(
-                    "There are associated alerts or reports associated: %s"
-                    % ",".join(report_names)
-                )
+            raise DashboardDeleteFailedReportsExistError(
+                _("There are associated alerts or reports: %s" % ",".join(report_names))
             )
         # Check ownership
         try:

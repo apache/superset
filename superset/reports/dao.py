@@ -64,6 +64,22 @@ class ReportScheduleDAO(BaseDAO):
         )
 
     @staticmethod
+    def find_by_database_id(database_id: int) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.database_id == database_id)
+            .all()
+        )
+
+    @staticmethod
+    def find_by_database_ids(database_ids: List[int]) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.database_id.in_(database_ids))
+            .all()
+        )
+
+    @staticmethod
     def bulk_delete(
         models: Optional[List[ReportSchedule]], commit: bool = True
     ) -> None:

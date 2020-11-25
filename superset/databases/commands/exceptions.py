@@ -112,5 +112,9 @@ class DatabaseDeleteFailedError(DeleteFailedError):
     message = _("Database could not be deleted.")
 
 
+class DatabaseDeleteFailedReportsExistError(DatabaseDeleteFailedError):
+    message = _("There are associated alerts or reports associated")
+
+
 class DatabaseSecurityUnsafeError(DBSecurityException):
     message = _("Stopped an unsafe database connection")
