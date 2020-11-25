@@ -56,6 +56,10 @@ const mockdatabases = [...new Array(3)].map((_, i) => ({
   id: i,
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(databasesInfoEndpoint, {
   permissions: ['can_delete'],
 });
@@ -77,7 +81,9 @@ fetchMock.get(databaseRelatedEndpoint, {
 });
 
 describe('DatabaseList', () => {
-  const wrapper = mount(<DatabaseList />, { context: { store } });
+  const wrapper = mount(<DatabaseList user={mockUser} />, {
+    context: { store },
+  });
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
