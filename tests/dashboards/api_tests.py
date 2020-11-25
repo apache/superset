@@ -1096,20 +1096,26 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("dashboard_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dashboard_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dashboard_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dashboard_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("charts/imported_chart.yaml", "w") as fp:
+            with bundle.open("dashboard_export/charts/imported_chart.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(chart_config).encode())
-            with bundle.open("dashboards/imported_dashboard.yaml", "w") as fp:
+            with bundle.open(
+                "dashboard_export/dashboards/imported_dashboard.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dashboard_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "dashboard_export.zip"),
+            "formData": (buf, "dashboard_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -1147,20 +1153,26 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("dashboard_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dashboard_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dashboard_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("charts/imported_chart.yaml", "w") as fp:
+            with bundle.open("dashboard_export/charts/imported_chart.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(chart_config).encode())
-            with bundle.open("dashboards/imported_dashboard.yaml", "w") as fp:
+            with bundle.open(
+                "dashboard_export/dashboards/imported_dashboard.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dashboard_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "dashboard_export.zip"),
+            "formData": (buf, "dashboard_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
