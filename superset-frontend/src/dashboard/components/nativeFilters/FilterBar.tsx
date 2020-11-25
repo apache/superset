@@ -19,7 +19,7 @@
 import { styled, SuperChart, t } from '@superset-ui/core';
 import React, { useState } from 'react';
 import cx from 'classnames';
-import { Form, Dropdown, Menu } from 'src/common/components';
+import { Form, Menu } from 'src/common/components';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import FilterConfigurationLink from './FilterConfigurationLink';

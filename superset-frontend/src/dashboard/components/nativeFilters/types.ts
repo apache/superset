@@ -156,3 +156,13 @@ export type TreeItem = {
   key: string;
   title: string;
 };
+
+
+export type NativeFiltersState = {
+  filters: {
+    [filterId: string]: Filter;
+  };
+  filtersState: {
+    [filterId: string]: FilterState;
+  };
+};

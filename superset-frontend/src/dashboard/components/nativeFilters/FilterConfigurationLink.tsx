@@ -22,12 +22,7 @@ import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
 // import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { FilterConfigModal } from './FilterConfigModal';
-import {
-  FilterConfiguration,
-  NativeFiltersForm,
-  Scope,
-  Scoping,
-} from './types';
+import { FilterConfiguration } from './types';
 
 export interface FCBProps {
   createNewOnOpen?: boolean;

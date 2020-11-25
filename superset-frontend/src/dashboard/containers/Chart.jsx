@@ -35,6 +35,7 @@ import {
 } from '../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import Chart from '../components/gridComponents/Chart';
+import { getNativeFilterClauses } from '../util/nativeFilters';
 
 const EMPTY_FILTERS = {};
 
@@ -53,7 +54,7 @@ function mapStateToProps(
   const chart = chartQueries[id] || {};
   const { colorScheme, colorNamespace } = dashboardState;
 
-  const abc = {
+  return {
     chart,
     datasource:
       (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
@@ -68,7 +69,7 @@ function mapStateToProps(
       colorScheme,
       colorNamespace,
       sliceId: id,
-      nativeFilters: nativeFilters.filterList,
+      nativeFilters,
     }),
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
@@ -76,8 +77,6 @@ function mapStateToProps(
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
   };
-  // console.log('abc', abc);
-  return abc;
 }
 
 function mapDispatchToProps(dispatch) {
