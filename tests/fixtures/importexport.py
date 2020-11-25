@@ -103,7 +103,7 @@ dataset_config: Dict[str, Any] = {
 
 chart_config: Dict[str, Any] = {
     "params": {
-        "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0,},
+        "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
         "datasource": "12__table",
         "js_columns": ["color"],
         "js_data_mutator": r"data => data.map(d => ({\n    ...d,\n    color: colors.hexToRGB(d.extraProps.color)\n}));",
