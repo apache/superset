@@ -318,7 +318,7 @@ class Tabs extends React.PureComponent {
           >
             <StyledHeader>
               <EditableTitle
-                title={meta.text || typeToDefaultMetaData[TABS_TYPE].text}
+                title={meta?.text || typeToDefaultMetaData[TABS_TYPE].text}
                 canEdit={editMode}
                 onSaveTitle={this.handleChangeText}
                 showTooltip={false}
