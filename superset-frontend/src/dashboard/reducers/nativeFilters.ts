@@ -20,16 +20,12 @@ import {
   SELECT_FILTER_OPTION,
   AnyFilterAction,
   SET_FILTER_CONFIG_COMPLETE,
-  SET_FILTER_STATE,
 } from '../actions/nativeFilters';
 import {
   FilterConfiguration,
   FilterState,
+  NativeFiltersState,
 } from '../components/nativeFilters/types';
-
-export type State = {
-  [filterId: string]: FilterState;
-};
 
 export function getInitialFilterState(id: string): FilterState {
   return {
@@ -41,59 +37,43 @@ export function getInitialFilterState(id: string): FilterState {
   };
 }
 
-export function getInitialState(filterConfig: FilterConfiguration): State {
+export function getInitialState(
+  filterConfig: FilterConfiguration,
+): NativeFiltersState {
   const filters = {};
+  const filtersState = {};
+  const state = { filters, filtersState };
   filterConfig.forEach(filter => {
-    filters[filter.id] = getInitialFilterState(filter.id);
+    const { id } = filter;
+    filters[id] = filter;
+    filtersState[id] = getInitialFilterState(id);
   });
-  return filters;
+  return state;
 }
 
 export default function nativeFilterReducer(
-  filters: State = {},
+  state: NativeFiltersState = { filters: {}, filtersState: {} },
   action: AnyFilterAction,
 ) {
+  const { filters, filtersState } = state;
   switch (action.type) {
     case SELECT_FILTER_OPTION:
       return {
-        ...filters,
-        [action.filterId]: {
-          ...filters[action.filterId],
-          selectedValues: action.selectedValues,
+        filters,
+        filtersState: {
+          ...filtersState,
+          [action.filterId]: {
+            ...filtersState[action.filterId],
+            selectedValues: action.selectedValues,
+          },
         },
       };
 
     case SET_FILTER_CONFIG_COMPLETE:
       return getInitialState(action.filterConfig);
 
-    case SET_FILTER_STATE:
-      return {
-        filterList: (action.filters || []).map(filter => {
-          const { id, targets } = filter;
-          const [target] = targets;
-          const { column, datasetId } = target;
-          const datasource = `table__${datasetId}`;
-          const filterState: FilterState =
-            filters[id] || getInitialFilterState(id);
-          const { selectedValues } = filterState;
-          const { name: col } = column;
-          const filterClause =
-            selectedValues && selectedValues.length > 0
-              ? { col, op: 'IN', val: selectedValues }
-              : undefined;
-          return {
-            column,
-            datasetId,
-            datasource,
-            filterClause,
-            id,
-            selectValues: selectedValues || [],
-          };
-        }),
-      };
-
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
-      return filters;
+      return state;
   }
 }

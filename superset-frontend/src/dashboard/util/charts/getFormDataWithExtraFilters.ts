@@ -22,8 +22,9 @@ import {
   DataRecordFilters,
 } from '@superset-ui/core';
 import { ChartQueryPayload } from 'src/dashboard/types';
+import { NativeFiltersState } from '../../components/nativeFilters/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
-import { AllFilterState } from '../../components/nativeFilters/types';
+import { getNativeFilterClauses } from '../nativeFilters';
 
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1
@@ -36,7 +37,7 @@ interface GetFormDataWithExtraFiltersArguments {
   colorScheme?: string;
   colorNamespace?: string;
   sliceId: number;
-  nativeFilters?: AllFilterState[];
+  nativeFilters: NativeFiltersState;
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -67,16 +68,16 @@ export default function getFormDataWithExtraFilters({
     return cachedFormdataByChart[sliceId];
   }
 
+  const filterClauses = getNativeFilterClauses(nativeFilters);
   const formData = {
     ...chart.formData,
     ...(colorScheme && { color_scheme: colorScheme }),
     label_colors: labelColors,
     extra_filters: getEffectiveExtraFilters(filters),
-    native_filters: nativeFilters
+    native_filters: filterClauses
       ?.filter(filter => filter.filterClause)
       .map(filter => filter.filterClause),
   };
-
   cachedFiltersByChart[sliceId] = filters;
   cachedFormdataByChart[sliceId] = formData;
 

@@ -25,7 +25,6 @@ import {
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { t } from '@superset-ui/core';
 import {
-  AllFilterState,
   Charts,
   Filter,
   FilterConfiguration,
@@ -64,38 +63,10 @@ export function useFilterConfigMap() {
   );
 }
 
-export function useAllFilterState() {
-  const filterConfig = useFilterConfiguration();
-  const filterState = useSelector<any, AllFilterState[]>(state => {
-    return (filterConfig || []).map(filter => {
-      const { id, targets } = filter;
-      const [target] = targets;
-      const { column, datasetId } = target;
-      const datasource = `table__${datasetId}`;
-      const filterState: FilterState =
-        state.nativeFilters[id] || getInitialFilterState(id);
-      const { selectedValues } = filterState;
-      const filterClause =
-        selectedValues && selectedValues.length > 0
-          ? { col: column, op: 'IN', val: selectedValues }
-          : undefined;
-      return {
-        column,
-        datasetId,
-        datasource,
-        filterClause,
-        id,
-        selectValues: selectedValues || [],
-      };
-    });
-  });
-  return filterState;
-}
-
 export function useFilterState(id: string) {
-  return useSelector<any, FilterState>(
-    state => state.nativeFilters[id] || getInitialFilterState(id),
-  );
+  return useSelector<any, FilterState>(state => {
+    return state.nativeFilters.filtersState[id] || getInitialFilterState(id);
+  });
 }
 
 export function useFilterSetter(id: string) {
