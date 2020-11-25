@@ -836,16 +836,20 @@ class TestDatabaseApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "database_export.zip"),
+            "formData": (buf, "database_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -876,16 +880,20 @@ class TestDatabaseApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "database_export.zip"),
+            "formData": (buf, "database_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
