@@ -154,44 +154,67 @@ export function FilterConfigModal({
   }
 
   const onOk = useCallback(async () => {
+    let values: NativeFiltersForm | null = null;
     try {
-      const values = (await form.validateFields()) as NativeFiltersForm;
-      const newFilterConfig: FilterConfiguration = filterIds
-        .filter(id => !removedFilters[id])
-        .map(id => {
-          // create a filter config object from the form inputs
-          const formInputs = values.filters[id];
-          // if user didn't open a filter, return the original config
-          if (!formInputs) return filterConfigMap[id];
-          return {
-            id,
-            name: formInputs.name,
-            type: 'text',
-            // for now there will only ever be one target
-            targets: [
-              {
-                datasetId: formInputs.dataset.value,
-                column: {
-                  name: formInputs.column,
-                },
-              },
-            ],
-            defaultValue: formInputs.defaultValue || null,
-            scope: {
-              rootPath: [DASHBOARD_ROOT_ID],
-              excluded: [],
-            },
-            isInstant: !!formInputs.isInstant,
-            allowsMultipleValues: !!formInputs.allowsMultipleValues,
-            isRequired: !!formInputs.isRequired,
-          };
-        });
-      await save(newFilterConfig);
-      resetForm();
-    } catch (info) {
-      console.log('Filter Configuration Failed:', info);
+      values = (await form.validateFields()) as NativeFiltersForm;
+    } catch (error) {
+      console.warn('Filter Configuration Failed:', error);
+
+      if (!error.errorFields || !error.errorFields.length) return; // not a validation error
+
+      // the name is in array format since the fields are nested
+      type ErrorFields = { name: ['filters', string, string] }[];
+      const errorFields = error.errorFields as ErrorFields;
+      // filter id is the second item in the field name
+      if (!errorFields.some(field => field.name[1] === currentFilterId)) {
+        // switch to the first tab that had a validation error
+        setCurrentFilterId(errorFields[0].name[1]);
+      }
     }
-  }, [form, save, resetForm, filterIds, removedFilters, filterConfigMap]);
+
+    if (values == null) return;
+
+    const newFilterConfig: FilterConfiguration = filterIds
+      .filter(id => !removedFilters[id])
+      .map(id => {
+        // create a filter config object from the form inputs
+        const formInputs = values.filters[id];
+        // if user didn't open a filter, return the original config
+        if (!formInputs) return filterConfigMap[id];
+        return {
+          id,
+          name: formInputs.name,
+          type: 'text',
+          // for now there will only ever be one target
+          targets: [
+            {
+              datasetId: formInputs.dataset.value,
+              column: {
+                name: formInputs.column,
+              },
+            },
+          ],
+          defaultValue: formInputs.defaultValue || null,
+          scope: {
+            rootPath: [DASHBOARD_ROOT_ID],
+            excluded: [],
+          },
+          isInstant: !!formInputs.isInstant,
+          allowsMultipleValues: !!formInputs.allowsMultipleValues,
+          isRequired: !!formInputs.isRequired,
+        };
+      });
+    await save(newFilterConfig);
+    resetForm();
+  }, [
+    form,
+    save,
+    resetForm,
+    filterIds,
+    currentFilterId,
+    removedFilters,
+    filterConfigMap,
+  ]);
 
   return (
     <StyledModal
