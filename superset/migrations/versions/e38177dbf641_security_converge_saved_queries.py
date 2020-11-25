@@ -17,14 +17,14 @@
 """security converge saved queries
 
 Revision ID: e38177dbf641
-Revises: 49b5a32daba5
+Revises: a8173232b786
 Create Date: 2020-11-20 14:24:03.643031
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "e38177dbf641"
-down_revision = "49b5a32daba5"
+down_revision = "a8173232b786"
 
 
 from alembic import op
