@@ -127,6 +127,7 @@
     "omnibar": "^2.1.1",
     "polished": "^3.6.5",
     "prop-types": "^15.7.2",
+    "query-string": "^6.13.7",
     "re-resizable": "^6.6.1",
     "react": "^16.13.1",
     "react-ace": "^5.10.0",
@@ -168,7 +169,7 @@
     "rison": "^0.1.1",
     "shortid": "^2.2.6",
     "urijs": "^1.18.10",
-    "use-query-params": "^0.4.5"
+    "use-query-params": "^1.1.9"
   },
   "devDependencies": {
     "@babel/cli": "^7.11.5",

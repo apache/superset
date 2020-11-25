@@ -23,6 +23,7 @@ from superset.commands.exceptions import (
     CreateFailedError,
     DeleteFailedError,
     ForbiddenError,
+    ImportFailedError,
     UpdateFailedError,
 )
 
@@ -70,3 +71,7 @@ class DashboardDeleteFailedReportsExistError(DashboardDeleteFailedError):
 
 class DashboardForbiddenError(ForbiddenError):
     message = _("Changing this Dashboard is forbidden")
+
+
+class DashboardImportError(ImportFailedError):
+    message = _("Import dashboard failed for an unknown reason")

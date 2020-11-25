@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { shallow, mount } from 'enzyme';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import sinon from 'sinon';
 import { Provider } from 'react-redux';
@@ -50,12 +51,17 @@ describe('EmbedCodeButton', () => {
     const spy1 = sinon.spy(exploreUtils, 'getExploreLongUrl');
     const spy2 = sinon.spy(common, 'getShortUrl');
 
-    const wrapper = mount(<EmbedCodeButton {...defaultProps} />, {
-      wrappingComponent: Provider,
-      wrappingComponentProps: {
-        store,
+    const wrapper = mount(
+      <ThemeProvider theme={supersetTheme}>
+        <EmbedCodeButton {...defaultProps} />
+      </ThemeProvider>,
+      {
+        wrappingComponent: Provider,
+        wrappingComponentProps: {
+          store,
+        },
       },
-    });
+    ).find(EmbedCodeButton);
     wrapper.setState({
       height: '1000',
       width: '2000',

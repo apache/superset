@@ -60,7 +60,9 @@ class ReportRecipientType(str, enum.Enum):
 
 class ReportLogState(str, enum.Enum):
     SUCCESS = "Success"
+    WORKING = "Working"
     ERROR = "Error"
+    NOOP = "Not triggered"
 
 
 class ReportEmailFormat(str, enum.Enum):
@@ -175,6 +177,6 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("logs", cascade="all,delete"),
+        backref=backref("logs", cascade="all,delete,delete-orphan"),
         foreign_keys=[report_schedule_id],
     )

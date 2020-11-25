@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Badge } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import Button from 'src/components/Button';
@@ -36,6 +36,12 @@ const defaultProps = {
   onChange: () => {},
   code: '{}',
 };
+
+const StyledConfigEditor = styled(ConfigEditor)`
+  &.ace_editor {
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+`;
 
 export default class TemplateParamsEditor extends React.Component {
   constructor(props) {
@@ -96,10 +102,9 @@ export default class TemplateParamsEditor extends React.Component {
     return (
       <div>
         {this.renderDoc()}
-        <ConfigEditor
+        <StyledConfigEditor
           keywords={[]}
           mode={this.props.language}
-          style={{ border: '1px solid #CCC' }}
           minLines={25}
           maxLines={50}
           onChange={this.onChange}

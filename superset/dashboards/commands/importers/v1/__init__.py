@@ -32,6 +32,7 @@ from superset.commands.importers.v1.utils import (
     load_yaml,
     METADATA_FILE_NAME,
 )
+from superset.dashboards.commands.exceptions import DashboardImportError
 from superset.dashboards.commands.importers.v1.utils import import_dashboard
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.commands.importers.v1.utils import import_database
@@ -154,9 +155,9 @@ class ImportDashboardsCommand(BaseCommand):
         try:
             self._import_bundle(db.session)
             db.session.commit()
-        except Exception as exc:
+        except Exception:
             db.session.rollback()
-            raise exc
+            raise DashboardImportError()
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = []

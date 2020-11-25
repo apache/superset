@@ -23,6 +23,7 @@ from superset.commands.exceptions import (
     CreateFailedError,
     DeleteFailedError,
     ForbiddenError,
+    ImportFailedError,
     UpdateFailedError,
 )
 
@@ -91,3 +92,7 @@ class ChartBulkDeleteFailedError(DeleteFailedError):
 
 class ChartBulkDeleteFailedReportsExistError(ChartBulkDeleteFailedError):
     message = _("There are associated alerts or reports associated")
+
+
+class ChartImportError(ImportFailedError):
+    message = _("Import chart failed for an unknown reason")
