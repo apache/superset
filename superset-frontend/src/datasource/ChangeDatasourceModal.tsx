@@ -67,7 +67,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   useEffect(() => {
     const selectDatasource = (datasource: any) => {
-      console.log(datasource)
+      console.log(datasource);
       SupersetClient.get({
         endpoint: `/datasource/get/table/${datasource.id}`,
       })
@@ -86,6 +86,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             },
           );
         });
+
       onHide();
     };
 
@@ -96,30 +97,33 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       if (!datasources) {
         SupersetClient.get({
           endpoint: '/api/v1/dataset/',
-        }).then(({ json }) => {
-          const data = json.result.map((ds: any) => ({
-            rawName: ds.table_name,
-            connection: ds.database.database_name,
-            schema: ds.schema,
-            name: (
-              <a
-                href="#"
-                onClick={() => selectDatasource(ds)}
-                className="datasource-link"
-              >
-                {ds.table_name}
-              </a>
-            ),
-            type: ds.kind,
-          }));
-          setLoading(false);
-          setDatasources(data);
-        }).catch(response => {
-          setLoading(false);
-          getClientErrorObject(response).then(({ error }: any) => {
-            addDangerToast(error.error || error.statusText || error);
+        })
+          .then(({ json }) => {
+            const data = json.result.map((ds: any) => ({
+              rawName: ds.table_name,
+              connection: ds.database.database_name,
+              schema: ds.schema,
+              name: (
+                <a
+                  href="#"
+                  onClick={() => selectDatasource(ds)}
+                  className="datasource-link"
+                >
+                  {ds.table_name}
+                </a>
+              ),
+              type: ds.kind,
+            }));
+            setLoading(false);
+            setDatasources(data);
+          })
+          .catch(response => {
+            setLoading(false);
+            getClientErrorObject(response).then(({ error }: any) => {
+              addDangerToast(error.error || error.statusText || error);
+            });
           });
-        });
+      }
     };
 
     if (show) {
