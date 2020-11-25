@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { kebabCase } from 'lodash';
-import { Tooltip, OverlayTrigger } from 'react-bootstrap';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   label: PropTypes.string.isRequired,
@@ -44,13 +44,14 @@ export default function TooltipWrapper({
   trigger,
 }) {
   return (
-    <OverlayTrigger
+    <Tooltip
+      id={`${kebabCase(label)}-tooltip`}
       placement={placement}
-      overlay={<Tooltip id={`${kebabCase(label)}-tooltip`}>{tooltip}</Tooltip>}
+      title={tooltip}
       trigger={trigger}
     >
       {children}
-    </OverlayTrigger>
+    </Tooltip>
   );
 }
 

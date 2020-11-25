@@ -73,6 +73,11 @@ class ForbiddenError(CommandException):
     message = "Action is forbidden"
 
 
+class ImportFailedError(CommandException):
+    status = 500
+    message = "Import failed for an unknown reason"
+
+
 class OwnersNotFoundValidationError(ValidationError):
     status = 422
 
