@@ -38,6 +38,8 @@ import { Query } from '../types';
 
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal'
 
+import { get as getDataset} from 'src/api/dataset';
+
 const SEARCH_HEIGHT = 46;
 
 const SAVE_NEW_DATASET_RADIO_STATE = 1;
@@ -79,6 +81,17 @@ const MonospaceDiv = styled.div`
   overflow-x: auto;
   white-space: pre-wrap;
 `;
+
+async function getDatasetAsync() {
+  try {
+    const dataset = await getDataset();
+    console.log('in async')
+    console.log(dataset);
+    this.set
+  } catch (e) {
+    console.error('oops..');
+  }
+}
 
 export default class ResultSet extends React.PureComponent<
   ResultSetProps,
@@ -126,7 +139,7 @@ export default class ResultSet extends React.PureComponent<
     this.handleOverwriteDatasetOption = this.handleOverwriteDatasetOption.bind(this);
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
 
@@ -134,15 +147,12 @@ export default class ResultSet extends React.PureComponent<
     const appContainer = document.getElementById('app');
     const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 
-    // Todo: move this to actions file
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=(filters:!((col:owners,opr:rel_m_m,value:${bootstrapData.user.userId}),(col:table_name,opr:ct,value:%27%27)),order_column:changed_on_delta_humanized,order_direction:desc,page:0)`,
-    }).then(data => {
-      const userDatasetsOwned = data.json.result.map(r => {
-        return { dataSetName: r.table_name, dataSetId: r.id };
-      });
-      this.setState({ userDatasetsOwned });
+    const datasets = await getDataset();
+    const userDatasetsOwned = datasets.map(r => {
+      return { dataSetName: r.table_name, dataSetId: r.id };
     });
+
+    this.setState({ userDatasetsOwned });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
