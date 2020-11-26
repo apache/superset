@@ -53,12 +53,20 @@ class DashboardBulkDeleteFailedError(CreateFailedError):
     message = _("Dashboards could not be deleted.")
 
 
+class DashboardBulkDeleteFailedReportsExistError(DashboardBulkDeleteFailedError):
+    message = _("There are associated alerts or reports")
+
+
 class DashboardUpdateFailedError(UpdateFailedError):
     message = _("Dashboard could not be updated.")
 
 
 class DashboardDeleteFailedError(DeleteFailedError):
     message = _("Dashboard could not be deleted.")
+
+
+class DashboardDeleteFailedReportsExistError(DashboardDeleteFailedError):
+    message = _("There are associated alerts or reports")
 
 
 class DashboardForbiddenError(ForbiddenError):

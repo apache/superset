@@ -39,6 +39,54 @@ class ReportScheduleDAO(BaseDAO):
     model_cls = ReportSchedule
 
     @staticmethod
+    def find_by_chart_id(chart_id: int) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.chart_id == chart_id)
+            .all()
+        )
+
+    @staticmethod
+    def find_by_chart_ids(chart_ids: List[int]) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.chart_id.in_(chart_ids))
+            .all()
+        )
+
+    @staticmethod
+    def find_by_dashboard_id(dashboard_id: int) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.dashboard_id == dashboard_id)
+            .all()
+        )
+
+    @staticmethod
+    def find_by_dashboard_ids(dashboard_ids: List[int]) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.dashboard_id.in_(dashboard_ids))
+            .all()
+        )
+
+    @staticmethod
+    def find_by_database_id(database_id: int) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.database_id == database_id)
+            .all()
+        )
+
+    @staticmethod
+    def find_by_database_ids(database_ids: List[int]) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.database_id.in_(database_ids))
+            .all()
+        )
+
+    @staticmethod
     def bulk_delete(
         models: Optional[List[ReportSchedule]], commit: bool = True
     ) -> None:

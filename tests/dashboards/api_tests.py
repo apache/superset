@@ -33,6 +33,7 @@ from sqlalchemy import and_
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
+from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.views.base import generate_download_headers
 
@@ -119,6 +120,28 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                 db.session.delete(dashboard)
             for fav_dashboard in fav_dashboards:
                 db.session.delete(fav_dashboard)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_dashboard_with_report(self):
+        with self.create_app().app_context():
+            admin = self.get_user("admin")
+            dashboard = self.insert_dashboard(
+                f"dashboard_report", "dashboard_report", [admin.id]
+            )
+            report_schedule = ReportSchedule(
+                type=ReportScheduleType.REPORT,
+                name="report_with_dashboard",
+                crontab="* * * * *",
+                dashboard=dashboard,
+            )
+            db.session.commit()
+
+            yield dashboard
+
+            # rollback changes
+            db.session.delete(report_schedule)
+            db.session.delete(dashboard)
             db.session.commit()
 
     def test_get_dashboard(self):
@@ -493,6 +516,26 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("create_dashboard_with_report")
+    def test_delete_dashboard_with_report(self):
+        """
+        Dashboard API: Test delete with associated report
+        """
+        self.login(username="admin")
+        dashboard = (
+            db.session.query(Dashboard.id)
+            .filter(Dashboard.dashboard_title == "dashboard_report")
+            .one_or_none()
+        )
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_dashboard"
+        }
+        self.assertEqual(response, expected_response)
+
     def test_delete_bulk_dashboards_not_found(self):
         """
         Dashboard API: Test delete bulk not found
@@ -503,6 +546,34 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboard_with_report", "create_dashboards")
+    def test_bulk_delete_dashboard_with_report(self):
+        """
+        Dashboard API: Test bulk delete with associated report
+        """
+        self.login(username="admin")
+        dashboard_with_report = (
+            db.session.query(Dashboard.id)
+            .filter(Dashboard.dashboard_title == "dashboard_report")
+            .one_or_none()
+        )
+        dashboards = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title.like("title%"))
+            .all()
+        )
+
+        dashboard_ids = [dashboard.id for dashboard in dashboards]
+        dashboard_ids.append(dashboard_with_report.id)
+        uri = f"api/v1/dashboard/?q={prison.dumps(dashboard_ids)}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_dashboard"
+        }
+        self.assertEqual(response, expected_response)
 
     def test_delete_dashboard_admin_not_owned(self):
         """
