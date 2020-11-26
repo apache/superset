@@ -12,6 +12,5 @@ export const get = async () => {
   const data: JsonResponse = await SupersetClient.get({
     endpoint,
   });
-  console.log(data);
   return data.json.result;
 };
