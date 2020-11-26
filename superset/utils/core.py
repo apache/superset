@@ -1345,7 +1345,7 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         searched_result = holiday_lookup.get_named(holiday)
         if len(searched_result) == 1:
             return dttm_from_timetuple(searched_result[0].timetuple())
-        raise ValueError
+        raise ValueError(_("Unable to find such a holiday: [{}]").format(holiday))
 
 
 def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals

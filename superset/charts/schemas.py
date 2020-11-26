@@ -54,6 +54,8 @@ get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
+get_time_range_schema = {"type": "string"}
+
 #
 # Column schema descriptions
 #
