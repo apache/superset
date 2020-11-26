@@ -56,6 +56,9 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
 
         yield new_role
 
+        new_role = db.session.query(Role).filter(Role.name == "Dummy Role").one_or_none()
+        new_role.permissions = []
+        db.session.merge(new_role)
         for old_pvm, new_pvms in pvm_map.items():
             security_manager.del_permission_view_menu(old_pvm[1], old_pvm[0])
             for new_pvm in new_pvms:
@@ -66,9 +69,10 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
 
 
 @pytest.mark.parametrize(
-    "new_pvms, pvm_map, external_pvms, deleted_views, deleted_permissions",
+    "descriptiom, new_pvms, pvm_map, external_pvms, deleted_views, deleted_permissions",
     [
         (
+            "Many to one readonly",
             {"NewDummy": ("can_read",)},
             {
                 ("DummyView", "can_list",): (("NewDummy", "can_read",),),
@@ -79,6 +83,18 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             (),
         ),
         (
+            "Many to one with new permission",
+            {"NewDummy": ("can_new_perm", "can_write")},
+            {
+                ("DummyView", "can_list",): (("NewDummy", "can_new_perm",),),
+                ("DummyView", "can_show",): (("NewDummy", "can_write",),),
+            },
+            (),
+            ("DummyView",),
+            (),
+        ),
+        (
+            "Many to one with multiple permissions",
             {"NewDummy": ("can_read", "can_write",)},
             {
                 ("DummyView", "can_list",): (("NewDummy", "can_read",),),
@@ -91,6 +107,7 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             (),
         ),
         (
+            "Many to one with multiple views",
             {"NewDummy": ("can_read", "can_write",)},
             {
                 ("DummyView", "can_list",): (("NewDummy", "can_read",),),
@@ -107,6 +124,7 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             (),
         ),
         (
+            "Many to one with existing permission-view (pvm)",
             {"NewDummy": ("can_read", "can_write",)},
             {
                 ("DummyView", "can_list",): (("NewDummy", "can_read",),),
@@ -117,6 +135,7 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             (),
         ),
         (
+            "Many to one with existing multiple permission-view (pvm)",
             {"NewDummy": ("can_read", "can_write",)},
             {
                 ("DummyView", "can_list",): (("NewDummy", "can_read",),),
@@ -129,6 +148,7 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             (),
         ),
         (
+            "Many to one with with old permission that gets deleted",
             {"NewDummy": ("can_read", "can_write",)},
             {
                 ("DummyView", "can_new_perm",): (("NewDummy", "can_read",),),
@@ -139,6 +159,7 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             ("can_new_perm",),
         ),
         (
+            "Many to Many (normally should be a downgrade)",
             {"DummyView": ("can_list", "can_show", "can_add",)},
             {
                 ("NewDummy", "can_read",): (
@@ -151,14 +172,29 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             ("NewDummy",),
             (),
         ),
+        (
+            "Many to Many delete old permissions",
+            {"DummyView": ("can_list", "can_show", "can_add",)},
+            {
+                ("NewDummy", "can_new_perm1",): (
+                    ("DummyView", "can_list",),
+                    ("DummyView", "can_show",),
+                ),
+                ("NewDummy", "can_new_perm2",): (("DummyView", "can_add",),),
+            },
+            (),
+            ("NewDummy",),
+            ("can_new_perm1", "can_new_perm2"),
+        ),
     ],
 )
 def test_migrate_role(
-    new_pvms, pvm_map, external_pvms, deleted_views, deleted_permissions
+    descriptiom, new_pvms, pvm_map, external_pvms, deleted_views, deleted_permissions
 ):
     """
     Permission migration: generic tests
     """
+    logger.info(descriptiom)
     with create_old_role(pvm_map, external_pvms) as old_role:
         role_name = old_role.name
         session = db.session
