@@ -316,7 +316,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
-    "LISTVIEW_DEFAULT_CARD_VIEW": False,
+    "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # Enables the replacement React views for all the FAB views (list, edit, show) with
     # designs introduced in https://github.com/apache/incubator-superset/issues/8976
     # (SIP-34). This is a work in progress so not all features available in FAB have
@@ -344,7 +344,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 # Setting LISTVIEW_DEFAULT_CARD_VIEW to False will force the default view to
 # always be the table layout
 if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
-    DEFAULT_FEATURE_FLAGS["LISTVIEW_DEFAULT_CARD_VIEW"] = True
+    DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
 
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}
