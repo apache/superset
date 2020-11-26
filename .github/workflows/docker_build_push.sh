@@ -25,7 +25,7 @@ if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
   PR_NUM=$(echo "${GITHUB_REF}" | sed 's:refs/pull/::' | sed 's:/merge::')
   LATEST_TAG="pr-${PR_NUM}"
 else
-  REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/heads/::' | sed 's/[^a-zA-Z0-9]/-/')
+  REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/heads/::' | sed 's/[^.a-zA-Z0-9]/-/')
   LATEST_TAG="${REFSPEC}"
 fi
 
