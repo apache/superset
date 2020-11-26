@@ -316,7 +316,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
-    "LISTVIEWS_DEFAULT_CARD_VIEW": False,
+    "LISTVIEW_DEFAULT_CARD_VIEW": False,
     # Enables the replacement React views for all the FAB views (list, edit, show) with
     # designs introduced in https://github.com/apache/incubator-superset/issues/8976
     # (SIP-34). This is a work in progress so not all features available in FAB have
