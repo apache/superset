@@ -27,7 +27,7 @@ import Chart from 'src/types/Chart';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
-import { Dashboard } from './types';
+import Dashboard from 'src/types/Dashboard';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,

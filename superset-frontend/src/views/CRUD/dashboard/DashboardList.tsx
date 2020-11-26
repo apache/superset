@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
-import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   createFetchRelated,
@@ -30,7 +29,6 @@ import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
-import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import FacePile from 'src/components/FacePile';
 import Icon from 'src/components/Icon';
@@ -38,7 +36,11 @@ import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 
-import Dashboard from 'src/dashboard/containers/Dashboard';
+import {
+  show as showDashboard,
+  destroyBulk as bulkDeleteDashboard,
+} from 'src/api/dashboard';
+import Dashboard from 'src/types/Dashboard';
 import DashboardCard from './DashboardCard';
 
 const PAGE_SIZE = 25;
@@ -46,20 +48,6 @@ const PAGE_SIZE = 25;
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-}
-
-interface Dashboard {
-  changed_by_name: string;
-  changed_by_url: string;
-  changed_on_delta_humanized: string;
-  changed_by: string;
-  dashboard_title: string;
-  id: number;
-  published: boolean;
-  url: string;
-  thumbnail_url: string;
-  owners: Owner[];
-  created_by: object;
 }
 
 function DashboardList(props: DashboardListProps) {
@@ -101,43 +89,37 @@ function DashboardList(props: DashboardListProps) {
     setDashboardToEdit(dashboard);
   }
 
-  function handleDashboardEdit(edits: Dashboard) {
-    return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${edits.id}`,
-    }).then(
-      ({ json = {} }) => {
-        setDashboards(
-          dashboards.map(dashboard => {
-            if (dashboard.id === json.id) {
-              return json.result;
-            }
-            return dashboard;
-          }),
-        );
-      },
+  async function handleDashboardEdit(edits: Dashboard) {
+    try {
+      const json = await showDashboard(edits.id);
+      setDashboards(
+        dashboards.map(dashboard => {
+          if (dashboard.id === json.id) {
+            return json.result;
+          }
+          return dashboard;
+        }),
+      );
+    } catch (e) {
       createErrorHandler(errMsg =>
         props.addDangerToast(
           t('An error occurred while fetching dashboards: %s', errMsg),
         ),
-      ),
-    );
+      );
+    }
   }
 
-  function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
-    return SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/?q=${rison.encode(
-        dashboardsToDelete.map(({ id }) => id),
-      )}`,
-    }).then(
-      ({ json = {} }) => {
-        props.addSuccessToast(json.message);
-      },
+  async function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
+    try {
+      const message = await bulkDeleteDashboard(dashboardsToDelete);
+      props.addSuccessToast(message);
+    } catch (e) {
       createErrorHandler(errMsg =>
         props.addDangerToast(
           t('There was an issue deleting the selected dashboards: ', errMsg),
         ),
-      ),
-    );
+      );
+    }
   }
 
   const columns = useMemo(

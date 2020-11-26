@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -29,6 +29,10 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
+import {
+  getRelated as getRelatedObjects,
+  destroy as deleteDatabase,
+} from 'src/api/database';
 import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
@@ -75,41 +79,37 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     null,
   );
 
-  const openDatabaseDeleteModal = (database: DatabaseObject) =>
-    SupersetClient.get({
-      endpoint: `/api/v1/database/${database.id}/related_objects/`,
-    })
-      .then(({ json = {} }) => {
-        setDatabaseCurrentlyDeleting({
-          ...database,
-          chart_count: json.charts.count,
-          dashboard_count: json.dashboards.count,
-        });
-      })
-      .catch(
-        createErrorHandler(errMsg =>
-          t(
-            'An error occurred while fetching database related data: %s',
-            errMsg,
-          ),
-        ),
+  const openDatabaseDeleteModal = async (database: DatabaseObject) => {
+    try {
+      const result = await getRelatedObjects(database.id as number);
+      setDatabaseCurrentlyDeleting({
+        ...database,
+        chart_count: result.charts.count,
+        dashboard_count: result.dashboards.count,
+      });
+    } catch (e) {
+      createErrorHandler(errMsg =>
+        t('An error occurred while fetching database related data: %s', errMsg),
       );
+    }
+  };
 
-  function handleDatabaseDelete({ id, database_name: dbName }: DatabaseObject) {
-    SupersetClient.delete({
-      endpoint: `/api/v1/database/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        addSuccessToast(t('Deleted: %s', dbName));
+  async function handleDatabaseDelete({
+    id,
+    database_name: dbName,
+  }: DatabaseObject) {
+    try {
+      await deleteDatabase(id as number);
+      refreshData();
+      addSuccessToast(t('Deleted: %s', dbName));
 
-        // Close delete modal
-        setDatabaseCurrentlyDeleting(null);
-      },
+      // Close delete modal
+      setDatabaseCurrentlyDeleting(null);
+    } catch (e) {
       createErrorHandler(errMsg =>
         addDangerToast(t('There was an issue deleting %s: %s', dbName, errMsg)),
-      ),
-    );
+      );
+    }
   }
 
   function handleDatabaseEdit(database: DatabaseObject) {

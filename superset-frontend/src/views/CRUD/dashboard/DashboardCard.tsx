@@ -30,7 +30,7 @@ import Icon from 'src/components/Icon';
 import Label from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
-import { Dashboard } from 'src/views/CRUD/types';
+import Dashboard from 'src/types/Dashboard';
 
 interface DashboardCardProps {
   isChart?: boolean;

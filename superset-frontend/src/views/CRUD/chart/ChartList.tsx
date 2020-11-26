@@ -45,6 +45,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import { destroyBulk as bulkDeleteCharts } from 'src/api/chart';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -128,22 +129,18 @@ function ChartList(props: ChartListProps) {
     hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  function handleBulkChartDelete(chartsToDelete: Chart[]) {
-    SupersetClient.delete({
-      endpoint: `/api/v1/chart/?q=${rison.encode(
-        chartsToDelete.map(({ id }) => id),
-      )}`,
-    }).then(
-      ({ json = {} }) => {
-        refreshData();
-        props.addSuccessToast(json.message);
-      },
+  async function handleBulkChartDelete(chartsToDelete: Chart[]) {
+    try {
+      const message = await bulkDeleteCharts(chartsToDelete);
+      refreshData();
+      props.addSuccessToast(message);
+    } catch (e) {
       createErrorHandler(errMsg =>
         props.addDangerToast(
           t('There was an issue deleting the selected charts: %s', errMsg),
         ),
-      ),
-    );
+      );
+    }
   }
 
   const columns = useMemo(

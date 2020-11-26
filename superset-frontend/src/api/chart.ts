@@ -16,31 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { User } from 'src/types/bootstrapTypes';
-import Dashboard from 'src/types/Dashboard';
 
-export type FavoriteStatus = {
-  [id: number]: boolean;
+import { SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
+import Chart from 'src/types/Chart';
+
+export const importChart = async (chartFile: File) => {
+  const endpoint = encodeURI(`/api/v1/chart/import/`);
+  const formData = new FormData();
+  formData.append('formData', chartFile);
+  await SupersetClient.post({
+    endpoint,
+    body: formData,
+  });
+  return Promise.resolve();
 };
 
-export interface DashboardTableProps {
-  addDangerToast: (message: string) => void;
-  addSuccessToast: (message: string) => void;
-  search: string;
-  user?: User;
-  mine: Array<Dashboard>;
-}
-
-export type SavedQueryObject = {
-  database: {
-    database_name: string;
-    id: number;
-  };
-  db_id: number;
-  description?: string;
-  id: number;
-  label: string;
-  schema: string;
-  sql: string | null;
-  sql_tables?: { catalog?: string; schema: string; table: string }[];
+export const destroyBulk = async (charts: Chart[]) => {
+  const endpoint = `/api/v1/chart/?q=${rison.encode(
+    charts.map(({ id }: { id: number }) => id),
+  )}`;
+  const {
+    json: {
+      json: { message },
+    },
+  } = await SupersetClient.delete({ endpoint });
+  return Promise.resolve(message);
 };

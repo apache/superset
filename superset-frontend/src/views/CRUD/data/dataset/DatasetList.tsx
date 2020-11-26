@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useState,
@@ -39,12 +39,18 @@ import SubMenu, {
   ButtonProps,
 } from 'src/components/Menu/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
-import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import {
+  show as showDataset,
+  getRelated as getRelatedObjects,
+  destroy as deleteDataset,
+  bulkDestroy as bulkDelete,
+} from 'src/api/dataset';
+import Dataset from 'src/types/Dataset';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
@@ -57,23 +63,6 @@ const FlexRowContainer = styled.div`
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
 `;
-
-type Dataset = {
-  changed_by_name: string;
-  changed_by_url: string;
-  changed_by: string;
-  changed_on_delta_humanized: string;
-  database: {
-    id: string;
-    database_name: string;
-  };
-  kind: string;
-  explore_url: string;
-  id: number;
-  owners: Array<Owner>;
-  schema: string;
-  table_name: string;
-};
 
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
@@ -118,42 +107,34 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   const openDatasetEditModal = useCallback(
-    ({ id }: Dataset) => {
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/${id}`,
-      })
-        .then(({ json = {} }) => {
-          const owners = json.result.owners.map((owner: any) => owner.id);
-          setDatasetCurrentlyEditing({ ...json.result, owners });
-        })
-        .catch(() => {
-          addDangerToast(
-            t('An error occurred while fetching dataset related data'),
-          );
-        });
+    async ({ id }: Dataset) => {
+      try {
+        const result = await showDataset(id);
+        const owners = result.owners.map((owner: any) => owner.id);
+        setDatasetCurrentlyEditing({ ...result, owners });
+      } catch (e) {
+        addDangerToast(
+          t('An error occurred while fetching dataset related data'),
+        );
+      }
     },
     [addDangerToast],
   );
 
-  const openDatasetDeleteModal = (dataset: Dataset) =>
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/${dataset.id}/related_objects`,
-    })
-      .then(({ json = {} }) => {
-        setDatasetCurrentlyDeleting({
-          ...dataset,
-          chart_count: json.charts.count,
-          dashboard_count: json.dashboards.count,
-        });
-      })
-      .catch(
-        createErrorHandler(errMsg =>
-          t(
-            'An error occurred while fetching dataset related data: %s',
-            errMsg,
-          ),
-        ),
+  const openDatasetDeleteModal = async (dataset: Dataset) => {
+    try {
+      const result = await getRelatedObjects(dataset.id);
+      setDatasetCurrentlyDeleting({
+        ...dataset,
+        chart_count: result.charts.count,
+        dashboard_count: result.dashboards.count,
+      });
+    } catch (e) {
+      createErrorHandler(errMsg =>
+        t('An error occurred while fetching dataset related data: %s', errMsg),
       );
+    }
+  };
 
   const columns = useMemo(
     () => [
@@ -457,39 +438,36 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setDatasetCurrentlyEditing(null);
   };
 
-  const handleDatasetDelete = ({ id, table_name: tableName }: Dataset) => {
-    SupersetClient.delete({
-      endpoint: `/api/v1/dataset/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        setDatasetCurrentlyDeleting(null);
-        addSuccessToast(t('Deleted: %s', tableName));
-      },
+  const handleDatasetDelete = async ({
+    id,
+    table_name: tableName,
+  }: Dataset) => {
+    try {
+      await deleteDataset(id);
+      refreshData();
+      setDatasetCurrentlyDeleting(null);
+      addSuccessToast(t('Deleted: %s', tableName));
+    } catch (e) {
       createErrorHandler(errMsg =>
         addDangerToast(
           t('There was an issue deleting %s: %s', tableName, errMsg),
         ),
-      ),
-    );
+      );
+    }
   };
 
-  const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
-    SupersetClient.delete({
-      endpoint: `/api/v1/dataset/?q=${rison.encode(
-        datasetsToDelete.map(({ id }) => id),
-      )}`,
-    }).then(
-      ({ json = {} }) => {
-        refreshData();
-        addSuccessToast(json.message);
-      },
+  const handleBulkDatasetDelete = async (datasetsToDelete: Dataset[]) => {
+    try {
+      const message = await bulkDelete(datasetsToDelete);
+      refreshData();
+      addSuccessToast(message);
+    } catch (e) {
       createErrorHandler(errMsg =>
         addDangerToast(
           t('There was an issue deleting the selected datasets: %s', errMsg),
         ),
-      ),
-    );
+      );
+    }
   };
 
   const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {

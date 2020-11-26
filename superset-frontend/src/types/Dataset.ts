@@ -16,31 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { User } from 'src/types/bootstrapTypes';
-import Dashboard from 'src/types/Dashboard';
 
-export type FavoriteStatus = {
-  [id: number]: boolean;
-};
+/**
+ * The Dataset model as returned from the API
+ */
+import Owner from './Owner';
 
-export interface DashboardTableProps {
-  addDangerToast: (message: string) => void;
-  addSuccessToast: (message: string) => void;
-  search: string;
-  user?: User;
-  mine: Array<Dashboard>;
-}
-
-export type SavedQueryObject = {
+export default interface Dataset {
+  changed_by_name: string;
+  changed_by_url: string;
+  changed_by: string;
+  changed_on_delta_humanized: string;
   database: {
+    id: string;
     database_name: string;
-    id: number;
   };
-  db_id: number;
-  description?: string;
+  kind: string;
+  explore_url: string;
   id: number;
-  label: string;
+  owners: Array<Owner>;
   schema: string;
-  sql: string | null;
-  sql_tables?: { catalog?: string; schema: string; table: string }[];
-};
+  table_name: string;
+}
