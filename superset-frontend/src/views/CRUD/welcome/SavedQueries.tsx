@@ -79,7 +79,7 @@ export const CardStyles = styled.div`
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    background-color: #d8dbe4;
+    background-color: ${({ theme }) => theme.colors.grayscale.light3};
     display: inline-block;
     width: 100%;
     height: 179px;
