@@ -89,8 +89,6 @@ const DropdownButton = styled.div`
 
 const screenshotNodeSelector = '.dashboard';
 
-const takeScreenshotDelay = 1000;
-
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
     window.location.reload();
@@ -141,7 +139,9 @@ class HeaderActionsDropdown extends React.PureComponent {
   }
 
   handleMenuClick({ key, domEvent }) {
-    const { currentTarget } = domEvent;
+    const menu = document.querySelector(
+      '.ant-dropdown:not(.ant-dropdown-hidden)',
+    );
     switch (key) {
       case MENU_KEYS.REFRESH_DASHBOARD:
         this.props.forceRefreshAllCharts();
@@ -150,16 +150,15 @@ class HeaderActionsDropdown extends React.PureComponent {
         this.props.showPropertiesModal();
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE:
-        // menu closes with a delay, we need to wait so
-        // that we don't capture it on the screenshot
-        setTimeout(
-          () =>
-            downloadAsImage(
-              screenshotNodeSelector,
-              this.props.dashboardTitle,
-            )({ currentTarget }),
-          takeScreenshotDelay,
-        );
+        // menu closes with a delay, we need to hide it manually,
+        // so that we don't capture it on the screenshot
+        menu.style.visibility = 'hidden';
+        downloadAsImage(
+          screenshotNodeSelector,
+          this.props.dashboardTitle,
+        )(domEvent).then(() => {
+          menu.style.visibility = 'visible';
+        });
         break;
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
         const hasStandalone = window.location.search.includes(
