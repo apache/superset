@@ -56,7 +56,9 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
 
         yield new_role
 
-        new_role = db.session.query(Role).filter(Role.name == "Dummy Role").one_or_none()
+        new_role = (
+            db.session.query(Role).filter(Role.name == "Dummy Role").one_or_none()
+        )
         new_role.permissions = []
         db.session.merge(new_role)
         for old_pvm, new_pvms in pvm_map.items():
