@@ -2,7 +2,6 @@ import { SupersetClient, JsonResponse } from '@superset-ui/core';
 import rison from 'rison';
 
 export const get = async (userId: int) => {
-  console.log(userId);
   const queryParams = rison.encode({
     filters: [
       {
@@ -18,7 +17,5 @@ export const get = async (userId: int) => {
   const data: JsonResponse = await SupersetClient.get({
     endpoint,
   });
-
-  console.log(data.json.result)
   return data.json.result;
 };
