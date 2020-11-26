@@ -147,7 +147,7 @@ export default class ResultSet extends React.PureComponent<
     const appContainer = document.getElementById('app');
     const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 
-    const datasets = await getDataset();
+    const datasets = await getDataset(bootstrapData.user.userId);
     const userDatasetsOwned = datasets.map(r => {
       return { dataSetName: r.table_name, dataSetId: r.id };
     });
