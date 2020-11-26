@@ -74,9 +74,11 @@ export default function getFormDataWithExtraFilters({
     ...(colorScheme && { color_scheme: colorScheme }),
     label_colors: labelColors,
     extra_filters: getEffectiveExtraFilters(filters),
-    native_filters: filterClauses
-      ?.filter(filter => filter.filterClause)
-      .map(filter => filter.filterClause),
+    extra_form_data: {
+      filters: filterClauses
+        ?.filter(filter => filter.filterClause)
+        .map(filter => filter.filterClause),
+    },
   };
   cachedFiltersByChart[sliceId] = filters;
   cachedFormdataByChart[sliceId] = formData;

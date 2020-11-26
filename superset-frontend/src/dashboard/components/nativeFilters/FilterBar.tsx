@@ -173,7 +173,6 @@ const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
     metrics: ['count'],
     multiSelect: true,
     row_limit: 10000,
-    setSelectedValues: setter,
     showSearch: true,
     time_range: 'No filter',
     time_range_endpoints: ['inclusive', 'exclusive'],
@@ -203,6 +202,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
           formData={formData}
           queryData={state}
           chartType="filter_select"
+          hooks={{ setSelectedValues: setter }}
         />
       </Form.Item>
     </Form>
