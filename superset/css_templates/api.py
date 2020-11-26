@@ -33,6 +33,7 @@ from superset.css_templates.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
 )
+from superset.extensions import event_logger
 from superset.models.core import CssTemplate
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
@@ -87,6 +88,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk CSS Templates
         ---

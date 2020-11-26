@@ -298,6 +298,10 @@ LANGUAGES = {}
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
 DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
+    # allow dashboard to use sub-domains to send chart request
+    # you also need ENABLE_CORS and
+    # SUPERSET_WEBSERVER_DOMAINS for list of domains
+    "ALLOW_DASHBOARD_DOMAIN_SHARDING": True,
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,

@@ -46,6 +46,9 @@ const PAGE_SIZE = 25;
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+  };
 }
 
 interface Dashboard {
@@ -333,6 +336,7 @@ function DashboardList(props: DashboardListProps) {
             ),
           ),
         ),
+        props.user.userId,
       ),
       paginate: true,
     },
@@ -353,6 +357,7 @@ function DashboardList(props: DashboardListProps) {
             ),
           ),
         ),
+        props.user.userId,
       ),
       paginate: true,
     },

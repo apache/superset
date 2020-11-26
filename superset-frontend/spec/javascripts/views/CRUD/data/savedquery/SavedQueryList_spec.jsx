@@ -91,7 +91,9 @@ fetchMock.get(queriesDistinctEndpoint, {
 });
 
 describe('SavedQueryList', () => {
-  const wrapper = mount(<SavedQueryList />, { context: { store } });
+  const wrapper = mount(<SavedQueryList />, {
+    context: { store },
+  });
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

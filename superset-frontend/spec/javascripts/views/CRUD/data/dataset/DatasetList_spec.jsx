@@ -52,6 +52,10 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
   table_name: `coolest table ${i}`,
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(datasetsInfoEndpoint, {
   permissions: ['can_list', 'can_edit', 'can_add', 'can_delete'],
 });
@@ -70,7 +74,7 @@ fetchMock.get(databaseEndpoint, {
 });
 
 async function mountAndWait(props) {
-  const mounted = mount(<DatasetList {...props} />, {
+  const mounted = mount(<DatasetList {...props} user={mockUser} />, {
     context: { store },
   });
   await waitForComponentToPaint(mounted);
