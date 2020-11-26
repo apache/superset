@@ -22,9 +22,6 @@ import sys
 
 from setuptools import find_packages, setup
 
-if sys.version_info < (3, 6):
-    sys.exit("Sorry, Python < 3.6 is not supported")
-
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
