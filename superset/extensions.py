@@ -30,6 +30,7 @@ from werkzeug.local import LocalProxy
 from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
 from superset.utils.feature_flag_manager import FeatureFlagManager
+from superset.utils.log import AbstractEventLogger
 from superset.utils.machine_auth import MachineAuthProviderFactory
 
 
@@ -103,7 +104,7 @@ cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = SQLA()
-_event_logger: Dict[str, Any] = {}
+_event_logger: Dict[str, AbstractEventLogger] = {}
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()
 machine_auth_provider_factory = MachineAuthProviderFactory()

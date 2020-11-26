@@ -17,8 +17,9 @@
 # pylint: disable=comparison-with-callable, line-too-long, too-many-branches
 import logging
 import re
+import time
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
@@ -1293,7 +1294,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
         limit = request.args.get("limit")
-        limit = int(limit) if limit and limit.isdigit() else 100
+        limit = int(limit) if limit and limit.isdigit() else 50
         actions = request.args.get("actions", "explore,dashboard").split(",")
         # whether to get distinct subjects
         distinct = request.args.get("distinct") != "false"
@@ -1305,60 +1306,39 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             and_(Slice.slice_name is not None, Slice.slice_name != ""),
         )
 
+        qry = (
+            db.session.query(
+                Log.dttm,
+                Log.action,
+                Log.dashboard_id,
+                Log.slice_id,
+                Dashboard.slug.label("dashboard_slug"),
+                Dashboard.dashboard_title,
+                Slice.slice_name,
+            )
+            .outerjoin(Dashboard, Dashboard.id == Log.dashboard_id)
+            .outerjoin(Slice, Slice.id == Log.slice_id)
+            .filter(
+                and_(Log.action.in_(actions), Log.user_id == user_id, has_subject_title)
+            )
+            .order_by(Log.dttm.desc())
+        )
         if distinct:
-            one_year_ago = datetime.today() - timedelta(days=365)
-            subqry = (
-                db.session.query(
-                    Log.dashboard_id,
-                    Log.slice_id,
-                    Log.action,
-                    func.max(Log.dttm).label("dttm"),
-                )
-                .group_by(Log.dashboard_id, Log.slice_id, Log.action)
-                .filter(
-                    and_(
-                        Log.action.in_(actions),
-                        Log.user_id == user_id,
-                        # limit to one year of data to improve performance
-                        Log.dttm > one_year_ago,
-                        or_(Log.dashboard_id.isnot(None), Log.slice_id.isnot(None)),
-                    )
-                )
-                .subquery()
-            )
-            qry = (
-                db.session.query(
-                    subqry,
-                    Dashboard.slug.label("dashboard_slug"),
-                    Dashboard.dashboard_title,
-                    Slice.slice_name,
-                )
-                .outerjoin(Dashboard, Dashboard.id == subqry.c.dashboard_id)
-                .outerjoin(Slice, Slice.id == subqry.c.slice_id,)
-                .filter(has_subject_title)
-                .order_by(subqry.c.dttm.desc())
-                .limit(limit)
-            )
+            # stream the list and try to find enough distinct results
+            items = []
+            seen = set()
+            for item in qry.limit(100 * limit).yield_per(2 * limit):
+                key = (item.dashboard_id, item.slice_id)
+                if key not in seen:
+                    seen.add(key)
+                    items.append(item)
+                    if len(items) >= limit:
+                        break
         else:
-            qry = (
-                db.session.query(
-                    Log.dttm,
-                    Log.action,
-                    Log.dashboard_id,
-                    Log.slice_id,
-                    Dashboard.slug.label("dashboard_slug"),
-                    Dashboard.dashboard_title,
-                    Slice.slice_name,
-                )
-                .outerjoin(Dashboard, Dashboard.id == Log.dashboard_id)
-                .outerjoin(Slice, Slice.id == Log.slice_id)
-                .filter(has_subject_title)
-                .order_by(Log.dttm.desc())
-                .limit(limit)
-            )
+            items = qry.limit(limit).all()
 
         payload = []
-        for log in qry.all():
+        for log in items:
             item_url = None
             item_title = None
             item_type = None
