@@ -80,7 +80,7 @@ Example:
     source set_release_env.sh 0.38.0rc1 myid@apache.org
 ```
 
-The script will output the exported variables. Here's example for 0.37.0rc1:
+The script will output the exported variables. Here's example for 0.38.0rc1:
 
 ```
     Set Release env variables
