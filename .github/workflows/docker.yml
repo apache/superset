@@ -5,7 +5,7 @@ on:
     branches:
       - 'master'
   pull_request:
-    types: [assigned, opened, synchronize, reopened]
+    types: [opened, synchronize, reopened]
   release:
     types: [published]
 
