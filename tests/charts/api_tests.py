@@ -38,6 +38,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
+from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils import core as utils
 from tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -117,6 +118,26 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                 db.session.delete(fav_chart)
             db.session.commit()
 
+    @pytest.fixture()
+    def create_chart_with_report(self):
+        with self.create_app().app_context():
+            admin = self.get_user("admin")
+            chart = self.insert_chart(f"chart_report", [admin.id], 1)
+            report_schedule = ReportSchedule(
+                type=ReportScheduleType.REPORT,
+                name="report_with_chart",
+                crontab="* * * * *",
+                chart=chart,
+            )
+            db.session.commit()
+
+            yield chart
+
+            # rollback changes
+            db.session.delete(report_schedule)
+            db.session.delete(chart)
+            db.session.commit()
+
     def test_delete_chart(self):
         """
         Chart API: Test delete
@@ -174,6 +195,26 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("create_chart_with_report")
+    def test_delete_chart_with_report(self):
+        """
+        Chart API: Test delete with associated report
+        """
+        self.login(username="admin")
+        chart = (
+            db.session.query(Slice)
+            .filter(Slice.slice_name == "chart_report")
+            .one_or_none()
+        )
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_chart"
+        }
+        self.assertEqual(response, expected_response)
+
     def test_delete_bulk_charts_not_found(self):
         """
         Chart API: Test delete bulk not found
@@ -181,10 +222,34 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         max_id = db.session.query(func.max(Slice.id)).scalar()
         chart_ids = [max_id + 1, max_id + 2]
         self.login(username="admin")
-        argument = chart_ids
-        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_chart_with_report", "create_charts")
+    def test_bulk_delete_chart_with_report(self):
+        """
+        Chart API: Test bulk delete with associated report
+        """
+        self.login(username="admin")
+        chart_with_report = (
+            db.session.query(Slice.id)
+            .filter(Slice.slice_name == "chart_report")
+            .one_or_none()
+        )
+
+        charts = db.session.query(Slice.id).filter(Slice.slice_name.like("name%")).all()
+        chart_ids = [chart.id for chart in charts]
+        chart_ids.append(chart_with_report.id)
+
+        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_chart"
+        }
+        self.assertEqual(response, expected_response)
 
     def test_delete_chart_admin_not_owned(self):
         """
@@ -1187,18 +1252,20 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("chart_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(chart_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "chart_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("charts/imported_chart.yaml", "w") as fp:
+            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(chart_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "chart_export.zip"),
+            "formData": (buf, "chart_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -1233,18 +1300,20 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("chart_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "chart_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("charts/imported_chart.yaml", "w") as fp:
+            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(chart_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "chart_export.zip"),
+            "formData": (buf, "chart_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))

@@ -30,6 +30,7 @@ from sqlalchemy.sql import func
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
+from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.certificates import ssl_certificate
@@ -65,6 +66,30 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.add(database)
         db.session.commit()
         return database
+
+    @pytest.fixture()
+    def create_database_with_report(self):
+        with self.create_app().app_context():
+            example_db = get_example_database()
+            database = self.insert_database(
+                "database_with_report",
+                example_db.sqlalchemy_uri_decrypted,
+                expose_in_sqllab=True,
+            )
+            report_schedule = ReportSchedule(
+                type=ReportScheduleType.ALERT,
+                name="report_with_database",
+                crontab="* * * * *",
+                database=database,
+            )
+            db.session.add(report_schedule)
+            db.session.commit()
+            yield database
+
+            # rollback changes
+            db.session.delete(report_schedule)
+            db.session.delete(database)
+            db.session.commit()
 
     def test_get_items(self):
         """
@@ -486,6 +511,26 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 422)
 
+    @pytest.mark.usefixtures("create_database_with_report")
+    def test_delete_database_with_report(self):
+        """
+        Database API: Test delete with associated report
+        """
+        self.login(username="admin")
+        database = (
+            db.session.query(Database)
+            .filter(Database.database_name == "database_with_report")
+            .one_or_none()
+        )
+        uri = f"api/v1/database/{database.id}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_database"
+        }
+        self.assertEqual(response, expected_response)
+
     def test_get_table_metadata(self):
         """
         Database API: Test get table metadata info
@@ -836,16 +881,20 @@ class TestDatabaseApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "database_export.zip"),
+            "formData": (buf, "database_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -876,16 +925,20 @@ class TestDatabaseApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "database_export.zip"),
+            "formData": (buf, "database_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))

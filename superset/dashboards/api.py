@@ -30,6 +30,7 @@ from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
 from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.v1.utils import remove_root
 from superset.constants import RouteMethod
 from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
 from superset.dashboards.commands.create import CreateDashboardCommand
@@ -687,12 +688,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        upload = request.files.get("file")
+        upload = request.files.get("formData")
         if not upload:
             return self.response_400()
         with ZipFile(upload) as bundle:
             contents = {
-                file_name: bundle.read(file_name).decode()
+                remove_root(file_name): bundle.read(file_name).decode()
                 for file_name in bundle.namelist()
             }
 
