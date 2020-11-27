@@ -341,7 +341,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
-# Setting LISTVIEW_DEFAULT_CARD_VIEW to False will force the default view to
+# Setting LISTVIEWS_DEFAULT_CARD_VIEW to False will force the default view to
 # always be the table layout
 if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
     DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
