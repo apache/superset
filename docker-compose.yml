@@ -18,8 +18,8 @@ x-superset-image: &superset-image apache/incubator-superset:latest-dev
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
-x-superset-volumes: &superset-volumes
-  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+x-superset-volumes:
+  &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - ./superset:/app/superset
   - ./superset-frontend:/app/superset-frontend
@@ -38,13 +38,13 @@ services:
 
   db:
     env_file: docker/.env
-    image: postgres:10
+    image: mysql:5.7
     container_name: superset_db
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:13306:3306"
     volumes:
-      - db_home:/var/lib/postgresql/data
+      - db_home:/var/lib/mysql/data
 
   superset:
     env_file: docker/.env
@@ -70,7 +70,12 @@ services:
   superset-node:
     image: node:12
     container_name: superset_node
-    command: ["bash", "-c", "cd /app/superset-frontend && npm install -f --no-optional --global webpack webpack-cli && npm install -f --no-optional && npm run dev"]
+    command:
+      [
+        "bash",
+        "-c",
+        "cd /app/superset-frontend && npm install -f --no-optional --global webpack webpack-cli && npm install -f --no-optional && npm run dev",
+      ]
     env_file: docker/.env
     depends_on: *superset-depends-on
     volumes: *superset-volumes
