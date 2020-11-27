@@ -44,6 +44,12 @@ const SEARCH_HEIGHT = 46;
 
 const SAVE_NEW_DATASET_RADIO_STATE = 1;
 const OVERWRITE_DATASET_RADIO_STATE = 2;
+const EXPLORE_CHART_DEFAULT = {
+  metrics: [],
+  groupby: [],
+  time_range: 'No filter',
+  viz_type: 'table',
+}
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
@@ -214,7 +220,7 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
-  handleOverwriteDatasetOption(data, option) {
+  handleOverwriteDatasetOption(data: string, option) {
     this.setState({ datasetToOverwrite: option });
   }
 
@@ -239,13 +245,9 @@ export default class ResultSet extends React.PureComponent<
     )
       .then(d => {
         exploreChart({
+          ...EXPLORE_CHART_DEFAULT,
           datasource: `${datasetToOverwrite.dataSetId}__table`,
-          metrics: [],
-          groupby: [],
-          time_range: 'No filter',
-          viz_type: 'table',
           all_columns: results.selected_columns.map(d => d.name),
-          row_limit: 1000,
         });
       })
       .catch(() => {
@@ -282,13 +284,8 @@ export default class ResultSet extends React.PureComponent<
         })
         .then((data: { table_id: number }) => {
           const formData = {
+            ...EXPLORE_CHART_DEFAULT,
             datasource: `${data.table_id}__table`,
-            metrics: ['count'],
-            groupby: [],
-            viz_type: 'table',
-            since: '100 years ago',
-            all_columns: [],
-            row_limit: 1000,
           };
           this.props.actions.addInfoToast(
             t('Creating a data source and creating a new tab'),
