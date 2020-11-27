@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
+from distutils.util import strtobool
 from io import BytesIO
 from typing import Any
 from zipfile import ZipFile
@@ -284,9 +285,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        override_column = (
-            request.args["override_column"]
-            if request.args.get("override_column")
+        override_columns = (
+            bool(strtobool(request.args["override_columns"]))
+            if "override_columns" in request.args
             else False
         )
         if not request.is_json:
@@ -298,7 +299,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             changed_model = UpdateDatasetCommand(
-                g.user, pk, item, override_column
+                g.user, pk, item, override_columns
             ).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:

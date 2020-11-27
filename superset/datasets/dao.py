@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
@@ -148,7 +148,7 @@ class DatasetDAO(BaseDAO):
         model: SqlaTable,
         properties: Dict[str, Any],
         commit: bool = True,
-        override_columns: Union[bool, Any, None] = False,
+        override_columns: bool = False,
     ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB

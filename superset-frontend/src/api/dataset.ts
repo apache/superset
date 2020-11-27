@@ -26,7 +26,7 @@ export const put = async (
   columns: Array<number>,
   overrideColumns: boolean,
 ) => {
-  const endpoint = `api/v1/dataset/${datasetId}?override_column=${overrideColumns}`;
+  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
   const headers = { 'Content-Type': 'application/json' };
   const body = JSON.stringify({
     sql,
