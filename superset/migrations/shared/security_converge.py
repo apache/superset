@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from sqlalchemy import (
@@ -33,8 +34,14 @@ logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
-PvmType = Tuple[str, str]
-PvmMigrationMapType = Dict[PvmType, Tuple[PvmType, ...]]
+
+@dataclass(frozen=True)
+class Pvm:
+    permission: str
+    view: str
+
+
+PvmMigrationMapType = Dict[Pvm, Tuple[Pvm, ...]]
 
 # Partial freeze of the current metadata db schema
 
@@ -215,10 +222,10 @@ def migrate_roles(
     # Collect a map of PermissionView objects for migration
     pvm_map: Dict[PermissionView, List[PermissionView]] = {}
     for old_pvm_key, new_pvms_ in pvm_key_map.items():
-        old_pvm = _find_pvm(session, old_pvm_key[0], old_pvm_key[1])
+        old_pvm = _find_pvm(session, old_pvm_key.view, old_pvm_key.permission)
         if old_pvm:
             for new_pvm_key in new_pvms_:
-                new_pvm = _find_pvm(session, new_pvm_key[0], new_pvm_key[1])
+                new_pvm = _find_pvm(session, new_pvm_key.view, new_pvm_key.permission)
                 if old_pvm not in pvm_map:
                     pvm_map[old_pvm] = [new_pvm]
                 else:
@@ -246,10 +253,12 @@ def migrate_roles(
 def get_reversed_new_pvms(pvm_map: PvmMigrationMapType) -> Dict[str, Tuple[str, ...]]:
     reversed_pvms: Dict[str, Tuple[str, ...]] = {}
     for old_pvm, new_pvms in pvm_map.items():
-        if old_pvm[0] not in reversed_pvms:
-            reversed_pvms[old_pvm[0]] = (old_pvm[1],)
+        if old_pvm.view not in reversed_pvms:
+            reversed_pvms[old_pvm.view] = (old_pvm.view,)
         else:
-            reversed_pvms[old_pvm[0]] = reversed_pvms[old_pvm[0]] + (old_pvm[1],)
+            reversed_pvms[old_pvm.permission] = reversed_pvms[old_pvm.permission] + (
+                old_pvm.permission,
+            )
     return reversed_pvms
 
 

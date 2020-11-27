@@ -27,6 +27,7 @@ from superset.extensions import db, security_manager
 from superset.migrations.shared.security_converge import (
     add_pvms,
     migrate_roles,
+    Pvm,
     PvmMigrationMapType,
 )
 from tests.test_app import app
@@ -41,12 +42,14 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
         pvms = []
         for old_pvm, new_pvms in pvm_map.items():
             pvms.append(
-                security_manager.add_permission_view_menu(old_pvm[1], old_pvm[0])
+                security_manager.add_permission_view_menu(
+                    old_pvm.permission, old_pvm.view
+                )
             )
         for external_pvm in external_pvms:
             pvms.append(
                 security_manager.find_permission_view_menu(
-                    external_pvm[1], external_pvm[0]
+                    external_pvm.permission, external_pvm.view
                 )
             )
 
@@ -62,9 +65,11 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
         new_role.permissions = []
         db.session.merge(new_role)
         for old_pvm, new_pvms in pvm_map.items():
-            security_manager.del_permission_view_menu(old_pvm[1], old_pvm[0])
+            security_manager.del_permission_view_menu(old_pvm.permission, old_pvm.view)
             for new_pvm in new_pvms:
-                security_manager.del_permission_view_menu(new_pvm[1], new_pvm[0])
+                security_manager.del_permission_view_menu(
+                    new_pvm.permission, new_pvm.view
+                )
 
         db.session.delete(new_role)
         db.session.commit()
@@ -77,8 +82,12 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             "Many to one readonly",
             {"NewDummy": ("can_read",)},
             {
-                ("DummyView", "can_list",): (("NewDummy", "can_read",),),
-                ("DummyView", "can_show",): (("NewDummy", "can_read",),),
+                Pvm(view="DummyView", permission="can_list"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummyView", permission="can_show"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
             },
             (),
             ("DummyView",),
@@ -88,8 +97,12 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             "Many to one with new permission",
             {"NewDummy": ("can_new_perm", "can_write")},
             {
-                ("DummyView", "can_list",): (("NewDummy", "can_new_perm",),),
-                ("DummyView", "can_show",): (("NewDummy", "can_write",),),
+                Pvm(view="DummyView", permission="can_list"): (
+                    Pvm(view="NewDummy", permission="can_new_perm"),
+                ),
+                Pvm(view="DummyView", permission="can_show"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
             },
             (),
             ("DummyView",),
@@ -99,10 +112,18 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             "Many to one with multiple permissions",
             {"NewDummy": ("can_read", "can_write",)},
             {
-                ("DummyView", "can_list",): (("NewDummy", "can_read",),),
-                ("DummyView", "can_show",): (("NewDummy", "can_read",),),
-                ("DummyView", "can_add",): (("NewDummy", "can_write",),),
-                ("DummyView", "can_delete",): (("NewDummy", "can_write",),),
+                Pvm(view="DummyView", permission="can_list"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummyView", permission="can_show"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummyView", permission="can_add"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
+                Pvm(view="DummyView", permission="can_delete"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
             },
             (),
             ("DummyView",),
@@ -112,14 +133,30 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             "Many to one with multiple views",
             {"NewDummy": ("can_read", "can_write",)},
             {
-                ("DummyView", "can_list",): (("NewDummy", "can_read",),),
-                ("DummyView", "can_show",): (("NewDummy", "can_read",),),
-                ("DummyView", "can_add",): (("NewDummy", "can_write",),),
-                ("DummyView", "can_delete",): (("NewDummy", "can_write",),),
-                ("DummySecondView", "can_list",): (("NewDummy", "can_read",),),
-                ("DummySecondView", "can_show",): (("NewDummy", "can_read",),),
-                ("DummySecondView", "can_add",): (("NewDummy", "can_write",),),
-                ("DummySecondView", "can_delete",): (("NewDummy", "can_write",),),
+                Pvm(view="DummyView", permission="can_list"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummyView", permission="can_show"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummyView", permission="can_add"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
+                Pvm(view="DummyView", permission="can_delete"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
+                Pvm(view="DummySecondView", permission="can_list"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummySecondView", permission="can_show"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummySecondView", permission="can_add"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
+                Pvm(view="DummySecondView", permission="can_delete"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
             },
             (),
             ("DummyView", "DummySecondView"),
@@ -129,10 +166,14 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             "Many to one with existing permission-view (pvm)",
             {"NewDummy": ("can_read", "can_write",)},
             {
-                ("DummyView", "can_list",): (("NewDummy", "can_read",),),
-                ("DummyView", "can_add",): (("NewDummy", "can_write",),),
+                Pvm(view="DummyView", permission="can_list"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummyView", permission="can_add"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
             },
-            (("UserDBModelView", "can_list"),),
+            (Pvm(view="UserDBModelView", permission="can_list"),),
             ("DummyView",),
             (),
         ),
@@ -140,12 +181,23 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             "Many to one with existing multiple permission-view (pvm)",
             {"NewDummy": ("can_read", "can_write",)},
             {
-                ("DummyView", "can_list",): (("NewDummy", "can_read",),),
-                ("DummyView", "can_add",): (("NewDummy", "can_write",),),
-                ("DummySecondView", "can_list",): (("NewDummy", "can_read",),),
-                ("DummySecondView", "can_add",): (("NewDummy", "can_write",),),
+                Pvm(view="DummyView", permission="can_list"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummyView", permission="can_add"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
+                Pvm(view="DummySecondView", permission="can_list"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummySecondView", permission="can_add"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
             },
-            (("UserDBModelView", "can_list"), ("UserDBModelView", "can_add")),
+            (
+                Pvm(view="UserDBModelView", permission="can_list"),
+                Pvm(view="UserDBModelView", permission="can_add"),
+            ),
             ("DummyView",),
             (),
         ),
@@ -153,8 +205,12 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             "Many to one with with old permission that gets deleted",
             {"NewDummy": ("can_read", "can_write",)},
             {
-                ("DummyView", "can_new_perm",): (("NewDummy", "can_read",),),
-                ("DummyView", "can_add",): (("NewDummy", "can_write",),),
+                Pvm(view="DummyView", permission="can_new_perm"): (
+                    Pvm(view="NewDummy", permission="can_read"),
+                ),
+                Pvm(view="DummyView", permission="can_add"): (
+                    Pvm(view="NewDummy", permission="can_write"),
+                ),
             },
             (),
             ("DummyView",),
@@ -164,11 +220,13 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             "Many to Many (normally should be a downgrade)",
             {"DummyView": ("can_list", "can_show", "can_add",)},
             {
-                ("NewDummy", "can_read",): (
-                    ("DummyView", "can_list",),
-                    ("DummyView", "can_show",),
+                Pvm(view="NewDummy", permission="can_read"): (
+                    Pvm(view="DummyView", permission="can_list"),
+                    Pvm(view="DummyView", permission="can_show"),
                 ),
-                ("NewDummy", "can_write",): (("DummyView", "can_add",),),
+                Pvm(view="NewDummy", permission="can_write"): (
+                    Pvm(view="DummyView", permission="can_add"),
+                ),
             },
             (),
             ("NewDummy",),
@@ -178,11 +236,13 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             "Many to Many delete old permissions",
             {"DummyView": ("can_list", "can_show", "can_add",)},
             {
-                ("NewDummy", "can_new_perm1",): (
-                    ("DummyView", "can_list",),
-                    ("DummyView", "can_show",),
+                Pvm(view="NewDummy", permission="can_new_perm1"): (
+                    Pvm(view="DummyView", permission="can_list"),
+                    Pvm(view="DummyView", permission="can_show"),
                 ),
-                ("NewDummy", "can_new_perm2",): (("DummyView", "can_add",),),
+                Pvm(view="NewDummy", permission="can_new_perm2",): (
+                    Pvm(view="DummyView", permission="can_add"),
+                ),
             },
             (),
             ("NewDummy",),
@@ -208,11 +268,11 @@ def test_migrate_role(
         role = db.session.query(Role).filter(Role.name == role_name).one_or_none()
         for old_pvm, new_pvms in pvm_map.items():
             old_pvm_model = security_manager.find_permission_view_menu(
-                old_pvm[1], old_pvm[0]
+                old_pvm.permission, old_pvm.view
             )
             assert old_pvm_model is None
             new_pvm_model = security_manager.find_permission_view_menu(
-                new_pvms[0][1], new_pvms[0][0]
+                new_pvms[0].permission, new_pvms[0].view
             )
             assert new_pvm_model is not None
             assert new_pvm_model in role.permissions
@@ -226,7 +286,7 @@ def test_migrate_role(
         for external_pvm in external_pvms:
             assert (
                 security_manager.find_permission_view_menu(
-                    external_pvm[1], external_pvm[0]
+                    external_pvm.permission, external_pvm.view
                 )
                 is not None
             )

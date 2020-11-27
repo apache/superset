@@ -36,22 +36,47 @@ from superset.migrations.shared.security_converge import (
     get_reversed_new_pvms,
     get_reversed_pvm_map,
     migrate_roles,
+    Pvm,
 )
 
 NEW_PVMS = {"SavedQuery": ("can_read", "can_write",)}
 PVM_MAP = {
-    ("SavedQueryView", "can_list",): (("SavedQuery", "can_read",),),
-    ("SavedQueryView", "can_show",): (("SavedQuery", "can_read",),),
-    ("SavedQueryView", "can_add",): (("SavedQuery", "can_write",),),
-    ("SavedQueryView", "can_edit",): (("SavedQuery", "can_write",),),
-    ("SavedQueryView", "can_delete",): (("SavedQuery", "can_write",),),
-    ("SavedQueryView", "muldelete",): (("SavedQuery", "can_write",),),
-    ("SavedQueryView", "can_mulexport",): (("SavedQuery", "can_read",),),
-    ("SavedQueryViewApi", "can_show",): (("SavedQuery", "can_read",),),
-    ("SavedQueryViewApi", "can_edit",): (("SavedQuery", "can_write",),),
-    ("SavedQueryViewApi", "can_list",): (("SavedQuery", "can_read",),),
-    ("SavedQueryViewApi", "can_add",): (("SavedQuery", "can_write",),),
-    ("SavedQueryViewApi", "muldelete",): (("SavedQuery", "can_write",),),
+    Pvm(view="SavedQueryView", permission="can_list"): (
+        Pvm(view="SavedQuery", permission="can_read"),
+    ),
+    Pvm(view="SavedQueryView", permission="can_show"): (
+        Pvm(view="SavedQuery", permission="can_read"),
+    ),
+    Pvm(view="SavedQueryView", permission="can_add",): (
+        Pvm(view="SavedQuery", permission="can_write"),
+    ),
+    Pvm(view="SavedQueryView", permission="can_edit",): (
+        Pvm(view="SavedQuery", permission="can_write"),
+    ),
+    Pvm(view="SavedQueryView", permission="can_delete",): (
+        Pvm(view="SavedQuery", permission="can_write"),
+    ),
+    Pvm(view="SavedQueryView", permission="muldelete",): (
+        Pvm(view="SavedQuery", permission="can_write"),
+    ),
+    Pvm(view="SavedQueryView", permission="can_mulexport",): (
+        Pvm(view="SavedQuery", permission="can_read"),
+    ),
+    Pvm(view="SavedQueryViewApi", permission="can_show",): (
+        Pvm(view="SavedQuery", permission="can_read"),
+    ),
+    Pvm(view="SavedQueryViewApi", permission="can_edit",): (
+        Pvm(view="SavedQuery", permission="can_write"),
+    ),
+    Pvm(view="SavedQueryViewApi", permission="can_list",): (
+        Pvm(view="SavedQuery", permission="can_read"),
+    ),
+    Pvm(view="SavedQueryViewApi", permission="can_add",): (
+        Pvm(view="SavedQuery", permission="can_write"),
+    ),
+    Pvm(view="SavedQueryViewApi", permission="muldelete",): (
+        Pvm(view="SavedQuery", permission="can_write"),
+    ),
 }
 
 
