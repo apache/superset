@@ -617,7 +617,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
     def import_(self) -> Response:
         """Import dataset(s) with associated databases
         ---
@@ -647,12 +646,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        upload = request.files.get("file")
+        upload = request.files.get("formData")
         if not upload:
             return self.response_400()
         with ZipFile(upload) as bundle:
             contents = {
-                file_name: bundle.read(file_name).decode()
+                remove_root(file_name): bundle.read(file_name).decode()
                 for file_name in bundle.namelist()
             }
 
@@ -663,6 +662,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except CommandInvalidError as exc:
             logger.warning("Import dataset failed")
             return self.response_422(message=exc.normalized_messages())
-        except Exception as exc:  # pylint: disable=broad-except
+        except DatasetImportError as exc:
             logger.exception("Import dataset failed")
             return self.response_500(message=str(exc))
