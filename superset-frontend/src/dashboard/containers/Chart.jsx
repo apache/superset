@@ -35,7 +35,6 @@ import {
 } from '../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import Chart from '../components/gridComponents/Chart';
-import { getNativeFilterClauses } from '../util/nativeFilters';
 
 const EMPTY_FILTERS = {};
 

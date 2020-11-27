@@ -157,7 +157,6 @@ export type TreeItem = {
   title: string;
 };
 
-
 export type NativeFiltersState = {
   filters: {
     [filterId: string]: Filter;

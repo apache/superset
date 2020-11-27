@@ -18,18 +18,15 @@
  */
 import { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  selectFilterOption,
-  setFilterState,
-} from 'src/dashboard/actions/nativeFilters';
+import { selectFilterOption } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { t } from '@superset-ui/core';
+import { QueryObjectFilterClause, t } from '@superset-ui/core';
 import {
   Charts,
   Filter,
   FilterConfiguration,
   FilterState,
-  Layout,
+  Layout, NativeFiltersState,
   RootState,
   TreeItem,
 } from './types';
@@ -72,17 +69,12 @@ export function useFilterState(id: string) {
 export function useFilterSetter(id: string) {
   const dispatch = useDispatch();
   return useCallback(
-    (
-      values: string | string[] | null,
-      filter: Filter,
-      filters: FilterConfiguration,
-    ) => {
-      dispatch(selectFilterOption(id, values));
-      dispatch(setFilterState(values || [], filter, filters));
-    },
+    (values: string | string[] | null) =>
+      dispatch(selectFilterOption(id, values)),
     [id, dispatch],
   );
 }
+
 export function useFilterScopeTree(): {
   treeData: [TreeItem];
   layout: Layout;
@@ -101,4 +93,35 @@ export function useFilterScopeTree(): {
   };
   buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts);
   return { treeData: [tree], layout };
+}
+
+
+export function useCascadingFilters(id: string) {
+  const filterConfiguration = useFilterConfiguration();
+  return useSelector<any, QueryObjectFilterClause[]>(state => {
+    const cascadedFilters: QueryObjectFilterClause[] = [];
+    const { nativeFilters }: { nativeFilters: NativeFiltersState } = state;
+    const { filters, filtersState } = nativeFilters;
+    const parents: string[] = [];
+    // assume that parents should always cascade to children based on order
+    // in filter config
+    filterConfiguration.some(filter => {
+      const { id: parentId } = filter;
+      if (id !== parentId) parents.push(parentId);
+      return id === parentId;
+    });
+    parents.forEach(filterId => {
+      const filter = filters[filterId];
+      const filterState = filtersState[filterId];
+      const { targets } = filter;
+      const [target] = targets;
+      const { column, datasetId } = target;
+      const { selectedValues } = filterState;
+      const { name: col } = column;
+      if (selectedValues && selectedValues.length > 0) {
+        cascadedFilters.push({ col, op: 'IN', val: selectedValues });
+      }
+    });
+    return cascadedFilters;
+  });
 }
