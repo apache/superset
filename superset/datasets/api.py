@@ -27,9 +27,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import event_logger, is_feature_enabled
+from superset import is_feature_enabled
 from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.v1.utils import remove_root
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.databases.filters import DatabaseFilter
@@ -41,7 +40,6 @@ from superset.datasets.commands.exceptions import (
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
     DatasetForbiddenError,
-    DatasetImportError,
     DatasetInvalidError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,
@@ -183,7 +181,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
     def post(self) -> Response:
         """Creates a new Dataset
         ---
@@ -240,7 +237,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
     def put(self, pk: int) -> Response:
         """Changes a Dataset
         ---
@@ -252,6 +248,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             name: pk
+          - in: path
+            schema:
+              type: bool
+            name: override_column
           requestBody:
             description: Dataset schema
             required: true
@@ -284,6 +284,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        override_column = (
+            request.args["override_column"]
+            if request.args.get("override_column")
+            else False
+        )
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -292,7 +297,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            changed_model = UpdateDatasetCommand(g.user, pk, item).run()
+            changed_model = UpdateDatasetCommand(
+                g.user, pk, item, override_column
+            ).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -311,7 +318,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
     def delete(self, pk: int) -> Response:
         """Deletes a Dataset
         ---
@@ -362,7 +368,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
     def export(self, **kwargs: Any) -> Response:
         """Export datasets
         ---
@@ -438,7 +443,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
     def refresh(self, pk: int) -> Response:
         """Refresh a Dataset
         ---
@@ -488,7 +492,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
     def related_objects(self, pk: int) -> Response:
         """Get charts and dashboards count associated to a dataset
         ---
@@ -547,7 +550,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Datasets
         ---
@@ -607,7 +609,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def import_(self) -> Response:
-        """Import dataset(s) with associated databases
+        """Import dataset (s) with associated databases
         ---
         post:
           requestBody:
@@ -635,12 +637,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        upload = request.files.get("formData")
+        upload = request.files.get("file")
         if not upload:
             return self.response_400()
         with ZipFile(upload) as bundle:
             contents = {
-                remove_root(file_name): bundle.read(file_name).decode()
+                file_name: bundle.read(file_name).decode()
                 for file_name in bundle.namelist()
             }
 
@@ -651,6 +653,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except CommandInvalidError as exc:
             logger.warning("Import dataset failed")
             return self.response_422(message=exc.normalized_messages())
-        except DatasetImportError as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             logger.exception("Import dataset failed")
             return self.response_500(message=str(exc))
