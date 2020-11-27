@@ -22,13 +22,13 @@ import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/core';
 
+import Fade from 'src/common/components/Fade';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from '../../components/Link';
 import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
-import Fade from 'src/common/components/Fade';
 
 const propTypes = {
   table: PropTypes.object,
