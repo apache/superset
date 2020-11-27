@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from collections import Counter
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
@@ -53,7 +53,7 @@ class UpdateDatasetCommand(BaseCommand):
         user: User,
         model_id: int,
         data: Dict[str, Any],
-        override_columns: Union[bool, Any, None] = False,
+        override_columns: bool = False,
     ):
         self._actor = user
         self._model_id = model_id
