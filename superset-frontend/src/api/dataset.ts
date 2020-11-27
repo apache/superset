@@ -19,3 +19,24 @@ export const get = async (userId: number) => {
   });
   return data.json.result;
 };
+
+export const put = async (
+  datasetId: number,
+  sql: string,
+  columns: Array<number>,
+  overrideColumns: boolean,
+) => {
+  const endpoint = `api/v1/dataset/${datasetId}?override_column=${overrideColumns}`;
+  const headers = { 'Content-Type': 'application/json' };
+  const body = JSON.stringify({
+    sql,
+    columns,
+  });
+
+  const data: JsonResponse = await SupersetClient.put({
+    endpoint,
+    headers,
+    body,
+  });
+  return data.json.result;
+};

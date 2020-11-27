@@ -21,7 +21,7 @@ import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import moment from 'moment';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t, SupersetClient} from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Loading from '../../components/Loading';
@@ -36,9 +36,9 @@ import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal'
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
-import { get as getDataset} from 'src/api/dataset';
+import { get as getDataset, put as updateDatset } from 'src/api/dataset';
 
 const SEARCH_HEIGHT = 46;
 
@@ -66,7 +66,7 @@ interface ResultSetState {
   data: Record<string, any>[];
   showSaveDatasetModal: boolean;
   newSaveDatasetName: string;
-  userDatasetsOwned: [];
+  userDatasetsOwned: Array<Record<string, any>>[];
   saveDatasetRadioBtnState: number;
   overwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
@@ -81,17 +81,6 @@ const MonospaceDiv = styled.div`
   overflow-x: auto;
   white-space: pre-wrap;
 `;
-
-async function getDatasetAsync() {
-  try {
-    const dataset = await getDataset();
-    console.log('in async')
-    console.log(dataset);
-    this.set
-  } catch (e) {
-    console.error('oops..');
-  }
-}
 
 export default class ResultSet extends React.PureComponent<
   ResultSetProps,
@@ -133,10 +122,14 @@ export default class ResultSet extends React.PureComponent<
     this.handleSaveInDataset = this.handleSaveInDataset.bind(this);
     this.handleHideSaveModal = this.handleHideSaveModal.bind(this);
     this.handleDatasetNameChange = this.handleDatasetNameChange.bind(this);
-    this.handleSaveDatasetRadioBtnState = this.handleSaveDatasetRadioBtnState.bind(this);
+    this.handleSaveDatasetRadioBtnState = this.handleSaveDatasetRadioBtnState.bind(
+      this,
+    );
     this.handleOverwriteCancel = this.handleOverwriteCancel.bind(this);
     this.handleOverwriteDataset = this.handleOverwriteDataset.bind(this);
-    this.handleOverwriteDatasetOption = this.handleOverwriteDatasetOption.bind(this);
+    this.handleOverwriteDatasetOption = this.handleOverwriteDatasetOption.bind(
+      this,
+    );
   }
 
   async componentDidMount() {
@@ -145,7 +138,9 @@ export default class ResultSet extends React.PureComponent<
 
     // Hack: waiting for talks with tai to pull data out of the initial state
     const appContainer = document.getElementById('app');
-    const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+    const bootstrapData = JSON.parse(
+      appContainer.getAttribute('data-bootstrap'),
+    );
 
     const datasets = await getDataset(bootstrapData.user.userId);
     const userDatasetsOwned = datasets.map(r => {
@@ -220,27 +215,29 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleOverwriteDatasetOption(data, option) {
-    this.setState({ datasetToOverwrite: option })
+    this.setState({ datasetToOverwrite: option });
   }
 
-  handleOverwriteDataset() {
+  async handleOverwriteDataset() {
     const { sql, results } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
-    if (Object.keys(datasetToOverwrite).length === 0 && datasetToOverwrite.constructor === Object) {
+    if (
+      Object.keys(datasetToOverwrite).length === 0 &&
+      datasetToOverwrite.constructor === Object
+    ) {
       this.props.actions.addDangerToast(
         t('You must select a dataset that has already been created'),
       );
     }
 
-    SupersetClient.put({
-      endpoint: `api/v1/dataset/${datasetToOverwrite.dataSetId}?override_column=true`,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sql,
-        columns: results.selected_columns.map(d => ({column_name: d.name}))
-      }),
-    }).then(d => {
+    updateDatset(
+      datasetToOverwrite.dataSetId,
+      sql,
+      results.selected_columns.map(d => ({ column_name: d.name })),
+      true,
+    )
+      .then(d => {
         exploreChart({
           datasource: `${datasetToOverwrite.dataSetId}__table`,
           metrics: [],
@@ -257,7 +254,11 @@ export default class ResultSet extends React.PureComponent<
         );
       });
 
-    this.setState({showSaveDatasetModal: false, overwriteDataSet: false, datasetToOverwrite: {}})
+    this.setState({
+      showSaveDatasetModal: false,
+      overwriteDataSet: false,
+      datasetToOverwrite: {},
+    });
   }
 
   handleSaveInDataset() {
@@ -333,7 +334,7 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleHideSaveModal() {
-    this.setState({showSaveDatasetModal: false, overwriteDataSet: false})
+    this.setState({ showSaveDatasetModal: false, overwriteDataSet: false });
   }
 
   handleSaveDatasetRadioBtnState(e: { target: { value: any } }) {
@@ -341,7 +342,7 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleOverwriteCancel() {
-    this.setState({overwriteDataSet: false})
+    this.setState({ overwriteDataSet: false });
   }
 
   renderControls() {
@@ -482,7 +483,7 @@ export default class ResultSet extends React.PureComponent<
                 database={this.props.database}
                 actions={this.props.actions}
                 onClick={() => {
-                  this.setState({ showSaveDatasetModal: true, ctasSave: true })
+                  this.setState({ showSaveDatasetModal: true, ctasSave: true });
                 }}
               />
             </ButtonGroup>
