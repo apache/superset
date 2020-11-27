@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonGroup, Collapse, Fade, Well } from 'react-bootstrap';
+import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/core';
 
@@ -28,6 +28,7 @@ import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
+import Fade from 'src/common/components/Fade';
 
 const propTypes = {
   table: PropTypes.object,
@@ -215,7 +216,7 @@ class TableElement extends React.PureComponent {
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
-            <Fade in={this.state.hovered}>{this.renderControls()}</Fade>
+            <Fade hovered={this.state.hovered}>{this.renderControls()}</Fade>
           )}
           <i
             role="button"
