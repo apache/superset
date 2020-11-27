@@ -15,21 +15,76 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder import Model
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
-from superset.models.reports import ReportRecipients, ReportSchedule
+from superset.models.reports import (
+    ReportExecutionLog,
+    ReportLogState,
+    ReportRecipients,
+    ReportSchedule,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class ReportScheduleDAO(BaseDAO):
     model_cls = ReportSchedule
+
+    @staticmethod
+    def find_by_chart_id(chart_id: int) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.chart_id == chart_id)
+            .all()
+        )
+
+    @staticmethod
+    def find_by_chart_ids(chart_ids: List[int]) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.chart_id.in_(chart_ids))
+            .all()
+        )
+
+    @staticmethod
+    def find_by_dashboard_id(dashboard_id: int) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.dashboard_id == dashboard_id)
+            .all()
+        )
+
+    @staticmethod
+    def find_by_dashboard_ids(dashboard_ids: List[int]) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.dashboard_id.in_(dashboard_ids))
+            .all()
+        )
+
+    @staticmethod
+    def find_by_database_id(database_id: int) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.database_id == database_id)
+            .all()
+        )
+
+    @staticmethod
+    def find_by_database_ids(database_ids: List[int]) -> List[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.database_id.in_(database_ids))
+            .all()
+        )
 
     @staticmethod
     def bulk_delete(
@@ -135,3 +190,49 @@ class ReportScheduleDAO(BaseDAO):
         except SQLAlchemyError:
             db.session.rollback()
             raise DAOCreateFailedError
+
+    @staticmethod
+    def find_active(session: Optional[Session] = None) -> List[ReportSchedule]:
+        """
+        Find all active reports. If session is passed it will be used instead of the
+        default `db.session`, this is useful when on a celery worker session context
+        """
+        session = session or db.session
+        return (
+            session.query(ReportSchedule).filter(ReportSchedule.active.is_(True)).all()
+        )
+
+    @staticmethod
+    def find_last_success_log(
+        session: Optional[Session] = None,
+    ) -> Optional[ReportExecutionLog]:
+        """
+        Finds last success execution log
+        """
+        session = session or db.session
+        return (
+            session.query(ReportExecutionLog)
+            .filter(ReportExecutionLog.state == ReportLogState.SUCCESS)
+            .order_by(ReportExecutionLog.end_dttm.desc())
+            .first()
+        )
+
+    @staticmethod
+    def bulk_delete_logs(
+        model: ReportSchedule,
+        from_date: datetime,
+        session: Optional[Session] = None,
+        commit: bool = True,
+    ) -> None:
+        session = session or db.session
+        try:
+            session.query(ReportExecutionLog).filter(
+                ReportExecutionLog.report_schedule == model,
+                ReportExecutionLog.end_dttm < from_date,
+            ).delete(synchronize_session="fetch")
+            if commit:
+                session.commit()
+        except SQLAlchemyError as ex:
+            if commit:
+                session.rollback()
+            raise ex

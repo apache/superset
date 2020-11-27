@@ -18,6 +18,7 @@
  */
 
 const V1_PLUGINS = ['box_plot', 'echarts_timeseries', 'word_cloud', 'pie'];
+export const DASHBOARD_CHART_ALIAS_PREFIX = 'getJson_';
 
 export function isLegacyChart(vizType: string): boolean {
   return !V1_PLUGINS.includes(vizType);
@@ -35,7 +36,7 @@ export function getChartAliases(slices: any[]): string[] {
   Array.from(slices).forEach(slice => {
     const vizType = slice.form_data.viz_type;
     const isLegacy = isLegacyChart(vizType);
-    const alias = `getJson_${slice.slice_id}`;
+    const alias = `${DASHBOARD_CHART_ALIAS_PREFIX}${slice.slice_id}`;
     const formData = `{"slice_id":${slice.slice_id}}`;
     if (isLegacy) {
       const route = `/superset/explore_json/?*${formData}*`;

@@ -166,6 +166,7 @@ class TestQueryApi(SupersetTestCase):
                 "end_time",
                 "start_running_time",
                 "start_time",
+                "id",
             ):
                 self.assertEqual(value, expected_result[key])
         # rollback changes
@@ -257,6 +258,7 @@ class TestQueryApi(SupersetTestCase):
             "changed_on",
             "database",
             "end_time",
+            "executed_sql",
             "id",
             "rows",
             "schema",

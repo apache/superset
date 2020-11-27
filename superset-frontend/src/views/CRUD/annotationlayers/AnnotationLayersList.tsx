@@ -41,11 +41,15 @@ const MOMENT_FORMAT = 'MMM DD, YYYY';
 interface AnnotationLayersListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+  };
 }
 
 function AnnotationLayersList({
   addDangerToast,
   addSuccessToast,
+  user,
 }: AnnotationLayersListProps) {
   const {
     state: {
@@ -293,6 +297,7 @@ function AnnotationLayersList({
               errMsg,
             ),
           ),
+          user.userId,
         ),
         paginate: true,
       },

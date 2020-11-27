@@ -1136,6 +1136,7 @@ Make sure you enable email reports in your configuration file
 
     ENABLE_SCHEDULED_EMAIL_REPORTS = True
 
+This flag enables some permissions that are stored in your database, so you'll want to run `superset init` again if you are running this in a dev environment.
 Now you will find two new items in the navigation bar that allow you to schedule email
 reports
 

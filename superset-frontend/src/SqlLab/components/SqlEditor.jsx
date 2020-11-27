@@ -19,19 +19,13 @@
 import React from 'react';
 import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
-import {
-  FormGroup,
-  InputGroup,
-  Form,
-  FormControl,
-  OverlayTrigger,
-  Tooltip,
-} from 'react-bootstrap';
+import { FormGroup, InputGroup, Form, FormControl } from 'react-bootstrap';
 import Split from 'react-split';
 import { t } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 
+import { Tooltip } from 'src/common/components/Tooltip';
 import Label from 'src/components/Label';
 import Button from 'src/components/Button';
 import Checkbox from 'src/components/Checkbox';
@@ -455,20 +449,19 @@ class SqlEditor extends React.PureComponent {
       this.props.latestQuery.results &&
       this.props.latestQuery.results.displayLimitReached
     ) {
-      const tooltip = (
-        <Tooltip id="tooltip">
-          {t(
+      limitWarning = (
+        <Tooltip
+          id="tooltip"
+          placement="left"
+          title={t(
             `It appears that the number of rows in the query results displayed
            was limited on the server side to
            the %s limit.`,
             this.props.latestQuery.rows,
           )}
-        </Tooltip>
-      );
-      limitWarning = (
-        <OverlayTrigger placement="left" overlay={tooltip}>
+        >
           <Label bsStyle="warning">LIMIT</Label>
-        </OverlayTrigger>
+        </Tooltip>
       );
     }
     const successful =

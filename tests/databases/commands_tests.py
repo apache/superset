@@ -279,6 +279,8 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "version",
         ]
 
+
+class TestImportDatabasesCommand(SupersetTestCase):
     def test_import_v1_database(self):
         """Test that a database can be imported"""
         contents = {
@@ -467,7 +469,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(Exception) as excinfo:
             command.run()
-        assert str(excinfo.value) == "A wild exception appears!"
+        assert str(excinfo.value) == "Import database failed for an unknown reason"
 
         # verify that the database was not added
         new_num_databases = db.session.query(Database).count()

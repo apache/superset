@@ -1176,7 +1176,7 @@ class TestDatasetApi(SupersetTestCase):
         for table_name in self.fixture_tables_names:
             assert table_name in [ds["table_name"] for ds in data["result"]]
 
-    def test_import_dataset(self):
+    def test_imported_dataset(self):
         """
         Dataset API: Test import dataset
         """
@@ -1185,16 +1185,20 @@ class TestDatasetApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("dataset_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/import_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "dataset_export.zip"),
+            "formData": (buf, "dataset_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -1216,7 +1220,7 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_dataset_invalid(self):
+    def test_imported_dataset_invalid(self):
         """
         Dataset API: Test import invalid dataset
         """
@@ -1225,16 +1229,20 @@ class TestDatasetApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("dataset_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/import_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "dataset_export.zip"),
+            "formData": (buf, "dataset_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -1244,7 +1252,7 @@ class TestDatasetApi(SupersetTestCase):
             "message": {"metadata.yaml": {"type": ["Must be equal to SqlaTable."]}}
         }
 
-    def test_import_dataset_invalid_v0_validation(self):
+    def test_imported_dataset_invalid_v0_validation(self):
         """
         Dataset API: Test import invalid dataset
         """
@@ -1253,14 +1261,18 @@ class TestDatasetApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/import_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "dataset_export.zip"),
+            "formData": (buf, "dataset_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))

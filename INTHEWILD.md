@@ -108,6 +108,7 @@ Join our growing community!
 - [Kuaishou](https://www.kuaishou.com/) [@zhaoyu89730105]
 - [Netflix](https://www.netflix.com/)
 - [TME QQMUSIC/WESING](https://www.tencentmusic.com/)
+- [Xite](https://xite.com/) [@shashankkoppar]
 - [Zaihang](http://www.zaih.com/)
 
 ### Education

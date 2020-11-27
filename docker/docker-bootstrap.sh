@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -15,12 +15,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -e
-git clone --branch asf-site https://git-wip-us.apache.org/repos/asf/incubator-superset-site.git /asf-site
 
-# copy html files to temp folder
-cp -rv /superset/docs/_build/html/* /asf-site
-chown -R ${HOST_UID}:${HOST_UID} /asf-site
+set -eo pipefail
 
-cd /asf-site
-python -m http.server
+REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
+
+#
+# Make sure we have dev requirements installed
+#
+if [ -f "${REQUIREMENTS_LOCAL}" ]; then
+  echo "Installing local overrides at ${REQUIREMENTS_LOCAL}"
+  pip install -r "${REQUIREMENTS_LOCAL}"
+else
+  echo "Skipping local overrides"
+fi
+
+if [[ "${1}" == "worker" ]]; then
+  echo "Starting Celery worker..."
+  celery worker --app=superset.tasks.celery_app:app -Ofair -l INFO
+elif [[ "${1}" == "app" ]]; then
+  echo "Starting web app..."
+  flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+fi

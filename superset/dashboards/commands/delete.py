@@ -19,17 +19,20 @@ from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import lazy_gettext as _
 
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardDeleteFailedError,
+    DashboardDeleteFailedReportsExistError,
     DashboardForbiddenError,
     DashboardNotFoundError,
 )
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
+from superset.reports.dao import ReportScheduleDAO
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
@@ -55,6 +58,13 @@ class DeleteDashboardCommand(BaseCommand):
         self._model = DashboardDAO.find_by_id(self._model_id)
         if not self._model:
             raise DashboardNotFoundError()
+        # Check there are no associated ReportSchedules
+        reports = ReportScheduleDAO.find_by_dashboard_id(self._model_id)
+        if reports:
+            report_names = [report.name for report in reports]
+            raise DashboardDeleteFailedReportsExistError(
+                _("There are associated alerts or reports: %s" % ",".join(report_names))
+            )
         # Check ownership
         try:
             check_ownership(self._model)

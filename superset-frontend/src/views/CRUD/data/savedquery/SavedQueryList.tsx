@@ -47,6 +47,9 @@ const PAGE_SIZE = 25;
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+  };
 }
 
 const StyledTableLabel = styled.div`
@@ -65,6 +68,7 @@ const StyledPopoverItem = styled.div`
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
+  user,
 }: SavedQueryListProps) {
   const {
     state: {
@@ -262,7 +266,7 @@ function SavedQueryList({
                   content={
                     <>
                       {names.map((name: string) => (
-                        <StyledPopoverItem>{name}</StyledPopoverItem>
+                        <StyledPopoverItem key={name}>{name}</StyledPopoverItem>
                       ))}
                     </>
                   }

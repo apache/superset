@@ -33,6 +33,7 @@ import { Radio } from 'antd'
 export {
   AutoComplete,
   Avatar,
+  Button,
   Card,
   Collapse,
   DatePicker,

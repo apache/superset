@@ -136,7 +136,7 @@ class ReportSchedulePostSchema(Schema):
     crontab = fields.String(
         description=crontab_description,
         validate=[validate_crontab, Length(1, 50)],
-        example="*/5 * * * * *",
+        example="*/5 * * * *",
         allow_none=False,
         required=True,
     )
