@@ -24,6 +24,7 @@
 
 import logging
 import os
+from typing import Any, Dict
 
 from cachelib.file import FileSystemCache
 
@@ -68,7 +69,9 @@ REDIS_RESULTS_DB = get_env_variable("REDIS_CELERY_DB", 1)
 
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
-
+FEATURE_FLAGS: Dict[str, Any] = {
+    "VERSIONED_EXPORT": True,
+}
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"

@@ -1,0 +1,495 @@
+{
+    "dashboards": [
+        {
+            "__Dashboard__": {
+                "css": "",
+                "dashboard_title": "Video Game Sales 2",
+                "description": null,
+                "json_metadata": "{\"timed_refresh_immune_slices\": [], \"expanded_slices\": {}, \"refresh_frequency\": 0, \"default_filters\": \"{\\\"2708\\\": {\\\"Publisher\\\": [\\\"Microsoft Game Studios\\\", \\\"Bethesda Softworks\\\"], \\\"__time_range\\\": \\\"No filter\\\"}}\", \"color_scheme\": \"supersetColors\", \"label_colors\": {\"0\": \"#B2B2B2\", \"1\": \"#EFA1AA\", \"2600\": \"#9EE5E5\", \"Europe\": \"#1FA8C9\", \"Japan\": \"#454E7C\", \"North America\": \"#5AC189\", \"Other\": \"#FF7F44\", \"(Other_Sales)\": \"#1FA8C9\", \"SUM(EU_Sales)\": \"#454E7C\", \"SUM(JP_Sales)\": \"#5AC189\", \"SUM(NA_Sales)\": \"#FF7F44\", \"Misc\": \"#1FA8C9\", \"Action\": \"#454E7C\", \"Sports\": \"#5AC189\", \"Racing\": \"#FF7F44\", \"Adventure\": \"#666666\", \"Simulation\": \"#E04355\", \"Platform\": \"#FCC700\", \"Shooter\": \"#A868B7\", \"Puzzle\": \"#3CCCCB\", \"Fighting\": \"#A38F79\", \"Role-Playing\": \"#8FD3E4\", \"Strategy\": \"#A1A6BD\", \"PS2\": \"#1FA8C9\", \"X360\": \"#454E7C\", \"PS3\": \"#5AC189\", \"Wii\": \"#FF7F44\", \"DS\": \"#666666\", \"PS\": \"#E04355\", \"GBA\": \"#FCC700\", \"PSP\": \"#A868B7\", \"PS4\": \"#3CCCCB\", \"PC\": \"#A38F79\", \"GB\": \"#8FD3E4\", \"XB\": \"#A1A6BD\", \"NES\": \"#ACE1C4\", \"3DS\": \"#FEC0A1\", \"N64\": \"#B2B2B2\", \"SNES\": \"#EFA1AA\", \"GC\": \"#FDE380\", \"XOne\": \"#D3B3DA\", \"WiiU\": \"#D1C6BC\", \"PSV\": \"#1FA8C9\", \"SAT\": \"#454E7C\", \"GEN\": \"#5AC189\", \"DC\": \"#FF7F44\", \"SCD\": \"#666666\", \"NG\": \"#E04355\", \"WS\": \"#FCC700\", \"TG16\": \"#A868B7\", \"3DO\": \"#3CCCCB\", \"GG\": \"#A38F79\", \"PCFX\": \"#8FD3E4\", \"Nintendo\": \"#A1A6BD\", \"Take-Two Interactive\": \"#ACE1C4\", \"Microsoft Game Studios\": \"#FEC0A1\"}, \"filter_scopes\": {\"2708\": {\"Platform\": {\"scope\": [\"TAB-he2K0nFGx\"], \"immune\": []}, \"Genre\": {\"scope\": [\"TAB-he2K0nFGx\"], \"immune\": []}, \"Publisher\": {\"scope\": [\"TAB-he2K0nFGx\"], \"immune\": []}, \"__time_range\": {\"scope\": [\"TAB-he2K0nFGx\"], \"immune\": []}}}, \"remote_id\": 38}",
+                "position_json": "{\"CHART-12HaEZQSR3\":{\"children\":[],\"id\":\"CHART-12HaEZQSR3\",\"meta\":{\"chartId\":2693,\"height\":47,\"sliceName\":\"Top 25 Publishers\",\"sliceNameOverride\":\"Publishers of Top 25 Games\",\"uuid\":\"58389826-84db-47cf-827c-0d54190f5b6c\",\"width\":3},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\",\"ROW-ZIOVt0xbt\"],\"type\":\"CHART\"},\"CHART-1tBb8uSZs1\":{\"children\":[],\"id\":\"CHART-1tBb8uSZs1\",\"meta\":{\"chartId\":2714,\"height\":75,\"sliceName\":\"Proportion of Games per Genre\",\"uuid\":\"e8041e1d-fd8e-43b3-9932-cd3ea6025eec\",\"width\":3},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\",\"ROW-4HEYpcIrJ4\"],\"type\":\"CHART\"},\"CHART-29Pj3-S-EL\":{\"children\":[],\"id\":\"CHART-29Pj3-S-EL\",\"meta\":{\"chartId\":2695,\"height\":48,\"sliceName\":\"Top 10 Consoles, by # of Hit Games\",\"uuid\":\"5bcfe17f-3b40-4c0d-8796-15341d22c53a\",\"width\":5},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\",\"ROW-ZIOVt0xbt\"],\"type\":\"CHART\"},\"CHART-5AaUPRw-Ab\":{\"children\":[],\"id\":\"CHART-5AaUPRw-Ab\",\"meta\":{\"chartId\":2715,\"height\":65,\"sliceName\":\"Total Sales per Market (Grouped by Genre)\",\"uuid\":\"54e65687-fc50-42d3-94df-7d1ee18310b0\",\"width\":3},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\",\"ROW-RqjfjYCwu\"],\"type\":\"CHART\"},\"CHART-CmGroJIlcu\":{\"children\":[],\"id\":\"CHART-CmGroJIlcu\",\"meta\":{\"chartId\":2697,\"height\":71,\"sliceName\":\"Popular Genres Across Platforms\",\"uuid\":\"792770c9-846e-40b9-ac18-a1b14e238b54\",\"width\":6},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\",\"ROW-cpyxR446Z\"],\"type\":\"CHART\"},\"CHART-HIq5nY_YcX\":{\"children\":[],\"id\":\"CHART-HIq5nY_YcX\",\"meta\":{\"chartId\":2708,\"height\":42,\"sliceName\":\"Filter Games\",\"uuid\":\"792f1655-5739-4a6e-be03-4081db0a6e93\",\"width\":3},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\",\"ROW-4HEYpcIrJ4\",\"COLUMN-ZoUI1ZcEEw\"],\"type\":\"CHART\"},\"CHART-cuCIPHpjtf\":{\"children\":[],\"id\":\"CHART-cuCIPHpjtf\",\"meta\":{\"chartId\":2642,\"height\":68,\"sliceName\":\"Global Sales per Console\",\"uuid\":\"9f965bc5-0eb8-04a4-5d71-4e027e9f6d69\",\"width\":12},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\",\"ROW-bsDq1T4ea\"],\"type\":\"CHART\"},\"CHART-dmkLZq9FPH\":{\"children\":[],\"id\":\"CHART-dmkLZq9FPH\",\"meta\":{\"chartId\":2710,\"height\":57,\"sliceName\":\"Games\",\"uuid\":\"ad8d7301-7699-4b0c-89bd-1b84dea6f309\",\"width\":4},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\",\"ROW-RqjfjYCwu\"],\"type\":\"CHART\"},\"CHART-mbAXOYPO7G\":{\"children\":[],\"id\":\"CHART-mbAXOYPO7G\",\"meta\":{\"chartId\":2691,\"height\":47,\"sliceName\":\"Top 10 Games\",\"uuid\":\"bb48bc30-a0b1-4bc1-b1c4-126c4ffc491c\",\"width\":4},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\",\"ROW-ZIOVt0xbt\"],\"type\":\"CHART\"},\"CHART-r4H6Wpi_cx\":{\"children\":[],\"id\":\"CHART-r4H6Wpi_cx\",\"meta\":{\"chartId\":2712,\"height\":70,\"sliceName\":\"Proportion of Genres Over Time\",\"uuid\":\"32e7d9b2-0ddb-464f-ae3c-a087ee4a38b9\",\"width\":6},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\",\"ROW-cpyxR446Z\"],\"type\":\"CHART\"},\"CHART-rR1UtY3nyd\":{\"children\":[],\"id\":\"CHART-rR1UtY3nyd\",\"meta\":{\"chartId\":2713,\"height\":75,\"sliceName\":\"Games per Genre\",\"uuid\":\"440f892d-d52b-4b38-b3d8-55d6a1f9ee3c\",\"width\":5},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\",\"ROW-4HEYpcIrJ4\"],\"type\":\"CHART\"},\"CHART-vrHzOykuvG\":{\"children\":[],\"id\":\"CHART-vrHzOykuvG\",\"meta\":{\"chartId\":2716,\"height\":80,\"sliceName\":\"Top 10 Games: Proportion of Sales in Markets\",\"uuid\":\"369cde0a-4453-4373-b666-efa9e2331e44\",\"width\":5},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\",\"ROW-RqjfjYCwu\"],\"type\":\"CHART\"},\"COLUMN-ZoUI1ZcEEw\":{\"children\":[\"MARKDOWN-yYbwsIyvEU\",\"CHART-HIq5nY_YcX\"],\"id\":\"COLUMN-ZoUI1ZcEEw\",\"meta\":{\"background\":\"BACKGROUND_WHITE\",\"width\":4},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\",\"ROW-4HEYpcIrJ4\"],\"type\":\"COLUMN\"},\"DASHBOARD_VERSION_KEY\":\"v2\",\"GRID_ID\":{\"children\":[],\"id\":\"GRID_ID\",\"parents\":[\"ROOT_ID\"],\"type\":\"GRID\"},\"HEADER_ID\":{\"id\":\"HEADER_ID\",\"meta\":{\"text\":\"Video Game Sales 2\"},\"type\":\"HEADER\"},\"MARKDOWN-Axgzua9lv1\":{\"children\":[],\"id\":\"MARKDOWN-Axgzua9lv1\",\"meta\":{\"code\":\"## \\ud83c\\udfaeVideo Game Sales\\n\\nThis dashboard visualizes sales & platform data on video games that **sold more than 100k copies**. The data was last updated in early 2017.\\n\\n[Original dataset](https://www.kaggle.com/gregorut/videogamesales)\",\"height\":17,\"width\":12},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\",\"ROW-pBehgU7HSe\"],\"type\":\"MARKDOWN\"},\"MARKDOWN-yYbwsIyvEU\":{\"children\":[],\"id\":\"MARKDOWN-yYbwsIyvEU\",\"meta\":{\"code\":\"# \\ud83e\\udd3f Explore Trends\\n\\nDive into data on popular video games using the following dimensions:\\n\\n- Year\\n- Platform\\n- Publisher\\n- Genre\\n\\nTo use the **Filter Games** box below, select values for each dimension you want to zoom in on and then click **Apply**. This filter will apply to *all* charts in this tab.\",\"height\":31,\"width\":3},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\",\"ROW-4HEYpcIrJ4\",\"COLUMN-ZoUI1ZcEEw\"],\"type\":\"MARKDOWN\"},\"ROOT_ID\":{\"children\":[\"TABS-bdgUmqZ03g\"],\"id\":\"ROOT_ID\",\"type\":\"ROOT\"},\"ROW-4HEYpcIrJ4\":{\"children\":[\"COLUMN-ZoUI1ZcEEw\",\"CHART-rR1UtY3nyd\",\"CHART-1tBb8uSZs1\"],\"id\":\"ROW-4HEYpcIrJ4\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\"],\"type\":\"ROW\"},\"ROW-RqjfjYCwu\":{\"children\":[\"CHART-dmkLZq9FPH\",\"CHART-vrHzOykuvG\",\"CHART-5AaUPRw-Ab\"],\"id\":\"ROW-RqjfjYCwu\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\"],\"type\":\"ROW\"},\"ROW-ZIOVt0xbt\":{\"children\":[\"CHART-mbAXOYPO7G\",\"CHART-12HaEZQSR3\",\"CHART-29Pj3-S-EL\"],\"id\":\"ROW-ZIOVt0xbt\",\"meta\":{\"0\":\"ROOT_ID\",\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\"],\"type\":\"ROW\"},\"ROW-bsDq1T4ea\":{\"children\":[\"CHART-cuCIPHpjtf\"],\"id\":\"ROW-bsDq1T4ea\",\"meta\":{\"background\":\"BACKGROUND_WHITE\"},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\"],\"type\":\"ROW\"},\"ROW-cpyxR446Z\":{\"children\":[\"CHART-CmGroJIlcu\",\"CHART-r4H6Wpi_cx\"],\"id\":\"ROW-cpyxR446Z\",\"meta\":{\"0\":\"ROOT_ID\",\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\"],\"type\":\"ROW\"},\"ROW-pBehgU7HSe\":{\"children\":[\"MARKDOWN-Axgzua9lv1\"],\"id\":\"ROW-pBehgU7HSe\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-NeWe6g-CXF\"],\"type\":\"ROW\"},\"TAB-NeWe6g-CXF\":{\"children\":[\"ROW-pBehgU7HSe\",\"ROW-bsDq1T4ea\",\"ROW-ZIOVt0xbt\",\"ROW-cpyxR446Z\"],\"id\":\"TAB-NeWe6g-CXF\",\"meta\":{\"text\":\"Overview\"},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\"],\"type\":\"TAB\"},\"TAB-he2K0nFGx\":{\"children\":[\"ROW-4HEYpcIrJ4\",\"ROW-RqjfjYCwu\",\"TABS-F0K8kKTov2\"],\"id\":\"TAB-he2K0nFGx\",\"meta\":{\"text\":\"\\ud83e\\udd3f Explore Trends\"},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\"],\"type\":\"TAB\"},\"TABS-F0K8kKTov2\":{\"children\":[],\"id\":\"TABS-F0K8kKTov2\",\"meta\":{},\"parents\":[\"ROOT_ID\",\"TABS-bdgUmqZ03g\",\"TAB-he2K0nFGx\"],\"type\":\"TABS\"},\"TABS-bdgUmqZ03g\":{\"children\":[\"TAB-NeWe6g-CXF\",\"TAB-he2K0nFGx\"],\"id\":\"TABS-bdgUmqZ03g\",\"meta\":{},\"parents\":[\"ROOT_ID\"],\"type\":\"TABS\"}}",
+                "slices": [
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2642,
+                            "params": "{\"adhoc_filters\": [], \"annotation_layers\": [], \"bottom_margin\": \"auto\", \"color_scheme\": \"supersetColors\", \"comparison_type\": \"values\", \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"groupby\": [\"Platform\"], \"label_colors\": {\"0\": \"#B2B2B2\", \"1\": \"#EFA1AA\", \"2600\": \"#9EE5E5\", \"3DO\": \"#3CCCCB\", \"3DS\": \"#FEC0A1\", \"DC\": \"#FF7F44\", \"DS\": \"#666666\", \"GB\": \"#8FD3E4\", \"GBA\": \"#FCC700\", \"GC\": \"#FDE380\", \"GEN\": \"#5AC189\", \"GG\": \"#A38F79\", \"Microsoft Game Studios\": \"#FEC0A1\", \"N64\": \"#B2B2B2\", \"NES\": \"#ACE1C4\", \"NG\": \"#E04355\", \"Nintendo\": \"#A1A6BD\", \"PC\": \"#A38F79\", \"PCFX\": \"#8FD3E4\", \"PS\": \"#E04355\", \"PS2\": \"#1FA8C9\", \"PS3\": \"#5AC189\", \"PS4\": \"#3CCCCB\", \"PSP\": \"#A868B7\", \"PSV\": \"#1FA8C9\", \"SAT\": \"#454E7C\", \"SCD\": \"#666666\", \"SNES\": \"#EFA1AA\", \"TG16\": \"#A868B7\", \"Take-Two Interactive\": \"#ACE1C4\", \"WS\": \"#FCC700\", \"Wii\": \"#FF7F44\", \"WiiU\": \"#D1C6BC\", \"X360\": \"#454E7C\", \"XB\": \"#A1A6BD\", \"XOne\": \"#D3B3DA\"}, \"limit\": null, \"line_interpolation\": \"basis\", \"metrics\": [{\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"Global_Sales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 1306, \"is_dttm\": false, \"optionName\": \"_col_Global_Sales\", \"python_date_format\": null, \"type\": \"FLOAT64\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"hasCustomLabel\": false, \"isNew\": false, \"label\": \"SUM(Global_Sales)\", \"optionName\": \"metric_hgp7sdig6n_eb4verclwa7\", \"sqlExpression\": null}], \"order_desc\": true, \"queryFields\": {\"groupby\": \"groupby\", \"metrics\": \"metrics\"}, \"rich_tooltip\": false, \"rolling_type\": \"None\", \"row_limit\": null, \"show_brush\": \"yes\", \"show_controls\": false, \"show_legend\": false, \"slice_id\": 2642, \"stacked_style\": \"stream\", \"time_grain_sqla\": \"P1Y\", \"time_range\": \"1970-03-01T00:00:00 : 2017-01-01T00:00:00\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"area\", \"x_axis_format\": \"smart_date\", \"x_axis_label\": \"\\ud83d\\uddd3\\ufe0f Year\", \"x_axis_showminmax\": true, \"x_ticks_layout\": \"auto\", \"y_axis_bounds\": [null, null], \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 2642, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Global Sales per Console",
+                            "viz_type": "area"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2693,
+                            "params": "{\"adhoc_filters\": [{\"clause\": \"WHERE\", \"comparator\": \"26\", \"expressionType\": \"SIMPLE\", \"filterOptionName\": \"filter_bswp11az4vq_3bfotkk18ry\", \"isExtra\": false, \"isNew\": false, \"operator\": \"<\", \"sqlExpression\": null, \"subject\": \"Rank\"}], \"color_scheme\": \"presetColors\", \"datasource\": \"88__table\", \"donut\": true, \"granularity_sqla\": \"Year\", \"groupby\": [\"Publisher\"], \"innerRadius\": 30, \"label_line\": true, \"labels_outside\": true, \"metric\": \"count\", \"number_format\": \"SMART_NUMBER\", \"outerRadius\": 51, \"pie_label_type\": \"key\", \"queryFields\": {\"groupby\": \"groupby\", \"metric\": \"metrics\"}, \"row_limit\": null, \"show_labels\": true, \"show_labels_threshold\": 1, \"show_legend\": false, \"slice_id\": 2693, \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"pie\", \"remote_id\": 2693, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Top 25 Publishers",
+                            "viz_type": "pie"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2695,
+                            "params": "{\"adhoc_filters\": [], \"color_scheme\": \"presetColors\", \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"groupby\": [\"Platform\"], \"label_colors\": {}, \"metrics\": [\"count\"], \"number_format\": \"SMART_NUMBER\", \"queryFields\": {\"groupby\": \"groupby\", \"metrics\": \"metrics\"}, \"row_limit\": 10, \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"treemap_ratio\": 1.618033988749895, \"url_params\": {}, \"viz_type\": \"treemap\", \"remote_id\": 2695, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Top 10 Consoles, by # of Hit Games",
+                            "viz_type": "treemap"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2697,
+                            "params": "{\"adhoc_filters\": [], \"all_columns_x\": \"Platform\", \"all_columns_y\": \"Genre\", \"bottom_margin\": \"auto\", \"canvas_image_rendering\": \"pixelated\", \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"left_margin\": \"auto\", \"linear_color_scheme\": \"blue_white_yellow\", \"metric\": \"count\", \"normalize_across\": \"heatmap\", \"queryFields\": {\"metric\": \"metrics\"}, \"row_limit\": null, \"show_legend\": true, \"show_perc\": false, \"show_values\": true, \"sort_x_axis\": \"alpha_asc\", \"sort_y_axis\": \"alpha_asc\", \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"heatmap\", \"xscale_interval\": null, \"y_axis_bounds\": [null, null], \"y_axis_format\": \"SMART_NUMBER\", \"yscale_interval\": null, \"remote_id\": 2697, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Popular Genres Across Platforms",
+                            "viz_type": "heatmap"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2691,
+                            "params": "{\"adhoc_filters\": [], \"all_columns\": [\"Rank\", \"Name\", \"Global_Sales\", \"Platform\", \"Genre\", \"Publisher\", \"\\ud83d\\uddd3\\ufe0f Year\"], \"color_pn\": true, \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"groupby\": [], \"metrics\": [\"count\"], \"order_by_cols\": [\"[\\\"Rank\\\", true]\"], \"order_desc\": true, \"percent_metrics\": [], \"queryFields\": {\"groupby\": \"groupby\", \"metrics\": \"metrics\"}, \"query_mode\": \"raw\", \"row_limit\": 10, \"show_cell_bars\": false, \"slice_id\": 2691, \"table_timestamp_format\": \"smart_date\", \"time_grain_sqla\": null, \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"table\", \"remote_id\": 2691, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Top 10 Games",
+                            "viz_type": "table"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2708,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"88__table\", \"date_filter\": true, \"filter_configs\": [{\"asc\": true, \"clearable\": true, \"column\": \"Platform\", \"key\": \"0sMObN3Wd\", \"multiple\": true, \"searchAllOptions\": false}, {\"asc\": true, \"clearable\": true, \"column\": \"Genre\", \"key\": \"bxs7jKhIw\", \"multiple\": true, \"searchAllOptions\": false}, {\"asc\": true, \"clearable\": true, \"column\": \"Publisher\", \"key\": \"m-imQpG_d\", \"multiple\": true, \"searchAllOptions\": false}], \"granularity_sqla\": \"Year\", \"queryFields\": {}, \"show_sqla_time_column\": false, \"show_sqla_time_granularity\": false, \"slice_id\": 2708, \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"filter_box\", \"remote_id\": 2708, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Filter Games",
+                            "viz_type": "filter_box"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2710,
+                            "params": "{\"adhoc_filters\": [], \"all_columns\": [\"Name\", \"Global_Sales\", \"Platform\", \"Genre\", \"Publisher\", \"\\ud83d\\uddd3\\ufe0f Year\"], \"color_pn\": true, \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"groupby\": [], \"include_search\": true, \"metrics\": [\"count\"], \"order_by_cols\": [\"[\\\"Global_Sales\\\", false]\"], \"order_desc\": true, \"page_length\": 10, \"percent_metrics\": [], \"queryFields\": {\"groupby\": \"groupby\", \"metrics\": \"metrics\"}, \"query_mode\": \"raw\", \"row_limit\": 50000, \"show_cell_bars\": false, \"slice_id\": 2710, \"table_filter\": false, \"table_timestamp_format\": \"smart_date\", \"time_grain_sqla\": null, \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"table\", \"remote_id\": 2710, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Games",
+                            "viz_type": "table"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2712,
+                            "params": "{\"adhoc_filters\": [], \"annotation_layers\": [], \"bottom_margin\": \"auto\", \"color_scheme\": \"supersetColors\", \"comparison_type\": \"values\", \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"groupby\": [\"Genre\"], \"label_colors\": {\"(Other_Sales)\": \"#1FA8C9\", \"0\": \"#B2B2B2\", \"1\": \"#EFA1AA\", \"2600\": \"#9EE5E5\", \"3DO\": \"#3CCCCB\", \"3DS\": \"#FEC0A1\", \"Action\": \"#454E7C\", \"Adventure\": \"#666666\", \"DC\": \"#FF7F44\", \"DS\": \"#666666\", \"Europe\": \"#1FA8C9\", \"Fighting\": \"#A38F79\", \"GB\": \"#8FD3E4\", \"GBA\": \"#FCC700\", \"GC\": \"#FDE380\", \"GEN\": \"#5AC189\", \"GG\": \"#A38F79\", \"Japan\": \"#454E7C\", \"Microsoft Game Studios\": \"#FEC0A1\", \"Misc\": \"#1FA8C9\", \"N64\": \"#B2B2B2\", \"NES\": \"#ACE1C4\", \"NG\": \"#E04355\", \"Nintendo\": \"#A1A6BD\", \"North America\": \"#5AC189\", \"Other\": \"#FF7F44\", \"PC\": \"#A38F79\", \"PCFX\": \"#8FD3E4\", \"PS\": \"#E04355\", \"PS2\": \"#1FA8C9\", \"PS3\": \"#5AC189\", \"PS4\": \"#3CCCCB\", \"PSP\": \"#A868B7\", \"PSV\": \"#1FA8C9\", \"Platform\": \"#FCC700\", \"Puzzle\": \"#3CCCCB\", \"Racing\": \"#FF7F44\", \"Role-Playing\": \"#8FD3E4\", \"SAT\": \"#454E7C\", \"SCD\": \"#666666\", \"SNES\": \"#EFA1AA\", \"SUM(EU_Sales)\": \"#454E7C\", \"SUM(JP_Sales)\": \"#5AC189\", \"SUM(NA_Sales)\": \"#FF7F44\", \"Shooter\": \"#A868B7\", \"Simulation\": \"#E04355\", \"Sports\": \"#5AC189\", \"Strategy\": \"#A1A6BD\", \"TG16\": \"#A868B7\", \"Take-Two Interactive\": \"#ACE1C4\", \"WS\": \"#FCC700\", \"Wii\": \"#FF7F44\", \"WiiU\": \"#D1C6BC\", \"X360\": \"#454E7C\", \"XB\": \"#A1A6BD\", \"XOne\": \"#D3B3DA\"}, \"line_interpolation\": \"linear\", \"metrics\": [\"count\"], \"order_desc\": true, \"queryFields\": {\"groupby\": \"groupby\", \"metrics\": \"metrics\"}, \"rich_tooltip\": true, \"rolling_type\": \"None\", \"row_limit\": 10000, \"show_brush\": \"auto\", \"show_legend\": true, \"slice_id\": 2712, \"stacked_style\": \"expand\", \"time_grain_sqla\": \"P1D\", \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"area\", \"x_axis_format\": \"smart_date\", \"x_axis_showminmax\": true, \"x_ticks_layout\": \"auto\", \"y_axis_bounds\": [null, null], \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 2712, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Proportion of Genres Over Time",
+                            "viz_type": "area"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2713,
+                            "params": "{\"adhoc_filters\": [], \"annotation_layers\": [], \"bottom_margin\": \"auto\", \"color_scheme\": \"supersetColors\", \"comparison_type\": \"values\", \"contribution\": false, \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"groupby\": [\"Genre\"], \"label_colors\": {\"(Other_Sales)\": \"#1FA8C9\", \"0\": \"#B2B2B2\", \"1\": \"#EFA1AA\", \"2600\": \"#9EE5E5\", \"3DO\": \"#3CCCCB\", \"3DS\": \"#FEC0A1\", \"Action\": \"#454E7C\", \"Adventure\": \"#666666\", \"DC\": \"#FF7F44\", \"DS\": \"#666666\", \"Europe\": \"#1FA8C9\", \"Fighting\": \"#A38F79\", \"GB\": \"#8FD3E4\", \"GBA\": \"#FCC700\", \"GC\": \"#FDE380\", \"GEN\": \"#5AC189\", \"GG\": \"#A38F79\", \"Japan\": \"#454E7C\", \"Microsoft Game Studios\": \"#FEC0A1\", \"Misc\": \"#1FA8C9\", \"N64\": \"#B2B2B2\", \"NES\": \"#ACE1C4\", \"NG\": \"#E04355\", \"Nintendo\": \"#A1A6BD\", \"North America\": \"#5AC189\", \"Other\": \"#FF7F44\", \"PC\": \"#A38F79\", \"PCFX\": \"#8FD3E4\", \"PS\": \"#E04355\", \"PS2\": \"#1FA8C9\", \"PS3\": \"#5AC189\", \"PS4\": \"#3CCCCB\", \"PSP\": \"#A868B7\", \"PSV\": \"#1FA8C9\", \"Platform\": \"#FCC700\", \"Puzzle\": \"#3CCCCB\", \"Racing\": \"#FF7F44\", \"Role-Playing\": \"#8FD3E4\", \"SAT\": \"#454E7C\", \"SCD\": \"#666666\", \"SNES\": \"#EFA1AA\", \"SUM(EU_Sales)\": \"#454E7C\", \"SUM(JP_Sales)\": \"#5AC189\", \"SUM(NA_Sales)\": \"#FF7F44\", \"Shooter\": \"#A868B7\", \"Simulation\": \"#E04355\", \"Sports\": \"#5AC189\", \"Strategy\": \"#A1A6BD\", \"TG16\": \"#A868B7\", \"Take-Two Interactive\": \"#ACE1C4\", \"WS\": \"#FCC700\", \"Wii\": \"#FF7F44\", \"WiiU\": \"#D1C6BC\", \"X360\": \"#454E7C\", \"XB\": \"#A1A6BD\", \"XOne\": \"#D3B3DA\"}, \"left_margin\": \"auto\", \"line_interpolation\": \"linear\", \"metrics\": [\"count\"], \"order_desc\": true, \"queryFields\": {\"groupby\": \"groupby\", \"metrics\": \"metrics\"}, \"rich_tooltip\": true, \"rolling_type\": \"None\", \"row_limit\": 50000, \"show_brush\": \"no\", \"show_legend\": false, \"slice_id\": 2713, \"time_grain_sqla\": \"P1D\", \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"line\", \"x_axis_format\": \"smart_date\", \"x_ticks_layout\": \"auto\", \"y_axis_bounds\": [null, null], \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 2713, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Games per Genre",
+                            "viz_type": "line"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2714,
+                            "params": "{\"adhoc_filters\": [], \"color_scheme\": \"supersetColors\", \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"groupby\": [\"Genre\"], \"label_colors\": {\"0\": \"#B2B2B2\", \"1\": \"#EFA1AA\", \"2600\": \"#9EE5E5\", \"3DO\": \"#3CCCCB\", \"3DS\": \"#FEC0A1\", \"Action\": \"#454E7C\", \"Adventure\": \"#666666\", \"DC\": \"#FF7F44\", \"DS\": \"#666666\", \"Fighting\": \"#A38F79\", \"GB\": \"#8FD3E4\", \"GBA\": \"#FCC700\", \"GC\": \"#FDE380\", \"GEN\": \"#5AC189\", \"GG\": \"#A38F79\", \"Microsoft Game Studios\": \"#FEC0A1\", \"Misc\": \"#1FA8C9\", \"N64\": \"#B2B2B2\", \"NES\": \"#ACE1C4\", \"NG\": \"#E04355\", \"Nintendo\": \"#A1A6BD\", \"PC\": \"#A38F79\", \"PCFX\": \"#8FD3E4\", \"PS\": \"#E04355\", \"PS2\": \"#1FA8C9\", \"PS3\": \"#5AC189\", \"PS4\": \"#3CCCCB\", \"PSP\": \"#A868B7\", \"PSV\": \"#1FA8C9\", \"Platform\": \"#FCC700\", \"Puzzle\": \"#3CCCCB\", \"Racing\": \"#FF7F44\", \"Role-Playing\": \"#8FD3E4\", \"SAT\": \"#454E7C\", \"SCD\": \"#666666\", \"SNES\": \"#EFA1AA\", \"Shooter\": \"#A868B7\", \"Simulation\": \"#E04355\", \"Sports\": \"#5AC189\", \"Strategy\": \"#A1A6BD\", \"TG16\": \"#A868B7\", \"Take-Two Interactive\": \"#ACE1C4\", \"WS\": \"#FCC700\", \"Wii\": \"#FF7F44\", \"WiiU\": \"#D1C6BC\", \"X360\": \"#454E7C\", \"XB\": \"#A1A6BD\", \"XOne\": \"#D3B3DA\"}, \"metrics\": [\"count\"], \"number_format\": \"SMART_NUMBER\", \"queryFields\": {\"groupby\": \"groupby\", \"metrics\": \"metrics\"}, \"row_limit\": 50000, \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"treemap_ratio\": 1.618033988749895, \"url_params\": {}, \"viz_type\": \"treemap\", \"remote_id\": 2714, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Proportion of Games per Genre",
+                            "viz_type": "treemap"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2715,
+                            "params": "{\"adhoc_filters\": [], \"bar_stacked\": true, \"bottom_margin\": \"auto\", \"color_scheme\": \"supersetColors\", \"columns\": [], \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"groupby\": [\"Genre\"], \"label_colors\": {\"0\": \"#B2B2B2\", \"1\": \"#EFA1AA\", \"2600\": \"#9EE5E5\", \"3DO\": \"#3CCCCB\", \"3DS\": \"#FEC0A1\", \"Action\": \"#454E7C\", \"Adventure\": \"#666666\", \"DC\": \"#FF7F44\", \"DS\": \"#666666\", \"Fighting\": \"#A38F79\", \"GB\": \"#8FD3E4\", \"GBA\": \"#FCC700\", \"GC\": \"#FDE380\", \"GEN\": \"#5AC189\", \"GG\": \"#A38F79\", \"Microsoft Game Studios\": \"#FEC0A1\", \"Misc\": \"#1FA8C9\", \"N64\": \"#B2B2B2\", \"NES\": \"#ACE1C4\", \"NG\": \"#E04355\", \"Nintendo\": \"#A1A6BD\", \"PC\": \"#A38F79\", \"PCFX\": \"#8FD3E4\", \"PS\": \"#E04355\", \"PS2\": \"#1FA8C9\", \"PS3\": \"#5AC189\", \"PS4\": \"#3CCCCB\", \"PSP\": \"#A868B7\", \"PSV\": \"#1FA8C9\", \"Platform\": \"#FCC700\", \"Puzzle\": \"#3CCCCB\", \"Racing\": \"#FF7F44\", \"Role-Playing\": \"#8FD3E4\", \"SAT\": \"#454E7C\", \"SCD\": \"#666666\", \"SNES\": \"#EFA1AA\", \"Shooter\": \"#A868B7\", \"Simulation\": \"#E04355\", \"Sports\": \"#5AC189\", \"Strategy\": \"#A1A6BD\", \"TG16\": \"#A868B7\", \"Take-Two Interactive\": \"#ACE1C4\", \"WS\": \"#FCC700\", \"Wii\": \"#FF7F44\", \"WiiU\": \"#D1C6BC\", \"X360\": \"#454E7C\", \"XB\": \"#A1A6BD\", \"XOne\": \"#D3B3DA\"}, \"metrics\": [{\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"NA_Sales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 1302, \"is_dttm\": false, \"optionName\": \"_col_NA_Sales\", \"python_date_format\": null, \"type\": \"FLOAT64\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"hasCustomLabel\": true, \"isNew\": false, \"label\": \"North America\", \"optionName\": \"metric_vw7bgdp7xd_fz7bwpnpar8\", \"sqlExpression\": null}, {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"EU_Sales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 1303, \"is_dttm\": false, \"optionName\": \"_col_EU_Sales\", \"python_date_format\": null, \"type\": \"FLOAT64\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"hasCustomLabel\": true, \"isNew\": false, \"label\": \"Europe\", \"optionName\": \"metric_cadg6ll7tcq_t644yr17msa\", \"sqlExpression\": null}, {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"JP_Sales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 1304, \"is_dttm\": false, \"optionName\": \"_col_JP_Sales\", \"python_date_format\": null, \"type\": \"FLOAT64\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"hasCustomLabel\": true, \"isNew\": false, \"label\": \"Japan\", \"optionName\": \"metric_i69v21mt20a_7asm2t3j8ms\", \"sqlExpression\": null}, {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"Other_Sales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 1305, \"is_dttm\": false, \"optionName\": \"_col_Other_Sales\", \"python_date_format\": null, \"type\": \"FLOAT64\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"hasCustomLabel\": true, \"isNew\": false, \"label\": \"Other\", \"optionName\": \"metric_133xuxueh1le_gacwqhy4b9a\", \"sqlExpression\": null}], \"queryFields\": {\"columns\": \"groupby\", \"groupby\": \"groupby\", \"metrics\": \"metrics\"}, \"row_limit\": 50000, \"show_legend\": true, \"slice_id\": 2715, \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"dist_bar\", \"x_ticks_layout\": \"auto\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 2715, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Total Sales per Market (Grouped by Genre)",
+                            "viz_type": "dist_bar"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "public.video_game_sales",
+                            "datasource_type": "table",
+                            "id": 2716,
+                            "params": "{\"adhoc_filters\": [], \"bar_stacked\": true, \"bottom_margin\": \"auto\", \"color_scheme\": \"supersetColors\", \"columns\": [], \"contribution\": true, \"datasource\": \"88__table\", \"granularity_sqla\": \"Year\", \"groupby\": [\"Name\"], \"label_colors\": {\"(Other_Sales)\": \"#1FA8C9\", \"0\": \"#B2B2B2\", \"1\": \"#EFA1AA\", \"2600\": \"#9EE5E5\", \"3DO\": \"#3CCCCB\", \"3DS\": \"#FEC0A1\", \"Action\": \"#454E7C\", \"Adventure\": \"#666666\", \"DC\": \"#FF7F44\", \"DS\": \"#666666\", \"Europe\": \"#1FA8C9\", \"Fighting\": \"#A38F79\", \"GB\": \"#8FD3E4\", \"GBA\": \"#FCC700\", \"GC\": \"#FDE380\", \"GEN\": \"#5AC189\", \"GG\": \"#A38F79\", \"Japan\": \"#454E7C\", \"Microsoft Game Studios\": \"#FEC0A1\", \"Misc\": \"#1FA8C9\", \"N64\": \"#B2B2B2\", \"NES\": \"#ACE1C4\", \"NG\": \"#E04355\", \"Nintendo\": \"#A1A6BD\", \"North America\": \"#5AC189\", \"Other\": \"#FF7F44\", \"PC\": \"#A38F79\", \"PCFX\": \"#8FD3E4\", \"PS\": \"#E04355\", \"PS2\": \"#1FA8C9\", \"PS3\": \"#5AC189\", \"PS4\": \"#3CCCCB\", \"PSP\": \"#A868B7\", \"PSV\": \"#1FA8C9\", \"Platform\": \"#FCC700\", \"Puzzle\": \"#3CCCCB\", \"Racing\": \"#FF7F44\", \"Role-Playing\": \"#8FD3E4\", \"SAT\": \"#454E7C\", \"SCD\": \"#666666\", \"SNES\": \"#EFA1AA\", \"SUM(EU_Sales)\": \"#454E7C\", \"SUM(JP_Sales)\": \"#5AC189\", \"SUM(NA_Sales)\": \"#FF7F44\", \"Shooter\": \"#A868B7\", \"Simulation\": \"#E04355\", \"Sports\": \"#5AC189\", \"Strategy\": \"#A1A6BD\", \"TG16\": \"#A868B7\", \"Take-Two Interactive\": \"#ACE1C4\", \"WS\": \"#FCC700\", \"Wii\": \"#FF7F44\", \"WiiU\": \"#D1C6BC\", \"X360\": \"#454E7C\", \"XB\": \"#A1A6BD\", \"XOne\": \"#D3B3DA\"}, \"metrics\": [{\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"NA_Sales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 1302, \"is_dttm\": false, \"optionName\": \"_col_NA_Sales\", \"python_date_format\": null, \"type\": \"FLOAT64\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"hasCustomLabel\": true, \"isNew\": false, \"label\": \"North America\", \"optionName\": \"metric_vw7bgdp7xd_fz7bwpnpar8\", \"sqlExpression\": null}, {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"EU_Sales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 1303, \"is_dttm\": false, \"optionName\": \"_col_EU_Sales\", \"python_date_format\": null, \"type\": \"FLOAT64\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"hasCustomLabel\": true, \"isNew\": false, \"label\": \"Europe\", \"optionName\": \"metric_cadg6ll7tcq_t644yr17msa\", \"sqlExpression\": null}, {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"JP_Sales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 1304, \"is_dttm\": false, \"optionName\": \"_col_JP_Sales\", \"python_date_format\": null, \"type\": \"FLOAT64\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"hasCustomLabel\": true, \"isNew\": false, \"label\": \"Japan\", \"optionName\": \"metric_i69v21mt20a_7asm2t3j8ms\", \"sqlExpression\": null}, {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"Other_Sales\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 1305, \"is_dttm\": false, \"optionName\": \"_col_Other_Sales\", \"python_date_format\": null, \"type\": \"FLOAT64\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"hasCustomLabel\": true, \"isNew\": false, \"label\": \"Other\", \"optionName\": \"metric_133xuxueh1le_gacwqhy4b9a\", \"sqlExpression\": null}], \"order_bars\": false, \"queryFields\": {\"columns\": \"groupby\", \"groupby\": \"groupby\", \"metrics\": \"metrics\"}, \"reduce_x_ticks\": false, \"row_limit\": 10, \"show_bar_value\": false, \"show_controls\": false, \"show_legend\": true, \"slice_id\": 2716, \"time_range\": \"No filter\", \"time_range_endpoints\": [\"inclusive\", \"exclusive\"], \"url_params\": {}, \"viz_type\": \"dist_bar\", \"x_axis_label\": \"\", \"x_ticks_layout\": \"auto\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 2716, \"datasource_name\": \"video_game_sales\", \"schema\": \"public\", \"database_name\": \"BigQuery Production\"}",
+                            "slice_name": "Top 10 Games: Proportion of Sales in Markets",
+                            "viz_type": "dist_bar"
+                        }
+                    }
+                ],
+                "slug": null
+            }
+        }
+    ],
+    "datasources": [
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-25T22:24:46"
+                            },
+                            "column_name": "\ud83d\uddd3\ufe0f Year",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-11-25T22:24:46"
+                            },
+                            "description": null,
+                            "expression": "FORMAT_DATE(\"%Y\", PARSE_DATE(\"%Y\", CAST(Year as STRING)))",
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1538,
+                            "is_active": true,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": null,
+                            "uuid": "b75398b3-ee0a-4540-b0d0-bf0b07aa878b",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "Rank",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1296,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "INT64",
+                            "uuid": "6fd78c94-72ab-90d7-061f-afa4958861f5",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "Name",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1297,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "STRING",
+                            "uuid": "63b3e621-7e39-c69b-503a-56f6a26a57d8",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "Platform",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1298,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "STRING",
+                            "uuid": "62127217-8f87-2531-10a8-cbf21a099c67",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "Genre",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1300,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "STRING",
+                            "uuid": "ce097c4c-0a6c-41b9-84aa-4e311095a4b4",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "Publisher",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1301,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "STRING",
+                            "uuid": "03648339-924c-638b-b2f0-04d3672fafd1",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "NA_Sales",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1302,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "FLOAT64",
+                            "uuid": "b4797756-1671-c229-3230-0ca14bed0003",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "EU_Sales",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1303,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "FLOAT64",
+                            "uuid": "2d41a8b6-5f87-15b7-46e5-c822e59e78af",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "JP_Sales",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1304,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "FLOAT64",
+                            "uuid": "1672effe-6b4f-e7ef-485b-24c8bf81b777",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "Other_Sales",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1305,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "FLOAT64",
+                            "uuid": "41037f43-25fc-5b97-0983-272bcf4ac22c",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "column_name": "Global_Sales",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1306,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 88,
+                            "type": "FLOAT64",
+                            "uuid": "db492127-0079-299b-c427-6560b9be3ae0",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-25T22:08:46"
+                            },
+                            "column_name": "Year",
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "description": null,
+                            "expression": "PARSE_DATE(\"%Y\", CAST(Year as STRING))",
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 1299,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": "%Y",
+                            "table_id": 88,
+                            "type": "DATETIME",
+                            "uuid": "f52212f1-a1b2-11d9-40fb-fd9200edf08a",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 5,
+                "default_endpoint": null,
+                "description": null,
+                "extra": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 20,
+                            "changed_on": {
+                                "__datetime__": "2020-11-05T21:34:32"
+                            },
+                            "created_by_fk": 20,
+                            "created_on": {
+                                "__datetime__": "2020-09-25T13:18:33"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "COUNT(*)",
+                            "extra": null,
+                            "id": 119,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 88,
+                            "uuid": "78d3bee2-17b3-5a65-1588-35a6a17124c6",
+                            "verbose_name": "COUNT(*)",
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 64, \"database_name\": \"examples\"}",
+                "schema": "public",
+                "sql": "",
+                "table_name": "video_game_sales",
+                "template_params": null
+            }
+        }
+    ]
+}

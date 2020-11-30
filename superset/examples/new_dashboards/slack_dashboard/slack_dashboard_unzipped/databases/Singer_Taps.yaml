@@ -1,0 +1,15 @@
+database_name: Singer Taps
+sqlalchemy_uri: postgresql://superset:XXXXXXXXXX@db:5432/postgres
+cache_timeout: null
+expose_in_sqllab: true
+allow_run_async: false
+allow_ctas: false
+allow_cvas: true
+allow_csv_upload: true
+extra:
+  metadata_params: {}
+  engine_params: {}
+  metadata_cache_timeout: {}
+  schemas_allowed_for_csv_upload: []
+uuid: 566ca280-3da8-967e-4aa4-4b349218736a
+version: 1.0.0

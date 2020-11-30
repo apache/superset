@@ -1,0 +1,34 @@
+slice_name: Weekly Threads
+viz_type: big_number
+params:
+  adhoc_filters: []
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  compare_lag: 1
+  compare_suffix: WoW
+  datasource: 35__table
+  granularity_sqla: ts
+  header_font_size: 0.4
+  metric: count
+  queryFields:
+    metric: metrics
+  rolling_type: None
+  show_trend_line: true
+  start_y_axis_at_zero: true
+  subheader_font_size: 0.15
+  time_grain_sqla: P1W
+  time_range: '2020-08-05T00:00:00 : 2020-09-06T00:00:00'
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  time_range_fixed: false
+  url_params: {}
+  viz_type: big_number
+  y_axis_format: SMART_NUMBER
+cache_timeout: null
+uuid: 9f742bdd-cac1-468c-3a37-35c9b3cfd5bb
+version: 1.0.0
+dataset_uuid: d7438be6-6078-17dd-cf9a-56f0ef546c80

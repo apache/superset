@@ -1,0 +1,15 @@
+database_name: examples
+sqlalchemy_uri: postgresql://superset:XXXXXXXXXX@db:5432/superset
+cache_timeout: null
+expose_in_sqllab: true
+allow_run_async: false
+allow_ctas: true
+allow_cvas: true
+allow_csv_upload: true
+extra:
+  metadata_params: {}
+  engine_params: {}
+  metadata_cache_timeout: {}
+  schemas_allowed_for_csv_upload: []
+uuid: 454c96f4-29ce-87ae-ed44-2215b3add87c
+version: 1.0.0

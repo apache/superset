@@ -322,7 +322,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
-    "VERSIONED_EXPORT": False,
+    "VERSIONED_EXPORT": True,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
     # and the Admin Role does have the all_datasources security permission.
     # But, if users create a specific role with access to RowLevelSecurityFilter MVC
