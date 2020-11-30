@@ -23,15 +23,15 @@ export const commonMenuData = {
   name: t('Data'),
   tabs: [
     {
-      name: 'Datasets',
-      label: t('Datasets'),
-      url: '/tablemodelview/list/',
-      usesRouter: true,
-    },
-    {
       name: 'Databases',
       label: t('Databases'),
       url: '/databaseview/list/',
+      usesRouter: true,
+    },
+    {
+      name: 'Datasets',
+      label: t('Datasets'),
+      url: '/tablemodelview/list/',
       usesRouter: true,
     },
     {
