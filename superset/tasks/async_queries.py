@@ -21,7 +21,7 @@ from typing import Any, cast, Dict
 from flask import current_app
 
 from superset import app
-from superset.exceptions import SupersetException, SupersetVizException
+from superset.exceptions import SupersetVizException
 from superset.extensions import async_query_manager, cache_manager, celery_app
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.views.utils import get_datasource_info, get_viz
@@ -52,7 +52,7 @@ def load_chart_data_into_cache(
             )
         except Exception as exc:
             # TODO: QueryContext should support SIP-40 style errors
-            error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
+            error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore # pylint: disable=no-member
             errors = [{"message": error}]
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, errors=errors
@@ -96,10 +96,10 @@ def load_explore_json_into_cache(
             )
         except Exception as exc:
             if isinstance(exc, SupersetVizException):
-                errors = exc.errors
+                errors = exc.errors  # pylint: disable=no-member
             else:
                 error = (
-                    exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
+                    exc.message if hasattr(exc, "message") else str(exc)  # type: ignore # pylint: disable=no-member
                 )
                 errors = [error]
 

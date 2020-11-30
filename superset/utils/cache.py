@@ -25,7 +25,6 @@ from flask import current_app as app, request
 from flask_caching import Cache
 from werkzeug.wrappers.etag import ETagResponseMixin
 
-from superset import utils
 from superset.extensions import cache_manager
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.core import json_int_dttm_ser
@@ -41,8 +40,8 @@ def json_dumps(obj: Any, sort_keys: bool = False) -> str:
 
 def generate_cache_key(values_dict: Dict[str, Any], key_prefix: str = "") -> str:
     json_data = json_dumps(values_dict, sort_keys=True)
-    hash = hashlib.md5(json_data.encode("utf-8")).hexdigest()
-    return f"{key_prefix}{hash}"
+    hash_str = hashlib.md5(json_data.encode("utf-8")).hexdigest()
+    return f"{key_prefix}{hash_str}"
 
 
 def set_and_log_cache(
@@ -57,10 +56,10 @@ def set_and_log_cache(
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger.incr("set_cache_key")
-    except Exception as ex:
+    except Exception as ex:  # pylint: disable=broad-except
         # cache.set call can fail if the backend is down or if
         # the key is too large or whatever other reasons
-        logger.warning("Could not cache key {}".format(cache_key))
+        logger.warning("Could not cache key %s", cache_key)
         logger.exception(ex)
 
 

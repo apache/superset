@@ -77,7 +77,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
-from superset.extensions import async_query_manager, cache_manager, security_manager
+from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard

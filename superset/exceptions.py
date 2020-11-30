@@ -68,7 +68,7 @@ class SupersetSecurityException(SupersetException):
 class SupersetVizException(SupersetException):
     status = 400
 
-    def __init__(self, errors: List[SupersetError] = []) -> None:
+    def __init__(self, errors: List[SupersetError]) -> None:
         super(SupersetVizException, self).__init__(str(errors))
         self.errors = errors
 

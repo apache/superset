@@ -15,10 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import copy
-import hashlib
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, cast, ClassVar, Dict, List, Optional, Union
 
 import numpy as np
@@ -201,7 +200,7 @@ class QueryContext:
         )
         force_cached = kwargs["force_cached"] if "force_cached" in kwargs else False
 
-        """Get all the payloads from the QueryObjects"""
+        # Get all the payloads from the QueryObjects
         query_results = [
             self.get_single_payload(query_object, force_cached=force_cached)
             for query_object in self.queries
@@ -296,7 +295,7 @@ class QueryContext:
 
         if force_cached and not is_loaded:
             logger.warning(
-                f"force_cached (QueryContext): value not found for key {cache_key}"
+                "force_cached (QueryContext): value not found for key %s", cache_key
             )
             raise CacheLoadError()
 

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from flask import Request
 from marshmallow import ValidationError
@@ -42,7 +42,8 @@ class ChartDataCommand(BaseCommand):
         self._async_channel_id: str
 
     def run(self, **kwargs: Any) -> Dict[str, Any]:
-        # caching is handled in query_context.get_df_payload (also evals `force` property)
+        # caching is handled in query_context.get_df_payload
+        # (also evals `force` property)
         cache_query_context = kwargs["cache"] if "cache" in kwargs else False
         force_cached = kwargs["force_cached"] if "force_cached" in kwargs else False
         try:
@@ -88,7 +89,9 @@ class ChartDataCommand(BaseCommand):
         jwt_data = async_query_manager.parse_jwt_from_request(request)
         self._async_channel_id = jwt_data["channel"]
 
-    def load_query_context_from_cache(self, cache_key: str) -> Dict[str, Any]:
+    def load_query_context_from_cache(  # pylint: disable=no-self-use
+        self, cache_key: str
+    ) -> Dict[str, Any]:
         cache_value = cache.get(cache_key)
         if not cache_value:
             raise ChartDataCacheLoadError("Cached data not found")

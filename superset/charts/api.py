@@ -66,7 +66,7 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import remove_root
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import async_query_manager, event_logger
+from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.async_query_manager import AsyncQueryTokenException
@@ -453,6 +453,41 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
+    def get_data_response(self, command: ChartDataCommand) -> Response:
+        try:
+            result = command.run()
+        except ChartDataCacheLoadError as exc:
+            return self.response_400(message=exc.message)
+        except ChartDataQueryFailedError as exc:
+            return self.response_400(message=exc.message)
+
+        result_format = result["query_context"].result_format
+        response = self.response_400(
+            message=f"Unsupported result_format: {result_format}"
+        )
+
+        if result_format == ChartDataResultFormat.CSV:
+            # return the first result
+            data = result["queries"][0]["data"]
+            response = CsvResponse(
+                data,
+                status=200,
+                headers=generate_download_headers("csv"),
+                mimetype="application/csv",
+            )
+
+        if result_format == ChartDataResultFormat.JSON:
+            response_data = simplejson.dumps(
+                {"result": result["queries"]},
+                default=json_int_dttm_ser,
+                ignore_nan=True,
+            )
+            resp = make_response(response_data, 200)
+            resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            response = resp
+
+        return response
+
     @expose("/data", methods=["POST"])
     @protect()
     @safe
@@ -524,38 +559,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             result = command.run_async()
             return self.response(202, **result)
 
-        # TODO: DRY
-        try:
-            result = command.run()
-        except ChartDataQueryFailedError as exc:
-            return self.response_400(message=exc.message)
-
-        result_format = result["query_context"].result_format
-        response = self.response_400(
-            message=f"Unsupported result_format: {result_format}"
-        )
-
-        if result_format == ChartDataResultFormat.CSV:
-            # return the first result
-            data = result["queries"][0]["data"]
-            response = CsvResponse(
-                data,
-                status=200,
-                headers=generate_download_headers("csv"),
-                mimetype="application/csv",
-            )
-
-        if result_format == ChartDataResultFormat.JSON:
-            response_data = simplejson.dumps(
-                {"result": result["queries"]},
-                default=json_int_dttm_ser,
-                ignore_nan=True,
-            )
-            resp = make_response(response_data, 200)
-            resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            response = resp
-
-        return response
+        return self.get_data_response(command)
 
     @expose("/data/<cache_key>", methods=["GET"])
     @event_logger.log_this
@@ -607,40 +611,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             logger.info(exc)
             return self.response_401()
 
-        # TODO: DRY
-        try:
-            result = command.run()
-        except ChartDataCacheLoadError as exc:
-            return self.response_400(message=exc.message)
-        except ChartDataQueryFailedError as exc:
-            return self.response_400(message=exc.message)
-
-        result_format = result["query_context"].result_format
-        response = self.response_400(
-            message=f"Unsupported result_format: {result_format}"
-        )
-
-        if result_format == ChartDataResultFormat.CSV:
-            # return the first result
-            data = result["queries"][0]["data"]
-            response = CsvResponse(
-                data,
-                status=200,
-                headers=generate_download_headers("csv"),
-                mimetype="application/csv",
-            )
-
-        if result_format == ChartDataResultFormat.JSON:
-            response_data = simplejson.dumps(
-                {"result": result["queries"]},
-                default=json_int_dttm_ser,
-                ignore_nan=True,
-            )
-            resp = make_response(response_data, 200)
-            resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            response = resp
-
-        return response
+        return self.get_data_response(command)
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()

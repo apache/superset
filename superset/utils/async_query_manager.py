@@ -34,6 +34,23 @@ class AsyncQueryJobException(Exception):
     pass
 
 
+def build_job_metadata(channel_id: str, job_id: str, **kwargs: Any) -> Dict[str, Any]:
+    return {
+        "channel_id": channel_id,
+        "job_id": job_id,
+        "user_id": session["user_id"] if "user_id" in session else None,
+        "status": kwargs["status"],
+        "errors": kwargs["errors"] if "errors" in kwargs else [],
+        "result_url": kwargs["result_url"] if "result_url" in kwargs else None,
+    }
+
+
+def parse_event(event_data: Tuple[str, Dict[str, Any]]) -> Dict[str, Any]:
+    event_id = event_data[0]
+    event_payload = event_data[1]["data"]
+    return {"id": event_id, **json.loads(event_payload)}
+
+
 class AsyncQueryManager:
     MAX_EVENT_COUNT = 100
     STATUS_PENDING = "pending"
@@ -71,7 +88,9 @@ class AsyncQueryManager:
         self._jwt_secret = config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
         @app.after_request
-        def validate_session(response: Response) -> Response:
+        def validate_session(  # pylint: disable=unused-variable
+            response: Response,
+        ) -> Response:
             reset_token = False
             user_id = session["user_id"] if "user_id" in session else None
 
@@ -123,32 +142,17 @@ class AsyncQueryManager:
 
     def init_job(self, channel_id: str) -> Dict[str, Any]:
         job_id = str(uuid.uuid4())
-        return self._build_job_metadata(channel_id, job_id, status=self.STATUS_PENDING)
-
-    def _build_job_metadata(
-        self, channel_id: str, job_id: str, **kwargs: Any
-    ) -> Dict[str, Any]:
-        return {
-            "channel_id": channel_id,
-            "job_id": job_id,
-            "user_id": session["user_id"] if "user_id" in session else None,
-            "status": kwargs["status"],
-            "errors": kwargs["errors"] if "errors" in kwargs else [],
-            "result_url": kwargs["result_url"] if "result_url" in kwargs else None,
-        }
+        return build_job_metadata(channel_id, job_id, status=self.STATUS_PENDING)
 
     def read_events(
         self, channel: str, last_id: Optional[str]
     ) -> List[Optional[Dict[str, Any]]]:
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = last_id if last_id else "-"
-        results = self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)  # type: ignore
-        return [] if not results else list(map(self.parse_event, results))
-
-    def parse_event(self, event_data: Tuple[str, Dict[str, Any]]) -> Dict[str, Any]:
-        event_id = event_data[0]
-        event_payload = event_data[1]["data"]
-        return {"id": event_id, **json.loads(event_payload)}
+        results = self._redis.xrange(  # type: ignore
+            stream_name, start_id, "+", self.MAX_EVENT_COUNT
+        )
+        return [] if not results else list(map(parse_event, results))
 
     def update_job(
         self, job_metadata: Dict[str, Any], status: str, **kwargs: Any
@@ -162,13 +166,15 @@ class AsyncQueryManager:
         updates = {"status": status, **kwargs}
         event_data = {"data": json.dumps({**job_metadata, **updates})}
 
-        logger.info(
-            f"********** logging event data to stream {self._stream_prefix}{job_metadata['channel_id']}"
-        )
-        logger.info(event_data)
-
         full_stream_name = f"{self._stream_prefix}full"
         scoped_stream_name = f"{self._stream_prefix}{job_metadata['channel_id']}"
 
-        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)  # type: ignore
-        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)  # type: ignore
+        logger.info("********** logging event data to stream %s", scoped_stream_name)
+        logger.info(event_data)
+
+        self._redis.xadd(  # type: ignore
+            scoped_stream_name, event_data, "*", self._stream_limit
+        )
+        self._redis.xadd(  # type: ignore
+            full_stream_name, event_data, "*", self._stream_limit_firehose
+        )
