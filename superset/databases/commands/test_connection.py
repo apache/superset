@@ -35,6 +35,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._actor = user
         self._properties = data.copy()
         self._model: Optional[Database] = None
+        self._whitelist = ["gsheets://"]
 
     def run(self) -> None:
         self.validate()
@@ -55,8 +56,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 username = self._actor.username if self._actor is not None else None
                 engine = database.get_sqla_engine(user_name=username)
             with closing(engine.raw_connection()) as conn:
-                if not engine.dialect.do_ping(conn):
-                    raise DBAPIError(None, None, None)
+                if uri not in self._whitelist:
+                    if not engine.dialect.do_ping(conn):
+                        raise DBAPIError(None, None, None)
         except DBSecurityException as ex:
             logger.warning(ex)
             raise DatabaseSecurityUnsafeError()
