@@ -61,6 +61,7 @@ export const MenuItem = styled(AntdMenu.Item)`
       display: inline-block;
       width: 100%;
     }
+    transition-duration: 0s;
   }
 `;
 
