@@ -40,6 +40,7 @@
     "@types/d3-time": "^1.0.9",
     "@types/d3-time-format": "^2.1.0",
     "@types/lodash": "^4.14.149",
+    "@types/rison": "0.0.6",
     "@vx/responsive": "^0.0.197",
     "csstype": "^2.6.4",
     "d3-format": "^1.3.2",
@@ -54,6 +55,7 @@
     "pretty-ms": "^7.0.0",
     "react-error-boundary": "^1.2.5",
     "reselect": "^4.0.0",
+    "rison": "^0.1.1",
     "whatwg-fetch": "^3.0.0"
   },
   "peerDependencies": {
