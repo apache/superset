@@ -16,13 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import Split from 'react-split';
 import { ParentSize } from '@vx/responsive';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
+import debounce from 'lodash/debounce';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
+import { applyFormattingToTabularData } from '../../utils/common';
+import TableView, { EmptyWrapperType } from '../../components/TableView';
+import { getChartDataRequest } from '../../chart/chartAction';
+import getClientErrorObject from '../../utils/getClientErrorObject';
+import Loading from '../../components/Loading';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -49,6 +56,12 @@ const propTypes = {
   triggerRender: PropTypes.bool,
 };
 
+export const EXPLORE_GUTTER_HEIGHT = 5;
+export const EXPLORE_GUTTER_MARGIN = 3;
+export const CHART_PANEL_PADDING = 30;
+
+const INITIAL_SIZES = [80, 20];
+
 const Styles = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   height: 100%;
@@ -59,12 +72,134 @@ const Styles = styled.div`
   & > div:last-of-type {
     flex-basis: 100%;
   }
+
+  .gutter {
+    border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    width: 3%;
+    margin: ${EXPLORE_GUTTER_MARGIN}px 47%;
+  }
+
+  .gutter.gutter-vertical {
+    cursor: row-resize;
+  }
 `;
 
-class ExploreChartPanel extends React.PureComponent {
-  renderChart() {
-    const { chart } = this.props;
-    const headerHeight = this.props.standalone ? 0 : 80;
+const TableContainer = styled.div`
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  z-index: 1;
+
+  .table-condensed {
+    max-height: 400px;
+    overflow: auto;
+  }
+`;
+
+const ExploreChartPanel = props => {
+  const panelHeadingRef = useRef(null);
+  const [headerHeight, setHeaderHeight] = useState(props.standalone ? 0 : 50);
+
+  const calcSectionHeight = percent => {
+    const containerHeight = parseInt(props.height, 10) - headerHeight;
+    return (
+      (containerHeight * percent) / 100 -
+      (EXPLORE_GUTTER_HEIGHT / 2 + EXPLORE_GUTTER_MARGIN)
+    );
+  };
+
+  const [chartSectionHeight, setChartSectionHeight] = useState(
+    calcSectionHeight(INITIAL_SIZES[0]) - CHART_PANEL_PADDING,
+  );
+  const [tableSectionHeight, setTableSectionHeight] = useState(
+    calcSectionHeight(INITIAL_SIZES[1]),
+  );
+
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const calcHeaderSize = debounce(() => {
+      setHeaderHeight(
+        props.standalone ? 0 : panelHeadingRef?.current?.offsetHeight,
+      );
+    }, 100);
+    calcHeaderSize();
+    document.addEventListener('resize', calcHeaderSize);
+    return () => document.removeEventListener('resize', calcHeaderSize);
+  }, [props.standalone]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getChartDataRequest({
+      formData: props.chart.latestQueryFormData,
+      resultFormat: 'json',
+      resultType: 'results',
+    })
+      .then(response => {
+        // Currently displaying of only first query is supported
+        const result = response.result[0];
+        setData(result.data);
+        setIsLoading(false);
+        setError(null);
+      })
+      .catch(response => {
+        getClientErrorObject(response).then(({ error, statusText }) => {
+          setError(error || statusText || t('Sorry, An error occurred'));
+          setIsLoading(false);
+        });
+      });
+  }, [props.chart.latestQueryFormData]);
+
+  const tableData = useMemo(() => {
+    if (!data?.length) {
+      return [];
+    }
+    return applyFormattingToTabularData(data);
+  }, [data]);
+
+  const columns = useMemo(
+    () =>
+      data?.length
+        ? Object.keys(data[0]).map(key => ({ accessor: key, Header: key }))
+        : [],
+    [data],
+  );
+
+  const onDrag = ([northPercent, southPercent]) => {
+    setChartSectionHeight(
+      calcSectionHeight(northPercent) - CHART_PANEL_PADDING,
+    );
+    setTableSectionHeight(calcSectionHeight(southPercent));
+  };
+
+  const renderResultsModalBody = () => {
+    if (isLoading) {
+      return <Loading />;
+    }
+    if (error) {
+      return <pre>{error}</pre>;
+    }
+    if (data) {
+      if (data.length === 0) {
+        return <span>No data</span>;
+      }
+      return (
+        <TableView
+          columns={columns}
+          data={tableData}
+          withPagination={false}
+          noDataText={t('No data')}
+          emptyWrapperType={EmptyWrapperType.Small}
+          className="table-condensed"
+        />
+      );
+    }
+    return null;
+  };
+
+  const renderChart = () => {
+    const { chart } = props;
 
     return (
       <ParentSize>
@@ -73,67 +208,88 @@ class ExploreChartPanel extends React.PureComponent {
           height > 0 && (
             <ChartContainer
               width={Math.floor(width)}
-              height={parseInt(this.props.height, 10) - headerHeight}
+              height={chartSectionHeight}
               annotationData={chart.annotationData}
               chartAlert={chart.chartAlert}
               chartStackTrace={chart.chartStackTrace}
               chartId={chart.id}
               chartStatus={chart.chartStatus}
-              triggerRender={this.props.triggerRender}
-              datasource={this.props.datasource}
-              errorMessage={this.props.errorMessage}
-              formData={this.props.form_data}
-              onQuery={this.props.onQuery}
-              owners={this.props?.slice?.owners}
+              triggerRender={props.triggerRender}
+              datasource={props.datasource}
+              errorMessage={props.errorMessage}
+              formData={props.form_data}
+              onQuery={props.onQuery}
+              owners={props?.slice?.owners}
               queryResponse={chart.queryResponse}
-              refreshOverlayVisible={this.props.refreshOverlayVisible}
-              setControlValue={this.props.actions.setControlValue}
-              timeout={this.props.timeout}
+              refreshOverlayVisible={props.refreshOverlayVisible}
+              setControlValue={props.actions.setControlValue}
+              timeout={props.timeout}
               triggerQuery={chart.triggerQuery}
-              vizType={this.props.vizType}
+              vizType={props.vizType}
             />
           )
         }
       </ParentSize>
     );
-  }
+  };
 
-  render() {
-    if (this.props.standalone) {
-      // dom manipulation hack to get rid of the boostrap theme's body background
-      const standaloneClass = 'background-transparent';
-      const bodyClasses = document.body.className.split(' ');
-      if (bodyClasses.indexOf(standaloneClass) === -1) {
-        document.body.className += ` ${standaloneClass}`;
-      }
-      return this.renderChart();
+  if (props.standalone) {
+    // dom manipulation hack to get rid of the boostrap theme's body background
+    const standaloneClass = 'background-transparent';
+    const bodyClasses = document.body.className.split(' ');
+    if (bodyClasses.indexOf(standaloneClass) === -1) {
+      document.body.className += ` ${standaloneClass}`;
     }
-
-    const header = (
-      <ConnectedExploreChartHeader
-        actions={this.props.actions}
-        addHistory={this.props.addHistory}
-        can_overwrite={this.props.can_overwrite}
-        can_download={this.props.can_download}
-        chartHeight={this.props.height}
-        isStarred={this.props.isStarred}
-        slice={this.props.slice}
-        sliceName={this.props.sliceName}
-        table_name={this.props.table_name}
-        form_data={this.props.form_data}
-        timeout={this.props.timeout}
-        chart={this.props.chart}
-      />
-    );
-
-    return (
-      <Styles className="panel panel-default chart-container">
-        <div className="panel-heading">{header}</div>
-        <div className="panel-body">{this.renderChart()}</div>
-      </Styles>
-    );
+    return renderChart();
   }
-}
+
+  const header = (
+    <ConnectedExploreChartHeader
+      actions={props.actions}
+      addHistory={props.addHistory}
+      can_overwrite={props.can_overwrite}
+      can_download={props.can_download}
+      chartHeight={props.height}
+      isStarred={props.isStarred}
+      slice={props.slice}
+      sliceName={props.sliceName}
+      table_name={props.table_name}
+      form_data={props.form_data}
+      timeout={props.timeout}
+      chart={props.chart}
+    />
+  );
+
+  const elementStyle = (dimension, elementSize, gutterSize) => {
+    return {
+      [dimension]: `calc(${elementSize}% - ${
+        gutterSize + EXPLORE_GUTTER_MARGIN
+      }px)`,
+    };
+  };
+  return (
+    <Styles className="panel panel-default chart-container">
+      <div className="panel-heading" ref={panelHeadingRef}>
+        {header}
+      </div>
+      <Split
+        sizes={INITIAL_SIZES}
+        minSize={[200, 100]}
+        direction="vertical"
+        gutterSize={EXPLORE_GUTTER_HEIGHT}
+        onDragEnd={onDrag}
+        elementStyle={elementStyle}
+      >
+        <div className="panel-body">{renderChart()}</div>
+        <TableContainer>
+          <div style={{ height: tableSectionHeight }}>
+            {renderResultsModalBody()}
+          </div>
+        </TableContainer>
+      </Split>
+    </Styles>
+  );
+};
 
 ExploreChartPanel.propTypes = propTypes;
 

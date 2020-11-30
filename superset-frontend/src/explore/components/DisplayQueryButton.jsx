@@ -261,22 +261,6 @@ export const DisplayQueryButton = props => {
     );
   };
 
-  const renderResultsModalBody = () => {
-    if (isLoading) {
-      return <Loading />;
-    }
-    if (error) {
-      return <pre>{error}</pre>;
-    }
-    if (data) {
-      if (data.length === 0) {
-        return 'No data';
-      }
-      return renderDataTable();
-    }
-    return null;
-  };
-
   const renderSamplesModalBody = () => {
     if (isLoading) {
       return <Loading />;
@@ -327,15 +311,6 @@ export const DisplayQueryButton = props => {
             modalTitle={t('View query')}
             beforeOpen={() => beforeOpen('query')}
             modalBody={renderQueryModalBody()}
-            responsive
-          />
-        </Menu.Item>
-        <Menu.Item>
-          <ModalTrigger
-            triggerNode={<span>{t('View results')}</span>}
-            modalTitle={t('View results')}
-            beforeOpen={() => beforeOpen('results')}
-            modalBody={renderResultsModalBody()}
             responsive
           />
         </Menu.Item>
