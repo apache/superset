@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { datasourceId } from '../../../fixtures/mockDatasource';
+import { datasourceId } from './mockDatasource';
 
 export const sliceId = 18;
 
