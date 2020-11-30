@@ -87,7 +87,7 @@ const RefreshTooltip = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const screenshotNodeSelector = '.dashboard-component-chart-holder';
+const SCREENSHOT_NODE_SELECTOR = '.dashboard-component-chart-holder';
 
 const VerticalDotsTrigger = () => (
   <VerticalDotsContainer>
@@ -149,7 +149,7 @@ class SliceHeaderControls extends React.PureComponent {
         // so that we don't capture it on the screenshot
         menu.style.visibility = 'hidden';
         downloadAsImage(
-          screenshotNodeSelector,
+          SCREENSHOT_NODE_SELECTOR,
           this.props.slice.slice_name,
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
@@ -243,7 +243,7 @@ class SliceHeaderControls extends React.PureComponent {
           offset: [-40, 4],
         }}
         getPopupContainer={triggerNode =>
-          triggerNode.closest(screenshotNodeSelector)
+          triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
         }
       >
         <a id={`slice_${slice.slice_id}-controls`} role="button">

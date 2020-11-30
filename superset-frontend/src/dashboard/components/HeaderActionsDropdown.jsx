@@ -87,7 +87,7 @@ const DropdownButton = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 2.5}px;
 `;
 
-const screenshotNodeSelector = '.dashboard';
+const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
@@ -154,7 +154,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         // so that we don't capture it on the screenshot
         menu.style.visibility = 'hidden';
         downloadAsImage(
-          screenshotNodeSelector,
+          SCREENSHOT_NODE_SELECTOR,
           this.props.dashboardTitle,
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
@@ -311,7 +311,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         overlay={menu}
         trigger={['click']}
         getPopupContainer={triggerNode =>
-          triggerNode.closest(screenshotNodeSelector)
+          triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
         }
       >
         <DropdownButton id="save-dash-split-button" role="button">
