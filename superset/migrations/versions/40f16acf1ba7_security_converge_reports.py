@@ -23,8 +23,8 @@ Create Date: 2020-11-30 15:25:47.489419
 """
 
 # revision identifiers, used by Alembic.
-revision = '40f16acf1ba7'
-down_revision = 'e38177dbf641'
+revision = "40f16acf1ba7"
+down_revision = "e38177dbf641"
 
 
 from alembic import op
@@ -38,7 +38,6 @@ from superset.migrations.shared.security_converge import (
     migrate_roles,
     Pvm,
 )
-
 
 NEW_PVMS = {"ReportSchedule": ("can_read", "can_write",)}
 PVM_MAP = {
@@ -69,7 +68,6 @@ def downgrade():
     session = Session(bind=bind)
 
     # Add the old permissions on the migration itself
-    print(f"!!!!! {get_reversed_new_pvms(PVM_MAP)}")
     add_pvms(session, get_reversed_new_pvms(PVM_MAP))
     migrate_roles(session, get_reversed_pvm_map(PVM_MAP))
     try:
