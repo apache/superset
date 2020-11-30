@@ -75,6 +75,7 @@ interface ResultSetState {
   saveDatasetRadioBtnState: number;
   overwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
+  ctasSave: boolean;
 }
 
 // Making text render line breaks/tabs as is as monospace,

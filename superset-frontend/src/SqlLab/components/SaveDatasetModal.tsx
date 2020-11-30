@@ -29,13 +29,16 @@ interface SaveDatasetModalProps {
   onCancel: () => void;
   handleDatasetNameChange: (e: { target: { value: any } }) => void;
   userDatasetsOwned: Array<Record<string, any>>;
-  handleSaveDatasetRadioBtnState: () => void;
+  handleSaveDatasetRadioBtnState: (e: { target: { value: any } }) => void;
   saveDatasetRadioBtnState: number;
   overwriteDataSet: boolean;
   handleOverwriteCancel: () => void;
   handleOverwriteDataset: () => void;
-  handleOverwriteDatasetOption: () => void;
-  defaultCreateDatasetValue: () => void;
+  handleOverwriteDatasetOption: (
+    data: string,
+    option: Record<string, any>,
+  ) => void;
+  defaultCreateDatasetValue: string;
 }
 
 const Styles = styled.div`
