@@ -20,7 +20,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import moment from 'moment';
 
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import { createErrorHandler, shortenSQL } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
@@ -38,6 +38,7 @@ import { QueryObject } from 'src/views/CRUD/types';
 import QueryPreviewModal from './QueryPreviewModal';
 
 const PAGE_SIZE = 25;
+const SQL_PREVIEW_MAX_LINES = 4;
 
 const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
   table .table-cell {
@@ -52,15 +53,7 @@ const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
-const SQL_PREVIEW_MAX_LINES = 4;
-function shortenSQL(sql: string) {
-  let lines: string[] = sql.split('\n');
-  if (lines.length >= SQL_PREVIEW_MAX_LINES) {
-    lines = lines.slice(0, SQL_PREVIEW_MAX_LINES);
-    lines.push('...');
-  }
-  return lines.join('\n');
-}
+
 interface QueryListProps {
   addDangerToast: (msg: string, config?: any) => any;
   addSuccessToast: (msg: string, config?: any) => any;
@@ -298,7 +291,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
               onClick={() => setQueryCurrentlyPreviewing(original)}
             >
               <StyledSyntaxHighlighter language="sql" style={github}>
-                {shortenSQL(original.sql)}
+                {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
               </StyledSyntaxHighlighter>
             </div>
           );
