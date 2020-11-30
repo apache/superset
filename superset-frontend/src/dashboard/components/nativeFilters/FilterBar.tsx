@@ -26,9 +26,9 @@ import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
 import {
-  useFilterConfiguration,
-  useFilterSetter,
   useCascadingFilters,
+  useFilterConfiguration,
+  useSetExtraFormData,
 } from './state';
 import { Filter } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
@@ -153,7 +153,7 @@ interface FiltersBarProps {
 
 const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   const { id } = filter;
-  const setSelectedValues = useFilterSetter(id);
+  const setExtraFormData = useSetExtraFormData(id);
   const cascadingFilters = useCascadingFilters(id);
   const [state, setState] = useState({ data: undefined });
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
@@ -197,7 +197,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   return (
     <Form
       onFinish={values => {
-        setSelectedValues(values.value);
+        setExtraFormData(values.value);
       }}
     >
       <Form.Item name="value">
@@ -207,7 +207,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
           formData={getFormData()}
           queryData={state}
           chartType="filter_select"
-          hooks={{ setSelectedValues }}
+          hooks={{ setExtraFormData }}
         />
       </Form.Item>
     </Form>

@@ -18,15 +18,16 @@
  */
 import { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectFilterOption } from 'src/dashboard/actions/nativeFilters';
+import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { QueryObjectFilterClause, t } from '@superset-ui/core';
+import { ExtraFormData, QueryObjectFilterClause, t } from '@superset-ui/core';
 import {
   Charts,
   Filter,
   FilterConfiguration,
   FilterState,
-  Layout, NativeFiltersState,
+  Layout,
+  NativeFiltersState,
   RootState,
   TreeItem,
 } from './types';
@@ -66,11 +67,11 @@ export function useFilterState(id: string) {
   });
 }
 
-export function useFilterSetter(id: string) {
+export function useSetExtraFormData(id: string) {
   const dispatch = useDispatch();
   return useCallback(
-    (values: string | string[] | null) =>
-      dispatch(selectFilterOption(id, values)),
+    (extraFormData: ExtraFormData) =>
+      dispatch(setExtraFormData(id, extraFormData)),
     [id, dispatch],
   );
 }

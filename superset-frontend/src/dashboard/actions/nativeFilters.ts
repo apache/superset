@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SupersetClient } from '@superset-ui/core';
+import { ExtraFormData, SupersetClient } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   Filter,
@@ -83,18 +83,11 @@ export const setFilterConfiguration = (
   }
 };
 
-// wraps a value in an array if necessary.
-function toArray<T>(value: T | T[] | null): T[] | null {
-  if (Array.isArray(value)) return value;
-  if (value == null) return null;
-  return [value];
-}
-
-export const SELECT_FILTER_OPTION = 'SELECT_FILTER_OPTION';
-export interface SelectFilterOption {
-  type: typeof SELECT_FILTER_OPTION;
+export const SET_EXTRA_FORM_DATA = 'SET_EXTRA_FORM_DATA';
+export interface SetExtraFormData {
+  type: typeof SET_EXTRA_FORM_DATA;
   filterId: string;
-  selectedValues: string[] | null;
+  extraFormData: ExtraFormData;
 }
 
 export function setFilterState(
@@ -112,16 +105,16 @@ export function setFilterState(
 /**
  * Sets the selected option(s) for a given filter
  * @param filterId the id of the native filter
- * @param values the selected options values
+ * @param extraFormData the selection translated into extra form data
  */
-export function selectFilterOption(
+export function setExtraFormData(
   filterId: string,
-  values: string | string[] | null,
-): SelectFilterOption {
+  extraFormData: ExtraFormData,
+): SetExtraFormData {
   return {
-    type: SELECT_FILTER_OPTION,
+    type: SET_EXTRA_FORM_DATA,
     filterId,
-    selectedValues: toArray(values),
+    extraFormData,
   };
 }
 
@@ -129,5 +122,5 @@ export type AnyFilterAction =
   | SetFilterConfigBegin
   | SetFilterConfigComplete
   | SetFilterConfigFail
-  | SelectFilterOption
+  | SetExtraFormData
   | SetFilterState;

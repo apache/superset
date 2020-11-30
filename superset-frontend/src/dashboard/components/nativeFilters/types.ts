@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import { ExtraFormData, QueryObjectFilterClause } from '@superset-ui/core';
 import componentTypes from 'src/dashboard/util/componentTypes';
 
 export enum Scoping {
@@ -76,8 +76,10 @@ export interface Filter {
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
+  cascadeParentIds: string[];
   defaultValue: string | null;
   scope: Scope;
+  inverseSelection: boolean;
   isInstant: boolean;
   allowsMultipleValues: boolean;
   isRequired: boolean;
@@ -92,7 +94,7 @@ export type FilterState = {
   id: string; // ties this filter state to the config object
   optionsStatus: 'loading' | 'success' | 'fail';
   options: string[] | null;
-  selectedValues?: SelectedValues;
+  extraFormData?: ExtraFormData;
   /**
    * If the config changes, the current options/values may no longer be valid.
    * isDirty indicates that state.
