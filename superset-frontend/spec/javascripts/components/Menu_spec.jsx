@@ -137,7 +137,7 @@ describe('Menu', () => {
     expect(wrapper.find(Nav)).toHaveLength(2);
   });
 
-  it('renders 5 elements in main Menu Nav', () => {
+  it('renders 4 elements in main Menu Nav for every user', () => {
     expect(wrapper.find(MenuObject)).toHaveLength(4);
   });
 
