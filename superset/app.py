@@ -214,6 +214,9 @@ class SupersetAppInitializer:
         #
         # Setup regular views
         #
+        appbuilder.add_link(
+            "Home", label=__("Home"), href="/superset/welcome",
+        )
         appbuilder.add_view(
             AnnotationLayerModelView,
             "Annotation Layers",
