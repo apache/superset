@@ -58,7 +58,7 @@ const mockUser = {
 };
 
 fetchMock.get(templatesInfoEndpoint, {
-  permissions: ['can_delete'],
+  permissions: ['can_write'],
 });
 fetchMock.get(templatesEndpoint, {
   result: mocktemplates,
