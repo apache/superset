@@ -70,7 +70,7 @@ const mockqueries = [...new Array(3)].map((_, i) => ({
 }));
 
 fetchMock.get(queriesInfoEndpoint, {
-  permissions: ['can_delete'],
+  permissions: ['can_write'],
 });
 fetchMock.get(queriesEndpoint, {
   result: mockqueries,

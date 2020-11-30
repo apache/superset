@@ -95,8 +95,8 @@ function SavedQueryList({
     setSavedQueryCurrentlyPreviewing,
   ] = useState<SavedQueryObject | null>(null);
 
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
 
   const openNewQuery = () => {
     window.open(`${window.location.origin}/superset/sqllab?new=true`);

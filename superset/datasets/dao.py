@@ -143,7 +143,7 @@ class DatasetDAO(BaseDAO):
         return len(dataset_query) == 0
 
     @classmethod
-    def update(
+    def update(  # pylint: disable=W:279
         cls,
         model: SqlaTable,
         properties: Dict[str, Any],

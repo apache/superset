@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { styled } from '@superset-ui/core';
 
 import ModalTrigger from '../../../components/ModalTrigger';
 import FilterScope from '../../containers/FilterScope';
@@ -25,6 +26,11 @@ import FilterScope from '../../containers/FilterScope';
 const propTypes = {
   triggerNode: PropTypes.node.isRequired,
 };
+
+const FilterScopeModalBody = styled.div(({ theme: { gridUnit } }) => ({
+  padding: gridUnit * 2,
+  paddingBottom: gridUnit * 3,
+}));
 
 export default class FilterScopeModal extends React.PureComponent {
   constructor(props) {
@@ -43,14 +49,14 @@ export default class FilterScopeModal extends React.PureComponent {
   render() {
     return (
       <ModalTrigger
-        dialogClassName="filter-scope-modal"
         ref={this.modal}
         triggerNode={this.props.triggerNode}
         modalBody={
-          <div className="dashboard-modal filter-scope">
+          <FilterScopeModalBody>
             <FilterScope onCloseModal={this.handleCloseModal} />
-          </div>
+          </FilterScopeModalBody>
         }
+        width="80%"
       />
     );
   }
