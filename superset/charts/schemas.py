@@ -1111,10 +1111,10 @@ class ChartDataAsyncResponseSchema(Schema):
         description="Unique session async channel ID", allow_none=False,
     )
     job_id = fields.String(description="Unique async job ID", allow_none=False,)
+    user_id = fields.String(description="Requesting user ID", allow_none=True,)
     status = fields.String(description="Status value for async job", allow_none=False,)
-    msg = fields.String(description="User-facing message text", allow_none=True,)
-    cache_key = fields.String(
-        description="Unique cache key for async QueryContext", allow_none=False,
+    result_url = fields.String(
+        description="Unique result URL for fetching async query data", allow_none=False,
     )
 
 

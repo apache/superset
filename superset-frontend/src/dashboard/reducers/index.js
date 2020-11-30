@@ -18,7 +18,6 @@
  */
 import { combineReducers } from 'redux';
 
-import asyncEvents from './asyncEvents';
 import charts from '../../chart/chartReducer';
 import dashboardInfo from './dashboardInfo';
 import dashboardState from './dashboardState';
@@ -30,10 +29,7 @@ import messageToasts from '../../messageToasts/reducers';
 
 const impressionId = (state = '') => state;
 
-const asyncEvent = (state = {}, eventId) => ({ ...state, async_last_event: eventId });
-
 export default combineReducers({
-  asyncEvents,
   charts,
   datasources,
   dashboardInfo,

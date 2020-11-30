@@ -541,9 +541,9 @@ class BaseViz:
 
         if self.force_cached and not is_loaded:
             logger.warning(
-                f"force_cached (viz.py): value not found for key {cache_key}"
+                f"force_cached (viz.py): value not found for cache key {cache_key}"
             )
-            raise CacheLoadError()
+            raise CacheLoadError(_("Cached value not found"))
 
         if query_obj and not is_loaded:
             try:
@@ -625,13 +625,15 @@ class BaseViz:
             obj, default=utils.json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
         )
 
-    def payload_json_and_has_error(self, payload: VizPayload) -> Tuple[str, bool]:
-        has_error = (
+    def has_error(self, payload: VizPayload) -> bool:
+        return (
             payload.get("status") == utils.QueryStatus.FAILED
             or payload.get("error") is not None
             or bool(payload.get("errors"))
         )
-        return self.json_dumps(payload), has_error
+
+    def payload_json_and_has_error(self, payload: VizPayload) -> Tuple[str, bool]:
+        return self.json_dumps(payload), self.has_error(payload)
 
     @property
     def data(self) -> Dict[str, Any]:

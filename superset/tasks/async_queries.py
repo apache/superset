@@ -21,6 +21,7 @@ from typing import Any, cast, Dict
 from flask import current_app
 
 from superset import app
+from superset.exceptions import SupersetException, SupersetVizException
 from superset.extensions import async_query_manager, cache_manager, celery_app
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.views.utils import get_datasource_info, get_viz
@@ -44,15 +45,17 @@ def load_chart_data_into_cache(
             command = ChartDataCommand()
             command.set_query_context(form_data)
             result = command.run(cache=True)
+            cache_key = result["cache_key"]
+            result_url = f"/api/v1/chart/data/{cache_key}"
             async_query_manager.update_job(
-                job_metadata,
-                async_query_manager.STATUS_DONE,
-                cache_key=result["cache_key"],
+                job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
         except Exception as exc:
-            msg = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
+            # TODO: QueryContext should support SIP-40 style errors
+            error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
+            errors = [{"message": error}]
             async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_ERROR, msg=msg
+                job_metadata, async_query_manager.STATUS_ERROR, errors=errors
             )
             raise exc
 
@@ -77,7 +80,9 @@ def load_explore_json_into_cache(
                 force=force,
             )
             # run query & cache results
-            viz_obj.get_payload()
+            payload = viz_obj.get_payload()
+            if viz_obj.has_error(payload):
+                raise SupersetVizException(errors=payload["errors"])
 
             # cache form_data for async retrieval
             cache_value = {"form_data": form_data, "response_type": response_type}
@@ -85,14 +90,21 @@ def load_explore_json_into_cache(
                 cache_value, "ejr-"
             )  # ejr: explore_json request
             set_and_log_cache(cache_manager.cache, cache_key, cache_value)
-
+            result_url = f"/superset/explore_json/data/{cache_key}"
             async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_DONE, cache_key=cache_key,
+                job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
         except Exception as exc:
-            msg = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
+            if isinstance(exc, SupersetVizException):
+                errors = exc.errors
+            else:
+                error = (
+                    exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
+                )
+                errors = [error]
+
             async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_ERROR, msg=msg
+                job_metadata, async_query_manager.STATUS_ERROR, errors=errors
             )
             raise exc
 

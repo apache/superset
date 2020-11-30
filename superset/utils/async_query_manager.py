@@ -133,8 +133,8 @@ class AsyncQueryManager:
             "job_id": job_id,
             "user_id": session["user_id"] if "user_id" in session else None,
             "status": kwargs["status"],
-            "msg": kwargs["msg"] if "msg" in kwargs else None,
-            "cache_key": kwargs["cache_key"] if "cache_key" in kwargs else None,
+            "errors": kwargs["errors"] if "errors" in kwargs else [],
+            "result_url": kwargs["result_url"] if "result_url" in kwargs else None,
         }
 
     def read_events(

@@ -36,7 +36,36 @@ export type ClientErrorObject = {
   stacktrace?: string;
 } & Partial<SupersetClientResponse>;
 
-export default function getClientErrorObject(
+export function parseErrorJson(responseObject: SupersetClientResponse | (Response & { timeout: number }) | object): ClientErrorObject {
+  // Backwards compatibility for old error renderers with the new error object
+  if (responseObject['errors'] && responseObject['errors'].length > 0) {
+    responseObject['error'] = responseObject['description'] = responseObject['errors'][0].message;
+    responseObject['link'] = responseObject['errors'][0]?.extra?.link;
+  }
+
+  if (responseObject['stack']) {
+    responseObject = {
+      ...responseObject,
+      error:
+        t('Unexpected error: ') +
+        (responseObject['description'] ||
+          t('(no description, click to see stack trace)')),
+      stacktrace: responseObject['stack'],
+    };
+  } else if (
+    responseObject['responseText'] &&
+    responseObject['responseText'].indexOf('CSRF') >= 0
+  ) {
+    responseObject = {
+      ...responseObject,
+      error: t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT),
+    };
+  }
+
+  return { ...responseObject, error: responseObject['error'] }; // typescript madness
+}
+
+export function getClientErrorObject(
   response: SupersetClientResponse | (Response & { timeout: number }) | string,
 ): Promise<ClientErrorObject> {
   // takes a SupersetClientResponse as input, attempts to read response as Json if possible,
@@ -54,33 +83,8 @@ export default function getClientErrorObject(
           .clone()
           .json()
           .then(errorJson => {
-            let error = { ...responseObject, ...errorJson };
-
-            // Backwards compatibility for old error renderers with the new error object
-            if (error.errors && error.errors.length > 0) {
-              error.error = error.description = error.errors[0].message;
-              error.link = error.errors[0]?.extra?.link;
-            }
-
-            if (error.stack) {
-              error = {
-                ...error,
-                error:
-                  t('Unexpected error: ') +
-                  (error.description ||
-                    t('(no description, click to see stack trace)')),
-                stacktrace: error.stack,
-              };
-            } else if (
-              error.responseText &&
-              error.responseText.indexOf('CSRF') >= 0
-            ) {
-              error = {
-                ...error,
-                error: t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT),
-              };
-            }
-            resolve(error);
+            const error = { ...responseObject, ...errorJson };
+            resolve(parseErrorJson(error));
           })
           .catch(() => {
             // fall back to reading as text

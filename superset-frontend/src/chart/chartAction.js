@@ -38,7 +38,7 @@ import {
 import { addDangerToast } from '../messageToasts/actions';
 import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
-import getClientErrorObject from '../utils/getClientErrorObject';
+import { getClientErrorObject } from '../utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from '../utils/hostNamesConfig';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
@@ -360,7 +360,9 @@ export function exploreJSON(
     const chartDataRequestCaught = chartDataRequest
       .then(response => {
         if(isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
-          return dispatch(chartUpdateQueued(response, key));
+          // deal with getChartDataRequest transforming the response data
+          const result = ('result' in response) ? response['result'][0] : response;
+          return dispatch(chartUpdateQueued(result, key));
 
         } else {
           // new API returns an object with an array of restults

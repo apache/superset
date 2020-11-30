@@ -32,7 +32,7 @@ import { styled, t } from '@superset-ui/core';
 import { Menu } from 'src/common/components';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import Button from 'src/components/Button';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { getClientErrorObject } from '../../utils/getClientErrorObject';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { getChartDataRequest } from '../../chart/chartAction';
 import downloadAsImage from '../../utils/downloadAsImage';
