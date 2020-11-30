@@ -547,6 +547,44 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    def test_update_dataset_item_w_override_columns(self):
+        """
+        Dataset API: Test update dataset with override columns
+        """
+        # Add default dataset
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        dataset_data = {
+            "columns": [
+                {
+                    "column_name": "new_col",
+                    "description": "description",
+                    "expression": "expression",
+                    "type": "INTEGER",
+                    "verbose_name": "New Col",
+                }
+            ],
+            "description": "changed description",
+        }
+        uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+        assert rv.status_code == 200
+
+        columns = (
+            db.session.query(TableColumn)
+            .filter_by(table_id=dataset.id)
+            .order_by("column_name")
+            .all()
+        )
+
+        assert columns[0].column_name == dataset_data["columns"][0]["column_name"]
+        assert columns[0].description == dataset_data["columns"][0]["description"]
+        assert columns[0].expression == dataset_data["columns"][0]["expression"]
+        assert columns[0].type == dataset_data["columns"][0]["type"]
+
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_update_dataset_create_column(self):
         """
         Dataset API: Test update dataset create column
