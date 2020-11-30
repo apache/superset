@@ -19,7 +19,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
-import { Dropdown, Skeleton, Menu as AntdMenu } from 'antd';
+import { AutoComplete, Dropdown, Skeleton, Menu as AntdMenu, Radio} from 'antd';
 import { DropDownProps } from 'antd/lib/dropdown';
 
 /*
@@ -29,6 +29,7 @@ import { DropDownProps } from 'antd/lib/dropdown';
  */
 // eslint-disable-next-line no-restricted-imports
 export {
+  AutoComplete,
   Avatar,
   Button,
   Card,
@@ -41,6 +42,7 @@ export {
   Popover,
   Select,
   Skeleton,
+  Radio,
   Tabs,
   Tooltip,
 } from 'antd';
