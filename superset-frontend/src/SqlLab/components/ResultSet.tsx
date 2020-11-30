@@ -21,9 +21,11 @@ import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import moment from 'moment';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { get as getDataset, put as updateDatset } from 'src/api/dataset';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -36,9 +38,6 @@ import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-
-import { get as getDataset, put as updateDatset } from 'src/api/dataset';
 
 const SEARCH_HEIGHT = 46;
 
@@ -49,7 +48,7 @@ const EXPLORE_CHART_DEFAULT = {
   groupby: [],
   time_range: 'No filter',
   viz_type: 'table',
-}
+};
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
@@ -220,7 +219,7 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
-  handleOverwriteDatasetOption(data: string, option) {
+  handleOverwriteDatasetOption(data: string, option: Record<string, any>) {
     this.setState({ datasetToOverwrite: option });
   }
 

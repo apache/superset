@@ -23,7 +23,7 @@ export const get = async (userId: number) => {
 export const put = async (
   datasetId: number,
   sql: string,
-  columns: Array<number>,
+  columns: Array<Record<string, any>>,
   overrideColumns: boolean,
 ) => {
   const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
