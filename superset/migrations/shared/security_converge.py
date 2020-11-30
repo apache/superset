@@ -37,8 +37,8 @@ Base = declarative_base()
 
 @dataclass(frozen=True)
 class Pvm:
-    permission: str
     view: str
+    permission: str
 
 
 PvmMigrationMapType = Dict[Pvm, Tuple[Pvm, ...]]
