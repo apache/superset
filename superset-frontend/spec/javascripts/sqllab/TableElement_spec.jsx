@@ -65,7 +65,7 @@ describe('TableElement', () => {
     );
   });
   it('fades table', () => {
-    const wrapper = shallow(<TableElement {...mockedProps} />)
+    const wrapper = shallow(<TableElement {...mockedProps} />);
     expect(wrapper.state().hovered).toBe(false);
     expect(wrapper.find(Fade).props().hovered).toBe(false);
     wrapper.find('div.TableElement').simulate('mouseEnter');
