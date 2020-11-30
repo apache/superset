@@ -254,9 +254,9 @@ def get_reversed_new_pvms(pvm_map: PvmMigrationMapType) -> Dict[str, Tuple[str, 
     reversed_pvms: Dict[str, Tuple[str, ...]] = {}
     for old_pvm, new_pvms in pvm_map.items():
         if old_pvm.view not in reversed_pvms:
-            reversed_pvms[old_pvm.view] = (old_pvm.view,)
+            reversed_pvms[old_pvm.view] = (old_pvm.permission,)
         else:
-            reversed_pvms[old_pvm.permission] = reversed_pvms[old_pvm.permission] + (
+            reversed_pvms[old_pvm.view] = reversed_pvms[old_pvm.view] + (
                 old_pvm.permission,
             )
     return reversed_pvms
