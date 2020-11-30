@@ -256,7 +256,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: bool
-            name: override_column
+            name: override_columns
           requestBody:
             description: Dataset schema
             required: true
