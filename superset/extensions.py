@@ -16,7 +16,7 @@
 # under the License.
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import celery
 from cachelib.base import BaseCache

@@ -17,7 +17,6 @@
 # pylint: disable=comparison-with-callable, line-too-long, too-many-branches
 import logging
 import re
-import time
 from contextlib import closing
 from datetime import datetime
 from typing import Any, Callable, cast, Dict, List, Optional, Union
@@ -42,7 +41,6 @@ from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
-from sqlalchemy.sql import functions as func
 from werkzeug.urls import Href
 
 from superset import (
@@ -1339,28 +1337,30 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         payload = []
         for log in items:
-            item_url = None
-            item_title = None
-            item_type = None
             if log.dashboard_id:
-                item_type = "dashboard"
-                item_url = Dashboard(id=log.dashboard_id, slug=log.dashboard_slug).url
-                item_title = log.dashboard_title
+                payload.append(
+                    {
+                        "action": log.action,
+                        "item_type": "dashboard",
+                        "item_url": Dashboard(
+                            id=log.dashboard_id, slug=log.dashboard_slug
+                        ).url,
+                        "item_title": log.dashboard_title,
+                        "time": log.dttm,
+                    }
+                )
             elif log.slice_id:
                 slc = Slice(id=log.slice_id, slice_name=log.slice_name)
-                item_type = "slice"
-                item_url = slc.slice_url
-                item_title = slc.chart
+                payload.append(
+                    {
+                        "action": log.action,
+                        "item_type": "slice",
+                        "item_url": slc.slice_url,
+                        "item_title": slc.chart,
+                        "time": log.dttm,
+                    }
+                )
 
-            payload.append(
-                {
-                    "action": log.action,
-                    "item_type": item_type,
-                    "item_url": item_url,
-                    "item_title": item_title,
-                    "time": log.dttm,
-                }
-            )
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
