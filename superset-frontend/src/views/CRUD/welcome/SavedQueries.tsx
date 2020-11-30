@@ -18,6 +18,9 @@
  */
 import React, { useState } from 'react';
 import { t, SupersetClient, styled } from '@superset-ui/core';
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
+import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
+import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
@@ -30,8 +33,10 @@ import {
   IconContainer,
   CardContainer,
   createErrorHandler,
-  CardStyles,
+  shortenSQL,
 } from '../utils';
+
+SyntaxHighlighter.registerLanguage('sql', sql);
 
 const PAGE_SIZE = 3;
 
@@ -45,6 +50,8 @@ interface Query {
   description?: string;
   end_time?: string;
   label?: string;
+  changed_on_delta_humanized?: string;
+  sql?: string | null;
 }
 
 interface SavedQueriesProps {
@@ -57,19 +64,51 @@ interface SavedQueriesProps {
   mine: Array<Query>;
 }
 
-const QueryData = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  .title {
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+export const CardStyles = styled.div`
+  cursor: pointer;
+  a {
+    text-decoration: none;
   }
-  .holder {
-    margin: ${({ theme }) => theme.gridUnit * 2}px;
+  .ant-card-cover {
+    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    & > div {
+      height: 171px;
+    }
+  }
+  .gradient-container > div {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: ${({ theme }) => theme.colors.secondary.light3};
+    display: inline-block;
+    width: 100%;
+    height: 179px;
+    background-repeat: no-repeat;
+    vertical-align: middle;
   }
 `;
+
+const QueryData = styled.div`
+  svg {
+    margin-left: ${({ theme }) => theme.gridUnit * 10}px;
+  }
+  .query-title {
+    padding: ${({ theme }) => theme.gridUnit * 2 + 2}px;
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  }
+`;
+
+const QueryContainer = styled.div`
+  pre {
+    height: ${({ theme }) => theme.gridUnit * 40}px;
+    border: none !important;
+    background-color: ${({ theme }) =>
+      theme.colors.grayscale.light5} !important;
+    overflow: hidden;
+    padding: ${({ theme }) => theme.gridUnit * 4}px !important;
+  }
+`;
+
 const SavedQueries = ({
   user,
   addDangerToast,
@@ -259,35 +298,50 @@ const SavedQueries = ({
               key={q.id}
             >
               <ListViewCard
-                imgFallbackURL=""
                 imgURL=""
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
-                rows={q.rows}
-                description={t('Last run ', q.end_time)}
+                imgFallbackURL="/static/assets/images/empty-query.svg"
+                description={t('Last run %s', q.changed_on_delta_humanized)}
                 cover={
-                  <QueryData>
-                    <div className="holder">
-                      <div className="title">{t('Tables')}</div>
-                      <div>{q?.sql_tables?.length}</div>
-                    </div>
-                    <div className="holder">
-                      <div className="title">{t('Datasource Name')}</div>
-                      <div>{q?.sql_tables && q.sql_tables[0]?.table}</div>
-                    </div>
-                  </QueryData>
+                  q?.sql?.length ? (
+                    <QueryContainer>
+                      <SyntaxHighlighter
+                        language="sql"
+                        lineProps={{
+                          style: {
+                            color: 'black',
+                            wordBreak: 'break-all',
+                            whiteSpace: 'pre-wrap',
+                          },
+                        }}
+                        style={github}
+                        wrapLines
+                        lineNumberStyle={{
+                          display: 'none',
+                        }}
+                        showLineNumbers={false}
+                      >
+                        {shortenSQL(q.sql, 25)}
+                      </SyntaxHighlighter>
+                    </QueryContainer>
+                  ) : (
+                    false
+                  )
                 }
                 actions={
-                  <ListViewCard.Actions
-                    onClick={e => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
-                  >
-                    <Dropdown overlay={renderMenu(q)}>
-                      <Icon name="more-horiz" />
-                    </Dropdown>
-                  </ListViewCard.Actions>
+                  <QueryData>
+                    <ListViewCard.Actions
+                      onClick={e => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                    >
+                      <Dropdown overlay={renderMenu(q)}>
+                        <Icon name="more-horiz" />
+                      </Dropdown>
+                    </ListViewCard.Actions>
+                  </QueryData>
                 }
               />
             </CardStyles>

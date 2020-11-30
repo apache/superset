@@ -264,22 +264,31 @@ export function handleDashboardDelete(
   );
 }
 
+export function shortenSQL(sql: string, maxLines: number) {
+  let lines: string[] = sql.split('\n');
+  if (lines.length >= maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines.push('...');
+  }
+  return lines.join('\n');
+}
+
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 
 export const CardContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
   ${[mq[3]]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
   }
 
   ${[mq[2]]} {
-    grid-template-columns: repeat(auto-fit, minmax(48%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(48%, 48%));
   }
 
   ${[mq[1]]} {
-    grid-template-columns: repeat(auto-fit, minmax(50%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(50%, 80%));
   }
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;
