@@ -63,10 +63,7 @@ docker-compose up
 ```
 
 After several minutes for superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088)
-to start your journey. In order to support hot-reload for development call: 
-```
-ENABLE_WEBPACK_DEV_SERVER=yes docker-compose up
-```
+to start your journey.
 
 ## Developing
 

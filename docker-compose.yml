@@ -70,10 +70,8 @@ services:
   superset-node:
     image: node:12
     container_name: superset_node
-    command: ["/app/docker-frontend.sh"]
+    command: ["/app/docker/docker-frontend.sh"]
     env_file: docker/.env
-    environment:
-      ENABLE_WEBPACK_DEV_SERVER: "${ENABLE_WEBPACK_DEV_SERVER}"
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
