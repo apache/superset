@@ -71,7 +71,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         endpoint: `/datasource/get/table/${datasource.id}`,
       })
         .then(({ json }) => {
-          console.log(json)
           onDatasourceSave(json);
           onChange(datasource.uid);
         })
