@@ -125,9 +125,6 @@ class SliceHeaderControls extends React.PureComponent {
   }
 
   handleMenuClick({ key, domEvent }) {
-    const menu = document.querySelector(
-      '.ant-dropdown:not(.ant-dropdown-hidden)',
-    );
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
         this.refreshChart();
@@ -144,9 +141,12 @@ class SliceHeaderControls extends React.PureComponent {
       case MENU_KEYS.RESIZE_LABEL:
         this.props.handleToggleFullSize();
         break;
-      case MENU_KEYS.DOWNLOAD_AS_IMAGE:
+      case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
         // menu closes with a delay, we need to hide it manually,
         // so that we don't capture it on the screenshot
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        );
         menu.style.visibility = 'hidden';
         downloadAsImage(
           SCREENSHOT_NODE_SELECTOR,
@@ -155,6 +155,7 @@ class SliceHeaderControls extends React.PureComponent {
           menu.style.visibility = 'visible';
         });
         break;
+      }
       default:
         break;
     }
