@@ -161,7 +161,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
     def test_info_security_report(self):
         """
-        SavedQuery API: Test info security
+        ReportSchedule API: Test info security
         """
         self.login(username="admin")
         params = {"keys": ["permissions"]}
