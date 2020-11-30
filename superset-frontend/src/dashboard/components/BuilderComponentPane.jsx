@@ -23,7 +23,7 @@ import Tabs from 'src/common/components/Tabs';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';
@@ -43,14 +43,18 @@ const defaultProps = {
 
 const SUPERSET_HEADER_HEIGHT = 59;
 
+const BuilderComponentPaneTabs = styled(Tabs)`
+  line-height: inherit;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 class BuilderComponentPane extends React.PureComponent {
   renderTabs(height) {
     const { isSticky } = this.props;
     return (
-      <Tabs
+      <BuilderComponentPaneTabs
         id="tabs"
         className="tabs-components"
-        style={{ marginTop: '10px' }}
         data-test="dashboard-builder-component-pane-tabs-navigation"
       >
         <Tabs.TabPane key={1} tab={t('Components')}>
@@ -66,7 +70,7 @@ class BuilderComponentPane extends React.PureComponent {
             height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
           />
         </Tabs.TabPane>
-      </Tabs>
+      </BuilderComponentPaneTabs>
     );
   }
 
