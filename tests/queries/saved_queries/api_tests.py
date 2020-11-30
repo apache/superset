@@ -414,9 +414,23 @@ class TestSavedQueryApi(SupersetTestCase):
         SavedQuery API: Test info
         """
         self.login(username="admin")
-        uri = f"api/v1/saved_query/_info"
+        uri = "api/v1/saved_query/_info"
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
+
+    def test_info_security_saved_query(self):
+        """
+        SavedQuery API: Test info security
+        """
+        self.login(username="admin")
+        params = {"keys": ["permissions"]}
+        uri = f"api/v1/saved_query/_info?q={prison.dumps(params)}"
+        rv = self.get_assert_metric(uri, "info")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert "can_read" in data["permissions"]
+        assert "can_write" in data["permissions"]
+        assert len(data["permissions"]) == 2
 
     def test_related_saved_query(self):
         """
