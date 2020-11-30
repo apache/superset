@@ -56,7 +56,7 @@ class ExportModelsCommand(BaseCommand):
         }
         yield METADATA_FILE_NAME, yaml.safe_dump(metadata, sort_keys=False)
 
-        seen = set()
+        seen = {METADATA_FILE_NAME}
         for model in self._models:
             for file_name, file_content in self.export(model):
                 if file_name not in seen:

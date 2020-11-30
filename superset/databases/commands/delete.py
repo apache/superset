@@ -19,16 +19,19 @@ from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import lazy_gettext as _
 
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.databases.commands.exceptions import (
     DatabaseDeleteDatasetsExistFailedError,
     DatabaseDeleteFailedError,
+    DatabaseDeleteFailedReportsExistError,
     DatabaseNotFoundError,
 )
 from superset.databases.dao import DatabaseDAO
 from superset.models.core import Database
+from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +56,14 @@ class DeleteDatabaseCommand(BaseCommand):
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:
             raise DatabaseNotFoundError()
+        # Check there are no associated ReportSchedules
+        reports = ReportScheduleDAO.find_by_database_id(self._model_id)
+
+        if reports:
+            report_names = [report.name for report in reports]
+            raise DatabaseDeleteFailedReportsExistError(
+                _("There are associated alerts or reports: %s" % ",".join(report_names))
+            )
         # Check if there are datasets for this database
         if self._model.tables:
             raise DatabaseDeleteDatasetsExistFailedError()

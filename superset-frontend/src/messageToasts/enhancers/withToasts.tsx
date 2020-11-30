@@ -28,6 +28,13 @@ import {
   addWarningToast,
 } from '../actions';
 
+export interface ToastProps {
+  addDangerToast: typeof addDangerToast;
+  addInfoToast: typeof addInfoToast;
+  addSuccessToast: typeof addSuccessToast;
+  addWarningToast: typeof addWarningToast;
+}
+
 // To work properly the redux state must have a `messageToasts` subtree
 export default function withToasts(BaseComponent: ComponentType<any>) {
   return connect(null, dispatch =>

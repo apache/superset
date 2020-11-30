@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 from marshmallow import Schema, validate
 from marshmallow.exceptions import ValidationError
@@ -32,6 +32,7 @@ from superset.commands.importers.v1.utils import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
+from superset.datasets.commands.exceptions import DatasetImportError
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 
@@ -80,16 +81,16 @@ class ImportDatasetsCommand(BaseCommand):
         try:
             self._import_bundle(db.session)
             db.session.commit()
-        except Exception as exc:
+        except Exception:
             db.session.rollback()
-            raise exc
+            raise DatasetImportError()
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
 
         # verify that the metadata file is present and valid
         try:
-            metadata = load_metadata(self.contents)
+            metadata: Optional[Dict[str, str]] = load_metadata(self.contents)
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None

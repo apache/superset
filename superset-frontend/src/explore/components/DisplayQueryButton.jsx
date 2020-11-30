@@ -90,6 +90,7 @@ export const DisplayQueryButton = props => {
     datasource && datasource.split('__')[1] === 'table',
   );
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const tableData = useMemo(() => {
     if (!data?.length) {
@@ -150,6 +151,7 @@ export const DisplayQueryButton = props => {
 
   const handleMenuClick = ({ key, domEvent }) => {
     const { chartHeight, slice, onOpenInEditor, latestQueryFormData } = props;
+    setMenuVisible(false);
     switch (key) {
       case MENU_KEYS.EDIT_PROPERTIES:
         openPropertiesModal();
@@ -273,6 +275,7 @@ export const DisplayQueryButton = props => {
   const { slice } = props;
   return (
     <DropdownButton
+      open={menuVisible}
       noCaret
       data-test="query-dropdown"
       title={
@@ -284,6 +287,7 @@ export const DisplayQueryButton = props => {
       bsSize="sm"
       pullRight
       id="query"
+      onToggle={setMenuVisible}
     >
       <Menu onClick={handleMenuClick} selectable={false}>
         {slice && [

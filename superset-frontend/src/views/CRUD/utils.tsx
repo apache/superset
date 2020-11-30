@@ -33,9 +33,11 @@ const createFetchResourceMethod = (method: string) => (
   resource: string,
   relation: string,
   handleError: (error: Response) => void,
+  userId?: string | number,
 ) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
   const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
-
+  const options =
+    userId && pageIndex === 0 ? [{ label: 'me', value: userId }] : [];
   try {
     const queryParams = rison.encode({
       ...(pageIndex ? { page: pageIndex } : {}),
@@ -45,13 +47,14 @@ const createFetchResourceMethod = (method: string) => (
     const { json = {} } = await SupersetClient.get({
       endpoint: `${resourceEndpoint}?q=${queryParams}`,
     });
-
-    return json?.result?.map(
+    const data = json?.result?.map(
       ({ text: label, value }: { text: string; value: any }) => ({
         label,
         value,
       }),
     );
+
+    return options.concat(data);
   } catch (e) {
     handleError(e);
   }
@@ -143,7 +146,7 @@ export const getRecentAcitivtyObjs = (
           })
           .catch(e =>
             addDangerToast(
-              'There was an error fetching you recent activity:',
+              t('There was an error fetching your recent activity:'),
               e,
             ),
           );
@@ -261,22 +264,31 @@ export function handleDashboardDelete(
   );
 }
 
+export function shortenSQL(sql: string, maxLines: number) {
+  let lines: string[] = sql.split('\n');
+  if (lines.length >= maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines.push('...');
+  }
+  return lines.join('\n');
+}
+
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 
 export const CardContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
   ${[mq[3]]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
   }
 
   ${[mq[2]]} {
-    grid-template-columns: repeat(auto-fit, minmax(48%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(48%, 48%));
   }
 
   ${[mq[1]]} {
-    grid-template-columns: repeat(auto-fit, minmax(50%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(50%, 80%));
   }
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;

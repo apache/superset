@@ -60,11 +60,12 @@ const schemaOptions = {
 };
 const selectedSchema = { label: 'main', title: 'main', value: 'main' };
 const selectedTable = {
+  extra: null,
   label: 'birth_names',
   schema: 'main',
   title: 'birth_names',
-  value: 'birth_names',
   type: undefined,
+  value: 'birth_names',
 };
 
 async function mountAndWait(props = mockedProps) {

@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import TableElement from './TableElement';
 import TableSelector from '../../components/TableSelector';
 
@@ -38,6 +38,15 @@ const defaultProps = {
   offline: false,
   tables: [],
 };
+
+const StyledScrollbarContainer = styled.div`
+  flex: 1 1 auto;
+  overflow: auto;
+`;
+
+const StyledScrollbarContent = styled.div`
+  height: ${props => props.contentHeight}px;
+`;
 
 export default class SqlEditorLeftBar extends React.PureComponent {
   constructor(props) {
@@ -130,11 +139,8 @@ export default class SqlEditorLeftBar extends React.PureComponent {
           tableNameSticky={false}
         />
         <div className="divider" />
-        <div className="scrollbar-container">
-          <div
-            className="scrollbar-content"
-            style={{ height: tableMetaDataHeight }}
-          >
+        <StyledScrollbarContainer>
+          <StyledScrollbarContent contentHeight={tableMetaDataHeight}>
             {this.props.tables.map(table => (
               <TableElement
                 table={table}
@@ -142,8 +148,8 @@ export default class SqlEditorLeftBar extends React.PureComponent {
                 actions={this.props.actions}
               />
             ))}
-          </div>
-        </div>
+          </StyledScrollbarContent>
+        </StyledScrollbarContainer>
         {shouldShowReset && (
           <Button
             buttonSize="small"

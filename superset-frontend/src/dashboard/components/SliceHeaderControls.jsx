@@ -87,6 +87,8 @@ const RefreshTooltip = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const SCREENSHOT_NODE_SELECTOR = '.dashboard-component-chart-holder';
+
 const VerticalDotsTrigger = () => (
   <VerticalDotsContainer>
     <span className="dot" />
@@ -139,12 +141,21 @@ class SliceHeaderControls extends React.PureComponent {
       case MENU_KEYS.RESIZE_LABEL:
         this.props.handleToggleFullSize();
         break;
-      case MENU_KEYS.DOWNLOAD_AS_IMAGE:
+      case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
+        // menu closes with a delay, we need to hide it manually,
+        // so that we don't capture it on the screenshot
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        );
+        menu.style.visibility = 'hidden';
         downloadAsImage(
-          '.dashboard-component-chart-holder',
+          SCREENSHOT_NODE_SELECTOR,
           this.props.slice.slice_name,
-        )(domEvent);
+        )(domEvent).then(() => {
+          menu.style.visibility = 'visible';
+        });
         break;
+      }
       default:
         break;
     }
@@ -177,7 +188,7 @@ class SliceHeaderControls extends React.PureComponent {
           key={MENU_KEYS.FORCE_REFRESH}
           disabled={this.props.chartStatus === 'loading'}
           style={{ height: 'auto', lineHeight: 'initial' }}
-          data-test="refresh-dashboard-menu-item"
+          data-test="refresh-chart-menu-item"
         >
           {t('Force refresh')}
           <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
@@ -232,6 +243,9 @@ class SliceHeaderControls extends React.PureComponent {
         dropdownAlign={{
           offset: [-40, 4],
         }}
+        getPopupContainer={triggerNode =>
+          triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
+        }
       >
         <a id={`slice_${slice.slice_id}-controls`} role="button">
           <VerticalDotsTrigger />

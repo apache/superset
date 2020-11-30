@@ -1130,6 +1130,14 @@ class GetFavStarIdsSchema(Schema):
     )
 
 
+class ImportV1ChartSchema(Schema):
+    params = fields.Dict()
+    cache_timeout = fields.Integer(allow_none=True)
+    uuid = fields.UUID(required=True)
+    version = fields.String(required=True)
+    dataset_uuid = fields.UUID(required=True)
+
+
 CHART_SCHEMAS = (
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,

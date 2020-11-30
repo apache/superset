@@ -36,6 +36,7 @@ from sqlalchemy.exc import (
 
 from superset import event_logger
 from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.v1.utils import remove_root
 from superset.constants import RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
@@ -44,6 +45,7 @@ from superset.databases.commands.exceptions import (
     DatabaseCreateFailedError,
     DatabaseDeleteDatasetsExistFailedError,
     DatabaseDeleteFailedError,
+    DatabaseImportError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
@@ -184,6 +186,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def post(self) -> Response:
         """Creates a new Database
         ---
@@ -246,6 +249,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def put(  # pylint: disable=too-many-return-statements, arguments-differ
         self, pk: int
     ) -> Response:
@@ -319,6 +323,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Deletes a Database
         ---
@@ -369,6 +374,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @rison(database_schemas_query_schema)
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
         """Get all schemas from a database
         ---
@@ -422,8 +428,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @check_datasource_access
     @safe
-    @event_logger.log_this
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def table_metadata(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
@@ -479,8 +485,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @check_datasource_access
     @safe
-    @event_logger.log_this
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
     ) -> FlaskResponse:
@@ -536,8 +542,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @expose("/test_connection", methods=["POST"])
     @protect()
     @safe
-    @event_logger.log_this
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def test_connection(  # pylint: disable=too-many-return-statements
         self,
     ) -> FlaskResponse:
@@ -617,6 +623,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def related_objects(self, pk: int) -> Response:
         """Get charts and dashboards count associated to a database
         ---
@@ -675,6 +682,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def export(self, **kwargs: Any) -> Response:
         """Export database(s) with associated datasets
         ---
@@ -759,12 +767,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        upload = request.files.get("file")
+        upload = request.files.get("formData")
         if not upload:
             return self.response_400()
         with ZipFile(upload) as bundle:
             contents = {
-                file_name: bundle.read(file_name).decode()
+                remove_root(file_name): bundle.read(file_name).decode()
                 for file_name in bundle.namelist()
             }
 
@@ -775,6 +783,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except CommandInvalidError as exc:
             logger.warning("Import database failed")
             return self.response_422(message=exc.normalized_messages())
-        except Exception as exc:  # pylint: disable=broad-except
+        except DatabaseImportError as exc:
             logger.exception("Import database failed")
             return self.response_500(message=str(exc))

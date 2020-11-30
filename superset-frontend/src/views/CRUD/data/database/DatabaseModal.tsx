@@ -601,10 +601,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 checked={db ? !!db.allow_csv_upload : false}
                 onChange={onInputChange}
               />
-              <div>{t('Allow CSV Upload')}</div>
+              <div>{t('Allow Data Upload')}</div>
               <InfoTooltip
                 tooltip={t(
-                  'If selected, please set the schemas allowed for csv upload in Extra.',
+                  'If selected, please set the schemas allowed for data upload in Extra.',
                 )}
               />
             </div>

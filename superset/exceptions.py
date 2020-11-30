@@ -25,7 +25,9 @@ class SupersetException(Exception):
     status = 500
     message = ""
 
-    def __init__(self, message: str = "", exception: Optional[Exception] = None):
+    def __init__(
+        self, message: str = "", exception: Optional[Exception] = None,
+    ) -> None:
         if message:
             self.message = message
         self._exception = exception
