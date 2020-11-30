@@ -28,9 +28,9 @@ import Tab, {
   RENDER_TAB,
   RENDER_TAB_CONTENT,
 } from 'src/dashboard/components/gridComponents/Tab';
-import WithDragDropContext from '../../helpers/WithDragDropContext';
-import { dashboardLayoutWithTabs } from '../../fixtures/mockDashboardLayout';
-import { mockStoreWithTabs } from '../../fixtures/mockStore';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
+import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
+import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
 
 describe('Tabs', () => {
   const props = {

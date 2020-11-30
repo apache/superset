@@ -23,10 +23,10 @@ import * as SupersetUI from '@superset-ui/core';
 import { CHART_UPDATE_SUCCEEDED } from 'src/chart/chartAction';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import FiltersBadge from 'src/dashboard/containers/FiltersBadge';
-import { getMockStoreWithFilters } from '../fixtures/mockStore';
-import { sliceId } from '../fixtures/mockChartQueries';
-import { dashboardFilters } from '../fixtures/mockDashboardFilters';
-import { dashboardWithFilter } from '../fixtures/mockDashboardLayout';
+import { getMockStoreWithFilters } from 'spec/fixtures/mockStore';
+import { sliceId } from 'spec/fixtures/mockChartQueries';
+import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
+import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
 
 describe('FiltersBadge', () => {
   // there's this bizarre "active filters" thing
