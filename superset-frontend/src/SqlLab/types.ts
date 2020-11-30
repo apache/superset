@@ -55,6 +55,7 @@ export type Query = {
     | 'scheduled'
     | 'success'
     | 'timed_out';
+  tab: string | null;
   tempSchema: string | null;
   tempTable: string;
   trackingUrl: string | null;
