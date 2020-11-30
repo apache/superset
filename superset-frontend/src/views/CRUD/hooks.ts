@@ -150,7 +150,7 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [baseFilters],
+    [baseFilters.length ? baseFilters : null],
   );
 
   return {
