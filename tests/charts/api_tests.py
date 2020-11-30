@@ -138,6 +138,38 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             db.session.delete(chart)
             db.session.commit()
 
+    @pytest.fixture()
+    def add_dashboard_to_chart(self):
+        with self.create_app().app_context():
+            admin = self.get_user("admin")
+
+            self.chart = self.insert_chart("My chart", [admin.id], 1)
+
+            self.original_dashboard = Dashboard()
+            self.original_dashboard.dashboard_title = "Original Dashboard"
+            self.original_dashboard.slug = "slug"
+            self.original_dashboard.owners = [admin]
+            self.original_dashboard.slices = [self.chart]
+            self.original_dashboard.published = False
+            db.session.add(self.original_dashboard)
+
+            self.new_dashboard = Dashboard()
+            self.new_dashboard.dashboard_title = "New Dashboard"
+            self.new_dashboard.slug = "new_slug"
+            self.new_dashboard.owners = [admin]
+            self.new_dashboard.slices = []
+            self.new_dashboard.published = False
+            db.session.add(self.new_dashboard)
+
+            db.session.commit()
+
+            yield self.chart
+
+            db.session.delete(self.original_dashboard)
+            db.session.delete(self.new_dashboard)
+            db.session.delete(self.chart)
+            db.session.commit()
+
     def test_delete_chart(self):
         """
         Chart API: Test delete
@@ -521,6 +553,35 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertIn(admin, model.owners)
         db.session.delete(model)
         db.session.commit()
+
+    @pytest.mark.usefixtures("add_dashboard_to_chart")
+    def test_update_chart_new_dashboards(self):
+        """
+        Chart API: Test update set new owner to current user
+        """
+        chart_data = {
+            "slice_name": "title1_changed",
+            "dashboards": [self.new_dashboard.id],
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/{self.chart.id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn(self.new_dashboard, self.chart.dashboards)
+        self.assertNotIn(self.original_dashboard, self.chart.dashboards)
+
+    @pytest.mark.usefixtures("add_dashboard_to_chart")
+    def test_not_update_chart_none_dashboards(self):
+        """
+        Chart API: Test update set new owner to current user
+        """
+        chart_data = {"slice_name": "title1_changed_again"}
+        self.login(username="admin")
+        uri = f"api/v1/chart/{self.chart.id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn(self.original_dashboard, self.chart.dashboards)
+        self.assertEqual(len(self.chart.dashboards), 1)
 
     def test_update_chart_not_owned(self):
         """

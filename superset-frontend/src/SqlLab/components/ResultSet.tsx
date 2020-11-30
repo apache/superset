@@ -25,7 +25,7 @@ import { styled, t } from '@superset-ui/core';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { get as getDataset, put as updateDatset } from 'src/api/dataset';
+import { getByUser as getDataset, put as updateDatset } from 'src/api/dataset';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';

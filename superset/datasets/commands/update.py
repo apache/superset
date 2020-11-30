@@ -68,7 +68,6 @@ class UpdateDatasetCommand(BaseCommand):
                 dataset = DatasetDAO.update(
                     model=self._model,
                     properties=self._properties,
-                    commit=True,
                     override_columns=self.override_columns,
                 )
                 return dataset
