@@ -75,6 +75,10 @@ const CopyButton = styled(Button)`
   && {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
+
+  i {
+    padding: 0;
+  }
 `;
 
 export const DisplayQueryButton = props => {

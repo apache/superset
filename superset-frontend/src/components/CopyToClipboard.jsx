@@ -77,8 +77,7 @@ class CopyToClipboard extends React.Component {
         style: { cursor: 'pointer' },
         onClick: this.onClick,
         onMouseOut: this.onMouseOut,
-      },
-      null,
+      }
     );
   }
 
