@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 
 import buildFilterScopeTreeEntry from '../../util/buildFilterScopeTreeEntry';
 import getFilterScopeNodesTree from '../../util/getFilterScopeNodesTree';
@@ -48,6 +48,24 @@ const propTypes = {
   setUnsavedChanges: PropTypes.func.isRequired,
   onCloseModal: PropTypes.func.isRequired,
 };
+
+const ActionsContainer = styled.div`
+  height: ${({ theme }) => theme.gridUnit * 16}px;
+
+  // TODO: replace hardcoded color with theme variable after refactoring filter-scope-selector.less to Emotion
+  border-top: ${({ theme }) => theme.gridUnit / 4}px solid #cfd8dc;
+  padding: ${({ theme }) => theme.gridUnit * 6}px;
+  margin: 0 0 0 ${({ theme }) => -theme.gridUnit * 6}px;
+  text-align: right;
+
+  .btn {
+    margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+`;
 
 export default class FilterScopeSelector extends React.PureComponent {
   constructor(props) {
@@ -512,7 +530,7 @@ export default class FilterScopeSelector extends React.PureComponent {
           )}
         </div>
 
-        <div className="dashboard-modal-actions-container">
+        <ActionsContainer>
           <Button buttonSize="sm" onClick={this.onClose}>
             {t('Close')}
           </Button>
@@ -521,7 +539,7 @@ export default class FilterScopeSelector extends React.PureComponent {
               {t('Save')}
             </Button>
           )}
-        </div>
+        </ActionsContainer>
       </div>
     );
   }
