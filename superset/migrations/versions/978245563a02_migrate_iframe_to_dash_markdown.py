@@ -157,7 +157,7 @@ def upgrade():
 
             if keys_to_remove:
                 for key_to_remove in keys_to_remove:
-                    position_dict.pop(key_to_remove)
+                    del position_dict[key_to_remove]
                 dashboard.position_json = json.dumps(
                     position_dict, indent=None, separators=(",", ":"), sort_keys=True,
                 )
