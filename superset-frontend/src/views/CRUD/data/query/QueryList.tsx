@@ -337,7 +337,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('Database'),
         id: 'database',
         input: 'select',
-        operator: FilterOperators.relation_one_many,
+        operator: FilterOperators.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
@@ -371,7 +371,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('User'),
         id: 'user',
         input: 'select',
-        operator: FilterOperators.relation_one_many,
+        operator: FilterOperators.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
