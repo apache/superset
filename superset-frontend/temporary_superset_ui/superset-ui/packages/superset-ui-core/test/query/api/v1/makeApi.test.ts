@@ -113,6 +113,18 @@ describe('makeApi()', () => {
     expect(fetchMock.lastUrl()).toContain('/test-get-search?p1=1&p2=2&p3=1%2C2');
   });
 
+  it('should serialize rison for method=GET, requestType=rison', async () => {
+    expect.assertions(1);
+    const api = makeApi({
+      method: 'GET',
+      endpoint: '/test-post-search',
+      requestType: 'rison',
+    });
+    fetchMock.get('glob:*/test-post-search*', { rison: 'get' });
+    await api({ p1: 1, p3: [1, 2] });
+    expect(fetchMock.lastUrl()).toContain('/test-post-search?q=(p1:1,p3:!(1,2))');
+  });
+
   it('should use searchParams for method=POST, requestType=search', async () => {
     expect.assertions(1);
     const api = makeApi({

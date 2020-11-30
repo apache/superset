@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import {
   SupersetClient,
   Payload as SupersetPayload,
@@ -29,7 +30,7 @@ import {
 import handleError, { ErrorInput } from './handleError';
 import { SupersetApiRequestOptions, SupersetApiErrorPayload, ParsedResponseType } from './types';
 
-const validRequestTypes = new Set(['form', 'json', 'search']);
+const validRequestTypes = new Set(['form', 'json', 'search', 'rison']);
 
 interface SupersetApiFactoryOptions extends Omit<RequestBase, 'url'> {
   /**
@@ -46,7 +47,7 @@ interface SupersetApiFactoryOptions extends Omit<RequestBase, 'url'> {
    *  - json: as JSON string with request Content-Type header set to application/json
    *  - search: add to search params
    */
-  requestType?: 'form' | 'json' | 'search';
+  requestType?: 'form' | 'json' | 'search' | 'rison';
 }
 
 function isPayloadless(method?: Method) {
@@ -81,7 +82,9 @@ export default function makeApi<
   // use `search` payload (searchParams) when it's a GET request
   const requestType = requestType_ || (isPayloadless(method) ? 'search' : 'json');
   if (!validRequestTypes.has(requestType)) {
-    throw new Error('Invalid request payload type, choose from: form | json | search');
+    throw new Error(
+      `Invalid request payload type, choose from: ${[...validRequestTypes].join(' | ')}`,
+    );
   }
 
   async function request(
@@ -96,6 +99,8 @@ export default function makeApi<
       };
       if (requestType === 'search') {
         requestConfig.searchParams = payload;
+      } else if (requestType === 'rison') {
+        requestConfig.endpoint = `${endpoint}?q=${rison.encode(payload)}`;
       } else if (requestType === 'form') {
         requestConfig.postPayload = payload;
       } else {
