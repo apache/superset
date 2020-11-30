@@ -90,11 +90,13 @@ function mergeCreateFilterValues(list: Filter[], updateObj: QueryFilterState) {
 // convert filters from UI objects to data objects
 export function convertFilters(fts: InternalFilter[]): FilterValue[] {
   return fts
-    .filter(f => {
-      if (typeof f.value === 'undefined') return false;
-      if (Array.isArray(f.value) && !f.value.length) return false;
-      return true;
-    })
+    .filter(
+      f =>
+        !(
+          typeof f.value === 'undefined' ||
+          (Array.isArray(f.value) && !f.value.length)
+        ),
+    )
     .map(({ value, operator, id }) => {
       // handle between filter using 2 api filters
       if (operator === 'between' && Array.isArray(value)) {
