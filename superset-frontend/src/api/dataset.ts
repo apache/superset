@@ -20,7 +20,7 @@
 import { SupersetClient, JsonResponse } from '@superset-ui/core';
 import rison from 'rison';
 
-export const get = async (userId: number) => {
+export const getByUser = async (userId: number) => {
   const queryParams = rison.encode({
     filters: [
       {
