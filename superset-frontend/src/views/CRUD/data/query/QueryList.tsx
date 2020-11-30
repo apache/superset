@@ -30,14 +30,18 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { Popover } from 'src/common/components';
 import { commonMenuData } from 'src/views/CRUD/data/common';
-import ListView, { Filters, ListViewProps } from 'src/components/ListView';
+import ListView, {
+  Filters,
+  FilterOperators,
+  ListViewProps,
+} from 'src/components/ListView';
 import Icon, { IconName } from 'src/components/Icon';
 import { Tooltip } from 'src/common/components/Tooltip';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
-import { QueryObject } from 'src/views/CRUD/types';
+import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
 import QueryPreviewModal from './QueryPreviewModal';
 
@@ -125,7 +129,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     ...commonMenuData,
   };
 
-  const initialSort = [{ id: 'start_time', desc: true }];
+  const initialSort = [{ id: QueryObjectColumns.start_time, desc: true }];
   const columns = useMemo(
     () => [
       {
@@ -175,12 +179,12 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
             </Tooltip>
           );
         },
-        accessor: 'status',
+        accessor: QueryObjectColumns.status,
         size: 'xs',
         disableSortBy: true,
       },
       {
-        accessor: 'start_time',
+        accessor: QueryObjectColumns.start_time,
         Header: t('Time'),
         size: 'lg',
         Cell: ({
@@ -216,21 +220,21 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         },
       },
       {
-        accessor: 'tab_name',
+        accessor: QueryObjectColumns.tab_name,
         Header: t('Tab Name'),
         size: 'lg',
       },
       {
-        accessor: 'database.database_name',
+        accessor: QueryObjectColumns.database_name,
         Header: t('Database'),
         size: 'lg',
       },
       {
-        accessor: 'database',
+        accessor: QueryObjectColumns.database,
         hidden: true,
       },
       {
-        accessor: 'schema',
+        accessor: QueryObjectColumns.schema,
         Header: t('Schema'),
         size: 'lg',
       },
@@ -267,13 +271,13 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
 
           return main;
         },
-        accessor: 'sql_tables',
+        accessor: QueryObjectColumns.sql_tables,
         Header: t('Tables'),
         size: 'lg',
         disableSortBy: true,
       },
       {
-        accessor: 'user',
+        accessor: QueryObjectColumns.user,
         Header: t('User'),
         size: 'lg',
         Cell: ({
@@ -283,12 +287,12 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         }: any) => `${user.first_name} ${user.last_name}`,
       },
       {
-        accessor: 'rows',
+        accessor: QueryObjectColumns.rows,
         Header: t('Rows'),
         size: 'md',
       },
       {
-        accessor: 'sql',
+        accessor: QueryObjectColumns.sql,
         Header: t('SQL'),
         Cell: ({ row: { original, id } }: any) => {
           return (
@@ -333,7 +337,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('Database'),
         id: 'database',
         input: 'select',
-        operator: 'rel_o_m',
+        operator: FilterOperators.relation_one_many,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
@@ -350,7 +354,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('State'),
         id: 'status',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperators.equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'query',
@@ -367,7 +371,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('User'),
         id: 'user',
         input: 'select',
-        operator: 'rel_o_m',
+        operator: FilterOperators.relation_one_many,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
@@ -384,13 +388,13 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('Time Range'),
         id: 'start_time',
         input: 'datetime_range',
-        operator: 'between',
+        operator: FilterOperators.between,
       },
       {
         Header: t('Search by query text'),
         id: 'sql',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperators.contains,
       },
     ],
     [addDangerToast],

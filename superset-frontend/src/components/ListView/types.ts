@@ -99,3 +99,24 @@ export interface FetchDataConfig {
 export interface InternalFilter extends FilterValue {
   Header?: string;
 }
+
+export enum FilterOperators {
+  starts_with = 'sw',
+  ends_with = 'ew',
+  contains = 'ct',
+  equals = 'eq',
+  not_starts_with = 'nsw',
+  not_ends_with = 'new',
+  not_contains = 'nct',
+  not_equals = 'neq',
+  greater_than = 'gt',
+  less_than = 'lt',
+  relation_many_many = 'rel_m_m',
+  relation_one_many = 'rel_o_m',
+  title_or_slug = 'title_or_slug',
+  name_or_description = 'name_or_description',
+  all_text = 'all_text',
+  chart_all_text = 'chart_all_text',
+  dataset_is_null_or_empty = 'dataset_is_null_or_empty',
+  between = 'between',
+}
