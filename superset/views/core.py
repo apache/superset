@@ -22,6 +22,7 @@ from contextlib import closing
 from datetime import datetime
 from typing import Any, cast, Dict, List, Optional, Union
 from urllib import parse
+from unidecode import unidecode
 
 import backoff
 import pandas as pd
@@ -2395,10 +2396,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
             csv = df.to_csv(index=False, **config["CSV_EXPORT"])
+        csv = csv.encode(config.get('CSV_EXPORT')['encoding'])
         response = Response(csv, mimetype="text/csv")
-        response.headers[
-            "Content-Disposition"
-        ] = f"attachment; filename={query.name}.csv"
+        response.headers['Content-Disposition'] = (
+             'attachment; filename={}.csv'.format(unidecode(query.name)))
         event_info = {
             "event_type": "data_export",
             "client_id": client_id,
