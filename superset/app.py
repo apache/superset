@@ -340,8 +340,8 @@ class SupersetAppInitializer:
         )
         appbuilder.add_link(
             "Query Search",
-            label=_("Query Search"),
-            href="/superset/sqllab#search",
+            label=_("Query History"),
+            href="/superset/sqllab/history",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",

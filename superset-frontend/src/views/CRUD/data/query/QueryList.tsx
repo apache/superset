@@ -186,7 +186,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.start_time,
         Header: t('Time'),
-        size: 'lg',
+        size: 'xl',
         Cell: ({
           row: {
             original: { start_time, end_time },
@@ -222,12 +222,12 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.tab_name,
         Header: t('Tab Name'),
-        size: 'lg',
+        size: 'xl',
       },
       {
         accessor: QueryObjectColumns.database_name,
         Header: t('Database'),
-        size: 'lg',
+        size: 'xl',
       },
       {
         accessor: QueryObjectColumns.database,
@@ -236,7 +236,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.schema,
         Header: t('Schema'),
-        size: 'lg',
+        size: 'xl',
       },
       {
         Cell: ({
@@ -273,13 +273,13 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         },
         accessor: QueryObjectColumns.sql_tables,
         Header: t('Tables'),
-        size: 'lg',
+        size: 'xl',
         disableSortBy: true,
       },
       {
         accessor: QueryObjectColumns.user,
         Header: t('User'),
-        size: 'lg',
+        size: 'xl',
         Cell: ({
           row: {
             original: { user },
