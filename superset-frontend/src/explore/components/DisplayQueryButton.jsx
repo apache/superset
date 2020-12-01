@@ -207,9 +207,6 @@ export const DisplayQueryButton = props => {
               <CopyButtonViewQuery>
                 <i className="fa fa-clipboard" />
               </CopyButtonViewQuery>
-              // <Button style={{ position: 'absolute', right: 20}}>
-              //   <i className="fa fa-clipboard" style={{ padding: 0 }}/>
-              // </Button>
             }
           />
           <SyntaxHighlighter language={language} style={github}>
