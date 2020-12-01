@@ -31,14 +31,8 @@ const propTypes = {
   componentId: PropTypes.string.isRequired,
   dashboardId: PropTypes.number.isRequired,
   addDangerToast: PropTypes.func.isRequired,
-  isCached: PropTypes.oneOfType([
-    PropTypes.bool,
-    PropTypes.arrayOf(PropTypes.bool),
-  ]),
-  cachedDttm: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.arrayOf(PropTypes.string),
-  ]),
+  isCached: PropTypes.arrayOf(PropTypes.bool),
+  cachedDttm: PropTypes.arrayOf(PropTypes.string),
   isExpanded: PropTypes.bool,
   updatedDttm: PropTypes.number,
   supersetCanExplore: PropTypes.bool,
@@ -55,9 +49,9 @@ const defaultProps = {
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
   exportCSV: () => ({}),
-  cachedDttm: null,
+  cachedDttm: [],
   updatedDttm: null,
-  isCached: false,
+  isCached: [],
   isExpanded: false,
   supersetCanExplore: false,
   supersetCanCSV: false,
@@ -177,21 +171,17 @@ class SliceHeaderControls extends React.PureComponent {
       addDangerToast,
       isFullSize,
     } = this.props;
-    const cachedDttmMulti = Array.isArray(cachedDttm)
-      ? cachedDttm
-      : [cachedDttm];
-    const isCachedMulti = Array.isArray(isCached) ? isCached : [isCached];
-    const cachedWhen = cachedDttmMulti.map(itemCachedDttm =>
+    const cachedWhen = cachedDttm.map(itemCachedDttm =>
       moment.utc(itemCachedDttm).fromNow(),
     );
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
-    const refreshTooltip = isCachedMulti
-      .map(itemCached =>
-        (itemCached
-          ? t('Cached %s', cachedWhen)
-          : (updatedWhen && t('Fetched %s', updatedWhen)) || ''),
-      )
-      .join(', ');
+    let refreshTooltip = isCached.map(itemCached =>
+      (itemCached
+        ? t('Cached %s', cachedWhen)
+        : (updatedWhen && t('Fetched %s', updatedWhen)) || ''),
+    );
+    // If all queries have same cache time we can unit them to one
+    refreshTooltip = [...new Set(refreshTooltip)].join(', ');
     const resizeLabel = isFullSize ? t('Minimize') : t('Maximize');
 
     const menu = (

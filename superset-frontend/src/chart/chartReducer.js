@@ -45,19 +45,13 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.CHART_UPDATE_SUCCEEDED](state) {
-      const otherProps = {};
-      if (Array.isArray(action.queryResponse)) {
-        otherProps.queryResponse = action.queryResponse[0];
-        otherProps.queriesResponse = action.queryResponse;
-      } else {
-        otherProps.queryResponse = action.queryResponse;
-      }
       return {
         ...state,
         chartStatus: 'success',
         chartAlert: null,
+        queryResponse: action.queryResponse,
+        queriesResponse: action.queriesResponse,
         chartUpdateEndTime: now(),
-        ...otherProps,
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {

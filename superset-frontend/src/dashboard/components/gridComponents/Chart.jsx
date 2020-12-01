@@ -257,13 +257,12 @@ export default class Chart extends React.Component {
       return <MissingChart height={this.getChartHeight()} />;
     }
 
-    const { queryResponse, chartUpdateEndTime, queriesResponse } = chart;
-    const isCached = queriesResponse
-      ? queriesResponse.map(({ is_cached }) => is_cached)
-      : queryResponse?.is_cached;
-    const cachedDttm = queriesResponse
-      ? queriesResponse.map(({ cached_dttm }) => cached_dttm)
-      : queryResponse?.cached_dttm;
+    const { chartUpdateEndTime, queriesResponse } = chart;
+    // eslint-disable-next-line camelcase
+    const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
+    const cachedDttm =
+      // eslint-disable-next-line camelcase
+      queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice.viz_type);
     const initialValues = isFilterBox(id)
       ? getFilterValuesByFilterId({
@@ -336,6 +335,7 @@ export default class Chart extends React.Component {
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
+            queriesResponse={chart.queriesResponse}
             queryResponse={chart.queryResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}

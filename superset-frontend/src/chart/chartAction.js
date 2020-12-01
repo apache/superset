@@ -52,8 +52,8 @@ export function chartUpdateStarted(queryController, latestQueryFormData, key) {
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
-export function chartUpdateSucceeded(queryResponse, key) {
-  return { type: CHART_UPDATE_SUCCEEDED, queryResponse, key };
+export function chartUpdateSucceeded(queryResponse, queriesResponse, key) {
+  return { type: CHART_UPDATE_SUCCEEDED, queryResponse, queriesResponse, key };
 }
 
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
@@ -132,9 +132,7 @@ const legacyChartDataRequest = async (
     // Make the legacy endpoint return a payload that corresponds to the
     // V1 chart data endpoint response signature.
     return {
-      response: {
         result: [json],
-      },
     };
   });
 };
@@ -178,7 +176,7 @@ const v1ChartDataRequest = async (
     body: JSON.stringify(payload),
   };
   return SupersetClient.post(querySettings).then(({ json }) => {
-    return { response: json, hasMultiQueries: payload.queries.length > 1 };
+    return json;
   });
 };
 
@@ -357,17 +355,15 @@ export function exploreJSON(
     dispatch(chartUpdateStarted(controller, formData, key));
 
     const chartDataRequestCaught = chartDataRequest
-      .then(({ response, hasMultiQueries }) => {
+      .then(response => {
         // new API returns an object with an array of restults
         // problem: response holds a list of results, when before we were just getting one result.
         // How to make the entire app compatible with multiple results?
         // For now just use the first result.
-        let result = response.result[0];
-        if (hasMultiQueries) {
-          result = response.result;
-        }
+        const queryResponse = response.result[0]; // deprecated
+        const queriesResponse = response.result;
 
-        response.result.forEach(resultItem =>
+        queriesResponse.forEach(resultItem =>
           dispatch(
             logEvent(LOG_ACTIONS_LOAD_CHART, {
               slice_id: key,
@@ -388,7 +384,7 @@ export function exploreJSON(
             }),
           ),
         );
-        return dispatch(chartUpdateSucceeded(result, key));
+        return dispatch(chartUpdateSucceeded(queryResponse, queriesResponse, key));
       })
       .catch(response => {
         const appendErrorLog = (errorDetails, isCached) => {

@@ -56,7 +56,6 @@ const propTypes = {
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
   chartStackTrace: PropTypes.string,
-  queryResponse: PropTypes.object,
   queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
@@ -180,7 +179,6 @@ class Chart extends React.PureComponent {
       errorMessage,
       onQuery,
       refreshOverlayVisible,
-      queryResponse,
       queriesResponse,
     } = this.props;
 
@@ -188,10 +186,7 @@ class Chart extends React.PureComponent {
     const isFaded = refreshOverlayVisible && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
-      if (queriesResponse) {
-        return queriesResponse.map(item => this.renderErrorMessage(item));
-      }
-      return this.renderErrorMessage(queryResponse);
+      return queriesResponse.map(item => this.renderErrorMessage(item));
     }
     if (errorMessage) {
       return (
