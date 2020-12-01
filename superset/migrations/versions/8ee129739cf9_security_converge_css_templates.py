@@ -23,8 +23,8 @@ Create Date: 2020-11-30 17:54:09.118630
 """
 
 # revision identifiers, used by Alembic.
-revision = '8ee129739cf9'
-down_revision = 'e38177dbf641'
+revision = "8ee129739cf9"
+down_revision = "e38177dbf641"
 
 
 from alembic import op
@@ -39,7 +39,6 @@ from superset.migrations.shared.security_converge import (
     Pvm,
 )
 
-
 NEW_PVMS = {"CssTemplate": ("can_read", "can_write",)}
 PVM_MAP = {
     Pvm("CssTemplateModelView", "can_list"): (Pvm("CssTemplate", "can_read"),),
@@ -48,7 +47,6 @@ PVM_MAP = {
     Pvm("CssTemplateModelView", "can_edit",): (Pvm("CssTemplate", "can_write"),),
     Pvm("CssTemplateModelView", "can_delete",): (Pvm("CssTemplate", "can_write"),),
     Pvm("CssTemplateModelView", "muldelete",): (Pvm("CssTemplate", "can_write"),),
-    Pvm("CssTemplateModelView", "can_mulexport",): (Pvm("CssTemplate", "can_read"),),
     Pvm("CssTemplateAsyncModelView", "can_list",): (Pvm("CssTemplate", "can_read"),),
     Pvm("CssTemplateAsyncModelView", "muldelete",): (Pvm("CssTemplate", "can_write"),),
 }
