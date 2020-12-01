@@ -214,6 +214,10 @@ class SupersetAppInitializer:
         #
         # Setup regular views
         #
+        if appbuilder.app.config["LOGO_TARGET_PATH"]:
+            appbuilder.add_link(
+                "Home", label=__("Home"), href="/superset/welcome",
+            )
         appbuilder.add_view(
             AnnotationLayerModelView,
             "Annotation Layers",
