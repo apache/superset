@@ -118,6 +118,7 @@ export default class AnnotationLayer extends React.PureComponent {
       descriptionColumns,
       timeColumn,
       intervalEndColumn,
+      vizType,
     } = props;
 
     // Only allow override whole time_range
@@ -127,10 +128,19 @@ export default class AnnotationLayer extends React.PureComponent {
       delete overrides.until;
     }
 
+    // Check if annotationType is supported by this chart
+    const metadata = getChartMetadataRegistry().get(vizType);
+    const supportedAnnotationTypes = metadata?.supportedAnnotationTypes || [];
+    const validAnnotationType = supportedAnnotationTypes.includes(
+      annotationType,
+    )
+      ? annotationType
+      : supportedAnnotationTypes[0];
+
     this.state = {
       // base
       name,
-      annotationType,
+      annotationType: validAnnotationType,
       sourceType,
       value,
       overrides,
@@ -724,6 +734,7 @@ export default class AnnotationLayer extends React.PureComponent {
                   options={supportedSourceTypes}
                   value={sourceType}
                   onChange={this.handleAnnotationSourceType}
+                  validationErrors={!sourceType ? [t('Mandatory')] : []}
                 />
               )}
               {this.renderValueConfiguration()}
