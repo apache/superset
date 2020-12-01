@@ -18,12 +18,13 @@
  */
 
 import React, { useMemo, useEffect } from 'react';
-import { t, styled } from '@superset-ui/core';
+
+import { t } from '@superset-ui/core';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import Icon, { IconName } from 'src/components/Icon';
-import { Tooltip } from 'src/common/components/Tooltip';
 import { Switch } from 'src/common/components/Switch';
+import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import FacePile from 'src/components/FacePile';
 import ListView, { Filters, FilterOperators } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
@@ -48,27 +49,13 @@ interface AlertListProps {
   };
 }
 
-const StatusIcon = styled(Icon)<{ status: string }>`
-  color: ${({ status, theme }) => {
-    switch (status) {
-      case 'Working':
-        return theme.colors.alert.base;
-      case 'Error':
-        return theme.colors.error.base;
-      case 'Success':
-        return theme.colors.success.base;
-      default:
-        return theme.colors.grayscale.base;
-    }
-  }};
-`;
-
 function AlertList({
   addDangerToast,
   isReportEnabled = false,
   user,
 }: AlertListProps) {
-  const title = isReportEnabled ? t('report') : t('alert');
+  const title = isReportEnabled ? 'report' : 'alert';
+  const pathName = isReportEnabled ? 'Reports' : 'Alerts';
   const initalFilters = useMemo(
     () => [
       {
@@ -92,7 +79,7 @@ function AlertList({
     undefined,
     initalFilters,
   );
-  const pathName = isReportEnabled ? 'Reports' : 'Alerts';
+
   const { updateResource } = useSingleViewResource<AlertObject>(
     'report',
     t('reports'),
@@ -118,6 +105,9 @@ function AlertList({
     refreshData();
   }, [isReportEnabled]);
 
+  const gotoExecutionLog = (id: number, type: string) => {
+    window.location.href = `/${type.toLowerCase()}/${id}/log`;
+  };
   const columns = useMemo(
     () => [
       {
@@ -125,42 +115,7 @@ function AlertList({
           row: {
             original: { last_state: lastState },
           },
-        }: any) => {
-          const lastStateConfig = {
-            name: '',
-            label: '',
-            status: '',
-          };
-          switch (lastState) {
-            case 'Success':
-              lastStateConfig.name = 'check';
-              lastStateConfig.label = t('Success');
-              lastStateConfig.status = 'Success';
-              break;
-            case 'Working':
-              lastStateConfig.name = 'exclamation';
-              lastStateConfig.label = t('Working');
-              lastStateConfig.status = 'Working';
-              break;
-            case 'Error':
-              lastStateConfig.name = 'x-small';
-              lastStateConfig.label = t('Error');
-              lastStateConfig.status = 'Error';
-              break;
-            default:
-              lastStateConfig.name = 'exclamation';
-              lastStateConfig.label = t('Working');
-              lastStateConfig.status = 'Working';
-          }
-          return (
-            <Tooltip title={lastStateConfig.label} placement="bottom">
-              <StatusIcon
-                name={lastStateConfig.name as IconName}
-                status={lastStateConfig.status}
-              />
-            </Tooltip>
-          );
-        },
+        }: any) => <AlertStatusIcon state={lastState} />,
         accessor: 'last_state',
         size: 'xs',
         disableSortBy: true,
@@ -219,6 +174,8 @@ function AlertList({
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => {}; // handleAnnotationEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
+          const hanldView = () => gotoExecutionLog(original.id, original.type);
+
           const actions = [
             canEdit
               ? {
@@ -226,7 +183,7 @@ function AlertList({
                   tooltip: t('Execution Log'),
                   placement: 'bottom',
                   icon: 'note' as IconName,
-                  onClick: handleEdit,
+                  onClick: hanldView,
                 }
               : null,
             canEdit
@@ -266,7 +223,7 @@ function AlertList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {title}
+          <i className="fa fa-plus" /> {t(`${title}`)}
         </>
       ),
       buttonStyle: 'primary',
@@ -276,7 +233,7 @@ function AlertList({
 
   const EmptyStateButton = (
     <Button buttonStyle="primary" onClick={() => {}}>
-      <i className="fa fa-plus" /> {title}
+      <i className="fa fa-plus" /> {t(`${title}`)}
     </Button>
   );
 
@@ -308,49 +265,6 @@ function AlertList({
         id: 'last_state',
         input: 'select',
         operator: FilterOperators.equals,
-        unfilteredLabel: 'Any',
-        selects: [
-          { label: t('Ok'), value: 'ok' },
-          { label: t('Alerting'), value: 'alerting' },
-          { label: t('Failed'), value: 'failed' },
-        ],
-      },
-      {
-        Header: t('Search'),
-        id: 'name',
-        input: 'search',
-        operator: 'ct',
-      },
-    ],
-    [],
-  );
-
-  const filters: Filters = useMemo(
-    () => [
-      {
-        Header: t('Created By'),
-        id: 'created_by',
-        input: 'select',
-        operator: 'rel_o_m',
-        unfilteredLabel: 'All',
-        fetchSelects: createFetchRelated(
-          'report',
-          'created_by',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
-            ),
-          ),
-          user.userId,
-        ),
-        paginate: true,
-      },
-      {
-        Header: t('Status'),
-        id: 'last_state',
-        input: 'select',
-        operator: 'eq',
         unfilteredLabel: 'Any',
         selects: [
           { label: t('Success'), value: 'Success' },

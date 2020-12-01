@@ -44,3 +44,13 @@ export type AlertObject = {
   recipients?: recipients;
   type?: string;
 };
+
+export type LogObject = {
+  end_dttm: string;
+  error_message: string;
+  id: number;
+  scheduled_dttm: string;
+  start_dttm: string;
+  state: string;
+  value: string;
+};
