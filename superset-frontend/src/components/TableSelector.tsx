@@ -253,6 +253,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderTableOption(option: any) {
     return (
       <TableLabel title={option.label}>
+        <small className="text-muted">
+          <i className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`} />
+        </small>
         {option.extra?.certification && (
           <CertifiedIconWithTooltip
             certifiedBy={option.extra.certification.certified_by}
@@ -260,9 +263,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
             size={20}
           />
         )}
-        <small className="text-muted">
-          <i className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`} />
-        </small>
         {option.label}
       </TableLabel>
     );
