@@ -144,7 +144,7 @@ A complete list of supported databases can be found
 
 ## Contributor Guide
 
-Interested in contributing? Check out our
+Are you interested in contributing? Check out our
 [CONTRIBUTING.md](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)
 to find resources around contributing along with a detailed guide on
 how to set up a development environment.
