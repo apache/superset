@@ -194,8 +194,11 @@ class ControlPanelsContainer extends React.Component {
           rows.every(control => control?.config?.renderTrigger),
         );
         // if at least one control in the section is not `renderTrigger`, it goes to the query section
-        if (allRenderTriggers) displaySectionsToRender.push(section);
-        else querySectionsToRender.push(section);
+        if (allRenderTriggers) {
+          displaySectionsToRender.push(section);
+        } else {
+          querySectionsToRender.push(section);
+        }
       }
     });
 
