@@ -35,7 +35,10 @@ describe('FilterConfigurationButton', () => {
   it('takes in children', () => {
     const wrapper = mount(
       <Provider store={mockStore}>
-        <FilterConfigurationLink {...mockedProps}> <span>Test</span></FilterConfigurationLink>
+        <FilterConfigurationLink {...mockedProps}>
+          {' '}
+          <span>Test</span>
+        </FilterConfigurationLink>
       </Provider>,
       {
         wrappingComponent: ThemeProvider,
