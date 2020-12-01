@@ -34,6 +34,7 @@ interface NativeFiltersFormItem {
   };
   column: string;
   defaultValue: string;
+  inverseSelection: boolean;
   isInstant: boolean;
   allowsMultipleValues: boolean;
   isRequired: boolean;
@@ -70,19 +71,19 @@ export type FilterType = 'text' | 'date';
  * The values here do not reflect the current state of the filter.
  */
 export interface Filter {
+  allowsMultipleValues: boolean;
+  cascadeParentIds: string[];
+  defaultValue: string | null;
+  inverseSelection: boolean;
+  isInstant: boolean;
+  isRequired: boolean;
   id: string; // randomly generated at filter creation
   name: string;
+  scope: Scope;
   type: FilterType;
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
-  cascadeParentIds: string[];
-  defaultValue: string | null;
-  scope: Scope;
-  inverseSelection: boolean;
-  isInstant: boolean;
-  allowsMultipleValues: boolean;
-  isRequired: boolean;
 }
 
 export type FilterConfiguration = Filter[];

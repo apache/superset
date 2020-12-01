@@ -157,7 +157,7 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   const cascadingFilters = useCascadingFilters(id);
   const [state, setState] = useState({ data: undefined });
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
-  const { targets } = filter;
+  const { allowsMultipleValues, inverseSelection, targets } = filter;
   const [target] = targets;
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
@@ -166,12 +166,12 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
     adhoc_filters: [],
     datasource: `${datasetId}__table`,
     extra_filters: [],
-    filters: cascadingFilters,
+    extra_form_data: cascadingFilters,
     granularity_sqla: 'ds',
     groupby: [groupby],
-    label_colors: {},
+    inverseSelection,
     metrics: ['count'],
-    multiSelect: true,
+    multiSelect: allowsMultipleValues,
     row_limit: 10000,
     showSearch: true,
     time_range: 'No filter',

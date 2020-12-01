@@ -155,6 +155,14 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         <Checkbox />
       </Form.Item>
       <Form.Item
+        name={['filters', filterId, 'inverseSelection']}
+        label={t('Inverse selection')}
+        initialValue={filterToEdit?.inverseSelection}
+        valuePropName="checked"
+      >
+        <Checkbox />
+      </Form.Item>
+      <Form.Item
         name={['filters', filterId, 'isRequired']}
         label={t('Required')}
         initialValue={filterToEdit?.isRequired}

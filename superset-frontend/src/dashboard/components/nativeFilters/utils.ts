@@ -98,7 +98,7 @@ export const findFilterScope = (
   };
 };
 
-function mergeExtraFormData(
+export function mergeExtraFormData(
   originalExtra: ExtraFormData,
   newExtra: ExtraFormData,
 ): ExtraFormData {

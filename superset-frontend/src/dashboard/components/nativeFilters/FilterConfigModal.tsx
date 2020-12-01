@@ -197,6 +197,7 @@ export function FilterConfigModal({
             rootPath: [DASHBOARD_ROOT_ID],
             excluded: [],
           },
+          inverseSelection: !!formInputs.inverseSelection,
           isInstant: !!formInputs.isInstant,
           allowsMultipleValues: !!formInputs.allowsMultipleValues,
           isRequired: !!formInputs.isRequired,
