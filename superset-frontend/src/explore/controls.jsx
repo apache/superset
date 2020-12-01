@@ -39,7 +39,7 @@
      and don't affect the query or backend data processing as those require to re run a query
      and fetch the data. Note that if ALL controls in a seciton are set to "renderTrigger: true"
      the section will appear in the "Customize" tab rather than the "Data" tab. You can add a
-     "tabOverride" parameter to the controls section with a value of "data" or "customize" if 
+     "tabOverride" parameter to the controls section with a value of "data" or "customize" if
      you'd like to override this behavior either way
  * - validators: an array of functions that will receive the value of the component and
      should return error messages when the value is not valid. The error message gets
