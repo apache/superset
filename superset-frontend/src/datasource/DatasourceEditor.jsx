@@ -68,9 +68,12 @@ const FlexRowContainer = styled.div`
   }
 `;
 
-const EditLockContainer = styled.a`
+const EditLockContainer = styled.span`
   float: right;
   padding: 20px;
+  width: 120px;
+  font-size: ${supersetTheme.typography.sizes.xs}px;
+  text-align: center;
 `;
 
 const checkboxGenerator = (d, onChange) => (
@@ -658,11 +661,19 @@ class DatasourceEditor extends React.PureComponent {
             </Radio>
           ))}
           {this.allowEditSource && (
-            <EditLockContainer href="#" onClick={this.onChangeEditMode}>
-              <Icon
-                color={supersetTheme.colors.primary.base}
-                name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
-              />
+            <EditLockContainer>
+              <a href="#" onClick={this.onChangeEditMode}>
+                <Icon
+                  color={supersetTheme.colors.primary.base}
+                  name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
+                />
+              </a>
+              {!this.state.isEditMode && (
+                <div>{t('Click the lock to make changes.')}</div>
+              )}
+              {this.state.isEditMode && (
+                <div>{t('Click the lock to prevent further changes.')}</div>
+              )}
             </EditLockContainer>
           )}
         </div>
