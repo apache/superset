@@ -63,6 +63,10 @@ header > nav .navbar-right .btn-default {
   padding-left: 15px !important;
 }
 
+.chart-container .panel-heading {
+  display: block !important;
+}
+
 .panel-title .accordion-toggle:hover {
   text-decoration: none !important;
 }
