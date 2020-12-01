@@ -17,8 +17,8 @@
  * under the License.
  */
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
-import { filterId } from '../fixtures/mockSliceEntities';
-import { dashboardFilters } from '../fixtures/mockDashboardFilters';
+import { filterId } from 'spec/fixtures/mockSliceEntities';
+import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 
 describe('getLeafComponentIdFromPath', () => {
   const path = dashboardFilters[filterId].directPathToFilter;

@@ -22,14 +22,25 @@ import { Radio, AutoComplete, Input } from 'src/common/components';
 import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { styled } from '@superset-ui/core';
+<<<<<<< HEAD
+=======
+import { RadioChangeEvent } from 'antd/lib/radio';
+>>>>>>> 014cdeeac4dfd1fc61d176e0796a07d29db808d6
 
 interface SaveDatasetModalProps {
   visible: boolean;
   onOk: () => void;
+<<<<<<< HEAD
   onCancel: () => void;
   handleDatasetNameChange: (e: { target: { value: any } }) => void;
   userDatasetsOwned: Array<Record<string, any>>;
   handleSaveDatasetRadioBtnState: (e: { target: { value: any } }) => void;
+=======
+  onHide: () => void;
+  handleDatasetNameChange: (e: { target: { value: any } }) => void;
+  userDatasetsOwned: Array<Record<string, any>>;
+  handleSaveDatasetRadioBtnState: (e: RadioChangeEvent) => void;
+>>>>>>> 014cdeeac4dfd1fc61d176e0796a07d29db808d6
   saveDatasetRadioBtnState: number;
   overwriteDataSet: boolean;
   handleOverwriteCancel: () => void;
@@ -62,7 +73,7 @@ const Styles = styled.div`
 export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   visible,
   onOk,
-  onCancel,
+  onHide,
   handleDatasetNameChange,
   userDatasetsOwned,
   handleSaveDatasetRadioBtnState,
@@ -73,13 +84,19 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   handleOverwriteDatasetOption,
   defaultCreateDatasetValue,
 }) => {
-  const [options, setOptions] = useState([]);
+
+  const [options, setOptions] = useState<
+    {
+      value: string;
+      dataSetId: number;
+    }[]
+  >([]);
 
   const onSearch = (searchText: any) => {
     setOptions(
       !searchText
         ? []
-        : userDatasetsOwned.map((d: { dataSetName: any; dataSetId: any }) => ({
+        : userDatasetsOwned.map(d => ({
             value: d.dataSetName,
             dataSetId: d.dataSetId,
           })),
@@ -87,8 +104,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   };
 
   const filterAutocompleteOption = (
-    inputValue: any,
-    option: { value: string | any[] },
+    inputValue: string,
+    option: { [key: string]: any } | any,
   ) => {
     return option.value.includes(inputValue);
   };
@@ -96,9 +113,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   return (
     <StyledModal
       show={visible}
-      onHide={() => {}}
       title="Save or Overwrite Dataset"
-      onCancel={onCancel}
+      onHide={onHide}
       footer={
         <>
           {!overwriteDataSet && (
@@ -108,7 +124,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
               className="m-r-5"
               onClick={onOk}
             >
-              Save & Explore
+              Save &amp; Explore
             </Button>
           )}
           {overwriteDataSet && (

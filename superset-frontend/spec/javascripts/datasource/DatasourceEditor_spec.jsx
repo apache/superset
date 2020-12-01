@@ -25,7 +25,7 @@ import thunk from 'redux-thunk';
 import Tabs from 'src/common/components/Tabs';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import Field from 'src/CRUD/Field';
-import mockDatasource from '../../fixtures/mockDatasource';
+import mockDatasource from 'spec/fixtures/mockDatasource';
 
 const props = {
   datasource: mockDatasource['7__table'],

@@ -16,33 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
+import { ReactNode } from 'react';
+import { styled } from '@superset-ui/core';
 
-import CollectionTable from 'src/CRUD/CollectionTable';
-import mockDatasource from 'spec/fixtures/mockDatasource';
+export interface BaseFilter {
+  Header: ReactNode;
+  initialValue: any;
+}
 
-const props = {
-  collection: mockDatasource['7__table'].columns,
-  tableColumns: ['column_name', 'type', 'groupby'],
-};
+export const FilterContainer = styled.div`
+  display: inline-flex;
+  margin-right: 2em;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+`;
 
-describe('CollectionTable', () => {
-  let wrapper;
-  let el;
-
-  beforeEach(() => {
-    el = <CollectionTable {...props} />;
-    wrapper = shallow(el);
-  });
-
-  it('is valid', () => {
-    expect(React.isValidElement(el)).toBe(true);
-  });
-
-  it('renders a table', () => {
-    const { length } = mockDatasource['7__table'].columns;
-    expect(wrapper.find('table')).toExist();
-    expect(wrapper.find('tbody tr.row')).toHaveLength(length);
-  });
-});
+export const FilterTitle = styled.label`
+  font-weight: bold;
+  line-height: 27px;
+  margin: 0 0.4em 0 0;
+`;

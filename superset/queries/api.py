@@ -34,7 +34,12 @@ class QueryRestApi(BaseSupersetModelRestApi):
 
     resource_name = "query"
     allow_browser_login = True
-    include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST, RouteMethod.RELATED}
+    include_route_methods = {
+        RouteMethod.GET,
+        RouteMethod.GET_LIST,
+        RouteMethod.RELATED,
+        RouteMethod.DISTINCT,
+    }
 
     class_permission_name = "QueryView"
     list_columns = [
@@ -105,7 +110,8 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
-    search_columns = ["changed_on", "database", "sql", "status", "user"]
+    search_columns = ["changed_on", "database", "sql", "status", "user", "start_time"]
 
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "user"}
+    allowed_distinct_fields = {"status"}

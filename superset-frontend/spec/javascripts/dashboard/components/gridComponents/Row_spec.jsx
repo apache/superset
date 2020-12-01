@@ -32,9 +32,9 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
-import { mockStore } from '../../fixtures/mockStore';
-import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';
-import WithDragDropContext from '../../helpers/WithDragDropContext';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
+import { mockStore } from 'spec/fixtures/mockStore';
+import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 
 describe('Row', () => {
   const rowWithoutChildren = { ...mockLayout.present.ROW_ID, children: [] };

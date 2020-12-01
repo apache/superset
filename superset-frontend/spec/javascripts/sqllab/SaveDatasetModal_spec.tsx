@@ -18,31 +18,21 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import { Radio, AutoComplete, Input } from 'src/common/components';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
-import CollectionTable from 'src/CRUD/CollectionTable';
-import mockDatasource from 'spec/fixtures/mockDatasource';
-
-const props = {
-  collection: mockDatasource['7__table'].columns,
-  tableColumns: ['column_name', 'type', 'groupby'],
-};
-
-describe('CollectionTable', () => {
-  let wrapper;
-  let el;
-
-  beforeEach(() => {
-    el = <CollectionTable {...props} />;
-    wrapper = shallow(el);
+describe('SaveDatasetModal', () => {
+  const mockedProps = {};
+  it('renders a radio group btn', () => {
+    const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
+    expect(wrapper.find(Radio.Group)).toExist();
   });
-
-  it('is valid', () => {
-    expect(React.isValidElement(el)).toBe(true);
+  it('renders a autocomplete', () => {
+    const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
+    expect(wrapper.find(AutoComplete)).toExist();
   });
-
-  it('renders a table', () => {
-    const { length } = mockDatasource['7__table'].columns;
-    expect(wrapper.find('table')).toExist();
-    expect(wrapper.find('tbody tr.row')).toHaveLength(length);
+  it('renders an input form ', () => {
+    const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
+    expect(wrapper.find(Input)).toExist();
   });
 });
