@@ -74,7 +74,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   handleOverwriteDatasetOption,
   defaultCreateDatasetValue,
 }) => {
-  const [options, setOptions] = useState<{
+  const [options, setOptions] = useState<
+    {
       value: string;
       dataSetId: number;
     }[]
