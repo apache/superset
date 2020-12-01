@@ -1,6 +1,6 @@
 name: E2E
 
-on: [push, pull_request_target]
+on: [push, pull_request, pull_request_target]
 
 jobs:
   Cypress:
@@ -36,7 +36,7 @@ jobs:
           - 16379:6379
     steps:
     - name: Checkout code (master)
-      if: github.event_name == 'push'
+      if: github.event_name == 'push' || github.event_name == 'pull_request'
       uses: actions/checkout@v2
     - name: Checkout code (PR)
       if: github.event_name == 'pull_request_target'
