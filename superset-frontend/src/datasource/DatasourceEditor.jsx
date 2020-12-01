@@ -68,12 +68,13 @@ const FlexRowContainer = styled.div`
   }
 `;
 
-const EditLockContainer = styled.span`
-  float: right;
-  padding: 20px;
-  width: 120px;
-  font-size: ${supersetTheme.typography.sizes.xs}px;
-  text-align: center;
+const EditLockContainer = styled.div`
+  font-size: ${supersetTheme.typography.sizes.s}px;
+  display: flex;
+  align-items: center;
+  a {
+    padding: 0 10px;
+  }
 `;
 
 const checkboxGenerator = (d, onChange) => (
@@ -660,22 +661,6 @@ class DatasourceEditor extends React.PureComponent {
               {type.label}
             </Radio>
           ))}
-          {this.allowEditSource && (
-            <EditLockContainer>
-              <a href="#" onClick={this.onChangeEditMode}>
-                <Icon
-                  color={supersetTheme.colors.primary.base}
-                  name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
-                />
-              </a>
-              {!this.state.isEditMode && (
-                <div>{t('Click the lock to make changes.')}</div>
-              )}
-              {this.state.isEditMode && (
-                <div>{t('Click the lock to prevent further changes.')}</div>
-              )}
-            </EditLockContainer>
-          )}
         </div>
         <hr />
         <Fieldset item={datasource} onChange={this.onDatasourceChange} compact>
@@ -799,6 +784,22 @@ class DatasourceEditor extends React.PureComponent {
             </Col>
           )}
         </Fieldset>
+        {this.allowEditSource && (
+          <EditLockContainer>
+            <a href="#" onClick={this.onChangeEditMode}>
+              <Icon
+                color={supersetTheme.colors.grayscale.base}
+                name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
+              />
+            </a>
+            {!this.state.isEditMode && (
+              <div>{t('Click the lock to make changes.')}</div>
+            )}
+            {this.state.isEditMode && (
+              <div>{t('Click the lock to prevent further changes.')}</div>
+            )}
+          </EditLockContainer>
+        )}
       </div>
     );
   }
