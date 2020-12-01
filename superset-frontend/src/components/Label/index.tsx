@@ -33,6 +33,7 @@ export interface LabelProps {
   bsStyle?: string;
   style?: CSSProperties;
   children?: React.ReactNode;
+  role?: string;
 }
 
 const SupersetLabel = styled(BootstrapLabel)`
