@@ -71,14 +71,11 @@ class CopyToClipboard extends React.Component {
   }
 
   getDecoratedCopyNode() {
-    return React.cloneElement(
-      this.props.copyNode,
-      {
-        style: { cursor: 'pointer' },
-        onClick: this.onClick,
-        onMouseOut: this.onMouseOut,
-      }
-    );
+    return React.cloneElement(this.props.copyNode, {
+      style: { cursor: 'pointer' },
+      onClick: this.onClick,
+      onMouseOut: this.onMouseOut,
+    });
   }
 
   resetTooltipText() {
