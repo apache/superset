@@ -37,7 +37,10 @@
  * - renderTrigger: a bool that defines whether the visualization should be re-rendered
      when changed. This should `true` for controls that only affect the rendering (client side)
      and don't affect the query or backend data processing as those require to re run a query
-     and fetch the data
+     and fetch the data. Note that if ALL controls in a seciton are set to "renderTrigger: true"
+     the section will appear in the "Customize" tab rather than the "Data" tab. You can add a
+     "tabOverride" parameter to the controls section with a value of "data" or "customize" if 
+     you'd like to override this behavior either way
  * - validators: an array of functions that will receive the value of the component and
      should return error messages when the value is not valid. The error message gets
      bubbled up to the control header, section header and query panel header.
@@ -48,9 +51,7 @@
      anything external to it, like another control's value. For instance it's possible to
      show a warning based on the value of another component. It's also possible to bind
      arbitrary data from the redux store to the component this way.
- * - tabOverride: set to 'data' if you want to force a renderTrigger to show up on the `Data`
-     tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL 
-     `renderTrigger: true` components will show up on the `Customize` tab.
+
  *
  * Note that the keys defined in controls in this file that are not listed above represent
  * props specific for the React component defined as `type`. Also note that this module work
