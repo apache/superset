@@ -17,8 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { getCategoricalSchemeRegistry, styled } from '@superset-ui/core';
-import { Avatar, Tooltip } from 'src/common/components';
+import {
+  getCategoricalSchemeRegistry,
+  styled,
+  SupersetTheme,
+} from '@superset-ui/core';
+import { Tooltip } from 'src/common/components/Tooltip';
+import { Avatar } from 'src/common/components';
 import { getRandomColor } from './utils';
 
 interface FacePileProps {
@@ -28,20 +33,21 @@ interface FacePileProps {
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
 
+const customAvatarStyler = (theme: SupersetTheme) => `
+  width: ${theme.gridUnit * 6}px;
+  height: ${theme.gridUnit * 6}px;
+  line-height: ${theme.gridUnit * 6}px;
+  font-size: ${theme.typography.sizes.m}px;
+`;
+
 const StyledAvatar = styled(Avatar)`
-  width: ${({ theme }) => theme.gridUnit * 6}px;
-  height: ${({ theme }) => theme.gridUnit * 6}px;
-  line-height: ${({ theme }) => theme.gridUnit * 6}px;
-  font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+  ${({ theme }) => customAvatarStyler(theme)}
 `;
 
 // to apply styling to the maxCount avatar
 const StyledGroup = styled(Avatar.Group)`
   .ant-avatar {
-    width: ${({ theme }) => theme.gridUnit * 6}px;
-    height: ${({ theme }) => theme.gridUnit * 6}px;
-    line-height: ${({ theme }) => theme.gridUnit * 6}px;
-    font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+    ${({ theme }) => customAvatarStyler(theme)}
   }
 `;
 

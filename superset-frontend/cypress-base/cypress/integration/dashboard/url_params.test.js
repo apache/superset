@@ -17,7 +17,8 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
-import { isLegacyChart } from '../../utils/vizPlugins';
+import { isLegacyResponse, getChartAliases } from '../../utils/vizPlugins';
+import readResponseBlob from '../../utils/readResponseBlob';
 
 describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };
@@ -36,26 +37,26 @@ describe('Dashboard form data', () => {
   });
 
   it('should apply url params and queryFields to slice requests', () => {
-    const aliases = [];
-    dashboard.slices.forEach(slice => {
-      const { slice_id: id } = slice;
-      const isLegacy = isLegacyChart(slice.form_data.viz_type);
-      const route = `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboard.id}`;
-      const alias = `getJson_${id}`;
-      // TODO(villebro): enable V1 charts
-      if (isLegacy) {
-        aliases.push(`@${alias}`);
-        cy.route('POST', route).as(alias);
-      }
-    });
-
+    const aliases = getChartAliases(dashboard.slices);
+    // wait and verify one-by-one
     cy.wait(aliases).then(requests => {
-      requests.forEach(xhr => {
-        const requestFormData = xhr.request.body;
-        const requestParams = JSON.parse(requestFormData.get('form_data'));
-        expect(requestParams).to.have.property('queryFields');
-        expect(requestParams.url_params).deep.eq(urlParams);
-      });
+      return Promise.all(
+        requests.map(async xhr => {
+          expect(xhr.status).to.eq(200);
+          const responseBody = await readResponseBlob(xhr.response.body);
+
+          if (isLegacyResponse(responseBody)) {
+            const requestFormData = xhr.request.body;
+            const requestParams = JSON.parse(requestFormData.get('form_data'));
+            expect(requestParams).to.have.property('queryFields');
+            expect(requestParams.url_params).deep.eq(urlParams);
+          } else {
+            xhr.request.body.queries.forEach(query => {
+              expect(query.url_params).deep.eq(urlParams);
+            });
+          }
+        }),
+      );
     });
   });
 });

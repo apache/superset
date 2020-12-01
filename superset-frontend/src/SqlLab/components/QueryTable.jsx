@@ -118,16 +118,14 @@ const QueryTable = props => {
         );
         q.started = moment(q.startDttm).format('HH:mm:ss');
         q.querylink = (
-          <div style={{ width: '100px' }}>
-            <Button
-              buttonSize="small"
-              buttonStyle="link"
-              onClick={() => openQuery(q.queryId)}
-            >
-              <i className="fa fa-external-link m-r-3" />
-              {t('Edit')}
-            </Button>
-          </div>
+          <Button
+            buttonSize="small"
+            buttonStyle="link"
+            onClick={() => openQuery(q.queryId)}
+          >
+            <i className="fa fa-external-link m-r-3" />
+            {t('Edit')}
+          </Button>
         );
         q.sql = (
           <Well>
@@ -172,7 +170,6 @@ const QueryTable = props => {
         }
         q.progress = (
           <ProgressBar
-            style={{ width: '75px' }}
             striped
             now={q.progress}
             label={`${q.progress.toFixed(0)}%`}
@@ -193,7 +190,7 @@ const QueryTable = props => {
           </div>
         );
         q.actions = (
-          <div style={{ width: '75px' }}>
+          <div>
             <Link
               className="fa fa-pencil m-r-3"
               onClick={() => restoreSql(query)}

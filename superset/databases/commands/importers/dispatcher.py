@@ -51,8 +51,7 @@ class ImportDatabasesCommand(BaseCommand):
                 command.run()
                 return
             except IncorrectVersionError:
-                # file is not handled by this command, skip
-                pass
+                logger.debug("File not handled by command, skipping")
             except (CommandInvalidError, ValidationError) as exc:
                 # found right version, but file is invalid
                 logger.info("Command failed validation")

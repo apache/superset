@@ -57,6 +57,8 @@ import {
   VALUE_LABELED_STYLES,
   PartialThemeConfig,
   PartialStylesConfig,
+  SelectComponentsType,
+  InputProps,
 } from './styles';
 import { findValue } from './utils';
 
@@ -223,11 +225,11 @@ function styled<
 
     // Handle onPaste event
     if (onPaste) {
-      const Input = components.Input || defaultComponents.Input;
-      components.Input = props => (
-        <div onPaste={onPaste}>
-          <Input {...props} />
-        </div>
+      const Input =
+        (components.Input as SelectComponentsType['Input']) ||
+        (defaultComponents.Input as SelectComponentsType['Input']);
+      components.Input = (props: InputProps) => (
+        <Input {...props} onPaste={onPaste} />
       );
     }
     // for CreaTable

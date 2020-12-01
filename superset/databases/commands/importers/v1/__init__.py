@@ -29,6 +29,7 @@ from superset.commands.importers.v1.utils import (
     load_yaml,
     METADATA_FILE_NAME,
 )
+from superset.databases.commands.exceptions import DatabaseImportError
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
@@ -75,9 +76,9 @@ class ImportDatabasesCommand(BaseCommand):
         try:
             self._import_bundle(db.session)
             db.session.commit()
-        except Exception as exc:
+        except Exception:
             db.session.rollback()
-            raise exc
+            raise DatabaseImportError()
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = []

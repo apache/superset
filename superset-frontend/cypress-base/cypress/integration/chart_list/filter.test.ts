@@ -36,6 +36,16 @@ describe('chart card view filters', () => {
     cy.get('[data-test="styled-card"]').should('not.exist');
   });
 
+  it('should filter by me correctly', () => {
+    // filter by me
+    cy.get('.Select__control').first().click();
+    cy.get('.Select__menu').contains('me').click();
+    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
+    cy.get('.Select__control').eq(1).click();
+    cy.get('.Select__menu').contains('me').click();
+    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
+  });
+
   it('should filter by created by correctly', () => {
     // filter by created by
     cy.get('.Select__control').eq(1).click();
@@ -92,6 +102,16 @@ describe('chart list view filters', () => {
     cy.get('.Select__control').first().click();
     cy.get('.Select__menu').contains('gamma user').click();
     cy.get('[data-test="table-row"]').should('not.exist');
+  });
+
+  it('should filter by me correctly', () => {
+    // filter by me
+    cy.get('.Select__control').first().click();
+    cy.get('.Select__menu').contains('me').click();
+    cy.get('[data-test="table-row"]').its('length').should('be.gt', 0);
+    cy.get('.Select__control').eq(1).click();
+    cy.get('.Select__menu').contains('me').click();
+    cy.get('[data-test="table-row"]').its('length').should('be.gt', 0);
   });
 
   it('should filter by created by correctly', () => {

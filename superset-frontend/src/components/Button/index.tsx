@@ -20,12 +20,9 @@ import React, { CSSProperties } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
-import {
-  Button as BootstrapButton,
-  Tooltip,
-  OverlayTrigger,
-} from 'react-bootstrap';
+import { Button as BootstrapButton } from 'react-bootstrap';
 import { styled } from '@superset-ui/core';
+import { Tooltip } from 'src/common/components/Tooltip';
 import { Menu } from 'src/common/components';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
@@ -39,7 +36,19 @@ export interface DropdownItemProps {
 export interface ButtonProps {
   className?: string;
   tooltip?: string;
-  placement?: string;
+  placement?:
+    | 'bottom'
+    | 'left'
+    | 'right'
+    | 'top'
+    | 'topLeft'
+    | 'topRight'
+    | 'bottomLeft'
+    | 'bottomRight'
+    | 'leftTop'
+    | 'leftBottom'
+    | 'rightTop'
+    | 'rightBottom';
   onClick?: OnClickHandler;
   disabled?: boolean;
   buttonStyle?: string;
@@ -302,14 +311,13 @@ export default function Button({
 
   if (tooltip) {
     return (
-      <OverlayTrigger
+      <Tooltip
         placement={placement}
-        overlay={
-          <Tooltip id={`${kebabCase(tooltip)}-tooltip`}>{tooltip}</Tooltip>
-        }
+        id={`${kebabCase(tooltip)}-tooltip`}
+        title={tooltip}
       >
         {button}
-      </OverlayTrigger>
+      </Tooltip>
     );
   }
 

@@ -55,6 +55,10 @@ const mocklayers = [...new Array(3)].map((_, i) => ({
   desc: 'layer description',
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(layersInfoEndpoint, {
   permissions: ['can_delete'],
 });
@@ -74,7 +78,9 @@ fetchMock.get(layersRelatedEndpoint, {
 });
 
 describe('AnnotationLayersList', () => {
-  const wrapper = mount(<AnnotationLayersList />, { context: { store } });
+  const wrapper = mount(<AnnotationLayersList user={mockUser} />, {
+    context: { store },
+  });
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

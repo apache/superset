@@ -21,11 +21,12 @@ from typing import List, Optional
 from datetime import datetime
 from io import BytesIO
 from unittest import mock
-from zipfile import is_zipfile
+from zipfile import is_zipfile, ZipFile
 
 import humanize
 import prison
 import pytest
+import yaml
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
@@ -35,12 +36,20 @@ from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.test_app import app
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
-from superset.models.core import FavStar, FavStarClassName
+from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
+from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils import core as utils
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.importexport import (
+    chart_config,
+    chart_metadata_config,
+    database_config,
+    dataset_config,
+    dataset_metadata_config,
+)
 from tests.fixtures.query_context import get_query_context
 
 CHART_DATA_URI = "api/v1/chart/data"
@@ -109,6 +118,58 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                 db.session.delete(fav_chart)
             db.session.commit()
 
+    @pytest.fixture()
+    def create_chart_with_report(self):
+        with self.create_app().app_context():
+            admin = self.get_user("admin")
+            chart = self.insert_chart(f"chart_report", [admin.id], 1)
+            report_schedule = ReportSchedule(
+                type=ReportScheduleType.REPORT,
+                name="report_with_chart",
+                crontab="* * * * *",
+                chart=chart,
+            )
+            db.session.commit()
+
+            yield chart
+
+            # rollback changes
+            db.session.delete(report_schedule)
+            db.session.delete(chart)
+            db.session.commit()
+
+    @pytest.fixture()
+    def add_dashboard_to_chart(self):
+        with self.create_app().app_context():
+            admin = self.get_user("admin")
+
+            self.chart = self.insert_chart("My chart", [admin.id], 1)
+
+            self.original_dashboard = Dashboard()
+            self.original_dashboard.dashboard_title = "Original Dashboard"
+            self.original_dashboard.slug = "slug"
+            self.original_dashboard.owners = [admin]
+            self.original_dashboard.slices = [self.chart]
+            self.original_dashboard.published = False
+            db.session.add(self.original_dashboard)
+
+            self.new_dashboard = Dashboard()
+            self.new_dashboard.dashboard_title = "New Dashboard"
+            self.new_dashboard.slug = "new_slug"
+            self.new_dashboard.owners = [admin]
+            self.new_dashboard.slices = []
+            self.new_dashboard.published = False
+            db.session.add(self.new_dashboard)
+
+            db.session.commit()
+
+            yield self.chart
+
+            db.session.delete(self.original_dashboard)
+            db.session.delete(self.new_dashboard)
+            db.session.delete(self.chart)
+            db.session.commit()
+
     def test_delete_chart(self):
         """
         Chart API: Test delete
@@ -166,6 +227,26 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("create_chart_with_report")
+    def test_delete_chart_with_report(self):
+        """
+        Chart API: Test delete with associated report
+        """
+        self.login(username="admin")
+        chart = (
+            db.session.query(Slice)
+            .filter(Slice.slice_name == "chart_report")
+            .one_or_none()
+        )
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_chart"
+        }
+        self.assertEqual(response, expected_response)
+
     def test_delete_bulk_charts_not_found(self):
         """
         Chart API: Test delete bulk not found
@@ -173,10 +254,34 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         max_id = db.session.query(func.max(Slice.id)).scalar()
         chart_ids = [max_id + 1, max_id + 2]
         self.login(username="admin")
-        argument = chart_ids
-        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("create_chart_with_report", "create_charts")
+    def test_bulk_delete_chart_with_report(self):
+        """
+        Chart API: Test bulk delete with associated report
+        """
+        self.login(username="admin")
+        chart_with_report = (
+            db.session.query(Slice.id)
+            .filter(Slice.slice_name == "chart_report")
+            .one_or_none()
+        )
+
+        charts = db.session.query(Slice.id).filter(Slice.slice_name.like("name%")).all()
+        chart_ids = [chart.id for chart in charts]
+        chart_ids.append(chart_with_report.id)
+
+        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": "There are associated alerts or reports: report_with_chart"
+        }
+        self.assertEqual(response, expected_response)
 
     def test_delete_chart_admin_not_owned(self):
         """
@@ -448,6 +553,35 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertIn(admin, model.owners)
         db.session.delete(model)
         db.session.commit()
+
+    @pytest.mark.usefixtures("add_dashboard_to_chart")
+    def test_update_chart_new_dashboards(self):
+        """
+        Chart API: Test update set new owner to current user
+        """
+        chart_data = {
+            "slice_name": "title1_changed",
+            "dashboards": [self.new_dashboard.id],
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/{self.chart.id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn(self.new_dashboard, self.chart.dashboards)
+        self.assertNotIn(self.original_dashboard, self.chart.dashboards)
+
+    @pytest.mark.usefixtures("add_dashboard_to_chart")
+    def test_not_update_chart_none_dashboards(self):
+        """
+        Chart API: Test update set new owner to current user
+        """
+        chart_data = {"slice_name": "title1_changed_again"}
+        self.login(username="admin")
+        uri = f"api/v1/chart/{self.chart.id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn(self.original_dashboard, self.chart.dashboards)
+        self.assertEqual(len(self.chart.dashboards), 1)
 
     def test_update_chart_not_owned(self):
         """
@@ -1131,7 +1265,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_export_chart(self):
         """
-        Chart API: Test export dataset
+        Chart API: Test export chart
         """
         example_chart = db.session.query(Slice).all()[0]
         argument = [example_chart.id]
@@ -1147,7 +1281,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_export_chart_not_found(self):
         """
-        Dataset API: Test export dataset not found
+        Chart API: Test export chart not found
         """
         # Just one does not exist and we get 404
         argument = [-1, 1]
@@ -1159,7 +1293,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_export_chart_gamma(self):
         """
-        Dataset API: Test export dataset has gamma
+        Chart API: Test export chart has gamma
         """
         example_chart = db.session.query(Slice).all()[0]
         argument = [example_chart.id]
@@ -1169,3 +1303,83 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.get(uri)
 
         assert rv.status_code == 404
+
+    def test_import_chart(self):
+        """
+        Chart API: Test import chart
+        """
+        self.login(username="admin")
+        uri = "api/v1/chart/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("chart_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_metadata_config).encode())
+            with bundle.open(
+                "chart_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "chart_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.database_name == "imported_database"
+
+        assert len(database.tables) == 1
+        dataset = database.tables[0]
+        assert dataset.table_name == "imported_dataset"
+        assert str(dataset.uuid) == dataset_config["uuid"]
+
+        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        assert chart.table == dataset
+
+        db.session.delete(chart)
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_chart_invalid(self):
+        """
+        Chart API: Test import invalid chart
+        """
+        self.login(username="admin")
+        uri = "api/v1/chart/import/"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("chart_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
+            with bundle.open(
+                "chart_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "chart_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "message": {"metadata.yaml": {"type": ["Must be equal to Slice."]}}
+        }

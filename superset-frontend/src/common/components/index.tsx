@@ -30,6 +30,7 @@ import { DropDownProps } from 'antd/lib/dropdown';
 // eslint-disable-next-line no-restricted-imports
 export {
   Avatar,
+  Button,
   Card,
   Collapse,
   DatePicker,
@@ -60,6 +61,7 @@ export const MenuItem = styled(AntdMenu.Item)`
       display: inline-block;
       width: 100%;
     }
+    transition-duration: 0s;
   }
 `;
 

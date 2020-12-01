@@ -18,14 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  FormControl,
-  FormGroup,
-  InputGroup,
-  OverlayTrigger,
-  Radio,
-  Tooltip,
-} from 'react-bootstrap';
+import { FormControl, FormGroup, InputGroup, Radio } from 'react-bootstrap';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Popover from 'src/common/components/Popover';
 import { Select, Input } from 'src/common/components';
 import Button from 'src/components/Button';
@@ -427,14 +421,11 @@ class DateFilterControl extends React.Component {
 
       return (
         <TimeFramesStyles key={timeFrame}>
-          <OverlayTrigger
+          <Tooltip
+            id={`tooltip-${timeFrame}`}
             key={timeFrame}
             placement="right"
-            overlay={
-              <Tooltip id={`tooltip-${timeFrame}`}>
-                {formatTimeRange(timeRange, this.props.endpoints)}
-              </Tooltip>
-            }
+            title={formatTimeRange(timeRange, this.props.endpoints)}
           >
             <div style={{ display: 'inline-block' }}>
               <Radio
@@ -445,7 +436,7 @@ class DateFilterControl extends React.Component {
                 {timeFrame}
               </Radio>
             </div>
-          </OverlayTrigger>
+          </Tooltip>
         </TimeFramesStyles>
       );
     });

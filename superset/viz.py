@@ -1671,6 +1671,7 @@ class DistributionBarViz(BaseViz):
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
         filled_cols = self.groupby + columns
+        df = df.copy()
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         row = df.groupby(self.groupby).sum()[metrics[0]].copy()
