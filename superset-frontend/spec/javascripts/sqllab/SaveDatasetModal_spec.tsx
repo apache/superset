@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import sinon from 'sinon';
 import { Radio, AutoComplete, Input } from 'src/common/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
