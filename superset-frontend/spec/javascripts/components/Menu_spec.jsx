@@ -24,10 +24,17 @@ import NavDropdown from 'src/components/NavDropdown';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu/Menu';
+import MenuObject from 'src/components/Menu/MenuObject';
 
 const defaultProps = {
   data: {
     menu: [
+      {
+        name: 'Home',
+        icon: '',
+        label: 'Home',
+        url: '/superset/welcome',
+      },
       {
         name: 'Sources',
         icon: 'fa-table',
@@ -128,6 +135,10 @@ describe('Menu', () => {
 
   it('renders 2 navs', () => {
     expect(wrapper.find(Nav)).toHaveLength(2);
+  });
+
+  it('renders 4 elements in main Menu Nav for every user', () => {
+    expect(wrapper.find(MenuObject)).toHaveLength(4);
   });
 
   it('renders a logged out view', () => {
