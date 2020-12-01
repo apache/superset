@@ -43,6 +43,7 @@ export {
   Skeleton,
   Tabs,
   Tooltip,
+  Progress,
 } from 'antd';
 
 export const MenuItem = styled(AntdMenu.Item)`
