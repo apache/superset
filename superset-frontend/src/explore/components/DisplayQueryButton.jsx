@@ -120,7 +120,7 @@ export const DisplayQueryButton = props => {
       resultFormat: 'json',
       resultType,
     })
-      .then(response => {
+      .then(({ response }) => {
         // Currently displaying of only first query is supported
         const result = response.result[0];
         setLanguage(result.language);

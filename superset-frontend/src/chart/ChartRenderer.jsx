@@ -38,6 +38,7 @@ const propTypes = {
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
   queryResponse: PropTypes.object,
+  queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
   // dashboard callbacks
@@ -85,7 +86,8 @@ class ChartRenderer extends React.Component {
 
     if (resultsReady) {
       this.hasQueryResponseChange =
-        nextProps.queryResponse !== this.props.queryResponse;
+        nextProps.queryResponse !== this.props.queryResponse ||
+        nextProps.queriesResponse !== this.props.queriesResponse;
       return (
         this.hasQueryResponseChange ||
         nextProps.annotationData !== this.props.annotationData ||
@@ -180,6 +182,7 @@ class ChartRenderer extends React.Component {
       initialValues,
       formData,
       queryResponse,
+      queriesResponse,
     } = this.props;
 
     // It's bad practice to use unprefixed `vizType` as classnames for chart
@@ -197,10 +200,10 @@ class ChartRenderer extends React.Component {
         ? `-${
             // eslint-disable-next-line camelcase
             typeof __webpack_require__ !== 'undefined' &&
-            // eslint-disable-next-line camelcase, no-undef
-            typeof __webpack_require__.h === 'function' &&
-            // eslint-disable-next-line no-undef
-            __webpack_require__.h()
+              // eslint-disable-next-line camelcase, no-undef
+              typeof __webpack_require__.h === 'function' &&
+              // eslint-disable-next-line no-undef
+              __webpack_require__.h()
           }`
         : '';
 
@@ -219,6 +222,7 @@ class ChartRenderer extends React.Component {
         formData={formData}
         hooks={this.hooks}
         queryData={queryResponse}
+        queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}
       />

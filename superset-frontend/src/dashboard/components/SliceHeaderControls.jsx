@@ -31,9 +31,15 @@ const propTypes = {
   componentId: PropTypes.string.isRequired,
   dashboardId: PropTypes.number.isRequired,
   addDangerToast: PropTypes.func.isRequired,
-  isCached: PropTypes.bool,
+  isCached: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.arrayOf(PropTypes.bool),
+  ]),
+  cachedDttm: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.arrayOf(PropTypes.string),
+  ]),
   isExpanded: PropTypes.bool,
-  cachedDttm: PropTypes.string,
   updatedDttm: PropTypes.number,
   supersetCanExplore: PropTypes.bool,
   supersetCanCSV: PropTypes.bool,
@@ -171,11 +177,21 @@ class SliceHeaderControls extends React.PureComponent {
       addDangerToast,
       isFullSize,
     } = this.props;
-    const cachedWhen = moment.utc(cachedDttm).fromNow();
+    const cachedDttmMulti = Array.isArray(cachedDttm)
+      ? cachedDttm
+      : [cachedDttm];
+    const isCachedMulti = Array.isArray(isCached) ? isCached : [isCached];
+    const cachedWhen = cachedDttmMulti.map(itemCachedDttm =>
+      moment.utc(itemCachedDttm).fromNow(),
+    );
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
-    const refreshTooltip = isCached
-      ? t('Cached %s', cachedWhen)
-      : (updatedWhen && t('Fetched %s', updatedWhen)) || '';
+    const refreshTooltip = isCachedMulti
+      .map(itemCached =>
+        (itemCached
+          ? t('Cached %s', cachedWhen)
+          : (updatedWhen && t('Fetched %s', updatedWhen)) || ''),
+      )
+      .join(', ');
     const resizeLabel = isFullSize ? t('Minimize') : t('Maximize');
 
     const menu = (

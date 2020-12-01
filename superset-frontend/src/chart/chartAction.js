@@ -132,7 +132,9 @@ const legacyChartDataRequest = async (
     // Make the legacy endpoint return a payload that corresponds to the
     // V1 chart data endpoint response signature.
     return {
-      result: [json],
+      response: {
+        result: [json],
+      },
     };
   });
 };
@@ -176,7 +178,7 @@ const v1ChartDataRequest = async (
     body: JSON.stringify(payload),
   };
   return SupersetClient.post(querySettings).then(({ json }) => {
-    return json;
+    return { response: json, hasMultiQueries: payload.queries.length > 1 };
   });
 };
 
@@ -226,7 +228,7 @@ export function runAnnotationQuery(
   key,
   isDashboardRequest = false,
 ) {
-  return function (dispatch, getState) {
+  return function(dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
     // make a copy of formData, not modifying original formData
     const fd = {
@@ -355,31 +357,36 @@ export function exploreJSON(
     dispatch(chartUpdateStarted(controller, formData, key));
 
     const chartDataRequestCaught = chartDataRequest
-      .then(response => {
+      .then(({ response, hasMultiQueries }) => {
         // new API returns an object with an array of restults
         // problem: response holds a list of results, when before we were just getting one result.
         // How to make the entire app compatible with multiple results?
         // For now just use the first result.
-        const result = response.result[0];
+        let result = response.result[0];
+        if (hasMultiQueries) {
+          result = response.result;
+        }
 
-        dispatch(
-          logEvent(LOG_ACTIONS_LOAD_CHART, {
-            slice_id: key,
-            applied_filters: result.applied_filters,
-            is_cached: result.is_cached,
-            force_refresh: force,
-            row_count: result.rowcount,
-            datasource: formData.datasource,
-            start_offset: logStart,
-            ts: new Date().getTime(),
-            duration: Logger.getTimestamp() - logStart,
-            has_extra_filters:
-              formData.extra_filters && formData.extra_filters.length > 0,
-            viz_type: formData.viz_type,
-            data_age: result.is_cached
-              ? moment(new Date()).diff(moment.utc(result.cached_dttm))
-              : null,
-          }),
+        response.result.forEach(resultItem =>
+          dispatch(
+            logEvent(LOG_ACTIONS_LOAD_CHART, {
+              slice_id: key,
+              applied_filters: resultItem.applied_filters,
+              is_cached: resultItem.is_cached,
+              force_refresh: force,
+              row_count: resultItem.rowcount,
+              datasource: formData.datasource,
+              start_offset: logStart,
+              ts: new Date().getTime(),
+              duration: Logger.getTimestamp() - logStart,
+              has_extra_filters:
+                formData.extra_filters && formData.extra_filters.length > 0,
+              viz_type: formData.viz_type,
+              data_age: resultItem.is_cached
+                ? moment(new Date()).diff(moment.utc(resultItem.cached_dttm))
+                : null,
+            }),
+          ),
         );
         return dispatch(chartUpdateSucceeded(result, key));
       })

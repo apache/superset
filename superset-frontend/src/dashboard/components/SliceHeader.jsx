@@ -29,8 +29,14 @@ const propTypes = {
   innerRef: PropTypes.func,
   slice: PropTypes.object.isRequired,
   isExpanded: PropTypes.bool,
-  isCached: PropTypes.bool,
-  cachedDttm: PropTypes.string,
+  isCached: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.arrayOf(PropTypes.bool),
+  ]),
+  cachedDttm: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.arrayOf(PropTypes.string),
+  ]),
   updatedDttm: PropTypes.number,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,

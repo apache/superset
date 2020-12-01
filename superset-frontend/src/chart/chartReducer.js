@@ -31,6 +31,7 @@ export const chart = {
   latestQueryFormData: {},
   queryController: null,
   queryResponse: null,
+  queriesResponse: null,
   triggerQuery: true,
   lastRendered: 0,
 };
@@ -44,12 +45,19 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.CHART_UPDATE_SUCCEEDED](state) {
+      const otherProps = {};
+      if (Array.isArray(action.queryResponse)) {
+        otherProps.queryResponse = action.queryResponse[0];
+        otherProps.queriesResponse = action.queryResponse;
+      } else {
+        otherProps.queryResponse = action.queryResponse;
+      }
       return {
         ...state,
         chartStatus: 'success',
-        queryResponse: action.queryResponse,
         chartAlert: null,
         chartUpdateEndTime: now(),
+        ...otherProps,
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {

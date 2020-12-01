@@ -57,6 +57,7 @@ const propTypes = {
   chartStatus: PropTypes.string,
   chartStackTrace: PropTypes.string,
   queryResponse: PropTypes.object,
+  queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
   errorMessage: PropTypes.node,
@@ -148,14 +149,8 @@ class Chart extends React.PureComponent {
     });
   }
 
-  renderErrorMessage() {
-    const {
-      chartAlert,
-      chartStackTrace,
-      dashboardId,
-      owners,
-      queryResponse,
-    } = this.props;
+  renderErrorMessage(queryResponse) {
+    const { chartAlert, chartStackTrace, dashboardId, owners } = this.props;
 
     const error = queryResponse?.errors?.[0];
     if (error) {
@@ -185,14 +180,18 @@ class Chart extends React.PureComponent {
       errorMessage,
       onQuery,
       refreshOverlayVisible,
+      queryResponse,
+      queriesResponse,
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
-
     const isFaded = refreshOverlayVisible && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
-      return this.renderErrorMessage();
+      if (queriesResponse) {
+        return queriesResponse.map(item => this.renderErrorMessage(item));
+      }
+      return this.renderErrorMessage(queryResponse);
     }
     if (errorMessage) {
       return (
