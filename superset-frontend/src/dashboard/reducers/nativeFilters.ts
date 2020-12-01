@@ -17,7 +17,7 @@
  * under the License.
  */
 import {
-  SELECT_FILTER_OPTION,
+  SET_EXTRA_FORM_DATA,
   AnyFilterAction,
   SET_FILTER_CONFIG_COMPLETE,
 } from '../actions/nativeFilters';
@@ -33,7 +33,7 @@ export function getInitialFilterState(id: string): FilterState {
     optionsStatus: 'loading',
     isDirty: false, // TODO set this to true when appropriate
     options: null,
-    selectedValues: null,
+    extraFormData: {},
   };
 }
 
@@ -57,14 +57,14 @@ export default function nativeFilterReducer(
 ) {
   const { filters, filtersState } = state;
   switch (action.type) {
-    case SELECT_FILTER_OPTION:
+    case SET_EXTRA_FORM_DATA:
       return {
         filters,
         filtersState: {
           ...filtersState,
           [action.filterId]: {
             ...filtersState[action.filterId],
-            selectedValues: action.selectedValues,
+            extraFormData: action.extraFormData,
           },
         },
       };
