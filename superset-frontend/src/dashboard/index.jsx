@@ -37,15 +37,21 @@ initFeatureFlags(bootstrapData.common.feature_flags);
 const initState = getInitialState(bootstrapData);
 
 const asyncEventMiddleware = initAsyncEvents({
-  getPendingComponents: (state) => filter(state.charts, {chartStatus: 'loading'}),
-  successAction: (componentId, componentData) => actions.chartUpdateSucceeded(componentData, componentId),
-  errorAction: (componentId, response) => actions.chartUpdateFailed(response, componentId)
+  getPendingComponents: state =>
+    filter(state.charts, { chartStatus: 'loading' }),
+  successAction: (componentId, componentData) =>
+    actions.chartUpdateSucceeded(componentData, componentId),
+  errorAction: (componentId, response) =>
+    actions.chartUpdateFailed(response, componentId),
 });
 
 const store = createStore(
   rootReducer,
   initState,
-  compose(applyMiddleware(thunk, logger, asyncEventMiddleware), initEnhancer(false)),
+  compose(
+    applyMiddleware(thunk, logger, asyncEventMiddleware),
+    initEnhancer(false),
+  ),
 );
 
 ReactDOM.render(<App store={store} />, document.getElementById('app'));

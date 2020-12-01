@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClientResponse, t } from '@superset-ui/core';
+import { JsonObject, SupersetClientResponse, t } from '@superset-ui/core';
 import {
   SupersetError,
   ErrorTypeEnum,
@@ -36,33 +36,30 @@ export type ClientErrorObject = {
   stacktrace?: string;
 } & Partial<SupersetClientResponse>;
 
-export function parseErrorJson(responseObject: SupersetClientResponse | (Response & { timeout: number }) | object): ClientErrorObject {
+export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
+  let error = { ...responseObject };
   // Backwards compatibility for old error renderers with the new error object
-  if (responseObject['errors'] && responseObject['errors'].length > 0) {
-    responseObject['error'] = responseObject['description'] = responseObject['errors'][0].message;
-    responseObject['link'] = responseObject['errors'][0]?.extra?.link;
+  if (error.errors && error.errors.length > 0) {
+    error.error = error.description = error.errors[0].message;
+    error.link = error.errors[0]?.extra?.link;
   }
 
-  if (responseObject['stack']) {
-    responseObject = {
-      ...responseObject,
+  if (error.stack) {
+    error = {
+      ...error,
       error:
         t('Unexpected error: ') +
-        (responseObject['description'] ||
-          t('(no description, click to see stack trace)')),
-      stacktrace: responseObject['stack'],
+        (error.description || t('(no description, click to see stack trace)')),
+      stacktrace: error.stack,
     };
-  } else if (
-    responseObject['responseText'] &&
-    responseObject['responseText'].indexOf('CSRF') >= 0
-  ) {
-    responseObject = {
-      ...responseObject,
+  } else if (error.responseText && error.responseText.indexOf('CSRF') >= 0) {
+    error = {
+      ...error,
       error: t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT),
     };
   }
 
-  return { ...responseObject, error: responseObject['error'] }; // typescript madness
+  return { ...error, error: error.error }; // explicit ClientErrorObject
 }
 
 export function getClientErrorObject(

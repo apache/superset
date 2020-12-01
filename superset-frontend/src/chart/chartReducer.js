@@ -74,7 +74,7 @@ export default function chartReducer(charts = {}, action) {
     [actions.CHART_UPDATE_QUEUED](state) {
       return {
         ...state,
-        asyncJobId: action.asyncJobMeta["job_id"],
+        asyncJobId: action.asyncJobMeta.job_id,
         chartStatus: 'loading',
         chartUpdateEndTime: now(),
       };

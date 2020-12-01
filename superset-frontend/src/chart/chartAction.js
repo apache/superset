@@ -361,39 +361,38 @@ export function exploreJSON(
 
     const chartDataRequestCaught = chartDataRequest
       .then(response => {
-        if(isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
-          const result = ('result' in response) ? response['result'][0] : response;
+          const result = 'result' in response ? response.result[0] : response;
           return dispatch(chartUpdateQueued(result, key));
-
-        } else {
-          // new API returns an object with an array of restults
-          // problem: response holds a list of results, when before we were just getting one result.
-          // How to make the entire app compatible with multiple results?
-          // For now just use the first result.
-          const result = response.result[0];
-
-          dispatch(
-            logEvent(LOG_ACTIONS_LOAD_CHART, {
-              slice_id: key,
-              applied_filters: result.applied_filters,
-              is_cached: result.is_cached,
-              force_refresh: force,
-              row_count: result.rowcount,
-              datasource: formData.datasource,
-              start_offset: logStart,
-              ts: new Date().getTime(),
-              duration: Logger.getTimestamp() - logStart,
-              has_extra_filters:
-                formData.extra_filters && formData.extra_filters.length > 0,
-              viz_type: formData.viz_type,
-              data_age: result.is_cached
-                ? moment(new Date()).diff(moment.utc(result.cached_dttm))
-                : null,
-            }),
-          );
-          return dispatch(chartUpdateSucceeded(result, key));
         }
+
+        // new API returns an object with an array of restults
+        // problem: response holds a list of results, when before we were just getting one result.
+        // How to make the entire app compatible with multiple results?
+        // For now just use the first result.
+        const result = response.result[0];
+
+        dispatch(
+          logEvent(LOG_ACTIONS_LOAD_CHART, {
+            slice_id: key,
+            applied_filters: result.applied_filters,
+            is_cached: result.is_cached,
+            force_refresh: force,
+            row_count: result.rowcount,
+            datasource: formData.datasource,
+            start_offset: logStart,
+            ts: new Date().getTime(),
+            duration: Logger.getTimestamp() - logStart,
+            has_extra_filters:
+              formData.extra_filters && formData.extra_filters.length > 0,
+            viz_type: formData.viz_type,
+            data_age: result.is_cached
+              ? moment(new Date()).diff(moment.utc(result.cached_dttm))
+              : null,
+          }),
+        );
+        return dispatch(chartUpdateSucceeded(result, key));
       })
       .catch(response => {
         const appendErrorLog = (errorDetails, isCached) => {
