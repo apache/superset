@@ -378,6 +378,39 @@ class TestSupersetSqlParse(unittest.TestCase):
         self.assertEqual(False, sql.is_select())
         self.assertEqual(False, sql.is_readonly())
 
+    def test_set(self):
+        sql = ParsedQuery(
+            """
+            -- comment
+            SET hivevar:desc='Legislators';
+        """
+        )
+
+        self.assertEqual(True, sql.is_set())
+        self.assertEqual(False, sql.is_select())
+        self.assertEqual(True, sql.is_readonly())
+
+        self.assertEqual(True, ParsedQuery("set hivevar:desc='bla'").is_set())
+        self.assertEqual(False, ParsedQuery("SELECT 1").is_set())
+
+    def test_show(self):
+        sql = ParsedQuery(
+            """
+            -- comment
+            SHOW LOCKS test EXTENDED;
+            -- comment
+        """
+        )
+
+        self.assertEqual(True, sql.is_show())
+        self.assertEqual(False, sql.is_select())
+        self.assertEqual(True, sql.is_readonly())
+
+        self.assertEqual(True, ParsedQuery("SHOW TABLES").is_show())
+        self.assertEqual(True, ParsedQuery("shOw TABLES").is_show())
+        self.assertEqual(True, ParsedQuery("show TABLES").is_show())
+        self.assertEqual(False, ParsedQuery("SELECT 1").is_show())
+
     def test_explain(self):
         sql = ParsedQuery("EXPLAIN SELECT 1")
 
