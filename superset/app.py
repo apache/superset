@@ -214,6 +214,10 @@ class SupersetAppInitializer:
         #
         # Setup regular views
         #
+        if appbuilder.app.config["LOGO_TARGET_PATH"]:
+            appbuilder.add_link(
+                "Home", label=__("Home"), href="/superset/welcome",
+            )
         appbuilder.add_view(
             AnnotationLayerModelView,
             "Annotation Layers",
@@ -336,8 +340,8 @@ class SupersetAppInitializer:
         )
         appbuilder.add_link(
             "Query Search",
-            label=_("Query Search"),
-            href="/superset/sqllab#search",
+            label=_("Query History"),
+            href="/superset/sqllab/history",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
