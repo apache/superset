@@ -19,6 +19,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
+import { Menu as AntdMenu, Dropdown, Skeleton} from 'antd';
 import { DropDownProps } from 'antd/lib/dropdown';
 
 /*
@@ -37,7 +38,6 @@ export {
   Dropdown,
   Empty,
   Input,
-  Menu as AntdMenu,
   Modal,
   Popover,
   Select,
