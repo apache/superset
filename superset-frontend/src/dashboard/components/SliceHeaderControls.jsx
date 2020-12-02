@@ -175,11 +175,12 @@ class SliceHeaderControls extends React.PureComponent {
       moment.utc(itemCachedDttm).fromNow(),
     );
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
-    let refreshTooltip = isCached.map(itemCached =>
-      itemCached
+    const getCachedTitle = itemCached => {
+      return itemCached
         ? t('Cached %s', cachedWhen)
-        : (updatedWhen && t('Fetched %s', updatedWhen)) || '',
-    );
+        : updatedWhen && t('Fetched %s', updatedWhen);
+    };
+    let refreshTooltip = isCached.map(getCachedTitle) || '';
     // If all queries have same cache time we can unit them to one
     refreshTooltip = [...new Set(refreshTooltip)].join(', ');
     const resizeLabel = isFullSize ? t('Minimize') : t('Maximize');

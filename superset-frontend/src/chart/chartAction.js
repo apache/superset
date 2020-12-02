@@ -132,7 +132,7 @@ const legacyChartDataRequest = async (
     // Make the legacy endpoint return a payload that corresponds to the
     // V1 chart data endpoint response signature.
     return {
-        result: [json],
+      result: [json],
     };
   });
 };
@@ -384,7 +384,9 @@ export function exploreJSON(
             }),
           ),
         );
-        return dispatch(chartUpdateSucceeded(queryResponse, queriesResponse, key));
+        return dispatch(
+          chartUpdateSucceeded(queryResponse, queriesResponse, key),
+        );
       })
       .catch(response => {
         const appendErrorLog = (errorDetails, isCached) => {
