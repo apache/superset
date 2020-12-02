@@ -109,7 +109,7 @@ const ImportDatasetModal: FunctionComponent<ImportDatasetModalProps> = ({
         <StyledInputContainer>
           <div className="helper">
             {t(
-              'The password for the databases below is needed in order to ' +
+              'The passwords for the databases below are needed in order to ' +
                 'import them together with the datasets. Please note that the ' +
                 '"Secure Extra" and "Certificate" sections of ' +
                 'the database configuration are not present in export files, and ' +
