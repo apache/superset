@@ -31,6 +31,8 @@ interface FaveStarProps {
 
 const StyledLink = styled.a`
   font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+  display: flex;
+  padding: 0 0 0 0.5em;
 `;
 
 export default class FaveStar extends React.PureComponent<FaveStarProps> {
