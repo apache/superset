@@ -48,6 +48,7 @@ export {
   Popover,
   Select,
   Skeleton,
+  Switch,
   Radio,
   Tabs,
   Tooltip,

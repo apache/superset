@@ -304,6 +304,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALLOW_DASHBOARD_DOMAIN_SHARDING": True,
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
+    "DISABLE_DATASET_SOURCE_EDIT": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "KV_STORE": False,
@@ -337,6 +338,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ROW_LEVEL_SECURITY": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
+    "SIP_34_ALERTS_UI": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.

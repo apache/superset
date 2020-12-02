@@ -132,6 +132,7 @@ def upgrade():
             # find iframe chart position in metadata
             # and replace it with markdown component
             position_dict = json.loads(dashboard.position_json or "{}")
+            keys_to_remove = []
             for key, chart_position in position_dict.items():
                 if (
                     chart_position
@@ -145,7 +146,7 @@ def upgrade():
                     markdown = create_new_markdown_component(
                         chart_position, iframe_urls[iframe_id]
                     )
-                    position_dict.pop(key)
+                    keys_to_remove.append(key)
                     position_dict[markdown["id"]] = markdown
 
                     # add markdown to layout tree
@@ -154,13 +155,13 @@ def upgrade():
                     children.remove(key)
                     children.append(markdown["id"])
 
-                    dashboard.position_json = json.dumps(
-                        position_dict,
-                        indent=None,
-                        separators=(",", ":"),
-                        sort_keys=True,
-                    )
-                    session.merge(dashboard)
+            if keys_to_remove:
+                for key_to_remove in keys_to_remove:
+                    del position_dict[key_to_remove]
+                dashboard.position_json = json.dumps(
+                    position_dict, indent=None, separators=(",", ":"), sort_keys=True,
+                )
+                session.merge(dashboard)
 
         # remove iframe, separator and markup charts
         slices_to_remove = (
