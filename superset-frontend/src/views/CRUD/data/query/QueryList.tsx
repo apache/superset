@@ -287,6 +287,10 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         }: any) => `${user.first_name} ${user.last_name}`,
       },
       {
+        accessor: QueryObjectColumns.user,
+        hidden: true,
+      },
+      {
         accessor: QueryObjectColumns.rows,
         Header: t('Rows'),
         size: 'md',
