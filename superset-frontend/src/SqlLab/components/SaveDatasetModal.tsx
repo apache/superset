@@ -28,7 +28,7 @@ interface SaveDatasetModalProps {
   visible: boolean;
   onOk: () => void;
   onHide: () => void;
-  handleDatasetNameChange: (e: { target: { value: any } }) => void;
+  handleDatasetNameChange: (e: React.FormEvent<HTMLInputElement>) => void;
   userDatasetsOwned: Array<Record<string, any>>;
   handleSaveDatasetRadioBtnState: (e: RadioChangeEvent) => void;
   saveDatasetRadioBtnState: number;
