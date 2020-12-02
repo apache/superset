@@ -468,7 +468,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert str(excinfo.value) == "Error importing database"
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
-                "sqlalchemy_uri": ["Password cannot be masked"]
+                "_schema": ["Must provide a password for the database"]
             }
         }
 
