@@ -22,7 +22,7 @@ from tests.superset_test_custom_template_processors import CustomPrestoTemplateP
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")
-DEBUG = True
+DEBUG = False
 SUPERSET_WEBSERVER_PORT = 8081
 
 # Allowing SQLALCHEMY_DATABASE_URI and SQLALCHEMY_EXAMPLES_URI to be defined as an env vars for
@@ -95,6 +95,8 @@ DATA_CACHE_CONFIG = {
     "CACHE_DEFAULT_TIMEOUT": 30,
     "CACHE_KEY_PREFIX": "superset_data_cache",
 }
+
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"
 
 
 class CeleryConfig(object):

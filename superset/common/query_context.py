@@ -297,7 +297,7 @@ class QueryContext:
             logger.warning(
                 "force_cached (QueryContext): value not found for key %s", cache_key
             )
-            raise CacheLoadError()
+            raise CacheLoadError("Error loading data from cache")
 
         if query_obj and not is_loaded:
             try:

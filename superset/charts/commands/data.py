@@ -50,8 +50,8 @@ class ChartDataCommand(BaseCommand):
             payload = self._query_context.get_payload(
                 cache_query_context=cache_query_context, force_cached=force_cached
             )
-        except CacheLoadError:
-            raise ChartDataCacheLoadError()
+        except CacheLoadError as exc:
+            raise ChartDataCacheLoadError(exc.message)
 
         # TODO: QueryContext should support SIP-40 style errors
         for query in payload["queries"]:

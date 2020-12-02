@@ -453,11 +453,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    def get_data_response(self, command: ChartDataCommand) -> Response:
+    def get_data_response(
+        self, command: ChartDataCommand, force_cached: bool = False
+    ) -> Response:
         try:
-            result = command.run()
+            result = command.run(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
-            return self.response_400(message=exc.message)
+            return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
@@ -593,6 +595,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -611,7 +615,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             logger.info(exc)
             return self.response_401()
 
-        return self.get_data_response(command)
+        return self.get_data_response(command, True)
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()
