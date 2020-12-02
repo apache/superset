@@ -26,11 +26,10 @@ import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/mar
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { DropdownButton, Row, Col, FormControl } from 'react-bootstrap';
+import { DropdownButton } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 
 import { Menu } from 'src/common/components';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import Button from 'src/components/Button';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from '../../components/CopyToClipboard';
@@ -40,13 +39,6 @@ import Loading from '../../components/Loading';
 import ModalTrigger from '../../components/ModalTrigger';
 import PropertiesModal from './PropertiesModal';
 import { sliceUpdated } from '../actions/exploreActions';
-import {
-  CopyToClipboardButton,
-  FilterInput,
-  RowCount,
-  useFilteredTableData,
-  useTableColumns,
-} from './DataTableControl';
 
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
 SyntaxHighlighter.registerLanguage('html', htmlSyntax);
@@ -73,18 +65,13 @@ export const DisplayQueryButton = props => {
 
   const [language, setLanguage] = useState(null);
   const [query, setQuery] = useState(null);
-  const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [filterText, setFilterText] = useState('');
   const [sqlSupported] = useState(
     datasource && datasource.split('__')[1] === 'table',
   );
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-
-  const tableData = useFilteredTableData(data, filterText);
-  const columns = useTableColumns(data);
 
   const beforeOpen = resultType => {
     setIsLoading(true);
@@ -99,7 +86,6 @@ export const DisplayQueryButton = props => {
         const result = response.result[0];
         setLanguage(result.language);
         setQuery(result.query);
-        setData(result.data);
         setIsLoading(false);
         setError(null);
       })
@@ -109,10 +95,6 @@ export const DisplayQueryButton = props => {
           setIsLoading(false);
         });
       });
-  };
-
-  const changeFilterText = event => {
-    setFilterText(event.target.value);
   };
 
   const openPropertiesModal = () => {
@@ -176,46 +158,6 @@ export const DisplayQueryButton = props => {
     return null;
   };
 
-  const renderDataTable = () => {
-    return (
-      <div style={{ overflow: 'auto' }}>
-        <Row>
-          <Col md={9}>
-            <RowCount data={data} />
-            <CopyToClipboardButton data={data} />
-          </Col>
-          <Col md={3}>
-            <FilterInput
-              filterText={filterText}
-              onChangeHandler={changeFilterText}
-            />
-          </Col>
-        </Row>
-        <TableView
-          columns={columns}
-          data={tableData}
-          withPagination={false}
-          noDataText={t('No data')}
-          emptyWrapperType={EmptyWrapperType.Small}
-          className="table-condensed"
-        />
-      </div>
-    );
-  };
-
-  const renderSamplesModalBody = () => {
-    if (isLoading) {
-      return <Loading />;
-    }
-    if (error) {
-      return <pre>{error}</pre>;
-    }
-    if (data) {
-      return renderDataTable();
-    }
-    return null;
-  };
-
   const { slice } = props;
   return (
     <DropdownButton
@@ -253,15 +195,6 @@ export const DisplayQueryButton = props => {
             modalTitle={t('View query')}
             beforeOpen={() => beforeOpen('query')}
             modalBody={renderQueryModalBody()}
-            responsive
-          />
-        </Menu.Item>
-        <Menu.Item>
-          <ModalTrigger
-            triggerNode={<span>{t('View samples')}</span>}
-            modalTitle={t('View samples')}
-            beforeOpen={() => beforeOpen('samples')}
-            modalBody={renderSamplesModalBody()}
             responsive
           />
         </Menu.Item>
