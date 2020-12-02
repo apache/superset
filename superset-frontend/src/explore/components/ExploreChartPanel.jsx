@@ -20,24 +20,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import { ParentSize } from '@vx/responsive';
-import { styled, t } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
-import { Collapse } from 'src/common/components';
-import Tabs from 'src/common/components/Tabs';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
-import TableView, { EmptyWrapperType } from '../../components/TableView';
-import { getChartDataRequest } from '../../chart/chartAction';
-import getClientErrorObject from '../../utils/getClientErrorObject';
-import Loading from '../../components/Loading';
-import {
-  CopyToClipboardButton,
-  FilterInput,
-  RowCount,
-  useFilteredTableData,
-  useTableColumns,
-} from './DataTableControl';
+import { DataTablesPane } from './DataTablesPane';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -69,14 +57,6 @@ export const EXPLORE_GUTTER_MARGIN = 3;
 export const CHART_PANEL_PADDING = 30;
 
 const INITIAL_SIZES = [80, 20];
-const RESULT_TYPES = {
-  results: 'results',
-  samples: 'samples',
-};
-const NULLISH_RESULTS_STATE = {
-  [RESULT_TYPES.results]: null,
-  [RESULT_TYPES.samples]: null,
-};
 
 const Styles = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
@@ -134,30 +114,6 @@ const Styles = styled.div`
   }
 `;
 
-const TableControlsWrapper = styled.div`
-  display: flex;
-  align-items: center;
-
-  span {
-    flex-shrink: 0;
-  }
-`;
-
-const SouthPane = styled.div`
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  z-index: 1;
-`;
-
-const TabsWrapper = styled.div`
-  height: ${({ contentHeight }) => contentHeight}px;
-  overflow: hidden;
-
-  .table-condensed {
-    height: 100%;
-    overflow: auto;
-  }
-`;
-
 const ExploreChartPanel = props => {
   const panelHeadingRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(props.standalone ? 0 : 50);
@@ -177,12 +133,6 @@ const ExploreChartPanel = props => {
     calcSectionHeight(INITIAL_SIZES[1]),
   );
 
-  const [data, setData] = useState(NULLISH_RESULTS_STATE);
-  const [isLoading, setIsLoading] = useState(NULLISH_RESULTS_STATE);
-  const [error, setError] = useState(NULLISH_RESULTS_STATE);
-  const [filterText, setFilterText] = useState('');
-  const [activeTabKey, setActiveTabKey] = useState(RESULT_TYPES.results);
-
   useEffect(() => {
     const calcHeaderSize = debounce(() => {
       setHeaderHeight(
@@ -194,95 +144,11 @@ const ExploreChartPanel = props => {
     return () => document.removeEventListener('resize', calcHeaderSize);
   }, [props.standalone]);
 
-  useEffect(() => {
-    const getData = resultType => {
-      setIsLoading(prevIsLoading => ({ ...prevIsLoading, [resultType]: true }));
-      return getChartDataRequest({
-        formData: props.chart.latestQueryFormData,
-        resultFormat: 'json',
-        resultType,
-      })
-        .then(response => {
-          // Currently displaying of only first query is supported
-          const result = response.result[0];
-          setData(prevData => ({ ...prevData, [resultType]: result.data }));
-          setIsLoading(prevIsLoading => ({
-            ...prevIsLoading,
-            [resultType]: false,
-          }));
-          setError(prevError => ({
-            ...prevError,
-            [resultType]: NULLISH_RESULTS_STATE,
-          }));
-        })
-        .catch(response => {
-          getClientErrorObject(response).then(({ error, statusText }) => {
-            setError(prevError => ({
-              ...prevError,
-              [resultType]:
-                error || statusText || t('Sorry, An error occurred'),
-            }));
-            setIsLoading(prevIsLoading => ({
-              ...prevIsLoading,
-              [resultType]: false,
-            }));
-          });
-        });
-    };
-    getData(RESULT_TYPES.results);
-    getData(RESULT_TYPES.samples);
-  }, [props.chart.latestQueryFormData]);
-
-  const filteredData = {
-    [RESULT_TYPES.results]: useFilteredTableData(
-      data[RESULT_TYPES.results],
-      filterText,
-    ),
-    [RESULT_TYPES.samples]: useFilteredTableData(
-      data[RESULT_TYPES.samples],
-      filterText,
-    ),
-  };
-
-  const columns = {
-    [RESULT_TYPES.results]: useTableColumns(data[RESULT_TYPES.results]),
-    [RESULT_TYPES.samples]: useTableColumns(data[RESULT_TYPES.samples]),
-  };
-
-  const changeFilterText = event => {
-    setFilterText(event.target.value);
-  };
-
   const onDrag = ([northPercent, southPercent]) => {
     setChartSectionHeight(
       calcSectionHeight(northPercent) - CHART_PANEL_PADDING,
     );
     setTableSectionHeight(calcSectionHeight(southPercent));
-  };
-
-  const renderDataTable = type => {
-    if (isLoading[type]) {
-      return <Loading />;
-    }
-    if (error[type]) {
-      return <pre>{error[type]}</pre>;
-    }
-    if (data[type]) {
-      if (data[type].length === 0) {
-        return <span>No data</span>;
-      }
-      return (
-        <TableView
-          columns={columns[type]}
-          data={filteredData[type]}
-          withPagination={false}
-          noDataText={t('No data')}
-          emptyWrapperType={EmptyWrapperType.Small}
-          className="table-condensed"
-        />
-      );
-    }
-    return null;
   };
 
   const renderChart = () => {
@@ -355,14 +221,6 @@ const ExploreChartPanel = props => {
     };
   };
 
-  const TableControls = (
-    <TableControlsWrapper>
-      <RowCount data={data[activeTabKey]} />
-      <CopyToClipboardButton data={data[activeTabKey]} />
-      <FilterInput value={filterText} onChangeHandler={changeFilterText} />
-    </TableControlsWrapper>
-  );
-
   return (
     <Styles className="panel panel-default chart-container">
       <div className="panel-heading" ref={panelHeadingRef}>
@@ -377,27 +235,10 @@ const ExploreChartPanel = props => {
         elementStyle={elementStyle}
       >
         <div className="panel-body">{renderChart()}</div>
-        <SouthPane>
-          <TabsWrapper contentHeight={tableSectionHeight}>
-            <Collapse accordion bordered={false}>
-              <Collapse.Panel header="Data" forceRender key="data">
-                <Tabs
-                  fullWidth={false}
-                  tabBarExtraContent={TableControls}
-                  activeKey={activeTabKey}
-                  onChange={setActiveTabKey}
-                >
-                  <Tabs.TabPane tab="View results" key={RESULT_TYPES.results}>
-                    {renderDataTable(RESULT_TYPES.results)}
-                  </Tabs.TabPane>
-                  <Tabs.TabPane tab="View samples" key={RESULT_TYPES.samples}>
-                    {renderDataTable(RESULT_TYPES.samples)}
-                  </Tabs.TabPane>
-                </Tabs>
-              </Collapse.Panel>
-            </Collapse>
-          </TabsWrapper>
-        </SouthPane>
+        <DataTablesPane
+          queryFormData={props.chart.latestQueryFormData}
+          tableSectionHeight={tableSectionHeight}
+        />
       </Split>
     </Styles>
   );
