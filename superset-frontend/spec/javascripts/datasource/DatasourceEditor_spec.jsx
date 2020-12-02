@@ -21,11 +21,15 @@ import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
+import { Radio } from 'react-bootstrap';
 
+import Icon from 'src/components/Icon';
 import Tabs from 'src/common/components/Tabs';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import Field from 'src/CRUD/Field';
 import mockDatasource from 'spec/fixtures/mockDatasource';
+import * as featureFlags from 'src/featureFlags';
+import TableSelector from 'src/components/TableSelector';
 
 const props = {
   datasource: mockDatasource['7__table'],
@@ -44,6 +48,7 @@ describe('DatasourceEditor', () => {
   let wrapper;
   let el;
   let inst;
+  let isFeatureEnabledMock;
 
   beforeEach(() => {
     el = <DatasourceEditor {...props} />;
@@ -141,5 +146,66 @@ describe('DatasourceEditor', () => {
     expect(
       wrapper.find(Field).find({ fieldKey: 'fetch_values_predicate' }).exists(),
     ).toBe(true);
+  });
+
+  describe('enable edit Source tab', () => {
+    beforeAll(() => {
+      isFeatureEnabledMock = jest
+        .spyOn(featureFlags, 'isFeatureEnabled')
+        .mockImplementation(
+          feature => feature === 'ENABLE_DATASET_SOURCE_EDIT',
+        );
+      wrapper = shallow(el, { context: { store } }).dive();
+    });
+
+    afterAll(() => {
+      isFeatureEnabledMock.mockRestore();
+    });
+
+    it('Source Tab: edit mode', () => {
+      wrapper.setState({ activeTabKey: 0, isEditMode: true });
+      const sourceTab = wrapper.find(Tabs.TabPane).first();
+      expect(sourceTab.find(Radio).first().prop('disabled')).toBe(false);
+
+      const icon = sourceTab.find(Icon);
+      expect(icon.prop('name')).toBe('lock-unlocked');
+
+      const tableSelector = sourceTab.find(Field).shallow().find(TableSelector);
+      expect(tableSelector.length).toBe(1);
+      expect(tableSelector.prop('readOnly')).toBe(false);
+    });
+
+    it('Source Tab: readOnly mode', () => {
+      const sourceTab = wrapper.find(Tabs.TabPane).first();
+      expect(sourceTab.find(Radio).length).toBe(2);
+      expect(sourceTab.find(Radio).first().prop('disabled')).toBe(true);
+
+      const icon = sourceTab.find(Icon);
+      expect(icon.prop('name')).toBe('lock-locked');
+      icon.parent().simulate('click');
+      expect(wrapper.state('isEditMode')).toBe(true);
+
+      const tableSelector = sourceTab.find(Field).shallow().find(TableSelector);
+      expect(tableSelector.length).toBe(1);
+      expect(tableSelector.prop('readOnly')).toBe(true);
+    });
+  });
+
+  it('disable edit Source tab', () => {
+    // when edit is disabled, show readOnly controls and no padlock
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
+    wrapper = shallow(el, { context: { store } }).dive();
+    wrapper.setState({ activeTabKey: 0 });
+
+    const sourceTab = wrapper.find(Tabs.TabPane).first();
+    expect(sourceTab.find(Radio).length).toBe(2);
+    expect(sourceTab.find(Radio).first().prop('disabled')).toBe(true);
+
+    const icon = sourceTab.find(Icon);
+    expect(icon).toHaveLength(0);
+
+    isFeatureEnabledMock.mockRestore();
   });
 });
