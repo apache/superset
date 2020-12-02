@@ -55,7 +55,12 @@ const RunQueryActionButton = ({
 
   if (shouldShowStopBtn) {
     return (
-      <Button {...commonBtnProps} cta onClick={stopQuery}>
+      <Button
+        {...commonBtnProps}
+        cta
+        onClick={stopQuery}
+        tooltip={t('Stop running (Ctrl + x)')}
+      >
         <i className="fa fa-stop" /> {t('Stop')}
       </Button>
     );
@@ -67,7 +72,7 @@ const RunQueryActionButton = ({
         cta
         onClick={() => runQuery(true)}
         key="run-async-btn"
-        tooltip={t('Run query asynchronously (Ctrl + ↵)')}
+        tooltip={t('Run query (Ctrl + Return)')}
         disabled={!sql.trim()}
       >
         <i className="fa fa-bolt" /> {runBtnText}
@@ -80,7 +85,7 @@ const RunQueryActionButton = ({
       cta
       onClick={() => runQuery(false)}
       key="run-btn"
-      tooltip={t('Run query synchronously (Ctrl + ↵)')}
+      tooltip={t('Run query (Ctrl + Return)')}
       disabled={!sql.trim()}
     >
       <i className="fa fa-refresh" /> {runBtnText}
