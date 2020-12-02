@@ -108,6 +108,9 @@ class DatasourceControl extends React.PureComponent {
   }
 
   onDatasourceSave(datasource) {
+    console.log(datasource);
+    console.log(this.props.onDatasourceSave);
+    console.log(this.props.actions.setDatasource);
     this.props.actions.setDatasource(datasource);
     if (this.props.onDatasourceSave) {
       this.props.onDatasourceSave(datasource);

@@ -66,13 +66,21 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   let searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const selectDatasource = (datasource: any) => {
+    const selectDatasource = (datasource: {
+      type: string;
+      id: number;
+      uid: string;
+    }) => {
       SupersetClient.get({
         endpoint: `/datasource/get/${datasource.type}/${datasource.id}`,
       })
         .then(({ json }) => {
+          console.log(json);
+          console.log(datasource.uid);
           onDatasourceSave(json);
-          onChange(datasource.uid);
+          // onChange('1__table');
+          console.log(`${datasource.id}__table`);
+          onChange(`${datasource.id}__table`);
         })
         .catch(response => {
           getClientErrorObject(response).then(
@@ -93,23 +101,23 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       }
       if (!datasources) {
         SupersetClient.get({
-          endpoint: '/superset/datasources/',
+          endpoint: '/api/v1/dataset/',
         })
           .then(({ json }) => {
-            const data = json.map((ds: any) => ({
-              rawName: ds.name,
-              connection: ds.connection,
+            const data = json.result.map((ds: any) => ({
+              rawName: ds.table_name,
+              connection: ds.database.database_name,
               schema: ds.schema,
               name: (
                 <a
                   href="#"
-                  onClick={() => selectDatasource(ds)}
+                  onClick={() => selectDatasource({ type: 'table', ...ds })}
                   className="datasource-link"
                 >
-                  {ds.name}
+                  {ds.table_name}
                 </a>
               ),
-              type: ds.type,
+              type: 'table',
             }));
             setLoading(false);
             setDatasources(data);
