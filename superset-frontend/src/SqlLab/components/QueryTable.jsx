@@ -169,11 +169,9 @@ const QueryTable = props => {
             q.ctas && q.tempTable && q.tempTable.includes('.') ? '' : q.schema;
           q.output = [schemaUsed, q.tempTable].filter(v => v).join('.');
         }
-
         q.progress = (
           <ProgressBar percent={parseInt(q.progress.toFixed(0), 10)} striped />
         );
-
         let errorTooltip;
         if (q.errorMessage) {
           errorTooltip = (
