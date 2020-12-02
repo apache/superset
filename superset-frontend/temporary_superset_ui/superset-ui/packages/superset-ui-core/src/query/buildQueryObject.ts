@@ -6,6 +6,7 @@ import convertMetric from './convertMetric';
 import processFilters from './processFilters';
 import extractExtras from './extractExtras';
 import extractQueryFields from './extractQueryFields';
+import { appendExtraFormData, overrideExtraFormData } from './processExtraFormData';
 
 export const DTTM_ALIAS = '__timestamp';
 
@@ -19,6 +20,7 @@ export const DTTM_ALIAS = '__timestamp';
 export default function buildQueryObject<T extends QueryFormData>(formData: T): QueryObject {
   const {
     annotation_layers = [],
+    extra_form_data = {},
     time_range,
     since,
     until,
@@ -32,6 +34,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     url_params = {},
     ...residualFormData
   } = formData;
+  const { append_form_data = {}, override_form_data = {} } = extra_form_data;
 
   const numericRowLimit = Number(row_limit);
   const numericRowOffset = Number(row_offset);
@@ -44,7 +47,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     ...extras,
   });
 
-  return {
+  let queryObject: QueryObject = {
     time_range,
     since,
     until,
@@ -65,4 +68,8 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
       : null,
     url_params,
   };
+  // append and override extra form data used by native filters
+  queryObject = appendExtraFormData(queryObject, append_form_data);
+  queryObject = overrideExtraFormData(queryObject, override_form_data);
+  return queryObject;
 }

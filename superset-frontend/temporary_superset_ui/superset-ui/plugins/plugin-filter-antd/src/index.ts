@@ -16,15 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import processGroupby from '@superset-ui/core/src/query/processGroupby';
-
-describe('processGroupby', () => {
-  it('should handle array of strings', () => {
-    expect(processGroupby(['foo', 'bar'])).toEqual(['foo', 'bar']);
-  });
-
-  it('should exclude non-string values', () => {
-    // @ts-expect-error
-    expect(processGroupby(['bar', 1, undefined, null, 'foo'])).toEqual(['bar', 'foo']);
-  });
-});
+export { default as AntdSelectFilterPlugin } from './Select';
+export { default as AntdRangeFilterPlugin } from './Range';
