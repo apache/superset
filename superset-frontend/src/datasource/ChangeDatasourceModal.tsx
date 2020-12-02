@@ -33,7 +33,7 @@ import withToasts from '../messageToasts/enhancers/withToasts';
 
 interface ChangeDatasourceModalProps {
   addDangerToast: (msg: string) => void;
-  onChange: (string: number) => void;
+  onChange: (uid: string) => void;
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => void;
   show: boolean;
