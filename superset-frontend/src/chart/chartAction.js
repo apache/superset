@@ -226,7 +226,7 @@ export function runAnnotationQuery(
   key,
   isDashboardRequest = false,
 ) {
-  return function(dispatch, getState) {
+  return function (dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
     // make a copy of formData, not modifying original formData
     const fd = {
