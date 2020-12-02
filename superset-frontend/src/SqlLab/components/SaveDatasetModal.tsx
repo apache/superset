@@ -81,7 +81,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     }[]
   >([]);
 
-  const onSearch = (searchText: any) => {
+  const onSearch = (searchText: string) => {
     setOptions(
       !searchText
         ? []
@@ -136,7 +136,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                 onClick={handleOverwriteDataset}
               >
                 Ok
-              </Button>{' '}
+              </Button>
             </>
           )}
         </>
