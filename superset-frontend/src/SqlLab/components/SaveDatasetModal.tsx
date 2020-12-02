@@ -77,7 +77,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   const [options, setOptions] = useState<
     {
       value: string;
-      dataSetId: number;
+      datasetId: number;
     }[]
   >([]);
 
@@ -87,7 +87,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         ? []
         : userDatasetsOwned.map(d => ({
             value: d.dataSetName,
-            dataSetId: d.dataSetId,
+            datasetId: d.datasetId,
           })),
     );
   };
