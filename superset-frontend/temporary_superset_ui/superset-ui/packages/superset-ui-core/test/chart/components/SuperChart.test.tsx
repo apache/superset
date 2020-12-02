@@ -12,6 +12,7 @@ import NoResultsComponent from '@superset-ui/core/src/chart/components/NoResults
 import { ChartKeys, DiligentChartPlugin, BuggyChartPlugin } from './MockChartPlugins';
 
 const DEFAULT_QUERY_DATA = { data: ['foo', 'bar'] };
+const DEFAULT_QUERIES_DATA = [{ data: ['foo', 'bar'] }, { data: ['foo2', 'bar2'] }];
 
 function expectDimension(renderedWrapper: Cheerio, width: number, height: number) {
   expect(renderedWrapper.find('.dimension').text()).toEqual([width, height].join('x'));
@@ -161,6 +162,43 @@ describe('SuperChart', () => {
     });
   });
 
+  it('passes the props with multiple queries to renderer correctly', () => {
+    const wrapper = mount(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        queriesData={DEFAULT_QUERIES_DATA}
+        width={101}
+        height={118}
+        formData={{ abc: 1 }}
+      />,
+    );
+
+    return promiseTimeout(() => {
+      const renderedWrapper = wrapper.render();
+      expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
+      expectDimension(renderedWrapper, 101, 118);
+    });
+  });
+
+  it('passes the props with multiple queries and single query to renderer correctly (backward compatibility)', () => {
+    const wrapper = mount(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        queryData={DEFAULT_QUERIES_DATA[0]}
+        queriesData={DEFAULT_QUERIES_DATA}
+        width={101}
+        height={118}
+        formData={{ abc: 1 }}
+      />,
+    );
+
+    return promiseTimeout(() => {
+      const renderedWrapper = wrapper.render();
+      expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
+      expectDimension(renderedWrapper, 101, 118);
+    });
+  });
+
   describe('supports NoResultsComponent', () => {
     it('renders NoResultsComponent when queryData is missing', () => {
       const wrapper = mount(<SuperChart chartType={ChartKeys.DILIGENT} width="200" height="200" />);
@@ -181,11 +219,38 @@ describe('SuperChart', () => {
       expect(wrapper.find(NoResultsComponent)).toHaveLength(1);
     });
 
+    it('renders NoResultsComponent when queriesData data is null', () => {
+      const wrapper = mount(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queriesData={[{ data: null }]}
+          width="200"
+          height="200"
+        />,
+      );
+
+      expect(wrapper.find(NoResultsComponent)).toHaveLength(1);
+    });
+
     it('renders NoResultsComponent when queryData data is empty', () => {
       const wrapper = mount(
         <SuperChart
           chartType={ChartKeys.DILIGENT}
           queryData={{ data: [] }}
+          width="200"
+          height="200"
+        />,
+      );
+
+      expect(wrapper.find(NoResultsComponent)).toHaveLength(1);
+    });
+
+    it('renders NoResultsComponent when queryData and queriesData data is empty (backward compatibility)', () => {
+      const wrapper = mount(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queryData={{ data: [] }}
+          queriesData={[{ data: [] }]}
           width="200"
           height="200"
         />,
