@@ -16,15 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import processGroupby from '@superset-ui/core/src/query/processGroupby';
+import { t, validateNonEmpty } from '@superset-ui/core';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
 
-describe('processGroupby', () => {
-  it('should handle array of strings', () => {
-    expect(processGroupby(['foo', 'bar'])).toEqual(['foo', 'bar']);
-  });
+const config: ControlPanelConfig = {
+  // For control input types, see: superset-frontend/src/explore/components/controls/index.js
+  controlPanelSections: [
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [['groupby'], ['adhoc_filters']],
+    },
+  ],
+  controlOverrides: {
+    groupby: {
+      validators: [validateNonEmpty],
+      clearable: false,
+    },
+    row_limit: {
+      default: 100,
+    },
+  },
+};
 
-  it('should exclude non-string values', () => {
-    // @ts-expect-error
-    expect(processGroupby(['bar', 1, undefined, null, 'foo'])).toEqual(['bar', 'foo']);
-  });
-});
+export default config;
