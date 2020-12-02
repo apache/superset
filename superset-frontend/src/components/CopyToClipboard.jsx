@@ -127,6 +127,7 @@ class CopyToClipboard extends React.Component {
   }
 
   renderNotWrapped() {
+    console.log('DUPAPAAAA');
     return (
       <Tooltip
         id="copy-to-clipboard-tooltip"
