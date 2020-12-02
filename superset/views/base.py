@@ -297,6 +297,9 @@ def menu_data() -> Dict[str, Any]:
             "user_info_url": appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
+            "user_profile_url": None
+            if g.user.is_anonymous
+            else f"/superset/profile/{g.user.username}",
             "locale": session.get("locale", "en"),
         },
     }
