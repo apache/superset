@@ -51,11 +51,11 @@ interface AlertListProps {
 const StatusIcon = styled(Icon)<{ status: string }>`
   color: ${({ status, theme }) => {
     switch (status) {
-      case 'alerting':
-        return '#FBC700';
-      case 'failed':
+      case 'Working':
+        return theme.colors.alert.base;
+      case 'Error':
         return theme.colors.error.base;
-      case 'ok':
+      case 'Success':
         return theme.colors.success.base;
       default:
         return theme.colors.grayscale.base;
@@ -132,25 +132,25 @@ function AlertList({
             status: '',
           };
           switch (lastState) {
-            case 'ok':
+            case 'Success':
               lastStateConfig.name = 'check';
-              lastStateConfig.label = t('OK');
-              lastStateConfig.status = 'ok';
+              lastStateConfig.label = t('Success');
+              lastStateConfig.status = 'Success';
               break;
-            case 'alerting':
+            case 'Working':
               lastStateConfig.name = 'exclamation';
-              lastStateConfig.label = t('Alerting');
-              lastStateConfig.status = 'alerting';
+              lastStateConfig.label = t('Working');
+              lastStateConfig.status = 'Working';
               break;
-            case 'failed':
+            case 'Error':
               lastStateConfig.name = 'x-small';
-              lastStateConfig.label = t('Failed');
-              lastStateConfig.status = 'failed';
+              lastStateConfig.label = t('Error');
+              lastStateConfig.status = 'Error';
               break;
             default:
               lastStateConfig.name = 'exclamation';
-              lastStateConfig.label = t('Alerting');
-              lastStateConfig.status = 'alerting';
+              lastStateConfig.label = t('Working');
+              lastStateConfig.status = 'Working';
           }
           return (
             <Tooltip title={lastStateConfig.label} placement="bottom">
@@ -313,9 +313,9 @@ function AlertList({
         operator: 'eq',
         unfilteredLabel: 'Any',
         selects: [
-          { label: t('Ok'), value: 'ok' },
-          { label: t('Alerting'), value: 'alerting' },
-          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'Success' },
+          { label: t('Working'), value: 'Working' },
+          { label: t('Error'), value: 'Error' },
         ],
       },
       {
