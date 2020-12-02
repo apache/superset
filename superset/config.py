@@ -369,7 +369,7 @@ GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] =
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
-THUMBNAIL_SELENIUM_USER = "Admin"
+THUMBNAIL_SELENIUM_USER = "admin"
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "null",
     "CACHE_NO_NULL_WARNING": True,

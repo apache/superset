@@ -18,12 +18,12 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
 from superset import app, thumbnail_cache
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
-from superset.extensions import security_manager
 from superset.models.reports import (
     ReportExecutionLog,
     ReportLogState,
@@ -38,6 +38,8 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
+    ReportScheduleSelleniumUserNotFoundError,
+    ReportScheduleUnexpectedError,
 )
 from superset.reports.dao import ReportScheduleDAO
 from superset.reports.notifications import create_notification
@@ -140,7 +142,19 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             dashboard_id_or_slug=report_schedule.dashboard_id,
         )
 
-    def _get_screenshot(self, report_schedule: ReportSchedule) -> ScreenshotData:
+    def _get_screenshot_user(self, session: Session) -> User:
+        user = (
+            session.query(User)
+            .filter(User.username == app.config["THUMBNAIL_SELENIUM_USER"])
+            .one_or_none()
+        )
+        if not user:
+            raise ReportScheduleSelleniumUserNotFoundError()
+        return user
+
+    def _get_screenshot(
+        self, session: Session, report_schedule: ReportSchedule
+    ) -> ScreenshotData:
         """
         Get a chart or dashboard screenshot
         :raises: ReportScheduleScreenshotFailedError
@@ -152,7 +166,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         else:
             screenshot = DashboardScreenshot(url, report_schedule.dashboard.digest)
         image_url = self._get_url(report_schedule, user_friendly=True)
-        user = security_manager.find_user(app.config["THUMBNAIL_SELENIUM_USER"])
+        user = self._get_screenshot_user(session)
         image_data = screenshot.compute_and_cache(
             user=user, cache=thumbnail_cache, force=True,
         )
@@ -161,27 +175,29 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         return ScreenshotData(url=image_url, image=image_data)
 
     def _get_notification_content(
-        self, report_schedule: ReportSchedule
+        self, session: Session, report_schedule: ReportSchedule
     ) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
         :raises: ReportScheduleScreenshotFailedError
         """
-        screenshot_data = self._get_screenshot(report_schedule)
+        screenshot_data = self._get_screenshot(session, report_schedule)
         if report_schedule.chart:
-            name = report_schedule.chart.slice_name
+            name = f"{report_schedule.name}: {report_schedule.chart.slice_name}"
         else:
-            name = report_schedule.dashboard.dashboard_title
+            name = (
+                f"{report_schedule.name}: {report_schedule.dashboard.dashboard_title}"
+            )
         return NotificationContent(name=name, screenshot=screenshot_data)
 
-    def _send(self, report_schedule: ReportSchedule) -> None:
+    def _send(self, session: Session, report_schedule: ReportSchedule) -> None:
         """
         Creates the notification content and sends them to all recipients
 
         :raises: ReportScheduleNotificationError
         """
         notification_errors = []
-        notification_content = self._get_notification_content(report_schedule)
+        notification_content = self._get_notification_content(session, report_schedule)
         for recipient in report_schedule.recipients:
             notification = create_notification(recipient, notification_content)
             try:
@@ -206,7 +222,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                         self.set_state_and_log(session, start_dttm, ReportLogState.NOOP)
                         return
 
-                self._send(self._model)
+                self._send(session, self._model)
 
                 # Log, state and TS
                 self.set_state_and_log(session, start_dttm, ReportLogState.SUCCESS)
@@ -231,6 +247,13 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 # We want to actually commit the state and log inside the scope
                 session.commit()
                 raise
+            except Exception as ex:
+                self.set_state_and_log(
+                    session, start_dttm, ReportLogState.ERROR, error_message=str(ex)
+                )
+                # We want to actually commit the state and log inside the scope
+                session.commit()
+                raise ReportScheduleUnexpectedError(str(ex))
 
     def validate(  # pylint: disable=arguments-differ
         self, session: Session = None

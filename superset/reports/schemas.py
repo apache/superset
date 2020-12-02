@@ -85,7 +85,7 @@ def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
 
 
 class ValidatorConfigJSONSchema(Schema):
-    operation = fields.String(
+    op = fields.String(
         description=validator_config_json_op_description,
         validate=validate.OneOf(choices=["<", "<=", ">", ">=", "==", "!="]),
     )
