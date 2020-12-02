@@ -277,7 +277,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.user,
+        accessor: QueryObjectColumns.user_first_name,
         Header: t('User'),
         size: 'xl',
         Cell: ({
