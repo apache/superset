@@ -22,8 +22,6 @@ import Split from 'react-split';
 import { ParentSize } from '@vx/responsive';
 import { styled, t } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
-import throttle from 'lodash/throttle';
-import { Col, FormControl, Row } from 'react-bootstrap';
 import { Collapse } from 'src/common/components';
 import Tabs from 'src/common/components/Tabs';
 import { chartPropShape } from '../../dashboard/util/propShapes';
@@ -71,6 +69,14 @@ export const EXPLORE_GUTTER_MARGIN = 3;
 export const CHART_PANEL_PADDING = 30;
 
 const INITIAL_SIZES = [80, 20];
+const RESULT_TYPES = {
+  results: 'results',
+  samples: 'samples',
+};
+const NULLISH_RESULTS_STATE = {
+  [RESULT_TYPES.results]: null,
+  [RESULT_TYPES.samples]: null,
+};
 
 const Styles = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
@@ -79,6 +85,8 @@ const Styles = styled.div`
   flex-direction: column;
   align-items: stretch;
   align-content: stretch;
+  overflow: hidden;
+
   & > div:last-of-type {
     flex-basis: 100%;
   }
@@ -97,7 +105,10 @@ const Styles = styled.div`
   .ant-collapse {
     height: 100%;
     background-color: ${({ theme }) => theme.colors.grayscale.light5};
-    .ant-collapse-item,
+    .ant-collapse-item {
+      height: 100%;
+      border: 0;
+    }
     .ant-collapse-content,
     .ant-collapse-content-box {
       height: 100%;
@@ -126,6 +137,10 @@ const Styles = styled.div`
 const TableControlsWrapper = styled.div`
   display: flex;
   align-items: center;
+
+  span {
+    flex-shrink: 0;
+  }
 `;
 
 const SouthPane = styled.div`
@@ -162,10 +177,11 @@ const ExploreChartPanel = props => {
     calcSectionHeight(INITIAL_SIZES[1]),
   );
 
-  const [data, setData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [data, setData] = useState(NULLISH_RESULTS_STATE);
+  const [isLoading, setIsLoading] = useState(NULLISH_RESULTS_STATE);
+  const [error, setError] = useState(NULLISH_RESULTS_STATE);
   const [filterText, setFilterText] = useState('');
+  const [activeTabKey, setActiveTabKey] = useState(RESULT_TYPES.results);
 
   useEffect(() => {
     const calcHeaderSize = debounce(() => {
@@ -179,29 +195,59 @@ const ExploreChartPanel = props => {
   }, [props.standalone]);
 
   useEffect(() => {
-    setIsLoading(true);
-    getChartDataRequest({
-      formData: props.chart.latestQueryFormData,
-      resultFormat: 'json',
-      resultType: 'results',
-    })
-      .then(response => {
-        // Currently displaying of only first query is supported
-        const result = response.result[0];
-        setData(result.data);
-        setIsLoading(false);
-        setError(null);
+    const getData = resultType => {
+      setIsLoading(prevIsLoading => ({ ...prevIsLoading, [resultType]: true }));
+      return getChartDataRequest({
+        formData: props.chart.latestQueryFormData,
+        resultFormat: 'json',
+        resultType,
       })
-      .catch(response => {
-        getClientErrorObject(response).then(({ error, statusText }) => {
-          setError(error || statusText || t('Sorry, An error occurred'));
-          setIsLoading(false);
+        .then(response => {
+          // Currently displaying of only first query is supported
+          const result = response.result[0];
+          setData(prevData => ({ ...prevData, [resultType]: result.data }));
+          setIsLoading(prevIsLoading => ({
+            ...prevIsLoading,
+            [resultType]: false,
+          }));
+          setError(prevError => ({
+            ...prevError,
+            [resultType]: NULLISH_RESULTS_STATE,
+          }));
+        })
+        .catch(response => {
+          getClientErrorObject(response).then(({ error, statusText }) => {
+            setError(prevError => ({
+              ...prevError,
+              [resultType]:
+                error || statusText || t('Sorry, An error occurred'),
+            }));
+            setIsLoading(prevIsLoading => ({
+              ...prevIsLoading,
+              [resultType]: false,
+            }));
+          });
         });
-      });
+    };
+    getData(RESULT_TYPES.results);
+    getData(RESULT_TYPES.samples);
   }, [props.chart.latestQueryFormData]);
 
-  const tableData = useFilteredTableData(data, filterText);
-  const columns = useTableColumns(data);
+  const filteredData = {
+    [RESULT_TYPES.results]: useFilteredTableData(
+      data[RESULT_TYPES.results],
+      filterText,
+    ),
+    [RESULT_TYPES.samples]: useFilteredTableData(
+      data[RESULT_TYPES.samples],
+      filterText,
+    ),
+  };
+
+  const columns = {
+    [RESULT_TYPES.results]: useTableColumns(data[RESULT_TYPES.results]),
+    [RESULT_TYPES.samples]: useTableColumns(data[RESULT_TYPES.samples]),
+  };
 
   const changeFilterText = event => {
     setFilterText(event.target.value);
@@ -214,21 +260,21 @@ const ExploreChartPanel = props => {
     setTableSectionHeight(calcSectionHeight(southPercent));
   };
 
-  const renderResultsModalBody = () => {
-    if (isLoading) {
+  const renderDataTable = type => {
+    if (isLoading[type]) {
       return <Loading />;
     }
-    if (error) {
-      return <pre>{error}</pre>;
+    if (error[type]) {
+      return <pre>{error[type]}</pre>;
     }
-    if (data) {
-      if (data.length === 0) {
+    if (data[type]) {
+      if (data[type].length === 0) {
         return <span>No data</span>;
       }
       return (
         <TableView
-          columns={columns}
-          data={tableData}
+          columns={columns[type]}
+          data={filteredData[type]}
           withPagination={false}
           noDataText={t('No data')}
           emptyWrapperType={EmptyWrapperType.Small}
@@ -311,8 +357,8 @@ const ExploreChartPanel = props => {
 
   const TableControls = (
     <TableControlsWrapper>
-      <RowCount data={data} />
-      <CopyToClipboardButton data={data} />
+      <RowCount data={data[activeTabKey]} />
+      <CopyToClipboardButton data={data[activeTabKey]} />
       <FilterInput value={filterText} onChangeHandler={changeFilterText} />
     </TableControlsWrapper>
   );
@@ -324,7 +370,7 @@ const ExploreChartPanel = props => {
       </div>
       <Split
         sizes={INITIAL_SIZES}
-        minSize={[200, 100]}
+        minSize={[300, 120]}
         direction="vertical"
         gutterSize={EXPLORE_GUTTER_HEIGHT}
         onDragEnd={onDrag}
@@ -334,13 +380,18 @@ const ExploreChartPanel = props => {
         <SouthPane>
           <TabsWrapper contentHeight={tableSectionHeight}>
             <Collapse accordion bordered={false}>
-              <Collapse.Panel header="Data" forceRender key="1">
-                <Tabs fullWidth={false} tabBarExtraContent={TableControls}>
-                  <Tabs.TabPane tab="View results" forceRender key="1">
-                    {renderResultsModalBody()}
+              <Collapse.Panel header="Data" forceRender key="data">
+                <Tabs
+                  fullWidth={false}
+                  tabBarExtraContent={TableControls}
+                  activeKey={activeTabKey}
+                  onChange={setActiveTabKey}
+                >
+                  <Tabs.TabPane tab="View results" key={RESULT_TYPES.results}>
+                    {renderDataTable(RESULT_TYPES.results)}
                   </Tabs.TabPane>
-                  <Tabs.TabPane tab="View samples" forceRender key="2">
-                    {renderResultsModalBody()}
+                  <Tabs.TabPane tab="View samples" key={RESULT_TYPES.samples}>
+                    {renderDataTable(RESULT_TYPES.samples)}
                   </Tabs.TabPane>
                 </Tabs>
               </Collapse.Panel>
