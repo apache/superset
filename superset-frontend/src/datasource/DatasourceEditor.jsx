@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Badge, Col, Radio, Well } from 'react-bootstrap';
+import { Alert, Col, Radio, Well } from 'react-bootstrap';
+import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
 
@@ -94,7 +95,7 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 function CollectionTabTitle({ title, collection }) {
   return (
     <div data-test={`collection-tab-${title}`}>
-      {title} <Badge>{collection ? collection.length : 0}</Badge>
+      {title} <Badge count={collection ? collection.length : 0} showZero />
     </div>
   );
 }

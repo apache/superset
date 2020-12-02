@@ -44,6 +44,7 @@ export {
   Switch,
   Tabs,
   Tooltip,
+  Badge,
 } from 'antd';
 
 export const MenuItem = styled(AntdMenu.Item)`
