@@ -32,7 +32,7 @@ interface SaveDatasetModalProps {
   userDatasetsOwned: Array<Record<string, any>>;
   handleSaveDatasetRadioBtnState: (e: RadioChangeEvent) => void;
   saveDatasetRadioBtnState: number;
-  overwriteDataSet: boolean;
+  shouldOverwriteDataset: boolean;
   handleOverwriteCancel: () => void;
   handleOverwriteDataset: () => void;
   handleOverwriteDatasetOption: (
@@ -68,7 +68,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   userDatasetsOwned,
   handleSaveDatasetRadioBtnState,
   saveDatasetRadioBtnState,
-  overwriteDataSet,
+  shouldOverwriteDataset,
   handleOverwriteCancel,
   handleOverwriteDataset,
   handleOverwriteDatasetOption,
@@ -106,7 +106,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       onHide={onHide}
       footer={
         <>
-          {!overwriteDataSet && (
+          {!shouldOverwriteDataset && (
             <Button
               buttonSize="sm"
               buttonStyle="primary"
@@ -116,7 +116,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
               Save &amp; Explore
             </Button>
           )}
-          {overwriteDataSet && (
+          {shouldOverwriteDataset && (
             <>
               <Button
                 buttonSize="sm"
@@ -140,7 +140,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       }
     >
       <Styles>
-        {!overwriteDataSet && (
+        {!shouldOverwriteDataset && (
           <div className="smd-body">
             <div className="smd-prompt">
               Save this query as virtual dataset to continue exploring.
@@ -171,7 +171,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
             </Radio.Group>
           </div>
         )}
-        {overwriteDataSet && (
+        {shouldOverwriteDataset && (
           <div>Are you sure you want to overwrite this dataset?</div>
         )}
       </Styles>
