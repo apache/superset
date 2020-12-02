@@ -17,20 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-import ControlSetRow from 'src/explore/components/ControlRow';
+import { styled } from '@superset-ui/core';
+import { Switch as BaseSwitch } from 'src/common/components';
+import { SwitchProps } from 'antd/lib/switch';
 
-describe('ControlSetRow', () => {
-  it('renders a single row with one element', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toExist();
-  });
-  it('renders a single row with two elements', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />, <a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toHaveLength(2);
-  });
-});
+const StyledSwitch = styled(BaseSwitch)`
+  .ant-switch-checked {
+    background-color: ${({ theme }) => theme.colors.primary.base};
+  }
+`;
+
+export const Switch = (props: SwitchProps) => <StyledSwitch {...props} />;

@@ -16,19 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "plugins": ["jest", "jest-dom", "no-only-tests", "testing-library"],
-  "env": {
-    "jest/globals": true
-  },
-  "extends": [
-    "plugin:jest/recommended",
-    "plugin:testing-library/react"
-  ],
-  "rules": {
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
-    "jest/consistent-test-it": "error",
-    "no-only-tests/no-only-tests": "error",
-    "prefer-promise-reject-errors": 0
-  }
+import React, { ReactNode, ReactElement } from 'react';
+import { render, RenderOptions } from '@testing-library/react';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+
+function SupersetProviders({ children }: { children?: ReactNode }) {
+  return <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>;
 }
+
+const customRender = (
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'queries'>,
+) => render(ui, { wrapper: SupersetProviders, ...options });
+
+export function sleep(time: number) {
+  return new Promise(resolve => {
+    setTimeout(resolve, time);
+  });
+}
+
+export * from '@testing-library/react';
+export { customRender as render };

@@ -16,19 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "plugins": ["jest", "jest-dom", "no-only-tests", "testing-library"],
-  "env": {
-    "jest/globals": true
-  },
-  "extends": [
-    "plugin:jest/recommended",
-    "plugin:testing-library/react"
-  ],
-  "rules": {
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
-    "jest/consistent-test-it": "error",
-    "no-only-tests/no-only-tests": "error",
-    "prefer-promise-reject-errors": 0
-  }
-}
+
+import Owner from 'src/types/Owner';
+
+type user = {
+  id: number;
+  first_name: string;
+  last_name: string;
+};
+
+type recipients = {
+  id: number;
+  type: string;
+};
+
+export type AlertObject = {
+  active?: boolean;
+  changed_by?: user;
+  changed_on_delta_humanized?: string;
+  created_by?: user;
+  created_on?: string;
+  id?: number;
+  last_eval_dttm?: number;
+  last_state?: string;
+  name?: string;
+  owners?: Array<Owner>;
+  recipients?: recipients;
+  type?: string;
+};
