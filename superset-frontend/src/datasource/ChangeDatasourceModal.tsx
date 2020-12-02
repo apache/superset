@@ -117,7 +117,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                   {ds.table_name}
                 </a>
               ),
-              type: 'table',
+              type: ds.kind,
             }));
             setLoading(false);
             setDatasources(data);
