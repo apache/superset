@@ -118,14 +118,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           )}
           {overwriteDataSet && (
             <>
-              {' '}
               <Button
                 buttonSize="sm"
                 buttonStyle="danger"
                 className="m-r-5"
-                onClick={() => {
-                  handleOverwriteCancel();
-                }}
+                onClick={handleOverwriteCancel}
               >
                 Cancel
               </Button>
