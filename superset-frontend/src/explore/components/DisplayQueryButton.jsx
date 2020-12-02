@@ -75,6 +75,24 @@ const CopyButton = styled(Button)`
   && {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
+
+  i {
+    padding: 0;
+  }
+`;
+
+const CopyButtonViewQuery = styled(Button)`
+  padding: ${({ theme }) => theme.gridUnit / 2}px
+    ${({ theme }) => theme.gridUnit * 2.5}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+
+  && {
+    margin-bottom: 5px;
+  }
+
+  i {
+    padding: 0;
+  }
 `;
 
 export const DisplayQueryButton = props => {
@@ -188,9 +206,9 @@ export const DisplayQueryButton = props => {
             text={query}
             shouldShowText={false}
             copyNode={
-              <Button style={{ position: 'absolute', right: 20 }}>
+              <CopyButtonViewQuery>
                 <i className="fa fa-clipboard" />
-              </Button>
+              </CopyButtonViewQuery>
             }
           />
           <SyntaxHighlighter language={language} style={github}>
