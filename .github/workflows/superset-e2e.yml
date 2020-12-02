@@ -1,6 +1,10 @@
 name: E2E
 
-on: [push, pull_request, pull_request_target]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   Cypress:
@@ -35,15 +39,8 @@ jobs:
         ports:
           - 16379:6379
     steps:
-    - name: Checkout code (master)
-      if: github.event_name == 'push' || github.event_name == 'pull_request'
+    - name: Checkout code
       uses: actions/checkout@v2
-    - name: Checkout code (PR)
-      if: github.event_name == 'pull_request_target'
-      uses: actions/checkout@v2
-      with:
-        ref: ${{github.event.pull_request.head.ref}}
-        repository: ${{github.event.pull_request.head.repo.full_name}}
     - name: Setup Python
       uses: actions/setup-python@v2
       with:
