@@ -16,22 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import { ParentSize } from '@vx/responsive';
 import { styled, t } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
+import throttle from 'lodash/throttle';
+import { Col, FormControl, Row } from 'react-bootstrap';
+import { Collapse } from 'src/common/components';
 import Tabs from 'src/common/components/Tabs';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
-import { applyFormattingToTabularData } from '../../utils/common';
 import TableView, { EmptyWrapperType } from '../../components/TableView';
 import { getChartDataRequest } from '../../chart/chartAction';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import Loading from '../../components/Loading';
-import Icon from '../../components/Icon';
+import {
+  CopyToClipboardButton,
+  FilterInput,
+  RowCount,
+  useFilteredTableData,
+  useTableColumns,
+} from './DataTableControl';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -86,61 +94,53 @@ const Styles = styled.div`
     cursor: row-resize;
   }
 
-  .ant-tabs {
-    overflow: visible;
-    .ant-tabs-content-holder {
-      overflow: visible;
+  .ant-collapse {
+    height: 100%;
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+    .ant-collapse-item,
+    .ant-collapse-content,
+    .ant-collapse-content-box {
+      height: 100%;
     }
-    .ant-tabs-nav {
-      padding-left: ${({ theme }) => theme.gridUnit * 5}px;
-      margin: 0;
-      background-color: ${({ theme }) => theme.colors.grayscale.light5};
+    .ant-collapse-header {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    .ant-tabs {
+      height: 100%;
+      .ant-tabs-nav {
+        padding-left: ${({ theme }) => theme.gridUnit * 5}px;
+        margin: 0;
+        background-color: ${({ theme }) => theme.colors.grayscale.light5};
+      }
+      .ant-tabs-content-holder {
+        overflow: hidden;
+        .ant-tabs-content {
+          height: 100%;
+        }
+      }
     }
   }
+`;
+
+const TableControlsWrapper = styled.div`
+  display: flex;
+  align-items: center;
 `;
 
 const SouthPane = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   z-index: 1;
-
-  .table-condensed {
-    max-height: 400px;
-    overflow: auto;
-  }
 `;
 
 const TabsWrapper = styled.div`
   height: ${({ contentHeight }) => contentHeight}px;
-`;
+  overflow: hidden;
 
-const TabTitleContainer = styled.div`
-  display: flex;
-  align-items: center;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
-`;
-
-const CollapseButton = styled.div`
-  display: flex;
-  align-items: center;
-  border-radius: 50%;
-  margin-left: ${({ theme }) => theme.gridUnit}px;
-
-  :hover {
-    background-color: ${({ theme, isTabActive }) =>
-      isTabActive ? theme.colors.grayscale.light2 : 'transparent'};
+  .table-condensed {
+    height: 100%;
+    overflow: auto;
   }
-
-  svg {
-    transform: ${({ isOpen }) => (isOpen ? 'rotate(0deg)' : 'rotate(180deg)')};
-    transition: transform 0.2s ease-out;
-  }
-`;
-
-const CollapsibleContent = styled.div`
-  height: 100%;
-  max-height: ${({ isOpen, height }) => (isOpen ? height : 0)}px;
-  overflow: ${({ isOpen }) => (isOpen ? 'visible' : 'hidden')};
-  transition: max-height 0.2s ease-out;
 `;
 
 const ExploreChartPanel = props => {
@@ -148,7 +148,7 @@ const ExploreChartPanel = props => {
   const [headerHeight, setHeaderHeight] = useState(props.standalone ? 0 : 50);
 
   const calcSectionHeight = percent => {
-    const containerHeight = parseInt(props.height, 10) - headerHeight;
+    const containerHeight = parseInt(props.height, 10) - headerHeight - 30;
     return (
       (containerHeight * percent) / 100 -
       (EXPLORE_GUTTER_HEIGHT / 2 + EXPLORE_GUTTER_MARGIN)
@@ -165,8 +165,7 @@ const ExploreChartPanel = props => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [openPanelKey, setOpenPanelKey] = useState('1');
-  const [activeTabKey, setActiveTabKey] = useState('1');
+  const [filterText, setFilterText] = useState('');
 
   useEffect(() => {
     const calcHeaderSize = debounce(() => {
@@ -201,20 +200,12 @@ const ExploreChartPanel = props => {
       });
   }, [props.chart.latestQueryFormData]);
 
-  const tableData = useMemo(() => {
-    if (!data?.length) {
-      return [];
-    }
-    return applyFormattingToTabularData(data);
-  }, [data]);
+  const tableData = useFilteredTableData(data, filterText);
+  const columns = useTableColumns(data);
 
-  const columns = useMemo(
-    () =>
-      data?.length
-        ? Object.keys(data[0]).map(key => ({ accessor: key, Header: key }))
-        : [],
-    [data],
-  );
+  const changeFilterText = event => {
+    setFilterText(event.target.value);
+  };
 
   const onDrag = ([northPercent, southPercent]) => {
     setChartSectionHeight(
@@ -318,29 +309,14 @@ const ExploreChartPanel = props => {
     };
   };
 
-  const TabTitle = ({ name, tabKey }) => {
-    const isTabActive = tabKey === activeTabKey;
-    const onClickHandler = () => {
-      if (isTabActive) {
-        setOpenPanelKey(openPanelKey === tabKey ? null : tabKey);
-      }
-    };
-    return (
-      <TabTitleContainer>
-        {name}{' '}
-        <CollapseButton
-          role="button"
-          tabIndex={0}
-          onClick={onClickHandler}
-          onKeyPress={onClickHandler}
-          isOpen={openPanelKey === tabKey}
-          isTabActive={isTabActive}
-        >
-          <Icon name="caret-down" />
-        </CollapseButton>
-      </TabTitleContainer>
-    );
-  };
+  const TableControls = (
+    <TableControlsWrapper>
+      <RowCount data={data} />
+      <CopyToClipboardButton data={data} />
+      <FilterInput value={filterText} onChangeHandler={changeFilterText} />
+    </TableControlsWrapper>
+  );
+
   return (
     <Styles className="panel panel-default chart-container">
       <div className="panel-heading" ref={panelHeadingRef}>
@@ -357,36 +333,18 @@ const ExploreChartPanel = props => {
         <div className="panel-body">{renderChart()}</div>
         <SouthPane>
           <TabsWrapper contentHeight={tableSectionHeight}>
-            <Tabs
-              fullWidth={false}
-              activeKey={activeTabKey}
-              onChange={setActiveTabKey}
-            >
-              <Tabs.TabPane
-                tab={<TabTitle name="Data" tabKey="1" />}
-                forceRender
-                key="1"
-              >
-                <CollapsibleContent
-                  isOpen={openPanelKey === '1'}
-                  height={tableSectionHeight}
-                >
-                  {renderResultsModalBody()}
-                </CollapsibleContent>
-              </Tabs.TabPane>
-              <Tabs.TabPane
-                tab={<TabTitle name="View samples" tabKey="2" />}
-                forceRender
-                key="2"
-              >
-                <CollapsibleContent
-                  isOpen={openPanelKey === '2'}
-                  height={tableSectionHeight}
-                >
-                  {renderResultsModalBody()}
-                </CollapsibleContent>
-              </Tabs.TabPane>
-            </Tabs>
+            <Collapse accordion bordered={false}>
+              <Collapse.Panel header="Data" forceRender key="1">
+                <Tabs fullWidth={false} tabBarExtraContent={TableControls}>
+                  <Tabs.TabPane tab="View results" forceRender key="1">
+                    {renderResultsModalBody()}
+                  </Tabs.TabPane>
+                  <Tabs.TabPane tab="View samples" forceRender key="2">
+                    {renderResultsModalBody()}
+                  </Tabs.TabPane>
+                </Tabs>
+              </Collapse.Panel>
+            </Collapse>
           </TabsWrapper>
         </SouthPane>
       </Split>

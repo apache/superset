@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -27,7 +27,7 @@ import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DropdownButton, Row, Col, FormControl } from 'react-bootstrap';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 
 import { Menu } from 'src/common/components';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
@@ -38,13 +38,15 @@ import { getChartDataRequest } from '../../chart/chartAction';
 import downloadAsImage from '../../utils/downloadAsImage';
 import Loading from '../../components/Loading';
 import ModalTrigger from '../../components/ModalTrigger';
-import RowCountLabel from './RowCountLabel';
-import {
-  applyFormattingToTabularData,
-  prepareCopyToClipboardTabularData,
-} from '../../utils/common';
 import PropertiesModal from './PropertiesModal';
 import { sliceUpdated } from '../actions/exploreActions';
+import {
+  CopyToClipboardButton,
+  FilterInput,
+  RowCount,
+  useFilteredTableData,
+  useTableColumns,
+} from './DataTableControl';
 
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
 SyntaxHighlighter.registerLanguage('html', htmlSyntax);
@@ -66,35 +68,6 @@ const MENU_KEYS = {
   DOWNLOAD_AS_IMAGE: 'download_as_image',
 };
 
-const CopyButton = styled(Button)`
-  padding: ${({ theme }) => theme.gridUnit / 2}px
-    ${({ theme }) => theme.gridUnit * 2.5}px;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-
-  // needed to override button's first-of-type margin: 0
-  && {
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-
-  i {
-    padding: 0;
-  }
-`;
-
-const CopyButtonViewQuery = styled(Button)`
-  padding: ${({ theme }) => theme.gridUnit / 2}px
-    ${({ theme }) => theme.gridUnit * 2.5}px;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-
-  && {
-    margin-bottom: 5px;
-  }
-
-  i {
-    padding: 0;
-  }
-`;
-
 export const DisplayQueryButton = props => {
   const { datasource } = props.latestQueryFormData;
 
@@ -110,25 +83,8 @@ export const DisplayQueryButton = props => {
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  const tableData = useMemo(() => {
-    if (!data?.length) {
-      return [];
-    }
-    const formattedData = applyFormattingToTabularData(data);
-    return formattedData.filter(row =>
-      Object.values(row).some(value =>
-        value.toString().toLowerCase().includes(filterText.toLowerCase()),
-      ),
-    );
-  }, [data, filterText]);
-
-  const columns = useMemo(
-    () =>
-      data?.length
-        ? Object.keys(data[0]).map(key => ({ accessor: key, Header: key }))
-        : [],
-    [data],
-  );
+  const tableData = useFilteredTableData(data, filterText);
+  const columns = useTableColumns(data);
 
   const beforeOpen = resultType => {
     setIsLoading(true);
@@ -225,27 +181,13 @@ export const DisplayQueryButton = props => {
       <div style={{ overflow: 'auto' }}>
         <Row>
           <Col md={9}>
-            <RowCountLabel
-              rowcount={data.length}
-              suffix={t('rows retrieved')}
-            />
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data)}
-              wrapped={false}
-              copyNode={
-                <CopyButton>
-                  <i className="fa fa-clipboard" />
-                </CopyButton>
-              }
-            />
+            <RowCount data={data} />
+            <CopyToClipboardButton data={data} />
           </Col>
           <Col md={3}>
-            <FormControl
-              placeholder={t('Search')}
-              bsSize="sm"
-              value={filterText}
-              onChange={changeFilterText}
-              style={{ paddingBottom: '5px' }}
+            <FilterInput
+              filterText={filterText}
+              onChangeHandler={changeFilterText}
             />
           </Col>
         </Row>
