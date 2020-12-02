@@ -76,6 +76,7 @@ export default class ModalTrigger extends React.Component {
         title={this.props.modalTitle}
         footer={this.props.modalFooter}
         hideFooter={!this.props.modalFooter}
+        width={this.props.width}
         maxWidth={this.props.maxWidth}
         responsive={this.props.responsive}
       >

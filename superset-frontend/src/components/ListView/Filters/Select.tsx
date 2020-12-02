@@ -16,29 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ReactNode } from 'react';
-import { styled, withTheme, SupersetThemeProps } from '@superset-ui/core';
-
+import React, { useState } from 'react';
+import { withTheme, SupersetThemeProps } from '@superset-ui/core';
 import {
   Select,
   PaginatedSelect,
   PartialThemeConfig,
 } from 'src/components/Select';
+import { Filter, SelectOption } from 'src/components/ListView/types';
+import { filterSelectStyles } from 'src/components/ListView/utils';
+import { FilterContainer, BaseFilter, FilterTitle } from './Base';
 
-import SearchInput from 'src/components/SearchInput';
-import {
-  Filter,
-  FilterValue,
-  Filters,
-  InternalFilter,
-  SelectOption,
-} from './types';
-import { filterSelectStyles } from './utils';
-
-interface BaseFilter {
-  Header: ReactNode;
-  initialValue: any;
-}
 interface SelectFilterProps extends BaseFilter {
   emptyLabel?: string;
   fetchSelects?: Filter['fetchSelects'];
@@ -48,18 +36,6 @@ interface SelectFilterProps extends BaseFilter {
   selects: Filter['selects'];
   theme: SupersetThemeProps['theme'];
 }
-
-const FilterContainer = styled.div`
-  display: inline-flex;
-  margin-right: 2em;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-`;
-
-const FilterTitle = styled.label`
-  font-weight: bold;
-  line-height: 27px;
-  margin: 0 0.4em 0 0;
-`;
 
 const CLEAR_SELECT_FILTER_VALUE = 'CLEAR_SELECT_FILTER_VALUE';
 
@@ -174,108 +150,4 @@ function SelectFilter({
     </FilterContainer>
   );
 }
-const StyledSelectFilter = withTheme(SelectFilter);
-
-interface SearchHeaderProps extends BaseFilter {
-  Header: string;
-  onSubmit: (val: string) => void;
-  name: string;
-}
-
-function SearchFilter({
-  Header,
-  name,
-  initialValue,
-  onSubmit,
-}: SearchHeaderProps) {
-  const [value, setValue] = useState(initialValue || '');
-  const handleSubmit = () => onSubmit(value);
-  const onClear = () => {
-    setValue('');
-    onSubmit('');
-  };
-
-  return (
-    <FilterContainer>
-      <SearchInput
-        data-test="filters-search"
-        placeholder={Header}
-        name={name}
-        value={value}
-        onChange={e => {
-          setValue(e.currentTarget.value);
-        }}
-        onSubmit={handleSubmit}
-        onClear={onClear}
-      />
-    </FilterContainer>
-  );
-}
-
-interface UIFiltersProps {
-  filters: Filters;
-  internalFilters: InternalFilter[];
-  updateFilterValue: (id: number, value: FilterValue['value']) => void;
-}
-
-const FilterWrapper = styled.div`
-  display: inline-block;
-  padding: 0 0 ${({ theme }) => theme.gridUnit * 8}px;
-`;
-
-function UIFilters({
-  filters,
-  internalFilters = [],
-  updateFilterValue,
-}: UIFiltersProps) {
-  return (
-    <FilterWrapper>
-      {filters.map(
-        (
-          {
-            Header,
-            fetchSelects,
-            id,
-            input,
-            paginate,
-            selects,
-            unfilteredLabel,
-          },
-          index,
-        ) => {
-          const initialValue =
-            internalFilters[index] && internalFilters[index].value;
-          if (input === 'select') {
-            return (
-              <StyledSelectFilter
-                Header={Header}
-                emptyLabel={unfilteredLabel}
-                fetchSelects={fetchSelects}
-                initialValue={initialValue}
-                key={id}
-                name={id}
-                onSelect={(value: any) => updateFilterValue(index, value)}
-                paginate={paginate}
-                selects={selects}
-              />
-            );
-          }
-          if (input === 'search' && typeof Header === 'string') {
-            return (
-              <SearchFilter
-                Header={Header}
-                initialValue={initialValue}
-                key={id}
-                name={id}
-                onSubmit={(value: string) => updateFilterValue(index, value)}
-              />
-            );
-          }
-          return null;
-        },
-      )}
-    </FilterWrapper>
-  );
-}
-
-export default withTheme(UIFilters);
+export default withTheme(SelectFilter);

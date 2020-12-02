@@ -16,21 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import ControlSetRow from 'src/explore/components/ControlRow';
+import datasources from 'spec/fixtures/mockDatasource';
+import messageToasts from 'spec/javascripts/messageToasts/mockMessageToasts';
+import chartQueries from './mockChartQueries';
+import { dashboardLayout } from './mockDashboardLayout';
+import dashboardInfo from './mockDashboardInfo';
+import { emptyFilters } from './mockDashboardFilters';
+import dashboardState from './mockDashboardState';
+import nativeFilters from './mockNativeFilters';
+import sliceEntities from './mockSliceEntities';
 
-describe('ControlSetRow', () => {
-  it('renders a single row with one element', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toExist();
-  });
-  it('renders a single row with two elements', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />, <a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toHaveLength(2);
-  });
-});
+export default {
+  datasources,
+  sliceEntities,
+  charts: chartQueries,
+  nativeFilters,
+  dashboardInfo,
+  dashboardFilters: emptyFilters,
+  dashboardState,
+  dashboardLayout,
+  messageToasts,
+  impressionId: 'mock_impression_id',
+};

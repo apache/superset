@@ -304,6 +304,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALLOW_DASHBOARD_DOMAIN_SHARDING": True,
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
+    "DISABLE_DATASET_SOURCE_EDIT": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "KV_STORE": False,
@@ -338,14 +339,14 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ROW_LEVEL_SECURITY": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
-    "SIP_34_QUERY_SEARCH_UI": False,
+    "SIP_34_ALERTS_UI": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
-# Setting LISTVIEW_DEFAULT_CARD_VIEW to False will force the default view to
+# Setting LISTVIEWS_DEFAULT_CARD_VIEW to False will force the default view to
 # always be the table layout
 if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
-    DEFAULT_FEATURE_FLAGS["LISTVIEW_DEFAULT_CARD_VIEW"] = True
+    DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
 
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}

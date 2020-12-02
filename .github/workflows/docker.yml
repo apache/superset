@@ -1,6 +1,13 @@
 name: Docker
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    types: [opened, synchronize, reopened]
+  release:
+    types: [published]
 
 jobs:
   build:

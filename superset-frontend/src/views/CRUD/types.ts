@@ -91,3 +91,22 @@ export interface QueryObject {
   tmp_table_name: string;
   tracking_url: string;
 }
+
+export enum QueryObjectColumns {
+  id = 'id',
+  changed_on = 'changed_on',
+  database = 'database',
+  database_name = 'database.database_name',
+  schema = 'schema',
+  sql = 'sql',
+  executed_sql = 'exceuted_sql',
+  sql_tables = 'sql_tables',
+  status = 'status',
+  tab_name = 'tab_name',
+  user = 'user',
+  start_time = 'start_time',
+  end_time = 'end_time',
+  rows = 'rows',
+  tmp_table_name = 'tmp_table_name',
+  tracking_url = 'tracking_url',
+}

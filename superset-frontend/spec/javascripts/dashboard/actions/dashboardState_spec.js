@@ -29,9 +29,9 @@ import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
 import {
   filterId,
   sliceEntitiesForDashboard as sliceEntities,
-} from '../fixtures/mockSliceEntities';
-import { emptyFilters } from '../fixtures/mockDashboardFilters';
-import mockDashboardData from '../fixtures/mockDashboardData';
+} from 'spec/fixtures/mockSliceEntities';
+import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
+import mockDashboardData from 'spec/fixtures/mockDashboardData';
 
 describe('dashboardState actions', () => {
   const mockState = {

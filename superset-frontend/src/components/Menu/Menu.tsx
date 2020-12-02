@@ -163,7 +163,7 @@ export function Menu({
           </Navbar.Brand>
           <Navbar.Toggle />
         </Navbar.Header>
-        <Nav>
+        <Nav data-test="navbar-top">
           {menu.map((item, index) => (
             <MenuObject {...item} key={item.label} index={index + 1} />
           ))}

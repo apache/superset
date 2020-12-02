@@ -165,11 +165,11 @@ module.exports = {
         'src/**/*.test.js',
         'src/**/*.test.jsx',
       ],
-      plugins: ['jest', 'no-only-tests'],
+      plugins: ['jest', 'jest-dom', 'no-only-tests'],
       env: {
         'jest/globals': true,
       },
-      extends: ['plugin:jest/recommended'],
+      extends: ['plugin:jest/recommended', 'plugin:testing-library/react'],
       rules: {
         'import/no-extraneous-dependencies': [
           'error',

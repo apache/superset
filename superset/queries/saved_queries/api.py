@@ -25,7 +25,7 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.bulk_delete import (
@@ -60,7 +60,9 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         RouteMethod.DISTINCT,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
-    class_permission_name = "SavedQueryView"
+    class_permission_name = "SavedQuery"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
     resource_name = "saved_query"
     allow_browser_login = True
 
