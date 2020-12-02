@@ -23,7 +23,7 @@ import { act } from 'react-dom/test-utils';
 import { Provider } from 'react-redux';
 import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { mockStore } from '../../fixtures/mockStore';
+import { mockStore } from 'spec/fixtures/mockStore';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

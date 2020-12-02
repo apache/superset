@@ -21,7 +21,7 @@ import { mount } from 'enzyme';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterConfigurationLink';
-import { mockStore } from '../../fixtures/mockStore';
+import { mockStore } from 'spec/fixtures/mockStore';
 
 describe('FilterConfigurationButton', () => {
   const mockedProps = {
