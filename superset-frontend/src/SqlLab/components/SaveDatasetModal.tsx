@@ -22,25 +22,15 @@ import { Radio, AutoComplete, Input } from 'src/common/components';
 import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { styled } from '@superset-ui/core';
-<<<<<<< HEAD
-=======
 import { RadioChangeEvent } from 'antd/lib/radio';
->>>>>>> 014cdeeac4dfd1fc61d176e0796a07d29db808d6
 
 interface SaveDatasetModalProps {
   visible: boolean;
   onOk: () => void;
-<<<<<<< HEAD
-  onCancel: () => void;
-  handleDatasetNameChange: (e: { target: { value: any } }) => void;
-  userDatasetsOwned: Array<Record<string, any>>;
-  handleSaveDatasetRadioBtnState: (e: { target: { value: any } }) => void;
-=======
   onHide: () => void;
   handleDatasetNameChange: (e: { target: { value: any } }) => void;
   userDatasetsOwned: Array<Record<string, any>>;
   handleSaveDatasetRadioBtnState: (e: RadioChangeEvent) => void;
->>>>>>> 014cdeeac4dfd1fc61d176e0796a07d29db808d6
   saveDatasetRadioBtnState: number;
   overwriteDataSet: boolean;
   handleOverwriteCancel: () => void;
@@ -92,7 +82,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     }[]
   >([]);
 
-  const onSearch = (searchText: any) => {
+  const onSearch = (searchText: string | undefined) => {
     setOptions(
       !searchText
         ? []
@@ -147,7 +137,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                 onClick={handleOverwriteDataset}
               >
                 Ok
-              </Button>{' '}
+              </Button>
             </>
           )}
         </>
