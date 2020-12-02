@@ -310,6 +310,49 @@ function AlertList({
         operator: FilterOperators.equals,
         unfilteredLabel: 'Any',
         selects: [
+          { label: t('Ok'), value: 'ok' },
+          { label: t('Alerting'), value: 'alerting' },
+          { label: t('Failed'), value: 'failed' },
+        ],
+      },
+      {
+        Header: t('Search'),
+        id: 'name',
+        input: 'search',
+        operator: 'ct',
+      },
+    ],
+    [],
+  );
+
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Created By'),
+        id: 'created_by',
+        input: 'select',
+        operator: 'rel_o_m',
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'report',
+          'created_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user.userId,
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Status'),
+        id: 'last_state',
+        input: 'select',
+        operator: 'eq',
+        unfilteredLabel: 'Any',
+        selects: [
           { label: t('Success'), value: 'Success' },
           { label: t('Working'), value: 'Working' },
           { label: t('Error'), value: 'Error' },
