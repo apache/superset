@@ -30,7 +30,7 @@ import Modal from 'src/common/components/Modal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import * as featureFlags from 'src/featureFlags';
-import mockDatasource from '../../fixtures/mockDatasource';
+import mockDatasource from 'spec/fixtures/mockDatasource';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});

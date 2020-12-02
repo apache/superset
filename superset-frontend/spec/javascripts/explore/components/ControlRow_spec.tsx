@@ -17,32 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import Timer from 'src/components/Timer';
-import { now } from 'src/modules/dates';
+import { render } from 'spec/helpers/testing-library';
+import ControlSetRow from 'src/explore/components/ControlRow';
 
-describe('Timer', () => {
-  let wrapper;
-  const mockedProps = {
-    endTime: null,
-    isRunning: true,
-    status: 'warning',
-  };
-
-  beforeEach(() => {
-    mockedProps.startTime = now() + 1;
-    wrapper = mount(<Timer {...mockedProps} />);
+describe('ControlSetRow', () => {
+  it('renders a single row with one element', () => {
+    const { getAllByText } = render(
+      <ControlSetRow controls={[<p>My Control 1</p>]} />,
+    );
+    expect(getAllByText('My Control 1')).toHaveLength(1);
   });
-
-  it('renders correctly', () => {
-    expect(React.isValidElement(<Timer {...mockedProps} />)).toBe(true);
-    expect(wrapper.find('span').hasClass('label-warning')).toBe(true);
-  });
-
-  it('should start timer and sets clockStr', async () => {
-    expect.assertions(2);
-    expect(wrapper.find('span').text()).toBe('');
-    await new Promise(r => setTimeout(r, 35));
-    expect(wrapper.find('span').text()).not.toBe('');
+  it('renders a single row with two elements', () => {
+    const { getAllByText } = render(
+      <ControlSetRow controls={[<p>My Control 1</p>, <p>My Control 2</p>]} />,
+    );
+    expect(getAllByText(/My Control/)).toHaveLength(2);
   });
 });
