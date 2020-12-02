@@ -25,7 +25,7 @@ interface ProgressBarProps extends ProgressProps {
   striped?: boolean;
 }
 
-const ProgressBar = styled(({ striped, ...props }: ProgressBarProps) => (
+const ProgressBar = styled((props: ProgressBarProps) => (
   <AntdProgress {...props} />
 ))`
   line-height: 0;
