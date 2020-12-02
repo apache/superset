@@ -86,7 +86,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       !searchText
         ? []
         : userDatasetsOwned.map(d => ({
-            value: d.dataSetName,
+            value: d.datasetName,
             datasetId: d.datasetId,
           })),
     );
@@ -94,7 +94,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
   const filterAutocompleteOption = (
     inputValue: string,
-    option: { [key: string]: { value: string; dataSetId: number } },
+    option: { [key: string]: { value: string; datasetId: number } },
   ) => {
     // We need to add "es7" to tsconfig for this to error to go way
     // https://stackoverflow.com/questions/51811239/ts2339-property-includes-does-not-exist-on-type-string/51811417
