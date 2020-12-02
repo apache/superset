@@ -82,9 +82,14 @@ const VerticalDotsContainer = styled.div`
 `;
 
 const RefreshTooltip = styled.div`
-  height: ${({ theme }) => theme.gridUnit * 4}px;
+  height: auto;
   margin: ${({ theme }) => theme.gridUnit}px 0;
   color: ${({ theme }) => theme.colors.grayscale.base};
+  line-height: ${({ theme }) => theme.typography.sizes.m * 1.5};
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
 `;
 
 const SCREENSHOT_NODE_SELECTOR = '.dashboard-component-chart-holder';
@@ -182,7 +187,9 @@ class SliceHeaderControls extends React.PureComponent {
     };
     let refreshTooltip = isCached.map(getCachedTitle) || '';
     // If all queries have same cache time we can unit them to one
-    refreshTooltip = [...new Set(refreshTooltip)].join(', ');
+    refreshTooltip = [...new Set(refreshTooltip)].map(item => (
+      <div>{item}</div>
+    ));
     const resizeLabel = isFullSize ? t('Minimize') : t('Maximize');
 
     const menu = (
