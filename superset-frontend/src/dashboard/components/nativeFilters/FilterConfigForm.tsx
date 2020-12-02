@@ -78,7 +78,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     Scoping.all,
   );
   const [dataset, setDataset] = useState<Value<number> | undefined>();
-  const [filterScope, setFilterScope] = useState<Scope>({
+  const [, setFilterScope] = useState<Scope>({
     rootPath: [],
     excluded: [],
   }); // TODO: when connect to store read from there
