@@ -41,10 +41,8 @@ export type Query = {
     columns: Column[];
     data: Record<string, unknown>[];
     expanded_columns: Column[];
-    selected_columns: Column[];
   };
   resultsKey: string | null;
-  schema: string;
   sql: string;
   sqlEditorId: string;
   state:
@@ -55,9 +53,7 @@ export type Query = {
     | 'scheduled'
     | 'success'
     | 'timed_out';
-  tab: string | null;
   tempSchema: string | null;
   tempTable: string;
   trackingUrl: string | null;
-  templateParams: any;
 };
