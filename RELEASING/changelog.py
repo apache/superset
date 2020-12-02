@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import csv as lib_csv
 import json
 import os
 import re
@@ -37,6 +38,7 @@ class GitLog:
     time: str
     message: str
     pr_number: Union[int, None] = None
+    author_email: str = ""
 
     def __eq__(self, other: object) -> bool:
         """ A log entry is considered equal if it has the same PR number """
@@ -131,6 +133,19 @@ class GitChangeLog:
             print(f"\r {i}/{len(self._logs)}", end="", flush=True)
         return result
 
+    def __iter__(self):
+        for i, log in enumerate(self._logs):
+            yield {
+                "pr_number": log.pr_number,
+                "pr_link": f"(https://github.com/apache/incubator-superset/pull/"
+                f"{log.pr_number})",
+                "message": log.message,
+                "time": log.time,
+                "author": log.author,
+                "email": log.author_email,
+                "sha": log.sha,
+            }
+
 
 class GitLogs:
     """
@@ -179,7 +194,7 @@ class GitLogs:
         current_git_ref = self._git_get_current_head()
         self._git_checkout(self._git_ref)
         output = (
-            os.popen('git --no-pager log --pretty=format:"%h|%an|%ad|%s|"')
+            os.popen('git --no-pager log --pretty=format:"%h|%an|%ae|%ad|%s|"')
             .read()
             .split("\n")
         )
@@ -191,14 +206,15 @@ class GitLogs:
         pr_number = None
         split_log_item = log_item.split("|")
         # parse the PR number from the log message
-        match = re.match(".*\(\#(\d*)\)", split_log_item[3])
+        match = re.match(".*\(\#(\d*)\)", split_log_item[4])
         if match:
             pr_number = int(match.group(1))
         return GitLog(
             sha=split_log_item[0],
             author=split_log_item[1],
-            time=split_log_item[2],
-            message=split_log_item[3],
+            author_email=split_log_item[2],
+            time=split_log_item[3],
+            message=split_log_item[4],
             pr_number=pr_number,
         )
 
@@ -217,12 +233,8 @@ def print_title(message: str) -> None:
 
 @click.group()
 @click.pass_context
-@click.option(
-    "--previous_version", help="The previous release version",
-)
-@click.option(
-    "--current_version", help="The current release version",
-)
+@click.option("--previous_version", help="The previous release version", required=True)
+@click.option("--current_version", help="The current release version", required=True)
 def cli(ctx, previous_version: str, current_version: str):
     """ Welcome to change log generator  """
     previous_logs = GitLogs(previous_version)
@@ -255,14 +267,33 @@ def compare(base_parameters):
 
 
 @cli.command("changelog")
+@click.option(
+    "--csv", help="The csv filename to export the changelog to",
+)
 @click.pass_obj
-def changelog(base_parameters):
+def changelog(base_parameters, csv):
     """ Outputs a changelog (by PR) """
     previous_logs = base_parameters.previous_logs
     current_logs = base_parameters.current_logs
     previous_diff_logs = previous_logs.diff(current_logs)
-    print("Fetching github usernames, this may take a while:")
-    print(GitChangeLog(current_logs.git_ref, previous_diff_logs[::-1]))
+    changelog = GitChangeLog(current_logs.git_ref, previous_diff_logs[::-1])
+    if csv:
+        with open(csv, "w") as csv_file:
+            log_items = list(changelog)
+            field_names = log_items[0].keys()
+            writer = lib_csv.DictWriter(
+                csv_file,
+                delimiter=",",
+                quotechar='"',
+                quoting=lib_csv.QUOTE_ALL,
+                fieldnames=field_names,
+            )
+            writer.writeheader()
+            for item in changelog:
+                writer.writerow(item)
+    else:
+        print("Fetching github usernames, this may take a while:")
+        print(changelog)
 
 
 cli()
