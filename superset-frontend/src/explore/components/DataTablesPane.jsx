@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { styled, t } from '@superset-ui/core';
 import {
   CopyToClipboardButton,
@@ -65,7 +66,11 @@ const TabsWrapper = styled.div`
   }
 `;
 
-export const DataTablesPane = ({ queryFormData, tableSectionHeight }) => {
+export const DataTablesPane = ({
+  queryFormData,
+  tableSectionHeight,
+  onCollapseChange,
+}) => {
   const [data, setData] = useState(NULLISH_RESULTS_STATE);
   const [isLoading, setIsLoading] = useState(NULLISH_RESULTS_STATE);
   const [error, setError] = useState(NULLISH_RESULTS_STATE);
@@ -167,7 +172,7 @@ export const DataTablesPane = ({ queryFormData, tableSectionHeight }) => {
   return (
     <SouthPane>
       <TabsWrapper contentHeight={tableSectionHeight}>
-        <Collapse accordion bordered={false}>
+        <Collapse accordion bordered={false} onChange={onCollapseChange}>
           <Collapse.Panel header="Data" forceRender key="data">
             <Tabs
               fullWidth={false}
@@ -187,4 +192,10 @@ export const DataTablesPane = ({ queryFormData, tableSectionHeight }) => {
       </TabsWrapper>
     </SouthPane>
   );
+};
+
+DataTablesPane.propTypes = {
+  tableSectionHeight: PropTypes.number,
+  queryFormData: PropTypes.object,
+  onCollapseChange: PropTypes.func,
 };

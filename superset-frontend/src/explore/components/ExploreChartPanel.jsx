@@ -56,7 +56,8 @@ export const EXPLORE_GUTTER_HEIGHT = 5;
 export const EXPLORE_GUTTER_MARGIN = 3;
 export const CHART_PANEL_PADDING = 30;
 
-const INITIAL_SIZES = [80, 20];
+const INITIAL_SIZES = [90, 10];
+const MIN_SIZES = [300, 50];
 
 const Styles = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
@@ -117,6 +118,7 @@ const Styles = styled.div`
 const ExploreChartPanel = props => {
   const panelHeadingRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(props.standalone ? 0 : 50);
+  const [splitSizes, setSplitSizes] = useState(INITIAL_SIZES);
 
   const calcSectionHeight = percent => {
     const containerHeight = parseInt(props.height, 10) - headerHeight - 30;
@@ -144,11 +146,26 @@ const ExploreChartPanel = props => {
     return () => document.removeEventListener('resize', calcHeaderSize);
   }, [props.standalone]);
 
-  const onDrag = ([northPercent, southPercent]) => {
+  const recalcPanelSizes = ([northPercent, southPercent]) => {
     setChartSectionHeight(
       calcSectionHeight(northPercent) - CHART_PANEL_PADDING,
     );
     setTableSectionHeight(calcSectionHeight(southPercent));
+  };
+
+  const onCollapseChange = openPanelName => {
+    const defaultSouthPaneOpenHeightPercent = 40;
+    let splitSizes;
+    if (!openPanelName) {
+      splitSizes = INITIAL_SIZES;
+    } else {
+      splitSizes = [
+        100 - defaultSouthPaneOpenHeightPercent,
+        defaultSouthPaneOpenHeightPercent,
+      ];
+    }
+    setSplitSizes(splitSizes);
+    recalcPanelSizes(splitSizes);
   };
 
   const renderChart = () => {
@@ -227,17 +244,18 @@ const ExploreChartPanel = props => {
         {header}
       </div>
       <Split
-        sizes={INITIAL_SIZES}
-        minSize={[300, 120]}
+        sizes={splitSizes}
+        minSize={MIN_SIZES}
         direction="vertical"
         gutterSize={EXPLORE_GUTTER_HEIGHT}
-        onDragEnd={onDrag}
+        onDragEnd={recalcPanelSizes}
         elementStyle={elementStyle}
       >
         <div className="panel-body">{renderChart()}</div>
         <DataTablesPane
           queryFormData={props.chart.latestQueryFormData}
           tableSectionHeight={tableSectionHeight}
+          onCollapseChange={onCollapseChange}
         />
       </Split>
     </Styles>
