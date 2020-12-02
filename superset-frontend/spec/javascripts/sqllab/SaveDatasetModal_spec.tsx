@@ -37,7 +37,7 @@ describe('SaveDatasetModal', () => {
     defaultCreateDatasetValue: 'someDatasets',
   };
   it('renders a radio group btn', () => {
-    const wrapper = shallow(<SaveDatasetModal visible />);
+    const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
     expect(wrapper.find(Radio.Group)).toExist();
   });
   it('renders a autocomplete', () => {
