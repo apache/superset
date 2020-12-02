@@ -16,15 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import processGroupby from '@superset-ui/core/src/query/processGroupby';
+import { DataRecord, QueryFormData, SetExtraFormDataHook } from '@superset-ui/core';
+import { AntdPluginFilterStylesProps } from '../types';
 
-describe('processGroupby', () => {
-  it('should handle array of strings', () => {
-    expect(processGroupby(['foo', 'bar'])).toEqual(['foo', 'bar']);
-  });
+interface AntdPluginFilterSelectCustomizeProps {
+  max?: number;
+  min?: number;
+}
 
-  it('should exclude non-string values', () => {
-    // @ts-expect-error
-    expect(processGroupby(['bar', 1, undefined, null, 'foo'])).toEqual(['bar', 'foo']);
-  });
-});
+export type PluginFilterRangeQueryFormData = QueryFormData &
+  AntdPluginFilterStylesProps &
+  AntdPluginFilterSelectCustomizeProps;
+
+export type AntdPluginFilterRangeProps = AntdPluginFilterStylesProps & {
+  data: DataRecord[];
+  formData: PluginFilterRangeQueryFormData;
+  setExtraFormData: SetExtraFormDataHook;
+};

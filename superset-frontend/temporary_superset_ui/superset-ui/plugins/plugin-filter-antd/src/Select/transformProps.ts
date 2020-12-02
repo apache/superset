@@ -16,15 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import processGroupby from '@superset-ui/core/src/query/processGroupby';
+import { ChartProps, DataRecord } from '@superset-ui/core';
+import { DEFAULT_FORM_DATA } from './types';
 
-describe('processGroupby', () => {
-  it('should handle array of strings', () => {
-    expect(processGroupby(['foo', 'bar'])).toEqual(['foo', 'bar']);
-  });
+export default function transformProps(chartProps: ChartProps) {
+  const { formData, height, hooks, queryData, width } = chartProps;
+  const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  const { setExtraFormData = () => {} } = hooks;
+  const data = queryData.data as DataRecord[];
 
-  it('should exclude non-string values', () => {
-    // @ts-expect-error
-    expect(processGroupby(['bar', 1, undefined, null, 'foo'])).toEqual(['bar', 'foo']);
-  });
-});
+  // console.log('formData via TransformProps.ts', formData);
+  return {
+    width,
+    height,
+    data,
+    formData: newFormData,
+    setExtraFormData,
+  };
+}

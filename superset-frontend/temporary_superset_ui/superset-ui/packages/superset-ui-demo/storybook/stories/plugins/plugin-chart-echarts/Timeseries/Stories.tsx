@@ -4,6 +4,7 @@ import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
 import { EchartsTimeseriesChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import transformProps from '@superset-ui/plugin-chart-echarts/lib/Timeseries/transformProps';
 import data from './data';
+import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsTimeseriesChartPlugin().configure({ key: 'echarts-timeseries' }).register();
 
@@ -11,7 +12,7 @@ getChartTransformPropsRegistry().registerValue('echarts-timeseries', transformPr
 
 export default {
   title: 'Chart Plugins|plugin-chart-echarts/Timeseries',
-  decorators: [withKnobs],
+  decorators: [withKnobs, withResizableChartDemo],
 };
 
 export const Timeseries = ({ width, height }) => {

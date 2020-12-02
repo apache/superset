@@ -4,6 +4,7 @@ import { select, withKnobs } from '@storybook/addon-knobs';
 import { EchartsBoxPlotChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import transformProps from '@superset-ui/plugin-chart-echarts/lib/BoxPlot/transformProps';
 import data from './data';
+import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsBoxPlotChartPlugin().configure({ key: 'echarts-boxplot' }).register();
 
@@ -11,7 +12,7 @@ getChartTransformPropsRegistry().registerValue('echarts-boxplot', transformProps
 
 export default {
   title: 'Chart Plugins|plugin-chart-echarts/BoxPlot',
-  decorators: [withKnobs],
+  decorators: [withKnobs, withResizableChartDemo],
 };
 
 export const BoxPlot = ({ width, height }) => {

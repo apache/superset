@@ -11,11 +11,11 @@ export type QueryObjectFilterClause = {
 } & (
   | {
       op: BinaryOperator;
-      val: string;
+      val: string | number | boolean;
     }
   | {
       op: SetOperator;
-      val: string[];
+      val: (string | number | boolean)[];
     }
   | {
       op: UnaryOperator;

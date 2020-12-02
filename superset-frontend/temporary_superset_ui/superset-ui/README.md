@@ -68,6 +68,7 @@ should be written in Typescript.
 | [@superset-ui/plugin-chart-table](https://github.com/apache-superset/superset-ui/tree/master/plugins/plugin-chart-table)           | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-table.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/plugin-chart-table)           |      |
 | [@superset-ui/preset-chart-xy](https://github.com/apache-superset/superset-ui/tree/master/plugins/preset-chart-xy)                 | [![Version](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/preset-chart-xy)                 |      |
 | [@superset-ui/plugin-chart-echarts](https://github.com/apache-superset/superset-ui/tree/master/plugins/plugin-chart-echarts)       | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-echarts.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/plugin-chart-echarts)       |      |
+| [@superset-ui/plugin-filter-antd](https://github.com/apache-superset/superset-ui/tree/master/plugins/plugin-filter-antd)           | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-echarts.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/plugin-filter-antd)         |      |
 
 ## Contribution and development guide
 

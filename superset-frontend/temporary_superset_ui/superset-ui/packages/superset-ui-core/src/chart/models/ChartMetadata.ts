@@ -11,6 +11,7 @@ export interface ChartMetadataConfig {
   supportedAnnotationTypes?: string[];
   thumbnail: string;
   useLegacyApi?: boolean;
+  isNativeFilter?: boolean;
 }
 
 export default class ChartMetadata {
@@ -32,6 +33,8 @@ export default class ChartMetadata {
 
   useLegacyApi: boolean;
 
+  isNativeFilter: boolean;
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
@@ -42,6 +45,7 @@ export default class ChartMetadata {
       supportedAnnotationTypes = [],
       thumbnail,
       useLegacyApi = false,
+      isNativeFilter = false,
     } = config;
 
     this.name = name;
@@ -61,6 +65,7 @@ export default class ChartMetadata {
     this.supportedAnnotationTypes = supportedAnnotationTypes;
     this.thumbnail = thumbnail;
     this.useLegacyApi = useLegacyApi;
+    this.isNativeFilter = isNativeFilter;
   }
 
   canBeAnnotationType(type: string): boolean {
@@ -77,6 +82,7 @@ export default class ChartMetadata {
       supportedAnnotationTypes: this.supportedAnnotationTypes,
       thumbnail: this.thumbnail,
       useLegacyApi: this.useLegacyApi,
+      isNativeFilter: this.isNativeFilter,
     });
   }
 }

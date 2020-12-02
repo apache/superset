@@ -1,7 +1,7 @@
 import { createSelector } from 'reselect';
 import { convertKeysToCamelCase, Datasource } from '../..';
-import { HandlerFunction, PlainObject } from '../types/Base';
-import { QueryData, DataRecordFilters } from '../types/QueryResponse';
+import { HandlerFunction, PlainObject, SetExtraFormDataHook } from '../types/Base';
+import { QueryData, DataRecordFilters } from '..';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
@@ -23,6 +23,8 @@ type Hooks = {
   onError?: HandlerFunction;
   /** use the vis as control to update state */
   setControlValue?: HandlerFunction;
+  /** handle native filters */
+  setExtraFormData?: SetExtraFormDataHook;
   /** handle tooltip */
   setTooltip?: HandlerFunction;
 } & PlainObject;

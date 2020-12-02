@@ -5,6 +5,7 @@ import { TimeRange } from './Time';
 import { AdhocFilter } from './Filter';
 import { BinaryOperator, SetOperator } from './Operator';
 import { AnnotationLayer } from './AnnotationLayer';
+import { QueryObject } from './Query';
 
 export type QueryFormDataMetric = string | AdhocMetric;
 export type QueryFormResidualDataValue = string | AdhocMetric;
@@ -32,6 +33,11 @@ export type QueryFormExtraFilter = {
       val: string[];
     }
 );
+
+export type ExtraFormData = {
+  append_form_data?: Partial<QueryObject>;
+  override_form_data?: Partial<QueryObject>;
+};
 
 // Type signature for formData shared by all viz types
 // It will be gradually filled out as we build out the query object
@@ -76,6 +82,7 @@ export type BaseFormData = {
   annotation_layers?: AnnotationLayer[];
   url_params?: Record<string, string>;
 } & TimeRange &
+  ExtraFormData &
   QueryFormResidualData;
 
 // FormData is either sqla-based or druid-based

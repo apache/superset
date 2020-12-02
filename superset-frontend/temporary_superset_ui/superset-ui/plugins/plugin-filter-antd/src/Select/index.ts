@@ -16,15 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import processGroupby from '@superset-ui/core/src/query/processGroupby';
+import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import buildQuery from './buildQuery';
+import controlPanel from './controlPanel';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
 
-describe('processGroupby', () => {
-  it('should handle array of strings', () => {
-    expect(processGroupby(['foo', 'bar'])).toEqual(['foo', 'bar']);
-  });
+export default class AntdFilterSelectPlugin extends ChartPlugin {
+  constructor() {
+    const metadata = new ChartMetadata({
+      name: t('Select Filter Plugin'),
+      description: 'Select Filter Plugin using AntD',
+      isNativeFilter: true,
+      thumbnail,
+    });
 
-  it('should exclude non-string values', () => {
-    // @ts-expect-error
-    expect(processGroupby(['bar', 1, undefined, null, 'foo'])).toEqual(['bar', 'foo']);
-  });
-});
+    super({
+      buildQuery,
+      controlPanel,
+      loadChart: () => import('./AntdSelectFilter'),
+      metadata,
+      transformProps,
+    });
+  }
+}
