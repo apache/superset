@@ -33,7 +33,7 @@ import withToasts from '../messageToasts/enhancers/withToasts';
 
 interface ChangeDatasourceModalProps {
   addDangerToast: (msg: string) => void;
-  onChange: (id: number) => void;
+  onChange: (string: number) => void;
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => void;
   show: boolean;
@@ -75,11 +75,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         endpoint: `/datasource/get/${datasource.type}/${datasource.id}`,
       })
         .then(({ json }) => {
-          console.log(json);
-          console.log(datasource.uid);
           onDatasourceSave(json);
-          // onChange('1__table');
-          console.log(`${datasource.id}__table`);
           onChange(`${datasource.id}__table`);
         })
         .catch(response => {
