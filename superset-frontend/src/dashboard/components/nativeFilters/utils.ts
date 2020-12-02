@@ -22,7 +22,8 @@ import {
   LayoutItem,
   TreeItem,
   Scope,
-  Charts, NativeFiltersState,
+  Charts,
+  NativeFiltersState,
 } from './types';
 import {
   CHART_TYPE,

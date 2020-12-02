@@ -30,7 +30,8 @@ const Wrapper = styled.div`
   flex: 0 0 16px;
   /* &.animated {
     transition: width 0;
-    transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
+    transition-delay: ${({ theme }) =>
+    theme.transitionTiming * 2}s;
   } */
   &.open {
     width: 250px;
