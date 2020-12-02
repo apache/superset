@@ -18,10 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonGroup, Collapse, Fade, Well } from 'react-bootstrap';
+import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/core';
 
+import Fade from 'src/common/components/Fade';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from '../../components/Link';
 import ColumnElement from './ColumnElement';
@@ -215,7 +216,7 @@ class TableElement extends React.PureComponent {
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
-            <Fade in={this.state.hovered}>{this.renderControls()}</Fade>
+            <Fade hovered={this.state.hovered}>{this.renderControls()}</Fade>
           )}
           <i
             role="button"
