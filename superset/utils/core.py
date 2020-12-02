@@ -918,10 +918,11 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
     # and will deprecate `extra_filters`. For now only `filters` is supported,
     # but additional props will be added later (time grains, groupbys etc)
     extra_form_data = form_data.pop("extra_form_data", {})
-    extra_filters = extra_form_data.get("filters", None)
-    if extra_filters:
+    append_form_data = extra_form_data.pop("append_form_data", {})
+    append_filters = append_form_data.get("filters", None)
+    if append_filters:
         adhoc_filters.extend(
-            [to_adhoc({"isExtra": True, **fltr}) for fltr in extra_filters if fltr]
+            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
         )
     if "extra_filters" in form_data:
         # __form and __to are special extra_filters that target time
