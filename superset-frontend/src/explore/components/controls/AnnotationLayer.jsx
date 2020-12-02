@@ -197,7 +197,7 @@ export default class AnnotationLayer extends React.PureComponent {
         label: chartMetadata.name,
       }));
     // Prepend native source if applicable
-    if (ANNOTATION_TYPES_METADATA[annotationType].supportNativeSource) {
+    if (ANNOTATION_TYPES_METADATA[annotationType]?.supportNativeSource) {
       sources.unshift(ANNOTATION_SOURCE_TYPES_METADATA.NATIVE);
     }
     return sources;
