@@ -4,6 +4,7 @@ import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
 import { EchartsPieChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import transformProps from '@superset-ui/plugin-chart-echarts/lib/Pie/transformProps';
 import { weekday, population } from './data';
+import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsPieChartPlugin().configure({ key: 'echarts-pie' }).register();
 
@@ -11,7 +12,7 @@ getChartTransformPropsRegistry().registerValue('echarts-pie', transformProps);
 
 export default {
   title: 'Chart Plugins|plugin-chart-echarts/Pie',
-  decorators: [withKnobs],
+  decorators: [withKnobs, withResizableChartDemo],
 };
 
 export const WeekdayPie = ({ width, height }) => {
