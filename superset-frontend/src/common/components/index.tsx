@@ -41,6 +41,7 @@ export {
   Popover,
   Select,
   Skeleton,
+  Switch,
   Tabs,
   Tooltip,
 } from 'antd';
