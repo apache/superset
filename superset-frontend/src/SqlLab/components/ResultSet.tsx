@@ -19,6 +19,7 @@
 import React, { CSSProperties } from 'react';
 import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import moment from 'moment';
+import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import { styled, t } from '@superset-ui/core';
@@ -323,9 +324,11 @@ export default class ResultSet extends React.PureComponent<
           );
         });
     }
+
+    this.setState({ showSaveDatasetModal: false });
   }
 
-  handleDatasetNameChange(e: { target: { value: any } }) {
+  handleDatasetNameChange(e: React.FormEvent<HTMLInputElement>) {
     this.setState({ newSaveDatasetName: e.target.value });
   }
 
@@ -333,8 +336,8 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ showSaveDatasetModal: false, overwriteDataSet: false });
   }
 
-  handleSaveDatasetRadioBtnState(e: { target: { value: any } }) {
-    this.setState({ saveDatasetRadioBtnState: e.target.value });
+  handleSaveDatasetRadioBtnState(e: RadioChangeEvent) {
+    this.setState({ saveDatasetRadioBtnState: Number(e.target.value) });
   }
 
   handleOverwriteCancel() {
@@ -353,12 +356,12 @@ export default class ResultSet extends React.PureComponent<
           <SaveDatasetModal
             visible={this.state.showSaveDatasetModal}
             onOk={this.handleSaveInDataset}
-            onCancel={this.handleHideSaveModal}
+            onHide={this.handleHideSaveModal}
             handleDatasetNameChange={this.handleDatasetNameChange}
             userDatasetsOwned={this.state.userDatasetsOwned}
             handleSaveDatasetRadioBtnState={this.handleSaveDatasetRadioBtnState}
             saveDatasetRadioBtnState={this.state.saveDatasetRadioBtnState}
-            overwriteDataSet={this.state.overwriteDataSet}
+            shouldOverwriteDataset={this.state.overwriteDataSet}
             handleOverwriteCancel={this.handleOverwriteCancel}
             handleOverwriteDataset={this.handleOverwriteDataset}
             handleOverwriteDatasetOption={this.handleOverwriteDatasetOption}
