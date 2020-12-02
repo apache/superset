@@ -322,9 +322,15 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         raise SqlLabException("Results backend isn't configured.")
 
     # Breaking down into multiple statements
-    parsed_query = ParsedQuery(rendered_query)
-    statements = parsed_query.get_statements()
-    logger.info("Query %s: Executing %i statement(s)", str(query_id), len(statements))
+    if not db_engine_spec.run_multiple_statements_as_one:
+        parsed_query = ParsedQuery(rendered_query)
+        statements = parsed_query.get_statements()
+        logger.info(
+            "Query %s: Executing %i statement(s)", str(query_id), len(statements)
+        )
+    else:
+        statements = [rendered_query]
+        logger.info("Query %s: Executing query as a single statement(s)", str(query_id))
 
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
