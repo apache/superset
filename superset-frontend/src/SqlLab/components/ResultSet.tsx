@@ -38,7 +38,6 @@ import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
-
 const SEARCH_HEIGHT = 46;
 
 const SAVE_NEW_DATASET_RADIO_STATE = 1;

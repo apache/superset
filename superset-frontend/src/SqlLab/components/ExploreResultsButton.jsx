@@ -26,9 +26,7 @@ import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import shortid from 'shortid';
 
-import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
-import { exploreChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
 
 const propTypes = {

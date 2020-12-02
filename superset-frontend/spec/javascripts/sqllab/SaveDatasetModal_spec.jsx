@@ -18,14 +18,26 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import sinon from 'sinon';
 import { Radio, AutoComplete, Input } from 'src/common/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
 describe('SaveDatasetModal', () => {
-  const mockedProps = {};
+  const mockedProps = {
+    visible: false,
+    onOk: () => {},
+    onHide: () => {},
+    handleDatasetNameChange: () => {},
+    userDatasetsOwned: [],
+    handleSaveDatasetRadioBtnState: () => {},
+    saveDatasetRadioBtnState: 1,
+    overwriteDataSet: false,
+    handleOverwriteCancel: () => {},
+    handleOverwriteDataset: () => {},
+    handleOverwriteDatasetOption: () => {},
+    defaultCreateDatasetValue: 'someDatasets',
+  };
   it('renders a radio group btn', () => {
-    const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
+    const wrapper = shallow(<SaveDatasetModal visible />);
     expect(wrapper.find(Radio.Group)).toExist();
   });
   it('renders a autocomplete', () => {
