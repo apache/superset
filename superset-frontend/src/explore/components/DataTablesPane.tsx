@@ -77,10 +77,12 @@ export const DataTablesPane = ({
   queryFormData,
   tableSectionHeight,
   onCollapseChange,
+  displayBackground,
 }: {
   queryFormData: object;
   tableSectionHeight: number;
   onCollapseChange: (openPanelName: string) => void;
+  displayBackground: boolean;
 }) => {
   const [data, setData] = useState<{
     [RESULT_TYPES.results]?: object[];
@@ -201,7 +203,7 @@ export const DataTablesPane = ({
 
   return (
     <SouthPane>
-      <SouthPaneBackground />
+      {displayBackground && <SouthPaneBackground />}
       <TabsWrapper contentHeight={tableSectionHeight}>
         <Collapse accordion bordered={false} onChange={handleCollapseChange}>
           <Collapse.Panel header={t('Data')} key="data">

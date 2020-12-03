@@ -138,6 +138,9 @@ const ExploreChartPanel = props => {
   const [tableSectionHeight, setTableSectionHeight] = useState(
     calcSectionHeight(INITIAL_SIZES[1]),
   );
+  const [displaySouthPaneBackground, setDisplaySouthPaneBackground] = useState(
+    false,
+  );
 
   useEffect(() => {
     const calcHeaderSize = debounce(() => {
@@ -149,6 +152,15 @@ const ExploreChartPanel = props => {
     document.addEventListener('resize', calcHeaderSize);
     return () => document.removeEventListener('resize', calcHeaderSize);
   }, [props.standalone]);
+
+  const onDragStart = () => {
+    setDisplaySouthPaneBackground(true);
+  };
+
+  const onDragEnd = sizes => {
+    recalcPanelSizes(sizes);
+    setDisplaySouthPaneBackground(false);
+  };
 
   const recalcPanelSizes = ([northPercent, southPercent]) => {
     setChartSectionHeight(
@@ -251,7 +263,8 @@ const ExploreChartPanel = props => {
         minSize={MIN_SIZES}
         direction="vertical"
         gutterSize={EXPLORE_GUTTER_HEIGHT}
-        onDragEnd={recalcPanelSizes}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
         elementStyle={elementStyle}
       >
         <div className="panel-body">{renderChart()}</div>
@@ -259,6 +272,7 @@ const ExploreChartPanel = props => {
           queryFormData={props.chart.latestQueryFormData}
           tableSectionHeight={tableSectionHeight}
           onCollapseChange={onCollapseChange}
+          displayBackground={displaySouthPaneBackground}
         />
       </Split>
     </Styles>
