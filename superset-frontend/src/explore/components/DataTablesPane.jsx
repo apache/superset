@@ -173,17 +173,17 @@ export const DataTablesPane = ({
     <SouthPane>
       <TabsWrapper contentHeight={tableSectionHeight}>
         <Collapse accordion bordered={false} onChange={onCollapseChange}>
-          <Collapse.Panel header="Data" forceRender key="data">
+          <Collapse.Panel header={t('Data')} forceRender key="data">
             <Tabs
               fullWidth={false}
               tabBarExtraContent={TableControls}
               activeKey={activeTabKey}
               onChange={setActiveTabKey}
             >
-              <Tabs.TabPane tab="View results" key={RESULT_TYPES.results}>
+              <Tabs.TabPane tab={t('View results')} key={RESULT_TYPES.results}>
                 {renderDataTable(RESULT_TYPES.results)}
               </Tabs.TabPane>
-              <Tabs.TabPane tab="View samples" key={RESULT_TYPES.samples}>
+              <Tabs.TabPane tab={t('View samples')} key={RESULT_TYPES.samples}>
                 {renderDataTable(RESULT_TYPES.samples)}
               </Tabs.TabPane>
             </Tabs>
