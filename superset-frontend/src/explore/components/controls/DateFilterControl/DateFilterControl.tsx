@@ -294,7 +294,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [customRange, setCustomRange] = useState<CustomRangeType>(
     customTimeRangeDecode(value).customRange,
   );
-  // const [advancedRange, setAdvancedRange] = useState<string>(`${SEPARATOR}`);
+  const [advancedRange, setAdvancedRange] = useState<string>(`Last week${SEPARATOR}today`);
 
   useEffect(() => {
     fetchActualTimeRange(value, endpoints).then(value => {
@@ -306,6 +306,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     if (timeRangeFrame === 'Common') onChange(commonRange);
     if (timeRangeFrame === 'Calendar') onChange(calendarRange);
     if (timeRangeFrame === 'Custom') onChange(customTimeRangeEncode(customRange));
+    if (timeRangeFrame === 'Advanced') onChange(advancedRange);
     if (timeRangeFrame === 'No Filter') onChange('No filter');
     setShow(false);
   }
@@ -336,13 +337,31 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     );
   }
 
+  function onAdvancedRangeChange(
+    control: 'since' | 'until',
+    value: string,
+  ) {
+    const [since, until] = [...advancedRange.split(SEPARATOR)];
+    if (control === 'since') {
+      setAdvancedRange(`${value}${SEPARATOR}${until}`);
+    } else {
+      setAdvancedRange(`${since}${SEPARATOR}${value}`);
+    }
+  }
+
   function renderAdvanced() {
+    const [since, until] = [...advancedRange.split(SEPARATOR)];
     return (
-      // <>
-      //   <Input placeholder="Basic usage" />
-      //   <Input placeholder="Basic usage" />
-      // </>
-      <h1>WIP</h1>
+      <>
+        <Input
+          value={since}
+          onChange={(e) => onAdvancedRangeChange('since', e.target.value)}
+        />
+        <Input
+          value={until}
+          onChange={(e) => onAdvancedRangeChange('until', e.target.value)}
+        />
+      </>
     );
   }
 
