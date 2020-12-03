@@ -37,16 +37,6 @@ interface ListViewResourceState<D extends object = any> {
   bulkSelectEnabled: boolean;
 }
 
-const needsPassword = (errMsg: Record<string, Record<string, string[]>>) =>
-  Object.values(errMsg).every(validationErrors =>
-    Object.entries(validationErrors as Object).every(
-      ([field, messages]) =>
-        field === '_schema' &&
-        messages.length === 1 &&
-        messages[0] === 'Must provide a password for the database',
-    ),
-  );
-
 export function useListViewResource<D extends object = any>(
   resource: string,
   resourceLabel: string, // resourceLabel for translations
@@ -308,6 +298,50 @@ export function useSingleViewResource<D extends object = any>(
       });
   }, []);
 
+  return {
+    state: {
+      loading: state.loading,
+      resource: state.resource,
+    },
+    setResource: (update: D) =>
+      updateState({
+        resource: update,
+      }),
+    fetchResource,
+    createResource,
+    updateResource,
+  };
+}
+
+interface ImportResourceState<D extends object = any> {
+  loading: boolean;
+  passwordsNeeded: string[];
+}
+
+export function useImportResource<D extends object = any>(
+  resourceName: string,
+  resourceLabel: string, // resourceLabel for translations
+  handleErrorMsg: (errorMsg: string) => void,
+) {
+  const [state, setState] = useState<ImportResourceState<D>>({
+    loading: false,
+    passwordsNeeded: [],
+  });
+
+  function updateState(update: Partial<ImportResourceState<D>>) {
+    setState(currentState => ({ ...currentState, ...update }));
+  }
+
+  const needsPassword = (errMsg: Record<string, Record<string, string[]>>) =>
+    Object.values(errMsg).every(validationErrors =>
+      Object.entries(validationErrors as Object).every(
+        ([field, messages]) =>
+          field === '_schema' &&
+          messages.length === 1 &&
+          messages[0] === 'Must provide a password for the database',
+      ),
+    );
+
   const importResource = useCallback(
     (bundle: File, databasePasswords: Record<string, string> = {}) => {
       // Set loading state
@@ -339,15 +373,20 @@ export function useSingleViewResource<D extends object = any>(
              */
             const errMsg = error.message || error.error;
             if (typeof errMsg !== 'string' && needsPassword(errMsg)) {
-              return Object.keys(errMsg);
+              updateState({
+                passwordsNeeded: Object.keys(errMsg),
+              });
+              return false;
             }
-            return handleErrorMsg(
+            console.log(errMsg);
+            handleErrorMsg(
               t(
-                'An error occurred while importing %%s: %s',
+                'An error occurred while importing %s: %s',
                 resourceLabel,
                 JSON.stringify(errMsg),
               ),
             );
+            return false;
           }),
         )
         .finally(() => {
@@ -360,15 +399,8 @@ export function useSingleViewResource<D extends object = any>(
   return {
     state: {
       loading: state.loading,
-      resource: state.resource,
+      passwordsNeeded: state.passwordsNeeded,
     },
-    setResource: (update: D) =>
-      updateState({
-        resource: update,
-      }),
-    fetchResource,
-    createResource,
-    updateResource,
     importResource,
   };
 }
