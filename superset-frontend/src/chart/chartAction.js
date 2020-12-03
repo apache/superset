@@ -52,8 +52,8 @@ export function chartUpdateStarted(queryController, latestQueryFormData, key) {
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
-export function chartUpdateSucceeded(queryResponse, queriesResponse, key) {
-  return { type: CHART_UPDATE_SUCCEEDED, queryResponse, queriesResponse, key };
+export function chartUpdateSucceeded(queriesResponse, key) {
+  return { type: CHART_UPDATE_SUCCEEDED, queriesResponse, key };
 }
 
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
@@ -62,8 +62,8 @@ export function chartUpdateStopped(key) {
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
-export function chartUpdateFailed(queryResponse, queriesResponse, key) {
-  return { type: CHART_UPDATE_FAILED, queryResponse, queriesResponse, key };
+export function chartUpdateFailed(queriesResponse, key) {
+  return { type: CHART_UPDATE_FAILED, queriesResponse, key };
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
@@ -226,7 +226,7 @@ export function runAnnotationQuery(
   key,
   isDashboardRequest = false,
 ) {
-  return function(dispatch, getState) {
+  return function (dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
     // make a copy of formData, not modifying original formData
     const fd = {
@@ -356,11 +356,6 @@ export function exploreJSON(
 
     const chartDataRequestCaught = chartDataRequest
       .then(response => {
-        // new API returns an object with an array of restults
-        // problem: response holds a list of results, when before we were just getting one result.
-        // How to make the entire app compatible with multiple results?
-        // For now just use the first result.
-        const queryResponse = response.result[0]; // deprecated
         const queriesResponse = response.result;
 
         queriesResponse.forEach(resultItem =>
@@ -384,9 +379,7 @@ export function exploreJSON(
             }),
           ),
         );
-        return dispatch(
-          chartUpdateSucceeded(queryResponse, queriesResponse, key),
-        );
+        return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
         const appendErrorLog = (errorDetails, isCached) => {
@@ -413,9 +406,7 @@ export function exploreJSON(
           } else {
             appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
           }
-          return dispatch(
-            chartUpdateFailed(parsedResponse, [parsedResponse], key),
-          );
+          return dispatch(chartUpdateFailed([parsedResponse], key));
         });
       });
 

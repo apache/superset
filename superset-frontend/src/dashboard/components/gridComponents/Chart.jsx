@@ -336,7 +336,6 @@ export default class Chart extends React.Component {
             initialValues={initialValues}
             formData={formData}
             queriesResponse={chart.queriesResponse}
-            queryResponse={chart.queryResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}

@@ -53,7 +53,6 @@ SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
 const propTypes = {
   onOpenInEditor: PropTypes.func,
-  queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
   chartHeight: PropTypes.string.isRequired,
   latestQueryFormData: PropTypes.object.isRequired,

@@ -37,7 +37,6 @@ const propTypes = {
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
-  queryResponse: PropTypes.object,
   queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
@@ -79,14 +78,13 @@ class ChartRenderer extends React.Component {
 
   shouldComponentUpdate(nextProps) {
     const resultsReady =
-      nextProps.queryResponse &&
+      nextProps.queriesResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
-      !nextProps.queryResponse.error &&
+      !nextProps.queriesResponse?.[0]?.error &&
       !nextProps.refreshOverlayVisible;
 
     if (resultsReady) {
       this.hasQueryResponseChange =
-        nextProps.queryResponse !== this.props.queryResponse ||
         nextProps.queriesResponse !== this.props.queriesResponse;
       return (
         this.hasQueryResponseChange ||
@@ -181,7 +179,6 @@ class ChartRenderer extends React.Component {
       datasource,
       initialValues,
       formData,
-      queryResponse,
       queriesResponse,
     } = this.props;
 
@@ -221,7 +218,7 @@ class ChartRenderer extends React.Component {
         initialValues={initialValues}
         formData={formData}
         hooks={this.hooks}
-        queryData={queryResponse}
+        queryData={queriesResponse?.[0]} // deprecated
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}

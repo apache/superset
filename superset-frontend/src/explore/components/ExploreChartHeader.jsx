@@ -130,8 +130,10 @@ export class ExploreChartHeader extends React.PureComponent {
       chartUpdateEndTime,
       chartUpdateStartTime,
       latestQueryFormData,
-      queryResponse,
+      queriesResponse,
     } = this.props.chart;
+    // TODO: when will get appropriate design for multi queries use all results and not first only
+    const queryResponse = queriesResponse?.[0];
     const chartFinished = ['failed', 'rendered', 'success'].includes(
       this.props.chart.chartStatus,
     );

@@ -30,7 +30,6 @@ export const chart = {
   chartUpdateStartTime: 0,
   latestQueryFormData: {},
   queryController: null,
-  queryResponse: null,
   queriesResponse: null,
   triggerQuery: true,
   lastRendered: 0,
@@ -49,7 +48,6 @@ export default function chartReducer(charts = {}, action) {
         ...state,
         chartStatus: 'success',
         chartAlert: null,
-        queryResponse: action.queryResponse,
         queriesResponse: action.queriesResponse,
         chartUpdateEndTime: now(),
       };
@@ -91,14 +89,13 @@ export default function chartReducer(charts = {}, action) {
       return {
         ...state,
         chartStatus: 'failed',
-        chartAlert: action.queryResponse
-          ? action.queryResponse.error
+        chartAlert: action.queriesResponse
+          ? action.queriesResponse?.[0]?.error
           : t('Network error.'),
         chartUpdateEndTime: now(),
-        queryResponse: action.queryResponse,
         queriesResponse: action.queriesResponse,
-        chartStackTrace: action.queryResponse
-          ? action.queryResponse.stacktrace
+        chartStackTrace: action.queriesResponse
+          ? action.queriesResponse?.[0]?.stacktrace
           : null,
       };
     },
