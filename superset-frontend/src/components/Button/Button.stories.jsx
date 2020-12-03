@@ -113,7 +113,7 @@ export const InteractiveButton = args => {
 
 InteractiveButton.args = {
   buttonStyle: STYLES.defaultValue,
-  size: SIZES.defaultValue,
+  buttonSize: SIZES.defaultValue,
   type: TYPES.defaultValue,
   target: TARGETS.defaultValue,
   href: HREFS.defaultValue,
