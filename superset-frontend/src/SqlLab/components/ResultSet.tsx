@@ -240,7 +240,7 @@ export default class ResultSet extends React.PureComponent<
     }
 
     updateDatset(
-      datasetToOverwrite.dataSetId,
+      datasetToOverwrite.datasetId,
       sql,
       results.selected_columns.map(d => ({ column_name: d.name })),
       true,
@@ -248,7 +248,7 @@ export default class ResultSet extends React.PureComponent<
       .then(d => {
         exploreChart({
           ...EXPLORE_CHART_DEFAULT,
-          datasource: `${datasetToOverwrite.dataSetId}__table`,
+          datasource: `${datasetToOverwrite.datasetId}__table`,
           all_columns: results.selected_columns.map(d => d.name),
         });
       })
