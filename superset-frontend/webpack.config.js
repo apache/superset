@@ -326,22 +326,17 @@ const config = {
       {
         test: /\.jsx?$/,
         // include source code for plugins, but exclude node_modules and test files within them
-        exclude: [
-          /superset-ui.*\/node_modules\//,
-          /superset-maf-ui.*\/node_modules\//,
-          /\.test.jsx?$/,
-        ],
+        exclude: [/superset-ui.*\/node_modules\//, /\.test.jsx?$/],
         include: [
           new RegExp(`${APP_DIR}/src`),
           /superset-ui.*\/src/,
-          /superset-maf-ui.*\/src/,
           new RegExp(`${APP_DIR}/.storybook`),
         ],
         use: [babelLoader],
       },
       {
         test: /\.css$/,
-        include: [APP_DIR, /superset-ui.+\/src/, /superset-maf-ui.+\/src/],
+        include: [APP_DIR, /superset-ui.+\/src/],
         use: [
           isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
           {
@@ -456,10 +451,7 @@ if (isDevMode) {
   let hasSymlink = false;
   Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
     const srcPath = `./node_modules/${pkg}/src`;
-    if (
-      (/superset-ui/.test(pkg) || /superset-maf-ui/.test(pkg)) &&
-      fs.existsSync(srcPath)
-    ) {
+    if (/superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
       console.log(
         `[Superset Plugin] Use symlink source for ${pkg} @ ${version}`,
       );
