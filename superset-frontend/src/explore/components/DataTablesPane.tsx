@@ -53,8 +53,14 @@ const TableControlsWrapper = styled.div`
 `;
 
 const SouthPane = styled.div`
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  z-index: 1;
+  position: relative;
+`;
+
+const SouthPaneBackground = styled.div`
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
 const TabsWrapper = styled.div<{ contentHeight: number }>`
@@ -165,6 +171,7 @@ export const DataTablesPane = ({
       if (data[type]?.length === 0) {
         return <span>No data</span>;
       }
+      console.log(filteredData[type]);
       return (
         <TableView
           columns={columns[type]}
@@ -194,6 +201,7 @@ export const DataTablesPane = ({
 
   return (
     <SouthPane>
+      <SouthPaneBackground />
       <TabsWrapper contentHeight={tableSectionHeight}>
         <Collapse accordion bordered={false} onChange={handleCollapseChange}>
           <Collapse.Panel header={t('Data')} key="data">
