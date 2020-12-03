@@ -169,7 +169,6 @@ const ExploreChartPanel = props => {
     setDisplaySouthPaneBackground(false);
   };
 
-
   const onCollapseChange = openPanelName => {
     let splitSizes;
     if (!openPanelName) {
