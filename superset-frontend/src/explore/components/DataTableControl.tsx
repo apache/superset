@@ -20,12 +20,12 @@ import React, { useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { FormControl } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import RowCountLabel from './RowCountLabel';
 import {
   applyFormattingToTabularData,
   prepareCopyToClipboardTabularData,
 } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
+import RowCountLabel from './RowCountLabel';
 
 const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -40,7 +40,7 @@ const CopyButton = styled(Button)`
   }
 `;
 
-export const CopyToClipboardButton = ({ data }) => (
+export const CopyToClipboardButton = ({ data }: { data: object }) => (
   <CopyToClipboard
     text={data ? prepareCopyToClipboardTabularData(data) : ''}
     wrapped={false}
@@ -52,33 +52,39 @@ export const CopyToClipboardButton = ({ data }) => (
   />
 );
 
-export const FilterInput = ({ filterText, onChangeHandler }) => (
+export const FilterInput = ({
+  filterText,
+  onChangeHandler,
+}: {
+  filterText: string;
+  onChangeHandler(event: React.ChangeEvent<HTMLInputElement>): void;
+}) => (
   <FormControl
     placeholder={t('Search')}
     bsSize="sm"
     value={filterText}
-    onChange={onChangeHandler}
+    onChange={event => onChangeHandler(event as any)}
   />
 );
 
-export const RowCount = ({ data }) => (
+export const RowCount = ({ data }: { data: object[] }) => (
   <RowCountLabel rowcount={data?.length ?? 0} suffix={t('rows retrieved')} />
 );
 
-export const useFilteredTableData = (data, filterText) =>
+export const useFilteredTableData = (filterText: string, data?: object[]) =>
   useMemo(() => {
     if (!data?.length) {
       return [];
     }
     const formattedData = applyFormattingToTabularData(data);
-    return formattedData.filter(row =>
+    return formattedData.filter((row: object) =>
       Object.values(row).some(value =>
         value.toString().toLowerCase().includes(filterText.toLowerCase()),
       ),
     );
   }, [data, filterText]);
 
-export const useTableColumns = data =>
+export const useTableColumns = (data?: object[]) =>
   useMemo(
     () =>
       data?.length

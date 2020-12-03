@@ -210,7 +210,7 @@ const ExploreChartPanel = props => {
     // dom manipulation hack to get rid of the boostrap theme's body background
     const standaloneClass = 'background-transparent';
     const bodyClasses = document.body.className.split(' ');
-    if (bodyClasses.indexOf(standaloneClass) === -1) {
+    if (!bodyClasses.includes(standaloneClass)) {
       document.body.className += ` ${standaloneClass}`;
     }
     return renderChart();

@@ -19,6 +19,12 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { styled, t } from '@superset-ui/core';
+import { Collapse } from 'src/common/components';
+import Tabs from 'src/common/components/Tabs';
+import Loading from 'src/components/Loading';
+import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import { getChartDataRequest } from 'src/chart/chartAction';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 import {
   CopyToClipboardButton,
   FilterInput,
@@ -26,20 +32,15 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from './DataTableControl';
-import { Collapse } from 'src/common/components';
-import Tabs from 'src/common/components/Tabs';
-import Loading from 'src/components/Loading';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { getChartDataRequest } from 'src/chart/chartAction';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
 
 const RESULT_TYPES = {
-  results: 'results',
-  samples: 'samples',
+  results: 'results' as const,
+  samples: 'samples' as const,
 };
+
 const NULLISH_RESULTS_STATE = {
-  [RESULT_TYPES.results]: null,
-  [RESULT_TYPES.samples]: null,
+  [RESULT_TYPES.results]: undefined,
+  [RESULT_TYPES.samples]: undefined,
 };
 
 const TableControlsWrapper = styled.div`
@@ -56,7 +57,7 @@ const SouthPane = styled.div`
   z-index: 1;
 `;
 
-const TabsWrapper = styled.div`
+const TabsWrapper = styled.div<{ contentHeight: number }>`
   height: ${({ contentHeight }) => contentHeight}px;
   overflow: hidden;
 
@@ -70,15 +71,24 @@ export const DataTablesPane = ({
   queryFormData,
   tableSectionHeight,
   onCollapseChange,
+}: {
+  queryFormData: object;
+  tableSectionHeight: number;
+  onCollapseChange: (openPanelName: string) => void;
 }) => {
-  const [data, setData] = useState(NULLISH_RESULTS_STATE);
+  const [data, setData] = useState<{
+    [RESULT_TYPES.results]?: object[];
+    [RESULT_TYPES.samples]?: object[];
+  }>(NULLISH_RESULTS_STATE);
   const [isLoading, setIsLoading] = useState(NULLISH_RESULTS_STATE);
   const [error, setError] = useState(NULLISH_RESULTS_STATE);
   const [filterText, setFilterText] = useState('');
-  const [activeTabKey, setActiveTabKey] = useState(RESULT_TYPES.results);
+  const [activeTabKey, setActiveTabKey] = useState<string>(
+    RESULT_TYPES.results,
+  );
 
   useEffect(() => {
-    const getData = resultType => {
+    const getData = (resultType: string) => {
       setIsLoading(prevIsLoading => ({ ...prevIsLoading, [resultType]: true }));
       return getChartDataRequest({
         formData: queryFormData,
@@ -99,11 +109,10 @@ export const DataTablesPane = ({
           }));
         })
         .catch(response => {
-          getClientErrorObject(response).then(({ error, statusText }) => {
+          getClientErrorObject(response).then(({ error, message }) => {
             setError(prevError => ({
               ...prevError,
-              [resultType]:
-                error || statusText || t('Sorry, An error occurred'),
+              [resultType]: error || message || t('Sorry, An error occurred'),
             }));
             setIsLoading(prevIsLoading => ({
               ...prevIsLoading,
@@ -118,12 +127,12 @@ export const DataTablesPane = ({
 
   const filteredData = {
     [RESULT_TYPES.results]: useFilteredTableData(
-      data[RESULT_TYPES.results],
       filterText,
+      data[RESULT_TYPES.results],
     ),
     [RESULT_TYPES.samples]: useFilteredTableData(
-      data[RESULT_TYPES.samples],
       filterText,
+      data[RESULT_TYPES.samples],
     ),
   };
 
@@ -132,11 +141,11 @@ export const DataTablesPane = ({
     [RESULT_TYPES.samples]: useTableColumns(data[RESULT_TYPES.samples]),
   };
 
-  const changeFilterText = event => {
+  const changeFilterText = (event: React.ChangeEvent<HTMLInputElement>) => {
     setFilterText(event.target.value);
   };
 
-  const renderDataTable = type => {
+  const renderDataTable = (type: string) => {
     if (isLoading[type]) {
       return <Loading />;
     }
@@ -144,7 +153,7 @@ export const DataTablesPane = ({
       return <pre>{error[type]}</pre>;
     }
     if (data[type]) {
-      if (data[type].length === 0) {
+      if (data[type]?.length === 0) {
         return <span>No data</span>;
       }
       return (
@@ -165,7 +174,7 @@ export const DataTablesPane = ({
     <TableControlsWrapper>
       <RowCount data={data[activeTabKey]} />
       <CopyToClipboardButton data={data[activeTabKey]} />
-      <FilterInput value={filterText} onChangeHandler={changeFilterText} />
+      <FilterInput filterText={filterText} onChangeHandler={changeFilterText} />
     </TableControlsWrapper>
   );
 
