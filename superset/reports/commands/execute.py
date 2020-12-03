@@ -268,8 +268,7 @@ class ReportSuccessState(BaseReportState):
                 )
                 return
             self.set_state_and_log(
-                ReportLogState.NOOP,
-                error_message=str(ReportScheduleAlertGracePeriodError()),
+                ReportLogState.NOOP, error_message="End of grace period"
             )
             return
         try:
