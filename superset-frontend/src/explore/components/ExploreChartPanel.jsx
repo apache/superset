@@ -60,7 +60,6 @@ const INITIAL_SIZES = [90, 10];
 const MIN_SIZES = [300, 50];
 
 const Styles = styled.div`
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -95,15 +94,19 @@ const Styles = styled.div`
       height: 100%;
     }
     .ant-collapse-header {
+      background-color: ${({ theme }) => theme.colors.grayscale.light5};
       padding-top: 0;
       padding-bottom: 0;
+      font-weight: ${({ theme }) => theme.typography.weights.bold};
+      span {
+        top: 5px; // not a theme variable, override necessary after setting paddings to 0 to center arrow
+      }
     }
     .ant-tabs {
       height: 100%;
       .ant-tabs-nav {
         padding-left: ${({ theme }) => theme.gridUnit * 5}px;
         margin: 0;
-        background-color: ${({ theme }) => theme.colors.grayscale.light5};
       }
       .ant-tabs-content-holder {
         overflow: hidden;
