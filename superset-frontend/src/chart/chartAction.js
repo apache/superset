@@ -62,8 +62,8 @@ export function chartUpdateStopped(key) {
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
-export function chartUpdateFailed(queryResponse, key) {
-  return { type: CHART_UPDATE_FAILED, queryResponse, key };
+export function chartUpdateFailed(queryResponse, queriesResponse, key) {
+  return { type: CHART_UPDATE_FAILED, queryResponse, queriesResponse, key };
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
@@ -226,7 +226,7 @@ export function runAnnotationQuery(
   key,
   isDashboardRequest = false,
 ) {
-  return function (dispatch, getState) {
+  return function(dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
     // make a copy of formData, not modifying original formData
     const fd = {
@@ -413,7 +413,9 @@ export function exploreJSON(
           } else {
             appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
           }
-          return dispatch(chartUpdateFailed(parsedResponse, key));
+          return dispatch(
+            chartUpdateFailed(parsedResponse, [parsedResponse], key),
+          );
         });
       });
 

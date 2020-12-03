@@ -179,7 +179,7 @@ class Chart extends React.PureComponent {
       errorMessage,
       onQuery,
       refreshOverlayVisible,
-      queriesResponse,
+      queriesResponse = [],
     } = this.props;
 
     const isLoading = chartStatus === 'loading';

@@ -96,6 +96,7 @@ export default function chartReducer(charts = {}, action) {
           : t('Network error.'),
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
+        queriesResponse: action.queriesResponse,
         chartStackTrace: action.queryResponse
           ? action.queryResponse.stacktrace
           : null,
