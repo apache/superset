@@ -337,10 +337,11 @@ class QueryContext:
 
             if is_loaded and cache_key and status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
-                    cache_manager.cache,
+                    cache_manager.data_cache,
                     cache_key,
                     {"df": df, "query": query},
                     self.cache_timeout,
+                    self.datasource.uid,
                 )
         return {
             "cache_key": cache_key,

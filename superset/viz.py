@@ -68,6 +68,7 @@ from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
 from superset.typing import QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils
+from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     DTTM_ALIAS,
     JS_MAX_INTEGER,
@@ -97,34 +98,6 @@ METRIC_KEYS = [
     "y",
     "size",
 ]
-
-
-def set_and_log_cache(
-    cache_key: str,
-    df: pd.DataFrame,
-    query: str,
-    cached_dttm: str,
-    cache_timeout: int,
-    datasource_uid: Optional[str],
-) -> None:
-    try:
-        cache_value = dict(dttm=cached_dttm, df=df, query=query)
-        stats_logger.incr("set_cache_key")
-        cache_manager.data_cache.set(cache_key, cache_value, timeout=cache_timeout)
-
-        if datasource_uid:
-            ck = CacheKey(
-                cache_key=cache_key,
-                cache_timeout=cache_timeout,
-                datasource_uid=datasource_uid,
-            )
-            db.session.add(ck)
-    except Exception as ex:
-        # cache.set call can fail if the backend is down or if
-        # the key is too large or whatever other reasons
-        logger.warning("Could not cache key {}".format(cache_key))
-        logger.exception(ex)
-        cache_manager.data_cache.delete(cache_key)
 
 
 class BaseViz:
@@ -601,10 +574,9 @@ class BaseViz:
 
             if is_loaded and cache_key and self.status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
+                    cache_manager.data_cache,
                     cache_key,
-                    df,
-                    self.query,
-                    cached_dttm,
+                    {"df": df, "query": self.query},
                     self.cache_timeout,
                     self.datasource.uid,
                 )

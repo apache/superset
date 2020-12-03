@@ -595,10 +595,13 @@ class TestCore(SupersetTestCase):
         ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
 
     def test_cache_logging(self):
+        store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
+        app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
         girls_slice = self.get_slice("Girls", db.session)
         self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(girls_slice.id))
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{girls_slice.table.id}__table"
+        app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
 
     def test_shortner(self):
         self.login(username="admin")

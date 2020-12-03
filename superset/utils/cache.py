@@ -25,7 +25,9 @@ from flask import current_app as app, request
 from flask_caching import Cache
 from werkzeug.wrappers.etag import ETagResponseMixin
 
+from superset import db
 from superset.extensions import cache_manager
+from superset.models.cache import CacheKey
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.core import json_int_dttm_ser
 
@@ -49,6 +51,7 @@ def set_and_log_cache(
     cache_key: str,
     cache_value: Dict[str, Any],
     cache_timeout: Optional[int] = None,
+    datasource_uid: Optional[str] = None,
 ) -> None:
     timeout = cache_timeout if cache_timeout else config["CACHE_DEFAULT_TIMEOUT"]
     try:
@@ -56,6 +59,14 @@ def set_and_log_cache(
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger.incr("set_cache_key")
+
+        if datasource_uid and config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
+            ck = CacheKey(
+                cache_key=cache_key,
+                cache_timeout=cache_timeout,
+                datasource_uid=datasource_uid,
+            )
+            db.session.add(ck)
     except Exception as ex:  # pylint: disable=broad-except
         # cache.set call can fail if the backend is down or if
         # the key is too large or whatever other reasons

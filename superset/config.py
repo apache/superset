@@ -407,6 +407,9 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
+# store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
+STORE_CACHE_KEYS_IN_METADATA_DB = False
+
 # CORS Options
 ENABLE_CORS = False
 CORS_OPTIONS: Dict[Any, Any] = {}
