@@ -106,7 +106,11 @@ setup(
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8,<1.11"],
-        "bigquery": ["pandas_gbq>=0.10.0", "pybigquery>=0.4.10"],
+        "bigquery": [
+            "pandas_gbq>=0.10.0",
+            "pybigquery>=0.4.10",
+            "google-cloud-bigquery>=2.4.0",
+        ],
         "clickhouse": ["clickhouse-sqlalchemy>= 0.1.4, <0.2"],
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
