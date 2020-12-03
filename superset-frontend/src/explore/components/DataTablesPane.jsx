@@ -86,7 +86,7 @@ export const DataTablesPane = ({
         resultType,
       })
         .then(response => {
-          // Currently displaying of only first query is supported
+          // Only displaying the first query is currently supported
           const result = response.result[0];
           setData(prevData => ({ ...prevData, [resultType]: result.data }));
           setIsLoading(prevIsLoading => ({
