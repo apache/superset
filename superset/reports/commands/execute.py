@@ -219,8 +219,6 @@ class ReportNotTriggeredErrorState(BaseReportState):
             self.set_state_and_log(ReportLogState.SUCCESS)
         except Exception as ex:
             self.set_state_and_log(ReportLogState.ERROR, error_message=str(ex))
-            # We want to actually commit the state and log inside the scope
-            self._session.commit()
 
 
 class ReportWorkingState(BaseReportState):
@@ -238,17 +236,18 @@ class ReportWorkingState(BaseReportState):
                 ReportLogState.ERROR,
                 error_message=str(ReportScheduleWorkingTimeoutError()),
             )
+            return
         # Just log state remains the same
-        self.create_log(
-            state=ReportLogState.ERROR,
-            error_message=str(ReportSchedulePreviousWorkingError()),
+        self.set_state_and_log(
+            ReportLogState.WORKING,
+            error_message=str(ReportScheduleWorkingTimeoutError()),
         )
         self._session.commit()
 
 
 class ReportSuccessState(BaseReportState):
 
-    current_states = [ReportLogState.SUCCESS]
+    current_states = [ReportLogState.SUCCESS, ReportLogState.GRACE]
 
     def next(self) -> None:
         if self._report_schedule.type == ReportScheduleType.ALERT:
@@ -264,13 +263,21 @@ class ReportSuccessState(BaseReportState):
                 < last_success.end_dttm
             ):
                 self.set_state_and_log(
-                    ReportLogState.SUCCESS,
+                    ReportLogState.GRACE,
                     error_message=str(ReportScheduleAlertGracePeriodError()),
                 )
+                return
             self.set_state_and_log(
                 ReportLogState.NOOP,
                 error_message=str(ReportScheduleAlertGracePeriodError()),
             )
+            return
+        try:
+            self.set_state_and_log(ReportLogState.WORKING)
+            self._send()
+            self.set_state_and_log(ReportLogState.SUCCESS)
+        except Exception as ex:
+            self.set_state_and_log(ReportLogState.ERROR, error_message=str(ex))
 
 
 class ReportScheduleStateMachine:
