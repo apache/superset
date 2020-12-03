@@ -98,7 +98,7 @@ const Styles = styled.div`
       padding-top: 0;
       padding-bottom: 0;
       font-weight: ${({ theme }) => theme.typography.weights.bold};
-      span {
+      & > .ant-collapse-arrow {
         top: 5px; // not a theme variable, override necessary after setting paddings to 0 to center arrow
       }
     }
