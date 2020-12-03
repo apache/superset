@@ -19,7 +19,8 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { ProgressBar, Well } from 'react-bootstrap';
+import { Well } from 'react-bootstrap';
+import ProgressBar from 'src/common/components/ProgressBar';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
 
@@ -169,11 +170,7 @@ const QueryTable = props => {
           q.output = [schemaUsed, q.tempTable].filter(v => v).join('.');
         }
         q.progress = (
-          <ProgressBar
-            striped
-            now={q.progress}
-            label={`${q.progress.toFixed(0)}%`}
-          />
+          <ProgressBar percent={parseInt(q.progress.toFixed(0), 10)} striped />
         );
         let errorTooltip;
         if (q.errorMessage) {
