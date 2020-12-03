@@ -7,3 +7,4 @@ export default {
 };
 
 export { basic } from './stories/basic';
+export { timeFormat } from './stories/timeFormat';
