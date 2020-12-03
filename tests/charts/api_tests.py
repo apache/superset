@@ -711,6 +711,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_charts(self):
         """
         Chart API: Test get charts
@@ -944,7 +945,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             if res["id"] in users_favorite_ids:
                 assert res["value"]
 
-    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice",  "load_energy_table_with_slice")
+    @pytest.mark.usefixtures(
+        "load_unicode_dashboard_with_slice", "load_energy_table_with_slice"
+    )
     def test_get_charts_page(self):
         """
         Chart API: Test get charts filter

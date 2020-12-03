@@ -33,6 +33,7 @@ from superset.datasets.commands.importers import v0, v1
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     database_config,
     database_metadata_config,
