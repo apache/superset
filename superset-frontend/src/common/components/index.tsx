@@ -21,7 +21,6 @@ import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Dropdown, Skeleton, Menu as AntdMenu } from 'antd';
 import { DropDownProps } from 'antd/lib/dropdown';
-
 /*
   Antd is re-exported from here so we can override components with Emotion as needed.
 
@@ -44,8 +43,9 @@ export {
   Switch,
   Tabs,
   Tooltip,
-  Badge,
 } from 'antd';
+
+export { default as Badge } from 'src/common/components/Badge';
 
 export const MenuItem = styled(AntdMenu.Item)`
   > a {

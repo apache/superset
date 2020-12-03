@@ -18,18 +18,22 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Badge as AntdBadge } from 'src/common/components';
+// eslint-disable-next-line no-restricted-imports
+import { Badge as AntdBadge } from 'antd';
 import { BadgeProps as AntdBadgeProps } from 'antd/lib/badge';
 
 interface BadgeProps extends AntdBadgeProps {
   textColor?: string;
 }
 
-const Badge = styled((props: BadgeProps) => <AntdBadge {...props} />)`
+const Badge = styled((
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  { textColor, ...props }: BadgeProps,
+) => <AntdBadge {...props} />)`
   & > sup {
     background: ${({ theme, color }) => color || theme.colors.primary.base};
     color: ${({ theme, textColor }) =>
-      textColor || theme.colors.primary.light5};
+      textColor || theme.colors.grayscale.light5};
   }
 `;
 
