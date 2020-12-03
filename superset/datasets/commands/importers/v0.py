@@ -288,6 +288,8 @@ class ImportDatasetsCommand(BaseCommand):
         contents: Dict[str, str],
         sync_columns: bool = False,
         sync_metrics: bool = False,
+        *args: Any,
+        **kwargs: Any,
     ):
         self.contents = contents
         self._configs: Dict[str, Any] = {}
