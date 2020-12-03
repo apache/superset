@@ -153,6 +153,13 @@ const ExploreChartPanel = props => {
     return () => document.removeEventListener('resize', calcHeaderSize);
   }, [props.standalone]);
 
+  const recalcPanelSizes = ([northPercent, southPercent]) => {
+    setChartSectionHeight(
+      calcSectionHeight(northPercent) - CHART_PANEL_PADDING,
+    );
+    setTableSectionHeight(calcSectionHeight(southPercent));
+  };
+
   const onDragStart = () => {
     setDisplaySouthPaneBackground(true);
   };
@@ -162,12 +169,6 @@ const ExploreChartPanel = props => {
     setDisplaySouthPaneBackground(false);
   };
 
-  const recalcPanelSizes = ([northPercent, southPercent]) => {
-    setChartSectionHeight(
-      calcSectionHeight(northPercent) - CHART_PANEL_PADDING,
-    );
-    setTableSectionHeight(calcSectionHeight(southPercent));
-  };
 
   const onCollapseChange = openPanelName => {
     let splitSizes;
