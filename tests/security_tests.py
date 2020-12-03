@@ -47,6 +47,8 @@ from .dashboard_utils import (
 )
 from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
+NEW_SECURITY_CONVERGE_VIEWS = ("CssTemplate", "SavedQuery")
+
 
 def get_perm_tuples(role_name):
     perm_set = set()
@@ -611,18 +613,27 @@ class TestRolePermission(SupersetTestCase):
         self.logout()
 
     def assert_can_read(self, view_menu, permissions_set):
-        self.assertIn(("can_list", view_menu), permissions_set)
+        if view_menu in NEW_SECURITY_CONVERGE_VIEWS:
+            self.assertIn(("can_read", view_menu), permissions_set)
+        else:
+            self.assertIn(("can_list", view_menu), permissions_set)
 
     def assert_can_write(self, view_menu, permissions_set):
-        self.assertIn(("can_add", view_menu), permissions_set)
-        self.assertIn(("can_delete", view_menu), permissions_set)
-        self.assertIn(("can_edit", view_menu), permissions_set)
+        if view_menu in NEW_SECURITY_CONVERGE_VIEWS:
+            self.assertIn(("can_write", view_menu), permissions_set)
+        else:
+            self.assertIn(("can_add", view_menu), permissions_set)
+            self.assertIn(("can_delete", view_menu), permissions_set)
+            self.assertIn(("can_edit", view_menu), permissions_set)
 
     def assert_cannot_write(self, view_menu, permissions_set):
-        self.assertNotIn(("can_add", view_menu), permissions_set)
-        self.assertNotIn(("can_delete", view_menu), permissions_set)
-        self.assertNotIn(("can_edit", view_menu), permissions_set)
-        self.assertNotIn(("can_save", view_menu), permissions_set)
+        if view_menu in NEW_SECURITY_CONVERGE_VIEWS:
+            self.assertNotIn(("can_write", view_menu), permissions_set)
+        else:
+            self.assertNotIn(("can_add", view_menu), permissions_set)
+            self.assertNotIn(("can_delete", view_menu), permissions_set)
+            self.assertNotIn(("can_edit", view_menu), permissions_set)
+            self.assertNotIn(("can_save", view_menu), permissions_set)
 
     def assert_can_all(self, view_menu, permissions_set):
         self.assert_can_read(view_menu, permissions_set)
@@ -661,7 +672,7 @@ class TestRolePermission(SupersetTestCase):
 
     def assert_can_alpha(self, perm_set):
         self.assert_can_all("AnnotationLayerModelView", perm_set)
-        self.assert_can_all("CssTemplateModelView", perm_set)
+        self.assert_can_all("CssTemplate", perm_set)
         self.assert_can_all("TableModelView", perm_set)
         self.assert_can_read("QueryView", perm_set)
         self.assertIn(("can_import_dashboards", "Superset"), perm_set)
