@@ -57,10 +57,11 @@ export default function downloadAsImage(
   return (event: SyntheticEvent) => {
     const elementToPrint = event.currentTarget.closest(selector);
 
-    if (!elementToPrint)
+    if (!elementToPrint) {
       return addWarningToast(
         t('Image download failed, please refresh and try again.'),
       );
+    }
 
     return domToImage
       .toJpeg(elementToPrint, {

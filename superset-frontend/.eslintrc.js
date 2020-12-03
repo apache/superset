@@ -80,6 +80,7 @@ module.exports = {
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
         camelcase: 0,
         'class-methods-use-this': 0,
+        curly: 1,
         'func-names': 0,
         'guard-for-in': 0,
         'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
@@ -189,6 +190,7 @@ module.exports = {
       },
     ],
     'class-methods-use-this': 0,
+    curly: 1,
     'func-names': 0,
     'guard-for-in': 0,
     'import/extensions': [
