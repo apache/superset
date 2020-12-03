@@ -46,7 +46,11 @@ export default function MenuObject({
 }: MenuObjectProps) {
   if (url) {
     return (
-      <NavItem eventKey={index} href={url} active={window.location.pathname.includes(url)}>
+      <NavItem
+        eventKey={index}
+        href={url}
+        active={window.location.pathname.includes(url)}
+      >
         {label}
       </NavItem>
     );
@@ -57,8 +61,8 @@ export default function MenuObject({
       return false;
     }
 
-    return window.location.pathname.includes(child?.url || " ");
-  }
+    return window.location.pathname.includes(child?.url || ' ');
+  };
 
   const isActive = () => {
     if (!childs) {
@@ -69,7 +73,11 @@ export default function MenuObject({
   };
 
   return (
-    <NavDropdown id={`menu-dropdown-${label}`} title={label} active={isActive()}>
+    <NavDropdown
+      id={`menu-dropdown-${label}`}
+      title={label}
+      active={isActive()}
+    >
       <Menu>
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-') {
