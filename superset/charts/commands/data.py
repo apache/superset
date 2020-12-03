@@ -44,8 +44,8 @@ class ChartDataCommand(BaseCommand):
     def run(self, **kwargs: Any) -> Dict[str, Any]:
         # caching is handled in query_context.get_df_payload
         # (also evals `force` property)
-        cache_query_context = kwargs["cache"] if "cache" in kwargs else False
-        force_cached = kwargs["force_cached"] if "force_cached" in kwargs else False
+        cache_query_context = kwargs.get("cache", False)
+        force_cached = kwargs.get("force_cached", False)
         try:
             payload = self._query_context.get_payload(
                 cache_query_context=cache_query_context, force_cached=force_cached

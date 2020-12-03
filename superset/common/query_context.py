@@ -150,7 +150,7 @@ class QueryContext:
         self, query_obj: QueryObject, **kwargs: Any
     ) -> Dict[str, Any]:
         """Returns a payload of metadata and data"""
-        force_cached = kwargs["force_cached"] if "force_cached" in kwargs else False
+        force_cached = kwargs.get("force_cached", False)
         if self.result_type == utils.ChartDataResultType.QUERY:
             return {
                 "query": self.datasource.get_query_str(query_obj.to_dict()),
@@ -195,10 +195,8 @@ class QueryContext:
         return payload
 
     def get_payload(self, **kwargs: Any) -> Dict[str, Any]:
-        cache_query_context = (
-            kwargs["cache_query_context"] if "cache_query_context" in kwargs else False
-        )
-        force_cached = kwargs["force_cached"] if "force_cached" in kwargs else False
+        cache_query_context = kwargs.get("cache_query_context", False)
+        force_cached = kwargs.get("force_cached", False)
 
         # Get all the payloads from the QueryObjects
         query_results = [
@@ -266,7 +264,7 @@ class QueryContext:
         self, query_obj: QueryObject, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
-        force_cached = kwargs["force_cached"] if "force_cached" in kwargs else False
+        force_cached = kwargs.get("force_cached", False)
         cache_key = self.query_cache_key(query_obj)
         logger.info("Cache key: %s", cache_key)
         is_loaded = False

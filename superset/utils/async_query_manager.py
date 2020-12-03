@@ -38,10 +38,10 @@ def build_job_metadata(channel_id: str, job_id: str, **kwargs: Any) -> Dict[str,
     return {
         "channel_id": channel_id,
         "job_id": job_id,
-        "user_id": session["user_id"] if "user_id" in session else None,
-        "status": kwargs["status"],
-        "errors": kwargs["errors"] if "errors" in kwargs else [],
-        "result_url": kwargs["result_url"] if "result_url" in kwargs else None,
+        "user_id": session.get("user_id"),
+        "status": kwargs.get("status"),
+        "errors": kwargs.get("errors", []),
+        "result_url": kwargs.get("result_url"),
     }
 
 

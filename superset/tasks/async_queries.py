@@ -16,7 +16,7 @@
 # under the License.
 
 import logging
-from typing import Any, cast, Dict
+from typing import Any, cast, Dict, Optional
 
 from flask import current_app
 
@@ -66,7 +66,7 @@ def load_chart_data_into_cache(
 def load_explore_json_into_cache(
     job_metadata: Dict[str, Any],
     form_data: Dict[str, Any],
-    response_type: str,
+    response_type: Optional[str] = None,
     force: bool = False,
 ) -> None:
     with app.app_context():  # type: ignore
