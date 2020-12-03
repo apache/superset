@@ -330,7 +330,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         )
     else:
         statements = [rendered_query]
-        logger.info("Query %s: Executing query as a single statement(s)", str(query_id))
+        logger.info("Query %s: Executing query as a single statement", str(query_id))
 
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
