@@ -18,14 +18,16 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Progress as AntdProgress } from 'src/common/components';
+// eslint-disable-next-line no-restricted-imports
+import { Progress as AntdProgress } from 'antd';
 import { ProgressProps } from 'antd/lib/progress/progress';
 
 interface ProgressBarProps extends ProgressProps {
   striped?: boolean;
 }
 
-const ProgressBar = styled((props: ProgressBarProps) => (
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const ProgressBar = styled(({ striped, ...props }: ProgressBarProps) => (
   <AntdProgress {...props} />
 ))`
   line-height: 0;

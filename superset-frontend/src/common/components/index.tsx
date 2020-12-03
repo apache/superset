@@ -44,8 +44,9 @@ export {
   Switch,
   Tabs,
   Tooltip,
-  Progress,
 } from 'antd';
+
+export { default as Progress } from 'src/common/components/ProgressBar';
 
 export const MenuItem = styled(AntdMenu.Item)`
   > a {
