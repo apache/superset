@@ -378,7 +378,6 @@ export function useImportResource<D extends object = any>(
               });
               return false;
             }
-            console.log(errMsg);
             handleErrorMsg(
               t(
                 'An error occurred while importing %s: %s',
