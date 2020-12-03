@@ -39,6 +39,7 @@ interface ColumnSelectProps {
 }
 
 /** Special purpose AsyncSelect that selects a column from a dataset */
+// eslint-disable-next-line import/prefer-default-export
 export function ColumnSelect({
   form,
   filterId,

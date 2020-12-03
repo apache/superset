@@ -18,19 +18,19 @@
  */
 import datasources from 'spec/fixtures/mockDatasource';
 import messageToasts from 'spec/javascripts/messageToasts/mockMessageToasts';
+import { nativeFiltersInfo } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
 import chartQueries from './mockChartQueries';
 import { dashboardLayout } from './mockDashboardLayout';
 import dashboardInfo from './mockDashboardInfo';
 import { emptyFilters } from './mockDashboardFilters';
 import dashboardState from './mockDashboardState';
-import nativeFilters from './mockNativeFilters';
 import sliceEntities from './mockSliceEntities';
 
 export default {
   datasources,
   sliceEntities,
   charts: chartQueries,
-  nativeFilters,
+  nativeFilters: nativeFiltersInfo,
   dashboardInfo,
   dashboardFilters: emptyFilters,
   dashboardState,

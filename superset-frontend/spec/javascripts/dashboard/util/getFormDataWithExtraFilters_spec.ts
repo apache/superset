@@ -37,7 +37,10 @@ describe('getFormDataWithExtraFilters', () => {
       region: ['Spain'],
       color: ['pink', 'purple'],
     },
-    nativeFilters: {},
+    nativeFilters: {
+      filters: {},
+      filtersState: {},
+    },
     sliceId: chartId,
   };
 
