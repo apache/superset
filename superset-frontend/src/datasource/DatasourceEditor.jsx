@@ -715,8 +715,8 @@ class DatasourceEditor extends React.PureComponent {
                       <TextAreaControl
                         language="sql"
                         offerEditInModal={false}
-                        minLines={25}
-                        maxLines={25}
+                        minLines={20}
+                        maxLines={20}
                         readOnly={!this.state.isEditMode}
                       />
                     }
