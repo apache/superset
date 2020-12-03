@@ -52,12 +52,13 @@ const propTypes = {
   triggerRender: PropTypes.bool,
 };
 
-export const EXPLORE_GUTTER_HEIGHT = 5;
-export const EXPLORE_GUTTER_MARGIN = 3;
-export const CHART_PANEL_PADDING = 30;
+const EXPLORE_GUTTER_HEIGHT = 5;
+const EXPLORE_GUTTER_MARGIN = 3;
+const CHART_PANEL_PADDING = 30;
 
 const INITIAL_SIZES = [90, 10];
 const MIN_SIZES = [300, 50];
+const DEFAULT_SOUTH_PANE_HEIGHT_PERCENT = 40;
 
 const Styles = styled.div`
   height: 100%;
@@ -74,8 +75,8 @@ const Styles = styled.div`
   .gutter {
     border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    width: 3%;
-    margin: ${EXPLORE_GUTTER_MARGIN}px 47%;
+    width: ${({ theme }) => theme.gridUnit * 9}px;
+    margin: ${EXPLORE_GUTTER_MARGIN}px auto;
   }
 
   .gutter.gutter-vertical {
@@ -157,14 +158,13 @@ const ExploreChartPanel = props => {
   };
 
   const onCollapseChange = openPanelName => {
-    const defaultSouthPaneOpenHeightPercent = 40;
     let splitSizes;
     if (!openPanelName) {
       splitSizes = INITIAL_SIZES;
     } else {
       splitSizes = [
-        100 - defaultSouthPaneOpenHeightPercent,
-        defaultSouthPaneOpenHeightPercent,
+        100 - DEFAULT_SOUTH_PANE_HEIGHT_PERCENT,
+        DEFAULT_SOUTH_PANE_HEIGHT_PERCENT,
       ];
     }
     setSplitSizes(splitSizes);
