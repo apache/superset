@@ -42,7 +42,6 @@ interface ExecutionLogProps {
 
 function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
   const { alertId }: any = useParams();
-  const title = isReportEnabled ? t('Report') : t('Alert');
   const {
     state: { loading, resourceCount: LogCount, resourceCollection: logs },
     fetchData,
@@ -53,6 +52,9 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
     false,
   );
   const [alertName, setAlertName] = useState<string>('');
+  const [executionLogType, setExecutionLogType] = useState<'Report' | 'Alert'>(
+    'Report',
+  );
   const StyledHeader = styled.div`
     display: flex;
     flex-direction: row;
@@ -82,6 +84,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           endpoint: `/api/v1/report/${alertId}`,
         });
         setAlertName(response.json.result.name);
+        setExecutionLogType(response.json.result.type);
       } catch (response) {
         await getClientErrorObject(response).then(({ message }: any) => {
           addDangerToast(message || t('Sorry, An error occurred'));
@@ -148,7 +151,9 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
       <SubMenu
         name={
           <StyledHeader>
-            <span>{t(`${title} ${alertName}`)}</span>
+            <span>
+              {t(`${executionLogType}`)} {alertName}
+            </span>
             <span>
               {hasHistory ? (
                 <Link to={path}>Back to all</Link>
