@@ -1359,14 +1359,39 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         "superset.extensions.feature_flag_manager._feature_flags",
         GLOBAL_ASYNC_QUERIES=True,
     )
+    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    def test_chart_data_cache_no_login(self, load_qc_mock):
+        """
+        Chart data cache API: Test chart data async cache request (no login)
+        """
+        async_query_manager.init_app(app)
+        table = self.get_table_by_name("birth_names")
+        query_context = get_query_context(table.name, table.id, table.type)
+        load_qc_mock.return_value = query_context
+        orig_run = ChartDataCommand.run
+
+        def mock_run(self, **kwargs):
+            assert kwargs["force_cached"] == True
+            # override force_cached to get result from DB
+            return orig_run(self, force_cached=False)
+
+        with mock.patch.object(ChartDataCommand, "run", new=mock_run):
+            rv = self.get_assert_metric(
+                f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
+            )
+
+        self.assertEqual(rv.status_code, 401)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
     def test_chart_data_cache_key_error(self):
         """
         Chart data cache API: Test chart data async cache request with invalid cache key
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
-        table = self.get_table_by_name("birth_names")
-        query_context = get_query_context(table.name, table.id, table.type)
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
         )
