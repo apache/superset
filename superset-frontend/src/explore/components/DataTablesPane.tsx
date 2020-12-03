@@ -86,6 +86,12 @@ export const DataTablesPane = ({
   const [activeTabKey, setActiveTabKey] = useState<string>(
     RESULT_TYPES.results,
   );
+  const [isRequestPending, setIsRequestPending] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  useEffect(() => {
+    setIsRequestPending(true);
+  }, [queryFormData]);
 
   useEffect(() => {
     const getData = (resultType: string) => {
@@ -121,9 +127,12 @@ export const DataTablesPane = ({
           });
         });
     };
-    getData(RESULT_TYPES.results);
-    getData(RESULT_TYPES.samples);
-  }, [queryFormData]);
+    if (panelOpen && isRequestPending) {
+      setIsRequestPending(false);
+      getData(RESULT_TYPES.results);
+      getData(RESULT_TYPES.samples);
+    }
+  }, [queryFormData, panelOpen, isRequestPending]);
 
   const filteredData = {
     [RESULT_TYPES.results]: useFilteredTableData(
@@ -178,10 +187,15 @@ export const DataTablesPane = ({
     </TableControlsWrapper>
   );
 
+  const handleCollapseChange = (openPanelName: string) => {
+    onCollapseChange(openPanelName);
+    setPanelOpen(!!openPanelName);
+  };
+
   return (
     <SouthPane>
       <TabsWrapper contentHeight={tableSectionHeight}>
-        <Collapse accordion bordered={false} onChange={onCollapseChange}>
+        <Collapse accordion bordered={false} onChange={handleCollapseChange}>
           <Collapse.Panel header={t('Data')} key="data">
             <Tabs
               fullWidth={false}
