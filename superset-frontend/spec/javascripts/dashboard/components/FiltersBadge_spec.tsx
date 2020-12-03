@@ -50,11 +50,13 @@ describe('FiltersBadge', () => {
     store.dispatch({
       type: CHART_UPDATE_SUCCEEDED,
       key: sliceId,
-      queryResponse: {
-        status: 'success',
-        applied_filters: [],
-        rejected_filters: [],
-      },
+      queriesResponse: [
+        {
+          status: 'success',
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ],
       dashboardFilters,
     });
     const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
@@ -69,11 +71,13 @@ describe('FiltersBadge', () => {
     store.dispatch({
       type: CHART_UPDATE_SUCCEEDED,
       key: sliceId,
-      queryResponse: {
-        status: 'success',
-        applied_filters: [{ column: 'region' }],
-        rejected_filters: [],
-      },
+      queriesResponse: [
+        {
+          status: 'success',
+          applied_filters: [{ column: 'region' }],
+          rejected_filters: [],
+        },
+      ],
       dashboardFilters,
     });
     const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
@@ -90,11 +94,13 @@ describe('FiltersBadge', () => {
     store.dispatch({
       type: CHART_UPDATE_SUCCEEDED,
       key: sliceId,
-      queryResponse: {
-        status: 'success',
-        applied_filters: [],
-        rejected_filters: [{ column: 'region', reason: 'not_in_datasource' }],
-      },
+      queriesResponse: [
+        {
+          status: 'success',
+          applied_filters: [],
+          rejected_filters: [{ column: 'region', reason: 'not_in_datasource' }],
+        },
+      ],
       dashboardFilters,
     });
     const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);

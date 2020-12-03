@@ -189,7 +189,7 @@ describe('chart actions', () => {
         expect(dispatch.callCount).toBe(5);
         const updateFailedAction = dispatch.args[4][0];
         expect(updateFailedAction.type).toBe(actions.CHART_UPDATE_FAILED);
-        expect(updateFailedAction.queryResponse.error).toBe('misc error');
+        expect(updateFailedAction.queriesResponse[0].error).toBe('misc error');
 
         setupDefaultFetchMock();
       });
