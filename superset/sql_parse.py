@@ -119,12 +119,24 @@ class ParsedQuery:
         # Explain statements will only be the first statement
         return statements_without_comments.startswith("EXPLAIN")
 
+    def is_show(self) -> bool:
+        # Remove comments
+        statements_without_comments = sqlparse.format(
+            self.stripped(), strip_comments=True
+        )
+        # Show statements will only be the first statement
+        return statements_without_comments.upper().startswith("SHOW")
+
+    def is_set(self) -> bool:
+        # Remove comments
+        statements_without_comments = sqlparse.format(
+            self.stripped(), strip_comments=True
+        )
+        # Set statements will only be the first statement
+        return statements_without_comments.upper().startswith("SET")
+
     def is_unknown(self) -> bool:
         return self._parsed[0].get_type() == "UNKNOWN"
-
-    def is_readonly(self) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return self.is_select() or self.is_explain()
 
     def stripped(self) -> str:
         return self.sql.strip(" \t\n;")
