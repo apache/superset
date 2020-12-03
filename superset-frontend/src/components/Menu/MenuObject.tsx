@@ -52,13 +52,21 @@ export default function MenuObject({
     );
   }
 
+  const checkMathUrl = (child: MenuObjectChildProps | string) => {
+    if (typeof child === 'string' || child === undefined) {
+      return false;
+    }
+
+    return window.location.pathname.includes(child?.url || " ");
+  }
+
   const isActive = () => {
     if (!childs) {
       return false;
     }
-    
-    return childs.some(child => window.location.pathname.includes(child.url)); 
-  }
+
+    return childs.some(checkMathUrl);
+  };
 
   return (
     <NavDropdown id={`menu-dropdown-${label}`} title={label} active={isActive()}>
