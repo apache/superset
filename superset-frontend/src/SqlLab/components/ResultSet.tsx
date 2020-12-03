@@ -151,7 +151,7 @@ export default class ResultSet extends React.PureComponent<
     const datasets = await getByUser(bootstrapData.user.userId);
     const userDatasetsOwned = datasets.map(
       (r: { table_name: string; id: number }) => {
-        return { dataSetName: r.table_name, dataSetId: r.id };
+        return { datasetName: r.table_name, datasetId: r.id };
       },
     );
 
