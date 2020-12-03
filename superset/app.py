@@ -330,7 +330,7 @@ class SupersetAppInitializer:
         )
         appbuilder.add_link(
             __("Saved Queries"),
-            href="/savedqueryview/list",
+            href="/sqllab/my_queries/",
             icon="fa-save",
             category="SQL Lab",
         )
