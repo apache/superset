@@ -132,8 +132,40 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
   return dompurify.sanitize(tooltip);
 }
 
-export function generateAreaChartTooltipContent(d, timeFormatter, valueFormatter) {
-  const total = d.series[d.series.length - 1].value;
+export function generateCompareTooltipContent(d, valueFormatter) {
+  let tooltip = '';
+  tooltip +=
+    "<table><thead><tr><td colspan='3'>" +
+    `<strong class='x-value'>${d.value}</strong>` +
+    '</td></tr></thead><tbody>';
+  d.series.sort((a, b) => (a.value >= b.value ? -1 : 1));
+  d.series.forEach(series => {
+    const key = getFormattedKey(series.key, true);
+    tooltip +=
+      `<tr class="${series.highlight ? 'emph' : ''}">` +
+      `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
+      '<div ' +
+      `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${
+        series.color
+      };"` +
+      '></div>' +
+      '</td>' +
+      `<td>${key}</td>` +
+      `<td>${valueFormatter(series.value)}</td>` +
+      '</tr>';
+  });
+  tooltip += '</tbody></table>';
+
+  return dompurify.sanitize(tooltip);
+}
+
+export function generateAreaChartTooltipContent(d, timeFormatter, valueFormatter, chart) {
+  const total =
+    chart.style() === 'expand'
+      ? // expand mode does not include total row
+        d3.sum(d.series, s => s.value)
+      : // other modes include total row at the end
+        d.series[d.series.length - 1].value;
   let tooltip = '';
   tooltip +=
     "<table><thead><tr><td colspan='4'>" +
