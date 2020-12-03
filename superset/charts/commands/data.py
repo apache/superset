@@ -73,7 +73,7 @@ class ChartDataCommand(BaseCommand):
 
         return job_metadata
 
-    def set_query_context(self, form_data: Dict[str, Any]) -> None:
+    def set_query_context(self, form_data: Dict[str, Any]) -> QueryContext:
         self._form_data = form_data
         try:
             self._query_context = ChartDataQueryContextSchema().load(self._form_data)
@@ -82,10 +82,12 @@ class ChartDataCommand(BaseCommand):
         except ValidationError as error:
             raise error
 
+        return self._query_context
+
     def validate(self) -> None:
         self._query_context.raise_for_access()
 
-    def validate_request(self, request: Request) -> None:
+    def validate_async_request(self, request: Request) -> None:
         jwt_data = async_query_manager.parse_jwt_from_request(request)
         self._async_channel_id = jwt_data["channel"]
 

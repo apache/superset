@@ -1289,6 +1289,22 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         "superset.extensions.feature_flag_manager._feature_flags",
         GLOBAL_ASYNC_QUERIES=True,
     )
+    def test_chart_data_async_results_type(self):
+        """
+        Chart data API: Test chart data query non-JSON format (async)
+        """
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["result_type"] = "results"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
     def test_chart_data_async_invalid_token(self):
         """
         Chart data API: Test chart data query (async)

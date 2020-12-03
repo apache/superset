@@ -575,7 +575,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
             force = request.args.get("force") == "true"
 
-            if is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            # TODO: support CSV, SQL query and other non-JSON types
+            if (
+                is_feature_enabled("GLOBAL_ASYNC_QUERIES")
+                and response_type == utils.ChartDataResultFormat.JSON
+            ):
                 try:
                     async_channel_id = async_query_manager.parse_jwt_from_request(
                         request

@@ -897,6 +897,36 @@ class TestCore(SupersetTestCase):
             keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
         )
 
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    def test_explore_json_async_results_format(self):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = {
+            "queryFields": {
+                "metrics": "metrics",
+                "groupby": "groupby",
+                "columns": "groupby",
+            },
+            "datasource": f"{tbl_id}__table",
+            "viz_type": "dist_bar",
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": "No filter",
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["gender"],
+            "row_limit": 100,
+        }
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        rv = self.client.post(
+            "/superset/explore_json/?results=true",
+            data={"form_data": json.dumps(form_data)},
+        )
+        self.assertEqual(rv.status_code, 200)
+
     @mock.patch(
         "superset.utils.cache_manager.CacheManager.cache",
         new_callable=mock.PropertyMock,

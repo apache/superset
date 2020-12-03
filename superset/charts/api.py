@@ -70,7 +70,11 @@ from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.async_query_manager import AsyncQueryTokenException
-from superset.utils.core import ChartDataResultFormat, json_int_dttm_ser
+from superset.utils.core import (
+    ChartDataResultFormat,
+    ChartDataResultType,
+    json_int_dttm_ser,
+)
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -543,7 +547,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         try:
             command = ChartDataCommand()
-            command.set_query_context(json_body)
+            query_context = command.set_query_context(json_body)
             command.validate()
         except ValidationError as error:
             return self.response_400(
@@ -552,9 +556,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except SupersetSecurityException:
             return self.response_401()
 
-        if is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+        # TODO: support CSV, SQL query and other non-JSON types
+        if (
+            is_feature_enabled("GLOBAL_ASYNC_QUERIES")
+            and query_context.result_format == ChartDataResultFormat.JSON
+            and query_context.result_type == ChartDataResultType.FULL
+        ):
+
             try:
-                command.validate_request(request)
+                command.validate_async_request(request)
             except AsyncQueryTokenException:
                 return self.response_401()
 
