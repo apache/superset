@@ -27,10 +27,9 @@ import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DropdownButton } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
 import { Menu } from 'src/common/components';
-import Button from 'src/components/Button';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { getChartDataRequest } from '../../chart/chartAction';
@@ -39,6 +38,7 @@ import Loading from '../../components/Loading';
 import ModalTrigger from '../../components/ModalTrigger';
 import PropertiesModal from './PropertiesModal';
 import { sliceUpdated } from '../actions/exploreActions';
+import { CopyButton } from './DataTableControl';
 
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
 SyntaxHighlighter.registerLanguage('html', htmlSyntax);
@@ -59,6 +59,12 @@ const MENU_KEYS = {
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
 };
+
+const CopyButtonViewQuery = styled(CopyButton)`
+  && {
+    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
+  }
+`;
 
 export const DisplayQueryButton = props => {
   const { datasource } = props.latestQueryFormData;
@@ -144,7 +150,7 @@ export const DisplayQueryButton = props => {
             text={query}
             shouldShowText={false}
             copyNode={
-              <CopyButtonViewQuery>
+              <CopyButtonViewQuery buttonSize="xs">
                 <i className="fa fa-clipboard" />
               </CopyButtonViewQuery>
             }

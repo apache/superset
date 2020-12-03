@@ -27,7 +27,7 @@ import {
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import RowCountLabel from './RowCountLabel';
 
-const CopyButton = styled(Button)`
+export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
 
   // needed to override button's first-of-type margin: 0
@@ -36,7 +36,7 @@ const CopyButton = styled(Button)`
   }
 
   i {
-    padding: 0;
+    padding: 0 ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
