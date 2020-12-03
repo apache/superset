@@ -45,6 +45,7 @@ import {
   computeStackedYDomain,
   drawBarValues,
   generateBubbleTooltipContent,
+  generateCompareTooltipContent,
   generateMultiLineTooltipContent,
   generateRichLineTooltipContent,
   generateTimePivotTooltip,
@@ -641,12 +642,18 @@ function nvd3Vis(element, props) {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
           generateRichLineTooltipContent(d, smartDateVerboseFormatter, yAxisFormatter),
         );
-      } else if (areaStackedStyle !== 'expand') {
+      } else {
         // area chart
         chart.interactiveLayer.tooltip.contentGenerator(d =>
-          generateAreaChartTooltipContent(d, smartDateVerboseFormatter, yAxisFormatter),
+          generateAreaChartTooltipContent(d, smartDateVerboseFormatter, yAxisFormatter, chart),
         );
       }
+    }
+
+    if (isVizTypes(['compare'])) {
+      chart.interactiveLayer.tooltip.contentGenerator(d =>
+        generateCompareTooltipContent(d, yAxisFormatter),
+      );
     }
 
     if (isVizTypes(['dual_line', 'line_multi'])) {
