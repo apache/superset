@@ -204,15 +204,18 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def find_last_success_log(
-        session: Optional[Session] = None,
+        report_schedule: ReportSchedule, session: Optional[Session] = None,
     ) -> Optional[ReportExecutionLog]:
         """
-        Finds last success execution log
+        Finds last success execution log for a given report
         """
         session = session or db.session
         return (
             session.query(ReportExecutionLog)
-            .filter(ReportExecutionLog.state == ReportLogState.SUCCESS)
+            .filter(
+                ReportExecutionLog.state == ReportLogState.SUCCESS,
+                ReportExecutionLog.report_schedule == report_schedule,
+            )
             .order_by(ReportExecutionLog.end_dttm.desc())
             .first()
         )

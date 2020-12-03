@@ -119,6 +119,10 @@ class ReportSchedulePreviousWorkingError(CommandException):
     message = _("Report Schedule is still working, refusing to re-compute.")
 
 
+class ReportScheduleWorkingTimeoutError(CommandException):
+    message = _("Report Schedule reached a working timeout.")
+
+
 class ReportScheduleNameUniquenessValidationError(ValidationError):
     """
     Marshmallow validation error for Report Schedule name already exists

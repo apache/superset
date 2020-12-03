@@ -122,7 +122,10 @@ class ReportSchedule(Model, AuditMixinNullable):
 
     # Log retention
     log_retention = Column(Integer, default=90)
+    # (Alerts) After a success how long to wait for a new trigger (seconds)
     grace_period = Column(Integer, default=60 * 60 * 4)
+    # (Alerts/Reports) Unlock a possible stalled working state
+    working_timeout = Column(Integer, default=60 * 60 * 1)
 
     def __repr__(self) -> str:
         return str(self.name)
