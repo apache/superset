@@ -49,6 +49,7 @@ from superset import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
+from superset.extensions import async_query_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
@@ -830,6 +831,161 @@ class TestCore(SupersetTestCase):
             data["errors"][0]["message"],
             "The datasource associated with this chart no longer exists",
         )
+
+    def test_explore_json(self):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = {
+            "queryFields": {
+                "metrics": "metrics",
+                "groupby": "groupby",
+                "columns": "groupby",
+            },
+            "datasource": f"{tbl_id}__table",
+            "viz_type": "dist_bar",
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": "No filter",
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["gender"],
+            "row_limit": 100,
+        }
+        self.login(username="admin")
+        rv = self.client.post(
+            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data["rowcount"], 2)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    def test_explore_json_async(self):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = {
+            "queryFields": {
+                "metrics": "metrics",
+                "groupby": "groupby",
+                "columns": "groupby",
+            },
+            "datasource": f"{tbl_id}__table",
+            "viz_type": "dist_bar",
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": "No filter",
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["gender"],
+            "row_limit": 100,
+        }
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        rv = self.client.post(
+            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+        keys = list(data.keys())
+
+        self.assertEqual(rv.status_code, 202)
+        self.assertCountEqual(
+            keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
+        )
+
+    @mock.patch(
+        "superset.utils.cache_manager.CacheManager.cache",
+        new_callable=mock.PropertyMock,
+    )
+    @mock.patch("superset.viz.BaseViz.force_cached", new_callable=mock.PropertyMock)
+    def test_explore_json_data(self, mock_force_cached, mock_cache):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = dict(
+            {
+                "form_data": {
+                    "queryFields": {
+                        "metrics": "metrics",
+                        "groupby": "groupby",
+                        "columns": "groupby",
+                    },
+                    "datasource": f"{tbl_id}__table",
+                    "viz_type": "dist_bar",
+                    "time_range_endpoints": ["inclusive", "exclusive"],
+                    "granularity_sqla": "ds",
+                    "time_range": "No filter",
+                    "metrics": ["count"],
+                    "adhoc_filters": [],
+                    "groupby": ["gender"],
+                    "row_limit": 100,
+                }
+            }
+        )
+
+        class MockCache:
+            def get(self, key):
+                return form_data
+
+            def set(self):
+                return None
+
+        mock_cache.return_value = MockCache()
+        mock_force_cached.return_value = False
+
+        self.login(username="admin")
+        rv = self.client.get("/superset/explore_json/data/valid-cache-key")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data["rowcount"], 2)
+
+    @mock.patch(
+        "superset.utils.cache_manager.CacheManager.cache",
+        new_callable=mock.PropertyMock,
+    )
+    def test_explore_json_data_no_login(self, mock_cache):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = dict(
+            {
+                "form_data": {
+                    "queryFields": {
+                        "metrics": "metrics",
+                        "groupby": "groupby",
+                        "columns": "groupby",
+                    },
+                    "datasource": f"{tbl_id}__table",
+                    "viz_type": "dist_bar",
+                    "time_range_endpoints": ["inclusive", "exclusive"],
+                    "granularity_sqla": "ds",
+                    "time_range": "No filter",
+                    "metrics": ["count"],
+                    "adhoc_filters": [],
+                    "groupby": ["gender"],
+                    "row_limit": 100,
+                }
+            }
+        )
+
+        class MockCache:
+            def get(self, key):
+                return form_data
+
+            def set(self):
+                return None
+
+        mock_cache.return_value = MockCache()
+
+        rv = self.client.get("/superset/explore_json/data/valid-cache-key")
+        self.assertEqual(rv.status_code, 401)
+
+    def test_explore_json_data_invalid_cache_key(self):
+        self.login(username="admin")
+        cache_key = "invalid-cache-key"
+        rv = self.client.get(f"/superset/explore_json/data/{cache_key}")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(data["error"], "Cached data not found")
 
     @mock.patch(
         "superset.security.SupersetSecurityManager.get_schemas_accessible_by_user"

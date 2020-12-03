@@ -513,8 +513,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if not cached:
                 raise CacheLoadError("Cached data not found")
 
-            form_data = cached["form_data"]
-            response_type = cached["response_type"]
+            form_data = cached.get("form_data")
+            response_type = cached.get("response_type")
 
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
 

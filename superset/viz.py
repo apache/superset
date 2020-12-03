@@ -164,7 +164,7 @@ class BaseViz:
         self.results: Optional[QueryResult] = None
         self.errors: List[Dict[str, Any]] = []
         self.force = force
-        self.force_cached = force_cached
+        self._force_cached = force_cached
         self.from_dttm: Optional[datetime] = None
         self.to_dttm: Optional[datetime] = None
 
@@ -180,6 +180,10 @@ class BaseViz:
 
         self.applied_filters: List[Dict[str, str]] = []
         self.rejected_filters: List[Dict[str, str]] = []
+
+    @property
+    def force_cached(self) -> bool:
+        return self._force_cached
 
     def process_metrics(self) -> None:
         # metrics in TableViz is order sensitive, so metric_dict should be
