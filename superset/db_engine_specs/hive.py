@@ -528,11 +528,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         return database.get_df("SHOW FUNCTIONS")["tab_name"].tolist()
 
     @classmethod
-    def is_readonly(cls, parsed_query: ParsedQuery) -> bool:
+    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return (
-            parsed_query.is_select()
-            or parsed_query.is_explain()
+            super().is_readonly_query(parsed_query)
             or parsed_query.is_set()
             or parsed_query.is_show()
         )

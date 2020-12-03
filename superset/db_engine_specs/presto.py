@@ -1092,10 +1092,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ]
 
     @classmethod
-    def is_readonly(cls, parsed_query: ParsedQuery) -> bool:
+    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return (
-            parsed_query.is_select()
-            or parsed_query.is_explain()
-            or parsed_query.is_show()
-        )
+        return super().is_readonly_query(parsed_query) or parsed_query.is_show()

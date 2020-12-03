@@ -519,7 +519,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
-        return PrestoEngineSpec.is_readonly(ParsedQuery(sql))
+        return PrestoEngineSpec.is_readonly_query(ParsedQuery(sql))
 
     assert not is_readonly("SET hivevar:desc='Legislators'")
     assert not is_readonly("UPDATE t1 SET col1 = NULL")

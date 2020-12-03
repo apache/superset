@@ -1040,6 +1040,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return extra
 
     @classmethod
-    def is_readonly(cls, parsed_query: ParsedQuery) -> bool:
+    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return parsed_query.is_select() or parsed_query.is_explain()
