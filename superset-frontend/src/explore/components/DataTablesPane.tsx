@@ -182,7 +182,7 @@ export const DataTablesPane = ({
     <SouthPane>
       <TabsWrapper contentHeight={tableSectionHeight}>
         <Collapse accordion bordered={false} onChange={onCollapseChange}>
-          <Collapse.Panel header={t('Data')} forceRender key="data">
+          <Collapse.Panel header={t('Data')} key="data">
             <Tabs
               fullWidth={false}
               tabBarExtraContent={TableControls}
