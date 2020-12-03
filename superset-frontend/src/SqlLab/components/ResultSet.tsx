@@ -26,7 +26,7 @@ import { styled, t } from '@superset-ui/core';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { getByUser as getDataset, put as updateDatset } from 'src/api/dataset';
+import { getByUser, put as updateDatset } from 'src/api/dataset';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -145,13 +145,15 @@ export default class ResultSet extends React.PureComponent<
     // Hack: waiting for talks with tai to pull data out of the initial state
     const appContainer = document.getElementById('app');
     const bootstrapData = JSON.parse(
-      appContainer.getAttribute('data-bootstrap'),
+      appContainer?.getAttribute('data-bootstrap') || '{}',
     );
 
-    const datasets = await getDataset(bootstrapData.user.userId);
-    const userDatasetsOwned = datasets.map(r => {
-      return { dataSetName: r.table_name, dataSetId: r.id };
-    });
+    const datasets = await getByUser(bootstrapData.user.userId);
+    const userDatasetsOwned = datasets.map(
+      (r: { table_name: string; id: number }) => {
+        return { dataSetName: r.table_name, dataSetId: r.id };
+      },
+    );
 
     this.setState({ userDatasetsOwned });
   }
@@ -329,6 +331,7 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleDatasetNameChange(e: React.FormEvent<HTMLInputElement>) {
+    // @ts-expect-error
     this.setState({ newSaveDatasetName: e.target.value });
   }
 
