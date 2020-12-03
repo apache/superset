@@ -257,14 +257,11 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   ],
 };
 
-const inputTagStyles = (isMultiWithValue: boolean | undefined) => {
-  const styles = {
-    background: 'none',
-    border: 'none',
-    outline: 'none',
-    padding: 0,
-  };
-  return isMultiWithValue ? { ...styles, width: '100%' } : styles;
+const INPUT_TAG_BASE_STYLES = {
+  background: 'none',
+  border: 'none',
+  outline: 'none',
+  padding: 0,
 };
 
 export type SelectComponentsType = Omit<
@@ -332,7 +329,11 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
         placeholder={isMultiWithValue ? placeholder : undefined}
         css={getStyles('input', props)}
         autocomplete="chrome-off"
-        inputStyle={inputTagStyles(isMultiWithValue)}
+        inputStyle={
+          isMultiWithValue
+            ? { ...INPUT_TAG_BASE_STYLES, width: '100%' }
+            : INPUT_TAG_BASE_STYLES
+        }
       />
     );
   },
