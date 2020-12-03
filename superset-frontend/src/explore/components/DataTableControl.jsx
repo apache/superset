@@ -28,8 +28,6 @@ import {
 import CopyToClipboard from '../../components/CopyToClipboard';
 
 const CopyButton = styled(Button)`
-  padding: ${({ theme }) => theme.gridUnit / 2}px
-    ${({ theme }) => theme.gridUnit * 2.5}px;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
 
   // needed to override button's first-of-type margin: 0
@@ -47,7 +45,7 @@ export const CopyToClipboardButton = ({ data }) => (
     text={data ? prepareCopyToClipboardTabularData(data) : ''}
     wrapped={false}
     copyNode={
-      <CopyButton>
+      <CopyButton buttonSize="xs">
         <i className="fa fa-clipboard" />
       </CopyButton>
     }
@@ -60,12 +58,11 @@ export const FilterInput = ({ filterText, onChangeHandler }) => (
     bsSize="sm"
     value={filterText}
     onChange={onChangeHandler}
-    style={{ paddingBottom: '5px' }}
   />
 );
 
 export const RowCount = ({ data }) => (
-  <RowCountLabel rowcount={data?.length} suffix={t('rows retrieved')} />
+  <RowCountLabel rowcount={data?.length ?? 0} suffix={t('rows retrieved')} />
 );
 
 export const useFilteredTableData = (data, filterText) =>
