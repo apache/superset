@@ -25,7 +25,7 @@ describe('SupersetREsourceSelect', () => {
     expect(React.isValidElement(<SupersetResourceSelect />)).toBe(true);
   });
   it('take in props', () => {
-    const selectProps = {
+    const props = {
       resource: 'dataset',
       searchColumn: 'table_name',
       transformItem: jest.fn(),

@@ -27,7 +27,7 @@ import { usePrevious } from './usePrevious';
  */
 export function useChangeEffect<T>(
   value: T,
-  callback: (previous: T, current: T) => void,
+  callback: (previous: T | undefined, current: T) => void,
 ) {
   const previous = usePrevious(value);
   useEffect(() => {
