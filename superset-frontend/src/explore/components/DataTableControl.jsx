@@ -19,13 +19,13 @@
 import React, { useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { FormControl } from 'react-bootstrap';
-import Button from '../../components/Button';
+import Button from 'src/components/Button';
 import RowCountLabel from './RowCountLabel';
 import {
   applyFormattingToTabularData,
   prepareCopyToClipboardTabularData,
-} from '../../utils/common';
-import CopyToClipboard from '../../components/CopyToClipboard';
+} from 'src/utils/common';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 
 const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;

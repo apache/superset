@@ -22,8 +22,8 @@ import Split from 'react-split';
 import { ParentSize } from '@vx/responsive';
 import { styled } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
-import { chartPropShape } from '../../dashboard/util/propShapes';
-import ChartContainer from '../../chart/ChartContainer';
+import { chartPropShape } from 'src/dashboard/util/propShapes';
+import ChartContainer from 'src/chart/ChartContainer';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
 

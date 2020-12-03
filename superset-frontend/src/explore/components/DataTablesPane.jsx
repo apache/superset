@@ -26,12 +26,12 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from './DataTableControl';
-import { Collapse } from '../../common/components';
-import Tabs from '../../common/components/Tabs';
-import Loading from '../../components/Loading';
-import TableView, { EmptyWrapperType } from '../../components/TableView';
-import { getChartDataRequest } from '../../chart/chartAction';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { Collapse } from 'src/common/components';
+import Tabs from 'src/common/components/Tabs';
+import Loading from 'src/components/Loading';
+import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import { getChartDataRequest } from 'src/chart/chartAction';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 
 const RESULT_TYPES = {
   results: 'results',
