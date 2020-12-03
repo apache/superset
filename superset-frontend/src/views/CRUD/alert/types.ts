@@ -25,14 +25,24 @@ type user = {
   last_name: string;
 };
 
-type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=';
+type MetaObject = {
+  id?: number;
+  label?: string;
+  value?: number | string;
+};
+
+export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=';
 
 export type AlertObject = {
   active?: boolean;
+  chart?: MetaObject;
   changed_by?: user;
   changed_on_delta_humanized?: string;
   created_by?: user;
   created_on?: string;
+  crontab?: string;
+  dashboard?: MetaObject;
+  database?: MetaObject;
   description?: string;
   grace_period?: number;
   id?: number;
@@ -41,14 +51,14 @@ export type AlertObject = {
   log_retention?: number;
   name?: string;
   owners?: Array<Owner>;
-  query?: string;
+  sql?: string;
   recipients?: string;
   type?: string;
-  validator_type?: string;
-  validator_config?: {
-    op: Operator;
-    threshold: number;
+  validator_config_json?: {
+    operation?: Operator;
+    threshold?: number;
   };
+  validator_type?: string;
 };
 
 export type LogObject = {

@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Radio as BaseRadio } from 'src/common/components';
-import { RadioProps } from 'antd/lib/switch';
 
 const StyledRadio = styled(BaseRadio)`
   .ant-radio-inner {

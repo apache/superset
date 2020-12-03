@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Select as BaseSelect } from 'src/common/components';
-import { SelectProps } from 'antd/lib/switch';
 
 const StyledSelect = styled(BaseSelect)`
   &.ant-select-single {

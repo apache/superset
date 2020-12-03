@@ -96,7 +96,6 @@ function AlertList({
     setAlertModalOpen(true);
   }
 
-
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canCreate = hasPerm('can_add');

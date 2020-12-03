@@ -29,7 +29,13 @@ import { Radio } from 'src/common/components/Radio';
 import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
-import { AlertObject } from './types';
+import Owner from 'src/types/Owner';
+import { AlertObject, Operator } from './types';
+
+type SelectValue = {
+  value: string;
+  label: string;
+};
 
 interface AlertReportModalProps {
   addDangerToast: (msg: string) => void;
@@ -40,26 +46,55 @@ interface AlertReportModalProps {
   show: boolean;
 }
 
-const NOTIFICATION_METHODS = [
-  'email',
-  'slack',
-];
+const NOTIFICATION_METHODS = ['email', 'slack'];
 
 const CONDITIONS = [
-  '< (Smaller than)',
-  '> (Larger than)',
-  '<= (Smaller or equal)',
-  '>= (Larger or equal)',
-  '== (Is Equal)',
-  '!= (Is Not Equal)',
+  {
+    label: '< (Smaller than)',
+    value: '<',
+  },
+  {
+    label: '> (Larger than)',
+    value: '>',
+  },
+  {
+    label: '<= (Smaller or equal)',
+    value: '<=',
+  },
+  {
+    label: '>= (Larger or equal)',
+    value: '>=',
+  },
+  {
+    label: '== (Is Equal)',
+    value: '==',
+  },
+  {
+    label: '!= (Is Not Equal)',
+    value: '!=',
+  },
 ];
 
 const RETENTION_OPTIONS = [
-  'None',
-  '30 days',
-  '60 days',
-  '90 days',
+  {
+    label: 'None',
+    value: 0,
+  },
+  {
+    label: '30 days',
+    value: 30,
+  },
+  {
+    label: '60 days',
+    value: 60,
+  },
+  {
+    label: '90 days',
+    value: 90,
+  },
 ];
+
+const DEFAULT_RETENTION = 90;
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -216,7 +251,7 @@ const StyledNotificationAddButton = styled.div`
   cursor: pointer;
 
   i {
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
   &.disabled {
@@ -263,27 +298,30 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
   status = 'active',
   onClick,
 }) => {
-  if ( status === 'hidden' ) {
+  if (status === 'hidden') {
     return null;
   }
 
   const checkStatus = () => {
-    if ( status !== 'disabled' ) {
+    if (status !== 'disabled') {
       onClick();
     }
   };
 
   return (
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
-      <i className="fa fa-plus" /> {status === 'active' ? t('Add notification method') : t('Add delivery method')}
+      <i className="fa fa-plus" />{' '}
+      {status === 'active'
+        ? t('Add notification method')
+        : t('Add delivery method')}
     </StyledNotificationAddButton>
   );
 };
 
-type NotificationMethod = 'email' | 'slack' | null;
+type NotificationMethod = 'email' | 'slack';
 
 type NotificationSetting = {
-  method: NotificationMethod;
+  method?: NotificationMethod;
   recipients: string;
   options: NotificationMethod[];
 };
@@ -291,7 +329,7 @@ type NotificationSetting = {
 interface NotificationMethodProps {
   setting?: NotificationSetting | null;
   index: number;
-  onUpdate?: (index: number, method: NotificationMethod, recipients: string) => void;
+  onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
 }
 
@@ -301,12 +339,14 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   onUpdate,
   onRemove,
 }) => {
+  const { method, recipients, options } = setting || {};
+  const [recipientValue, setRecipientValue] = useState<string>(
+    recipients || '',
+  );
+
   if (!setting) {
     return null;
-  };
-
-  const { method, recipients, options } = setting;
-  const [recipientValue, setRecipientValue] = useState<string>(recipients || '');
+  }
 
   const onMethodChange = (method: NotificationMethod) => {
     console.log('method', method);
@@ -323,15 +363,19 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   };
 
   const onRecipientsChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>
+    event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
     const { target } = event;
 
     setRecipientValue(target.value);
   };
 
-  const methodOptions = options.map((method: NotificationMethod) => {
-    return (<Select.Option key={method} value={method}>{method}</Select.Option>
+  const methodOptions = (options || []).map((method: NotificationMethod) => {
+    return (
+      <Select.Option key={method} value={method}>
+        {method}
+      </Select.Option>
+    );
   });
 
   return (
@@ -343,28 +387,26 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               onChange={onMethodChange}
               placeholder="Select Delivery Method"
               defaultValue={method}
+              value={method}
             >
               {methodOptions}
             </Select>
           </div>
         </StyledInputContainer>
-        {method !== null && !!onRemove ?
-          (<span
+        {method !== undefined && !!onRemove ? (
+          <span
             role="button"
             tabIndex={0}
             className="delete-button"
             onClick={() => onRemove(index)}
           >
             <Icon name="trash" />
-          </span>)
-          : null
-        }
+          </span>
+        ) : null}
       </div>
-      {method !== null ?
-        (<StyledInputContainer>
-          <div className="control-label">
-            {t(method)}
-          </div>
+      {method !== undefined ? (
+        <StyledInputContainer>
+          <div className="control-label">{t(method)}</div>
           <div className="input-container">
             <textarea
               name="recipients"
@@ -372,9 +414,8 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               onChange={onRecipientsChange}
             />
           </div>
-        </StyledInputContainer>)
-        : null
-      }
+        </StyledInputContainer>
+      ) : null}
     </StyledNotificationMethod>
   );
 };
@@ -390,39 +431,52 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentAlert, setCurrentAlert] = useState<AlertObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
-  const [contentType, setContentType] = useState<string>(alert ? alert.content_type || 'dashboard' : 'dashboard');
+  const [contentType, setContentType] = useState<string>(
+    alert && alert.chart ? 'chart' : 'dashboard',
+  );
+  const [scheduleFormat, setScheduleFormat] = useState<string>(
+    'dropdown-format',
+  );
   const isEditMode = alert !== null;
 
   // TODO: need to set status/settings list based on alert's notification settings
-  const [notificationAddState, setNotificationAddState] = useState<NotificationAddStatus>('active');
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([]);
+  const [notificationAddState, setNotificationAddState] = useState<
+    NotificationAddStatus
+  >('active');
+  const [notificationSettings, setNotificationSettings] = useState<
+    NotificationSetting[]
+  >([]);
 
   const onNotificationAdd = () => {
     const settings: NotificationSetting[] = notificationSettings.slice();
 
     settings.push({
-      method: null,
       recipients: '',
       options: ['email', 'slack'], // Need better logic for this
     });
 
     setNotificationSettings(settings);
-    setNotificationAddState(settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'disabled');
+    setNotificationAddState(
+      settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'disabled',
+    );
   };
 
-  const updateNotificationSetting = (index: number, setting: NotificationSetting) => {
-    let settings = notificationSettings.slice();
+  const updateNotificationSetting = (
+    index: number,
+    setting: NotificationSetting,
+  ) => {
+    const settings = notificationSettings.slice();
 
     settings[index] = setting;
     setNotificationSettings(settings);
 
-    if (setting.method !== null && notificationAddState !== 'hidden') {
+    if (setting.method !== undefined && notificationAddState !== 'hidden') {
       setNotificationAddState('active');
     }
   };
 
   const removeNotificationSetting = (index: number) => {
-    let settings = notificationSettings.slice();
+    const settings = notificationSettings.slice();
 
     settings.splice(index, 1);
     setNotificationSettings(settings);
@@ -484,13 +538,29 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map(item => ({
+        return response.json.result.map((item: any) => ({
           value: item.value,
           label: item.text,
         }));
       },
       badResponse => {
-        handleErrorResponse(badResponse);
+        return [];
+      },
+    );
+  };
+
+  const loadSourceOptions = (input = '') => {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dataset/related/database?q=${query}`,
+    }).then(
+      response => {
+        return response.json.result.map((item: any) => ({
+          value: item.value,
+          label: item.text,
+        }));
+      },
+      badResponse => {
         return [];
       },
     );
@@ -502,13 +572,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/dashboard?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map(item => ({
+        return response.json.result.map((item: any) => ({
           value: item.id,
           label: item.dashboard_title,
         }));
       },
       badResponse => {
-        handleErrorResponse(badResponse);
         return [];
       },
     );
@@ -520,13 +589,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/chart?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map(item => ({
+        return response.json.result.map((item: any) => ({
           value: item.id,
           label: item.slice_name,
         }));
       },
       badResponse => {
-        handleErrorResponse(badResponse);
         return [];
       },
     );
@@ -558,44 +626,77 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('owners', value || []);
   };
 
-  const onDashboardChange = (value: number) => {
-    updateAlertState('dashboard', value || null);
+  const onSourceChange = (value: Array<Owner>) => {
+    updateAlertState('database', value || []);
   };
 
-  const onChartChange = (value: number) => {
-    updateAlertState('chart', value || null);
+  const onDashboardChange = (dashboard: SelectValue) => {
+    console.log('dashboard', dashboard);
+    updateAlertState('dashboard', dashboard || undefined);
+  };
+
+  const onChartChange = (chart: SelectValue) => {
+    updateAlertState('chart', chart || undefined);
   };
 
   const onActiveSwitch = (checked: boolean) => {
     updateAlertState('active', checked);
   };
 
-  const onConditionChange = (condition) => {
-    updateAlertState('condition_operator', condition);
+  const onConditionChange = (operation: Operator) => {
+    console.log('operation', operation);
+
+    const config = {
+      operation,
+      threshold: currentAlert
+        ? currentAlert.validator_config_json?.threshold
+        : undefined,
+    };
+
+    updateAlertState('validator_config_json', config);
   };
 
-  const onScheduleFormatChange = (event: React.ChangeEvent) => {
+  const onThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
 
-    updateAlertState('schedule_format', target.value);
+    const config = {
+      operation: currentAlert
+        ? currentAlert.validator_config_json?.operation
+        : undefined,
+      threshold: target.value,
+    };
+
+    updateAlertState('validator_config_json', config);
   };
 
-  const onLogRetentionChange = (retention) => {
+  const onScheduleFormatChange = (event: any) => {
+    const { target } = event;
+
+    setScheduleFormat(target.value);
+  };
+
+  const onLogRetentionChange = (retention: number) => {
+    console.log('retention', retention);
     updateAlertState('log_retention', retention);
   };
 
-  const onContentTypeChange = (event: React.ChangeEvent) => {
+  const onContentTypeChange = (event: any) => {
     const { target } = event;
 
-    updateAlertState('content_type', target.value);
     setContentType(target.value);
   };
 
   const validate = () => {
     if (
       currentAlert &&
-      currentAlert.label.length &&
-      currentAlert.owners.length
+      currentAlert.name?.length &&
+      currentAlert.owners?.length &&
+      !!currentAlert.database &&
+      currentAlert.sql?.length &&
+      !!currentAlert.validator_config_json?.operation &&
+      currentAlert.validator_config_json?.threshold !== undefined &&
+      currentAlert.crontab?.length &&
+      (!!currentAlert.dashboard || !!currentAlert.chart)
     ) {
       setDisableSave(false);
     } else {
@@ -624,9 +725,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ) {
     // TODO: update to match expected type variables
     setCurrentAlert({
-      label: '',
-      owners: [],
       active: true,
+      crontab: '',
+      log_retention: DEFAULT_RETENTION,
+      name: '',
+      owners: [],
+      sql: '',
+      type: isReport ? 'Report' : 'Alert',
+      validator_config_json: {},
+      validator_type: 'not null',
     });
 
     setNotificationSettings([]);
@@ -638,7 +745,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     () => {
       validate();
     },
-    currentAlert ? [currentAlert.label, currentAlert.owners] : [],
+    currentAlert
+      ? [
+          currentAlert.name,
+          currentAlert.owners,
+          currentAlert.database,
+          currentAlert.sql,
+        ]
+      : [],
   );
 
   // Show/hide
@@ -648,11 +762,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Dropdown options
   const conditionOptions = CONDITIONS.map(condition => {
-    return (<Select.Option value={condition}>{condition}</Select.Option>
+    return (
+      <Select.Option value={condition.value}>{condition.label}</Select.Option>
+    );
   });
 
   const retentionOptions = RETENTION_OPTIONS.map(option => {
-    return (<Select.Option value={option}>{option}</Select.Option>
+    return <Select.Option value={option.value}>{option.label}</Select.Option>;
   });
 
   return (
@@ -687,8 +803,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <div className="input-container">
               <input
                 type="text"
-                name="label"
-                value={currentAlert ? currentAlert.label : ''}
+                name="name"
+                value={currentAlert ? currentAlert.name : ''}
                 placeholder={t('Alert Name')}
                 onChange={onTextChange}
               />
@@ -726,7 +842,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </div>
           </StyledInputContainer>
           <StyledSwitchContainer>
-            <Switch onChange={onActiveSwitch} checked={currentAlert ? currentAlert.active : true}/>
+            <Switch
+              onChange={onActiveSwitch}
+              checked={currentAlert ? currentAlert.active : true}
+            />
             <div className="switch-label">Active</div>
           </StyledSwitchContainer>
         </div>
@@ -742,12 +861,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
-                  <input
-                    type="text"
+                  <AsyncSelect
                     name="source"
-                    value={currentAlert ? currentAlert.source : ''}
-                    placeholder={t('Source')}
-                    onChange={onTextChange}
+                    value={
+                      currentAlert && currentAlert.database
+                        ? {
+                            value: currentAlert.database.value,
+                            label: currentAlert.database.label,
+                          }
+                        : undefined
+                    }
+                    loadOptions={loadSourceOptions}
+                    defaultOptions // load options on render
+                    cacheOptions
+                    onChange={onSourceChange}
+                    // disabled={!isDashboardLoaded}
+                    filterOption={null} // options are filtered at the api
                   />
                 </div>
               </StyledInputContainer>
@@ -758,8 +887,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </div>
                 <div className="input-container">
                   <textarea
-                    name="query"
-                    value={currentAlert ? currentAlert.query : ''}
+                    name="sql"
+                    value={currentAlert ? currentAlert.sql || '' : ''}
                     onChange={onTextChange}
                   />
                 </div>
@@ -774,7 +903,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <Select
                       onChange={onConditionChange}
                       placeholder="Condition"
-                      defaultValue={currentAlert ? currentAlert.condition_operator || null : null}
+                      defaultValue={
+                        currentAlert
+                          ? currentAlert.validator_config_json?.operation ||
+                            undefined
+                          : undefined
+                      }
                     >
                       {conditionOptions}
                     </Select>
@@ -788,12 +922,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <div className="input-container">
                     <input
                       type="number"
-                      name="condition_value"
+                      name="threshold"
                       value={
-                        currentAlert ? currentAlert.condition_value : ''
+                        currentAlert && currentAlert.validator_config_json
+                          ? currentAlert.validator_config_json.threshold ||
+                            undefined
+                          : undefined
                       }
                       placeholder={t('Value')}
-                      onChange={onTextChange}
+                      onChange={onThresholdChange}
                     />
                   </div>
                 </StyledInputContainer>
@@ -806,21 +943,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </StyledSectionTitle>
             <Radio.Group
               onChange={onScheduleFormatChange}
-              value={currentAlert ? currentAlert.schedule_format || 'dropdown-format' : 'dropdown-format'}
+              value={scheduleFormat}
             >
               <div className="inline-container add-margin">
-                <Radio value="dropdown-format"/>
-                <span className="input-label">Every x Minutes (should be set of dropdown options)</span>
+                <Radio value="dropdown-format" />
+                <span className="input-label">
+                  Every x Minutes (should be set of dropdown options)
+                </span>
               </div>
               <div className="inline-container add-margin">
-                <Radio value="cron-format"/>
+                <Radio value="cron-format" />
                 <span className="input-label">CRON Schedule</span>
                 <StyledInputContainer className="styled-input">
                   <div className="input-container">
                     <input
                       type="text"
-                      name="cron_string"
-                      value={currentAlert ? currentAlert.cron_string || '' : ''}
+                      name="crontab"
+                      value={currentAlert ? currentAlert.crontab || '' : ''}
                       placeholder={t('CRON Expression')}
                       onChange={onTextChange}
                     />
@@ -840,7 +979,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <Select
                   onChange={onLogRetentionChange}
                   placeholder
-                  defaultValue={currentAlert ? currentAlert.log_retention || '90 days' : '90 days'}
+                  defaultValue={
+                    currentAlert
+                      ? currentAlert.log_retention || '90 days'
+                      : '90 days'
+                  }
                 >
                   {retentionOptions}
                 </Select>
@@ -865,18 +1008,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <h4>{t('Message Content')}</h4>
             </StyledSectionTitle>
             <div className="inline-container add-margin">
-              <Radio.Group
-                onChange={onContentTypeChange}
-                value={currentAlert ? currentAlert.content_type || 'dashboard' : 'dashboard'}
-              >
+              <Radio.Group onChange={onContentTypeChange} value={contentType}>
                 <Radio value="dashboard">Dashboard</Radio>
                 <Radio value="chart">Chart</Radio>
               </Radio.Group>
             </div>
             <AsyncSelect
-              className={contentType === 'chart' ? 'async-select' : 'hide-dropdown async-select'}
+              className={
+                contentType === 'chart'
+                  ? 'async-select'
+                  : 'hide-dropdown async-select'
+              }
               name="chart"
-              value={currentAlert ? currentAlert.chart : null}
+              value={
+                currentAlert && currentAlert.chart
+                  ? {
+                      value: currentAlert.chart.value,
+                      label: currentAlert.chart.label,
+                    }
+                  : undefined
+              }
               loadOptions={loadChartOptions}
               defaultOptions // load options on render
               cacheOptions
@@ -884,9 +1035,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               filterOption={null} // options are filtered at the api
             />
             <AsyncSelect
-              className={contentType === 'dashboard' ? 'async-select' : 'hide-dropdown async-select'}
+              className={
+                contentType === 'dashboard'
+                  ? 'async-select'
+                  : 'hide-dropdown async-select'
+              }
               name="dashboard"
-              value={currentAlert ? currentAlert.dashboard : null}
+              value={
+                currentAlert && currentAlert.dashboard
+                  ? {
+                      value: currentAlert.dashboard.value,
+                      label: currentAlert.dashboard.label,
+                    }
+                  : undefined
+              }
               loadOptions={loadDashboardOptions}
               defaultOptions // load options on render
               cacheOptions
@@ -908,7 +1070,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onUpdate={updateNotificationSetting}
               onRemove={removeNotificationSetting}
             />
-            <NotificationMethodAdd status={notificationAddState} onClick={onNotificationAdd}/>
+            <NotificationMethodAdd
+              status={notificationAddState}
+              onClick={onNotificationAdd}
+            />
           </div>
         </div>
       </StyledSectionContainer>
