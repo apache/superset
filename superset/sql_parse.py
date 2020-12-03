@@ -138,10 +138,6 @@ class ParsedQuery:
     def is_unknown(self) -> bool:
         return self._parsed[0].get_type() == "UNKNOWN"
 
-    def is_readonly(self) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return self.is_select() or self.is_explain() or self.is_set() or self.is_show()
-
     def stripped(self) -> str:
         return self.sql.strip(" \t\n;")
 
