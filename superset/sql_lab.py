@@ -167,7 +167,7 @@ def execute_sql_statement(
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
 
-    if not parsed_query.is_readonly() and not database.allow_dml:
+    if not db_engine_spec.is_readonly_query(parsed_query) and not database.allow_dml:
         raise SqlLabSecurityException(
             _("Only `SELECT` statements are allowed against this database")
         )

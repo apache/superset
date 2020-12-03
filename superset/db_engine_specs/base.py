@@ -54,7 +54,7 @@ from sqlalchemy.types import TypeEngine
 from superset import app, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -1038,3 +1038,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 logger.error(ex)
                 raise ex
         return extra
+
+    @classmethod
+    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
+        """Pessimistic readonly, 100% sure statement won't mutate anything"""
+        return parsed_query.is_select() or parsed_query.is_explain()
