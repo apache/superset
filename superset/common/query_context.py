@@ -295,7 +295,7 @@ class QueryContext:
             )
         return annotation_data
 
-    def get_df_payload(  # pylint: disable=too-many-statements
+    def get_df_payload(  # pylint: disable=too-many-statements,too-many-locals
         self, query_obj: QueryObject, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""

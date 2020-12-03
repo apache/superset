@@ -485,6 +485,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
         if request.is_json:
             json_body = request.json
+            print(json_body)
         elif request.form.get("form_data"):
             # CSV export submits regular form data
             json_body = json.loads(request.form["form_data"])
