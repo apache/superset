@@ -230,6 +230,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 }) => {
   const filterConfigs = useFilterConfiguration();
 
+  useEffect(() => {
+    if (filterConfigs.length === 0 && filtersOpen) {
+      toggleFiltersBar();
+    }
+  }, [filterConfigs]);
+
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
       <CollapsedBar
