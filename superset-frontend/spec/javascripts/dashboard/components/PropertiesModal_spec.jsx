@@ -28,7 +28,7 @@ import {
 
 import Modal from 'src/common/components/Modal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import { mockStore } from '../fixtures/mockStore';
+import { mockStore } from 'spec/fixtures/mockStore';
 
 const dashboardResult = {
   json: {

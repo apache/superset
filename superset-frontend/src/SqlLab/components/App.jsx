@@ -88,10 +88,7 @@ class App extends React.PureComponent {
   render() {
     let content;
     if (this.state.hash && this.state.hash === '#search') {
-      if (
-        isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) &&
-        isFeatureEnabled(FeatureFlag.SIP_34_QUERY_SEARCH_UI)
-      ) {
+      if (isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS)) {
         return window.location.replace('/superset/sqllab/history/');
       }
       content = (

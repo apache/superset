@@ -62,6 +62,10 @@ const mockedProps = {
       accessor: 'name',
       Header: 'Name',
     },
+    {
+      accessor: 'time',
+      Header: 'Time',
+    },
   ],
   filters: [
     {
@@ -85,10 +89,16 @@ const mockedProps = {
       paginate: true,
       operator: 'eq',
     },
+    {
+      Header: 'Time',
+      id: 'time',
+      input: 'datetime_range',
+      operator: 'between',
+    },
   ],
   data: [
-    { id: 1, name: 'data 1' },
-    { id: 2, name: 'data 2' },
+    { id: 1, name: 'data 1', age: 10, time: '2020-11-18T07:53:45.354Z' },
+    { id: 2, name: 'data 2', age: 1, time: '2020-11-18T07:53:45.354Z' },
   ],
   count: 2,
   pageSize: 1,
@@ -221,15 +231,17 @@ describe('ListView', () => {
 
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
-                                    Array [
-                                      Array [
-                                        Object {
-                                          "id": 1,
-                                          "name": "data 1",
-                                        },
-                                      ],
-                                    ]
-                        `);
+      Array [
+        Array [
+          Object {
+            "age": 10,
+            "id": 1,
+            "name": "data 1",
+            "time": "2020-11-18T07:53:45.354Z",
+          },
+        ],
+      ]
+    `);
   });
 
   it('handles bulk actions on all rows', () => {
@@ -250,19 +262,23 @@ describe('ListView', () => {
 
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
-                        Array [
-                          Array [
-                            Object {
-                              "id": 1,
-                              "name": "data 1",
-                            },
-                            Object {
-                              "id": 2,
-                              "name": "data 2",
-                            },
-                          ],
-                        ]
-                `);
+      Array [
+        Array [
+          Object {
+            "age": 10,
+            "id": 1,
+            "name": "data 1",
+            "time": "2020-11-18T07:53:45.354Z",
+          },
+          Object {
+            "age": 1,
+            "id": 2,
+            "name": "data 2",
+            "time": "2020-11-18T07:53:45.354Z",
+          },
+        ],
+      ]
+    `);
   });
 
   it('allows deselecting all', async () => {

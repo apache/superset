@@ -21,7 +21,7 @@ import { mount } from 'enzyme';
 import { Provider } from 'react-redux';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
-import { mockStore } from '../../fixtures/mockStore';
+import { mockStore } from 'spec/fixtures/mockStore';
 
 describe('FilterBar', () => {
   const props = {

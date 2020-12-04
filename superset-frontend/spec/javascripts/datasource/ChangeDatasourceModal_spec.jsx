@@ -27,7 +27,7 @@ import { act } from 'react-dom/test-utils';
 import Modal from 'src/common/components/Modal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import mockDatasource from '../../fixtures/mockDatasource';
+import mockDatasource from 'spec/fixtures/mockDatasource';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});

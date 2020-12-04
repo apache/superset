@@ -21,7 +21,7 @@ import { Provider } from 'react-redux';
 import ScopingTree from 'src/dashboard/components/nativeFilters/ScopingTree';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { mount } from 'enzyme';
-import { mockStore } from '../../fixtures/mockStore';
+import { mockStore } from 'spec/fixtures/mockStore';
 
 describe('ScopingTree', () => {
   const mock = jest.fn();

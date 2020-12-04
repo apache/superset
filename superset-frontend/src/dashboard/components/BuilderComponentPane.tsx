@@ -22,7 +22,7 @@ import Tabs from 'src/common/components/Tabs';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';
@@ -37,6 +37,11 @@ export interface BCPProps {
 }
 
 const SUPERSET_HEADER_HEIGHT = 59;
+
+const BuilderComponentPaneTabs = styled(Tabs)`
+  line-height: inherit;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+`;
 
 const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => {
   return (
@@ -55,10 +60,9 @@ const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => {
                   className="viewport"
                   style={isSticky ? { ...style, top: topOffset } : null}
                 >
-                  <Tabs
+                  <BuilderComponentPaneTabs
                     id="tabs"
                     className="tabs-components"
-                    style={{ marginTop: '10px' }}
                     data-test="dashboard-builder-component-pane-tabs-navigation"
                   >
                     <Tabs.TabPane key={1} tab={t('Components')}>
@@ -80,7 +84,7 @@ const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => {
                         }
                       />
                     </Tabs.TabPane>
-                  </Tabs>
+                  </BuilderComponentPaneTabs>
                 </div>
               )}
             </Sticky>

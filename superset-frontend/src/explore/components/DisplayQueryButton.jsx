@@ -75,6 +75,24 @@ const CopyButton = styled(Button)`
   && {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
+
+  i {
+    padding: 0;
+  }
+`;
+
+const CopyButtonViewQuery = styled(Button)`
+  padding: ${({ theme }) => theme.gridUnit / 2}px
+    ${({ theme }) => theme.gridUnit * 2.5}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+
+  && {
+    margin-bottom: 5px;
+  }
+
+  i {
+    padding: 0;
+  }
 `;
 
 export const DisplayQueryButton = props => {
@@ -90,6 +108,7 @@ export const DisplayQueryButton = props => {
     datasource && datasource.split('__')[1] === 'table',
   );
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const tableData = useMemo(() => {
     if (!data?.length) {
@@ -150,6 +169,7 @@ export const DisplayQueryButton = props => {
 
   const handleMenuClick = ({ key, domEvent }) => {
     const { chartHeight, slice, onOpenInEditor, latestQueryFormData } = props;
+    setMenuVisible(false);
     switch (key) {
       case MENU_KEYS.EDIT_PROPERTIES:
         openPropertiesModal();
@@ -186,9 +206,9 @@ export const DisplayQueryButton = props => {
             text={query}
             shouldShowText={false}
             copyNode={
-              <Button style={{ position: 'absolute', right: 20 }}>
+              <CopyButtonViewQuery>
                 <i className="fa fa-clipboard" />
-              </Button>
+              </CopyButtonViewQuery>
             }
           />
           <SyntaxHighlighter language={language} style={github}>
@@ -273,6 +293,7 @@ export const DisplayQueryButton = props => {
   const { slice } = props;
   return (
     <DropdownButton
+      open={menuVisible}
       noCaret
       data-test="query-dropdown"
       title={
@@ -284,6 +305,7 @@ export const DisplayQueryButton = props => {
       bsSize="sm"
       pullRight
       id="query"
+      onToggle={setMenuVisible}
     >
       <Menu onClick={handleMenuClick} selectable={false}>
         {slice && [

@@ -46,6 +46,7 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
 
   return (
     <>
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div onClick={() => setOpen(true)}>{children}</div>
       <FilterConfigModal
         isOpen={isOpen}

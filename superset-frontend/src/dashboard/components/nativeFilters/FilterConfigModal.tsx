@@ -34,7 +34,7 @@ const StyledModalBody = styled.div`
   display: flex;
   flex-direction: row;
   .filters-list {
-    width 200px;
+    width: 200px;
     overflow: auto;
   }
 `;
@@ -181,6 +181,7 @@ export function FilterConfigModal({
         if (!formInputs) return filterConfigMap[id];
         return {
           id,
+          cascadeParentIds: [],
           name: formInputs.name,
           type: 'text',
           // for now there will only ever be one target
