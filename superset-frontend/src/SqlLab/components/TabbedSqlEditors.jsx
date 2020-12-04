@@ -28,7 +28,6 @@ import { makeApi, styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
-import rison from 'rison';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import TabStatusIcon from './TabStatusIcon';
