@@ -23,6 +23,7 @@ import SupersetResourceSelect, {
   Value,
 } from 'src/components/SupersetResourceSelect';
 import {
+  Button,
   Checkbox,
   Form,
   Input,
@@ -125,6 +126,7 @@ const ScopingTreeNote = styled.div`
 
 const RemovedContent = styled.div`
   display: flex;
+  flex-direction: column;
   height: 400px; // arbitrary
   text-align: center;
   justify-content: center;
@@ -136,6 +138,7 @@ export interface FilterConfigFormProps {
   filterId: string;
   filterToEdit?: Filter;
   removed?: boolean;
+  restore: (filterId: string) => void;
   form: FormInstance;
 }
 
@@ -143,6 +146,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   filterId,
   filterToEdit,
   removed,
+  restore,
   form,
 }) => {
   const [advancedScopingOpen, setAdvancedScopingOpen] = useState<Scoping>(
@@ -157,9 +161,12 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   if (removed) {
     return (
       <RemovedContent>
-        {t(
-          'You have removed this filter. Click the trash again to bring it back.',
-        )}
+        <p>{t('You have removed this filter.')}</p>
+        <div>
+          <Button type="primary" onClick={() => restore(filterId)}>
+            {t('Restore Filter')}
+          </Button>
+        </div>
       </RemovedContent>
     );
   }
