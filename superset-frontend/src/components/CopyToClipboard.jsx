@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import copyTextToClipboard from '../utils/copy';
+import copyTextToClipboard from 'utils/copy';
 
 const propTypes = {
   copyNode: PropTypes.node,
@@ -50,6 +50,7 @@ class CopyToClipboard extends React.Component {
     };
 
     // bindings
+    this.copyToClipboard = this.copyToClipboard.bind(this);
     this.resetTooltipText = this.resetTooltipText.bind(this);
     this.onMouseOut = this.onMouseOut.bind(this);
     this.onClick = this.onClick.bind(this);
