@@ -34,11 +34,10 @@ import SqlEditor from './SqlEditor';
 import TabStatusIcon from './TabStatusIcon';
 
 const getDatabasesIds = async () => {
-  const queryParams = rison.encode({});
   const response = await makeApi({
     method: 'GET',
     endpoint: '/api/v1/database',
-  })(`q=${queryParams}`);
+  })();
 
   return response;
 };
