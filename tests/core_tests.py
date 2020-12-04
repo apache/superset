@@ -324,7 +324,7 @@ class TestCore(SupersetTestCase):
         # Changing name
         resp = self.get_resp(url.format(tbl_id, slice_id))
         assert len(resp) > 0
-        assert "Carbon Dioxide" in resp
+        assert "energy_target0" in resp
 
     def test_slice_data(self):
         # slice data should have some required attributes
