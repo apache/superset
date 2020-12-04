@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from abc import abstractmethod
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -311,28 +310,35 @@ class ReportSuccessState(BaseReportState):
         try:
             self._send()
             self.set_state_and_log(ReportState.SUCCESS)
-        except Exception as ex:
+        except CommandException as ex:
             self.set_state_and_log(ReportState.ERROR, error_message=str(ex))
 
 
-class ReportScheduleStateMachine:
+class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
     """
     Simple state machine for Alerts/Reports states
     """
 
     states_cls = [ReportWorkingState, ReportNotTriggeredErrorState, ReportSuccessState]
 
-    def run(
+    def __init__(
         self,
         session: Session,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
-    ) -> None:
+    ):
+        self._session = session
+        self._report_schedule = report_schedule
+        self._scheduled_dttm = scheduled_dttm
+
+    def run(self) -> None:
         for state_cls in self.states_cls:
-            if (report_schedule.last_state is None and state_cls.initial) or (
-                report_schedule.last_state in state_cls.current_states
+            if (self._report_schedule.last_state is None and state_cls.initial) or (
+                self._report_schedule.last_state in state_cls.current_states
             ):
-                state_cls(session, report_schedule, scheduled_dttm).next()
+                state_cls(
+                    self._session, self._report_schedule, self._scheduled_dttm
+                ).next()
                 break
 
 
@@ -354,9 +360,9 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self.validate(session=session)
                 if not self._model:
                     raise ReportScheduleExecuteUnexpectedError()
-                ReportScheduleStateMachine().run(
+                ReportScheduleStateMachine(
                     session, self._model, self._scheduled_dttm
-                )
+                ).run()
             except CommandException as ex:
                 raise ex
             except Exception as ex:
