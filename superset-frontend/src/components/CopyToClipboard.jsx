@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import copyTextToClipboard from '../utils/copy';
+import copyTextToClipboard from 'src/utils/copy';
 
 const propTypes = {
   copyNode: PropTypes.node,

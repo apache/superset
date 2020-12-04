@@ -40,8 +40,8 @@ import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { IconName } from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
+import copyTextToClipboard from 'src/utils/copy';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
-import copyTextToClipboard from '../../../../utils/copy';
 
 const PAGE_SIZE = 25;
 

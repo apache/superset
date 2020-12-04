@@ -27,7 +27,7 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import { ToastProps } from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
-import copyTextToClipboard from '../../../../../utils/copy';
+import copyTextToClipboard from 'src/utils/copy';
 
 SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
