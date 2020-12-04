@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import PropTypes from 'prop-types';
 import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import Tabs from 'src/common/components/Tabs';
@@ -225,10 +224,4 @@ export const DataTablesPane = ({
       </TabsWrapper>
     </SouthPane>
   );
-};
-
-DataTablesPane.propTypes = {
-  tableSectionHeight: PropTypes.number,
-  queryFormData: PropTypes.object,
-  onCollapseChange: PropTypes.func,
 };
