@@ -78,7 +78,9 @@ export default function SupersetResourceSelect<T = unknown, V = string>({
       endpoint: `/api/v1/${resource}/?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map(transformItem);
+        return response.json.result
+          .map(transformItem)
+          .sort((a: Value<V>, b: Value<V>) => a.label.localeCompare(b.label));
       },
       async badResponse => {
         const { error, message } = await getClientErrorObject(badResponse);
