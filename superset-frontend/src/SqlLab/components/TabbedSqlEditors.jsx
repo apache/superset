@@ -24,18 +24,14 @@ import { Menu } from 'src/common/components';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
-import { styled, t } from '@superset-ui/core';
+import { makeApi, styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
+import rison from 'rison';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import TabStatusIcon from './TabStatusIcon';
-
-
-import { makeApi } from '@superset-ui/core';
-import rison from 'rison';
-
 
 const getDatabasesIds = async () => {
   const queryParams = rison.encode({});
@@ -44,7 +40,6 @@ const getDatabasesIds = async () => {
     endpoint: '/api/v1/database',
   })(`q=${queryParams}`);
 
-  console.log(response.ids);
   return response;
 };
 
@@ -256,7 +251,6 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   newQueryEditor() {
-    console.log(this.state.databaseIds);
     queryCount += 1;
     const activeQueryEditor = this.activeQueryEditor();
     const firstDbId = Math.min(this.state.databaseIds);
