@@ -9,7 +9,8 @@
     "demo:build": "npm run demo:clean && build-storybook -o _gh-pages",
     "demo:publish": "gh-pages -d _gh-pages",
     "deploy-demo": "npm run demo:build && npm run demo:publish && npm run demo:clean",
-    "storybook": "start-storybook -p 9001"
+    "storybook": "start-storybook -p 9001",
+    "build-storybook": "npm run demo:clean && build-storybook"
   },
   "repository": {
     "type": "git",
@@ -83,6 +84,7 @@
   "devDependencies": {
     "@babel/core": "^7.9.0",
     "babel-loader": "^8.1.0",
+    "chromatic": "^5.4.0",
     "fork-ts-checker-webpack-plugin": "^5.0.7",
     "ts-loader": "^7.0.4",
     "typescript": "^3.8.3"
