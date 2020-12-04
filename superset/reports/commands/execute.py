@@ -200,6 +200,27 @@ class BaseReportState:
         if notification_errors:
             raise ReportScheduleNotificationError(";".join(notification_errors))
 
+    def is_in_grace_period(self) -> bool:
+        last_success = ReportScheduleDAO.find_last_success_log(
+            self._report_schedule, session=self._session
+        )
+        return (
+            last_success is not None
+            and self._report_schedule.grace_period
+            and datetime.utcnow()
+            - timedelta(seconds=self._report_schedule.grace_period)
+            < last_success.end_dttm
+        )
+
+    def is_working_timeout(self) -> bool:
+        return (
+            self._report_schedule.working_timeout is not None
+            and self._report_schedule.last_eval_dttm is not None
+            and datetime.utcnow()
+            - timedelta(seconds=self._report_schedule.working_timeout)
+            > self._report_schedule.last_eval_dttm
+        )
+
     def next(self) -> None:
         raise NotImplementedError()
 
@@ -242,13 +263,7 @@ class ReportWorkingState(BaseReportState):
     current_states = [ReportState.WORKING]
 
     def next(self) -> None:
-        if (
-            self._report_schedule.working_timeout is not None
-            and self._report_schedule.last_eval_dttm is not None
-            and datetime.utcnow()
-            - timedelta(seconds=self._report_schedule.working_timeout)
-            > self._report_schedule.last_eval_dttm
-        ):
+        if self.is_working_timeout():
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.set_state_and_log(
                 ReportState.ERROR, error_message=str(exception_timeout),
@@ -275,17 +290,7 @@ class ReportSuccessState(BaseReportState):
     def next(self) -> None:
         self.set_state_and_log(ReportState.WORKING)
         if self._report_schedule.type == ReportScheduleType.ALERT:
-            last_success = ReportScheduleDAO.find_last_success_log(
-                self._report_schedule, session=self._session
-            )
-            if (
-                last_success is not None
-                and self._report_schedule.last_state == ReportState.SUCCESS
-                and self._report_schedule.grace_period
-                and datetime.utcnow()
-                - timedelta(seconds=self._report_schedule.grace_period)
-                < last_success.end_dttm
-            ):
+            if self.is_in_grace_period():
                 self.set_state_and_log(
                     ReportState.GRACE,
                     error_message=str(ReportScheduleAlertGracePeriodError()),
