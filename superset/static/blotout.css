@@ -104,3 +104,11 @@ body > footer {
   flex-flow: column;
   height: 100%;
 }
+
+.dashboard-component-chart-holder .sankey_loop svg.superset-legacy-chart-sankey-loop {
+  display: none;
+}
+
+.dashboard-component-chart-holder .sankey_loop svg.superset-legacy-chart-sankey-loop:last-of-type {
+  display: block;
+}
