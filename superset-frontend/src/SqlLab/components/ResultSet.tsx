@@ -77,6 +77,7 @@ interface ResultSetState {
   datasetToOverwrite: Record<string, any>;
   ctasSave: boolean;
   disableSaveAndExploreBtn: boolean;
+  saveModalAutocompleteValue: string;
 }
 
 // Making text render line breaks/tabs as is as monospace,
@@ -117,7 +118,7 @@ export default class ResultSet extends React.PureComponent<
       overwriteDataSet: false,
       datasetToOverwrite: {},
       ctasSave: false,
-      disableSaveAndExploreBtn: false,
+      saveModalAutocompleteValue: '',
       testOptions: []
     };
 
@@ -146,6 +147,9 @@ export default class ResultSet extends React.PureComponent<
       this,
     );
     this.handleFilterAutocompleteOption = this.handleFilterAutocompleteOption.bind(
+      this,
+    );
+    this.handleOnChangeAutoComplete = this.handleOnChangeAutoComplete.bind(
       this,
     );
   }
@@ -388,9 +392,13 @@ export default class ResultSet extends React.PureComponent<
     inputValue: string,
     option: { value: string; datasetId: number },
   ) => {
-    console.log('toooo');
     return option.value.toLowerCase().includes(inputValue.toLowerCase());
   };
+
+  handleOnChangeAutoComplete = (e) => {
+    console.log('in handleOnChangeAutoComplete', e.length)
+    this.setState({ datasetToOverwrite: {} });
+  }
 
   handleDisableSaveAndExploreBtn() {
     // console.log(this.state.saveDatasetRadioBtnState) // radio btn state 1 || 2
@@ -422,11 +430,13 @@ export default class ResultSet extends React.PureComponent<
         saveDatasetRadioBtnState,
         newSaveDatasetName,
         datasetToOverwrite,
+        saveModalAutocompleteValue,
       } = this.state;
       const disableSaveAndExploreBtn =
         (saveDatasetRadioBtnState === 1 && newSaveDatasetName.length === 0) ||
         (saveDatasetRadioBtnState === 2 &&
-          Object.keys(datasetToOverwrite).length === 0);
+          Object.keys(datasetToOverwrite).length === 0 &&
+          saveModalAutocompleteValue.length === 0);
 
       console.log('radio2', Object.keys(datasetToOverwrite).length);
       console.log('before render', disableSaveAndExploreBtn);
@@ -449,6 +459,7 @@ export default class ResultSet extends React.PureComponent<
             handleSaveDatasetModalSearch={this.handleSaveDatasetModalSearch}
             filterAutocompleteOption={this.handleFilterAutocompleteOption}
             testOptions={this.state.testOptions}
+            onChangeAutoComplete={this.handleOnChangeAutoComplete}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&

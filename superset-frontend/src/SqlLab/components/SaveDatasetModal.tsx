@@ -82,6 +82,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   handleSaveDatasetModalSearch,
   filterAutocompleteOption,
   testOptions,
+  onChangeAutoComplete,
 }) => {
   // const [options, setOptions] = useState<
   //   {
@@ -175,6 +176,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                   options={testOptions}
                   onSelect={handleOverwriteDatasetOption}
                   onSearch={handleSaveDatasetModalSearch}
+                  onChange={onChangeAutoComplete}
                   placeholder="Select or type dataset name"
                   filterOption={filterAutocompleteOption}
                   disabled={saveDatasetRadioBtnState !== 2}
