@@ -17,6 +17,8 @@
 import copy
 from typing import Any, Dict, List
 
+from superset.utils.core import AnnotationType
+
 QUERY_OBJECTS = {
     "birth_names": {
         "extras": {"where": "", "time_range_endpoints": ["inclusive", "exclusive"]},
@@ -35,6 +37,77 @@ QUERY_OBJECTS = {
         "having_filters": [],
         "where": "",
     }
+}
+
+ANNOTATION_LAYERS = {
+    AnnotationType.FORMULA: {
+        "annotationType": "FORMULA",
+        "color": "#ff7f44",
+        "hideLine": False,
+        "name": "my formula",
+        "opacity": "",
+        "overrides": {"time_range": None},
+        "show": True,
+        "showMarkers": False,
+        "sourceType": "",
+        "style": "solid",
+        "value": "3+x",
+        "width": 5,
+    },
+    AnnotationType.EVENT: {
+        "name": "my event",
+        "annotationType": "EVENT",
+        "sourceType": "NATIVE",
+        "color": "#e04355",
+        "opacity": "",
+        "style": "solid",
+        "width": 5,
+        "showMarkers": False,
+        "hideLine": False,
+        "value": 1,
+        "overrides": {"time_range": None},
+        "show": True,
+        "titleColumn": "",
+        "descriptionColumns": [],
+        "timeColumn": "",
+        "intervalEndColumn": "",
+    },
+    AnnotationType.INTERVAL: {
+        "name": "my interval",
+        "annotationType": "INTERVAL",
+        "sourceType": "NATIVE",
+        "color": "#e04355",
+        "opacity": "",
+        "style": "solid",
+        "width": 1,
+        "showMarkers": False,
+        "hideLine": False,
+        "value": 1,
+        "overrides": {"time_range": None},
+        "show": True,
+        "titleColumn": "",
+        "descriptionColumns": [],
+        "timeColumn": "",
+        "intervalEndColumn": "",
+    },
+    AnnotationType.TIME_SERIES: {
+        "annotationType": "TIME_SERIES",
+        "color": None,
+        "descriptionColumns": [],
+        "hideLine": False,
+        "intervalEndColumn": "",
+        "name": "my line",
+        "opacity": "",
+        "overrides": {"time_range": None},
+        "show": True,
+        "showMarkers": False,
+        "sourceType": "line",
+        "style": "dashed",
+        "timeColumn": "",
+        "titleColumn": "",
+        "value": 837,
+        "width": 5,
+    },
 }
 
 POSTPROCESSING_OPERATIONS = {
