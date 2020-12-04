@@ -19,6 +19,7 @@
 import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 
@@ -76,9 +77,11 @@ fetchMock.get(templatesRelatedEndpoint, {
 });
 
 describe('CssTemplatesList', () => {
-  const wrapper = mount(<CssTemplatesList user={mockUser} />, {
-    context: { store },
-  });
+  const wrapper = mount(
+    <Provider store={store}>
+      <CssTemplatesList store={store} user={mockUser} />
+    </Provider>,
+  );
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

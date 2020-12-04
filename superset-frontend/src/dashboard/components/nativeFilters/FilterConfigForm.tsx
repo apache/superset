@@ -100,6 +100,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         label={t('Filter Name')}
         initialValue={filterToEdit?.name}
         rules={[{ required: !removed, message: t('Name is required') }]}
+        data-test="name-input"
       >
         <Input />
       </Form.Item>
@@ -107,6 +108,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         name={['filters', filterId, 'dataset']}
         label={t('Datasource')}
         rules={[{ required: !removed, message: t('Datasource is required') }]}
+        data-test="datasource-input"
       >
         <SupersetResourceSelect
           initialId={filterToEdit?.targets[0].datasetId}
@@ -124,6 +126,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         initialValue={filterToEdit?.targets[0]?.column?.name}
         label={t('Field')}
         rules={[{ required: !removed, message: t('Field is required') }]}
+        data-test="field-input"
       >
         <ColumnSelect
           form={form}

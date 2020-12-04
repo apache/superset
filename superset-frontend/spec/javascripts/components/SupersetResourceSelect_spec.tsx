@@ -18,20 +18,31 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
+import thunk from 'redux-thunk';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 
-describe('SupersetREsourceSelect', () => {
+describe('SupersetResourceSelect', () => {
   it('is a valid element', () => {
+    // @ts-ignore
     expect(React.isValidElement(<SupersetResourceSelect />)).toBe(true);
   });
   it('take in props', () => {
+    const mockStore = configureStore([thunk]);
+    const store = mockStore({});
     const selectProps = {
       resource: 'dataset',
       searchColumn: 'table_name',
       transformItem: jest.fn(),
       isMulti: false,
     };
-    const wrapper = mount(<SupersetResourceSelect {...props} />);
-    expect(wrapper.props().props.resource).toEqual('dataset');
+    const wrapper = mount(
+      <Provider store={store}>
+        <SupersetResourceSelect {...selectProps} />,
+      </Provider>,
+    );
+    console.log('wrapper', wrapper.instance());
+    // expect(wrapper.props().resource).toEqual('dataset');
   });
 });

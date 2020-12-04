@@ -231,7 +231,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filterConfigs = useFilterConfiguration();
 
   return (
-    <BarWrapper className={cx({ open: filtersOpen })}>
+    <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
       <CollapsedBar
         className={cx({ open: !filtersOpen })}
         onClick={toggleFiltersBar}
@@ -245,7 +245,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             {t('Filters')} ({filterConfigs.length})
           </span>
           <FilterConfigurationLink>
-            <Icon name="edit" />
+            <Icon name="edit" data-test="create-filter" />
           </FilterConfigurationLink>
           <Icon name="expand" onClick={toggleFiltersBar} />
         </TitleArea>
@@ -259,7 +259,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         </ActionButtons>
         <FilterControls>
           {filterConfigs.map(filter => (
-            <FilterControl key={filter.id} filter={filter} />
+            <FilterControl
+              data-test="filters-control"
+              key={filter.id}
+              filter={filter}
+            />
           ))}
         </FilterControls>
       </Bar>

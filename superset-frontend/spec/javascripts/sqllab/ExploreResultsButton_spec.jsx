@@ -20,6 +20,7 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { shallow } from 'enzyme';
+import { Provider } from 'react-redux';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import shortid from 'shortid';
@@ -72,9 +73,9 @@ describe('ExploreResultsButton', () => {
     value: 'bar',
   };
   const getExploreResultsButtonWrapper = (props = mockedProps) =>
-    shallow(<ExploreResultsButton {...props} />, {
-      context: { store },
-    }).dive();
+    shallow(<ExploreResultsButton store={store} {...props} />)
+      .dive()
+      .dive();
 
   it('renders', () => {
     expect(React.isValidElement(<ExploreResultsButton />)).toBe(true);
@@ -149,9 +150,11 @@ describe('ExploreResultsButton', () => {
       query: longQuery,
       database,
     };
-    const longQueryWrapper = shallow(<ExploreResultsButton {...props} />, {
-      context: { store },
-    }).dive();
+    const longQueryWrapper = shallow(
+      <ExploreResultsButton store={store} {...props} />,
+    )
+      .dive()
+      .dive();
     const inst = longQueryWrapper.instance();
     expect(inst.getQueryDuration()).toBe(100.7050400390625);
   });

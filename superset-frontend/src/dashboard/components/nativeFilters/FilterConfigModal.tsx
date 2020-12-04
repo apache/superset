@@ -227,6 +227,7 @@ export function FilterConfigModal({
       okText={t('Save')}
       cancelText={t('Cancel')}
       centered
+      data-test="filter-modal"
     >
       <StyledModalBody>
         <Form
