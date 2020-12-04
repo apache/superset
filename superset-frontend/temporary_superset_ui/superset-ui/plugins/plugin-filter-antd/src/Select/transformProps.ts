@@ -25,7 +25,6 @@ export default function transformProps(chartProps: ChartProps) {
   const { setExtraFormData = () => {} } = hooks;
   const data = queryData.data as DataRecord[];
 
-  // console.log('formData via TransformProps.ts', formData);
   return {
     width,
     height,
