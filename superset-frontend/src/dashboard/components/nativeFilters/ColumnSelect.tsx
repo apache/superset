@@ -67,10 +67,7 @@ export function ColumnSelect({
       ({ json: { result } }) => {
         return result.columns
           .map((col: any) => col.column_name)
-          .sort(
-            (a: ColumnSelectValue['label'], b: ColumnSelectValue['label']) =>
-              a.localeCompare(b),
-          );
+          .sort((a: string, b: string) => a.localeCompare(b));
       },
       async badResponse => {
         const { error, message } = await getClientErrorObject(badResponse);
