@@ -44,6 +44,7 @@ export default {
   controlPanelSections: [
     {
       label: t('Chart Options'),
+      tabOverride: 'customize',
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
@@ -73,7 +74,7 @@ export default {
       ],
     },
     {
-      label: t('Y Axis 1'),
+      label: t('Y Axis Left'),
       expanded: true,
       controlSetRows: [
         [
@@ -105,7 +106,7 @@ export default {
       ],
     },
     {
-      label: t('Y Axis 2'),
+      label: t('Y Axis Right'),
       expanded: false,
       controlSetRows: [
         [
