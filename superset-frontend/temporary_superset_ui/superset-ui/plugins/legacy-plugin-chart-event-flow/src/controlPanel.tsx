@@ -38,7 +38,7 @@ const config: ControlPanelConfig = {
             name: 'all_columns_x',
             config: {
               type: 'SelectControl',
-              label: t('Column containing event names'),
+              label: t('Event Names'),
               description: t('Columns to display'),
               mapStateToProps: state => ({
                 choices: columnChoices(state?.datasource),
@@ -98,7 +98,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               multi: true,
-              label: t('Meta data'),
+              label: t('Metadata'),
               default: [],
               description: t('Select any columns for metadata inspection'),
               optionRenderer: c => <ColumnOption showType column={c} />,
@@ -118,11 +118,11 @@ const config: ControlPanelConfig = {
   ],
   controlOverrides: {
     entity: {
-      label: t('Column containing entity ids'),
+      label: t('Entity ID'),
       description: t('e.g., a "user id" column'),
     },
     row_limit: {
-      label: t('Event count limit'),
+      label: t('Max Events'),
       description: t('The maximum number of events to return, equivalent to the number of rows'),
     },
   },

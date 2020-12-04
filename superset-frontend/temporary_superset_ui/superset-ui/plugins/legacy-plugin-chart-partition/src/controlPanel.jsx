@@ -125,6 +125,7 @@ export default {
     {
       label: t('Chart Options'),
       expanded: true,
+      tabOverride: 'customize',
       controlSetRows: [
         ['color_scheme', 'label_colors'],
         [
@@ -192,6 +193,8 @@ export default {
               description: t('Use a log scale'),
             },
           },
+        ],
+        [
           {
             name: 'equal_date_size',
             config: {
