@@ -1704,7 +1704,7 @@ class SunburstViz(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-        fd = self.form_data
+        fd = copy.deepcopy(self.form_data)
         cols = fd.get("groupby") or []
         cols.extend(["m1", "m2"])
         metric = utils.get_metric_name(fd["metric"])
