@@ -96,7 +96,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     inputValue: string,
     option: { value: string; datasetId: number },
   ) => {
-    return option.value.includes(inputValue);
+    return option.value.toLowerCase().includes(inputValue.toLowerCase());
   };
 
   return (
