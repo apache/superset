@@ -180,10 +180,6 @@ export const DataTablesPane = ({
     [RESULT_TYPES.samples]: useTableColumns(data[RESULT_TYPES.samples]),
   };
 
-  const changeFilterText = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilterText(event.target.value);
-  };
-
   const renderDataTable = (type: string) => {
     if (isLoading[type]) {
       return <Loading />;
@@ -213,7 +209,7 @@ export const DataTablesPane = ({
     <TableControlsWrapper>
       <RowCount data={data[activeTabKey]} />
       <CopyToClipboardButton data={data[activeTabKey]} />
-      <FilterInput filterText={filterText} onChangeHandler={changeFilterText} />
+      <FilterInput onChangeHandler={setFilterText} />
     </TableControlsWrapper>
   );
 

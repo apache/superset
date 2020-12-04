@@ -19,6 +19,7 @@
 import React, { useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { FormControl } from 'react-bootstrap';
+import debounce from 'lodash/debounce';
 import Button from 'src/components/Button';
 import {
   applyFormattingToTabularData,
@@ -53,19 +54,22 @@ export const CopyToClipboardButton = ({ data }: { data: object }) => (
 );
 
 export const FilterInput = ({
-  filterText,
   onChangeHandler,
 }: {
-  filterText: string;
-  onChangeHandler(event: React.ChangeEvent<HTMLInputElement>): void;
-}) => (
-  <FormControl
-    placeholder={t('Search')}
-    bsSize="sm"
-    value={filterText}
-    onChange={event => onChangeHandler(event as any)}
-  />
-);
+  onChangeHandler(filterText: string): void;
+}) => {
+  const debouncedChangeHandler = debounce(onChangeHandler, 500);
+  return (
+    <FormControl
+      placeholder={t('Search')}
+      bsSize="sm"
+      onChange={(event: any) => {
+        const filterText = event.target.value;
+        debouncedChangeHandler(filterText);
+      }}
+    />
+  );
+};
 
 export const RowCount = ({ data }: { data: object[] }) => (
   <RowCountLabel rowcount={data?.length ?? 0} suffix={t('rows retrieved')} />
