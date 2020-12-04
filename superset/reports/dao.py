@@ -27,9 +27,9 @@ from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
 from superset.models.reports import (
     ReportExecutionLog,
-    ReportLogState,
     ReportRecipients,
     ReportSchedule,
+    ReportState,
 )
 
 logger = logging.getLogger(__name__)
@@ -213,7 +213,7 @@ class ReportScheduleDAO(BaseDAO):
         return (
             session.query(ReportExecutionLog)
             .filter(
-                ReportExecutionLog.state == ReportLogState.SUCCESS,
+                ReportExecutionLog.state == ReportState.SUCCESS,
                 ReportExecutionLog.report_schedule == report_schedule,
             )
             .order_by(ReportExecutionLog.end_dttm.desc())

@@ -29,12 +29,12 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.reports import (
     ReportExecutionLog,
-    ReportLogState,
     ReportRecipients,
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportScheduleValidatorType,
+    ReportState,
 )
 from superset.models.slice import Slice
 from superset.reports.commands.exceptions import (
@@ -59,11 +59,20 @@ def get_target_from_report_schedule(report_schedule) -> List[str]:
 
 
 def assert_log(state: str, error_message: Optional[str] = None):
-    db.session.commit()
-    logs = db.session.query(ReportExecutionLog).all()
-    assert len(logs) == 1
-    assert logs[0].error_message == error_message
-    assert logs[0].state == state
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .order_by(ReportExecutionLog.start_dttm)
+        .all()
+    )
+    if state == ReportState.WORKING:
+        assert len(logs) == 1
+        assert logs[0].error_message == error_message
+        assert logs[0].state == state
+        return
+    assert len(logs) == 2
+    assert logs[0].state == ReportState.WORKING
+    assert logs[1].state == state
+    assert logs[1].error_message == error_message
 
 
 def create_report_notification(
@@ -153,7 +162,7 @@ def create_report_slack_chart_working():
         report_schedule = create_report_notification(
             slack_channel="slack_channel", chart=chart
         )
-        report_schedule.last_state = ReportLogState.WORKING
+        report_schedule.last_state = ReportState.WORKING
         db.session.commit()
         yield report_schedule
 
@@ -367,7 +376,7 @@ def test_email_chart_report_schedule(
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
-        assert_log(ReportLogState.SUCCESS)
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_report_email_dashboard")
@@ -397,7 +406,7 @@ def test_email_dashboard_report_schedule(
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
-        assert_log(ReportLogState.SUCCESS)
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
@@ -425,7 +434,7 @@ def test_slack_chart_report_schedule(
         assert file_upload_mock.call_args[1]["file"] == screenshot
 
         # Assert logs are correct
-        assert_log(ReportLogState.SUCCESS)
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
@@ -450,9 +459,9 @@ def test_report_schedule_working(create_report_slack_chart_working):
         ).run()
 
     assert_log(
-        ReportLogState.ERROR, error_message=ReportSchedulePreviousWorkingError.message
+        ReportState.WORKING, error_message=ReportSchedulePreviousWorkingError.message
     )
-    assert create_report_slack_chart_working.last_state == ReportLogState.WORKING
+    assert create_report_slack_chart_working.last_state == ReportState.WORKING
 
 
 @pytest.mark.usefixtures("create_report_email_dashboard")
@@ -476,7 +485,7 @@ def test_email_dashboard_report_fails(
             create_report_email_dashboard.id, datetime.utcnow()
         ).run()
 
-    assert_log(ReportLogState.ERROR, error_message="Could not connect to SMTP XPTO")
+    assert_log(ReportState.ERROR, error_message="Could not connect to SMTP XPTO")
 
 
 @pytest.mark.usefixtures("create_alert_email_chart")
@@ -502,7 +511,7 @@ def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
-        assert_log(ReportLogState.SUCCESS)
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_no_alert_email_chart")
@@ -514,7 +523,7 @@ def test_email_chart_no_alert(create_no_alert_email_chart):
         AsyncExecuteReportScheduleCommand(
             create_no_alert_email_chart.id, datetime.utcnow()
         ).run()
-    assert_log(ReportLogState.NOOP)
+    assert_log(ReportState.NOOP)
 
 
 @pytest.mark.usefixtures("create_mul_alert_email_chart")

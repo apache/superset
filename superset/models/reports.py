@@ -58,7 +58,7 @@ class ReportRecipientType(str, enum.Enum):
     SLACK = "Slack"
 
 
-class ReportLogState(str, enum.Enum):
+class ReportState(str, enum.Enum):
     SUCCESS = "Success"
     WORKING = "Working"
     ERROR = "Error"

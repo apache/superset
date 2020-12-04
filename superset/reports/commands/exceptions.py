@@ -154,6 +154,10 @@ class ReportScheduleAlertGracePeriodError(CommandException):
     message = _("Alert fired during grace period.")
 
 
+class ReportScheduleAlertEndGracePeriodError(CommandException):
+    message = _("Alert ended grace period.")
+
+
 class ReportScheduleNotificationError(CommandException):
     message = _("Alert on grace period")
 

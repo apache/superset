@@ -24,14 +24,16 @@ from sqlalchemy.orm import Session
 
 from superset import app, thumbnail_cache
 from superset.commands.base import BaseCommand
+from superset.commands.exceptions import CommandException
 from superset.models.reports import (
     ReportExecutionLog,
-    ReportLogState,
     ReportSchedule,
     ReportScheduleType,
+    ReportState,
 )
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
+    ReportScheduleAlertEndGracePeriodError,
     ReportScheduleAlertGracePeriodError,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleNotFoundError,
@@ -58,7 +60,8 @@ logger = logging.getLogger(__name__)
 
 
 class BaseReportState:
-    current_states: List[ReportLogState] = []
+    current_states: List[ReportState] = []
+    initial: bool = False
 
     def __init__(
         self,
@@ -72,22 +75,19 @@ class BaseReportState:
         self._start_dttm = datetime.utcnow()
 
     def set_state_and_log(
-        self, state: ReportLogState, error_message: Optional[str] = None,
+        self, state: ReportState, error_message: Optional[str] = None,
     ) -> None:
         """
         Updates current ReportSchedule state and TS. If on final state writes the log
         for this execution
         """
         now_dttm = datetime.utcnow()
-        if state == ReportLogState.WORKING:
-            self.set_state(state, now_dttm)
-            return
         self.set_state(state, now_dttm)
         self.create_log(
             state, error_message=error_message,
         )
 
-    def set_state(self, state: ReportLogState, dttm: datetime) -> None:
+    def set_state(self, state: ReportState, dttm: datetime) -> None:
         """
         Set the current report schedule state, on this case we want to
         commit immediately
@@ -97,7 +97,7 @@ class BaseReportState:
         self._session.commit()
 
     def create_log(  # pylint: disable=too-many-arguments
-        self, state: ReportLogState, error_message: Optional[str] = None,
+        self, state: ReportState, error_message: Optional[str] = None,
     ) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
@@ -113,6 +113,7 @@ class BaseReportState:
             report_schedule=self._report_schedule,
         )
         self._session.add(log)
+        self._session.commit()
 
     def _get_url(self, user_friendly: bool = False) -> str:
         """
@@ -204,82 +205,109 @@ class BaseReportState:
 
 
 class ReportNotTriggeredErrorState(BaseReportState):
+    """
+    Handle Not triggered and Error state
+    next final states:
+    - Not Triggered
+    - Success
+    - Error
+    """
 
-    current_states = [ReportLogState.NOOP, ReportLogState.ERROR]
+    current_states = [ReportState.NOOP, ReportState.ERROR]
+    initial = True
 
     def next(self) -> None:
-        self.set_state_and_log(ReportLogState.WORKING)
+        self.set_state_and_log(ReportState.WORKING)
         try:
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
                 if not AlertCommand(self._report_schedule).run():
-                    self.set_state_and_log(ReportLogState.NOOP)
+                    self.set_state_and_log(ReportState.NOOP)
                     return
             self._send()
-            self.set_state_and_log(ReportLogState.SUCCESS)
-        except Exception as ex:
-            self.set_state_and_log(ReportLogState.ERROR, error_message=str(ex))
+            self.set_state_and_log(ReportState.SUCCESS)
+        except CommandException as ex:
+            self.set_state_and_log(ReportState.ERROR, error_message=str(ex))
+            raise ex
 
 
 class ReportWorkingState(BaseReportState):
+    """
+    Handle Working state
+    next states:
+    - Error
+    - Working
+    """
 
-    current_states = [ReportLogState.WORKING]
+    current_states = [ReportState.WORKING]
 
     def next(self) -> None:
         if (
             self._report_schedule.working_timeout is not None
+            and self._report_schedule.last_eval_dttm is not None
             and datetime.utcnow()
             - timedelta(seconds=self._report_schedule.working_timeout)
             > self._report_schedule.last_eval_dttm
         ):
+            exception_timeout = ReportScheduleWorkingTimeoutError()
             self.set_state_and_log(
-                ReportLogState.ERROR,
-                error_message=str(ReportScheduleWorkingTimeoutError()),
+                ReportState.ERROR, error_message=str(exception_timeout),
             )
-            return
-        # Just log state remains the same
+            raise exception_timeout
+        exception_working = ReportSchedulePreviousWorkingError()
         self.set_state_and_log(
-            ReportLogState.WORKING,
-            error_message=str(ReportScheduleWorkingTimeoutError()),
+            ReportState.WORKING, error_message=str(exception_working),
         )
-        self._session.commit()
+        raise exception_working
 
 
 class ReportSuccessState(BaseReportState):
+    """
+    Handle Success, Grace state
+    next states:
+    - Grace
+    - Not triggered
+    - Success
+    """
 
-    current_states = [ReportLogState.SUCCESS, ReportLogState.GRACE]
+    current_states = [ReportState.SUCCESS, ReportState.GRACE]
 
     def next(self) -> None:
+        self.set_state_and_log(ReportState.WORKING)
         if self._report_schedule.type == ReportScheduleType.ALERT:
             last_success = ReportScheduleDAO.find_last_success_log(
                 self._report_schedule, session=self._session
             )
             if (
                 last_success is not None
-                and self._report_schedule.last_state == ReportLogState.SUCCESS
+                and self._report_schedule.last_state == ReportState.SUCCESS
                 and self._report_schedule.grace_period
                 and datetime.utcnow()
                 - timedelta(seconds=self._report_schedule.grace_period)
                 < last_success.end_dttm
             ):
                 self.set_state_and_log(
-                    ReportLogState.GRACE,
+                    ReportState.GRACE,
                     error_message=str(ReportScheduleAlertGracePeriodError()),
                 )
                 return
             self.set_state_and_log(
-                ReportLogState.NOOP, error_message="End of grace period"
+                ReportState.NOOP,
+                error_message=str(ReportScheduleAlertEndGracePeriodError()),
             )
             return
         try:
-            self.set_state_and_log(ReportLogState.WORKING)
             self._send()
-            self.set_state_and_log(ReportLogState.SUCCESS)
+            self.set_state_and_log(ReportState.SUCCESS)
         except Exception as ex:
-            self.set_state_and_log(ReportLogState.ERROR, error_message=str(ex))
+            self.set_state_and_log(ReportState.ERROR, error_message=str(ex))
 
 
 class ReportScheduleStateMachine:
+    """
+    Simple state machine for Alerts/Reports states
+    """
+
     states_cls = [ReportWorkingState, ReportNotTriggeredErrorState, ReportSuccessState]
 
     def run(
@@ -289,8 +317,11 @@ class ReportScheduleStateMachine:
         scheduled_dttm: datetime,
     ) -> None:
         for state_cls in self.states_cls:
-            if report_schedule.last_state in state_cls.current_states:
+            if (report_schedule.last_state is None and state_cls.initial) or (
+                report_schedule.last_state in state_cls.current_states
+            ):
                 state_cls(session, report_schedule, scheduled_dttm).next()
+                break
 
 
 class AsyncExecuteReportScheduleCommand(BaseCommand):
@@ -314,6 +345,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 ReportScheduleStateMachine().run(
                     session, self._model, self._scheduled_dttm
                 )
+            except CommandException as ex:
+                raise ex
             except Exception as ex:
                 raise ReportScheduleUnexpectedError(str(ex))
 
