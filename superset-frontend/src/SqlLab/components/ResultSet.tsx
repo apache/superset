@@ -334,9 +334,12 @@ export default class ResultSet extends React.PureComponent<
         });
     }
 
-    this.setState({ showSaveDatasetModal: false, newSaveDatasetName: `${this.props.query.tab} ${moment().format(
-      'MM/DD/YYYY HH:mm:ss',
-    )}`,});
+    this.setState({
+      showSaveDatasetModal: false,
+      newSaveDatasetName: `${this.props.query.tab} ${moment().format(
+        'MM/DD/YYYY HH:mm:ss',
+      )}`,
+    });
   }
 
   handleDatasetNameChange(e: React.FormEvent<HTMLInputElement>) {
