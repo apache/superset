@@ -106,7 +106,12 @@ class QueryObject:
         metrics = metrics or []
         extras = extras or {}
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
-        self.annotation_layers = annotation_layers
+        self.annotation_layers = [
+            layer
+            for layer in annotation_layers
+            # formula annotations don't affect the payload, hence can be dropped
+            if layer["annotationType"] != "FORMULA"
+        ]
         self.applied_time_extras = applied_time_extras or {}
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
@@ -236,10 +241,31 @@ class QueryObject:
             cache_dict["time_range"] = self.time_range
         if self.post_processing:
             cache_dict["post_processing"] = self.post_processing
+
+        annotation_fields = [
+            "annotationType",
+            "descriptionColumns",
+            "intervalEndColumn",
+            "name",
+            "overrides",
+            "sourceType",
+            "timeColumn",
+            "titleColumn",
+            "value",
+        ]
+        annotation_layers = [
+            {field: layer[field] for field in annotation_fields if field in layer}
+            for layer in self.annotation_layers
+        ]
+        # only add to key if there are annotations present that affect the payload
+        if annotation_layers:
+            cache_dict["annotation_layers"] = annotation_layers
+
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 
-    def json_dumps(self, obj: Any, sort_keys: bool = False) -> str:
+    @staticmethod
+    def json_dumps(obj: Any, sort_keys: bool = False) -> str:
         return json.dumps(
             obj, default=utils.json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
         )

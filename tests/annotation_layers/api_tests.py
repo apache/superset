@@ -16,8 +16,6 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-from datetime import datetime
-from typing import Optional
 import json
 
 import pytest
@@ -29,77 +27,17 @@ from superset import db
 from superset.models.annotations import Annotation, AnnotationLayer
 
 from tests.base_tests import SupersetTestCase
-
+from tests.annotation_layers.fixtures import (
+    create_annotation_layers,
+    get_end_dttm,
+    get_start_dttm,
+)
 
 ANNOTATION_LAYERS_COUNT = 10
 ANNOTATIONS_COUNT = 5
 
 
 class TestAnnotationLayerApi(SupersetTestCase):
-    def insert_annotation_layer(
-        self, name: str = "", descr: str = ""
-    ) -> AnnotationLayer:
-        annotation_layer = AnnotationLayer(name=name, descr=descr,)
-        db.session.add(annotation_layer)
-        db.session.commit()
-        return annotation_layer
-
-    def insert_annotation(
-        self,
-        layer: AnnotationLayer,
-        short_descr: str,
-        long_descr: str,
-        json_metadata: Optional[str] = "",
-        start_dttm: Optional[datetime] = None,
-        end_dttm: Optional[datetime] = None,
-    ) -> Annotation:
-        annotation = Annotation(
-            layer=layer,
-            short_descr=short_descr,
-            long_descr=long_descr,
-            json_metadata=json_metadata,
-            start_dttm=start_dttm,
-            end_dttm=end_dttm,
-        )
-        db.session.add(annotation)
-        db.session.commit()
-        return annotation
-
-    @pytest.fixture()
-    def create_annotation_layers(self):
-        """
-        Creates ANNOTATION_LAYERS_COUNT-1 layers with no annotations
-        and a final one with ANNOTATION_COUNT childs
-        :return:
-        """
-        with self.create_app().app_context():
-            annotation_layers = []
-            annotations = []
-            for cx in range(ANNOTATION_LAYERS_COUNT - 1):
-                annotation_layers.append(
-                    self.insert_annotation_layer(name=f"name{cx}", descr=f"descr{cx}")
-                )
-            layer_with_annotations = self.insert_annotation_layer(
-                "layer_with_annotations"
-            )
-            annotation_layers.append(layer_with_annotations)
-            for cx in range(ANNOTATIONS_COUNT):
-                annotations.append(
-                    self.insert_annotation(
-                        layer_with_annotations,
-                        short_descr=f"short_descr{cx}",
-                        long_descr=f"long_descr{cx}",
-                    )
-                )
-            yield annotation_layers
-
-            # rollback changes
-            for annotation_layer in annotation_layers:
-                db.session.delete(annotation_layer)
-            for annotation in annotations:
-                db.session.delete(annotation)
-            db.session.commit()
-
     @staticmethod
     def get_layer_with_annotation() -> AnnotationLayer:
         return (
@@ -421,9 +359,10 @@ class TestAnnotationLayerApi(SupersetTestCase):
         """
         Annotation API: Test get annotation
         """
+        annotation_id = 1
         annotation = (
             db.session.query(Annotation)
-            .filter(Annotation.short_descr == "short_descr1")
+            .filter(Annotation.short_descr == f"short_descr{annotation_id}")
             .one_or_none()
         )
 
@@ -436,12 +375,12 @@ class TestAnnotationLayerApi(SupersetTestCase):
 
         expected_result = {
             "id": annotation.id,
-            "end_dttm": None,
+            "end_dttm": get_end_dttm(annotation_id).isoformat(),
             "json_metadata": "",
             "layer": {"id": annotation.layer_id, "name": "layer_with_annotations"},
             "long_descr": annotation.long_descr,
             "short_descr": annotation.short_descr,
-            "start_dttm": None,
+            "start_dttm": get_start_dttm(annotation_id).isoformat(),
         }
 
         data = json.loads(rv.data.decode("utf-8"))
