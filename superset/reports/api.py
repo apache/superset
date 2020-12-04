@@ -145,7 +145,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "type",
     ]
-    search_columns = ["name", "active", "created_by", "type"]
+    search_columns = ["name", "active", "created_by", "type", "last_state"]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {"created_by", "chart", "dashboard"}
     filter_rel_fields = {
