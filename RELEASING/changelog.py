@@ -14,13 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# pylint: disable=no-value-for-parameter
+
 import csv as lib_csv
 import json
 import os
 import re
+import sys
 from dataclasses import dataclass
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 from urllib import request
 from urllib.error import HTTPError
 
@@ -46,7 +49,7 @@ class GitLog:
             return other.pr_number == self.pr_number
         return False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"[{self.pr_number}]: {self.message} {self.time} {self.author}"
 
 
@@ -75,15 +78,16 @@ class GitChangeLog:
             sleep(self._wait)
         print()
 
-    def _fetch_github_rate_limit(self) -> Dict[str, Any]:
+    @staticmethod
+    def _fetch_github_rate_limit() -> Dict[str, Any]:
         """
         Fetches current github rate limit info
         """
-        with request.urlopen(f"https://api.github.com/rate_limit") as response:
+        with request.urlopen("https://api.github.com/rate_limit") as response:
             payload = json.loads(response.read())
         return payload
 
-    def _fetch_github_pr(self, pr_number) -> Dict[str, Any]:
+    def _fetch_github_pr(self, pr_number: int) -> Dict[str, Any]:
         """
         Fetches a github PR info
         """
@@ -91,7 +95,7 @@ class GitChangeLog:
         try:
             self._wait_github_rate_limit()
             with request.urlopen(
-                f"https://api.github.com/repos/apache/incubator-superset/pulls/"
+                "https://api.github.com/repos/apache/incubator-superset/pulls/"
                 f"{pr_number}"
             ) as response:
                 payload = json.loads(response.read())
@@ -107,19 +111,20 @@ class GitChangeLog:
         github_login = self._github_login_cache.get(author_name)
         if github_login:
             return github_login
-        pr_info = self._fetch_github_pr(git_log.pr_number)
-        if pr_info:
-            github_login = pr_info["user"]["login"]
-        else:
-            github_login = author_name
+        if git_log.pr_number:
+            pr_info = self._fetch_github_pr(git_log.pr_number)
+            if pr_info:
+                github_login = pr_info["user"]["login"]
+            else:
+                github_login = author_name
         # set cache
         self._github_login_cache[author_name] = github_login
         return github_login
 
-    def _get_changelog_version_head(self):
+    def _get_changelog_version_head(self) -> str:
         return f"### {self._version} ({self._logs[0].time})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         result = f"\n{self._get_changelog_version_head()}\n"
         for i, log in enumerate(self._logs):
             github_login = self._get_github_login(log)
@@ -133,12 +138,12 @@ class GitChangeLog:
             print(f"\r {i}/{len(self._logs)}", end="", flush=True)
         return result
 
-    def __iter__(self):
-        for i, log in enumerate(self._logs):
+    def __iter__(self) -> Iterator[Dict[str, Any]]:
+        for log in self._logs:
             yield {
                 "pr_number": log.pr_number,
-                "pr_link": f"(https://github.com/apache/incubator-superset/pull/"
-                f"{log.pr_number})",
+                "pr_link": f"https://github.com/apache/incubator-superset/pull/"
+                f"{log.pr_number}",
                 "message": log.message,
                 "time": log.time,
                 "author": log.author,
@@ -166,28 +171,29 @@ class GitLogs:
     def logs(self) -> List[GitLog]:
         return self._logs
 
-    def fetch(self):
+    def fetch(self) -> None:
         self._logs = list(map(self._parse_log, self._git_logs()))[::-1]
 
     def diff(self, git_logs: "GitLogs") -> List[GitLog]:
         return [log for log in git_logs.logs if log not in self._logs]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self._git_ref}, Log count:{len(self._logs)}"
 
-    def _git_get_current_head(self) -> str:
+    @staticmethod
+    def _git_get_current_head() -> str:
         output = os.popen("git status | head -1").read()
         match = re.match("(?:HEAD detached at|On branch) (.*)", output)
         if not match:
             return ""
         return match.group(1)
 
-    def _git_checkout(self, git_ref: str):
+    def _git_checkout(self, git_ref: str) -> None:
         os.popen(f"git checkout {git_ref}").read()
         current_head = self._git_get_current_head()
         if current_head != git_ref:
             print(f"Could not checkout {git_ref}")
-            exit(1)
+            sys.exit(1)
 
     def _git_logs(self) -> List[str]:
         # let's get current git ref so we can revert it back
@@ -202,11 +208,12 @@ class GitLogs:
         self._git_checkout(current_git_ref)
         return output
 
-    def _parse_log(self, log_item: str) -> GitLog:
+    @staticmethod
+    def _parse_log(log_item: str) -> GitLog:
         pr_number = None
         split_log_item = log_item.split("|")
         # parse the PR number from the log message
-        match = re.match(".*\(\#(\d*)\)", split_log_item[4])
+        match = re.match(r".*\(\#(\d*)\)", split_log_item[4])
         if match:
             pr_number = int(match.group(1))
         return GitLog(
@@ -235,7 +242,7 @@ def print_title(message: str) -> None:
 @click.pass_context
 @click.option("--previous_version", help="The previous release version", required=True)
 @click.option("--current_version", help="The current release version", required=True)
-def cli(ctx, previous_version: str, current_version: str):
+def cli(ctx, previous_version: str, current_version: str) -> None:
     """ Welcome to change log generator  """
     previous_logs = GitLogs(previous_version)
     current_logs = GitLogs(current_version)
@@ -247,7 +254,7 @@ def cli(ctx, previous_version: str, current_version: str):
 
 @cli.command("compare")
 @click.pass_obj
-def compare(base_parameters):
+def compare(base_parameters: BaseParameters) -> None:
     """ Compares both versions (by PR) """
     previous_logs = base_parameters.previous_logs
     current_logs = base_parameters.current_logs
@@ -271,15 +278,15 @@ def compare(base_parameters):
     "--csv", help="The csv filename to export the changelog to",
 )
 @click.pass_obj
-def changelog(base_parameters, csv):
+def change_log(base_parameters: BaseParameters, csv: str) -> None:
     """ Outputs a changelog (by PR) """
     previous_logs = base_parameters.previous_logs
     current_logs = base_parameters.current_logs
     previous_diff_logs = previous_logs.diff(current_logs)
-    changelog = GitChangeLog(current_logs.git_ref, previous_diff_logs[::-1])
+    logs = GitChangeLog(current_logs.git_ref, previous_diff_logs[::-1])
     if csv:
         with open(csv, "w") as csv_file:
-            log_items = list(changelog)
+            log_items = list(logs)
             field_names = log_items[0].keys()
             writer = lib_csv.DictWriter(
                 csv_file,
@@ -289,11 +296,11 @@ def changelog(base_parameters, csv):
                 fieldnames=field_names,
             )
             writer.writeheader()
-            for item in changelog:
-                writer.writerow(item)
+            for log in logs:
+                writer.writerow(log)
     else:
         print("Fetching github usernames, this may take a while:")
-        print(changelog)
+        print(logs)
 
 
 cli()
