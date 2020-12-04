@@ -25,7 +25,7 @@ import Icon, { IconName } from 'src/components/Icon';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { Switch } from 'src/common/components/Switch';
 import FacePile from 'src/components/FacePile';
-import ListView, { Filters } from 'src/components/ListView';
+import ListView, { Filters, FilterOperators } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -73,7 +73,7 @@ function AlertList({
     () => [
       {
         id: 'type',
-        operator: 'eq',
+        operator: FilterOperators.equals,
         value: isReportEnabled ? 'Report' : 'Alert',
       },
     ],
@@ -291,16 +291,13 @@ function AlertList({
         Header: t('Created By'),
         id: 'created_by',
         input: 'select',
-        operator: 'rel_o_m',
+        operator: FilterOperators.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'report',
           'created_by',
           createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
-            ),
+            t('An error occurred while fetching created by values: %s', errMsg),
           ),
           user.userId,
         ),
@@ -310,7 +307,7 @@ function AlertList({
         Header: t('Status'),
         id: 'last_state',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperators.equals,
         unfilteredLabel: 'Any',
         selects: [
           { label: t('Success'), value: 'Success' },
@@ -322,7 +319,7 @@ function AlertList({
         Header: t('Search'),
         id: 'name',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperators.contains,
       },
     ],
     [],
