@@ -43,6 +43,9 @@ interface SaveDatasetModalProps {
 }
 
 const Styles = styled.div`
+  .smd-body {
+    margin: 0 8px;
+  }
   .smd-input {
     margin-left: 45px;
     width: 290px;
