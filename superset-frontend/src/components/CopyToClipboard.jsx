@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import copyTextToClipboard from '../utils/copy';
 
 const propTypes = {
   copyNode: PropTypes.node,
@@ -49,7 +50,6 @@ class CopyToClipboard extends React.Component {
     };
 
     // bindings
-    this.copyToClipboard = this.copyToClipboard.bind(this);
     this.resetTooltipText = this.resetTooltipText.bind(this);
     this.onMouseOut = this.onMouseOut.bind(this);
     this.onClick = this.onClick.bind(this);
@@ -87,37 +87,12 @@ class CopyToClipboard extends React.Component {
   }
 
   copyToClipboard(textToCopy) {
-    const selection = document.getSelection();
-    selection.removeAllRanges();
-    document.activeElement.blur();
-    const range = document.createRange();
-    const span = document.createElement('span');
-    span.textContent = textToCopy;
-    span.style.all = 'unset';
-    span.style.position = 'fixed';
-    span.style.top = 0;
-    span.style.clip = 'rect(0, 0, 0, 0)';
-    span.style.whiteSpace = 'pre';
-
-    document.body.appendChild(span);
-    range.selectNode(span);
-    selection.addRange(range);
-    try {
-      if (!document.execCommand('copy')) {
-        throw new Error(t('Not successful'));
-      }
-    } catch (err) {
+    copyTextToClipboard(textToCopy)
+    .catch(() => {
       this.props.addDangerToast(
         t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!'),
       );
-    }
-
-    document.body.removeChild(span);
-    if (selection.removeRange) {
-      selection.removeRange(range);
-    } else {
-      selection.removeAllRanges();
-    }
+    })
 
     this.setState({ hasCopied: true });
     this.props.onCopyEnd();

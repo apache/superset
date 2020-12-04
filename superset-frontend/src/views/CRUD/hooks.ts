@@ -24,6 +24,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import Chart, { Slice } from 'src/types/Chart';
 import { FavoriteStatus } from './types';
+import { copyToClipboard } from 'src/utils/copy';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -433,36 +434,10 @@ export const copyQueryLink = (
   addDangerToast: (arg0: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
-  const selection: Selection | null = document.getSelection();
-
-  if (selection) {
-    selection.removeAllRanges();
-    const range = document.createRange();
-    const span = document.createElement('span');
-    span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
-    span.style.position = 'fixed';
-    span.style.top = '0';
-    span.style.clip = 'rect(0, 0, 0, 0)';
-    span.style.whiteSpace = 'pre';
-
-    document.body.appendChild(span);
-    range.selectNode(span);
-    selection.addRange(range);
-
-    try {
-      if (!document.execCommand('copy')) {
-        throw new Error(t('Not successful'));
-      }
-    } catch (err) {
-      addDangerToast(t('Sorry, your browser does not support copying.'));
-    }
-
-    document.body.removeChild(span);
-    if (selection.removeRange) {
-      selection.removeRange(range);
-    } else {
-      selection.removeAllRanges();
-    }
+  copyToClipboard(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`)
+  .then(() => {
     addSuccessToast(t('Link Copied!'));
-  }
+  }).catch(() => {
+    addDangerToast(t('Sorry, your browser does not support copying.'));
+  });
 };
