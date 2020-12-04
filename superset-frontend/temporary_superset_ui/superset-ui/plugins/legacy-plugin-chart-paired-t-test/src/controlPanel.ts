@@ -52,7 +52,7 @@ export default {
       ],
     },
     {
-      label: t('Paired t-test'),
+      label: t('Parameters'),
       expanded: false,
       controlSetRows: [
         [

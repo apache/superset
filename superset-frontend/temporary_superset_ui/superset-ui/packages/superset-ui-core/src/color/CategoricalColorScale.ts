@@ -68,7 +68,7 @@ class CategoricalColorScale extends ExtensibleFunction {
    * @returns an object where the key is the data value and the value is the hex color code
    */
   getColorMap() {
-    const colorMap: { [key: string]: string } = {};
+    const colorMap: { [key: string]: string | undefined } = {};
     this.scale.domain().forEach(value => {
       colorMap[value.toString()] = this.scale(value);
     });

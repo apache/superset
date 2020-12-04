@@ -30,7 +30,7 @@ export default {
             name: 'all_columns_x',
             config: {
               type: 'SelectControl',
-              label: t('Numeric Columns'),
+              label: t('Columns'),
               default: null,
               description: t('Select the numeric columns to draw the histogram'),
               mapStateToProps: state => ({
