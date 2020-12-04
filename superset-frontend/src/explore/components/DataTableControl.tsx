@@ -41,7 +41,11 @@ export const CopyButton = styled(Button)`
   }
 `;
 
-export const CopyToClipboardButton = ({ data }: { data: object }) => (
+export const CopyToClipboardButton = ({
+  data,
+}: {
+  data?: Record<string, any>;
+}) => (
   <CopyToClipboard
     text={data ? prepareCopyToClipboardTabularData(data) : ''}
     wrapped={false}
@@ -71,24 +75,27 @@ export const FilterInput = ({
   );
 };
 
-export const RowCount = ({ data }: { data: object[] }) => (
+export const RowCount = ({ data }: { data?: Record<string, any>[] }) => (
   <RowCountLabel rowcount={data?.length ?? 0} suffix={t('rows retrieved')} />
 );
 
-export const useFilteredTableData = (filterText: string, data?: object[]) =>
+export const useFilteredTableData = (
+  filterText: string,
+  data?: Record<string, any>[],
+) =>
   useMemo(() => {
     if (!data?.length) {
       return [];
     }
     const formattedData = applyFormattingToTabularData(data);
-    return formattedData.filter((row: object) =>
+    return formattedData.filter((row: Record<string, any>) =>
       Object.values(row).some(value =>
         value.toString().toLowerCase().includes(filterText.toLowerCase()),
       ),
     );
   }, [data, filterText]);
 
-export const useTableColumns = (data?: object[]) =>
+export const useTableColumns = (data?: Record<string, any>[]) =>
   useMemo(
     () =>
       data?.length

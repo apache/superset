@@ -78,14 +78,14 @@ export const DataTablesPane = ({
   onCollapseChange,
   displayBackground,
 }: {
-  queryFormData: object;
+  queryFormData: Record<string, any>;
   tableSectionHeight: number;
   onCollapseChange: (openPanelName: string) => void;
   displayBackground: boolean;
 }) => {
   const [data, setData] = useState<{
-    [RESULT_TYPES.results]?: object[];
-    [RESULT_TYPES.samples]?: object[];
+    [RESULT_TYPES.results]?: Record<string, any>[];
+    [RESULT_TYPES.samples]?: Record<string, any>[];
   }>(NULLISH_RESULTS_STATE);
   const [isLoading, setIsLoading] = useState(NULLISH_RESULTS_STATE);
   const [error, setError] = useState(NULLISH_RESULTS_STATE);
