@@ -66,6 +66,7 @@ export default {
     },
     {
       label: t('X Axis'),
+      tabOverride: 'customize',
       expanded: true,
       controlSetRows: [
         [xAxisLabel, bottomMargin],
@@ -75,6 +76,7 @@ export default {
     },
     {
       label: t('Y Axis'),
+      tabOverride: 'customize',
       expanded: true,
       controlSetRows: [
         ['y_axis_format', yAxisBounds],

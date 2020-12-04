@@ -41,7 +41,7 @@ export default {
             name: 'all_columns_x',
             config: {
               type: 'SelectControl',
-              label: 'X',
+              label: 'X Axis',
               default: null,
               description: t('Columns to display'),
               mapStateToProps: state => ({
@@ -54,7 +54,7 @@ export default {
             name: 'all_columns_y',
             config: {
               type: 'SelectControl',
-              label: 'Y',
+              label: 'Y Axis',
               default: null,
               description: t('Columns to display'),
               mapStateToProps: state => ({
@@ -72,6 +72,7 @@ export default {
     {
       label: t('Heatmap Options'),
       expanded: true,
+      tabOverride: 'customize',
       controlSetRows: [
         ['linear_color_scheme'],
         [

@@ -27,7 +27,8 @@ export default {
       controlSetRows: [['groupby'], ['metric'], ['adhoc_filters'], ['row_limit']],
     },
     {
-      label: t('Options'),
+      label: t('Chart Options'),
+      expanded: true,
       controlSetRows: [
         [
           {

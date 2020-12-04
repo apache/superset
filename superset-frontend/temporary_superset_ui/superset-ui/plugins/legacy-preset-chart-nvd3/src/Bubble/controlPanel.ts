@@ -61,6 +61,7 @@ export default {
     {
       label: t('Chart Options'),
       expanded: true,
+      tabOverride: 'customize',
       controlSetRows: [
         ['color_scheme', 'label_colors'],
         [showLegend, null],
@@ -69,6 +70,7 @@ export default {
     {
       label: t('X Axis'),
       expanded: true,
+      tabOverride: 'customize',
       controlSetRows: [
         [xAxisLabel, leftMargin],
         [
@@ -100,6 +102,7 @@ export default {
     {
       label: t('Y Axis'),
       expanded: true,
+      tabOverride: 'customize',
       controlSetRows: [
         [yAxisLabel, bottomMargin],
         ['y_axis_format', null],

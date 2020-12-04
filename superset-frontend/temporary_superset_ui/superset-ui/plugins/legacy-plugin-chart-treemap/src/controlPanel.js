@@ -28,6 +28,7 @@ export default {
     {
       label: t('Chart Options'),
       expanded: true,
+      tabOverride: 'customize',
       controlSetRows: [
         ['color_scheme', 'label_colors'],
         [

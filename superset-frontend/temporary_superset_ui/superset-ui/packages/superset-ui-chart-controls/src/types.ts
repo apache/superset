@@ -154,7 +154,7 @@ export type InternalControlType =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControlType = InternalControlType | React.ComponentType<any>;
 
-export type TabOverride = 'data' | boolean;
+export type TabOverride = 'data' | 'customize' | boolean;
 
 /**
  * Control config specifying how chart controls appear in the control panel, all
@@ -179,7 +179,8 @@ export type TabOverride = 'data' | boolean;
  *    show a warning based on the value of another component. It's also possible to bind
  *    arbitrary data from the redux store to the component this way.
  * - tabOverride: set to 'data' if you want to force a renderTrigger to show up on the `Data`
- *    tab, otherwise `renderTrigger: true` components will show up on the `Style` tab.
+     tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL 
+     `renderTrigger: true` components will show up on the `Customize` tab.
  * - visibility: a function that uses control panel props to check whether a control should
  *    be visibile.
  */
@@ -198,7 +199,6 @@ export interface BaseControlConfig<
   error?: ReactNode;
   // override control panel state props
   mapStateToProps?: (state: ControlPanelState, control: this) => ExtraControlProps;
-  tabOverride?: TabOverride;
   visibility?: (props: ControlPanelsContainerProps) => boolean;
 }
 

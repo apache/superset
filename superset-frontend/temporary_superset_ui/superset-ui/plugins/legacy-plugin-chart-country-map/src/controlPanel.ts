@@ -27,8 +27,9 @@ export default {
       controlSetRows: [['entity'], ['metric'], ['adhoc_filters']],
     },
     {
-      label: t('Options'),
+      label: t('Chart Options'),
       expanded: true,
+      tabOverride: 'customize',
       controlSetRows: [
         [
           {
@@ -88,9 +89,9 @@ export default {
   ],
   controlOverrides: {
     entity: {
-      label: t('ISO 3166-2 codes of region/province/department'),
+      label: t('ISO 3166-2 Codes'),
       description: t(
-        "It's ISO 3166-2 of your region/province/department in your table. (see documentation for list of ISO 3166-2)",
+        'Column containing ISO 3166-2 codes of region/province/department in your table.',
       ),
     },
     metric: {
