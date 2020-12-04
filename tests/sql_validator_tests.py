@@ -214,6 +214,9 @@ class TestPrestoValidator(SupersetTestCase):
 
 class TestPostgreSQLValidator(SupersetTestCase):
     def test_valid_syntax(self):
+        if get_example_database().backend != "postgresql":
+            return
+
         mock_database = MagicMock()
         annotations = PostgreSQLValidator.validate(
             sql='SELECT 1, "col" FROM "table"', schema="", database=mock_database
@@ -221,6 +224,9 @@ class TestPostgreSQLValidator(SupersetTestCase):
         assert annotations == []
 
     def test_invalid_syntax(self):
+        if get_example_database().backend != "postgresql":
+            return
+
         mock_database = MagicMock()
         annotations = PostgreSQLValidator.validate(
             sql='SELECT 1, "col"\nFROOM "table"', schema="", database=mock_database
