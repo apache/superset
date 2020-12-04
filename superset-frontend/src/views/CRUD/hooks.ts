@@ -23,8 +23,8 @@ import { makeApi, SupersetClient, t } from '@superset-ui/core';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import Chart, { Slice } from 'src/types/Chart';
-import { FavoriteStatus } from './types';
 import copyTextToClipboard from 'src/utils/copy';
+import { FavoriteStatus } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -434,10 +434,13 @@ export const copyQueryLink = (
   addDangerToast: (arg0: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
-  copyTextToClipboard(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`)
-  .then(() => {
-    addSuccessToast(t('Link Copied!'));
-  }).catch(() => {
-    addDangerToast(t('Sorry, your browser does not support copying.'));
-  });
+  copyTextToClipboard(
+    `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+  )
+    .then(() => {
+      addSuccessToast(t('Link Copied!'));
+    })
+    .catch(() => {
+      addDangerToast(t('Sorry, your browser does not support copying.'));
+    });
 };

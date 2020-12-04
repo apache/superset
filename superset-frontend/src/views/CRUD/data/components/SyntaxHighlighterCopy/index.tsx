@@ -63,15 +63,16 @@ export default function SyntaxHighlighterCopy({
 }) {
   function copyToClipboard(textToCopy: string) {
     copyTextToClipboard(textToCopy)
-    .then(() => {
-      if (addDangerToast) {
-        addDangerToast(t('Sorry, your browser does not support copying.'));
-      }
-    }).catch(() => {
-      if (addSuccessToast) {
-        addSuccessToast(t('SQL Copied!'));
-      }
-    })
+      .then(() => {
+        if (addDangerToast) {
+          addDangerToast(t('Sorry, your browser does not support copying.'));
+        }
+      })
+      .catch(() => {
+        if (addSuccessToast) {
+          addSuccessToast(t('SQL Copied!'));
+        }
+      });
   }
   return (
     <SyntaxHighlighterWrapper>

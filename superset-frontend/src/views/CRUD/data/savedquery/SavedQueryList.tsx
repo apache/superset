@@ -155,13 +155,15 @@ function SavedQueryList({
 
   const copyQueryLink = useCallback(
     (id: number) => {
-
-      copyTextToClipboard(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`)
-      .then(() => {
-        addSuccessToast(t('Link Copied!'));
-      }).catch(() => {
-        addDangerToast(t('Sorry, your browser does not support copying.'));
-      })
+      copyTextToClipboard(
+        `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+      )
+        .then(() => {
+          addSuccessToast(t('Link Copied!'));
+        })
+        .catch(() => {
+          addDangerToast(t('Sorry, your browser does not support copying.'));
+        });
     },
     [addDangerToast, addSuccessToast],
   );
