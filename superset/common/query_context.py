@@ -26,12 +26,12 @@ from flask_babel import gettext as _
 
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
+from superset.charts.dao import ChartDAO
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
-from superset.models.slice import Slice
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
@@ -260,15 +260,14 @@ class QueryContext:
     def get_viz_annotation_data(
         annotation_layer: Dict[str, Any], force: bool
     ) -> Dict[str, Any]:
-        slice_id = annotation_layer["value"]
-        slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
-        form_data = slc.form_data.copy()
-        if not slc:
-            raise QueryObjectValidationError("The slice does not exist")
+        chart = ChartDAO.find_by_id(annotation_layer["value"])
+        form_data = chart.form_data.copy()
+        if not chart:
+            raise QueryObjectValidationError("The chart does not exist")
         try:
             viz_obj = get_viz(
-                datasource_type=slc.datasource.type,
-                datasource_id=slc.datasource.id,
+                datasource_type=chart.datasource.type,
+                datasource_id=chart.datasource.id,
                 form_data=form_data,
                 force=force,
             )
