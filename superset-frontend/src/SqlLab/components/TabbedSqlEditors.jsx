@@ -38,7 +38,7 @@ const getDatabasesIds = async () => {
     endpoint: '/api/v1/database',
   })();
 
-  return response;
+  return response.ids;
 };
 
 const propTypes = {
