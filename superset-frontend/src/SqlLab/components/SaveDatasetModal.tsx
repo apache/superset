@@ -96,8 +96,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     inputValue: string,
     option: { value: string; datasetId: number },
   ) => {
-    // We need to add "es7" to tsconfig for this to error to go way
-    // https://stackoverflow.com/questions/51811239/ts2339-property-includes-does-not-exist-on-type-string/51811417
     return option.value.includes(inputValue);
   };
 
