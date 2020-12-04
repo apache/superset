@@ -1,4 +1,4 @@
-name: build-and-test-workflow
+name: Chromatic
 
 on:
   push:
@@ -7,10 +7,11 @@ on:
     tags-ignore:
       - 'trigger-patch-test.*'
   pull_request:
+  pull_request_target:
 
 jobs:
   build:
-    name: Build and test
+    name: Build and publish
     runs-on: ubuntu-18.04
     env:
       CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}'
@@ -54,10 +55,8 @@ jobs:
         run: yarn install --frozen-lockfile
       - name: Build packages
         run: yarn build
-      - name: Run ESLint
-        run: yarn lint --quiet
-      - name: Run unit tests
-        run: yarn test
-
-      - name: Report code coverage
-        run: curl -s https://codecov.io/bash | bash
+      - name: Deploy to Chromatic
+        uses: chromaui/action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
