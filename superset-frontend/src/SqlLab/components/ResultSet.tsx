@@ -258,10 +258,17 @@ export default class ResultSet extends React.PureComponent<
         );
       });
 
+    console.log(
+      `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`,
+    );
+
     this.setState({
       showSaveDatasetModal: false,
       overwriteDataSet: false,
       datasetToOverwrite: {},
+      newSaveDatasetName: `${this.props.query.tab} ${moment().format(
+        'MM/DD/YYYY HH:mm:ss',
+      )}`,
     });
   }
 
@@ -327,7 +334,9 @@ export default class ResultSet extends React.PureComponent<
         });
     }
 
-    this.setState({ showSaveDatasetModal: false });
+    this.setState({ showSaveDatasetModal: false, newSaveDatasetName: `${this.props.query.tab} ${moment().format(
+      'MM/DD/YYYY HH:mm:ss',
+    )}`,});
   }
 
   handleDatasetNameChange(e: React.FormEvent<HTMLInputElement>) {
