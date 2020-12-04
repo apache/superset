@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, ReactNode } from 'react';
-import { styled, supersetTheme, t } from '@superset-ui/core';
+import { styled, useTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -98,6 +98,8 @@ export default function ErrorAlert({
 
   const isExpandable = ['explore', 'sqllab'].includes(source);
 
+  const theme = useTheme();
+
   return (
     <ErrorAlertDiv level={level}>
       <div className="top-row">
@@ -105,7 +107,7 @@ export default function ErrorAlert({
           <Icon
             className="icon"
             name={level === 'error' ? 'error-solid' : 'warning-solid'}
-            color={supersetTheme.colors[level].base}
+            color={theme.colors[level].base}
           />
           <strong>{title}</strong>
         </LeftSideContent>
@@ -155,7 +157,7 @@ export default function ErrorAlert({
               <Icon
                 className="icon"
                 name={level === 'error' ? 'error-solid' : 'warning-solid'}
-                color={supersetTheme.colors[level].base}
+                color={theme.colors[level].base}
               />
               <div className="title">{title}</div>
             </div>

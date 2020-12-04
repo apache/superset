@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t, supersetTheme } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 
@@ -32,6 +32,7 @@ function CertifiedIconWithTooltip({
   details,
   size = 24,
 }: CertifiedIconWithTooltipProps) {
+  const theme = useTheme();
   return (
     <TooltipWrapper
       label="certified-details"
@@ -43,7 +44,7 @@ function CertifiedIconWithTooltip({
       }
     >
       <Icon
-        color={supersetTheme.colors.primary.base}
+        color={theme.colors.primary.base}
         height={size}
         width={size}
         name="certified"

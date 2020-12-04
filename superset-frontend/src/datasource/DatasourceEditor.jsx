@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Badge, Col, Radio, Well } from 'react-bootstrap';
 import shortid from 'shortid';
-import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
+import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
@@ -69,7 +69,7 @@ const FlexRowContainer = styled.div`
 `;
 
 const EditLockContainer = styled.div`
-  font-size: ${supersetTheme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   display: flex;
   align-items: center;
   a {
@@ -649,6 +649,7 @@ class DatasourceEditor extends React.PureComponent {
 
   renderSourceFieldset() {
     const { datasource } = this.state;
+    const theme = useTheme();
     return (
       <div>
         <div className="m-l-10 m-t-20 m-b-10">
@@ -791,7 +792,7 @@ class DatasourceEditor extends React.PureComponent {
           <EditLockContainer>
             <a href="#" onClick={this.onChangeEditMode}>
               <Icon
-                color={supersetTheme.colors.grayscale.base}
+                color={theme.colors.grayscale.base}
                 name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
               />
             </a>

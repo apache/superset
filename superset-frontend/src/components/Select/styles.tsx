@@ -18,7 +18,7 @@
  */
 import React, { CSSProperties, ComponentType, ReactNode } from 'react';
 import { css, SerializedStyles, ClassNames } from '@emotion/core';
-import { supersetTheme } from '@superset-ui/core';
+import { useTheme } from '@superset-ui/core';
 import {
   Styles,
   Theme,
@@ -39,6 +39,8 @@ export const DEFAULT_CLASS_NAME_PREFIX = 'Select';
 type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
+
+const theme = useTheme();
 
 export type ThemeConfig = {
   borderRadius: number;
@@ -67,7 +69,7 @@ export type ThemeConfig = {
 export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 
 export const DEFAULT_THEME: PartialThemeConfig = {
-  borderRadius: supersetTheme.borderRadius,
+  borderRadius: theme.borderRadius,
   zIndex: 11,
   colors: {
     ...supersetColors,
