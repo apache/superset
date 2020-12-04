@@ -3,27 +3,31 @@ name: Docs
 on:
   push:
     paths:
-      - 'docs/**'
+      - "docs/**"
   pull_request:
     paths:
-      - 'docs/**'
+      - "docs/**"
 
 jobs:
   docs:
     name: build
     runs-on: ubuntu-18.04
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: npm install
-      working-directory: ./docs
-      run: |
-        npm install
-    - name: lint
-      working-directory: ./docs
-      run: |
-        npm run lint
-    - name: gatsby build
-      working-directory: ./docs
-      run: |
-        npm run build
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.6.0
+        with:
+          access_token: ${{ github.token }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: npm install
+        working-directory: ./docs
+        run: |
+          npm install
+      - name: lint
+        working-directory: ./docs
+        run: |
+          npm run lint
+      - name: gatsby build
+        working-directory: ./docs
+        run: |
+          npm run build
