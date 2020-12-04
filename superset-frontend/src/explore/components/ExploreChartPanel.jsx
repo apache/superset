@@ -20,7 +20,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import { ParentSize } from '@vx/responsive';
-import { styled } from '@superset-ui/core';
+import { styled, useTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
@@ -52,8 +52,8 @@ const propTypes = {
   triggerRender: PropTypes.bool,
 };
 
-const EXPLORE_GUTTER_HEIGHT = 5;
-const EXPLORE_GUTTER_MARGIN = 3;
+const GUTTER_SIZE_FACTOR = 1.25;
+
 const CHART_PANEL_PADDING = 30;
 
 const INITIAL_SIZES = [90, 10];
@@ -76,7 +76,7 @@ const Styles = styled.div`
     border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     width: ${({ theme }) => theme.gridUnit * 9}px;
-    margin: ${EXPLORE_GUTTER_MARGIN}px auto;
+    margin: ${({ theme }) => theme.gridUnit * GUTTER_SIZE_FACTOR}px auto;
   }
 
   .gutter.gutter-vertical {
@@ -120,6 +120,10 @@ const Styles = styled.div`
 `;
 
 const ExploreChartPanel = props => {
+  const theme = useTheme();
+  const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
+  const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
+
   const panelHeadingRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(props.standalone ? 0 : 50);
   const [splitSizes, setSplitSizes] = useState(INITIAL_SIZES);
@@ -127,8 +131,7 @@ const ExploreChartPanel = props => {
   const calcSectionHeight = percent => {
     const containerHeight = parseInt(props.height, 10) - headerHeight - 30;
     return (
-      (containerHeight * percent) / 100 -
-      (EXPLORE_GUTTER_HEIGHT / 2 + EXPLORE_GUTTER_MARGIN)
+      (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
     );
   };
 
@@ -247,9 +250,7 @@ const ExploreChartPanel = props => {
 
   const elementStyle = (dimension, elementSize, gutterSize) => {
     return {
-      [dimension]: `calc(${elementSize}% - ${
-        gutterSize + EXPLORE_GUTTER_MARGIN
-      }px)`,
+      [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
     };
   };
 
@@ -262,7 +263,7 @@ const ExploreChartPanel = props => {
         sizes={splitSizes}
         minSize={MIN_SIZES}
         direction="vertical"
-        gutterSize={EXPLORE_GUTTER_HEIGHT}
+        gutterSize={gutterHeight}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         elementStyle={elementStyle}
