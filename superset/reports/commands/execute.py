@@ -94,6 +94,7 @@ class BaseReportState:
         """
         self._report_schedule.last_state = state
         self._report_schedule.last_eval_dttm = dttm
+        self._session.merge(self._report_schedule)
         self._session.commit()
 
     def create_log(  # pylint: disable=too-many-arguments
@@ -201,6 +202,9 @@ class BaseReportState:
             raise ReportScheduleNotificationError(";".join(notification_errors))
 
     def is_in_grace_period(self) -> bool:
+        """
+        Checks if an alert is on it's grace period
+        """
         last_success = ReportScheduleDAO.find_last_success_log(
             self._report_schedule, session=self._session
         )
@@ -213,6 +217,9 @@ class BaseReportState:
         )
 
     def is_working_timeout(self) -> bool:
+        """
+        Checks if an alert is on a working timeout
+        """
         return (
             self._report_schedule.working_timeout is not None
             and self._report_schedule.last_eval_dttm is not None
