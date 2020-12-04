@@ -92,6 +92,7 @@ import { ReactComponent as JoinIcon } from 'images/icons/join.svg';
 import { ReactComponent as KeyboardIcon } from 'images/icons/keyboard.svg';
 import { ReactComponent as LayersIcon } from 'images/icons/layers.svg';
 import { ReactComponent as LightbulbIcon } from 'images/icons/lightbulb.svg';
+import { ReactComponent as LinkIcon } from 'images/icons/link.svg';
 import { ReactComponent as ListIcon } from 'images/icons/list.svg';
 import { ReactComponent as ListViewIcon } from 'images/icons/list_view.svg';
 import { ReactComponent as LocationIcon } from 'images/icons/location.svg';
@@ -120,6 +121,7 @@ import { ReactComponent as PlusSolidIcon } from 'images/icons/plus_solid.svg';
 import { ReactComponent as QueuedIcon } from 'images/icons/queued.svg';
 import { ReactComponent as RefreshIcon } from 'images/icons/refresh.svg';
 import { ReactComponent as RunningIcon } from 'images/icons/running.svg';
+import { ReactComponent as SaveIcon } from 'images/icons/save.svg';
 import { ReactComponent as SQLIcon } from 'images/icons/sql.svg';
 import { ReactComponent as SearchIcon } from 'images/icons/search.svg';
 import { ReactComponent as ServerIcon } from 'images/icons/server.svg';
@@ -215,6 +217,7 @@ export type IconName =
   | 'join'
   | 'keyboard'
   | 'layers'
+  | 'link'
   | 'lightbulb'
   | 'list'
   | 'list-view'
@@ -244,6 +247,7 @@ export type IconName =
   | 'queued'
   | 'refresh'
   | 'running'
+  | 'save'
   | 'search'
   | 'server'
   | 'share'
@@ -365,6 +369,7 @@ export const iconsRegistry: Record<
   join: JoinIcon,
   keyboard: KeyboardIcon,
   layers: LayersIcon,
+  link: LinkIcon,
   lightbulb: LightbulbIcon,
   list: ListIcon,
   location: LocationIcon,
@@ -380,6 +385,7 @@ export const iconsRegistry: Record<
   queued: QueuedIcon,
   refresh: RefreshIcon,
   running: RunningIcon,
+  save: SaveIcon,
   search: SearchIcon,
   server: ServerIcon,
   share: ShareIcon,

@@ -20,6 +20,8 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 import React from 'react';
 import { CSSTransition } from 'react-transition-group';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { FormGroup, InputGroup, Form, FormControl } from 'react-bootstrap';
 import Split from 'react-split';
@@ -39,6 +41,24 @@ import {
   Switch,
 } from 'src/common/components';
 import Icon from 'src/components/Icon';
+import {
+  addQueryEditor,
+  CtasEnum,
+  estimateQueryCost,
+  persistEditorHeight,
+  postStopQuery,
+  queryEditorSetAutorun,
+  queryEditorSetQueryLimit,
+  queryEditorSetSql,
+  queryEditorSetTemplateParams,
+  runQuery,
+  saveQuery,
+  scheduleQuery,
+  setActiveSouthPaneTab,
+  updateSavedQuery,
+  validateQuery,
+} from '../actions/sqlLab';
+
 import TemplateParamsEditor from './TemplateParamsEditor';
 import ConnectedSouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
@@ -55,7 +75,6 @@ import {
 } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
-import { CtasEnum } from '../actions/sqlLab';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -79,7 +98,7 @@ const propTypes = {
   tables: PropTypes.array.isRequired,
   editorQueries: PropTypes.array.isRequired,
   dataPreviewQueries: PropTypes.array.isRequired,
-  queryEditor: PropTypes.object.isRequired,
+  queryEditorId: PropTypes.number.isRequired,
   hideLeftBar: PropTypes.bool,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
@@ -143,7 +162,7 @@ class SqlEditor extends React.PureComponent {
   UNSAFE_componentWillMount() {
     if (this.state.autorun) {
       this.setState({ autorun: false });
-      this.props.actions.queryEditorSetAutorun(this.props.queryEditor, false);
+      this.props.queryEditorSetAutorun(this.props.queryEditor, false);
       this.startQuery();
     }
   }
@@ -171,7 +190,7 @@ class SqlEditor extends React.PureComponent {
     this.setState({ northPercent, southPercent });
 
     if (this.northPaneRef.current && this.northPaneRef.current.clientHeight) {
-      this.props.actions.persistEditorHeight(
+      this.props.persistEditorHeight(
         this.props.queryEditor,
         northPercent,
         southPercent,
@@ -237,7 +256,7 @@ class SqlEditor extends React.PureComponent {
         key: 'ctrl+t',
         descr: t('New tab'),
         func: () => {
-          this.props.actions.addQueryEditor({
+          this.props.addQueryEditor({
             ...this.props.queryEditor,
             title: t('Untitled Query'),
             sql: '',
@@ -254,14 +273,11 @@ class SqlEditor extends React.PureComponent {
   }
 
   setQueryEditorSql(sql) {
-    this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
+    this.props.queryEditorSetSql(this.props.queryEditor, sql);
   }
 
   setQueryLimit(queryLimit) {
-    this.props.actions.queryEditorSetQueryLimit(
-      this.props.queryEditor,
-      queryLimit,
-    );
+    this.props.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
   }
 
   getQueryCostEstimate() {
@@ -274,7 +290,7 @@ class SqlEditor extends React.PureComponent {
         schema: qe.schema,
         templateParams: qe.templateParams,
       };
-      this.props.actions.estimateQueryCost(query);
+      this.props.estimateQueryCost(query);
     }
   }
 
@@ -306,7 +322,7 @@ class SqlEditor extends React.PureComponent {
         schema: qe.schema,
         templateParams: qe.templateParams,
       };
-      this.props.actions.validateQuery(query);
+      this.props.validateQuery(query);
     }
   }
 
@@ -344,8 +360,8 @@ class SqlEditor extends React.PureComponent {
       ctas_method,
       updateTabState: !qe.selectedText,
     };
-    this.props.actions.runQuery(query);
-    this.props.actions.setActiveSouthPaneTab('Results');
+    this.props.runQuery(query);
+    this.props.setActiveSouthPaneTab('Results');
   }
 
   stopQuery() {
@@ -353,7 +369,7 @@ class SqlEditor extends React.PureComponent {
       this.props.latestQuery &&
       ['running', 'pending'].indexOf(this.props.latestQuery.state) >= 0
     ) {
-      this.props.actions.postStopQuery(this.props.latestQuery);
+      this.props.postStopQuery(this.props.latestQuery);
     }
   }
 
@@ -532,13 +548,9 @@ class SqlEditor extends React.PureComponent {
         </FormGroup>
       );
     }
-    const qe = this.props.queryEditor;
+    const { queryEditor: qe } = this.props;
     let limitWarning = null;
-    if (
-      this.props.latestQuery &&
-      this.props.latestQuery.results &&
-      this.props.latestQuery.results.displayLimitReached
-    ) {
+    if (this.props.latestQuery?.results?.displayLimitReached) {
       limitWarning = (
         <Tooltip
           id="tooltip"
@@ -554,6 +566,10 @@ class SqlEditor extends React.PureComponent {
         </Tooltip>
       );
     }
+    const successful = this.props.latestQuery?.state === 'success';
+    const scheduleToolTip = successful
+      ? t('Schedule the query periodically')
+      : t('You must run the query successfully first');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
@@ -566,9 +582,7 @@ class SqlEditor extends React.PureComponent {
                     : false
                 }
                 dbId={qe.dbId}
-                queryState={
-                  this.props.latestQuery && this.props.latestQuery.state
-                }
+                queryState={this.props.latestQuery?.state}
                 runQuery={this.runQuery}
                 selectedText={qe.selectedText}
                 stopQuery={this.stopQuery}
@@ -590,18 +604,20 @@ class SqlEditor extends React.PureComponent {
                   />
                 </span>
               )}
-            <span>
-              <SaveQuery
-                query={qe}
-                defaultLabel={qe.title || qe.description}
-                onSave={this.props.actions.saveQuery}
-                onUpdate={this.props.actions.updateSavedQuery}
-                saveQueryWarning={this.props.saveQueryWarning}
-              />
-            </span>
-            <span>
-              <ShareSqlLabQuery queryEditor={qe} />
-            </span>
+            {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
+              <span>
+                <ScheduleQueryButton
+                  defaultLabel={qe.title}
+                  sql={qe.sql}
+                  onSchedule={this.props.scheduleQuery}
+                  schema={qe.schema}
+                  dbId={qe.dbId}
+                  scheduleQueryWarning={this.props.scheduleQueryWarning}
+                  tooltip={scheduleToolTip}
+                  disabled={!successful}
+                />
+              </span>
+            )}
             {ctasControls && <span>{ctasControls}</span>}
             <span>
               <LimitSelectStyled>
@@ -620,7 +636,22 @@ class SqlEditor extends React.PureComponent {
             </span>
           </Form>
         </div>
-        <div className="rightItems">
+        <div
+          className="rightItems"
+          style={{ display: 'flex', 'align-items': 'center' }}
+        >
+          <span>
+            <SaveQuery
+              query={qe}
+              defaultLabel={qe.title || qe.description}
+              onSave={this.props.actions.saveQuery}
+              onUpdate={this.props.actions.updateSavedQuery}
+              saveQueryWarning={this.props.saveQueryWarning}
+            />
+          </span>
+          <span>
+            <ShareSqlLabQuery queryEditor={qe} />
+          </span>
           {limitWarning}
           {this.props.latestQuery && (
             <Timer
@@ -663,4 +694,35 @@ class SqlEditor extends React.PureComponent {
 SqlEditor.defaultProps = defaultProps;
 SqlEditor.propTypes = propTypes;
 
-export default SqlEditor;
+function mapStateToProps(state, props) {
+  const { sqlLab } = state;
+  const queryEditor = sqlLab.queryEditors.find(
+    editor => editor.id === props.queryEditorId,
+  );
+
+  return { sqlLab, ...props, queryEditor };
+}
+
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators(
+    {
+      addQueryEditor,
+      estimateQueryCost,
+      persistEditorHeight,
+      postStopQuery,
+      queryEditorSetAutorun,
+      queryEditorSetQueryLimit,
+      queryEditorSetSql,
+      queryEditorSetTemplateParams,
+      runQuery,
+      saveQuery,
+      scheduleQuery,
+      setActiveSouthPaneTab,
+      updateSavedQuery,
+      validateQuery,
+    },
+    dispatch,
+  );
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(SqlEditor);
