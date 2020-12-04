@@ -52,7 +52,6 @@ export default function AntdPluginFilterSelect(props: AntdPluginFilterSelectProp
       enableEmptyFilter &&
       !inverseSelection &&
       (value === undefined || value === null || value.length === 0);
-    console.log(enableEmptyFilter, emptyFilter);
     setExtraFormData({
       append_form_data: emptyFilter
         ? {
