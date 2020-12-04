@@ -48,8 +48,6 @@ const copyTextToClipboard = (text: string) =>
       } else {
         selection.removeAllRanges();
       }
-
-      resolve();
     }
 
     resolve();
