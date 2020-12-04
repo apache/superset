@@ -31,9 +31,8 @@ export const WeekdayPie = ({ width, height }) => {
         innerRadius: number('Inner Radius', 30),
         outerRadius: number('Outer Radius', 50),
         labelsOutside: boolean('Labels outside', true),
-        labelLine: boolean('Label line', false),
+        labelLine: boolean('Label line', true),
         showLabels: boolean('Show labels', true),
-        showLabelsThreshold: number('Percentage threshold', 0),
         showLegend: boolean('Show legend', false),
         pieLabelType: select(
           'Pie label type',
@@ -63,7 +62,6 @@ export const PopulationPie = ({ width, height }) => {
         labelsOutside: boolean('Labels outside', false),
         labelLine: boolean('Label line', false),
         showLabels: boolean('Show labels', true),
-        showLabelsThreshold: number('Percentage threshold', 5),
         showLegend: boolean('Show legend', false),
         pieLabelType: select(
           'Pie label type',
