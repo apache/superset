@@ -422,18 +422,21 @@ class DatasourceEditor extends React.PureComponent {
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
         const results = this.updateColumns(json);
-        if (results.modified.length)
+        if (results.modified.length) {
           this.props.addSuccessToast(
             t('Modified columns: %s', results.modified.join(', ')),
           );
-        if (results.removed.length)
+        }
+        if (results.removed.length) {
           this.props.addSuccessToast(
             t('Removed columns: %s', results.removed.join(', ')),
           );
-        if (results.added.length)
+        }
+        if (results.added.length) {
           this.props.addSuccessToast(
             t('New columns added: %s', results.added.join(', ')),
           );
+        }
         this.props.addSuccessToast(t('Metadata has been synced'));
         this.setState({ metadataLoading: false });
       })
@@ -716,8 +719,8 @@ class DatasourceEditor extends React.PureComponent {
                       <TextAreaControl
                         language="sql"
                         offerEditInModal={false}
-                        minLines={25}
-                        maxLines={25}
+                        minLines={20}
+                        maxLines={20}
                         readOnly={!this.state.isEditMode}
                       />
                     }

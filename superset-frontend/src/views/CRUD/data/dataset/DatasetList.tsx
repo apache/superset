@@ -167,7 +167,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             original: { kind },
           },
         }: any) => {
-          if (kind === 'physical')
+          if (kind === 'physical') {
             return (
               <TooltipWrapper
                 label="physical-dataset"
@@ -176,6 +176,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 <Icon name="dataset-physical" />
               </TooltipWrapper>
             );
+          }
 
           return (
             <TooltipWrapper
@@ -582,8 +583,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 const { virtualCount, physicalCount } = selected.reduce(
                   (acc, e) => {
                     if (e.original.kind === 'physical') acc.physicalCount += 1;
-                    else if (e.original.kind === 'virtual')
+                    else if (e.original.kind === 'virtual') {
                       acc.virtualCount += 1;
+                    }
                     return acc;
                   },
                   { virtualCount: 0, physicalCount: 0 },

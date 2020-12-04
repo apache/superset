@@ -33,6 +33,7 @@ import {
   RangePicker as AntdRangePicker,
 } from './DatePicker';
 import Badge from './Badge';
+import ProgressBar from './ProgressBar';
 
 export default {
   title: 'Common Components',
@@ -239,6 +240,10 @@ export const DateRangePicker = () => (
     use12Hours
   />
 );
+
+export const Progress = () => <ProgressBar percent={90} />;
+export const ProgressStriped = () => <ProgressBar percent={90} striped />;
+export const ProgressSuccess = () => <ProgressBar percent={100} />;
 
 export const Switch = () => (
   <>
