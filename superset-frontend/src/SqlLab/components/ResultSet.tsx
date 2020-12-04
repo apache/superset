@@ -76,6 +76,7 @@ interface ResultSetState {
   overwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
   ctasSave: boolean;
+  disableSaveAndExploreBtn: boolean;
 }
 
 // Making text render line breaks/tabs as is as monospace,
@@ -116,6 +117,8 @@ export default class ResultSet extends React.PureComponent<
       overwriteDataSet: false,
       datasetToOverwrite: {},
       ctasSave: false,
+      disableSaveAndExploreBtn: false,
+      testOptions: []
     };
 
     this.changeSearch = this.changeSearch.bind(this);
@@ -134,6 +137,15 @@ export default class ResultSet extends React.PureComponent<
     this.handleOverwriteCancel = this.handleOverwriteCancel.bind(this);
     this.handleOverwriteDataset = this.handleOverwriteDataset.bind(this);
     this.handleOverwriteDatasetOption = this.handleOverwriteDatasetOption.bind(
+      this,
+    );
+    this.handleDisableSaveAndExploreBtn = this.handleDisableSaveAndExploreBtn.bind(
+      this,
+    );
+    this.handleSaveDatasetModalSearch = this.handleSaveDatasetModalSearch.bind(
+      this,
+    );
+    this.handleFilterAutocompleteOption = this.handleFilterAutocompleteOption.bind(
       this,
     );
   }
@@ -220,10 +232,6 @@ export default class ResultSet extends React.PureComponent<
     ) {
       this.props.actions.runQuery(query, true);
     }
-  }
-
-  handleOverwriteDatasetOption(data: string, option: Record<string, any>) {
-    this.setState({ datasetToOverwrite: option });
   }
 
   async handleOverwriteDataset() {
@@ -342,6 +350,10 @@ export default class ResultSet extends React.PureComponent<
     });
   }
 
+  handleOverwriteDatasetOption(data: string, option: Record<string, any>) {
+    this.setState({ datasetToOverwrite: option });
+  }
+
   handleDatasetNameChange(e: React.FormEvent<HTMLInputElement>) {
     // @ts-expect-error
     this.setState({ newSaveDatasetName: e.target.value });
@@ -359,6 +371,46 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ overwriteDataSet: false });
   }
 
+  handleSaveDatasetModalSearch(searchText: string) {
+    const { userDatasetsOwned } = this.state;
+    const newState = !searchText
+      ? []
+      : userDatasetsOwned.map(d => ({
+          value: d.datasetName,
+          datasetId: d.datasetId,
+        }));
+
+    console.log(newState);
+    this.setState({testOptions: newState});
+  }
+
+  handleFilterAutocompleteOption = (
+    inputValue: string,
+    option: { value: string; datasetId: number },
+  ) => {
+    console.log('toooo');
+    return option.value.toLowerCase().includes(inputValue.toLowerCase());
+  };
+
+  handleDisableSaveAndExploreBtn() {
+    // console.log(this.state.saveDatasetRadioBtnState) // radio btn state 1 || 2
+    // console.log(this.state.newSaveDatasetName) // input value for save new
+    // console.log(this.state.datasetToOverwrite) // input value from options
+    const {
+      saveDatasetRadioBtnState,
+      newSaveDatasetName,
+      datasetToOverwrite,
+    } = this.state;
+
+    // console.log(newSaveDatasetName.length)
+    // console.log(Object.keys(datasetToOverwrite).length)
+
+    const disableSaveAndExploreBtn =
+      (saveDatasetRadioBtnState === 1 && newSaveDatasetName.length === 0) ||
+      (saveDatasetRadioBtnState === 2 &&
+        Object.keys(datasetToOverwrite).length === 0);
+  }
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let { data } = this.props.query.results;
@@ -366,6 +418,18 @@ export default class ResultSet extends React.PureComponent<
         ({ data } = this.state);
       }
 
+      const {
+        saveDatasetRadioBtnState,
+        newSaveDatasetName,
+        datasetToOverwrite,
+      } = this.state;
+      const disableSaveAndExploreBtn =
+        (saveDatasetRadioBtnState === 1 && newSaveDatasetName.length === 0) ||
+        (saveDatasetRadioBtnState === 2 &&
+          Object.keys(datasetToOverwrite).length === 0);
+
+      console.log('radio2', Object.keys(datasetToOverwrite).length);
+      console.log('before render', disableSaveAndExploreBtn);
       return (
         <div className="ResultSetControls">
           <SaveDatasetModal
@@ -381,6 +445,10 @@ export default class ResultSet extends React.PureComponent<
             handleOverwriteDataset={this.handleOverwriteDataset}
             handleOverwriteDatasetOption={this.handleOverwriteDatasetOption}
             defaultCreateDatasetValue={this.state.newSaveDatasetName}
+            disableSaveAndExploreBtn={disableSaveAndExploreBtn}
+            handleSaveDatasetModalSearch={this.handleSaveDatasetModalSearch}
+            filterAutocompleteOption={this.handleFilterAutocompleteOption}
+            testOptions={this.state.testOptions}
           />
           <div className="ResultSetButtons">
             {this.props.visualize &&

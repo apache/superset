@@ -40,6 +40,8 @@ interface SaveDatasetModalProps {
     option: Record<string, any>,
   ) => void;
   defaultCreateDatasetValue: string;
+  disableSaveAndExploreBtn: boolean;
+  handleSaveDatasetModalSearch: () => void;
 }
 
 const Styles = styled.div`
@@ -48,11 +50,11 @@ const Styles = styled.div`
   }
   .smd-input {
     margin-left: 45px;
-    width: 290px;
+    width: 401px;
   }
   .smd-autocomplete {
     margin-left: 8px;
-    width: 290px;
+    width: 401px;
   }
   .smd-radio {
     display: block;
@@ -76,31 +78,40 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   handleOverwriteDataset,
   handleOverwriteDatasetOption,
   defaultCreateDatasetValue,
+  disableSaveAndExploreBtn,
+  handleSaveDatasetModalSearch,
+  filterAutocompleteOption,
+  testOptions,
 }) => {
-  const [options, setOptions] = useState<
-    {
-      value: string;
-      datasetId: number;
-    }[]
-  >([]);
+  // const [options, setOptions] = useState<
+  //   {
+  //     value: string;
+  //     datasetId: number;
+  //   }[]
+  // >([]);
 
-  const onSearch = (searchText: string) => {
-    setOptions(
-      !searchText
-        ? []
-        : userDatasetsOwned.map(d => ({
-            value: d.datasetName,
-            datasetId: d.datasetId,
-          })),
-    );
-  };
+  // const onSearch = (searchText: string) => {
+  //   setOptions(
+  //     !searchText
+  //       ? []
+  //       : userDatasetsOwned
+  //           .filter(d => d.datasetName.includes(searchText))
+  //           .map(d => ({
+  //             value: d.datasetName,
+  //             datasetId: d.datasetId,
+  //         })),
+  //   );
+  // };
 
-  const filterAutocompleteOption = (
-    inputValue: string,
-    option: { value: string; datasetId: number },
-  ) => {
-    return option.value.toLowerCase().includes(inputValue.toLowerCase());
-  };
+  // const filterAutocompleteOption = (
+  //   inputValue: string,
+  //   option: { value: string; datasetId: number },
+  // ) => {
+  //   console.log('toooo')
+  //   return option.value.toLowerCase().includes(inputValue.toLowerCase());
+  // };
+
+  console.log('in saveModal', disableSaveAndExploreBtn)
 
   return (
     <StyledModal
@@ -111,9 +122,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         <>
           {!shouldOverwriteDataset && (
             <Button
-              buttonSize="sm"
+              disabled={disableSaveAndExploreBtn}
+              buttonSize="medium"
               buttonStyle="primary"
-              className="m-r-5"
               onClick={onOk}
             >
               Save &amp; Explore
@@ -121,21 +132,17 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           )}
           {shouldOverwriteDataset && (
             <>
-              <Button
-                buttonSize="sm"
-                buttonStyle="danger"
-                className="m-r-5"
-                onClick={handleOverwriteCancel}
-              >
-                Cancel
+              <Button buttonSize="medium" onClick={handleOverwriteCancel}>
+                Back
               </Button>
               <Button
-                buttonSize="sm"
+                className="md"
+                buttonSize="medium"
                 buttonStyle="primary"
-                className="m-r-5"
                 onClick={handleOverwriteDataset}
+                disabled={disableSaveAndExploreBtn}
               >
-                Ok
+                Save &amp; Explore
               </Button>
             </>
           )}
@@ -165,9 +172,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                 Overwrite existing
                 <AutoComplete
                   className="smd-autocomplete"
-                  options={options}
+                  options={testOptions}
                   onSelect={handleOverwriteDatasetOption}
-                  onSearch={onSearch}
+                  onSearch={handleSaveDatasetModalSearch}
                   placeholder="Select or type dataset name"
                   filterOption={filterAutocompleteOption}
                   disabled={saveDatasetRadioBtnState !== 2}
