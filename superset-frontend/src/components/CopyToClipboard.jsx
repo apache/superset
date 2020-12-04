@@ -88,14 +88,16 @@ class CopyToClipboard extends React.Component {
 
   copyToClipboard(textToCopy) {
     copyTextToClipboard(textToCopy)
+    .then(() => {
+      this.setState({ hasCopied: true });
+    })
     .catch(() => {
       this.props.addDangerToast(
         t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!'),
       );
+    }).finally(() => {
+      this.props.onCopyEnd();
     })
-
-    this.setState({ hasCopied: true });
-    this.props.onCopyEnd();
   }
 
   tooltipText() {
