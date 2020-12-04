@@ -14,32 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add path to logs
+"""Remove path, path_no_int, and ref from logs
 
-Revision ID: a8173232b786
-Revises: 49b5a32daba5
-Create Date: 2020-11-15 16:08:24.580764
+Revision ID: 811494c0cc23
+Revises: 8ee129739cf9
+Create Date: 2020-12-03 16:21:06.771684
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "a8173232b786"
-down_revision = "49b5a32daba5"
+revision = "811494c0cc23"
+down_revision = "8ee129739cf9"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import mysql
 
 from superset.migrations.shared import utils
 
 
 def upgrade():
-    # This migration was modified post hoc to avoid locking the large logs table
-    # during migrations.
-    pass
-
-
-def downgrade():
     with op.batch_alter_table("logs") as batch_op:
         if utils.table_has_column("logs", "path"):
             batch_op.drop_column("path")
@@ -47,3 +40,7 @@ def downgrade():
             batch_op.drop_column("path_no_int")
         if utils.table_has_column("logs", "ref"):
             batch_op.drop_column("ref")
+
+
+def downgrade():
+    pass
