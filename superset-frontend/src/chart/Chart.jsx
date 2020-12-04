@@ -157,8 +157,6 @@ class Chart extends React.PureComponent {
       queryResponse,
     } = this.props;
 
-    console.log('**** Chart renderError', queryResponse);
-
     const error = queryResponse?.errors?.[0];
     if (error) {
       const extra = error.extra || {};
