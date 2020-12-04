@@ -158,6 +158,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                   className="smd-input"
                   defaultValue={defaultCreateDatasetValue}
                   onChange={handleDatasetNameChange}
+                  disabled={saveDatasetRadioBtnState !== 1}
                 />
               </Radio>
               <Radio className="smd-radio" value={2}>
@@ -169,6 +170,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                   onSearch={onSearch}
                   placeholder="Select or type dataset name"
                   filterOption={filterAutocompleteOption}
+                  disabled={saveDatasetRadioBtnState !== 2}
                 />
               </Radio>
             </Radio.Group>
