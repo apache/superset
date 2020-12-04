@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import Tabs from 'src/common/components/Tabs';
@@ -93,15 +93,14 @@ export const DataTablesPane = ({
   const [activeTabKey, setActiveTabKey] = useState<string>(
     RESULT_TYPES.results,
   );
-  const [isRequestPending, setIsRequestPending] = useState(false);
+  const [isRequestPending, setIsRequestPending] = useState<{
+    [RESULT_TYPES.results]?: boolean;
+    [RESULT_TYPES.samples]?: boolean;
+  }>(NULLISH_RESULTS_STATE);
   const [panelOpen, setPanelOpen] = useState(false);
 
-  useEffect(() => {
-    setIsRequestPending(true);
-  }, [queryFormData]);
-
-  useEffect(() => {
-    const getData = (resultType: string) => {
+  const getData = useCallback(
+    (resultType: string) => {
       setIsLoading(prevIsLoading => ({ ...prevIsLoading, [resultType]: true }));
       return getChartDataRequest({
         formData: queryFormData,
@@ -133,13 +132,37 @@ export const DataTablesPane = ({
             }));
           });
         });
-    };
-    if (panelOpen && isRequestPending) {
-      setIsRequestPending(false);
+    },
+    [queryFormData],
+  );
+
+  useEffect(() => {
+    setIsRequestPending({
+      [RESULT_TYPES.results]: true,
+      [RESULT_TYPES.samples]: true,
+    });
+  }, [queryFormData]);
+
+  useEffect(() => {
+    if (panelOpen && isRequestPending[RESULT_TYPES.results]) {
+      setIsRequestPending(prevState => ({
+        ...prevState,
+        [RESULT_TYPES.results]: false,
+      }));
       getData(RESULT_TYPES.results);
+    }
+    if (
+      panelOpen &&
+      isRequestPending[RESULT_TYPES.samples] &&
+      activeTabKey === RESULT_TYPES.samples
+    ) {
+      setIsRequestPending(prevState => ({
+        ...prevState,
+        [RESULT_TYPES.samples]: false,
+      }));
       getData(RESULT_TYPES.samples);
     }
-  }, [queryFormData, panelOpen, isRequestPending]);
+  }, [panelOpen, isRequestPending, getData, activeTabKey]);
 
   const filteredData = {
     [RESULT_TYPES.results]: useFilteredTableData(
