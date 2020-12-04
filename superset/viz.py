@@ -496,7 +496,6 @@ class BaseViz:
         is_loaded = False
         stacktrace = None
         df = None
-        cached_dttm = datetime.utcnow().isoformat().split(".")[0]
         if cache_key and cache_manager.data_cache and not self.force:
             cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
@@ -516,13 +515,12 @@ class BaseViz:
                     )
                 logger.info("Serving from cache")
 
-        if self.force_cached and not is_loaded:
-            logger.warning(
-                f"force_cached (viz.py): value not found for cache key {cache_key}"
-            )
-            raise CacheLoadError(_("Cached value not found"))
-
         if query_obj and not is_loaded:
+            if self.force_cached:
+                logger.warning(
+                    f"force_cached (viz.py): value not found for cache key {cache_key}"
+                )
+                raise CacheLoadError(_("Cached value not found"))
             try:
                 invalid_columns = [
                     col
