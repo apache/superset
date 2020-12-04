@@ -157,6 +157,7 @@ class SupersetAppInitializer:
             AlertLogModelView,
             AlertModelView,
             AlertObservationModelView,
+            AlertReportModelView,
         )
         from superset.views.annotations import (
             AnnotationLayerModelView,
@@ -211,12 +212,16 @@ class SupersetAppInitializer:
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(SavedQueryRestApi)
-        if feature_flag_manager.is_feature_enabled("ALERTS_REPORTS"):
+        if feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
             appbuilder.add_api(ReportScheduleRestApi)
             appbuilder.add_api(ReportExecutionLogRestApi)
         #
         # Setup regular views
         #
+        if appbuilder.app.config["LOGO_TARGET_PATH"]:
+            appbuilder.add_link(
+                "Home", label=__("Home"), href="/superset/welcome",
+            )
         appbuilder.add_view(
             AnnotationLayerModelView,
             "Annotation Layers",
@@ -339,8 +344,8 @@ class SupersetAppInitializer:
         )
         appbuilder.add_link(
             "Query Search",
-            label=_("Query Search"),
-            href="/superset/sqllab#search",
+            label=_("Query History"),
+            href="/superset/sqllab/history",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
@@ -421,8 +426,10 @@ class SupersetAppInitializer:
                 category_label=__("Manage"),
                 icon="fa-exclamation-triangle",
             )
-            appbuilder.add_view_no_menu(AlertObservationModelView)
             appbuilder.add_view_no_menu(AlertLogModelView)
+            appbuilder.add_view_no_menu(AlertObservationModelView)
+            if feature_flag_manager.is_feature_enabled("SIP_34_ALERTS_UI"):
+                appbuilder.add_view_no_menu(AlertReportModelView)
 
         #
         # Conditionally add Access Request Model View

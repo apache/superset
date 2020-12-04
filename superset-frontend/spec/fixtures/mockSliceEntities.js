@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { datasourceId } from '../../../fixtures/mockDatasource';
+import { datasourceId } from 'spec/fixtures/mockDatasource';
 import { sliceId } from './mockChartQueries';
 
 export const filterId = 127;

@@ -111,7 +111,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     raise Exception(f"Unknown type {type_}!")
 
 
-class PrestoEngineSpec(BaseEngineSpec):
+class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-methods
     engine = "presto"
     engine_name = "Presto"
 
@@ -1090,3 +1090,8 @@ class PrestoEngineSpec(BaseEngineSpec):
                 )
             )
         ]
+
+    @classmethod
+    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
+        """Pessimistic readonly, 100% sure statement won't mutate anything"""
+        return super().is_readonly_query(parsed_query) or parsed_query.is_show()

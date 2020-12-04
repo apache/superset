@@ -33,8 +33,8 @@ import {
   DASHBOARD_GRID_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
-import WithDragDropContext from '../../helpers/WithDragDropContext';
-import { mockStoreWithTabs } from '../../fixtures/mockStore';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
+import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
 
 describe('Header', () => {
   const props = {

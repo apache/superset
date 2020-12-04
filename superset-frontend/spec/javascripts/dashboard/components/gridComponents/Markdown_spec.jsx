@@ -30,9 +30,9 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
-import { mockStore } from '../../fixtures/mockStore';
-import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';
-import WithDragDropContext from '../../helpers/WithDragDropContext';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
+import { mockStore } from 'spec/fixtures/mockStore';
+import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 
 describe('Markdown', () => {
   const props = {

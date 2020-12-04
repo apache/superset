@@ -23,6 +23,7 @@ from marshmallow.validate import Length, Range
 from superset.common.query_context import QueryContext
 from superset.utils import schema as utils
 from superset.utils.core import (
+    AnnotationType,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
@@ -783,9 +784,7 @@ class ChartDataExtrasSchema(Schema):
 class AnnotationLayerSchema(Schema):
     annotationType = fields.String(
         description="Type of annotation layer",
-        validate=validate.OneOf(
-            choices=("EVENT", "FORMULA", "INTERVAL", "TIME_SERIES",)
-        ),
+        validate=validate.OneOf(choices=[ann.value for ann in AnnotationType]),
     )
     color = fields.String(description="Layer color", allow_none=True,)
     descriptionColumns = fields.List(

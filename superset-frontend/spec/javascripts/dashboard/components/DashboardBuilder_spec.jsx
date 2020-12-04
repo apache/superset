@@ -33,13 +33,13 @@ import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
 
-import WithDragDropContext from '../helpers/WithDragDropContext';
 import {
   dashboardLayout as undoableDashboardLayout,
   dashboardLayoutWithTabs as undoableDashboardLayoutWithTabs,
-} from '../fixtures/mockDashboardLayout';
+} from 'spec/fixtures/mockDashboardLayout';
 
-import { mockStore, mockStoreWithTabs } from '../fixtures/mockStore';
+import { mockStore, mockStoreWithTabs } from 'spec/fixtures/mockStore';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 
 const dashboardLayout = undoableDashboardLayout.present;
 const layoutWithTabs = undoableDashboardLayoutWithTabs.present;

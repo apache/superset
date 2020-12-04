@@ -25,12 +25,14 @@ import Tabs, { EditableTabs } from './Tabs';
 import AntdPopover from './Popover';
 import { Tooltip as AntdTooltip } from './Tooltip';
 import { Menu } from '.';
+import { Switch as AntdSwitch } from './Switch';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
 import {
   DatePicker as AntdDatePicker,
   RangePicker as AntdRangePicker,
 } from './DatePicker';
+import ProgressBar from './ProgressBar';
 
 export default {
   title: 'Common Components',
@@ -236,4 +238,16 @@ export const DateRangePicker = () => (
     showTime={{ format: 'hh:mm a' }}
     use12Hours
   />
+);
+
+export const Progress = () => <ProgressBar percent={90} />;
+export const ProgressStriped = () => <ProgressBar percent={90} striped />;
+export const ProgressSuccess = () => <ProgressBar percent={100} />;
+
+export const Switch = () => (
+  <>
+    <AntdSwitch defaultChecked />
+    <br />
+    <AntdSwitch size="small" defaultChecked />
+  </>
 );

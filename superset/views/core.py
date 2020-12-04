@@ -2306,7 +2306,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
             # Explicitly forget the task to ensure the task metadata is removed from the
             # Celery results backend in a timely manner.
-            task.forget()
+            try:
+                task.forget()
+            except NotImplementedError:
+                logger.warning(
+                    "Unable to forget Celery task as backend"
+                    "does not support this operation"
+                )
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Query %i: %s", query.id, str(ex))
             msg = _(
@@ -2840,11 +2846,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/sqllab/history/", methods=["GET"])
     @event_logger.log_this
-    def sqllab_search(self) -> FlaskResponse:
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_QUERY_SEARCH_UI")
-        ):
+    def sqllab_history(self) -> FlaskResponse:
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
             return redirect("/superset/sqllab#search", code=307)
 
         return super().render_app_template()

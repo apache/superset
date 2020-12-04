@@ -19,7 +19,8 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
-import { Alert, ProgressBar } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
+import ProgressBar from 'src/common/components/ProgressBar';
 
 import FilterableTable from 'src/components/FilterableTable/FilterableTable';
 import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';

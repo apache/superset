@@ -22,6 +22,7 @@ import { makeApi, SupersetClient, t } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
+import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import { FavoriteStatus } from './types';
 
@@ -40,6 +41,7 @@ export function useListViewResource<D extends object = any>(
   handleErrorMsg: (errorMsg: string) => void,
   infoEnable = true,
   defaultCollectionValue: D[] = [],
+  baseFilters: FilterValue[] = [], // must be memoized
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -108,13 +110,13 @@ export function useListViewResource<D extends object = any>(
         loading: true,
       });
 
-      const filterExps = filterValues.map(
-        ({ id: col, operator: opr, value }) => ({
+      const filterExps = baseFilters
+        .concat(filterValues)
+        .map(({ id: col, operator: opr, value }) => ({
           col,
           opr,
           value,
-        }),
-      );
+        }));
 
       const queryParams = rison.encode({
         order_column: sortBy[0].id,
@@ -148,7 +150,7 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [],
+    [baseFilters.length ? baseFilters : null],
   );
 
   return {

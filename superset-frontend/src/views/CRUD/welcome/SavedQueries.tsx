@@ -214,8 +214,9 @@ const SavedQueries = ({
       )}
       <Menu.Item
         onClick={() => {
-          if (query.id)
+          if (query.id) {
             copyQueryLink(query.id, addDangerToast, addSuccessToast);
+          }
         }}
       >
         {t('Share')}
