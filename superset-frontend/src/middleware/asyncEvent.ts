@@ -25,12 +25,6 @@ import {
   parseErrorJson,
 } from '../utils/getClientErrorObject';
 
-type AsyncEventOptions = {
-  getPendingComponents: (state: any) => any[];
-  successAction: (componentId: number, componentData: any) => { type: string };
-  errorAction: (componentId: number, response: any) => { type: string };
-};
-
 export type AsyncEvent = {
   id: string;
   channel_id: string;
@@ -41,6 +35,13 @@ export type AsyncEvent = {
   result_url: string;
 };
 
+type AsyncEventOptions = {
+  getPendingComponents: (state: any) => any[];
+  successAction: (componentId: number, componentData: any) => { type: string };
+  errorAction: (componentId: number, response: any) => { type: string };
+  processEventsCallback?: (events: AsyncEvent[]) => void; // this is currently used only for tests
+};
+
 type CachedDataResponse = {
   componentId: number;
   status: string;
@@ -49,7 +50,12 @@ type CachedDataResponse = {
 
 const initAsyncEvents = (options: AsyncEventOptions) => {
   const POLLING_DELAY = 500;
-  const { getPendingComponents, successAction, errorAction } = options;
+  const {
+    getPendingComponents,
+    successAction,
+    errorAction,
+    processEventsCallback,
+  } = options;
 
   const middleware: Middleware = <S>(store: MiddlewareAPI<S>) => (
     next: Dispatch<S>,
@@ -61,7 +67,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
       DONE: 'done',
     };
     const LOCALSTORAGE_KEY = 'last_async_event_id';
-    const pollingUrl = '/api/v1/async_event/';
+    const POLLING_URL = '/api/v1/async_event/';
     let lastReceivedEventId: string | null;
 
     try {
@@ -74,17 +80,13 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
       lastEventId: string | null,
     ): Promise<AsyncEvent[]> => {
       const url = lastEventId
-        ? `${pollingUrl}?last_id=${lastEventId}`
-        : pollingUrl;
-      const response = await fetch(url);
+        ? `${POLLING_URL}?last_id=${lastEventId}`
+        : POLLING_URL;
+      const { json } = await SupersetClient.get({
+        endpoint: url,
+      });
 
-      if (!response.ok) {
-        const message = `An error has occured: ${response.status}`;
-        throw new Error(message);
-      }
-
-      const data = await response.json();
-      return data.result;
+      return json.result;
     };
 
     const fetchCachedData = async (
@@ -118,52 +120,59 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
     const processEvents = async () => {
       const state = store.getState();
       const queuedComponents = getPendingComponents(state);
-      if (queuedComponents.length) {
+      let events: AsyncEvent[] = [];
+      if (queuedComponents && queuedComponents.length) {
         try {
-          const events = await fetchEvents(lastReceivedEventId);
-          if (!events || !events.length) {
-            return setTimeout(processEvents, POLLING_DELAY);
-          }
-          const componentsByJobId = queuedComponents.reduce((acc, item) => {
-            acc[item.asyncJobId] = item;
-            return acc;
-          }, {});
-          const fetchDataEvents: Promise<CachedDataResponse>[] = [];
-          events.forEach((asyncEvent: AsyncEvent) => {
-            const component = componentsByJobId[asyncEvent.job_id];
-            if (!component) {
-              console.warn('component not found for job_id', asyncEvent.job_id);
-              return false;
-            }
-            const componentId = component.id;
-            switch (asyncEvent.status) {
-              case JOB_STATUS.DONE:
-                fetchDataEvents.push(fetchCachedData(asyncEvent, componentId));
-                break;
-              case JOB_STATUS.ERROR:
-                store.dispatch(
-                  errorAction(componentId, parseErrorJson(asyncEvent)),
+          events = await fetchEvents(lastReceivedEventId);
+          if (events && events.length) {
+            const componentsByJobId = queuedComponents.reduce((acc, item) => {
+              acc[item.asyncJobId] = item;
+              return acc;
+            }, {});
+            const fetchDataEvents: Promise<CachedDataResponse>[] = [];
+            events.forEach((asyncEvent: AsyncEvent) => {
+              const component = componentsByJobId[asyncEvent.job_id];
+              if (!component) {
+                console.warn(
+                  'component not found for job_id',
+                  asyncEvent.job_id,
                 );
-                break;
-              default:
-                console.warn('received event with status', asyncEvent.status);
-            }
+                return false;
+              }
+              const componentId = component.id;
+              switch (asyncEvent.status) {
+                case JOB_STATUS.DONE:
+                  fetchDataEvents.push(
+                    fetchCachedData(asyncEvent, componentId),
+                  );
+                  break;
+                case JOB_STATUS.ERROR:
+                  store.dispatch(
+                    errorAction(componentId, parseErrorJson(asyncEvent)),
+                  );
+                  break;
+                default:
+                  console.warn('received event with status', asyncEvent.status);
+              }
 
-            return setLastId(asyncEvent);
-          });
+              return setLastId(asyncEvent);
+            });
 
-          const fetchResults = await Promise.all(fetchDataEvents);
-          fetchResults.forEach(result => {
-            if (result.status === 'success') {
-              store.dispatch(successAction(result.componentId, result.data));
-            } else {
-              store.dispatch(errorAction(result.componentId, result.data));
-            }
-          });
+            const fetchResults = await Promise.all(fetchDataEvents);
+            fetchResults.forEach(result => {
+              if (result.status === 'success') {
+                store.dispatch(successAction(result.componentId, result.data));
+              } else {
+                store.dispatch(errorAction(result.componentId, result.data));
+              }
+            });
+          }
         } catch (err) {
-          console.error(err);
+          console.warn(err);
         }
       }
+
+      if (processEventsCallback) processEventsCallback(events);
 
       return setTimeout(processEvents, POLLING_DELAY);
     };
