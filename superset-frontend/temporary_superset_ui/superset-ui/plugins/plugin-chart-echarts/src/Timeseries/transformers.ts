@@ -93,11 +93,10 @@ export function transformSeries(
     areaStyle: {
       opacity: forecastSeries.type === ForecastSeriesEnum.ForecastUpper || area ? opacity : 0,
     },
-    symbolSize:
+    showSymbol:
       !isConfidenceBand &&
-      (plotType === 'scatter' || (forecastEnabled && isObservation) || markerEnabled)
-        ? markerSize
-        : 0,
+      (plotType === 'scatter' || (forecastEnabled && isObservation) || markerEnabled),
+    symbolSize: markerSize,
   };
 }
 

@@ -67,10 +67,9 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     labelLine = false,
     metric,
     numberFormat,
-    outerRadius = 50,
+    outerRadius = 80,
     pieLabelType = 'value',
     showLabels = true,
-    showLabelsThreshold = 5,
     showLegend = false,
   } = formData as PieChartFormData;
   const { label: metricLabel } = convertMetric(metric);
@@ -91,7 +90,6 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   });
 
   const formatter = (params: { name: string; value: number; percent: number }) => {
-    if (params.percent < showLabelsThreshold) return '';
     return formatPieLabel({ params, numberFormatter, pieLabelType });
   };
 
@@ -134,7 +132,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
         radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
         center: ['50%', '50%'],
         avoidLabelOverlap: true,
-        labelLine: labelLine ? { show: true } : { show: false },
+        labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
         label: labelsOutside
           ? {
               ...defaultLabel,

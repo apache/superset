@@ -122,20 +122,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'show_labels_threshold',
-            config: {
-              type: 'TextControl',
-              label: t('Percentage threshold'),
-              renderTrigger: true,
-              isFloat: true,
-              default: 5,
-              description: t('Minimum threshold in percentage points for showing labels.'),
-            },
-          },
-          noopControl,
-        ],
         ['color_scheme', noopControl],
         [
           {
@@ -147,7 +133,7 @@ const config: ControlPanelConfig = {
               min: 10,
               max: 100,
               step: 1,
-              default: 50,
+              default: 80,
               description: t('Outer edge of Pie chart'),
             },
           },
