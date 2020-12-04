@@ -31,6 +31,7 @@ const Badge = styled((
   { textColor, ...props }: BadgeProps,
 ) => <AntdBadge {...props} />)`
   & > sup {
+    padding: 0 0.35px 0 0;
     background: ${({ theme, color }) => color || theme.colors.primary.base};
     color: ${({ theme, textColor }) =>
       textColor || theme.colors.grayscale.light5};
