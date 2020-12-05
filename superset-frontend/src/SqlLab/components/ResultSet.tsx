@@ -52,6 +52,11 @@ const EXPLORE_CHART_DEFAULT = {
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
+interface DatasetOption {
+  datasetId: number;
+  datasetName: string;
+}
+
 interface ResultSetProps {
   actions: Record<string, any>;
   cache?: boolean;
@@ -71,7 +76,7 @@ interface ResultSetState {
   data: Record<string, any>[];
   showSaveDatasetModal: boolean;
   newSaveDatasetName: string;
-  userDatasetsOwned: Array<Record<string, any>>[];
+  userDatasetsOwned: DatasetOption[];
   saveDatasetRadioBtnState: number;
   overwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
@@ -191,6 +196,10 @@ export default class ResultSet extends React.PureComponent<
       this.fetchResults(nextProps.query);
     }
   }
+
+  handleOnChangeAutoComplete = () => {
+    this.setState({ datasetToOverwrite: {} });
+  };
 
   clearQueryResults(query: Query) {
     this.props.actions.clearQueryResults(query);
@@ -391,10 +400,6 @@ export default class ResultSet extends React.PureComponent<
     option: { value: string; datasetId: number },
   ) => {
     return option.value.toLowerCase().includes(inputValue.toLowerCase());
-  };
-
-  handleOnChangeAutoComplete = () => {
-    this.setState({ datasetToOverwrite: {} });
   };
 
   renderControls() {
