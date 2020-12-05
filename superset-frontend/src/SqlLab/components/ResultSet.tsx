@@ -86,7 +86,6 @@ interface ResultSetState {
   overwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
   ctasSave: boolean;
-  disableSaveAndExploreBtn: boolean;
   saveModalAutocompleteValue: string;
   userDatasetOptions: DatasetOptionAutocomplete[];
 }
