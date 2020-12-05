@@ -74,7 +74,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   onOk,
   onHide,
   handleDatasetNameChange,
-  userDatasetsOwned,
   handleSaveDatasetRadioBtnState,
   saveDatasetRadioBtnState,
   shouldOverwriteDataset,
@@ -88,35 +87,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   userDatasetOptions,
   onChangeAutoComplete,
 }) => {
-  // const [options, setOptions] = useState<
-  //   {
-  //     value: string;
-  //     datasetId: number;
-  //   }[]
-  // >([]);
-
-  // const onSearch = (searchText: string) => {
-  //   setOptions(
-  //     !searchText
-  //       ? []
-  //       : userDatasetsOwned
-  //           .filter(d => d.datasetName.includes(searchText))
-  //           .map(d => ({
-  //             value: d.datasetName,
-  //             datasetId: d.datasetId,
-  //         })),
-  //   );
-  // };
-
-  // const filterAutocompleteOption = (
-  //   inputValue: string,
-  //   option: { value: string; datasetId: number },
-  // ) => {
-  //   console.log('toooo')
-  //   return option.value.toLowerCase().includes(inputValue.toLowerCase());
-  // };
-
-  console.log('in saveModal', disableSaveAndExploreBtn)
 
   return (
     <StyledModal
