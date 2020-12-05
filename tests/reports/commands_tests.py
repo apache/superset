@@ -535,11 +535,11 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
             .order_by(ReportExecutionLog.start_dttm)
             .all()
         )
+    db.session.commit()
     assert len(logs) == 1
     assert logs[0].error_message == ReportScheduleWorkingTimeoutError.message
     assert logs[0].state == ReportState.ERROR
 
-    db.session.commit()
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 
 
