@@ -607,7 +607,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/screenshot/<digest>/", methods=["GET"])
     @protect()
-    @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(log_to_statsd=False)
