@@ -29,10 +29,12 @@ interface SaveDatasetModalProps {
   onOk: () => void;
   onHide: () => void;
   handleDatasetNameChange: (e: React.FormEvent<HTMLInputElement>) => void;
-  userDatasetsOwned: Array<Record<string, any>>;
+  handleSaveDatasetModalSearch: (searchText: string) => void;
+  filterAutocompleteOption: (
+    inputValue: string,
+    option: { value: string; datasetId: number },
+  ) => void;
   handleSaveDatasetRadioBtnState: (e: RadioChangeEvent) => void;
-  saveDatasetRadioBtnState: number;
-  shouldOverwriteDataset: boolean;
   handleOverwriteCancel: () => void;
   handleOverwriteDataset: () => void;
   handleOverwriteDatasetOption: (
@@ -41,7 +43,9 @@ interface SaveDatasetModalProps {
   ) => void;
   defaultCreateDatasetValue: string;
   disableSaveAndExploreBtn: boolean;
-  handleSaveDatasetModalSearch: () => void;
+  saveDatasetRadioBtnState: number;
+  shouldOverwriteDataset: boolean;
+  userDatasetsOwned: Array<Record<string, any>>;
 }
 
 const Styles = styled.div`
