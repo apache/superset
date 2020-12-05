@@ -41,6 +41,7 @@ interface SaveDatasetModalProps {
     data: string,
     option: Record<string, any>,
   ) => void;
+  onChangeAutoComplete: () => void;
   defaultCreateDatasetValue: string;
   disableSaveAndExploreBtn: boolean;
   saveDatasetRadioBtnState: number;
