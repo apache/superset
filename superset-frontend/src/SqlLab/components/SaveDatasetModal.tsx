@@ -81,7 +81,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   disableSaveAndExploreBtn,
   handleSaveDatasetModalSearch,
   filterAutocompleteOption,
-  testOptions,
+  userDatasetOptions,
   onChangeAutoComplete,
 }) => {
   // const [options, setOptions] = useState<
@@ -173,7 +173,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                 Overwrite existing
                 <AutoComplete
                   className="smd-autocomplete"
-                  options={testOptions}
+                  options={userDatasetOptions}
                   onSelect={handleOverwriteDatasetOption}
                   onSearch={handleSaveDatasetModalSearch}
                   onChange={onChangeAutoComplete}

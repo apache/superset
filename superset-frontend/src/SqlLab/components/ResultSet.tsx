@@ -436,7 +436,7 @@ export default class ResultSet extends React.PureComponent<
             disableSaveAndExploreBtn={disableSaveAndExploreBtn}
             handleSaveDatasetModalSearch={this.handleSaveDatasetModalSearch}
             filterAutocompleteOption={this.handleFilterAutocompleteOption}
-            testOptions={this.state.userDatasetOptions}
+            userDatasetOptions={this.state.userDatasetOptions}
             onChangeAutoComplete={this.handleOnChangeAutoComplete}
           />
           <div className="ResultSetButtons">
