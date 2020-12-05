@@ -174,16 +174,17 @@ function AlertList({
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => {}; // handleAnnotationEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
-          const hanldView = () => gotoExecutionLog(original.id, original.type);
+          const hanldGotoExecutionLog = () =>
+            gotoExecutionLog(original.id, original.type);
 
           const actions = [
             canEdit
               ? {
-                  label: 'preview-action',
+                  label: 'execution-log-action',
                   tooltip: t('Execution Log'),
                   placement: 'bottom',
                   icon: 'note' as IconName,
-                  onClick: hanldView,
+                  onClick: hanldGotoExecutionLog,
                 }
               : null,
             canEdit
