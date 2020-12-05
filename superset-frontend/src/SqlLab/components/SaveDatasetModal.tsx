@@ -88,7 +88,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   userDatasetOptions,
   onChangeAutoComplete,
 }) => {
-
   return (
     <StyledModal
       show={visible}

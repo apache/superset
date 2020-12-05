@@ -57,6 +57,11 @@ interface DatasetOption {
   datasetName: string;
 }
 
+interface DatasetOptionAutocomplete {
+  value: string;
+  datasetId: number;
+}
+
 interface ResultSetProps {
   actions: Record<string, any>;
   cache?: boolean;
@@ -83,6 +88,7 @@ interface ResultSetState {
   ctasSave: boolean;
   disableSaveAndExploreBtn: boolean;
   saveModalAutocompleteValue: string;
+  userDatasetOptions: DatasetOptionAutocomplete[];
 }
 
 // Making text render line breaks/tabs as is as monospace,
@@ -392,7 +398,7 @@ export default class ResultSet extends React.PureComponent<
           datasetId: d.datasetId,
         }));
 
-    this.setState({userDatasetOptions: userDatasets});
+    this.setState({ userDatasetOptions: userDatasets });
   }
 
   handleFilterAutocompleteOption = (
@@ -409,6 +415,7 @@ export default class ResultSet extends React.PureComponent<
         ({ data } = this.state);
       }
 
+      // Added compute logic to stop user from being able to Save & Explore
       const {
         saveDatasetRadioBtnState,
         newSaveDatasetName,
