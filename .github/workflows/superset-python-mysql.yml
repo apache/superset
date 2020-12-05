@@ -1,7 +1,13 @@
 # Python MySQL unit tests
 name: Python MySQL
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "!dependabot/npm_and_yarn/**"
+  pull_request:
+    branches:
+      - "!dependabot/npm_and_yarn/**"
 
 jobs:
   test-mysql:

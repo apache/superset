@@ -1,7 +1,13 @@
 # Python Postgres unit tests
 name: Python Postgres
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "!dependabot/npm_and_yarn/**"
+  pull_request:
+    branches:
+      - "!dependabot/npm_and_yarn/**"
 
 jobs:
   test-postgres:

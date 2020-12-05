@@ -1,7 +1,13 @@
 # Python Presto/Hive unit tests
 name: Python Presto/Hive
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "!dependabot/npm_and_yarn/**"
+  pull_request:
+    branches:
+      - "!dependabot/npm_and_yarn/**"
 
 jobs:
   test-postgres-presto:
