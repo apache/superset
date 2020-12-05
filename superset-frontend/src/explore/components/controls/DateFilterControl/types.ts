@@ -35,7 +35,7 @@ export type DateTimeGrainType =
   | 'day'
   | 'week'
   | 'month'
-  | 'year'
+  | 'year';
 
 export type CustomRangeKey =
   | 'sinceMode'
@@ -47,14 +47,14 @@ export type CustomRangeKey =
   | 'untilGrain'
   | 'untilGrainValue'
   | 'anchorMode'
-  | 'anchorValue'
+  | 'anchorValue';
 
 export type CustomRangeType = {
-  sinceMode: 'relative' | 'specific' | 'now';
+  sinceMode: string;
   sinceDatetime: string;
   sinceGrain: string;
   sinceGrainValue: number;
-  untilMode: 'relative' | 'specific' | 'now';
+  untilMode: string;
   untilDatetime: string;
   untilGrain: string;
   untilGrainValue: number;

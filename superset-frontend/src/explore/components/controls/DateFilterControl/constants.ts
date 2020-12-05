@@ -73,6 +73,8 @@ export const UNTIL_GRAIN_OPTIONS: SelectOptionType[] = GRAIN_OPTIONS.map(
 export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
   { value: 'specific', label: t('Specific Date/Time') },
   { value: 'relative', label: t('Relative Date/Time') },
+  { value: 'now', label: t('Now') },
+  { value: 'today', label: t('Midnight') },
 ];
 
 export const UNTIL_MODE_OPTIONS: SelectOptionType[] = [...SINCE_MODE_OPTIONS];

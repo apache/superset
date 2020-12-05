@@ -65,6 +65,7 @@ const DEFAULT_UNTIL = moment().utc().startOf('day').format(MOMENT_FORMAT);
 
 const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
   const splitDateRange = timeRange.split(SEPARATOR);
+  const DATETIME_CONSTANT = ['now', 'today'];
   const defaultCustomRange: CustomRangeType = {
     sinceDatetime: DEFAULT_SINCE,
     sinceMode: 'relative',
@@ -95,7 +96,7 @@ const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
     'i',
   );
   const ISO8601_AND_CONSTANT = RegExp(
-    String.raw`^${iso8601}|${datetimeConstant}$`,
+    String.raw`^${iso8601}$|^${datetimeConstant}$`,
     'i',
   );
 
@@ -107,13 +108,15 @@ const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
       since.match(ISO8601_AND_CONSTANT) &&
       until.match(ISO8601_AND_CONSTANT)
     ) {
+      const sinceMode = DATETIME_CONSTANT.includes(since) ? since : 'specific';
+      const untilMode = DATETIME_CONSTANT.includes(until) ? until : 'specific';
       return {
         customRange: {
           ...defaultCustomRange,
           sinceDatetime: since,
           untilDatetime: until,
-          sinceMode: 'specific',
-          untilMode: 'specific',
+          sinceMode,
+          untilMode,
         },
         matchedFlag: true,
       };
@@ -127,6 +130,7 @@ const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
       since.includes(until)
     ) {
       const [dttm, grainValue, grain] = [...sinceCapturedGroup.slice(1)];
+      const untilMode = DATETIME_CONSTANT.includes(until) ? until : 'specific';
       return {
         customRange: {
           ...defaultCustomRange,
@@ -134,7 +138,7 @@ const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
           sinceGrainValue: parseInt(grainValue, 10),
           untilDatetime: dttm,
           sinceMode: 'relative',
-          untilMode: 'specific',
+          untilMode,
         },
         matchedFlag: true,
       };
@@ -148,14 +152,15 @@ const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
       until.includes(since)
     ) {
       const [dttm, grainValue, grain] = [...untilCapturedGroup.slice(1)];
+      const sinceMode = DATETIME_CONSTANT.includes(since) ? since : 'specific';
       return {
         customRange: {
           ...defaultCustomRange,
           untilGrain: grain,
           untilGrainValue: parseInt(grainValue, 10),
           sinceDatetime: dttm,
-          sinceMode: 'specific',
           untilMode: 'relative',
+          sinceMode,
         },
         matchedFlag: true,
       };
@@ -195,6 +200,7 @@ const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
 };
 
 const customTimeRangeEncode = (customRange: CustomRangeType): string => {
+  const SPECIFIC_MODE = ['specific', 'today', 'now'];
   const {
     sinceDatetime,
     sinceMode,
@@ -207,26 +213,30 @@ const customTimeRangeEncode = (customRange: CustomRangeType): string => {
     anchorValue,
   } = { ...customRange };
   // specific : specific
-  if (sinceMode === 'specific' && untilMode === 'specific') {
-    return `${sinceDatetime} : ${untilDatetime}`;
+  if (SPECIFIC_MODE.includes(sinceMode) && SPECIFIC_MODE.includes(untilMode)) {
+    const since = sinceMode === 'specific' ? sinceDatetime : sinceMode;
+    const until = untilMode === 'specific' ? untilDatetime : untilMode;
+    return `${since} : ${until}`;
   }
 
   // specific : relative
-  if (sinceMode === 'specific' && untilMode === 'relative') {
-    const _until = `DATEADD(DATETIME("${sinceDatetime}"), ${untilGrainValue}, ${untilGrain})`;
-    return `${sinceDatetime} : ${_until}`;
+  if (SPECIFIC_MODE.includes(sinceMode) && untilMode === 'relative') {
+    const since = sinceMode === 'specific' ? sinceDatetime : sinceMode;
+    const until = `DATEADD(DATETIME("${since}"), ${untilGrainValue}, ${untilGrain})`;
+    return `${since} : ${until}`;
   }
 
   // relative : specific
-  if (sinceMode === 'relative' && untilMode === 'specific') {
-    const _since = `DATEADD(DATETIME("${untilDatetime}"), ${-Math.abs(sinceGrainValue,)}, ${sinceGrain})`;
-    return `${_since} : ${untilDatetime}`;
+  if (sinceMode === 'relative' && SPECIFIC_MODE.includes(untilMode)) {
+    const until = untilMode === 'specific' ? untilDatetime : untilMode;
+    const since = `DATEADD(DATETIME("${until}"), ${-Math.abs(sinceGrainValue)}, ${sinceGrain})`;  // eslint-disable-line
+    return `${since} : ${until}`;
   }
 
   // relative : relative
-  const _since = `DATEADD(DATETIME("${anchorValue}"), ${-Math.abs(sinceGrainValue,)}, ${sinceGrain})`;
-  const _until = `DATEADD(DATETIME("${anchorValue}"), ${untilGrainValue}, ${untilGrain})`;
-  return `${_since} : ${_until}`;
+  const since = `DATEADD(DATETIME("${anchorValue}"), ${-Math.abs(sinceGrainValue)}, ${sinceGrain})`;  // eslint-disable-line
+  const until = `DATEADD(DATETIME("${anchorValue}"), ${untilGrainValue}, ${untilGrain})`;
+  return `${since} : ${until}`;
 };
 
 const guessTimeRangeFrame = (timeRange: string): TimeRangeFrameType => {
@@ -243,6 +253,16 @@ const guessTimeRangeFrame = (timeRange: string): TimeRangeFrameType => {
     return 'Custom';
   }
   return 'Advanced';
+};
+
+const dttmToMoment = (dttm: string): Moment => {
+  if (dttm === 'now') {
+    return moment().utc().startOf('second');
+  }
+  if (dttm === 'today') {
+    return moment().utc().startOf('day');
+  }
+  return moment(dttm);
 };
 
 const fetchActualTimeRange = async (
@@ -294,7 +314,9 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [customRange, setCustomRange] = useState<CustomRangeType>(
     customTimeRangeDecode(value).customRange,
   );
-  const [advancedRange, setAdvancedRange] = useState<string>(`Last week${SEPARATOR}today`);
+  const [advancedRange, setAdvancedRange] = useState<string>(
+    `Last week${SEPARATOR}today`,
+  );
 
   useEffect(() => {
     fetchActualTimeRange(value, endpoints).then(value => {
@@ -303,44 +325,67 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   }, [value]);
 
   function onSave() {
-    if (timeRangeFrame === 'Common') onChange(commonRange);
-    if (timeRangeFrame === 'Calendar') onChange(calendarRange);
-    if (timeRangeFrame === 'Custom') onChange(customTimeRangeEncode(customRange));
-    if (timeRangeFrame === 'Advanced') onChange(advancedRange);
-    if (timeRangeFrame === 'No Filter') onChange('No filter');
+    if (timeRangeFrame === 'Common') {
+      onChange(commonRange);
+    }
+    if (timeRangeFrame === 'Calendar') {
+      onChange(calendarRange);
+    }
+    if (timeRangeFrame === 'Custom') {
+      onChange(customTimeRangeEncode(customRange));
+    }
+    if (timeRangeFrame === 'Advanced') {
+      onChange(advancedRange);
+    }
+    if (timeRangeFrame === 'No Filter') {
+      onChange('No filter');
+    }
     setShow(false);
   }
 
   function renderCommon() {
+    const currentValue =
+      COMMON_RANGE_OPTIONS.find(_ => _.value === commonRange)?.value ||
+      commonRange;
     return (
-      <div>
+      <>
         {t('COMMON DATETIME')}
-        <Select
-          options={COMMON_RANGE_OPTIONS}
-          value={COMMON_RANGE_OPTIONS.filter(_ => _.value === commonRange)}
-          onChange={(_: any) => setCommonRange(_.value)}
-        />
-      </div>
+        <Radio.Group
+          value={currentValue}
+          onChange={(e: any) => setCommonRange(e.target.value)}
+        >
+          {COMMON_RANGE_OPTIONS.map(_ => (
+            <Radio key={_.value} value={_.value}>
+              {_.label}
+            </Radio>
+          ))}
+        </Radio.Group>
+      </>
     );
   }
 
   function renderCalendar() {
+    const currentValue =
+      CALENDAR_RANGE_OPTIONS.find(_ => _.value === calendarRange)?.value ||
+      calendarRange;
     return (
-      <div>
+      <>
         {t('PREVIOUS CALENDAR DATETIME')}
-        <Select
-          options={CALENDAR_RANGE_OPTIONS}
-          value={CALENDAR_RANGE_OPTIONS.filter(_ => _.value === calendarRange)}
-          onChange={(_: any) => setCalendarRange(_.value)}
-        />
-      </div>
+        <Radio.Group
+          value={currentValue}
+          onChange={(e: any) => setCalendarRange(e.target.value)}
+        >
+          {CALENDAR_RANGE_OPTIONS.map(_ => (
+            <Radio key={_.value} value={_.value}>
+              {_.label}
+            </Radio>
+          ))}
+        </Radio.Group>
+      </>
     );
   }
 
-  function onAdvancedRangeChange(
-    control: 'since' | 'until',
-    value: string,
-  ) {
+  function onAdvancedRangeChange(control: 'since' | 'until', value: string) {
     const [since, until] = [...advancedRange.split(SEPARATOR)];
     if (control === 'since') {
       setAdvancedRange(`${value}${SEPARATOR}${until}`);
@@ -355,17 +400,20 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       <>
         <Input
           value={since}
-          onChange={(e) => onAdvancedRangeChange('since', e.target.value)}
+          onChange={e => onAdvancedRangeChange('since', e.target.value)}
         />
         <Input
           value={until}
-          onChange={(e) => onAdvancedRangeChange('until', e.target.value)}
+          onChange={e => onAdvancedRangeChange('until', e.target.value)}
         />
       </>
     );
   }
 
-  function onCustomRangeChange(control: CustomRangeKey, value: string | number) {
+  function onCustomRangeChange(
+    control: CustomRangeKey,
+    value: string | number,
+  ) {
     setCustomRange({
       ...customRange,
       [control]: value,
@@ -377,14 +425,14 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     if (radioValue === 'now') {
       setCustomRange({
         ...customRange,
-        'anchorValue': 'now',
-        'anchorMode': radioValue,
+        anchorValue: 'now',
+        anchorMode: radioValue,
       });
     } else {
       setCustomRange({
         ...customRange,
-        'anchorValue': DEFAULT_UNTIL,
-        'anchorMode': radioValue,
+        anchorValue: DEFAULT_UNTIL,
+        anchorMode: radioValue,
       });
     }
   }
@@ -423,7 +471,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
                 <DatePicker
                   showTime
                   // @ts-ignore
-                  value={moment(sinceDatetime)}
+                  value={dttmToMoment(sinceDatetime)}
                   // @ts-ignore
                   onChange={(datetime: Moment) =>
                     onCustomRangeChange(
@@ -478,7 +526,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
                 <DatePicker
                   showTime
                   // @ts-ignore
-                  value={moment(untilDatetime)}
+                  value={dttmToMoment(untilDatetime)}
                   // @ts-ignore
                   onChange={(datetime: Moment) =>
                     onCustomRangeChange(
@@ -526,18 +574,18 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
                 defaultValue="now"
                 value={anchorMode}
               >
-                <Radio key="now" value="now">{t('NOW')}</Radio>
-                <Radio key="specific" value="specific">{t('Date/Time')}</Radio>
+                <Radio key="now" value="now">
+                  {t('NOW')}
+                </Radio>
+                <Radio key="specific" value="specific">
+                  {t('Date/Time')}
+                </Radio>
               </Radio.Group>
               {anchorMode !== 'now' && (
                 <DatePicker
                   showTime
                   // @ts-ignore
-                  value={moment(
-                    anchorValue.toLowerCase() === 'now'
-                      ? DEFAULT_UNTIL
-                      : anchorValue,
-                  )}
+                  value={dttmToMoment(anchorValue)}
                   // @ts-ignore
                   onChange={(datetime: Moment) =>
                     onCustomRangeChange(
