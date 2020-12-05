@@ -296,7 +296,7 @@ function ChartList(props: ChartListProps) {
               {canEdit && (
                 <TooltipWrapper
                   label="explore-action"
-                  tooltip={t('Explore Chart')}
+                  tooltip={t('Edit')}
                   placement="bottom"
                 >
                   <a
@@ -305,7 +305,7 @@ function ChartList(props: ChartListProps) {
                     tabIndex={0}
                     className="action-button"
                   >
-                    <Icon name="nav-explore" />
+                    <Icon name="edit-alt" />
                   </a>
                 </TooltipWrapper>
               )}

@@ -117,7 +117,7 @@ export default function ChartCard({
             window.location.href = chart.url;
           }}
         >
-          <ListViewCard.MenuIcon name="nav-explore" /> {t('Explore')}
+          <ListViewCard.MenuIcon name="edit-alt" /> {t('Edit')}
         </Menu.Item>
       )}
     </Menu>
