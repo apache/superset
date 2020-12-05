@@ -45,7 +45,7 @@ interface SaveDatasetModalProps {
   disableSaveAndExploreBtn: boolean;
   saveDatasetRadioBtnState: number;
   shouldOverwriteDataset: boolean;
-  userDatasetsOwned: Array<Record<string, any>>;
+  userDatasetOptions: Array<Record<string, any>>;
 }
 
 const Styles = styled.div`

@@ -423,7 +423,6 @@ export default class ResultSet extends React.PureComponent<
             onOk={this.handleSaveInDataset}
             onHide={this.handleHideSaveModal}
             handleDatasetNameChange={this.handleDatasetNameChange}
-            userDatasetsOwned={this.state.userDatasetsOwned}
             handleSaveDatasetRadioBtnState={this.handleSaveDatasetRadioBtnState}
             saveDatasetRadioBtnState={this.state.saveDatasetRadioBtnState}
             shouldOverwriteDataset={this.state.overwriteDataSet}
