@@ -115,6 +115,18 @@ def create_report_notification(
     return report_schedule
 
 
+def cleanup_report_schedule(report_schedule: ReportSchedule) -> None:
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.report_schedule == report_schedule)
+        .all()
+    )
+    for log in logs:
+        db.session.delete(log)
+    db.session.delete(report_schedule)
+    db.session.commit()
+
+
 @pytest.yield_fixture()
 def create_report_email_chart():
     with app.app_context():
@@ -124,8 +136,7 @@ def create_report_email_chart():
         )
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture()
@@ -137,8 +148,7 @@ def create_report_email_dashboard():
         )
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture()
@@ -150,8 +160,7 @@ def create_report_slack_chart():
         )
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture()
@@ -166,8 +175,7 @@ def create_report_slack_chart_working():
         db.session.commit()
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture()
@@ -193,8 +201,7 @@ def create_alert_slack_chart_success():
         db.session.commit()
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture()
@@ -220,8 +227,7 @@ def create_alert_slack_chart_grace():
         db.session.commit()
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture(
@@ -280,8 +286,7 @@ def create_alert_email_chart(request):
         )
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @contextmanager
@@ -354,8 +359,7 @@ def create_no_alert_email_chart(request):
             )
             yield report_schedule
 
-            db.session.delete(report_schedule)
-            db.session.commit()
+            cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture(params=["alert1", "alert2"])
@@ -390,17 +394,7 @@ def create_mul_alert_email_chart(request):
             )
             yield report_schedule
 
-            # needed for MySQL
-            logs = (
-                db.session.query(ReportExecutionLog)
-                .filter(ReportExecutionLog.report_schedule == report_schedule)
-                .all()
-            )
-            for log in logs:
-                db.session.delete(log)
-            db.session.commit()
-            db.session.delete(report_schedule)
-            db.session.commit()
+            cleanup_report_schedule(report_schedule)
 
 
 @pytest.mark.usefixtures("create_report_email_chart")
