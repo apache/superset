@@ -60,20 +60,17 @@ def get_target_from_report_schedule(report_schedule) -> List[str]:
 
 
 def assert_log(state: str, error_message: Optional[str] = None):
-    logs = (
-        db.session.query(ReportExecutionLog)
-        .order_by(ReportExecutionLog.start_dttm)
-        .all()
-    )
+    logs = db.session.query(ReportExecutionLog).all()
     if state == ReportState.WORKING:
         assert len(logs) == 1
         assert logs[0].error_message == error_message
         assert logs[0].state == state
         return
     assert len(logs) == 2
-    assert logs[0].state == ReportState.WORKING
-    assert logs[1].state == state
-    assert logs[1].error_message == error_message
+    log_states = [log.state for log in logs]
+    assert ReportState.WORKING in log_states
+    assert state in log_states
+    assert error_message in [log.error_message for log in logs]
 
 
 def create_report_notification(
