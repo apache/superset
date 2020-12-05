@@ -47,7 +47,7 @@ header > nav .navbar-right .btn-default {
   padding-top: 0 !important;
 }
 
-.panel-heading {
+.panel-primary > .panel-heading {
   display: none !important;
 }
 
