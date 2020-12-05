@@ -400,12 +400,12 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ userDatasetOptions: userDatasets });
   }
 
-  handleFilterAutocompleteOption = (
+  handleFilterAutocompleteOption(
     inputValue: string,
     option: { value: string; datasetId: number },
-  ) => {
+  ) {
     return option.value.toLowerCase().includes(inputValue.toLowerCase());
-  };
+  }
 
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
