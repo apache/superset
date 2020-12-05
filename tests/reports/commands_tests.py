@@ -60,6 +60,7 @@ def get_target_from_report_schedule(report_schedule) -> List[str]:
 
 
 def assert_log(state: str, error_message: Optional[str] = None):
+    db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
     if state == ReportState.WORKING:
         assert len(logs) == 1
