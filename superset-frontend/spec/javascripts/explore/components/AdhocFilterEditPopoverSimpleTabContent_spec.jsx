@@ -114,10 +114,10 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('will convert from individual comparator to array if the operator changes to multi', () => {
     const { wrapper, onChange } = setup();
-    wrapper.instance().onOperatorChange('in');
+    wrapper.instance().onOperatorChange('IN');
     expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0]).toEqual(
-      simpleAdhocFilter.duplicateWith({ operator: 'in', comparator: ['10'] }),
+      simpleAdhocFilter.duplicateWith({ operator: 'IN', comparator: ['10'] }),
     );
   });
 
