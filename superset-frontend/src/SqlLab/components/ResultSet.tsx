@@ -416,8 +416,6 @@ export default class ResultSet extends React.PureComponent<
           Object.keys(datasetToOverwrite).length === 0 &&
           saveModalAutocompleteValue.length === 0);
 
-      console.log('radio2', Object.keys(datasetToOverwrite).length);
-      console.log('before render', disableSaveAndExploreBtn);
       return (
         <div className="ResultSetControls">
           <SaveDatasetModal
