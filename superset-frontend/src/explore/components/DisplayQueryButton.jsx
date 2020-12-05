@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -26,25 +26,19 @@ import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/mar
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { DropdownButton, Row, Col, FormControl } from 'react-bootstrap';
+import { DropdownButton } from 'react-bootstrap';
 import { styled, t } from '@superset-ui/core';
 
 import { Menu } from 'src/common/components';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import Button from 'src/components/Button';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { getChartDataRequest } from '../../chart/chartAction';
 import downloadAsImage from '../../utils/downloadAsImage';
 import Loading from '../../components/Loading';
 import ModalTrigger from '../../components/ModalTrigger';
-import RowCountLabel from './RowCountLabel';
-import {
-  applyFormattingToTabularData,
-  prepareCopyToClipboardTabularData,
-} from '../../utils/common';
 import PropertiesModal from './PropertiesModal';
 import { sliceUpdated } from '../actions/exploreActions';
+import { CopyButton } from './DataTableControl';
 
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
 SyntaxHighlighter.registerLanguage('html', htmlSyntax);
@@ -66,32 +60,9 @@ const MENU_KEYS = {
   DOWNLOAD_AS_IMAGE: 'download_as_image',
 };
 
-const CopyButton = styled(Button)`
-  padding: ${({ theme }) => theme.gridUnit / 2}px
-    ${({ theme }) => theme.gridUnit * 2.5}px;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-
-  // needed to override button's first-of-type margin: 0
+const CopyButtonViewQuery = styled(CopyButton)`
   && {
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-
-  i {
-    padding: 0;
-  }
-`;
-
-const CopyButtonViewQuery = styled(Button)`
-  padding: ${({ theme }) => theme.gridUnit / 2}px
-    ${({ theme }) => theme.gridUnit * 2.5}px;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-
-  && {
-    margin-bottom: 5px;
-  }
-
-  i {
-    padding: 0;
+    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
@@ -100,35 +71,13 @@ export const DisplayQueryButton = props => {
 
   const [language, setLanguage] = useState(null);
   const [query, setQuery] = useState(null);
-  const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [filterText, setFilterText] = useState('');
   const [sqlSupported] = useState(
     datasource && datasource.split('__')[1] === 'table',
   );
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-
-  const tableData = useMemo(() => {
-    if (!data?.length) {
-      return [];
-    }
-    const formattedData = applyFormattingToTabularData(data);
-    return formattedData.filter(row =>
-      Object.values(row).some(value =>
-        value.toString().toLowerCase().includes(filterText.toLowerCase()),
-      ),
-    );
-  }, [data, filterText]);
-
-  const columns = useMemo(
-    () =>
-      data?.length
-        ? Object.keys(data[0]).map(key => ({ accessor: key, Header: key }))
-        : [],
-    [data],
-  );
 
   const beforeOpen = resultType => {
     setIsLoading(true);
@@ -139,11 +88,10 @@ export const DisplayQueryButton = props => {
       resultType,
     })
       .then(response => {
-        // Currently displaying of only first query is supported
+        // Only displaying the first query is currently supported
         const result = response.result[0];
         setLanguage(result.language);
         setQuery(result.query);
-        setData(result.data);
         setIsLoading(false);
         setError(null);
       })
@@ -153,10 +101,6 @@ export const DisplayQueryButton = props => {
           setIsLoading(false);
         });
       });
-  };
-
-  const changeFilterText = event => {
-    setFilterText(event.target.value);
   };
 
   const openPropertiesModal = () => {
@@ -206,7 +150,7 @@ export const DisplayQueryButton = props => {
             text={query}
             shouldShowText={false}
             copyNode={
-              <CopyButtonViewQuery>
+              <CopyButtonViewQuery buttonSize="xs">
                 <i className="fa fa-clipboard" />
               </CopyButtonViewQuery>
             }
@@ -216,76 +160,6 @@ export const DisplayQueryButton = props => {
           </SyntaxHighlighter>
         </div>
       );
-    }
-    return null;
-  };
-
-  const renderDataTable = () => {
-    return (
-      <div style={{ overflow: 'auto' }}>
-        <Row>
-          <Col md={9}>
-            <RowCountLabel
-              rowcount={data.length}
-              suffix={t('rows retrieved')}
-            />
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data)}
-              wrapped={false}
-              copyNode={
-                <CopyButton>
-                  <i className="fa fa-clipboard" />
-                </CopyButton>
-              }
-            />
-          </Col>
-          <Col md={3}>
-            <FormControl
-              placeholder={t('Search')}
-              bsSize="sm"
-              value={filterText}
-              onChange={changeFilterText}
-              style={{ paddingBottom: '5px' }}
-            />
-          </Col>
-        </Row>
-        <TableView
-          columns={columns}
-          data={tableData}
-          withPagination={false}
-          noDataText={t('No data')}
-          emptyWrapperType={EmptyWrapperType.Small}
-          className="table-condensed"
-        />
-      </div>
-    );
-  };
-
-  const renderResultsModalBody = () => {
-    if (isLoading) {
-      return <Loading />;
-    }
-    if (error) {
-      return <pre>{error}</pre>;
-    }
-    if (data) {
-      if (data.length === 0) {
-        return 'No data';
-      }
-      return renderDataTable();
-    }
-    return null;
-  };
-
-  const renderSamplesModalBody = () => {
-    if (isLoading) {
-      return <Loading />;
-    }
-    if (error) {
-      return <pre>{error}</pre>;
-    }
-    if (data) {
-      return renderDataTable();
     }
     return null;
   };
@@ -327,24 +201,6 @@ export const DisplayQueryButton = props => {
             modalTitle={t('View query')}
             beforeOpen={() => beforeOpen('query')}
             modalBody={renderQueryModalBody()}
-            responsive
-          />
-        </Menu.Item>
-        <Menu.Item>
-          <ModalTrigger
-            triggerNode={<span>{t('View results')}</span>}
-            modalTitle={t('View results')}
-            beforeOpen={() => beforeOpen('results')}
-            modalBody={renderResultsModalBody()}
-            responsive
-          />
-        </Menu.Item>
-        <Menu.Item>
-          <ModalTrigger
-            triggerNode={<span>{t('View samples')}</span>}
-            modalTitle={t('View samples')}
-            beforeOpen={() => beforeOpen('samples')}
-            modalBody={renderSamplesModalBody()}
             responsive
           />
         </Menu.Item>
