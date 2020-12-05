@@ -89,6 +89,7 @@ setup(
         "pandas>=1.1.2, <1.2",
         "parsedatetime",
         "pathlib2",
+        "pgsanity",
         "polyline",
         "python-dateutil",
         "python-dotenv",
