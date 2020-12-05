@@ -116,13 +116,13 @@ def create_report_notification(
 
 
 def cleanup_report_schedule(report_schedule: ReportSchedule) -> None:
-    logs = (
-        db.session.query(ReportExecutionLog)
-        .filter(ReportExecutionLog.report_schedule == report_schedule)
-        .all()
-    )
-    for log in logs:
-        db.session.delete(log)
+    db.session.query(ReportExecutionLog).filter(
+        ReportExecutionLog.report_schedule == report_schedule
+    ).delete()
+    db.session.query(ReportRecipients).filter(
+        ReportRecipients.report_schedule == report_schedule
+    ).delete()
+
     db.session.delete(report_schedule)
     db.session.commit()
 
@@ -530,12 +530,9 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
                 create_report_slack_chart_working.id, datetime.utcnow()
             ).run()
 
-        logs = (
-            db.session.query(ReportExecutionLog)
-            .order_by(ReportExecutionLog.start_dttm)
-            .all()
-        )
+    # Only needed for MySQL, understand why
     db.session.commit()
+    logs = db.session.query(ReportExecutionLog).all()
     assert len(logs) == 1
     assert logs[0].error_message == ReportScheduleWorkingTimeoutError.message
     assert logs[0].state == ReportState.ERROR
