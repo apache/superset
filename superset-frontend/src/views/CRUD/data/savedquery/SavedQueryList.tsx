@@ -40,6 +40,7 @@ import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { IconName } from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
+import copyTextToClipboard from 'src/utils/copy';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -154,39 +155,15 @@ function SavedQueryList({
 
   const copyQueryLink = useCallback(
     (id: number) => {
-      const selection: Selection | null = document.getSelection();
-
-      if (selection) {
-        selection.removeAllRanges();
-        const range = document.createRange();
-        const span = document.createElement('span');
-        span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
-        span.style.position = 'fixed';
-        span.style.top = '0';
-        span.style.clip = 'rect(0, 0, 0, 0)';
-        span.style.whiteSpace = 'pre';
-
-        document.body.appendChild(span);
-        range.selectNode(span);
-        selection.addRange(range);
-
-        try {
-          if (!document.execCommand('copy')) {
-            throw new Error(t('Not successful'));
-          }
-        } catch (err) {
+      copyTextToClipboard(
+        `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+      )
+        .then(() => {
+          addSuccessToast(t('Link Copied!'));
+        })
+        .catch(() => {
           addDangerToast(t('Sorry, your browser does not support copying.'));
-        }
-
-        document.body.removeChild(span);
-        if (selection.removeRange) {
-          selection.removeRange(range);
-        } else {
-          selection.removeAllRanges();
-        }
-
-        addSuccessToast(t('Link Copied!'));
-      }
+        });
     },
     [addDangerToast, addSuccessToast],
   );
