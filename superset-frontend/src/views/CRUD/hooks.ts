@@ -23,7 +23,6 @@ import { makeApi, SupersetClient, t } from '@superset-ui/core';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
-import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { FavoriteStatus } from './types';
 
