@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState, FunctionComponent } from 'react';
+import React, { FunctionComponent } from 'react';
 import { Radio, AutoComplete, Input } from 'src/common/components';
 import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -33,7 +33,7 @@ interface SaveDatasetModalProps {
   filterAutocompleteOption: (
     inputValue: string,
     option: { value: string; datasetId: number },
-  ) => void;
+  ) => boolean;
   handleSaveDatasetRadioBtnState: (e: RadioChangeEvent) => void;
   handleOverwriteCancel: () => void;
   handleOverwriteDataset: () => void;
