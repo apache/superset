@@ -275,9 +275,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @superset.command()
     @with_appcontext
     @click.option(
-        "--path",
-        "-p",
-        help="Path to a single ZIP file",
+        "--path", "-p", help="Path to a single ZIP file",
     )
     @click.option(
         "--username",
