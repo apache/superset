@@ -150,6 +150,9 @@ class DashboardBuilder extends React.Component {
 
     this.handleChangeTab = this.handleChangeTab.bind(this);
     this.handleDeleteTopLevelTabs = this.handleDeleteTopLevelTabs.bind(this);
+    this.toggleDashboardFiltersOpen = this.toggleDashboardFiltersOpen.bind(
+      this,
+    );
   }
 
   getChildContext() {
@@ -176,10 +179,19 @@ class DashboardBuilder extends React.Component {
     }
   }
 
-  toggleDashboardFiltersOpen = () => {
-    const nextState = !this.state.dashboardFiltersOpen;
-    this.setState(state => ({ ...state, dashboardFiltersOpen: nextState }));
-  };
+  toggleDashboardFiltersOpen(visible) {
+    if (visible === undefined) {
+      this.setState(state => ({
+        ...state,
+        dashboardFiltersOpen: !state.dashboardFiltersOpen,
+      }));
+    } else {
+      this.setState(state => ({
+        ...state,
+        dashboardFiltersOpen: visible,
+      }));
+    }
+  }
 
   handleChangeTab({ pathToTabIndex }) {
     this.props.setDirectPathToChild(pathToTabIndex);

@@ -18,6 +18,7 @@
  */
 import { QueryFormData, styled, SuperChart, t } from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { Form } from 'src/common/components';
 import Button from 'src/components/Button';
@@ -229,6 +230,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   toggleFiltersBar,
 }) => {
   const filterConfigs = useFilterConfiguration();
+  const canEdit = useSelector<any, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+  );
+
+  useEffect(() => {
+    if (filterConfigs.length === 0 && filtersOpen) {
+      toggleFiltersBar(false);
+    }
+  }, [filterConfigs]);
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
@@ -244,9 +254,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <span>
             {t('Filters')} ({filterConfigs.length})
           </span>
-          <FilterConfigurationLink>
-            <Icon name="edit" data-test="create-filter" />
-          </FilterConfigurationLink>
+          {canEdit && (
+            <FilterConfigurationLink>
+              <Icon name="edit" data-test="create-filter" />
+            </FilterConfigurationLink>
+          )}
           <Icon name="expand" onClick={toggleFiltersBar} />
         </TitleArea>
         <ActionButtons>
