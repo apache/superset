@@ -159,6 +159,20 @@ class TestCssTemplateApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
+    def test_info_security_css_template(self):
+        """
+        CssTemplate API: Test info security
+        """
+        self.login(username="admin")
+        params = {"keys": ["permissions"]}
+        uri = f"api/v1/css_template/_info?q={prison.dumps(params)}"
+        rv = self.get_assert_metric(uri, "info")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert "can_read" in data["permissions"]
+        assert "can_write" in data["permissions"]
+        assert len(data["permissions"]) == 2
+
     @pytest.mark.usefixtures("create_css_templates")
     def test_get_css_template(self):
         """

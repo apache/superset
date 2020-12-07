@@ -890,7 +890,10 @@ DEFAULT_RELATIVE_START_TIME = "today"
 DEFAULT_RELATIVE_END_TIME = "today"
 
 # Configure which SQL validator to use for each engine
-SQL_VALIDATORS_BY_ENGINE = {"presto": "PrestoDBSQLValidator"}
+SQL_VALIDATORS_BY_ENGINE = {
+    "presto": "PrestoDBSQLValidator",
+    "postgresql": "PostgreSQLValidator",
+}
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False

@@ -39,6 +39,10 @@ class BigQueryEngineSpec(BaseEngineSpec):
     engine_name = "Google BigQuery"
     max_column_name_length = 128
 
+    # BigQuery doesn't maintain context when running multiple statements in the
+    # same cursor, so we need to run all statements at once
+    run_multiple_statements_as_one = True
+
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
     raw_connections bypass the pybigquery query execution context and deal with

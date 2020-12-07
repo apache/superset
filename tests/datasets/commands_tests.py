@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=no-self-use, invalid-name
+# pylint: disable=no-self-use, invalid-name, line-too-long
 
 from operator import itemgetter
 from unittest.mock import patch
@@ -29,15 +29,17 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.commands.export import ExportDatasetsCommand
-from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
+from superset.datasets.commands.importers import v0, v1
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.importexport import (
     database_config,
     database_metadata_config,
+    dataset_cli_export,
     dataset_config,
     dataset_metadata_config,
+    dataset_ui_export,
 )
 
 
@@ -202,6 +204,78 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
 
 class TestImportDatasetsCommand(SupersetTestCase):
+    def test_import_v0_dataset_cli_export(self):
+        num_datasets = db.session.query(SqlaTable).count()
+
+        contents = {
+            "20201119_181105.yaml": yaml.safe_dump(dataset_cli_export),
+        }
+        command = v0.ImportDatasetsCommand(contents)
+        command.run()
+
+        new_num_datasets = db.session.query(SqlaTable).count()
+        assert new_num_datasets == num_datasets + 1
+
+        dataset = (
+            db.session.query(SqlaTable).filter_by(table_name="birth_names_2").one()
+        )
+        assert (
+            dataset.params
+            == '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}'
+        )
+        assert len(dataset.metrics) == 2
+        assert dataset.main_dttm_col == "ds"
+        assert dataset.filter_select_enabled
+        assert [col.column_name for col in dataset.columns] == [
+            "num_california",
+            "ds",
+            "state",
+            "gender",
+            "name",
+            "sum_boys",
+            "sum_girls",
+            "num",
+        ]
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_import_v0_dataset_ui_export(self):
+        num_datasets = db.session.query(SqlaTable).count()
+
+        contents = {
+            "20201119_181105.yaml": yaml.safe_dump(dataset_ui_export),
+        }
+        command = v0.ImportDatasetsCommand(contents)
+        command.run()
+
+        new_num_datasets = db.session.query(SqlaTable).count()
+        assert new_num_datasets == num_datasets + 1
+
+        dataset = (
+            db.session.query(SqlaTable).filter_by(table_name="birth_names_2").one()
+        )
+        assert (
+            dataset.params
+            == '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}'
+        )
+        assert len(dataset.metrics) == 2
+        assert dataset.main_dttm_col == "ds"
+        assert dataset.filter_select_enabled
+        assert [col.column_name for col in dataset.columns] == [
+            "num_california",
+            "ds",
+            "state",
+            "gender",
+            "name",
+            "sum_boys",
+            "sum_girls",
+            "num",
+        ]
+
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_import_v1_dataset(self):
         """Test that we can import a dataset"""
         contents = {
@@ -209,7 +283,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
         }
-        command = ImportDatasetsCommand(contents)
+        command = v1.ImportDatasetsCommand(contents)
         command.run()
 
         dataset = (
@@ -267,7 +341,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
         }
-        command = ImportDatasetsCommand(contents)
+        command = v1.ImportDatasetsCommand(contents)
         command.run()
         command.run()
         dataset = (
@@ -285,7 +359,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "datasets/imported_dataset.yaml": yaml.safe_dump(new_config),
         }
-        command = ImportDatasetsCommand(contents)
+        command = v1.ImportDatasetsCommand(contents)
         command.run()
         dataset = (
             db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
@@ -305,7 +379,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         contents = {
             "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
         }
-        command = ImportDatasetsCommand(contents)
+        command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(IncorrectVersionError) as excinfo:
             command.run()
         assert str(excinfo.value) == "Missing metadata.yaml"
@@ -318,14 +392,14 @@ class TestImportDatasetsCommand(SupersetTestCase):
                 "timestamp": "2020-11-04T21:27:44.423819+00:00",
             }
         )
-        command = ImportDatasetsCommand(contents)
+        command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(IncorrectVersionError) as excinfo:
             command.run()
         assert str(excinfo.value) == "Must be equal to 1.0.0."
 
         # type should be SqlaTable
         contents["metadata.yaml"] = yaml.safe_dump(database_metadata_config)
-        command = ImportDatasetsCommand(contents)
+        command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
         assert str(excinfo.value) == "Error importing dataset"
@@ -338,7 +412,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         del broken_config["database_name"]
         contents["metadata.yaml"] = yaml.safe_dump(dataset_metadata_config)
         contents["databases/imported_database.yaml"] = yaml.safe_dump(broken_config)
-        command = ImportDatasetsCommand(contents)
+        command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
         assert str(excinfo.value) == "Error importing dataset"
@@ -369,10 +443,14 @@ class TestImportDatasetsCommand(SupersetTestCase):
             "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
         }
-        command = ImportDatasetsCommand(contents)
+        command = v1.ImportDatasetsCommand(contents)
         command.run()
 
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
         assert len(database.tables) == 1
+
+        db.session.delete(database.tables[0])
+        db.session.delete(database)
+        db.session.commit()

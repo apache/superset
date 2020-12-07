@@ -412,7 +412,10 @@ export function exploreJSON(
         });
       });
 
-    const annotationLayers = formData.annotation_layers || [];
+    // only retrieve annotations when calling the legacy API
+    const annotationLayers = shouldUseLegacyApi(formData)
+      ? formData.annotation_layers || []
+      : [];
     const isDashboardRequest = dashboardId > 0;
 
     return Promise.all([

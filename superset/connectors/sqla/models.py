@@ -627,7 +627,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             engine = self.database.get_sqla_engine(schema=self.schema)
             sql = self.get_template_processor().process_template(self.sql)
             parsed_query = ParsedQuery(sql)
-            if not parsed_query.is_readonly():
+            if not db_engine_spec.is_readonly_query(parsed_query):
                 raise SupersetSecurityException(
                     SupersetError(
                         error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -799,7 +799,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     _("Virtual dataset query cannot consist of multiple statements")
                 )
             parsed_query = ParsedQuery(from_sql)
-            if not (parsed_query.is_unknown() or parsed_query.is_readonly()):
+            db_engine_spec = self.database.db_engine_spec
+            if not (
+                parsed_query.is_unknown()
+                or db_engine_spec.is_readonly_query(parsed_query)
+            ):
                 raise QueryObjectValidationError(
                     _("Virtual dataset query must be read-only")
                 )
