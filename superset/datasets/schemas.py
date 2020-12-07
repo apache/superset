@@ -126,20 +126,20 @@ class DatasetRelatedObjectsResponse(Schema):
 
 class ImportV1ColumnSchema(Schema):
     column_name = fields.String(required=True)
-    verbose_name = fields.String()
+    verbose_name = fields.String(allow_none=True)
     is_dttm = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
     type = fields.String(required=True)
     groupby = fields.Boolean()
     filterable = fields.Boolean()
-    expression = fields.String()
+    expression = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
     python_date_format = fields.String(allow_none=True)
 
 
 class ImportV1MetricSchema(Schema):
     metric_name = fields.String(required=True)
-    verbose_name = fields.String()
+    verbose_name = fields.String(allow_none=True)
     metric_type = fields.String(allow_none=True)
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
@@ -151,12 +151,12 @@ class ImportV1MetricSchema(Schema):
 class ImportV1DatasetSchema(Schema):
     table_name = fields.String(required=True)
     main_dttm_col = fields.String(allow_none=True)
-    description = fields.String()
-    default_endpoint = fields.String()
+    description = fields.String(allow_none=True)
+    default_endpoint = fields.String(allow_none=True)
     offset = fields.Integer()
-    cache_timeout = fields.Integer()
-    schema = fields.String()
-    sql = fields.String()
+    cache_timeout = fields.Integer(allow_none=True)
+    schema = fields.String(allow_none=True)
+    sql = fields.String(allow_none=True)
     params = fields.String(allow_none=True)
     template_params = fields.String(allow_none=True)
     filter_select_enabled = fields.Boolean()
