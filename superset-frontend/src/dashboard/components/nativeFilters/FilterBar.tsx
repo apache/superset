@@ -236,7 +236,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   useEffect(() => {
     if (filterConfigs.length === 0 && filtersOpen) {
-      toggleFiltersBar();
+      toggleFiltersBar(false);
     }
   }, [filterConfigs]);
 
