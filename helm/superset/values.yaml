@@ -26,6 +26,8 @@ replicaCount: 1
 additionalRequirements:
   - "psycopg2==2.8.5"
   - "redis==3.2.1"
+  - "sqlalchemy-redshift==0.7.9"
+  - "databricks-dbapi[sqlalchemy]==0.3.0"
 
 ## The name of the secret which we will use to generate a superset_config.py file
 ## Note: this secret must have the key superset_config.py in it and can include other files as well
@@ -44,8 +46,8 @@ extraEnv: {}
 configMountPath: "/app/pythonpath"
 
 image:
-  repository: apache/incubator-superset
-  tag: latest
+  repository: 766930725927.dkr.ecr.us-west-2.amazonaws.com/superset
+  tag: 8
   pullPolicy: IfNotPresent
 
 service:
@@ -53,17 +55,18 @@ service:
   port: 8088
 
 ingress:
-  enabled: false
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  enabled: true
+  annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+        kubernetes.io/ingress.class: "nginx-public"
+        kubernetes.io/tls-acme: "true"
   path: /
   hosts:
-    - chart-example.local
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+    - superset2.fareye.io
+  tls:
+   - secretName: superset-server-tls
+     hosts:
+       - superset2.fareye.io
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

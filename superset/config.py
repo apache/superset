@@ -33,7 +33,7 @@ from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
-from flask import Blueprint
+from flask import Blueprint , request
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
 
@@ -45,6 +45,7 @@ from superset.typing import CacheConfig
 from superset.utils.core import is_test
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
 
@@ -991,3 +992,70 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+def time_filter(default: Optional[str] = None) -> Optional[Any]:
+    form_data = request.form.get("form_data")
+
+    if isinstance(form_data, str):
+        form_data = json.loads(form_data)
+        extra_filters = form_data.get("extra_filters") or {}
+        time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
+        time_range = time_range[0] if time_range else None
+        if time_range is None:
+            time_range = form_data.get("time_range") or None
+        since, until = utils.get_since_until(time_range)
+        time_format = '%Y-%m-%d %H:%M:%S'
+
+        until = until.strftime(time_format)
+        if not since:
+            return '<= \'{}\''.format(until)
+        since = since.strftime(time_format)
+        return 'BETWEEN \'{}\' AND \'{}\''.format(since, until)
+    return default
+
+
+def end_date_filter(default: Optional[str] = None) -> Optional[Any]:
+    form_data = request.form.get("form_data")
+
+    if isinstance(form_data, str):
+        form_data = json.loads(form_data)
+        extra_filters = form_data.get("extra_filters") or {}
+        time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
+        time_range = time_range[0] if time_range else None
+        if time_range is None:
+            time_range = form_data.get("time_range") or None
+        since, until = utils.get_since_until(time_range)
+        time_format = '%Y-%m-%d %H:%M:%S'
+
+        until = until.strftime(time_format)
+        return '\'{}\''.format(until)
+    return default
+
+
+def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
+    form_data = request.form.get("form_data")
+
+    if isinstance(form_data, str):
+        form_data = json.loads(form_data)
+        extra_filters = form_data.get("extra_filters") or {}
+        time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
+        time_range = time_range[0] if time_range else None
+        if time_range is None:
+            time_range = form_data.get("time_range") or None
+        since, until = utils.get_since_until(time_range)
+        time_format = '%Y-%m-%d %H:%M:%S'
+
+        until = until.strftime(time_format)
+        if not since:
+            return '\'{}\''.format(until)
+        since = since.strftime(time_format)
+        return '\'{}\''.format(since)
+    return default
+
+
+JINJA_CONTEXT_ADDONS = {
+    'time_filter': time_filter,
+    'end_date_filter': end_date_filter,
+    'start_date_filter': start_date_filter
+
+}
