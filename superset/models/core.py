@@ -155,6 +155,7 @@ class Database(
         "allow_csv_upload",
         "extra",
     ]
+    extra_import_fields = ["password"]
     export_children = ["tables"]
 
     def __repr__(self) -> str:
