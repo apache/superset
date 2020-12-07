@@ -78,13 +78,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const [importingDatabase, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
 
-  function openDatabaseImportModal() {
+  const openDatabaseImportModal = () => {
     showImportModal(true);
-  }
+  };
 
-  function closeDatabaseImportModal() {
+  const closeDatabaseImportModal = () => {
     showImportModal(false);
-  }
+  };
 
   const handleDatabaseImport = () => {
     showImportModal(false);
