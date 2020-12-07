@@ -184,59 +184,5 @@ describe('ExploreResultsButton', () => {
       wrapper.instance().buildVizOptions.restore();
       fetchMock.reset();
     });
-
-    it('should export chart and add an info toast', () => {
-      return new Promise(done => {
-        const infoToastSpy = sinon.spy();
-        const datasourceSpy = sinon.stub();
-
-        datasourceSpy.callsFake(() => Promise.resolve(visualizationPayload));
-
-        wrapper.setProps({
-          actions: {
-            addInfoToast: infoToastSpy,
-            createDatasource: datasourceSpy,
-          },
-        });
-
-        wrapper.instance().visualize();
-
-        setTimeout(() => {
-          expect(datasourceSpy.callCount).toBe(1);
-          expect(exploreUtils.exploreChart.callCount).toBe(1);
-          expect(exploreUtils.exploreChart.getCall(0).args[0].datasource).toBe(
-            '107__table',
-          );
-          expect(infoToastSpy.callCount).toBe(1);
-          done();
-        });
-      });
-    });
-
-    it('should add error toast', () => {
-      return new Promise(done => {
-        const dangerToastSpy = sinon.stub(actions, 'addDangerToast');
-        const datasourceSpy = sinon.stub();
-
-        datasourceSpy.callsFake(() => Promise.reject({ error: 'error' }));
-
-        wrapper.setProps({
-          actions: {
-            createDatasource: datasourceSpy,
-            addDangerToast: dangerToastSpy,
-          },
-        });
-
-        wrapper.instance().visualize();
-
-        setTimeout(() => {
-          expect(datasourceSpy.callCount).toBe(1);
-          expect(exploreUtils.exportChart.callCount).toBe(0);
-          expect(dangerToastSpy.callCount).toBe(1);
-          dangerToastSpy.restore();
-          done();
-        });
-      });
-    });
   });
 });
