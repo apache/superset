@@ -26,7 +26,7 @@ import {
 interface CheckboxProps {
   checked: boolean;
   onChange: (val?: boolean) => {};
-  style: object;
+  style?: object;
 }
 
 const Styles = styled.span`
