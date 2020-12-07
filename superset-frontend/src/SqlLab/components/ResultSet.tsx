@@ -160,6 +160,8 @@ export default class ResultSet extends React.PureComponent<
     this.handleOnChangeAutoComplete = this.handleOnChangeAutoComplete.bind(
       this,
     );
+    this.handleCTASExploreBtnClick = this.handleCTASExploreBtnClick.bind(this);
+    this.handleExploreBtnClick = this.handleExploreBtnClick.bind(this);
   }
 
   async componentDidMount() {
@@ -345,6 +347,20 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ shouldOverwriteDataSet: false });
   };
 
+  handleCTASExploreBtnClick = () => {
+    this.setState({
+      showSaveDatasetModal: true,
+      ctasSave: false,
+    });
+  };
+
+  handleExploreBtnClick = () => {
+    this.setState({
+      showSaveDatasetModal: true,
+      ctasSave: true,
+    });
+  };
+
   handleSaveDatasetModalSearch = (searchText: string) => {
     // Making sure that autocomplete input has a value before rendering the dropdown
     // Transforming the userDatasetsOwned data for SaveModalComponent
@@ -461,12 +477,7 @@ export default class ResultSet extends React.PureComponent<
                   query={this.props.query}
                   database={this.props.database}
                   actions={this.props.actions}
-                  onClick={() => {
-                    this.setState({
-                      showSaveDatasetModal: true,
-                      ctasSave: false,
-                    });
-                  }}
+                  onClick={this.handleExploreBtnClick}
                 />
               )}
             {this.props.csv && (
@@ -566,9 +577,7 @@ export default class ResultSet extends React.PureComponent<
                 dbId={exploreDBId}
                 database={this.props.database}
                 actions={this.props.actions}
-                onClick={() => {
-                  this.setState({ showSaveDatasetModal: true, ctasSave: true });
-                }}
+                onClick={this.handleCTASExploreBtnClick}
               />
             </ButtonGroup>
           </Alert>
