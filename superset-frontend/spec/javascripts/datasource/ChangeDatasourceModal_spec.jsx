@@ -47,7 +47,7 @@ const datasourceData = {
   uid: datasource.id,
 };
 
-const DATASOURCES_ENDPOINT = 'glob:*/superset/datasources/';
+const DATASOURCES_ENDPOINT = 'glob:*/api/v1/dataset/';
 const DATASOURCE_ENDPOINT = `glob:*/datasource/get/${datasourceData.type}/${datasourceData.id}`;
 const DATASOURCE_PAYLOAD = { new: 'data' };
 
@@ -80,11 +80,7 @@ describe('ChangeDatasourceModal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
-  it('changes the datasource', async () => {
-    act(() => {
-      wrapper.find('.datasource-link').at(0).props().onClick(datasourceData);
-    });
-    await waitForComponentToPaint(wrapper);
-    expect(fetchMock.calls(/datasource\/get\/table\/7/)).toHaveLength(1);
+  it('fetches datasources', async () => {
+    expect(fetchMock.calls(/api\/v1\/dataset/)).toHaveLength(3);
   });
 });
