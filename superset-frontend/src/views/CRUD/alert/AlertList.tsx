@@ -180,7 +180,7 @@ function AlertList({
       {
         Cell: ({ row: { original } }: any) => {
           const history = useHistory();
-          const handleEdit = () => {}; // handleAnnotationEdit(original);
+          const handleEdit = () => handleAlertEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
           const handleGotoExecutionLog = () =>
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
@@ -318,10 +318,15 @@ function AlertList({
         buttons={subMenuButtons}
       />
       <AlertReportModal
+        alert={currentAlert}
         addDangerToast={addDangerToast}
         layer={currentAlert}
-        onHide={() => setAlertModalOpen(false)}
+        onHide={() => {
+          setAlertModalOpen(false);
+          refreshData();
+        }}
         show={alertModalOpen}
+        isReport={isReportEnabled}
       />
       <ListView<AlertObject>
         className="alerts-list-view"

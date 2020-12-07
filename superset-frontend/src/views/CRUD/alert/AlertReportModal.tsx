@@ -19,7 +19,7 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-// import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
@@ -30,7 +30,7 @@ import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 import Owner from 'src/types/Owner';
-import { AlertObject, Operator } from './types';
+import { AlertObject, Operator, MetaObject } from './types';
 
 type SelectValue = {
   value: string;
@@ -349,7 +349,6 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   }
 
   const onMethodChange = (method: NotificationMethod) => {
-    console.log('method', method);
     if (onUpdate) {
       const updatedSetting = {
         ...setting,
@@ -357,7 +356,6 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         recipients: '',
       };
 
-      console.log('updated setting', updatedSetting);
       onUpdate(index, updatedSetting);
     }
   };
@@ -433,10 +431,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>(
     alert && alert.chart ? 'chart' : 'dashboard',
-  );
+  ); // Maybe make this always default to dashboard and don't update until alert is fetched
   const [scheduleFormat, setScheduleFormat] = useState<string>(
     'dropdown-format',
   );
+
+  // Dropdown options
+  const [sourceOptions, setSourceOptions] = useState<MetaObject[]>([]);
+  const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
+  const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
+
   const isEditMode = alert !== null;
 
   // TODO: need to set status/settings list based on alert's notification settings
@@ -483,17 +487,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setNotificationAddState('active');
   };
 
-  // TODO: Alert fetch logic
-  /* const {
+  // Alert fetch logic
+  const {
     state: { loading, resource },
     fetchResource,
     createResource,
     updateResource,
-  } = useSingleViewResource<AlertObject>(
-    'alert',
-    t('alert'),
-    addDangerToast,
-  ); */
+  } = useSingleViewResource<AlertObject>('report', t('report'), addDangerToast);
 
   // Functions
   const hide = () => {
@@ -502,32 +502,57 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onSave = () => {
+    const data: any = {
+      ...currentAlert,
+      chart: contentType === 'chart' ? currentAlert?.chart?.value : undefined,
+      dashboard:
+        contentType === 'dashboard'
+          ? currentAlert?.dashboard?.value
+          : undefined,
+      database: currentAlert?.database?.value,
+      owners: (currentAlert?.owners || []).map(
+        owner => (owner as MetaObject).value,
+      ),
+    };
+
+    if (data.recipients && !data.recipients.length) {
+      delete data.recipients;
+    }
+
+    data.context_markdown = 'string';
+
     if (isEditMode) {
       // Edit
       if (currentAlert && currentAlert.id) {
-        /* const update_id = currentAlert.id;
-        delete currentAlert.id;
-        delete currentAlert.created_by;
+        const update_id = currentAlert.id;
 
-        updateResource(update_id, currentAlert).then(() => {
+        delete data.id;
+        delete data.created_by;
+        delete data.last_eval_dttm;
+        delete data.last_state;
+        delete data.last_value;
+        delete data.last_value_row_json;
+
+        console.log('PUT data', data);
+        updateResource(update_id, data).then(() => {
           if (onAdd) {
             onAdd();
           }
 
           hide();
-        }); */
-        hide();
+        });
       }
     } else if (currentAlert) {
       // Create
-      /* createResource(currentAlert).then(response => {
+
+      console.log('POST data', data);
+      createResource(data).then(response => {
         if (onAdd) {
           onAdd(response);
         }
 
         hide();
-      }); */
-      hide();
+      });
     }
   };
 
@@ -555,15 +580,47 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/dataset/related/database?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map((item: any) => ({
+        const list = response.json.result.map((item: any) => ({
           value: item.value,
           label: item.text,
         }));
+
+        setSourceOptions(list);
+
+        // Find source if current alert has one set
+        if (
+          currentAlert &&
+          currentAlert.database &&
+          !currentAlert.database.label
+        ) {
+          updateAlertState('database', getSourceData());
+        }
+
+        return list;
       },
       badResponse => {
         return [];
       },
     );
+  };
+
+  const getSourceData = (db?: MetaObject) => {
+    const database = db || currentAlert?.database;
+
+    if (!database || database.label) {
+      return null;
+    }
+
+    let result;
+
+    // Cycle through source options to find the selected option
+    sourceOptions.forEach(source => {
+      if (source.value === database.value || source.value === database.id) {
+        result = source;
+      }
+    });
+
+    return result;
   };
 
   const loadDashboardOptions = (input = '') => {
@@ -572,15 +629,47 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/dashboard?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map((item: any) => ({
+        const list = response.json.result.map((item: any) => ({
           value: item.id,
           label: item.dashboard_title,
         }));
+
+        setDashboardOptions(list);
+
+        // Find source if current alert has one set
+        if (
+          currentAlert &&
+          currentAlert.dashboard &&
+          !currentAlert.dashboard.label
+        ) {
+          updateAlertState('dashboard', getDashboardData());
+        }
+
+        return list;
       },
       badResponse => {
         return [];
       },
     );
+  };
+
+  const getDashboardData = (db?: MetaObject) => {
+    const dashboard = db || currentAlert?.dashboard;
+
+    if (!dashboard || dashboard.label) {
+      return null;
+    }
+
+    let result;
+
+    // Cycle through dashboard options to find the selected option
+    dashboardOptions.forEach(dash => {
+      if (dash.value === dashboard.value || dash.value === dashboard.id) {
+        result = dash;
+      }
+    });
+
+    return result;
   };
 
   const loadChartOptions = (input = '') => {
@@ -589,10 +678,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/chart?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map((item: any) => ({
+        const list = response.json.result.map((item: any) => ({
           value: item.id,
           label: item.slice_name,
         }));
+
+        setChartOptions(list);
+
+        // Find source if current alert has one set
+        if (currentAlert && currentAlert.chart && !currentAlert.chart.label) {
+          updateAlertState('chart', getChartData());
+        }
+
+        return list;
       },
       badResponse => {
         return [];
@@ -600,15 +698,35 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     );
   };
 
+  const getChartData = (chartData?: MetaObject) => {
+    const chart = chartData || currentAlert?.chart;
+
+    if (!chart || chart.label) {
+      return null;
+    }
+
+    let result;
+
+    // Cycle through chart options to find the selected option
+    chartOptions.forEach(slice => {
+      if (slice.value === chart.value || slice.value === chart.id) {
+        result = slice;
+      }
+    });
+
+    return result;
+  };
+
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
     const data = {
       ...currentAlert,
-      // name: currentAlert ? currentAlert.name : '', // TODO: do we need this?
     };
 
     data[name] = value;
     setCurrentAlert(data);
+
+    console.log('update data', data);
   };
 
   // Handle input/textarea updates
@@ -631,7 +749,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onDashboardChange = (dashboard: SelectValue) => {
-    console.log('dashboard', dashboard);
     updateAlertState('dashboard', dashboard || undefined);
   };
 
@@ -644,8 +761,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onConditionChange = (operation: Operator) => {
-    console.log('operation', operation);
-
     const config = {
       operation,
       threshold: currentAlert
@@ -676,7 +791,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onLogRetentionChange = (retention: number) => {
-    console.log('retention', retention);
     updateAlertState('log_retention', retention);
   };
 
@@ -687,18 +801,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const validate = () => {
+    console.log('validate');
     if (
       currentAlert &&
       currentAlert.name?.length &&
       currentAlert.owners?.length &&
-      !!currentAlert.database &&
-      currentAlert.sql?.length &&
-      !!currentAlert.validator_config_json?.operation &&
-      currentAlert.validator_config_json?.threshold !== undefined &&
       currentAlert.crontab?.length &&
-      (!!currentAlert.dashboard || !!currentAlert.chart)
+      ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
+        (contentType === 'chart' && !!currentAlert.chart))
     ) {
-      setDisableSave(false);
+      if (isReport) {
+        setDisableSave(false);
+      } else if (
+        !!currentAlert.database &&
+        currentAlert.sql?.length &&
+        !!currentAlert.validator_config_json?.operation &&
+        currentAlert.validator_config_json?.threshold !== undefined
+      ) {
+        setDisableSave(false);
+      } else {
+        setDisableSave(true);
+      }
     } else {
       setDisableSave(true);
     }
@@ -712,12 +835,40 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       (alert && alert.id !== currentAlert.id) ||
       (isHidden && show))
   ) {
-    if (alert && alert.id !== null /* && !loading */) {
-      /* const id = alert.id || 0;
+    if (alert && alert.id !== null && !loading) {
+      const id = alert.id || 0;
 
       fetchResource(id).then(() => {
-        setCurrentAlert(resource);
-      }); */
+        if (resource) {
+          setContentType(resource.chart ? 'chart' : 'dashboard');
+
+          setCurrentAlert({
+            ...resource,
+            chart: resource.chart
+              ? getChartData(resource.chart) || { value: resource.chart.id }
+              : undefined,
+            dashboard: resource.dashboard
+              ? getDashboardData(resource.dashboard) || {
+                  value: resource.dashboard.id,
+                }
+              : undefined,
+            database: resource.database
+              ? getSourceData(resource.database) || {
+                  value: resource.database.id,
+                }
+              : undefined,
+            // log_retention: { value: resource.log_retention },
+            owners: (resource.owners || []).map(owner => ({
+              value: owner.id,
+              label: `${(owner as Owner).first_name} ${
+                (owner as Owner).last_name
+              }`,
+            })),
+            // @ts-ignore: Type not assignable
+            validator_config_json: JSON.parse(resource.validator_config_json),
+          });
+        }
+      });
     }
   } else if (
     !isEditMode &&
@@ -730,6 +881,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       log_retention: DEFAULT_RETENTION,
       name: '',
       owners: [],
+      recipients: [],
       sql: '',
       type: isReport ? 'Report' : 'Alert',
       validator_config_json: {},
@@ -751,6 +903,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           currentAlert.owners,
           currentAlert.database,
           currentAlert.sql,
+          currentAlert.validator_config_json,
+          currentAlert.crontab,
+          currentAlert.dashboard,
+          currentAlert.chart,
+          contentType,
         ]
       : [],
   );
@@ -909,6 +1066,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             undefined
                           : undefined
                       }
+                      value={
+                        currentAlert
+                          ? currentAlert.validator_config_json?.operation ||
+                            undefined
+                          : undefined
+                      }
                     >
                       {conditionOptions}
                     </Select>
@@ -925,9 +1088,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       name="threshold"
                       value={
                         currentAlert && currentAlert.validator_config_json
-                          ? currentAlert.validator_config_json.threshold ||
-                            undefined
-                          : undefined
+                          ? currentAlert.validator_config_json.threshold || ''
+                          : ''
                       }
                       placeholder={t('Value')}
                       onChange={onThresholdChange}
@@ -981,8 +1143,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   placeholder
                   defaultValue={
                     currentAlert
-                      ? currentAlert.log_retention || '90 days'
-                      : '90 days'
+                      ? currentAlert.log_retention || DEFAULT_RETENTION
+                      : DEFAULT_RETENTION
+                  }
+                  value={
+                    currentAlert
+                      ? currentAlert.log_retention || DEFAULT_RETENTION
+                      : DEFAULT_RETENTION
                   }
                 >
                   {retentionOptions}

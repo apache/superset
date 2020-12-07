@@ -25,7 +25,14 @@ type user = {
   last_name: string;
 };
 
-type MetaObject = {
+type Recipient = {
+  recipient_config_json: {
+    target: string;
+  };
+  type: string;
+};
+
+export type MetaObject = {
   id?: number;
   label?: string;
   value?: number | string;
@@ -50,9 +57,9 @@ export type AlertObject = {
   last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
   log_retention?: number;
   name?: string;
-  owners?: Array<Owner>;
+  owners?: Array<Owner | MetaObject>;
   sql?: string;
-  recipients?: string;
+  recipients?: Array<Recipient>;
   type?: string;
   validator_config_json?: {
     operation?: Operator;
