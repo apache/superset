@@ -264,6 +264,7 @@ function DashboardList(props: DashboardListProps) {
                   placement="bottom"
                 >
                   <a
+                    data-test="edit-dashboard-action"
                     className="action-button"
                     href={`${original.url}?edit=true`}
                   >

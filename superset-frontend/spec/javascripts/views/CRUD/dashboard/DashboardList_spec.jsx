@@ -81,8 +81,6 @@ fetchMock.get(dashboardsEndpoint, {
 global.URL.createObjectURL = jest.fn();
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
-const oldWindowLocationAssign = window.location.assign;
-
 describe('DashboardList', () => {
   const isFeatureEnabledMock = jest
     .spyOn(featureFlags, 'isFeatureEnabled')
@@ -99,15 +97,6 @@ describe('DashboardList', () => {
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
-    window.location.assign = jest.fn();
-  });
-
-  afterEach(() => {
-    window.location.assign.mockReset();
-  });
-
-  afterAll(() => {
-    window.location.assign = oldWindowLocationAssign;
   });
 
   it('renders', () => {
@@ -142,13 +131,11 @@ describe('DashboardList', () => {
   });
 
   it('edits', () => {
-    wrapper.find('[data-test="edit-alt"]').first().simulate('click');
-    expect(window.location.assign).toHaveBeenCalledWith('url?edit=true');
-  });
-
-  it('card view edits', () => {
-    wrapper.find('[data-test="edit-alt"]').last().simulate('click');
-    expect(window.location.assign).toHaveBeenCalledWith('url?edit=true');
+    const { href } = wrapper
+      .find('[data-test="edit-dashboard-action"]')
+      .first()
+      .props();
+    expect(href).toEqual('url?edit=true');
   });
 
   it('delete', () => {
