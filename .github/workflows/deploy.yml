@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  DOCKER_TAG: |
+    superset-${{ github.event.pull_request.head.ref }}-${{ github.event.pull_request.head.sha }}
+
 jobs:
   deploy:
     if: ${{ github.event_name != 'pull_request' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) }}
@@ -35,7 +39,10 @@ jobs:
         push: true
         build-args: |
             NPM_BUILD_CMD=build
-        tags: |
-          blotoutlabs/blotout:superset-${{ github.event.pull_request.head.ref }}-${{ github.event.pull_request.head.sha }}
-    - name: Image digest
-      run: echo ${{ steps.docker_build.outputs.digest }}
+        tags: blotoutlabs/blotout:${{ env.DOCKER_TAG }}
+    - name: Comment
+      uses: NejcZdovc/comment-pr@v1
+      with:
+        message: "Docker tag: `${{ env.DOCKER_TAG }}`"
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
