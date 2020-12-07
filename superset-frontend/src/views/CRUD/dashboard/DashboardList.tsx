@@ -94,10 +94,6 @@ function DashboardList(props: DashboardListProps) {
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  function handleDashboardEdit({ url }: Dashboard) {
-    window.location.assign(`${url}?edit=true`);
-  }
-
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
       endpoint: `/api/v1/dashboard/?q=${rison.encode(
@@ -209,7 +205,6 @@ function DashboardList(props: DashboardListProps) {
               props.addSuccessToast,
               props.addDangerToast,
             );
-          const handleEdit = () => handleDashboardEdit(original);
           const handleExport = () => handleBulkDashboardExport([original]);
 
           return (
@@ -268,14 +263,12 @@ function DashboardList(props: DashboardListProps) {
                   tooltip={t('Edit')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
+                  <a
                     className="action-button"
-                    onClick={handleEdit}
+                    href={`${original.url}?edit=true`}
                   >
                     <Icon name="edit-alt" />
-                  </span>
+                  </a>
                 </TooltipWrapper>
               )}
             </span>
@@ -383,7 +376,6 @@ function DashboardList(props: DashboardListProps) {
         loading={loading}
         addDangerToast={props.addDangerToast}
         addSuccessToast={props.addSuccessToast}
-        handleDashboardEdit={handleDashboardEdit}
         saveFavoriteStatus={saveFavoriteStatus}
         favoriteStatus={favoriteStatus[dashboard.id]}
       />

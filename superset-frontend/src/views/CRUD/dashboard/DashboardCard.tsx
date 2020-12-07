@@ -41,7 +41,6 @@ interface DashboardCardProps {
   loading: boolean;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  handleDashboardEdit?: (d: Dashboard) => void;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
   dashboardFilter?: string;
@@ -57,7 +56,6 @@ function DashboardCard({
   userId,
   addDangerToast,
   addSuccessToast,
-  handleDashboardEdit,
   favoriteStatus,
   saveFavoriteStatus,
 }: DashboardCardProps) {
@@ -67,18 +65,19 @@ function DashboardCard({
 
   const menu = (
     <Menu>
-      {canEdit && handleDashboardEdit && (
-        <Menu.Item
-          role="button"
-          tabIndex={0}
-          onClick={() => handleDashboardEdit && handleDashboardEdit(dashboard)}
-          data-test="dashboard-card-option-edit-button"
-        >
-          <ListViewCard.MenuIcon name="edit-alt" /> Edit
+      {canEdit && (
+        <Menu.Item key="edit">
+          <a
+            href={`${dashboard.url}?edit=true`}
+            data-test="dashboard-card-option-edit-button"
+          >
+            <ListViewCard.MenuIcon name="edit-alt" /> Edit
+          </a>
         </Menu.Item>
       )}
       {canExport && (
         <Menu.Item
+          key="export"
           role="button"
           tabIndex={0}
           onClick={() => handleBulkDashboardExport([dashboard])}
@@ -87,7 +86,7 @@ function DashboardCard({
         </Menu.Item>
       )}
       {canDelete && (
-        <Menu.Item>
+        <Menu.Item key="delete">
           <ConfirmStatusChange
             title={t('Please Confirm')}
             description={
@@ -147,7 +146,6 @@ function DashboardCard({
           <ListViewCard.Actions
             onClick={e => {
               e.stopPropagation();
-              e.preventDefault();
             }}
           >
             <FaveStar

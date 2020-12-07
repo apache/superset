@@ -61,10 +61,6 @@ function DashboardTable({
   );
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
-  const handleDashboardEdit = ({ url }: Dashboard) => {
-    window.location.assign(`${url}?edit=true`);
-  };
-
   const getFilters = (filterName: string) => {
     const filters = [];
     if (filterName === 'Mine') {
@@ -160,7 +156,6 @@ function DashboardTable({
               addSuccessToast={addSuccessToast}
               userId={user?.userId}
               loading={loading}
-              handleDashboardEdit={handleDashboardEdit}
               saveFavoriteStatus={saveFavoriteStatus}
               favoriteStatus={favoriteStatus[e.id]}
             />
