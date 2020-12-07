@@ -35,7 +35,6 @@ const propTypes = {
   dbId: PropTypes.number.isRequired,
   errorMessage: PropTypes.string,
   templateParams: PropTypes.string,
-  onClick: PropTypes.func.isRequired,
 };
 const defaultProps = {
   vizRequest: {},
@@ -47,12 +46,50 @@ class ExploreCtasResultsButton extends React.PureComponent {
     this.visualize = this.visualize.bind(this);
     this.onClick = this.onClick.bind(this);
   }
+  onClick() {
+    this.visualize();
+  }
+
+  buildVizOptions() {
+    return {
+      datasourceName: this.props.table,
+      schema: this.props.schema,
+      dbId: this.props.dbId,
+      templateParams: this.props.templateParams,
+    };
+  }
+  visualize() {
+    this.props.actions
+      .createCtasDatasource(this.buildVizOptions())
+      .then(data => {
+        const formData = {
+          datasource: `${data.table_id}__table`,
+          metrics: ['count'],
+          groupby: [],
+          viz_type: 'table',
+          since: '100 years ago',
+          all_columns: [],
+          row_limit: 1000,
+        };
+        this.props.actions.addInfoToast(
+          t('Creating a data source and creating a new tab'),
+        );
+
+        // open new window for data visualization
+        exploreChart(formData);
+      })
+      .catch(() => {
+        this.props.actions.addDangerToast(
+          this.props.errorMessage || t('An error occurred'),
+        );
+      });
+  }
   render() {
     return (
       <>
         <Button
           buttonSize="small"
-          onClick={this.props.onClick}
+          onClick={this.onClick}
           tooltip={t('Explore the result set in the data exploration view')}
         >
           <InfoTooltipWithTrigger
