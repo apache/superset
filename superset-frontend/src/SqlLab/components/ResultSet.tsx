@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
+import { Alert, ButtonGroup } from 'react-bootstrap';
+import ProgressBar from 'src/common/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
