@@ -39,11 +39,11 @@ interface DatabaseModalProps {
   database?: DatabaseObject | null; // If included, will go into edit mode
 }
 
-const StyledIcon = styled(Icon)`
+export const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
-const StyledInputContainer = styled.div`
+export const StyledInputContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 
   &.extra-container {

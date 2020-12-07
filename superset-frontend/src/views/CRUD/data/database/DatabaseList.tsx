@@ -29,6 +29,7 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
+import ImportDatabaseModal from 'src/database/components/ImportModal/index';
 import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
@@ -74,6 +75,21 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+  const [importingDatabase, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  const openDatabaseImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeDatabaseImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleDatabaseImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
     SupersetClient.get({
@@ -146,6 +162,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         },
       },
     ];
+
+    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+      menuData.buttons.push({
+        name: <Icon name="import" />,
+        buttonStyle: 'link',
+        onClick: openDatabaseImportModal,
+      });
+    }
   }
 
   function handleDatabaseExport(database: DatabaseObject) {
@@ -399,6 +423,16 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
+      />
+
+      <ImportDatabaseModal
+        show={importingDatabase}
+        onHide={closeDatabaseImportModal}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onDatabaseImport={handleDatabaseImport}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
       />
     </>
   );
