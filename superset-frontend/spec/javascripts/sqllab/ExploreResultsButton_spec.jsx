@@ -185,24 +185,6 @@ describe('ExploreResultsButton', () => {
       fetchMock.reset();
     });
 
-    it('should build request with correct args', () => {
-      return new Promise(done => {
-        wrapper.instance().visualize();
-
-        setTimeout(() => {
-          const calls = fetchMock.calls(visualizeEndpoint);
-          expect(calls).toHaveLength(1);
-          const formData = calls[0][1].body;
-          Object.keys(mockOptions).forEach(key => {
-            // eslint-disable-next-line no-unused-expressions
-            expect(formData.get(key)).toBeDefined();
-          });
-
-          done();
-        });
-      });
-    });
-
     it('should export chart and add an info toast', () => {
       return new Promise(done => {
         const infoToastSpy = sinon.spy();
