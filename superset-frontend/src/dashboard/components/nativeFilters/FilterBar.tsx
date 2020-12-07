@@ -255,7 +255,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             {t('Filters')} ({filterConfigs.length})
           </span>
           {canEdit && (
-            <FilterConfigurationLink>
+            <FilterConfigurationLink createNewOnOpen>
               <Icon name="edit" data-test="create-filter" />
             </FilterConfigurationLink>
           )}
