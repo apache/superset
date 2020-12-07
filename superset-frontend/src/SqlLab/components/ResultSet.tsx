@@ -207,50 +207,7 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ datasetToOverwrite: {} });
   };
 
-  clearQueryResults(query: Query) {
-    this.props.actions.clearQueryResults(query);
-  }
-
-  popSelectStar(tempSchema: string | null, tempTable: string) {
-    const qe = {
-      id: shortid.generate(),
-      title: tempTable,
-      autorun: false,
-      dbId: this.props.query.dbId,
-      sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
-    };
-    this.props.actions.addQueryEditor(qe);
-  }
-
-  toggleExploreResultsButton() {
-    this.setState(prevState => ({
-      showExploreResultsButton: !prevState.showExploreResultsButton,
-    }));
-  }
-
-  changeSearch(event: React.ChangeEvent<HTMLInputElement>) {
-    this.setState({ searchText: event.target.value });
-  }
-
-  fetchResults(query: Query) {
-    this.props.actions.fetchQueryResults(query, this.props.displayLimit);
-  }
-
-  reFetchQueryResults(query: Query) {
-    this.props.actions.reFetchQueryResults(query);
-  }
-
-  reRunQueryIfSessionTimeoutErrorOnMount() {
-    const { query } = this.props;
-    if (
-      query.errorMessage &&
-      query.errorMessage.indexOf('session timed out') > 0
-    ) {
-      this.props.actions.runQuery(query, true);
-    }
-  }
-
-  async handleOverwriteDataset() {
+  handleOverwriteDataset = async () => {
     const { sql, results } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
@@ -282,10 +239,6 @@ export default class ResultSet extends React.PureComponent<
         );
       });
 
-    console.log(
-      `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`,
-    );
-
     this.setState({
       showSaveDatasetModal: false,
       shouldOverwriteDataSet: false,
@@ -294,9 +247,9 @@ export default class ResultSet extends React.PureComponent<
         'MM/DD/YYYY HH:mm:ss',
       )}`,
     });
-  }
+  };
 
-  handleSaveInDataset() {
+  handleSaveInDataset = () => {
     // if user wants to overwrite a dataset we need to prompt them
     if (this.state.saveDatasetRadioBtnState === OVERWRITE_DATASET_RADIO_STATE) {
       this.setState({ shouldOverwriteDataSet: true });
@@ -364,30 +317,36 @@ export default class ResultSet extends React.PureComponent<
         'MM/DD/YYYY HH:mm:ss',
       )}`,
     });
-  }
+  };
 
-  handleOverwriteDatasetOption(data: string, option: Record<string, any>) {
+  handleOverwriteDatasetOption = (
+    _data: string,
+    option: Record<string, any>,
+  ) => {
     this.setState({ datasetToOverwrite: option });
-  }
+  };
 
-  handleDatasetNameChange(e: React.FormEvent<HTMLInputElement>) {
+  handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
     // @ts-expect-error
     this.setState({ newSaveDatasetName: e.target.value });
-  }
+  };
 
-  handleHideSaveModal() {
-    this.setState({ showSaveDatasetModal: false, shouldOverwriteDataSet: false });
-  }
+  handleHideSaveModal = () => {
+    this.setState({
+      showSaveDatasetModal: false,
+      shouldOverwriteDataSet: false,
+    });
+  };
 
-  handleSaveDatasetRadioBtnState(e: RadioChangeEvent) {
+  handleSaveDatasetRadioBtnState = (e: RadioChangeEvent) => {
     this.setState({ saveDatasetRadioBtnState: Number(e.target.value) });
-  }
+  };
 
-  handleOverwriteCancel() {
+  handleOverwriteCancel = () => {
     this.setState({ shouldOverwriteDataSet: false });
-  }
+  };
 
-  handleSaveDatasetModalSearch(searchText: string) {
+  handleSaveDatasetModalSearch = (searchText: string) => {
     // Making sure that autocomplete input has a value before rendering the dropdown
     // Transforming the userDatasetsOwned data for SaveModalComponent
     const { userDatasetsOwned } = this.state;
@@ -399,13 +358,56 @@ export default class ResultSet extends React.PureComponent<
         }));
 
     this.setState({ userDatasetOptions: userDatasets });
-  }
+  };
 
-  handleFilterAutocompleteOption(
+  handleFilterAutocompleteOption = (
     inputValue: string,
     option: { value: string; datasetId: number },
-  ) {
+  ) => {
     return option.value.toLowerCase().includes(inputValue.toLowerCase());
+  };
+
+  clearQueryResults(query: Query) {
+    this.props.actions.clearQueryResults(query);
+  }
+
+  popSelectStar(tempSchema: string | null, tempTable: string) {
+    const qe = {
+      id: shortid.generate(),
+      title: tempTable,
+      autorun: false,
+      dbId: this.props.query.dbId,
+      sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
+    };
+    this.props.actions.addQueryEditor(qe);
+  }
+
+  toggleExploreResultsButton() {
+    this.setState(prevState => ({
+      showExploreResultsButton: !prevState.showExploreResultsButton,
+    }));
+  }
+
+  changeSearch(event: React.ChangeEvent<HTMLInputElement>) {
+    this.setState({ searchText: event.target.value });
+  }
+
+  fetchResults(query: Query) {
+    this.props.actions.fetchQueryResults(query, this.props.displayLimit);
+  }
+
+  reFetchQueryResults(query: Query) {
+    this.props.actions.reFetchQueryResults(query);
+  }
+
+  reRunQueryIfSessionTimeoutErrorOnMount() {
+    const { query } = this.props;
+    if (
+      query.errorMessage &&
+      query.errorMessage.indexOf('session timed out') > 0
+    ) {
+      this.props.actions.runQuery(query, true);
+    }
   }
 
   renderControls() {
@@ -421,6 +423,9 @@ export default class ResultSet extends React.PureComponent<
         newSaveDatasetName,
         datasetToOverwrite,
         saveModalAutocompleteValue,
+        shouldOverwriteDataSet,
+        userDatasetOptions,
+        showSaveDatasetModal,
       } = this.state;
       const disableSaveAndExploreBtn =
         (saveDatasetRadioBtnState === 1 && newSaveDatasetName.length === 0) ||
@@ -431,21 +436,21 @@ export default class ResultSet extends React.PureComponent<
       return (
         <div className="ResultSetControls">
           <SaveDatasetModal
-            visible={this.state.showSaveDatasetModal}
+            visible={showSaveDatasetModal}
             onOk={this.handleSaveInDataset}
+            saveDatasetRadioBtnState={saveDatasetRadioBtnState}
+            shouldOverwriteDataset={shouldOverwriteDataSet}
+            defaultCreateDatasetValue={newSaveDatasetName}
+            userDatasetOptions={userDatasetOptions}
+            disableSaveAndExploreBtn={disableSaveAndExploreBtn}
             onHide={this.handleHideSaveModal}
             handleDatasetNameChange={this.handleDatasetNameChange}
             handleSaveDatasetRadioBtnState={this.handleSaveDatasetRadioBtnState}
-            saveDatasetRadioBtnState={this.state.saveDatasetRadioBtnState}
-            shouldOverwriteDataset={this.state.shouldOverwriteDataSet}
             handleOverwriteCancel={this.handleOverwriteCancel}
             handleOverwriteDataset={this.handleOverwriteDataset}
             handleOverwriteDatasetOption={this.handleOverwriteDatasetOption}
-            defaultCreateDatasetValue={this.state.newSaveDatasetName}
-            disableSaveAndExploreBtn={disableSaveAndExploreBtn}
             handleSaveDatasetModalSearch={this.handleSaveDatasetModalSearch}
             filterAutocompleteOption={this.handleFilterAutocompleteOption}
-            userDatasetOptions={this.state.userDatasetOptions}
             onChangeAutoComplete={this.handleOnChangeAutoComplete}
           />
           <div className="ResultSetButtons">
