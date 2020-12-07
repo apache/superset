@@ -147,6 +147,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                 Overwrite existing
                 <AutoComplete
                   className="smd-autocomplete"
+                  // @ts-ignore
                   options={userDatasetOptions}
                   onSelect={handleOverwriteDatasetOption}
                   onSearch={handleSaveDatasetModalSearch}

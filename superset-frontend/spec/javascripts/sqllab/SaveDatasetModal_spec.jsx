@@ -37,6 +37,7 @@ describe('SaveDatasetModal', () => {
     defaultCreateDatasetValue: 'someDatasets',
     shouldOverwriteDataset: false,
     userDatasetOptions: [],
+    disableSaveAndExploreBtn: false,
   };
   it('renders a radio group btn', () => {
     const wrapper = shallow(<SaveDatasetModal visible />);

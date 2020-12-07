@@ -638,6 +638,7 @@ export default class ResultSet extends React.PureComponent<
     if (query.progress > 0) {
       progressBar = (
         <ProgressBar
+          // @ts-ignore
           percent={parseInt(query.progress.toFixed(0), 10)}
           striped
         />
