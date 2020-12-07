@@ -92,7 +92,8 @@ const StyledDashboardContent = styled.div`
     width: 100%;
     flex-grow: 1;
     position: relative;
-    margin: ${({ theme }) => theme.gridUnit * 6}px ${({ theme }) => theme.gridUnit * 9}px;
+    margin: ${({ theme }) => theme.gridUnit * 6}px
+      ${({ theme }) => theme.gridUnit * 9}px;
   }
 
   .dashboard-component-chart-holder {
@@ -175,6 +176,15 @@ class DashboardBuilder extends React.Component {
     }
   }
 
+  toggleDashboardFiltersOpen = () => {
+    const nextState = !this.state.dashboardFiltersOpen;
+    this.setState(state => ({ ...state, dashboardFiltersOpen: nextState }));
+  };
+
+  handleChangeTab({ pathToTabIndex }) {
+    this.props.setDirectPathToChild(pathToTabIndex);
+  }
+
   handleDeleteTopLevelTabs() {
     this.props.deleteTopLevelTabs();
 
@@ -185,15 +195,6 @@ class DashboardBuilder extends React.Component {
     );
     this.props.setDirectPathToChild(firstTab);
   }
-
-  handleChangeTab({ pathToTabIndex }) {
-    this.props.setDirectPathToChild(pathToTabIndex);
-  }
-
-  toggleDashboardFiltersOpen = () => {
-    const nextState = !this.state.dashboardFiltersOpen;
-    this.setState(() => ({ ...this.state, dashboardFiltersOpen: nextState }));
-  };
 
   render() {
     const {

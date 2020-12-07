@@ -48,17 +48,28 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateDatasetCommand(BaseCommand):
-    def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
+    def __init__(
+        self,
+        user: User,
+        model_id: int,
+        data: Dict[str, Any],
+        override_columns: bool = False,
+    ):
         self._actor = user
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[SqlaTable] = None
+        self.override_columns = override_columns
 
     def run(self) -> Model:
         self.validate()
         if self._model:
             try:
-                dataset = DatasetDAO.update(self._model, self._properties)
+                dataset = DatasetDAO.update(
+                    model=self._model,
+                    properties=self._properties,
+                    override_columns=self.override_columns,
+                )
                 return dataset
             except DAOUpdateFailedError as ex:
                 logger.exception(ex.exception)
@@ -123,14 +134,16 @@ class UpdateDatasetCommand(BaseCommand):
             ]
             if not DatasetDAO.validate_columns_exist(self._model_id, columns_ids):
                 exceptions.append(DatasetColumnNotFoundValidationError())
+
             # validate new column names uniqueness
-            columns_names: List[str] = [
-                column["column_name"] for column in columns if "id" not in column
-            ]
-            if not DatasetDAO.validate_columns_uniqueness(
-                self._model_id, columns_names
-            ):
-                exceptions.append(DatasetColumnsExistsValidationError())
+            if not self.override_columns:
+                columns_names: List[str] = [
+                    column["column_name"] for column in columns if "id" not in column
+                ]
+                if not DatasetDAO.validate_columns_uniqueness(
+                    self._model_id, columns_names
+                ):
+                    exceptions.append(DatasetColumnsExistsValidationError())
 
     def _validate_metrics(
         self, metrics: List[Dict[str, Any]], exceptions: List[ValidationError]

@@ -16,30 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import FilterConfigurationButton from 'src/dashboard/components/nativeFilters/FilterConfigurationButton';
 
-describe('FilterConfigurationButton', () => {
-  const mockedProps = {};
-  it('it is valid', () => {
-    expect(
-      React.isValidElement(<FilterConfigurationButton {...mockedProps} />),
-    ).toBe(true);
-  });
-  it('takes in children', () => {
-    const wrapper = mount(
-      <FilterConfigurationButton>
-        <span>Test</span>{' '}
-      </FilterConfigurationButton>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: {
-          theme: supersetTheme,
-        },
-      },
-    );
-    expect(wrapper.find('span')).toHaveLength(1);
-  });
-});
+import Owner from 'src/types/Owner';
+
+type user = {
+  id: number;
+  first_name: string;
+  last_name: string;
+};
+
+type recipients = {
+  id: number;
+  type: string;
+};
+
+export type AlertObject = {
+  active?: boolean;
+  changed_by?: user;
+  changed_on_delta_humanized?: string;
+  created_by?: user;
+  created_on?: string;
+  id?: number;
+  last_eval_dttm?: number;
+  last_state?: string;
+  name?: string;
+  owners?: Array<Owner>;
+  recipients?: recipients;
+  type?: string;
+};

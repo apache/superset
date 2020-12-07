@@ -16,23 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
-import parseCookie from 'src/utils/parseCookie';
+import { TABBED_DASHBOARD } from './dashboard.helper';
 
-export default function setupClient() {
-  const csrfNode = document.querySelector('#csrf_token');
-  const csrfToken = csrfNode ? csrfNode.value : null;
+describe('Nativefilters', () => {
+    console.log('hello i ran')
+  beforeEach(() => {
+    cy.login();
+    cy.server();
+    cy.visit(TABBED_DASHBOARD);
+  });
+  it('should show filter bar and allow user to create filters ', () => {
+    cy.get('[data-test="filter-bar"]').should('be.visible');
+    cy.get('[data-test="create-filter"]').click();
+    cy.get('.ant-modal').should('be.visible');
 
-  // when using flask-jwt-extended csrf is set in cookies
-  const cookieCSRFToken = parseCookie().csrf_access_token || '';
+    cy.get('[data-test="filter-modal"]')
+      .find('[data-test="name-input"]')
+      .click()
+      .type('TEST_Filter');
 
-  SupersetClient.configure({
-    protocol: (window.location && window.location.protocol) || '',
-    host: (window.location && window.location.host) || '',
-    csrfToken: csrfToken || cookieCSRFToken,
-  })
-    .init()
-    .catch(error => {
-      logging.warn('Error initializing SupersetClient', error);
-    });
-}
+    cy.get('[data-test="filter-modal"]')
+      .find('[data-test="datasource-input"]')
+      .click()
+      .select('wb_health_population');
+
+    cy.get('.ant-modal-footer').find('.ant-btn-primary').click();
+  });
+
+});

@@ -23,6 +23,7 @@
   background-color: @lightest;
   position: relative;
   padding: 16px;
+  overflow-y: auto;
 
   // transitionable traits for when a filter is being actively focused
   transition: opacity 0.2s, border-color 0.2s, box-shadow 0.2s;
@@ -110,6 +111,10 @@
       opacity: 0.7;
     }
   }
+}
+
+.chart-slice {
+  height: calc(100% - 32px);
 }
 
 .dot {

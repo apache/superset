@@ -27,7 +27,7 @@ import { act } from 'react-dom/test-utils';
 import Modal from 'src/common/components/Modal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import mockDatasource from '../../fixtures/mockDatasource';
+import mockDatasource from 'spec/fixtures/mockDatasource';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -55,8 +55,7 @@ fetchMock.get(DATASOURCES_ENDPOINT, [mockDatasource['7__table']]);
 fetchMock.get(DATASOURCE_ENDPOINT, DATASOURCE_PAYLOAD);
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<ChangeDatasourceModal {...props} />, {
-    context: { store },
+  const mounted = mount(<ChangeDatasourceModal store={store} {...props} />, {
     wrappingComponent: ThemeProvider,
     wrappingComponentProps: { theme: supersetTheme },
   });

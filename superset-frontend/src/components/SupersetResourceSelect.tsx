@@ -31,8 +31,8 @@ export interface SupersetResourceSelectProps<T = unknown, V = string> {
   onChange?: (value: Value<V>) => void;
   isMulti?: boolean;
   searchColumn?: string;
-  resource: string; // e.g. "dataset", "dashboard/related/owners"
-  transformItem: (item: T) => Value<V>;
+  resource?: string; // e.g. "dataset", "dashboard/related/owners"
+  transformItem?: (item: T) => Value<V>;
 }
 
 /**
@@ -62,7 +62,8 @@ export default function SupersetResourceSelect<T = unknown, V = string>({
     SupersetClient.get({
       endpoint: `/api/v1/${resource}/${initialId}`,
     }).then(response => {
-      const value = transformItem(response.json.result);
+      const { result } = response.json;
+      const value = transformItem ? transformItem(result) : result;
       if (onChange) onChange(value);
     });
   }, [resource, initialId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -77,7 +78,9 @@ export default function SupersetResourceSelect<T = unknown, V = string>({
       endpoint: `/api/v1/${resource}/?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map(transformItem);
+        return response.json.result
+          .map(transformItem)
+          .sort((a: Value<V>, b: Value<V>) => a.label.localeCompare(b.label));
       },
       async badResponse => {
         const { error, message } = await getClientErrorObject(badResponse);

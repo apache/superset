@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import { ExtraFormData, QueryObjectFilterClause } from '@superset-ui/core';
 import componentTypes from 'src/dashboard/util/componentTypes';
 
 export enum Scoping {
@@ -34,6 +34,7 @@ interface NativeFiltersFormItem {
   };
   column: string;
   defaultValue: string;
+  inverseSelection: boolean;
   isInstant: boolean;
   allowsMultipleValues: boolean;
   isRequired: boolean;
@@ -70,17 +71,19 @@ export type FilterType = 'text' | 'date';
  * The values here do not reflect the current state of the filter.
  */
 export interface Filter {
+  allowsMultipleValues: boolean;
+  cascadeParentIds: string[];
+  defaultValue: string | null;
+  inverseSelection: boolean;
+  isInstant: boolean;
+  isRequired: boolean;
   id: string; // randomly generated at filter creation
   name: string;
+  scope: Scope;
   type: FilterType;
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
-  defaultValue: string | null;
-  scope: Scope;
-  isInstant: boolean;
-  allowsMultipleValues: boolean;
-  isRequired: boolean;
 }
 
 export type FilterConfiguration = Filter[];
@@ -92,7 +95,7 @@ export type FilterState = {
   id: string; // ties this filter state to the config object
   optionsStatus: 'loading' | 'success' | 'fail';
   options: string[] | null;
-  selectedValues?: SelectedValues;
+  extraFormData?: ExtraFormData;
   /**
    * If the config changes, the current options/values may no longer be valid.
    * isDirty indicates that state.
@@ -156,7 +159,6 @@ export type TreeItem = {
   key: string;
   title: string;
 };
-
 
 export type NativeFiltersState = {
   filters: {

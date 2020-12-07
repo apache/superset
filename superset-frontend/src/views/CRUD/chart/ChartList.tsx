@@ -90,6 +90,9 @@ const createFetchDatasets = (handleError: (err: Response) => void) => async (
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+  };
 }
 
 function ChartList(props: ChartListProps) {
@@ -346,6 +349,7 @@ function ChartList(props: ChartListProps) {
             ),
           ),
         ),
+        props.user.userId,
       ),
       paginate: true,
     },
@@ -366,6 +370,7 @@ function ChartList(props: ChartListProps) {
             ),
           ),
         ),
+        props.user.userId,
       ),
       paginate: true,
     },

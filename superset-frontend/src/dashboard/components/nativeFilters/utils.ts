@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { Layout, LayoutItem, TreeItem, Scope, Charts } from './types';
+import { ExtraFormData, QueryObject } from '@superset-ui/core';
+import {
+  Layout,
+  LayoutItem,
+  TreeItem,
+  Scope,
+  Charts,
+  NativeFiltersState,
+} from './types';
 import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
@@ -91,3 +98,51 @@ export const findFilterScope = (
     excluded,
   };
 };
+
+export function mergeExtraFormData(
+  originalExtra: ExtraFormData,
+  newExtra: ExtraFormData,
+): ExtraFormData {
+  const {
+    override_form_data: originalOverride = {},
+    append_form_data: originalAppend = {},
+  } = originalExtra;
+  const {
+    override_form_data: newOverride = {},
+    append_form_data: newAppend = {},
+  } = newExtra;
+
+  const appendKeys = new Set([
+    ...Object.keys(originalAppend),
+    ...Object.keys(newAppend),
+  ]);
+  const appendFormData: Partial<QueryObject> = {};
+  appendKeys.forEach(key => {
+    appendFormData[key] = [
+      // @ts-ignore
+      ...(originalAppend[key] || []),
+      // @ts-ignore
+      ...(newAppend[key] || []),
+    ];
+  });
+
+  return {
+    override_form_data: {
+      ...originalOverride,
+      ...newOverride,
+    },
+    append_form_data: appendFormData,
+  };
+}
+
+export function getExtraFormData(
+  nativeFilters: NativeFiltersState,
+): ExtraFormData {
+  let extraFormData: ExtraFormData = {};
+  Object.keys(nativeFilters.filters).forEach(key => {
+    const filterState = nativeFilters.filtersState[key];
+    const { extraFormData: newExtra = {} } = filterState;
+    extraFormData = mergeExtraFormData(extraFormData, newExtra);
+  });
+  return extraFormData;
+}

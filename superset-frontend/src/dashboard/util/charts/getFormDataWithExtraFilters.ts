@@ -24,7 +24,7 @@ import {
 import { ChartQueryPayload } from 'src/dashboard/types';
 import { NativeFiltersState } from '../../components/nativeFilters/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
-import { getNativeFilterClauses } from '../nativeFilters';
+import { getExtraFormData } from '../../components/nativeFilters/utils';
 
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1
@@ -68,15 +68,12 @@ export default function getFormDataWithExtraFilters({
     return cachedFormdataByChart[sliceId];
   }
 
-  const filterClauses = getNativeFilterClauses(nativeFilters);
   const formData = {
     ...chart.formData,
     ...(colorScheme && { color_scheme: colorScheme }),
     label_colors: labelColors,
     extra_filters: getEffectiveExtraFilters(filters),
-    native_filters: filterClauses
-      ?.filter(filter => filter.filterClause)
-      .map(filter => filter.filterClause),
+    extra_form_data: getExtraFormData(nativeFilters),
   };
   cachedFiltersByChart[sliceId] = filters;
   cachedFormdataByChart[sliceId] = formData;

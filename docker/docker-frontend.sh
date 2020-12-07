@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -16,11 +16,10 @@
 # limitations under the License.
 #
 set -e
-git clone --branch asf-site https://git-wip-us.apache.org/repos/asf/incubator-superset-site.git /asf-site
 
-# copy html files to temp folder
-cp -rv /superset/docs/_build/html/* /asf-site
-chown -R ${HOST_UID}:${HOST_UID} /asf-site
+cd /app/superset-frontend
+npm install -f --no-optional --global webpack webpack-cli
+npm install -f --no-optional
 
-cd /asf-site
-python -m http.server
+echo "Running frontend"
+npm run dev

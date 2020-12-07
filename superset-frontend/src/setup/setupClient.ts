@@ -16,23 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import chartQueries from './mockChartQueries';
-import { dashboardLayout } from './mockDashboardLayout';
-import dashboardInfo from './mockDashboardInfo';
-import { emptyFilters } from './mockDashboardFilters';
-import dashboardState from './mockDashboardState';
-import messageToasts from '../../messageToasts/mockMessageToasts';
-import datasources from '../../../fixtures/mockDatasource';
-import sliceEntities from './mockSliceEntities';
+import { SupersetClient, logging } from '@superset-ui/core';
+import parseCookie from 'src/utils/parseCookie';
 
-export default {
-  datasources,
-  sliceEntities,
-  charts: chartQueries,
-  dashboardInfo,
-  dashboardFilters: emptyFilters,
-  dashboardState,
-  dashboardLayout,
-  messageToasts,
-  impressionId: 'mock_impression_id',
-};
+export default function setupClient() {
+  const csrfNode = document.querySelector<HTMLInputElement>('#csrf_token');
+  const csrfToken = csrfNode?.value;
+
+  // when using flask-jwt-extended csrf is set in cookies
+  const cookieCSRFToken = parseCookie().csrf_access_token || '';
+
+  SupersetClient.configure({
+    protocol: ['http:', 'https:'].includes(window?.location?.protocol)
+      ? (window?.location?.protocol as 'http:' | 'https:')
+      : undefined,
+    host: (window.location && window.location.host) || '',
+    csrfToken: csrfToken || cookieCSRFToken,
+  })
+    .init()
+    .catch(error => {
+      logging.warn('Error initializing SupersetClient', error);
+    });
+}

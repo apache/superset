@@ -145,7 +145,7 @@ const SkeletonActions = styled(Skeleton.Button)`
 
 const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
-  title: React.ReactNode;
+  title?: React.ReactNode;
   url?: string;
   imgURL?: string;
   imgFallbackURL?: string;
@@ -155,7 +155,7 @@ interface CardProps {
   titleRight?: React.ReactNode;
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
-  actions: React.ReactNode | null;
+  actions?: React.ReactNode | null;
   rows?: number | string;
   avatar?: string;
   cover?: React.ReactNode | null;

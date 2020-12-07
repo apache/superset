@@ -20,6 +20,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
@@ -55,6 +56,10 @@ const mocklayers = [...new Array(3)].map((_, i) => ({
   desc: 'layer description',
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(layersInfoEndpoint, {
   permissions: ['can_delete'],
 });
@@ -74,8 +79,10 @@ fetchMock.get(layersRelatedEndpoint, {
 });
 
 describe('AnnotationLayersList', () => {
-  const wrapper = mount(<AnnotationLayersList />, { context: { store } });
-
+  const wrapper = mount(
+    <Provider store={store}>    
+    <AnnotationLayersList store={store} user={mockUser} />
+</Provider>);
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });

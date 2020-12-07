@@ -17,20 +17,32 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-import ControlSetRow from 'src/explore/components/ControlRow';
+import { Provider } from 'react-redux';
+import ScopingTree from 'src/dashboard/components/nativeFilters/ScopingTree';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { mount } from 'enzyme';
+import { mockStore } from 'spec/fixtures/mockStore';
 
-describe('ControlSetRow', () => {
-  it('renders a single row with one element', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toExist();
+describe('ScopingTree', () => {
+  const mock = jest.fn();
+  const wrapper = mount(
+    <Provider store={mockStore}>
+      <ScopingTree setFilterScope={mock} />
+    </Provider>,
+    {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: {
+        theme: supersetTheme,
+      },
+    },
+  );
+  it('is valid', () => {
+    const mock = () => null;
+    expect(React.isValidElement(<ScopingTree setFilterScope={mock} />)).toBe(
+      true,
+    );
   });
-  it('renders a single row with two elements', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />, <a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toHaveLength(2);
+  it('renders a tree', () => {
+    expect(wrapper.find('TreeNode')).toExist();
   });
 });

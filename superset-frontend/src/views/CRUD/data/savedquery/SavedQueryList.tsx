@@ -47,6 +47,9 @@ const PAGE_SIZE = 25;
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+  };
 }
 
 const StyledTableLabel = styled.div`
@@ -65,6 +68,7 @@ const StyledPopoverItem = styled.div`
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
+  user,
 }: SavedQueryListProps) {
   const {
     state: {
@@ -91,8 +95,8 @@ function SavedQueryList({
     setSavedQueryCurrentlyPreviewing,
   ] = useState<SavedQueryObject | null>(null);
 
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
 
   const openNewQuery = () => {
     window.open(`${window.location.origin}/superset/sqllab?new=true`);

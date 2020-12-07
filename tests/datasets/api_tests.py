@@ -547,6 +547,44 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    def test_update_dataset_item_w_override_columns(self):
+        """
+        Dataset API: Test update dataset with override columns
+        """
+        # Add default dataset
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        dataset_data = {
+            "columns": [
+                {
+                    "column_name": "new_col",
+                    "description": "description",
+                    "expression": "expression",
+                    "type": "INTEGER",
+                    "verbose_name": "New Col",
+                }
+            ],
+            "description": "changed description",
+        }
+        uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+        assert rv.status_code == 200
+
+        columns = (
+            db.session.query(TableColumn)
+            .filter_by(table_id=dataset.id)
+            .order_by("column_name")
+            .all()
+        )
+
+        assert columns[0].column_name == dataset_data["columns"][0]["column_name"]
+        assert columns[0].description == dataset_data["columns"][0]["description"]
+        assert columns[0].expression == dataset_data["columns"][0]["expression"]
+        assert columns[0].type == dataset_data["columns"][0]["type"]
+
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_update_dataset_create_column(self):
         """
         Dataset API: Test update dataset create column
@@ -1185,16 +1223,20 @@ class TestDatasetApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("dataset_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "dataset_export.zip"),
+            "formData": (buf, "dataset_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -1225,16 +1267,20 @@ class TestDatasetApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("metadata.yaml", "w") as fp:
+            with bundle.open("dataset_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "dataset_export.zip"),
+            "formData": (buf, "dataset_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -1253,14 +1299,18 @@ class TestDatasetApi(SupersetTestCase):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            with bundle.open("databases/imported_database.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("datasets/imported_dataset.yaml", "w") as fp:
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
 
         form_data = {
-            "file": (buf, "dataset_export.zip"),
+            "formData": (buf, "dataset_export.zip"),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))

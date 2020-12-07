@@ -19,6 +19,7 @@
 import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 
@@ -53,6 +54,10 @@ const mocktemplates = [...new Array(3)].map((_, i) => ({
   template_name: `template ${i}`,
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(templatesInfoEndpoint, {
   permissions: ['can_delete'],
 });
@@ -72,7 +77,11 @@ fetchMock.get(templatesRelatedEndpoint, {
 });
 
 describe('CssTemplatesList', () => {
-  const wrapper = mount(<CssTemplatesList />, { context: { store } });
+  const wrapper = mount(
+    <Provider store={store}>
+      <CssTemplatesList store={store} user={mockUser} />
+    </Provider>,
+  );
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import CollectionTable from 'src/CRUD/CollectionTable';
-import mockDatasource from '../../fixtures/mockDatasource';
+import mockDatasource from 'spec/fixtures/mockDatasource';
 
 const props = {
   collection: mockDatasource['7__table'].columns,

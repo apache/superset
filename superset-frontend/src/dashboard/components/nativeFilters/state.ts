@@ -18,24 +18,22 @@
  */
 import { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  selectFilterOption,
-  setFilterState,
-} from 'src/dashboard/actions/nativeFilters';
+import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { t } from '@superset-ui/core';
+import { ExtraFormData, t } from '@superset-ui/core';
 import {
   Charts,
   Filter,
   FilterConfiguration,
   FilterState,
   Layout,
+  NativeFiltersState,
   RootState,
   TreeItem,
 } from './types';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import { DASHBOARD_ROOT_TYPE } from '../../util/componentTypes';
-import { buildTree } from './utils';
+import { buildTree, mergeExtraFormData } from './utils';
 
 const defaultFilterConfiguration: Filter[] = [];
 
@@ -69,20 +67,15 @@ export function useFilterState(id: string) {
   });
 }
 
-export function useFilterSetter(id: string) {
+export function useSetExtraFormData(id: string) {
   const dispatch = useDispatch();
   return useCallback(
-    (
-      values: string | string[] | null,
-      filter: Filter,
-      filters: FilterConfiguration,
-    ) => {
-      dispatch(selectFilterOption(id, values));
-      dispatch(setFilterState(values || [], filter, filters));
-    },
+    (extraFormData: ExtraFormData) =>
+      dispatch(setExtraFormData(id, extraFormData)),
     [id, dispatch],
   );
 }
+
 export function useFilterScopeTree(): {
   treeData: [TreeItem];
   layout: Layout;
@@ -101,4 +94,20 @@ export function useFilterScopeTree(): {
   };
   buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts);
   return { treeData: [tree], layout };
+}
+
+export function useCascadingFilters(id: string) {
+  return useSelector<any, ExtraFormData>(state => {
+    const { nativeFilters }: { nativeFilters: NativeFiltersState } = state;
+    const { filters, filtersState } = nativeFilters;
+    const filter = filters[id];
+    const { cascadeParentIds = [] } = filter;
+    let cascadedFilters = {};
+    cascadeParentIds.forEach(parentId => {
+      const parentState = filtersState[parentId] || {};
+      const { extraFormData: parentExtra = {} } = parentState;
+      cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
+    });
+    return cascadedFilters;
+  });
 }

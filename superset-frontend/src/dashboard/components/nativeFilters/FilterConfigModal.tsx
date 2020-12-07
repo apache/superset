@@ -16,35 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useState,
-} from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { keyframes } from '@emotion/react';
 import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
-import { Store } from 'antd/lib/form/interface';
 import { DeleteFilled } from '@ant-design/icons';
-import { css, styled, t } from '@superset-ui/core';
-import { Button, Form } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import { styled, t } from '@superset-ui/core';
+import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
-import {
-  Filter,
-  FilterConfiguration,
-  NativeFiltersForm,
-  Scope,
-  Scoping,
-} from './types';
+import { FilterConfiguration, NativeFiltersForm } from './types';
 
 // how long to show the "undo" button when removing a filter
 const REMOVAL_DELAY_SECS = 5;
@@ -53,7 +38,7 @@ const StyledModalBody = styled.div`
   display: flex;
   flex-direction: row;
   .filters-list {
-    width 200px;
+    width: 200px;
     overflow: auto;
   }
 `;
@@ -125,10 +110,12 @@ const getFilterIds = (config: FilterConfiguration) =>
   config.map(filter => filter.id);
 
 /**
- * Modal for management of dashboard-native filters.
- * Filters can be created, edited, and deleted.
- * No changes are saved until the "save" button is pressed,
- * at which time the updates will be batched.
+ * This is the modal to configure all the dashboard-native filters.
+ * Manages modal-level state, such as what filters are in the list,
+ * and which filter is currently being edited.
+ *
+ * Calls the `save` callback with the new FilterConfiguration object
+ * when the user saves the filters.
  */
 export function FilterConfigModal({
   isOpen,
@@ -301,6 +288,7 @@ export function FilterConfigModal({
         if (!formInputs) return filterConfigMap[id];
         return {
           id,
+          cascadeParentIds: [],
           name: formInputs.name,
           type: 'text',
           // for now there will only ever be one target
@@ -317,6 +305,7 @@ export function FilterConfigModal({
             rootPath: [DASHBOARD_ROOT_ID],
             excluded: [],
           },
+          inverseSelection: !!formInputs.inverseSelection,
           isInstant: !!formInputs.isInstant,
           allowsMultipleValues: !!formInputs.allowsMultipleValues,
           isRequired: !!formInputs.isRequired,
@@ -346,6 +335,7 @@ export function FilterConfigModal({
       okText={t('Save')}
       cancelText={t('Cancel')}
       centered
+      data-test="filter-modal"
     >
       <StyledModalBody>
         <StyledForm

@@ -19,6 +19,7 @@
 import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import * as featureFlags from 'src/featureFlags';
 
@@ -36,9 +37,11 @@ const store = mockStore({});
 
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 const chartssOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
+const chartsCreatedByEndpoint = 'glob:*/api/v1/chart/related/created_by*';
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartsVizTypesEndpoint = 'glob:*/api/v1/chart/viz_types';
-const chartsDtasourcesEndpoint = 'glob:*/api/v1/chart/datasources';
+const chartsDatasourcesEndpoint = 'glob:*/api/v1/chart/datasources';
+const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
 
 const mockCharts = [...new Array(3)].map((_, i) => ({
   changed_on: new Date().toISOString(),
@@ -51,11 +54,21 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   thumbnail_url: '/thumbnail',
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_list', 'can_edit', 'can_delete'],
 });
 
 fetchMock.get(chartssOwnersEndpoint, {
+  result: [],
+});
+fetchMock.get(chartsCreatedByEndpoint, {
+  result: [],
+});
+fetchMock.get(chartFavoriteStatusEndpoint, {
   result: [],
 });
 fetchMock.get(chartsEndpoint, {
@@ -68,7 +81,7 @@ fetchMock.get(chartsVizTypesEndpoint, {
   count: 0,
 });
 
-fetchMock.get(chartsDtasourcesEndpoint, {
+fetchMock.get(chartsDatasourcesEndpoint, {
   result: [],
   count: 0,
 });
@@ -85,9 +98,11 @@ describe('ChartList', () => {
     isFeatureEnabledMock.restore();
   });
   const mockedProps = {};
-  const wrapper = mount(<ChartList {...mockedProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(
+    <Provider store={store}>
+      <ChartList {...mockedProps} user={mockUser} />
+    </Provider>,
+  );
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

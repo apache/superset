@@ -18,17 +18,20 @@ import logging
 from typing import List, Optional
 
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import lazy_gettext as _
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DeleteFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardBulkDeleteFailedError,
+    DashboardBulkDeleteFailedReportsExistError,
     DashboardForbiddenError,
     DashboardNotFoundError,
 )
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
+from superset.reports.dao import ReportScheduleDAO
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
@@ -54,6 +57,13 @@ class BulkDeleteDashboardCommand(BaseCommand):
         self._models = DashboardDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
             raise DashboardNotFoundError()
+        # Check there are no associated ReportSchedules
+        reports = ReportScheduleDAO.find_by_dashboard_ids(self._model_ids)
+        if reports:
+            report_names = [report.name for report in reports]
+            raise DashboardBulkDeleteFailedReportsExistError(
+                _("There are associated alerts or reports: %s" % ",".join(report_names))
+            )
         # Check ownership
         for model in self._models:
             try:

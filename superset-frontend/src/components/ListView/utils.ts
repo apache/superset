@@ -26,7 +26,12 @@ import {
   useTable,
 } from 'react-table';
 
-import { NumberParam, StringParam, useQueryParams } from 'use-query-params';
+import {
+  NumberParam,
+  StringParam,
+  useQueryParams,
+  QueryParamConfig,
+} from 'use-query-params';
 
 import rison from 'rison';
 import { isEqual } from 'lodash';
@@ -41,11 +46,13 @@ import {
 } from './types';
 
 // Define custom RisonParam for proper encoding/decoding
-const RisonParam = {
-  encode: (data: any | null | undefined) =>
+const RisonParam: QueryParamConfig<string, any> = {
+  encode: (data?: any | null) =>
     data === undefined ? undefined : rison.encode(data),
-  decode: (dataStr: string | undefined) =>
-    dataStr === undefined ? undefined : rison.decode(dataStr),
+  decode: (dataStr?: string | string[]) =>
+    dataStr === undefined || Array.isArray(dataStr)
+      ? undefined
+      : rison.decode(dataStr),
 };
 
 export class ListViewError extends Error {
@@ -68,7 +75,11 @@ function updateInList(list: any[], index: number, update: any): any[] {
   ];
 }
 
-function mergeCreateFilterValues(list: Filter[], updateObj: any) {
+type QueryFilterState = {
+  [id: string]: FilterValue['value'];
+};
+
+function mergeCreateFilterValues(list: Filter[], updateObj: QueryFilterState) {
   return list.map(({ id, operator }) => {
     const update = updateObj[id];
 
@@ -79,8 +90,36 @@ function mergeCreateFilterValues(list: Filter[], updateObj: any) {
 // convert filters from UI objects to data objects
 export function convertFilters(fts: InternalFilter[]): FilterValue[] {
   return fts
-    .filter(f => typeof f.value !== 'undefined')
-    .map(({ value, operator, id }) => ({ value, operator, id }));
+    .filter(
+      f =>
+        !(
+          typeof f.value === 'undefined' ||
+          (Array.isArray(f.value) && !f.value.length)
+        ),
+    )
+    .map(({ value, operator, id }) => {
+      // handle between filter using 2 api filters
+      if (operator === 'between' && Array.isArray(value)) {
+        return [
+          {
+            value: value[0],
+            operator: 'gt',
+            id,
+          },
+          {
+            value: value[1],
+            operator: 'lt',
+            id,
+          },
+        ];
+      }
+      return {
+        value,
+        operator,
+        id,
+      };
+    })
+    .flat();
 }
 
 // convertFilters but to handle new decoded rison format
@@ -125,13 +164,6 @@ export function extractInputValue(inputType: Filter['input'], event: any) {
   return null;
 }
 
-export function getDefaultFilterOperator(filter: Filter): string {
-  if (filter?.operator) return filter.operator;
-  if (filter?.operators?.length) {
-    return filter.operators[0].value;
-  }
-  return '';
-}
 interface UseListViewConfig {
   fetchData: (conf: FetchDataConfig) => any;
   columns: any[];

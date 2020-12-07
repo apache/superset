@@ -16,18 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SuperChart, t } from '@superset-ui/core';
-import React, { useState } from 'react';
+import { QueryFormData, styled, SuperChart, t } from '@superset-ui/core';
+import React, { useState, useEffect } from 'react';
 import cx from 'classnames';
-import { Form, Menu } from 'src/common/components';
+import { Form } from 'src/common/components';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
-import { useFilterConfiguration, useFilterSetter } from './state';
-import { Filter, FilterConfiguration } from './types';
+import {
+  useCascadingFilters,
+  useFilterConfiguration,
+  useSetExtraFormData,
+} from './state';
+import { Filter } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
+import { areObjectsEqual } from '../../../reduxUtils';
 
 const barWidth = `250px`;
 
@@ -139,12 +144,6 @@ const FilterControls = styled.div`
 
 interface FilterProps {
   filter: Filter;
-  filters: FilterConfiguration;
-}
-
-interface FiltersMenuProps {
-  toggleSideBar: () => void;
-  closeDropdown: () => void;
 }
 
 interface FiltersBarProps {
@@ -152,94 +151,76 @@ interface FiltersBarProps {
   toggleFiltersBar: any;
 }
 
-const FilterValue: React.FC<FilterProps> = ({ filter, filters }) => {
-  const setSelectedValues = useFilterSetter(filter.id);
+const FilterValue: React.FC<FilterProps> = ({ filter }) => {
+  const { id } = filter;
+  const setExtraFormData = useSetExtraFormData(id);
+  const cascadingFilters = useCascadingFilters(id);
   const [state, setState] = useState({ data: undefined });
-  const { targets } = filter;
+  const [formData, setFormData] = useState<Partial<QueryFormData>>({});
+  const { allowsMultipleValues, inverseSelection, targets } = filter;
   const [target] = targets;
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
-  const setter = (values: string[]): void => {
-    return setSelectedValues(values, filter, filters);
-  };
 
-  const formData = {
+  const getFormData = (): Partial<QueryFormData> => ({
     adhoc_filters: [],
     datasource: `${datasetId}__table`,
     extra_filters: [],
+    extra_form_data: cascadingFilters,
     granularity_sqla: 'ds',
     groupby: [groupby],
-    label_colors: {},
+    inverseSelection,
     metrics: ['count'],
-    multiSelect: true,
+    multiSelect: allowsMultipleValues,
     row_limit: 10000,
-    setSelectedValues: setter,
     showSearch: true,
     time_range: 'No filter',
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
     viz_type: 'filter_select',
-  };
+  });
 
-  if (!state.data)
-    getChartDataRequest({
-      formData,
-      force: false,
-      requestParams: { dashboardId: 0 },
-    }).then(response => {
-      setState({ data: response.result[0].data });
-    });
+  useEffect(() => {
+    const newFormData = getFormData();
+    if (!areObjectsEqual(formData || {}, newFormData)) {
+      setFormData(newFormData);
+      getChartDataRequest({
+        formData: newFormData,
+        force: false,
+        requestParams: { dashboardId: 0 },
+      }).then(response => {
+        setState({ data: response.result[0].data });
+      });
+    }
+  }, [cascadingFilters]);
 
   return (
     <Form
       onFinish={values => {
-        setSelectedValues(values.value, undefined, undefined);
+        setExtraFormData(values.value);
       }}
     >
       <Form.Item name="value">
         <SuperChart
           height={20}
           width={220}
-          formData={formData}
+          formData={getFormData()}
           queryData={state}
           chartType="filter_select"
+          hooks={{ setExtraFormData }}
         />
       </Form.Item>
     </Form>
   );
 };
 
-const FilterControl: React.FC<FilterProps> = ({ filter, filters }) => {
+const FilterControl: React.FC<FilterProps> = ({ filter }) => {
   const { name = '<undefined>' } = filter;
   return (
     <div>
       <h3>{name}</h3>
-      <FilterValue filter={filter} filters={filters} />
+      <FilterValue filter={filter} />
     </div>
-  );
-};
-
-const MenuItems: React.FC<FiltersMenuProps> = ({
-  toggleSideBar,
-  closeDropdown,
-}) => {
-  return (
-    <Menu onClick={closeDropdown}>
-      <Menu.Item>Configure Filters</Menu.Item>
-      <Menu.Item>
-        <FilterConfigurationLink createNewOnOpen>
-          {t('New Filter')}
-        </FilterConfigurationLink>
-      </Menu.Item>
-      {/* <Menu.Item>
-          <FilterScopeModal
-            triggerNode={t('Bulk Scoping')}
-          />
-        </Menu.Item> */}
-      <Menu.Item>
-        <div onClick={toggleSideBar}>Collapse</div>
-      </Menu.Item>
-    </Menu>
   );
 };
 
@@ -247,16 +228,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const filterConfigs = useFilterConfiguration();
 
-  const handleVisibleChange = (flag: boolean) => {
-    setDropdownOpen(flag);
-    // this.setState({ visible: flag });
-  };
-
   return (
-    <BarWrapper className={cx({ open: filtersOpen })}>
+    <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
       <CollapsedBar
         className={cx({ open: !filtersOpen })}
         onClick={toggleFiltersBar}
@@ -269,21 +244,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <span>
             {t('Filters')} ({filterConfigs.length})
           </span>
-          {/* <Dropdown
-            overlay={
-              <MenuItems
-                toggleSideBar={toggleFiltersBar}
-                closeDropdown={() => setDropdownOpen(false)}
-              />
-            }
-            trigger={['click']}
-            visible={dropdownOpen}
-            onVisibleChange={handleVisibleChange}
-          >
-            <Icon name="more-horiz" />
-          </Dropdown> */}
           <FilterConfigurationLink>
-            <Icon name="edit" />
+            <Icon name="edit" data-test="create-filter" />
           </FilterConfigurationLink>
           <Icon name="expand" onClick={toggleFiltersBar} />
         </TitleArea>
@@ -298,9 +260,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         <FilterControls>
           {filterConfigs.map(filter => (
             <FilterControl
+              data-test="filters-control"
               key={filter.id}
               filter={filter}
-              filters={filterConfigs}
             />
           ))}
         </FilterControls>

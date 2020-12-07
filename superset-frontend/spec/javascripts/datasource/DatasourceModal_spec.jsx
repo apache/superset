@@ -20,6 +20,7 @@ import React from 'react';
 import { act } from 'react-dom/test-utils';
 import configureStore from 'redux-mock-store';
 import { mount } from 'enzyme';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
@@ -30,7 +31,7 @@ import Modal from 'src/common/components/Modal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import * as featureFlags from 'src/featureFlags';
-import mockDatasource from '../../fixtures/mockDatasource';
+import mockDatasource from 'spec/fixtures/mockDatasource';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -50,11 +51,15 @@ const mockedProps = {
 };
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<DatasourceModal {...props} />, {
-    context: { store },
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
-  });
+  const mounted = mount(
+    <Provider store={store}>
+      <DatasourceModal {...props} />
+    </Provider>,
+    {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    },
+  );
   await waitForComponentToPaint(mounted);
 
   return mounted;
