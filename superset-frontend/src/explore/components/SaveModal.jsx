@@ -139,11 +139,12 @@ class SaveModal extends React.Component {
         title={t('Save Chart')}
         footer={
           <div data-test="save-modal-footer">
-            <Button id="btn_cancel" onClick={this.props.onHide}>
+            <Button id="btn_cancel" buttonSize="sm" onClick={this.props.onHide}>
               {t('Cancel')}
             </Button>
             <Button
               id="btn_modal_save_goto_dash"
+              buttonSize="sm"
               disabled={
                 !this.state.newSliceName || !this.state.newDashboardName
               }
@@ -153,6 +154,7 @@ class SaveModal extends React.Component {
             </Button>
             <Button
               id="btn_modal_save"
+              buttonSize="sm"
               buttonStyle="primary"
               onClick={this.saveOrOverwrite.bind(this, false)}
               disabled={!this.state.newSliceName}
