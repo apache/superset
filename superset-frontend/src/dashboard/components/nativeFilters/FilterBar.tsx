@@ -242,6 +242,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
 }) => {
+  const [filterData, setFilterData] = useState({});
+
   const setExtraFormData = useSetExtraFormData();
   const filterConfigs = useFilterConfiguration();
   const canEdit = useSelector<any, boolean>(
@@ -255,8 +257,17 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   }, [filterConfigs]);
 
   const handleExtraFormDataChange = (filterId: string, extraFormData: any) => {
-    console.log('Extra form data', filterId, extraFormData);
-    setExtraFormData(filterId, extraFormData);
+    setFilterData(prevFilterData => ({
+      ...prevFilterData,
+      [filterId]: extraFormData,
+    }));
+  };
+
+  const handleApply = () => {
+    const filterIds = Object.keys(filterData);
+    filterIds.forEach(filterId => {
+      setExtraFormData(filterId, filterData[filterId]);
+    });
   };
 
   return (
@@ -281,7 +292,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <Icon name="expand" onClick={toggleFiltersBar} />
         </TitleArea>
         <ActionButtons>
-          <Button buttonStyle="primary" type="submit" buttonSize="sm">
+          <Button
+            buttonStyle="primary"
+            type="submit"
+            buttonSize="sm"
+            onClick={handleApply}
+          >
             {t('Apply')}
           </Button>
           <Button buttonStyle="secondary" buttonSize="sm">
