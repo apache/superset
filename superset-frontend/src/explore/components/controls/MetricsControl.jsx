@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/* eslint no-param-reassign: "error" */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
@@ -194,7 +196,9 @@ export default class MetricsControl extends React.PureComponent {
   }
 
   onMetricEdit(changedMetric) {
-    changedMetric.label = changedMetric.hasCustomLabel ? changedMetric.customLabel : changedMetric.label;
+    changedMetric.label = changedMetric.hasCustomLabel
+      ? changedMetric.customLabel
+      : changedMetric.label;
     let newValue = this.state.value.map(value => {
       if (value.optionName === changedMetric.optionName) {
         return changedMetric;
