@@ -30,7 +30,6 @@ describe('SaveDatasetModal', () => {
     userDatasetsOwned: [],
     handleSaveDatasetRadioBtnState: () => {},
     saveDatasetRadioBtnState: 1,
-    overwriteDataSet: false,
     handleOverwriteCancel: () => {},
     handleOverwriteDataset: () => {},
     handleOverwriteDatasetOption: () => {},

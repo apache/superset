@@ -84,7 +84,7 @@ interface ResultSetState {
   newSaveDatasetName: string;
   userDatasetsOwned: DatasetOption[];
   saveDatasetRadioBtnState: number;
-  overwriteDataSet: boolean;
+  shouldOverwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
   ctasSave: boolean;
   saveModalAutocompleteValue: string;
@@ -126,7 +126,7 @@ export default class ResultSet extends React.PureComponent<
       )}`,
       userDatasetsOwned: [],
       saveDatasetRadioBtnState: SAVE_NEW_DATASET_RADIO_STATE,
-      overwriteDataSet: false,
+      shouldOverwriteDataSet: false,
       datasetToOverwrite: {},
       ctasSave: false,
       saveModalAutocompleteValue: '',
@@ -288,7 +288,7 @@ export default class ResultSet extends React.PureComponent<
 
     this.setState({
       showSaveDatasetModal: false,
-      overwriteDataSet: false,
+      shouldOverwriteDataSet: false,
       datasetToOverwrite: {},
       newSaveDatasetName: `${this.props.query.tab} ${moment().format(
         'MM/DD/YYYY HH:mm:ss',
@@ -299,7 +299,7 @@ export default class ResultSet extends React.PureComponent<
   handleSaveInDataset() {
     // if user wants to overwrite a dataset we need to prompt them
     if (this.state.saveDatasetRadioBtnState === OVERWRITE_DATASET_RADIO_STATE) {
-      this.setState({ overwriteDataSet: true });
+      this.setState({ shouldOverwriteDataSet: true });
       return;
     }
 
@@ -376,7 +376,7 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleHideSaveModal() {
-    this.setState({ showSaveDatasetModal: false, overwriteDataSet: false });
+    this.setState({ showSaveDatasetModal: false, shouldOverwriteDataSet: false });
   }
 
   handleSaveDatasetRadioBtnState(e: RadioChangeEvent) {
@@ -384,7 +384,7 @@ export default class ResultSet extends React.PureComponent<
   }
 
   handleOverwriteCancel() {
-    this.setState({ overwriteDataSet: false });
+    this.setState({ shouldOverwriteDataSet: false });
   }
 
   handleSaveDatasetModalSearch(searchText: string) {
@@ -437,7 +437,7 @@ export default class ResultSet extends React.PureComponent<
             handleDatasetNameChange={this.handleDatasetNameChange}
             handleSaveDatasetRadioBtnState={this.handleSaveDatasetRadioBtnState}
             saveDatasetRadioBtnState={this.state.saveDatasetRadioBtnState}
-            shouldOverwriteDataset={this.state.overwriteDataSet}
+            shouldOverwriteDataset={this.state.shouldOverwriteDataSet}
             handleOverwriteCancel={this.handleOverwriteCancel}
             handleOverwriteDataset={this.handleOverwriteDataset}
             handleOverwriteDatasetOption={this.handleOverwriteDatasetOption}
