@@ -50,7 +50,12 @@ from sqlalchemy.sql import expression
 from sqlalchemy_utils import EncryptedType
 
 from superset import conf, db, is_feature_enabled, security_manager
-from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.connectors.base.models import (
+    BaseColumn,
+    BaseDatasource,
+    BaseMetric,
+    DatasourceType,
+)
 from superset.constants import NULL_STRING
 from superset.exceptions import SupersetException
 from superset.models.core import Database
@@ -126,7 +131,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportExportMixin):
     """ORM object referencing the Druid clusters"""
 
     __tablename__ = "clusters"
-    type = "druid"
+    type = DatasourceType.DRUID.value
 
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)

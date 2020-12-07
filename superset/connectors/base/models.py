@@ -58,6 +58,12 @@ class DatasourceKind(str, Enum):
     PHYSICAL = "physical"
 
 
+class DatasourceType(str, Enum):
+    TABLE = "table"
+    DRUID = "druid"
+    VIEW = "view"
+
+
 class BaseDatasource(
     AuditMixinNullable, ImportExportMixin
 ):  # pylint: disable=too-many-public-methods

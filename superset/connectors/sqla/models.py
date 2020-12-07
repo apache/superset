@@ -53,7 +53,12 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.connectors.base.models import (
+    BaseColumn,
+    BaseDatasource,
+    BaseMetric,
+    DatasourceType,
+)
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -435,7 +440,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     """An ORM object for SqlAlchemy table references"""
 
-    type = "table"
+    type = DatasourceType.TABLE.value
     query_language = "sql"
     is_rls_supported = True
     columns: List[TableColumn] = []

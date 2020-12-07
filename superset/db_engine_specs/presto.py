@@ -38,9 +38,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
 from superset import app, cache_manager, is_feature_enabled, security_manager
+from superset.connectors.base.models import DatasourceType
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetTemplateException
+from superset.exceptions import SupersetException, SupersetTemplateException
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import (
     Array,
@@ -595,6 +596,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     def get_all_datasource_names(
         cls, database: "Database", datasource_type: str
     ) -> List[utils.DatasourceName]:
+        if datasource_type not in [item.value for item in DatasourceType]:
+            raise SupersetException("Found an unknown datasource type")
+
         datasource_df = database.get_df(
             "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S "
             "ORDER BY concat(table_schema, '.', table_name)".format(
