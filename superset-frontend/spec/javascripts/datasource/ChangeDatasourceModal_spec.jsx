@@ -80,10 +80,6 @@ describe('ChangeDatasourceModal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
-  it('fetches datasources', async () => {
-    expect(fetchMock.calls(/superset\/datasources/)).toHaveLength(3);
-  });
-
   it('changes the datasource', async () => {
     act(() => {
       wrapper.find('.datasource-link').at(0).props().onClick(datasourceData);
