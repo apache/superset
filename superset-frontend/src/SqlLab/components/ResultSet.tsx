@@ -42,8 +42,11 @@ import { Query } from '../types';
 
 const SEARCH_HEIGHT = 46;
 
-const SAVE_NEW_DATASET_RADIO_STATE = 1;
-const OVERWRITE_DATASET_RADIO_STATE = 2;
+enum DatasetRadioState {
+  SAVE_NEW = 1,
+  OVERWRITE_DATASET = 2,
+}
+
 const EXPLORE_CHART_DEFAULT = {
   metrics: [],
   groupby: [],
@@ -125,7 +128,7 @@ export default class ResultSet extends React.PureComponent<
         'MM/DD/YYYY HH:mm:ss',
       )}`,
       userDatasetsOwned: [],
-      saveDatasetRadioBtnState: SAVE_NEW_DATASET_RADIO_STATE,
+      saveDatasetRadioBtnState: DatasetRadioState.SAVE_NEW,
       shouldOverwriteDataSet: false,
       datasetToOverwrite: {},
       ctasSave: false,
@@ -175,9 +178,10 @@ export default class ResultSet extends React.PureComponent<
 
     const datasets = await getByUser(bootstrapData.user.userId);
     const userDatasetsOwned = datasets.map(
-      (r: { table_name: string; id: number }) => {
-        return { datasetName: r.table_name, datasetId: r.id };
-      },
+      (r: { table_name: string; id: number }) => ({
+        datasetName: r.table_name,
+        datasetId: r.id,
+      }),
     );
 
     this.setState({ userDatasetsOwned });
@@ -252,7 +256,10 @@ export default class ResultSet extends React.PureComponent<
 
   handleSaveInDataset = () => {
     // if user wants to overwrite a dataset we need to prompt them
-    if (this.state.saveDatasetRadioBtnState === OVERWRITE_DATASET_RADIO_STATE) {
+    if (
+      this.state.saveDatasetRadioBtnState ===
+      DatasetRadioState.OVERWRITE_DATASET
+    ) {
       this.setState({ shouldOverwriteDataSet: true });
       return;
     }
