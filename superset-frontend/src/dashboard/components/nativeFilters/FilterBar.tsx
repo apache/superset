@@ -145,6 +145,7 @@ const FilterControls = styled.div`
 
 interface FilterProps {
   filter: Filter;
+  onExtraFormDataChange: any;
 }
 
 interface FiltersBarProps {
@@ -152,9 +153,12 @@ interface FiltersBarProps {
   toggleFiltersBar: any;
 }
 
-const FilterValue: React.FC<FilterProps> = ({ filter }) => {
+const FilterValue: React.FC<FilterProps> = ({
+  filter,
+  onExtraFormDataChange,
+}) => {
   const { id } = filter;
-  const setExtraFormData = useSetExtraFormData(id);
+  // const setExtraFormData = useSetExtraFormData(id);
   const cascadingFilters = useCascadingFilters(id);
   const [state, setState] = useState({ data: undefined });
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
@@ -195,6 +199,9 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
     }
   }, [cascadingFilters]);
 
+  const setExtraFormData = (extraFormData: any) =>
+    onExtraFormDataChange(filter.id, extraFormData);
+
   return (
     <Form
       onFinish={values => {
@@ -215,12 +222,18 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   );
 };
 
-const FilterControl: React.FC<FilterProps> = ({ filter }) => {
+const FilterControl: React.FC<FilterProps> = ({
+  filter,
+  onExtraFormDataChange,
+}) => {
   const { name = '<undefined>' } = filter;
   return (
     <div>
       <h3>{name}</h3>
-      <FilterValue filter={filter} />
+      <FilterValue
+        filter={filter}
+        onExtraFormDataChange={onExtraFormDataChange}
+      />
     </div>
   );
 };
@@ -229,6 +242,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
 }) => {
+  const setExtraFormData = useSetExtraFormData();
   const filterConfigs = useFilterConfiguration();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
@@ -239,6 +253,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       toggleFiltersBar(false);
     }
   }, [filterConfigs]);
+
+  const handleExtraFormDataChange = (filterId: string, extraFormData: any) => {
+    console.log('Extra form data', filterId, extraFormData);
+    setExtraFormData(filterId, extraFormData);
+  };
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
@@ -275,6 +294,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               data-test="filters-control"
               key={filter.id}
               filter={filter}
+              onExtraFormDataChange={handleExtraFormDataChange}
             />
           ))}
         </FilterControls>
