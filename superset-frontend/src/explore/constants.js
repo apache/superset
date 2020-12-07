@@ -38,7 +38,7 @@ export const OPERATORS = {
   IN: 'IN',
   'NOT IN': 'NOT IN',
   LIKE: 'LIKE',
-  regex: 'regex',
+  REGEX: 'REGEX',
   'IS NOT NULL': 'IS NOT NULL',
   'IS NULL': 'IS NULL',
   'LATEST PARTITION': 'LATEST PARTITION',
