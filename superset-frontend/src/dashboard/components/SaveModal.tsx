@@ -213,7 +213,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
               buttonStyle="primary"
               onClick={this.saveDashboard}
             >
-              {t('Save 22')}
+              {t('Save')}
             </Button>
           </div>
         }
