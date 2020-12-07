@@ -44,7 +44,7 @@ class AdhocMetricOption extends React.PureComponent {
     this.state = {
       popoverVisible: undefined,
       title: {
-        label: props.adhocMetric.label,
+        Customlabel: props.adhocMetric.label,
         hasCustomLabel: props.adhocMetric.hasCustomLabel,
       },
     };
@@ -61,7 +61,7 @@ class AdhocMetricOption extends React.PureComponent {
     const label = e.target.value;
     this.setState({
       title: {
-        label: label || this.props.adhocMetric.label,
+        customLabel: label || this.props.adhocMetric.label,
         hasCustomLabel: !!label,
       },
     });

@@ -194,6 +194,7 @@ export default class MetricsControl extends React.PureComponent {
   }
 
   onMetricEdit(changedMetric) {
+    changedMetric.label = changedMetric.hasCustomLabel ? changedMetric.customLabel : changedMetric.label;
     let newValue = this.state.value.map(value => {
       if (value.optionName === changedMetric.optionName) {
         return changedMetric;
