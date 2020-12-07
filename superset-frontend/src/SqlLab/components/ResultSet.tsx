@@ -584,7 +584,6 @@ export default class ResultSet extends React.PureComponent<
                 dbId={exploreDBId}
                 database={this.props.database}
                 actions={this.props.actions}
-                onClick={this.handleCTASExploreBtnClick}
               />
             </ButtonGroup>
           </Alert>
