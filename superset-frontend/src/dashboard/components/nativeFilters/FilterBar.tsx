@@ -158,7 +158,6 @@ const FilterValue: React.FC<FilterProps> = ({
   onExtraFormDataChange,
 }) => {
   const { id } = filter;
-  // const setExtraFormData = useSetExtraFormData(id);
   const cascadingFilters = useCascadingFilters(id);
   const [state, setState] = useState({ data: undefined });
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
@@ -200,7 +199,7 @@ const FilterValue: React.FC<FilterProps> = ({
   }, [cascadingFilters]);
 
   const setExtraFormData = (extraFormData: any) =>
-    onExtraFormDataChange(filter.id, extraFormData);
+    onExtraFormDataChange(filter, extraFormData);
 
   return (
     <Form
@@ -256,17 +255,23 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
   }, [filterConfigs]);
 
-  const handleExtraFormDataChange = (filterId: string, extraFormData: any) => {
+  const handleExtraFormDataChange = (filter: Filter, extraFormData: any) => {
     setFilterData(prevFilterData => ({
       ...prevFilterData,
-      [filterId]: extraFormData,
+      [filter.id]: extraFormData,
     }));
+
+    if (filter.isInstant) {
+      setExtraFormData(filter.id, extraFormData);
+    }
   };
 
   const handleApply = () => {
     const filterIds = Object.keys(filterData);
     filterIds.forEach(filterId => {
-      setExtraFormData(filterId, filterData[filterId]);
+      if (filterData[filterId]) {
+        setExtraFormData(filterId, filterData[filterId]);
+      }
     });
   };
 
