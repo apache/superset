@@ -672,6 +672,27 @@ CYPRESS_BASE_URL=<your url> npm run cypress open
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset-frontend/cypress_build.sh).
 
+As an alternative you can use docker-compose environment for testing:
+
+Make sure you have added below line to your /etc/hosts file:
+```127.0.0.1 db```
+
+Launch environment:
+
+CYPRESS_CONFIG=true docker-compose up
+
+It will serve backend and frontend on port 8088.
+
+Run Cypres tests:
+
+```bash
+cd cypress-base
+npm install
+```
+
+# run tests via headless Chrome browser (requires Chrome 64+)
+npm run cypress-run-chrome
+
 ### Storybook
 
 Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:

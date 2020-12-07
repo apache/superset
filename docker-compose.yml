@@ -24,6 +24,7 @@ x-superset-volumes: &superset-volumes
   - ./superset:/app/superset
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
+  - ./tests:/app/tests
 
 version: "3.7"
 services:
@@ -43,8 +44,6 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
-    volumes:
-      - db_home:/var/lib/postgresql/data
 
   superset:
     env_file: docker/.env
@@ -57,6 +56,8 @@ services:
     user: "root"
     depends_on: *superset-depends-on
     volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 
   superset-init:
     image: *superset-image
@@ -66,6 +67,8 @@ services:
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 
   superset-node:
     image: node:12
