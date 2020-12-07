@@ -19,7 +19,6 @@
 import { TABBED_DASHBOARD } from './dashboard.helper';
 
 describe('Nativefilters', () => {
-  console.log('hello i ran');
   beforeEach(() => {
     cy.login();
     cy.server();

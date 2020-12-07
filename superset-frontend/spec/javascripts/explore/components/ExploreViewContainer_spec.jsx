@@ -39,7 +39,6 @@ describe('ExploreViewContainer', () => {
   let isFeatureEnabledMock;
 
   jest.spyOn(ReactAll, 'useContext').mockImplementation(() => {
-    console.log('i inside mocked implmentation');
     return {
       store,
       subscription: new Subscription(store),
